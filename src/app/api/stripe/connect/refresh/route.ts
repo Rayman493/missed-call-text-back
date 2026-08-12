@@ -6,12 +6,11 @@ import getStripe from '@/lib/stripe'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
+  console.log('[STRIPE CONNECT REFRESH] Request received')
   try {
-    console.log('[STRIPE CONNECT REFRESH] Refresh request received')
-
     const stripe = getStripe()
     if (!stripe) {
-      console.error('[STRIPE CONNECT REFRESH] Stripe is not configured')
+      console.error('[STRIPE CONNECT REFRESH] stage=stripe_init_failed')
       return NextResponse.json({ error: 'Stripe is not configured' }, { status: 500 })
     }
 
@@ -20,19 +19,22 @@ export async function POST(request: Request) {
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      console.error('[STRIPE CONNECT REFRESH] Auth user error:', userError)
+      console.error('[STRIPE CONNECT REFRESH] stage=auth_failed', { error: userError?.message })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('[STRIPE CONNECT REFRESH] Authenticated user:', user.id)
+    console.log('[STRIPE CONNECT REFRESH] stage=auth_success user_id=', user.id)
 
     // Get business_id from request body
     const body = await request.json()
     const { business_id } = body
 
     if (!business_id) {
+      console.error('[STRIPE CONNECT REFRESH] stage=validation_failed missing=business_id')
       return NextResponse.json({ error: 'business_id is required' }, { status: 400 })
     }
+
+    console.log('[STRIPE CONNECT REFRESH] stage=validation_success business_id=', business_id)
 
     // Get business with Stripe Connect account ID
     const { data: business, error: businessError } = await supabase
@@ -43,26 +45,30 @@ export async function POST(request: Request) {
       .single()
 
     if (businessError || !business) {
-      console.error('[STRIPE CONNECT REFRESH] Business not found or unauthorized')
+      console.error('[STRIPE CONNECT REFRESH] stage=business_lookup_failed', { error: businessError?.message })
       return NextResponse.json({ error: 'Business not found or unauthorized' }, { status: 404 })
     }
 
+    console.log('[STRIPE CONNECT REFRESH] stage=business_lookup_success account_id_present=', !!business.stripe_connect_account_id)
+
     if (!business.stripe_connect_account_id) {
-      console.error('[STRIPE CONNECT REFRESH] No Stripe Connect account ID found')
+      console.error('[STRIPE CONNECT REFRESH] stage=account_id_missing')
       return NextResponse.json({ error: 'No Stripe Connect account found' }, { status: 404 })
     }
 
-    console.log('[STRIPE CONNECT REFRESH] Connected account id:', business.stripe_connect_account_id)
+    console.log('[STRIPE CONNECT REFRESH] stage=stripe_retrieve_started')
 
     // Retrieve Stripe account to get current status
     const account = await stripe.accounts.retrieve(business.stripe_connect_account_id)
 
-    console.log('[STRIPE CONNECT REFRESH] Stripe account details_submitted:', account.details_submitted)
-    console.log('[STRIPE CONNECT REFRESH] Stripe account charges_enabled:', account.charges_enabled)
-    console.log('[STRIPE CONNECT REFRESH] Stripe account payouts_enabled:', account.payouts_enabled)
-    console.log('[STRIPE CONNECT REFRESH] Stripe account requirements.currently_due:', account.requirements?.currently_due)
-    console.log('[STRIPE CONNECT REFRESH] Stripe account requirements.eventually_due:', account.requirements?.eventually_due)
-    console.log('[STRIPE CONNECT REFRESH] Stripe account requirements.disabled_reason:', account.requirements?.disabled_reason)
+    console.log('[STRIPE CONNECT REFRESH] stage=stripe_retrieve_success', {
+      details_submitted: account.details_submitted,
+      charges_enabled: account.charges_enabled,
+      payouts_enabled: account.payouts_enabled,
+      currently_due_count: account.requirements?.currently_due?.length ?? 0,
+      eventually_due_count: account.requirements?.eventually_due?.length ?? 0,
+      disabled_reason: account.requirements?.disabled_reason,
+    })
 
     // Determine canonical status
     let canonicalStatus = 'not_connected'
@@ -82,6 +88,8 @@ export async function POST(request: Request) {
       canonicalStatus = 'setup_incomplete'
     }
 
+    console.log('[STRIPE CONNECT REFRESH] stage=canonical_status_determined canonical_status=', canonicalStatus)
+
     const updateData = {
       stripe_connect_status: canonicalStatus,
       stripe_details_submitted: account.details_submitted,
@@ -89,7 +97,7 @@ export async function POST(request: Request) {
       stripe_payouts_enabled: account.payouts_enabled,
     }
 
-    console.log('[STRIPE CONNECT REFRESH] Writing to businesses table:', updateData)
+    console.log('[STRIPE CONNECT REFRESH] stage=database_update_started')
 
     // Update business with current status
     const { error: updateError } = await supabase
@@ -98,11 +106,11 @@ export async function POST(request: Request) {
       .eq('id', business_id)
 
     if (updateError) {
-      console.error('[STRIPE CONNECT REFRESH] Failed to update business:', updateError)
+      console.error('[STRIPE CONNECT REFRESH] stage=database_update_failed', { error: updateError.message })
       return NextResponse.json({ error: 'Failed to update business' }, { status: 500 })
     }
 
-    console.log('[STRIPE CONNECT REFRESH] Business row updated')
+    console.log('[STRIPE CONNECT REFRESH] stage=database_update_success')
 
     return NextResponse.json({
       success: true,
@@ -113,7 +121,7 @@ export async function POST(request: Request) {
       details_submitted: account.details_submitted,
     })
   } catch (error: any) {
-    console.error('[STRIPE CONNECT REFRESH] Error:', error)
+    console.error('[STRIPE CONNECT REFRESH] stage=unhandled_error', { error: error?.message, stack: error?.stack })
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to refresh status' },
       { status: 500 }

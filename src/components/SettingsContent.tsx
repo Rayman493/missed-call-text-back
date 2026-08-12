@@ -1164,9 +1164,7 @@ export default function SettingsContent() {
           setStripeConnectLoading(true)
           setStripeConnectLoadingMessage('Checking Stripe connection')
           setStripeStatusChecking(true)
-          console.log('[STRIPE CONNECT] status_refresh_started=true')
           await refreshStripeStatus()
-          console.log('[STRIPE CONNECT] status_refresh_completed=true')
         }
       } else {
         throw new Error('No onboarding URL returned')
@@ -1240,7 +1238,7 @@ export default function SettingsContent() {
 
       if (response.ok) {
         const data = await response.json()
-        console.log('[STRIPE CONNECT] status_refresh_completed=true', {
+        console.log('[STRIPE CONNECT] status_refresh_succeeded=true', {
           canonicalStatus: data.canonicalStatus,
           charges_enabled: data.charges_enabled,
           details_submitted: data.details_submitted,
@@ -1254,10 +1252,18 @@ export default function SettingsContent() {
           performBoundedRecheck()
         }
       } else {
-        console.error('[STRIPE CONNECT] Failed to refresh status')
+        const errorText = await response.text()
+        console.error('[STRIPE CONNECT] status_refresh_failed=true', {
+          http_status: response.status,
+          error_body: errorText
+        })
+        showToast(`Failed to refresh Stripe status (${response.status})`, 'error')
       }
     } catch (error) {
-      console.error('[STRIPE CONNECT] Error refreshing status:', error)
+      console.error('[STRIPE CONNECT] status_refresh_failed=true', {
+        error: error instanceof Error ? error.message : String(error)
+      })
+      showToast('Failed to refresh Stripe status', 'error')
     } finally {
       setStripeStatusChecking(false)
     }
