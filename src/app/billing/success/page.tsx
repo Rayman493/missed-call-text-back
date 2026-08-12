@@ -46,6 +46,9 @@ export default function BillingSuccessPage() {
 
   // IMMEDIATE RECOVERY CHECK - Execute before any other logic or UI rendering
   // This ensures native iOS return-to-app handoff happens immediately, not after session retries
+  const [showNativeReturn, setShowNativeReturn] = useState(false)
+  const [nativeReturnAttempted, setNativeReturnAttempted] = useState(false)
+
   useEffect(() => {
     if (!sessionId) return
 
@@ -63,16 +66,22 @@ export default function BillingSuccessPage() {
     })
 
     if (shouldRecover) {
-      console.log('[BILLING RETURN] Native app checkout detected, attempting immediate app return')
-
-      const deepLinkUrl = `replyflow://billing/success?session_id=${sessionId}&recovery=1`
-      console.log('[BILLING RETURN] Redirecting to deep-link:', deepLinkUrl)
-      console.log('[BILLING RETURN] This will trigger appUrlOpen and return to Capacitor WebView')
-
-      window.location.href = deepLinkUrl
+      console.log('[BILLING RETURN] Native app checkout detected, showing return button')
+      // SFSafariViewController does NOT permit programmatic custom-scheme navigation
+      // Show a user-tappable button instead
+      setShowNativeReturn(true)
       return
     }
   }, [sessionId])
+
+  const handleNativeReturn = () => {
+    if (!sessionId) return
+
+    setNativeReturnAttempted(true)
+    const deepLinkUrl = `replyflow://billing/success?session_id=${sessionId}&recovery=1`
+    console.log('[BILLING RETURN] User tapped return button, navigating to deep-link:', deepLinkUrl)
+    window.location.href = deepLinkUrl
+  }
 
   // Log execution context for diagnostics
   useEffect(() => {
@@ -280,6 +289,45 @@ export default function BillingSuccessPage() {
       return () => clearTimeout(timer)
     }
   }, [status?.readyForReauth])
+
+  // NATIVE IOS RETURN UI - Show when return_to_app=1 is present
+  // SFSafariViewController does NOT permit programmatic custom-scheme navigation
+  // User must tap a button to trigger the deep-link
+  if (showNativeReturn) {
+    return (
+      <PageBackground>
+        <div className="flex items-center justify-center px-4 min-h-screen">
+          <div className="max-w-md w-full mx-auto text-center">
+            {/* Success Icon */}
+            <div className="w-20 h-20 bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-green-500/20">
+              <svg className="w-10 h-10 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+
+            {/* Success Message */}
+            <h1 className="text-3xl font-bold text-foreground mb-3">Payment successful!</h1>
+            <p className="text-muted-foreground text-lg mb-8">
+              Your ReplyFlow account is ready.
+            </p>
+
+            {/* Return Button */}
+            <a
+              href={`replyflow://billing/success?session_id=${sessionId}&recovery=1`}
+              onClick={handleNativeReturn}
+              className="inline-flex items-center justify-center rounded-lg bg-amber-600 hover:bg-amber-700 px-8 py-4 text-sm font-semibold text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 w-full transition-colors"
+            >
+              {nativeReturnAttempted ? 'Opening ReplyFlow...' : 'Return to ReplyFlow'}
+            </a>
+
+            <p className="text-muted-foreground text-sm mt-4">
+              Tap the button to return to the app and finish setup.
+            </p>
+          </div>
+        </div>
+      </PageBackground>
+    )
+  }
 
   // Show success state when subscription is ready
   if (status?.readyForReauth) {
