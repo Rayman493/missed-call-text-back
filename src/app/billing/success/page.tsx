@@ -68,6 +68,15 @@ export default function BillingSuccessPage() {
       console.log('[BILLING RETURN] Native app checkout detected, showing return button')
       // Show a user-tappable Universal Link button for cross-host return
       setShowNativeReturn(true)
+
+      // Diagnostic: log the exact href that will be rendered
+      const buttonHref = `https://links.replyflowhq.com/billing/success?session_id=${sessionId}&return_to_app=1&user_return=1`
+      console.log('[IOS RETURN CTA] rendered button href', {
+        href: buttonHref,
+        hasSessionId: !!sessionId,
+        sessionIdPrefix: sessionId?.substring(0, 10) + '...',
+        timestamp: Date.now()
+      })
       return
     }
   }, [sessionId])
@@ -303,6 +312,13 @@ export default function BillingSuccessPage() {
             {/* Return Button - uses cross-host HTTPS Universal Link for reliable iOS return */}
             <a
               href={`https://links.replyflowhq.com/billing/success?session_id=${sessionId}&return_to_app=1&user_return=1`}
+              onClick={(e) => {
+                // Diagnostic logging to verify button click reaches React
+                console.log('[IOS RETURN CTA] clicked=true')
+                console.log('[IOS RETURN CTA] target_host=links.replyflowhq.com')
+                console.log('[IOS RETURN CTA] has_session_id', !!sessionId)
+                // Do NOT preventDefault - let anchor navigate normally
+              }}
               className="inline-flex items-center justify-center rounded-lg bg-amber-600 hover:bg-amber-700 px-8 py-4 text-sm font-semibold text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 w-full transition-colors"
             >
               Open ReplyFlow
