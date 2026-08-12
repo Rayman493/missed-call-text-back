@@ -4,5 +4,9 @@
 <dict>
 	<key>com.apple.developer.proximity-reader.payment.acceptance</key>
 	<true/>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:www.replyflowhq.com</string>
+	</array>
 </dict>
 </plist>

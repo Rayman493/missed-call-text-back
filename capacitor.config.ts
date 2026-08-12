@@ -11,9 +11,9 @@ function validateProductionUrl(url: string): string {
   }
 
   // In production, only allow known production hosts
+  // NOTE: Must use www.replyflowhq.com for Universal Links compatibility
   const allowedProductionHosts = [
     'www.replyflowhq.com',
-    'replyflowhq.com',
   ];
 
   try {

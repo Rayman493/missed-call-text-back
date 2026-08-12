@@ -230,12 +230,33 @@ function handleDeepLink(url: string) {
     }
 
     // Handle universal/app links (https://www.replyflowhq.com/*)
-    if (urlObj.hostname.includes('replyflowhq.com')) {
-      // Navigate to the route
-      const path = urlObj.pathname + urlObj.search + urlObj.hash;
-      console.log('[Capacitor] Navigating to path:', path);
-      window.location.pathname = path;
-      return;
+    // SECURITY: Only accept exact approved hostname to prevent open redirects
+    const approvedHostname = 'www.replyflowhq.com'
+    if (urlObj.protocol === 'https:' && urlObj.hostname === approvedHostname) {
+      console.log('[UNIVERSAL LINK] Approved hostname detected:', approvedHostname)
+
+      // Special handling for billing/success Universal Link (iOS Stripe checkout return)
+      if (urlObj.pathname === '/billing/success' || urlObj.pathname.startsWith('/billing/success')) {
+        const urlParams = urlObj.searchParams
+        const sessionId = urlParams.get('session_id')
+
+        console.log('[UNIVERSAL LINK] Stripe billing/success detected, has session_id:', !!sessionId)
+
+        // Add recovery marker to prevent duplicate recovery attempts
+        urlParams.set('recovery', '1')
+
+        const recoveredPath = `/billing/success?${urlParams.toString()}`
+        console.log('[UNIVERSAL LINK] Navigating to recovered billing/success with recovery marker')
+
+        window.location.href = recoveredPath
+        return
+      }
+
+      // For other Universal Links, navigate normally
+      const path = urlObj.pathname + urlObj.search + urlObj.hash
+      console.log('[UNIVERSAL LINK] Navigating to path:', path)
+      window.location.pathname = path
+      return
     }
 
     // Unsupported external links - open in system browser

@@ -270,8 +270,9 @@ export const config = {
      * - /terms (public legal page)
      * - /compliance (public legal page)
      * - /api/twilio/* (Twilio webhooks - use signature validation instead)
+     * - /.well-known (Apple AASA and other well-known resources)
      * Feel free to modify this pattern to include more paths.
      */
-    '/((?!_next/static|_next/image|favicon.ico|privacy|terms|compliance|api/twilio).*)',
+    '/((?!_next/static|_next/image|favicon.ico|privacy|terms|compliance|api/twilio|.well-known).*)',
   ],
 }

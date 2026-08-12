@@ -1,16 +1,16 @@
 /**
  * Canonical URL resolver for ReplyFlowHQ
- * 
+ *
  * Ensures consistent URL handling across environments:
- * - Production: https://replyflowhq.com
+ * - Production: https://www.replyflowhq.com (canonical for Universal Links)
  * - Preview: Uses Vercel URL if available
  * - Local Development: http://localhost:3000
  */
 
 export function getAppBaseUrl(): string {
-  // Production: Always use the production domain
+  // Production: Use canonical www hostname for Universal Links compatibility
   if (process.env.NODE_ENV === 'production') {
-    return 'https://replyflowhq.com'
+    return 'https://www.replyflowhq.com'
   }
   
   // Preview/Development: Check for environment variables
