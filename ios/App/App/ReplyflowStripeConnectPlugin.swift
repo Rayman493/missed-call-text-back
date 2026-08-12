@@ -28,7 +28,9 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
   private weak var currentCall: CAPPluginCall?
   private var contextProvider: StripeConnectPresentationContextProvider?
 
-  public func openConnectOnboarding(_ call: CAPPluginCall) {
+  @objc public func openConnectOnboarding(_ call: CAPPluginCall) {
+    print("[STRIPE CONNECT] openConnectOnboarding_entered=true")
+
     // Cancel any existing session before starting a new one
     authSession?.cancel()
     authSession = nil

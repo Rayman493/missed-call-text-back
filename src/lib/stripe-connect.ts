@@ -49,7 +49,7 @@ export async function openStripeConnectOnboarding(url: string): Promise<void> {
       if (result.callbackMatched && result.callbackUrl) {
         console.log('[STRIPE CONNECT] Callback matched, navigating to settings with return marker')
         // Navigate to settings with connect return marker to trigger status refresh
-        window.location.href = `/dashboard/settings?stripe_connect_return=1`
+        window.location.href = '/dashboard/settings?stripe_connect_return=1'
         return
       }
 
@@ -63,9 +63,18 @@ export async function openStripeConnectOnboarding(url: string): Promise<void> {
       console.error('[STRIPE CONNECT] Callback did not match')
       throw new Error('Callback did not match expected path')
     } catch (error) {
-      console.error('[STRIPE CONNECT] Native onboarding session failed:', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error('[STRIPE CONNECT] Native onboarding session failed:', errorMessage)
+
+      // Don't silently fall back for plugin errors - surface them to the user
+      if (errorMessage.includes('does not respond to method call') ||
+          errorMessage.includes('not available') ||
+          errorMessage.includes('not defined')) {
+        throw new Error('Stripe Connect is not available. Please try again.')
+      }
+
+      // For other errors (e.g., user cancellation), fall back to browser navigation
       console.log('[STRIPE CONNECT] Falling back to browser navigation')
-      // Fallback to window.location.href if native session fails
       window.location.href = url
     }
   } else {
