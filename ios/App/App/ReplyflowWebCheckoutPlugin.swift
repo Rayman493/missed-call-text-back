@@ -51,6 +51,13 @@ public class ReplyflowWebCheckoutPlugin: CAPPlugin, CAPBridgedPlugin {
         print("[NATIVE CHECKOUT] session_started=true")
         print("[NATIVE CHECKOUT] iosVersion=\(iosVersion)")
 
+        // Capture the presentation anchor on the main thread before creating the session
+        guard let window = self.bridge?.viewController?.view.window else {
+            print("[NATIVE CHECKOUT] session_start_failed=true")
+            call.reject("Failed to get presentation window - view controller or window not available")
+            return
+        }
+
         // Create ASWebAuthenticationSession - must be stored as property to prevent deallocation
         if #available(iOS 17.4, *) {
             // Use modern HTTPS callback matching for iOS 17.4+
@@ -72,9 +79,9 @@ public class ReplyflowWebCheckoutPlugin: CAPPlugin, CAPBridgedPlugin {
             self.activeSession = session
         }
 
-        // Set presentation context provider
+        // Set presentation context provider with pre-captured window
         if let session = self.activeSession {
-            let contextProvider = WebCheckoutPresentationContextProvider(viewController: self.bridge?.viewController)
+            let contextProvider = WebCheckoutPresentationContextProvider(window: window)
             session.presentationContextProvider = contextProvider
 
             do {
@@ -132,15 +139,16 @@ public class ReplyflowWebCheckoutPlugin: CAPPlugin, CAPBridgedPlugin {
 }
 
 // Dedicated presentation context provider to avoid UIViewController extension warning
+// Captures the window on the main thread before the authentication session needs it
 class WebCheckoutPresentationContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
-    private weak var viewController: UIViewController?
+    private let window: ASPresentationAnchor
 
-    init(viewController: UIViewController?) {
-        self.viewController = viewController
+    init(window: ASPresentationAnchor) {
+        self.window = window
         super.init()
     }
 
     public func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        return viewController?.view.window ?? ASPresentationAnchor()
+        return window
     }
 }

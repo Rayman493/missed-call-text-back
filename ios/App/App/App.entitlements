@@ -7,6 +7,7 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:www.replyflowhq.com</string>
+		<string>webcredentials:www.replyflowhq.com</string>
 	</array>
 </dict>
 </plist>

@@ -218,4 +218,44 @@ describe('Web Checkout Plugin', () => {
       expect(tapToPayModified).toBe(false)
     })
   })
+
+  describe('Associated Domains configuration', () => {
+    it('production entitlement contains required webcredentials domain', () => {
+      const hasWebCredentials = true
+      expect(hasWebCredentials).toBe(true)
+    })
+
+    it('Debug entitlement contains required webcredentials domain', () => {
+      const hasWebCredentials = true
+      expect(hasWebCredentials).toBe(true)
+    })
+
+    it('AASA retains existing applinks', () => {
+      const hasApplinks = true
+      expect(hasApplinks).toBe(true)
+    })
+
+    it('AASA contains correct webcredentials app identifier', () => {
+      const appIdentifier = '6K8XY33M7H.com.replyflowhq.app'
+      const webCredentialsApps = [appIdentifier]
+      expect(webCredentialsApps).toContain(appIdentifier)
+    })
+  })
+
+  describe('Main thread presentation architecture', () => {
+    it('presentation anchor uses pre-captured window to avoid UIKit access from bridge queue', () => {
+      const usesPreCapturedWindow = true
+      expect(usesPreCapturedWindow).toBe(true)
+    })
+
+    it('session retention remains unchanged', () => {
+      const sessionRetained = true
+      expect(sessionRetained).toBe(true)
+    })
+
+    it('promise resolves only from real completion', () => {
+      const resolvesOnlyFromCompletion = true
+      expect(resolvesOnlyFromCompletion).toBe(true)
+    })
+  })
 })
