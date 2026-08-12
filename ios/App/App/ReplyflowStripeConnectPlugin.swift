@@ -67,13 +67,13 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
 
       print("[STRIPE CONNECT] presentation_on_main_thread=true")
 
-      // Get the bridge window
-      guard let bridgeWindow = self.bridge?.viewController?.view.window else {
-        print("[STRIPE CONNECT] captured_window_present=false")
-        self.currentCall?.reject("No window available")
-        return
-      }
-      print("[STRIPE CONNECT] captured_window_present=true")
+      // Diagnostics: check bridge view controller
+      let bridgeVC = self.bridge?.viewController
+      print("[STRIPE CONNECT] bridge_view_controller_present=\(bridgeVC != nil)")
+
+      // Diagnostics: try to get window from bridge VC
+      let bridgeWindow = bridgeVC?.view.window
+      print("[STRIPE CONNECT] bridge_window_present=\(bridgeWindow != nil)")
 
       // Prefer foreground window from connected scenes if bridge window is nil
       var presentationWindow: UIWindow?
@@ -93,6 +93,8 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
           }
         }
       }
+
+      print("[STRIPE CONNECT] captured_window_present=\(presentationWindow != nil)")
 
       guard let window = presentationWindow else {
         print("[STRIPE CONNECT] session_start_failed=true")
@@ -210,12 +212,3 @@ class StripeConnectPresentationContextProvider: NSObject, ASWebAuthenticationPre
         return window
     }
 }
-
-#if compiler(>=5.9)
-@available(iOS 13.0, *)
-extension ReplyflowStripeConnectPlugin: ASWebAuthenticationPresentationContextProviding {
-  public func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-    return self.bridge?.viewController?.view.window ?? ASPresentationAnchor()
-  }
-}
-#endif
