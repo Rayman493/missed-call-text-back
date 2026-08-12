@@ -58,17 +58,45 @@ export async function POST(request: NextRequest) {
     // 3. Retrieve connected Stripe account ID
     const stripeAccountId = business.stripe_connect_account_id
 
+    console.log('[TTP CONNECT GATE] account_id_present=', !!stripeAccountId)
+
     if (!stripeAccountId) {
-      console.error('[TTP API] Stripe Connect account not configured for business:', business.id)
+      console.error('[TTP CONNECT GATE] Stripe Connect account not configured for business:', business.id)
       return NextResponse.json(
         { error: 'Stripe Connect account not configured' },
         { status: 400 }
       )
     }
 
-    // Verify the account is in a usable state
-    if (business.stripe_connect_status !== 'connected') {
-      console.error('[TTP API] Stripe Connect account not in connected state:', business.stripe_connect_status)
+    // Check canonical status for detailed readiness information
+    const canonicalStatus = business.stripe_connect_status
+    const detailsSubmitted = business.stripe_details_submitted
+    const chargesEnabled = business.stripe_charges_enabled
+
+    console.log('[TTP CONNECT GATE] canonical_status=', canonicalStatus)
+    console.log('[TTP CONNECT GATE] details_submitted=', detailsSubmitted)
+    console.log('[TTP CONNECT GATE] charges_enabled=', chargesEnabled)
+    console.log('[TTP CONNECT GATE] ready=', canonicalStatus === 'connected')
+
+    // Use canonical status to provide specific error messages
+    if (canonicalStatus === 'setup_incomplete') {
+      console.error('[TTP CONNECT GATE] Stripe setup incomplete')
+      return NextResponse.json(
+        { error: 'Stripe setup incomplete. Please complete your Stripe account setup.' },
+        { status: 400 }
+      )
+    }
+
+    if (canonicalStatus === 'pending_verification') {
+      console.error('[TTP CONNECT GATE] Stripe verification pending')
+      return NextResponse.json(
+        { error: 'Stripe verification pending. Please wait for Stripe to review your account.' },
+        { status: 400 }
+      )
+    }
+
+    if (canonicalStatus !== 'connected') {
+      console.error('[TTP CONNECT GATE] Stripe Connect account not in connected state:', canonicalStatus)
       return NextResponse.json(
         { error: 'Stripe Connect account not ready' },
         { status: 400 }

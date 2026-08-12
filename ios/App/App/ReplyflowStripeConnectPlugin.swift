@@ -120,6 +120,14 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
         guard let self = self else { return }
 
         if let error = error {
+          print("[STRIPE CONNECT] completion_error_present=true")
+          let nsError = error as NSError
+          print("[STRIPE CONNECT] completion_error_code=\(nsError.code)")
+          print("[STRIPE CONNECT] completion_error_domain=\(nsError.domain)")
+
+          let isCanceled = nsError.code == ASWebAuthenticationSessionError.canceledLogin.rawValue
+          print("[STRIPE CONNECT] user_canceled=\(isCanceled)")
+
           print("[STRIPE CONNECT] Error: \(error.localizedDescription)")
           // Clean up retained objects
           self.authSession = nil
@@ -132,6 +140,7 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
         print("[STRIPE CONNECT] callback_received=true")
 
         guard let callbackURL = callbackURL else {
+          print("[STRIPE CONNECT] callback_url_present=false")
           print("[STRIPE CONNECT] No callback URL")
           // Clean up retained objects
           self.authSession = nil
@@ -141,6 +150,7 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
           return
         }
 
+        print("[STRIPE CONNECT] callback_url_present=true")
         print("[STRIPE CONNECT] Callback received: (host/path only, no params logged)")
 
         // Check if callback matches expected host/path
@@ -155,6 +165,7 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
           print("[STRIPE CONNECT] callback_matched=false")
           self.currentCall?.reject("Callback URL did not match expected path")
         }
+        print("[STRIPE CONNECT] session_dismissed=true")
         // Clean up retained objects
         self.authSession = nil
         self.contextProvider = nil

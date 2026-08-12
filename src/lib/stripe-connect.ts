@@ -34,7 +34,7 @@ export function isNativeIOS(): boolean {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
 }
 
-export async function openStripeConnectOnboarding(url: string): Promise<void> {
+export async function openStripeConnectOnboarding(url: string): Promise<{ completed: boolean; callbackMatched: boolean }> {
   if (isNativeIOS()) {
     console.log('[STRIPE CONNECT] Opening Connect onboarding in native web session (iOS)')
     try {
@@ -45,23 +45,12 @@ export async function openStripeConnectOnboarding(url: string): Promise<void> {
       })
       console.log('[STRIPE CONNECT] Native onboarding session completed:', result)
 
-      // Handle the callback result
-      if (result.callbackMatched && result.callbackUrl) {
-        console.log('[STRIPE CONNECT] callback_matched=true')
-        // Navigate to settings with connect return marker to trigger status refresh
-        window.location.href = '/dashboard/settings?stripe_connect_return=1'
-        return
+      // Return the result directly without navigation
+      // The caller (handleConnectStripe) will handle status refresh
+      return {
+        completed: result.completed,
+        callbackMatched: result.callbackMatched
       }
-
-      if (result.completed) {
-        console.log('[STRIPE CONNECT] completed=true')
-        // Navigate to settings to trigger status refresh
-        window.location.href = '/dashboard/settings?stripe_connect_return=1'
-        return
-      }
-
-      console.error('[STRIPE CONNECT] Callback did not match')
-      throw new Error('Callback did not match expected path')
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       console.error('[STRIPE CONNECT] Native onboarding session failed:', errorMessage)
@@ -73,12 +62,12 @@ export async function openStripeConnectOnboarding(url: string): Promise<void> {
         throw new Error('Stripe Connect is not available. Please try again.')
       }
 
-      // For other errors (e.g., user cancellation), fall back to browser navigation
-      console.log('[STRIPE CONNECT] Falling back to browser navigation')
-      window.location.href = url
+      // For other errors (e.g., user cancellation), throw the error
+      throw error
     }
   } else {
     console.log('[STRIPE CONNECT] Opening Connect onboarding in browser (desktop/web/Android)')
     window.location.href = url
+    return { completed: false, callbackMatched: false }
   }
 }

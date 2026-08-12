@@ -1156,7 +1156,16 @@ export default function SettingsContent() {
         // Hide loading modal when native session presents
         setStripeConnectLoading(false)
         // Use native plugin for iOS, fallback to window.location.href for others
-        await openStripeConnectOnboarding(data.url)
+        const result = await openStripeConnectOnboarding(data.url)
+
+        // After native session completes, show checking state and refresh status
+        if (result.completed || result.callbackMatched) {
+          console.log('[STRIPE CONNECT] Native session completed, refreshing status')
+          setStripeConnectLoading(true)
+          setStripeConnectLoadingMessage('Checking Stripe connection')
+          setStripeStatusChecking(true)
+          await refreshStripeStatus()
+        }
       } else {
         throw new Error('No onboarding URL returned')
       }
@@ -1533,38 +1542,6 @@ export default function SettingsContent() {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [business, stripeStatusChecking])
-
-  // Check URL params for Stripe onboarding return
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const stripeOnboarding = urlParams.get('stripe_onboarding')
-    if (stripeOnboarding === 'complete' && business?.stripe_connect_account_id) {
-      refreshStripeStatus()
-      // Clean up URL
-      window.history.replaceState({}, '', '/dashboard/settings#payments')
-    }
-  }, [business])
-
-  // Check URL params for Stripe Connect native return (iOS 17.4+)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const stripeConnectReturn = urlParams.get('stripe_connect_return')
-    if (stripeConnectReturn === '1') {
-      console.log('[STRIPE CONNECT] callback_resolved=true')
-      // Show checking state immediately
-      setStripeConnectLoading(true)
-      setStripeConnectLoadingMessage('Checking Stripe connection')
-      setStripeStatusChecking(true)
-
-      // Clean up URL
-      window.history.replaceState({}, '', '/dashboard/settings#payments')
-
-      // Trigger authoritative refresh
-      refreshStripeStatus().finally(() => {
-        setStripeConnectLoading(false)
-      })
-    }
-  }, [])
 
   useEffect(() => {
     const activeTab = sectionTabRefs.current[activeSection]
