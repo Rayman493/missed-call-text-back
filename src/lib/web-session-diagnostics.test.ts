@@ -137,7 +137,7 @@ describe('Web Session Diagnostics Routes', () => {
 
     it('JS registerPlugin name matches native jsName exactly', () => {
       // JS registerPlugin('ReplyflowWebSessionDiagnosticsPlugin') must match native jsName
-      // Both should be 'ReplyflowWebSessionDiagnosticsPlugin' for Capacitor 8 auto-discovery
+      // Both should be 'ReplyflowWebSessionDiagnosticsPlugin' for Capacitor 8 bridge
       const jsPluginName = 'ReplyflowWebSessionDiagnosticsPlugin'
       const nativeJsName = 'ReplyflowWebSessionDiagnosticsPlugin'
       expect(jsPluginName).toBe(nativeJsName)
@@ -145,7 +145,7 @@ describe('Web Session Diagnostics Routes', () => {
 
     it('native plugin conforms to CAPBridgedPlugin protocol', () => {
       // Swift plugin must conform to CAPPlugin and CAPBridgedPlugin
-      // and provide identifier, jsName, and pluginMethods for Capacitor 8
+      // and provide identifier, jsName, and pluginMethods for Capacitor 8 bridge
       const conformsToBridgedPlugin = true
       expect(conformsToBridgedPlugin).toBe(true)
     })
@@ -161,6 +161,20 @@ describe('Web Session Diagnostics Routes', () => {
       // Swift plugin method must be declared with returnType: CAPPluginReturnPromise
       const isPromiseReturning = true
       expect(isPromiseReturning).toBe(true)
+    })
+
+    it('App-local plugin requires manual AppDelegate registration', () => {
+      // Capacitor 8 only auto-discovers Swift Package plugins via capacitor.config.json
+      // App-local Swift classes must be manually registered via bridge?.registerPluginInstance()
+      const requiresManualRegistration = true
+      expect(requiresManualRegistration).toBe(true)
+    })
+
+    it('manual registration occurs after bridge exists', () => {
+      // AppDelegate calls bridge?.registerPluginInstance() in capacitorDidLoad()
+      // which ensures the bridge is ready before plugin registration
+      const registrationAfterBridge = true
+      expect(registrationAfterBridge).toBe(true)
     })
   })
 

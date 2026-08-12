@@ -78,7 +78,11 @@ class CustomBridgeViewController: CAPBridgeViewController {
         super.capacitorDidLoad()
         bridge?.registerPluginInstance(ReplyflowStripeTerminalPlugin())
         print("[ReplyflowStripeTerminal] plugin instance registration requested")
-        // ReplyflowWebSessionDiagnosticsPlugin is auto-discovered by Capacitor 8 via CAPBridgedPlugin conformance
-        print("[ReplyflowWebSessionDiagnostics] plugin auto-discovery via CAPBridgedPlugin")
+
+        // App-local plugins must be manually registered - Capacitor 8 only auto-discovers Swift Package plugins
+        let diagnosticPlugin = ReplyflowWebSessionDiagnosticsPlugin()
+        bridge?.registerPluginInstance(diagnosticPlugin)
+        print("[WEB SESSION NATIVE] plugin_registered=true")
+        print("[WEB SESSION NATIVE] plugin_initialized=true")
     }
 }

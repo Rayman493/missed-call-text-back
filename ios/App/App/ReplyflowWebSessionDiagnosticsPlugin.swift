@@ -22,6 +22,13 @@ public class ReplyflowWebSessionDiagnosticsPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "testSessionPreservation", returnType: CAPPluginReturnPromise)
     ]
 
+    #if DEBUG
+    public override init() {
+        super.init()
+        print("[WEB SESSION NATIVE] plugin_class_loaded=true")
+    }
+    #endif
+
     @objc public func testSessionPreservation(_ call: CAPPluginCall) {
         // Get iOS version
         let iosVersion = UIDevice.current.systemVersion
