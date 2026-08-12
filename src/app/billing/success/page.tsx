@@ -46,6 +46,9 @@ export default function BillingSuccessPage() {
   // Session restoration state
   const [sessionRestorationState, setSessionRestorationState] = useState<'checking' | 'restored' | 'missing'>('checking')
 
+  // Track if navigation has occurred to prevent duplicate navigation and infinite polling
+  const [hasNavigated, setHasNavigated] = useState(false)
+
   // IMMEDIATE RECOVERY CHECK - Execute before any other logic or UI rendering
   // This ensures native iOS return-to-app handoff happens immediately, not after session retries
   const [showNativeReturn, setShowNativeReturn] = useState(false)
@@ -57,18 +60,31 @@ export default function BillingSuccessPage() {
     if (!sessionId) return
 
     const currentUrl = typeof window !== 'undefined' ? window.location.href : ''
-    const shouldRecover = shouldTriggerAppRecovery(currentUrl)
+    const urlParams = new URL(currentUrl).searchParams
 
     // Log context for diagnostics
-    const urlParams = new URL(currentUrl).searchParams
     console.log('[BILLING RETURN] Context', {
       hasSessionId: !!sessionId,
       returnToApp: urlParams.has('return_to_app'),
+      nativeCallback: urlParams.has('native_callback'),
       recovery: urlParams.has('recovery'),
-      shouldRecover,
       timestamp: Date.now()
     })
 
+    // NATIVE ASWebAuthenticationSession CALLBACK HANDLING
+    // This handles automatic return from native iOS Stripe checkout
+    // Check this FIRST before recovery logic to avoid misclassification
+    const nativeCallback = urlParams.has('native_callback')
+    if (nativeCallback) {
+      console.log('[NATIVE CHECKOUT] ASWebAuthenticationSession callback detected - automatic return')
+      setIsNativeCallback(true)
+      // Do NOT show recovery button for native callback - it's automatic
+      return
+    }
+
+    // RECOVERY CHECK - SFSafariViewController manual return
+    // Only trigger if NOT native callback (to avoid misclassification)
+    const shouldRecover = shouldTriggerAppRecovery(currentUrl)
     if (shouldRecover) {
       console.log('[BILLING RETURN] Native app checkout detected, showing return button')
       // Show a user-tappable Universal Link button for cross-host return
@@ -82,16 +98,6 @@ export default function BillingSuccessPage() {
         sessionIdPrefix: sessionId?.substring(0, 10) + '...',
         timestamp: Date.now()
       })
-      return
-    }
-
-    // NATIVE ASWebAuthenticationSession CALLBACK HANDLING
-    // This handles automatic return from native iOS Stripe checkout
-    const nativeCallback = urlParams.has('native_callback')
-    if (nativeCallback) {
-      console.log('[NATIVE CHECKOUT] ASWebAuthenticationSession callback detected - automatic return')
-      setIsNativeCallback(true)
-      // Do NOT show recovery button for native callback - it's automatic
       return
     }
   }, [sessionId])
@@ -111,9 +117,11 @@ export default function BillingSuccessPage() {
     })
 
     // Check if localStorage contains auth key (BOOLEAN only, no tokens)
+    // NOTE: This is NOT authoritative - Supabase getSession() is the authoritative source
     const hasAuthKey = typeof localStorage !== 'undefined' && Boolean(localStorage.getItem('sb-auth-token'))
-    console.log('[AUTH STORAGE] LocalStorage auth key', {
+    console.log('[AUTH STORAGE] LocalStorage auth key (NOT authoritative)', {
       hasLocalStorageAuthKey: hasAuthKey,
+      note: 'Supabase getSession() is authoritative for auth status',
       timestamp: Date.now()
     })
   }, [sessionId])
@@ -220,7 +228,7 @@ export default function BillingSuccessPage() {
 
   // Poll checkout status
   useEffect(() => {
-    if (!sessionId || error || isTimeout) return
+    if (!sessionId || error || isTimeout || hasNavigated) return
 
     const pollStatus = async () => {
       try {
@@ -253,10 +261,17 @@ export default function BillingSuccessPage() {
         if (data.ok && ['trialing', 'active'].includes(data.subscriptionStatus)) {
           console.log('[Billing Success] Subscription ready')
 
+          // Prevent duplicate navigation
+          if (hasNavigated) {
+            console.log('[Billing Success] Already navigated, skipping')
+            return
+          }
+
           // Native iOS recovery: Auto-navigate to dashboard instead of showing success page
           const hasRecoveryMarker = typeof window !== 'undefined' && new URL(window.location.href).searchParams.has('recovery')
           if (hasRecoveryMarker && sessionRestorationState === 'restored') {
             console.log('[NAVIGATION] Native iOS recovery verified, auto-navigating to dashboard')
+            setHasNavigated(true)
             window.location.href = '/dashboard?setup=1'
             return
           }
@@ -265,6 +280,7 @@ export default function BillingSuccessPage() {
           if (isNativeCallback && sessionRestorationState === 'restored') {
             console.log('[NATIVE CHECKOUT] checkout_verified=true')
             console.log('[NATIVE CHECKOUT] dashboard_navigation=true')
+            setHasNavigated(true)
             window.location.href = '/dashboard?setup=1'
             return
           }
@@ -275,6 +291,7 @@ export default function BillingSuccessPage() {
             ...data,
             readyForReauth: true
           })
+          // Stop polling for desktop/web since we're showing the success page
           return
         }
 
@@ -289,11 +306,12 @@ export default function BillingSuccessPage() {
     // Initial poll
     pollStatus()
 
-    // Set up polling interval
-    const interval = setInterval(pollStatus, 3000) // Poll every 3 seconds
-
-    return () => clearInterval(interval)
-  }, [sessionId, error, isTimeout, pollCount, router, isNativeCallback, sessionRestorationState])
+    // Set up polling interval - only if not navigated
+    if (!hasNavigated) {
+      const interval = setInterval(pollStatus, 3000) // Poll every 3 seconds
+      return () => clearInterval(interval)
+    }
+  }, [sessionId, error, isTimeout, pollCount, router, isNativeCallback, sessionRestorationState, hasNavigated])
 
   // Timeout handling
   useEffect(() => {

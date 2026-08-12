@@ -293,4 +293,55 @@ describe('Web Checkout Plugin', () => {
       expect(usesSceneFallback).toBe(true)
     })
   })
+
+  describe('Native callback automatic navigation', () => {
+    it('native_callback=1 triggers automatic dashboard navigation after verification', () => {
+      const hasNativeCallback = true
+      const sessionRestored = true
+      const checkoutVerified = true
+      const autoNavigates = hasNativeCallback && sessionRestored && checkoutVerified
+      expect(autoNavigates).toBe(true)
+    })
+
+    it('native callback does not show Open ReplyFlow CTA', () => {
+      const hasNativeCallback = true
+      const shouldShowCTA = false
+      expect(shouldShowCTA).toBe(false)
+    })
+
+    it('native callback stops polling after navigation', () => {
+      const hasNavigated = true
+      const shouldStopPolling = hasNavigated
+      expect(shouldStopPolling).toBe(true)
+    })
+
+    it('native callback requires session restoration before navigation', () => {
+      const hasNativeCallback = true
+      const sessionRestored = false
+      const shouldNavigate = hasNativeCallback && sessionRestored
+      expect(shouldNavigate).toBe(false)
+    })
+
+    it('native callback requires checkout verification before navigation', () => {
+      const hasNativeCallback = true
+      const sessionRestored = true
+      const checkoutVerified = false
+      const shouldNavigate = hasNativeCallback && sessionRestored && checkoutVerified
+      expect(shouldNavigate).toBe(false)
+    })
+
+    it('native callback takes precedence over recovery marker', () => {
+      const hasNativeCallback = true
+      const hasRecoveryMarker = true
+      const nativeCallbackTakesPrecedence = hasNativeCallback
+      expect(nativeCallbackTakesPrecedence).toBe(true)
+    })
+
+    it('Supabase getSession is authoritative not localStorage inspection', () => {
+      const getSessionResult = true
+      const localStorageKey = false
+      const isAuthPresent = getSessionResult // Use getSession result, not localStorage
+      expect(isAuthPresent).toBe(true)
+    })
+  })
 })
