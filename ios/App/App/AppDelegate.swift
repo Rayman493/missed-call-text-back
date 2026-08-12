@@ -79,10 +79,10 @@ class CustomBridgeViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(ReplyflowStripeTerminalPlugin())
         print("[ReplyflowStripeTerminal] plugin instance registration requested")
 
-        // App-local plugins must be manually registered - Capacitor 8 only auto-discovers Swift Package plugins
-        let diagnosticPlugin = ReplyflowWebSessionDiagnosticsPlugin()
-        bridge?.registerPluginInstance(diagnosticPlugin)
-        print("[WEB SESSION NATIVE] plugin_registered=true")
-        print("[WEB SESSION NATIVE] plugin_initialized=true")
+        // Register production web checkout plugin for native iOS Stripe checkout
+        let webCheckoutPlugin = ReplyflowWebCheckoutPlugin()
+        bridge?.registerPluginInstance(webCheckoutPlugin)
+        print("[NATIVE CHECKOUT] plugin_registered=true")
+        print("[NATIVE CHECKOUT] plugin_initialized=true")
     }
 }

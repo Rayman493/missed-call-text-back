@@ -15,10 +15,9 @@ import { Browser } from '@capacitor/browser';
 import { pushService } from '@/lib/push-service';
 import { TerminalBridgeService } from '@/lib/terminal/service';
 
-// Import web session diagnostics for manual iOS testing only
-// This does NOT auto-run - it only registers window.runWebSessionDiagnostic()
-// Module-level import ensures it's available when the bundle loads
-import './web-session-diagnostics';
+// Import production web checkout plugin for native iOS Stripe checkout
+// This provides automatic return-to-app behavior using ASWebAuthenticationSession
+import '@/lib/web-checkout';
 
 /**
  * Validate critical production configuration

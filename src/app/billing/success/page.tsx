@@ -6,6 +6,8 @@ import Link from 'next/link'
 import PageBackground from '@/components/PageBackground'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { shouldTriggerAppRecovery } from '@/lib/billing-recovery'
+import { Capacitor } from '@capacitor/core'
+import ReplyflowWebCheckoutPlugin from '@/lib/web-checkout'
 
 const supabase = createBrowserClient()
 
@@ -48,6 +50,9 @@ export default function BillingSuccessPage() {
   // This ensures native iOS return-to-app handoff happens immediately, not after session retries
   const [showNativeReturn, setShowNativeReturn] = useState(false)
 
+  // Native callback flag - indicates ASWebAuthenticationSession automatic return
+  const [isNativeCallback, setIsNativeCallback] = useState(false)
+
   useEffect(() => {
     if (!sessionId) return
 
@@ -77,6 +82,16 @@ export default function BillingSuccessPage() {
         sessionIdPrefix: sessionId?.substring(0, 10) + '...',
         timestamp: Date.now()
       })
+      return
+    }
+
+    // NATIVE ASWebAuthenticationSession CALLBACK HANDLING
+    // This handles automatic return from native iOS Stripe checkout
+    const nativeCallback = urlParams.has('native_callback')
+    if (nativeCallback) {
+      console.log('[NATIVE CHECKOUT] ASWebAuthenticationSession callback detected - automatic return')
+      setIsNativeCallback(true)
+      // Do NOT show recovery button for native callback - it's automatic
       return
     }
   }, [sessionId])
@@ -115,13 +130,18 @@ export default function BillingSuccessPage() {
           userPresent: !!session?.user,
           timestamp: Date.now()
         })
+
+        // Additional logging for native callback path
+        if (isNativeCallback) {
+          console.log('[NATIVE CHECKOUT] auth_after_return=' + (session ? 'PRESENT' : 'MISSING'))
+        }
       } catch (error) {
         console.error('[AUTH RETURN] getSession error:', error)
       }
     }
 
     checkSessionImmediate()
-  }, [sessionId])
+  }, [sessionId, isNativeCallback])
 
   // Validate session_id
   useEffect(() => {
@@ -241,6 +261,14 @@ export default function BillingSuccessPage() {
             return
           }
 
+          // Native iOS ASWebAuthenticationSession: Auto-navigate to dashboard after successful checkout
+          if (isNativeCallback && sessionRestorationState === 'restored') {
+            console.log('[NATIVE CHECKOUT] checkout_verified=true')
+            console.log('[NATIVE CHECKOUT] dashboard_navigation=true')
+            window.location.href = '/dashboard?setup=1'
+            return
+          }
+
           // Desktop/web: Show success state
           console.log('[Billing Success] Desktop/web: showing success page')
           setStatus({
@@ -265,7 +293,7 @@ export default function BillingSuccessPage() {
     const interval = setInterval(pollStatus, 3000) // Poll every 3 seconds
 
     return () => clearInterval(interval)
-  }, [sessionId, error, isTimeout, pollCount, router])
+  }, [sessionId, error, isTimeout, pollCount, router, isNativeCallback, sessionRestorationState])
 
   // Timeout handling
   useEffect(() => {

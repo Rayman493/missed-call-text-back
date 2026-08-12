@@ -281,9 +281,10 @@ export async function POST(request: Request) {
     
     // Route to dedicated billing success page for smoother post-checkout flow
     // Add return_to_app marker for native iOS app checkouts to enable proper context restoration
-    // This marker is only added when returnToApp=true is sent from the native iOS client
+    // Add native_callback marker for ASWebAuthenticationSession automatic return
     const returnUrlMarker = returnToApp ? '&return_to_app=1' : ''
-    const successUrl = `${siteUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}${returnUrlMarker}`
+    const nativeCallbackMarker = returnToApp ? '&native_callback=1' : ''
+    const successUrl = `${siteUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}${returnUrlMarker}${nativeCallbackMarker}`
     const cancelUrl = `${siteUrl}/dashboard?checkout=cancelled`
     
     console.log('[STRIPE CHECKOUT URLS CONFIGURED]', {
