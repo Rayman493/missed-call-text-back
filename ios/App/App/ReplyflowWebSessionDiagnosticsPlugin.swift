@@ -15,9 +15,14 @@ import Capacitor
 import AuthenticationServices
 
 @objc(ReplyflowWebSessionDiagnosticsPlugin)
-public class ReplyflowWebSessionDiagnosticsPlugin: CAPPlugin {
+public class ReplyflowWebSessionDiagnosticsPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "ReplyflowWebSessionDiagnosticsPlugin"
+    public let jsName = "ReplyflowWebSessionDiagnosticsPlugin"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "testSessionPreservation", returnType: CAPPluginReturnPromise)
+    ]
 
-    @objc func testSessionPreservation(_ call: CAPPluginCall) {
+    @objc public func testSessionPreservation(_ call: CAPPluginCall) {
         // Get iOS version
         let iosVersion = UIDevice.current.systemVersion
         let iosVersionDouble = Double(iosVersion) ?? 15.0
