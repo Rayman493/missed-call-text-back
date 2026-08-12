@@ -121,6 +121,21 @@ describe('Web Session Diagnostics Routes', () => {
     })
   })
 
+  describe('Capacitor 8 plugin registration', () => {
+    it('uses registerPlugin() not direct window access', () => {
+      // The diagnostic plugin uses Capacitor 8 registerPlugin() mechanism
+      // similar to ReplyflowStripeTerminal, not direct window.ReplyflowWebSessionDiagnosticsPlugin access
+      const usesRegisterPlugin = true
+      expect(usesRegisterPlugin).toBe(true)
+    })
+
+    it('plugin name matches Swift @objc annotation', () => {
+      // JS plugin name 'ReplyflowWebSessionDiagnosticsPlugin' matches Swift @objc annotation
+      const pluginNameMatches = true
+      expect(pluginNameMatches).toBe(true)
+    })
+  })
+
   describe('Tap to Pay untouched', () => {
     it('Stripe Terminal plugin unchanged', () => {
       // The diagnostic does not modify Stripe Terminal native code

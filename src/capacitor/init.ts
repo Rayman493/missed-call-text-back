@@ -15,6 +15,11 @@ import { Browser } from '@capacitor/browser';
 import { pushService } from '@/lib/push-service';
 import { TerminalBridgeService } from '@/lib/terminal/service';
 
+// Import web session diagnostics for manual iOS testing only
+// This does NOT auto-run - it only registers window.runWebSessionDiagnostic()
+// Module-level import ensures it's available when the bundle loads
+import './web-session-diagnostics';
+
 /**
  * Validate critical production configuration
  * Fails fast with clear diagnostics if configuration is invalid
@@ -64,16 +69,6 @@ export async function initializeCapacitor() {
 
   // Validate production configuration before initializing plugins
   validateProductionConfiguration();
-
-  // Import web session diagnostics for manual iOS testing only
-  // This does NOT auto-run - it only registers window.runWebSessionDiagnostic()
-  if (Capacitor.getPlatform() === 'ios') {
-    import('./web-session-diagnostics').then(() => {
-      console.log('[WEB SESSION TEST] diagnostic_registered=true');
-    }).catch((err) => {
-      console.log('[WEB SESSION TEST] diagnostic_registration_failed', err);
-    });
-  }
 
   try {
     // Initialize Status Bar

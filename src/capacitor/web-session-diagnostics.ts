@@ -7,7 +7,7 @@
  * It must be manually invoked through console or developer UI.
  */
 
-import { Capacitor } from '@capacitor/core'
+import { Capacitor, registerPlugin } from '@capacitor/core'
 import { createBrowserClient } from '@/lib/supabase/browser'
 
 interface ReplyflowWebSessionDiagnosticsPlugin {
@@ -18,11 +18,8 @@ interface ReplyflowWebSessionDiagnosticsPlugin {
   }>
 }
 
-declare global {
-  interface Window {
-    ReplyflowWebSessionDiagnosticsPlugin?: ReplyflowWebSessionDiagnosticsPlugin
-  }
-}
+// Register plugin using proper Capacitor 8 mechanism
+const ReplyflowWebSessionDiagnosticsPlugin = registerPlugin<ReplyflowWebSessionDiagnosticsPlugin>('ReplyflowWebSessionDiagnosticsPlugin')
 
 /**
  * Run diagnostic test - MANUAL INVOCATION ONLY
@@ -56,8 +53,8 @@ export async function runWebSessionDiagnostic() {
   const hasLocalStorage = typeof window !== 'undefined' && window.localStorage
   console.log('[WEB SESSION TEST] before_local_auth_storage', hasLocalStorage ? 'PRESENT' : 'MISSING')
 
-  // Call native diagnostic
-  const plugin = (window as any).ReplyflowWebSessionDiagnosticsPlugin
+  // Call native diagnostic using proper Capacitor 8 plugin registration
+  const plugin = ReplyflowWebSessionDiagnosticsPlugin
   if (!plugin) {
     console.log('[WEB SESSION TEST] Native plugin not available')
     return
@@ -88,5 +85,12 @@ export async function runWebSessionDiagnostic() {
 // Expose for manual console invocation
 if (typeof window !== 'undefined') {
   ;(window as any).runWebSessionDiagnostic = runWebSessionDiagnostic
+
+  // Log startup diagnostics
+  const platform = Capacitor.getPlatform()
+  const isNative = Capacitor.isNativePlatform()
+  console.log('[WEB SESSION TEST] diagnostic_registered=true')
+  console.log('[WEB SESSION TEST] platform=' + platform)
+  console.log('[WEB SESSION TEST] isNative=' + isNative)
   console.log('[WEB SESSION TEST] Diagnostic available - call window.runWebSessionDiagnostic()')
 }
