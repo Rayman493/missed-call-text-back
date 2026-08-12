@@ -82,5 +82,12 @@ class CustomBridgeViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(webCheckoutPlugin)
         print("[NATIVE CHECKOUT] plugin_registered=true")
         print("[NATIVE CHECKOUT] plugin_initialized=true")
+
+        // Register Stripe Connect onboarding plugin for native iOS Connect flow
+        // This is an App-local plugin and requires manual registration
+        let stripeConnectPlugin = ReplyflowStripeConnectPlugin()
+        bridge?.registerPluginInstance(stripeConnectPlugin)
+        print("[STRIPE CONNECT] plugin_registered=true")
+        print("[STRIPE CONNECT] plugin_initialized=true")
     }
 }

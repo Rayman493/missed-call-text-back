@@ -168,10 +168,17 @@ export async function POST(request: Request) {
     }
 
     // Create account link for onboarding
+    // For native iOS (iOS 17.4+), use HTTPS callback suitable for ASWebAuthenticationSession
+    // For other platforms, use standard return_url with query parameter
+    const isNativeIOS = request.headers.get('user-agent')?.includes('iOS')
+    const return_url = isNativeIOS
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`
+      : `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?stripe_onboarding=complete`
+
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?stripe_onboarding=complete`,
+      return_url,
       type: 'account_onboarding',
     })
 

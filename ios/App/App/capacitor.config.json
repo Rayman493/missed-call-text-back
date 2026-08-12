@@ -47,6 +47,7 @@
 		"CAPNetworkPlugin",
 		"PreferencesPlugin",
 		"PushNotificationsPlugin",
+		"ReplyflowStripeTerminalPlugin",
 		"SplashScreenPlugin",
 		"StatusBarPlugin"
 	]

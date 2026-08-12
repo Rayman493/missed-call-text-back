@@ -64,18 +64,26 @@ export async function POST(request: Request) {
     console.log('[STRIPE CONNECT REFRESH] Stripe account requirements.eventually_due:', account.requirements?.eventually_due)
     console.log('[STRIPE CONNECT REFRESH] Stripe account requirements.disabled_reason:', account.requirements?.disabled_reason)
 
-    // Determine status
-    let stripe_connect_status = 'not_connected'
+    // Determine canonical status
+    let canonicalStatus = 'not_connected'
     if (account.charges_enabled && account.details_submitted) {
-      stripe_connect_status = 'connected'
+      canonicalStatus = 'connected'
     } else if (account.details_submitted) {
-      stripe_connect_status = 'pending'
+      // Check if there are pending requirements or verification
+      const hasPendingRequirements = (account.requirements?.currently_due?.length ?? 0) > 0 ||
+                                     (account.requirements?.eventually_due?.length ?? 0) > 0
+      const isPendingVerification = account.requirements?.disabled_reason?.includes('pending_verification')
+      if (hasPendingRequirements || isPendingVerification) {
+        canonicalStatus = 'pending_verification'
+      } else {
+        canonicalStatus = 'setup_incomplete'
+      }
     } else if (business.stripe_connect_account_id) {
-      stripe_connect_status = 'pending'
+      canonicalStatus = 'setup_incomplete'
     }
 
     const updateData = {
-      stripe_connect_status,
+      stripe_connect_status: canonicalStatus,
       stripe_details_submitted: account.details_submitted,
       stripe_charges_enabled: account.charges_enabled,
       stripe_payouts_enabled: account.payouts_enabled,
@@ -98,7 +106,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      stripe_connect_status,
+      canonicalStatus,
+      stripe_connect_status: canonicalStatus,
       charges_enabled: account.charges_enabled,
       payouts_enabled: account.payouts_enabled,
       details_submitted: account.details_submitted,

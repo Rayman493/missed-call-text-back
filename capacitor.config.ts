@@ -96,6 +96,17 @@ const config: CapacitorConfig = {
       debug: !isProduction,
     },
   },
+} as CapacitorConfig & {
+  packageClassList?: string[]
 };
 
-export default config;
+// Add packageClassList for local plugins that require manual registration
+// Swift Package plugins should auto-discover, but we include them here as a fallback
+const configWithPackageClassList = {
+  ...config,
+  packageClassList: [
+    'ReplyflowStripeTerminalPlugin',
+  ],
+};
+
+export default configWithPackageClassList;

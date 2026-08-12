@@ -37,6 +37,7 @@ import {
 import { hasActiveSubscription } from '@/lib/subscription-utils'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
+import { openStripeConnectOnboarding } from '@/lib/stripe-connect'
 import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
@@ -470,6 +471,7 @@ export default function SettingsContent() {
 
   // Stripe Connect state
   const [isConnectingStripe, setIsConnectingStripe] = useState(false)
+  const [stripeStatusChecking, setStripeStatusChecking] = useState(false)
   const isStripeConnectUnavailable = process.env.NEXT_PUBLIC_STRIPE_CONNECT_ENABLED === 'false'
 
   const supabase = createBrowserClient()
@@ -1111,6 +1113,7 @@ export default function SettingsContent() {
     }
 
     setIsConnectingStripe(true)
+    setStripeStatusChecking(false) // Reset checking state
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -1139,12 +1142,13 @@ export default function SettingsContent() {
       }
 
       const data = await response.json()
-      
+
       if (data.connected) {
         showToast('Stripe already connected', 'success')
         refreshBusiness()
       } else if (data.url) {
-        window.location.href = data.url
+        // Use native plugin for iOS, fallback to window.location.href for others
+        await openStripeConnectOnboarding(data.url)
       } else {
         throw new Error('No onboarding URL returned')
       }
@@ -1201,6 +1205,7 @@ export default function SettingsContent() {
     if (!business?.stripe_connect_account_id) return
 
     try {
+      setStripeStatusChecking(true)
       const response = await fetch('/api/stripe/connect/refresh', {
         method: 'POST',
         headers: {
@@ -1217,6 +1222,8 @@ export default function SettingsContent() {
       }
     } catch (error) {
       console.error('[STRIPE CONNECT] Error refreshing status:', error)
+    } finally {
+      setStripeStatusChecking(false)
     }
   }
 
@@ -1439,6 +1446,19 @@ export default function SettingsContent() {
       window.history.replaceState({}, '', '/dashboard/settings#payments')
     }
   }, [business])
+
+  // Check URL params for Stripe Connect native return (iOS 17.4+)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const stripeConnectReturn = urlParams.get('stripe_connect_return')
+    if (stripeConnectReturn === '1') {
+      console.log('[Settings] Stripe Connect native return detected, refreshing status')
+      setStripeStatusChecking(true)
+      refreshStripeStatus()
+      // Clean up URL
+      window.history.replaceState({}, '', '/dashboard/settings#payments')
+    }
+  }, [])
 
   useEffect(() => {
     const activeTab = sectionTabRefs.current[activeSection]
@@ -2951,6 +2971,11 @@ export default function SettingsContent() {
                             <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
                               <span className="w-1 h-1 bg-green-500 rounded-full" />
                               Connected
+                            </span>
+                          ) : stripeStatusChecking ? (
+                            <span className="text-xs px-2.5 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium flex items-center gap-2">
+                              <span className="w-1 h-1 bg-blue-500 rounded-full animate-pulse" />
+                              Checking...
                             </span>
                           ) : business?.stripe_connect_account_id && business?.stripe_details_submitted && !business?.stripe_charges_enabled ? (
                             <span className="text-xs px-2.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full font-medium flex items-center gap-1.5">
