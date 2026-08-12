@@ -2,7 +2,6 @@ import UIKit
 import Capacitor
 import WebKit
 import ReplyflowStripeTerminal
-import ReplyflowWebSessionDiagnostics
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
