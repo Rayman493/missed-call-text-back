@@ -87,6 +87,10 @@ export default function SettingsContent() {
   const [deletePasswordError, setDeletePasswordError] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
   const [isOpeningPortal, setIsOpeningPortal] = useState(false)
+  // Local state for immediate Stripe Connect status updates
+  const [localStripeStatus, setLocalStripeStatus] = useState<string | null>(null)
+  const [localStripeChargesEnabled, setLocalStripeChargesEnabled] = useState<boolean | null>(null)
+  const [localStripeDetailsSubmitted, setLocalStripeDetailsSubmitted] = useState<boolean | null>(null)
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [activeSection, setActiveSection] = useState('general')
@@ -469,7 +473,10 @@ export default function SettingsContent() {
   // Business phone number cooldown state
   const [phoneCooldown, setPhoneCooldown] = useState<{ inCooldown: boolean; nextAvailableDate: string | null } | null>(null)
 
-  // Stripe Connect state
+  // Use local state if available (immediate refresh), otherwise use business object
+    const stripeChargesEnabled = localStripeChargesEnabled ?? business?.stripe_charges_enabled
+    const stripeDetailsSubmitted = localStripeDetailsSubmitted ?? business?.stripe_details_submitted
+    const stripeStatus = localStripeStatus ?? business?.stripe_connect_status
   const [isConnectingStripe, setIsConnectingStripe] = useState(false)
   const [stripeStatusChecking, setStripeStatusChecking] = useState(false)
   const [stripeConnectLoading, setStripeConnectLoading] = useState(false)
@@ -1243,13 +1250,29 @@ export default function SettingsContent() {
           charges_enabled: data.charges_enabled,
           details_submitted: data.details_submitted,
         })
+
+        // Immediately update local state for UI responsiveness
+        console.log('[STRIPE CONNECT UI] local_status_before=', localStripeStatus)
+        console.log('[STRIPE CONNECT UI] ttp_stripe_ready_before=', stripeChargesEnabled)
+        setLocalStripeStatus(data.canonicalStatus)
+        setLocalStripeChargesEnabled(data.charges_enabled)
+        setLocalStripeDetailsSubmitted(data.details_submitted)
+        console.log('[STRIPE CONNECT UI] local_status_after=', data.canonicalStatus)
+        console.log('[STRIPE CONNECT UI] ttp_stripe_ready_after=', data.charges_enabled)
+
+        // Sync global business object in background
         await refreshBusiness()
+        console.log('[STRIPE CONNECT UI] business_status_after_refresh=', business?.stripe_connect_status)
+
         showToast('Stripe Connect status updated', 'success')
 
         // If status is pending_verification, perform bounded recheck
         if (data.canonicalStatus === 'pending_verification' || data.canonicalStatus === 'setup_incomplete') {
           console.log('[STRIPE CONNECT] Transitional status, starting bounded recheck')
           performBoundedRecheck()
+        } else {
+          // Clear checking state on definitive status
+          console.log('[STRIPE CONNECT UI] checking_state=false')
         }
       } else {
         const errorText = await response.text()
@@ -1257,12 +1280,14 @@ export default function SettingsContent() {
           http_status: response.status,
           error_body: errorText
         })
+        console.log('[STRIPE CONNECT UI] checking_state=false')
         showToast(`Failed to refresh Stripe status (${response.status})`, 'error')
       }
     } catch (error) {
       console.error('[STRIPE CONNECT] status_refresh_failed=true', {
         error: error instanceof Error ? error.message : String(error)
       })
+      console.log('[STRIPE CONNECT UI] checking_state=false')
       showToast('Failed to refresh Stripe status', 'error')
     } finally {
       setStripeStatusChecking(false)
@@ -2762,7 +2787,7 @@ export default function SettingsContent() {
                               )
                             }
                             
-                            if (status === 'supported' && business?.stripe_charges_enabled && appleAccountLinkageState.status === 'linked') {
+                            if (status === 'supported' && stripeChargesEnabled && appleAccountLinkageState.status === 'linked') {
                               return (
                                 <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                                   <span className="w-1 h-1 bg-green-500 rounded-full" />
@@ -2770,8 +2795,8 @@ export default function SettingsContent() {
                                 </span>
                               )
                             }
-                            
-                            if (status === 'supported' && business?.stripe_charges_enabled && appleAccountLinkageState.status === 'not_linked') {
+
+                            if (status === 'supported' && stripeChargesEnabled && appleAccountLinkageState.status === 'not_linked') {
                               return (
                                 <span className="text-xs px-2.5 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium flex items-center gap-1.5">
                                   <span className="w-1 h-1 bg-blue-500 rounded-full" />
@@ -2903,7 +2928,7 @@ export default function SettingsContent() {
                           }
                           
                           // Stripe not connected
-                          if (!business?.stripe_charges_enabled) {
+                          if (!stripeChargesEnabled) {
                             return (
                               <div className="p-2.5 sm:p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                                 <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300">
@@ -3058,7 +3083,7 @@ export default function SettingsContent() {
                           <span className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-full font-medium">
                             Recommended
                           </span>
-                          {business?.stripe_charges_enabled && business?.stripe_details_submitted ? (
+                          {stripeChargesEnabled && stripeDetailsSubmitted ? (
                             <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
                               <span className="w-1 h-1 bg-green-500 rounded-full" />
                               Connected
@@ -3068,7 +3093,7 @@ export default function SettingsContent() {
                               <span className="w-1 h-1 bg-blue-500 rounded-full animate-pulse" />
                               Checking...
                             </span>
-                          ) : business?.stripe_connect_account_id && business?.stripe_details_submitted && !business?.stripe_charges_enabled ? (
+                          ) : business?.stripe_connect_account_id && stripeDetailsSubmitted && !stripeChargesEnabled ? (
                             <span className="text-xs px-2.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full font-medium flex items-center gap-1.5">
                               <span className="w-1 h-1 bg-amber-500 rounded-full" />
                               Verification Pending
@@ -3085,9 +3110,9 @@ export default function SettingsContent() {
                           )}
                         </div>
                         <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                          {business?.stripe_charges_enabled && business?.stripe_details_submitted
+                          {stripeChargesEnabled && stripeDetailsSubmitted
                             ? 'Stripe is ready to accept payments.'
-                            : business?.stripe_connect_account_id && business?.stripe_details_submitted && !business?.stripe_charges_enabled
+                            : business?.stripe_connect_account_id && stripeDetailsSubmitted && !stripeChargesEnabled
                               ? 'Stripe is reviewing your account.'
                               : business?.stripe_connect_account_id
                                 ? 'Finish setting up your Stripe account.'
@@ -3099,21 +3124,21 @@ export default function SettingsContent() {
                           onClick={handleConnectStripe}
                           disabled={isConnectingStripe || isStripeConnectUnavailable}
                           className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
-                            business?.stripe_charges_enabled && business?.stripe_details_submitted
+                            stripeChargesEnabled && stripeDetailsSubmitted
                               ? 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
                               : isStripeConnectUnavailable
                                 ? 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
                                 : 'bg-blue-600 hover:bg-blue-700 text-white'
                           }`}
                         >
-                          {business?.stripe_charges_enabled && business?.stripe_details_submitted 
+                          {stripeChargesEnabled && stripeDetailsSubmitted
                             ? 'Manage Stripe'
-                            : business?.stripe_connect_account_id && business?.stripe_details_submitted && !business?.stripe_charges_enabled
+                            : business?.stripe_connect_account_id && stripeDetailsSubmitted && !stripeChargesEnabled
                               ? 'Verification Pending'
                               : business?.stripe_connect_account_id
                                 ? 'Complete Setup'
-                                : isStripeConnectUnavailable 
-                                  ? 'Unavailable' 
+                                : isStripeConnectUnavailable
+                                  ? 'Unavailable'
                                   : 'Connect'}
                         </button>
                       )}
