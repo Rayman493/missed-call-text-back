@@ -52,7 +52,20 @@ public class ReplyflowWebCheckoutPlugin: CAPPlugin, CAPBridgedPlugin {
         print("[NATIVE CHECKOUT] iosVersion=\(iosVersion)")
 
         // Capture the presentation anchor on the main thread before creating the session
-        guard let window = self.bridge?.viewController?.view.window else {
+        // Capacitor plugin methods may execute on bridge queue, so we must dispatch to main thread
+        var capturedWindow: ASPresentationAnchor?
+        let dispatchGroup = DispatchGroup()
+
+        dispatchGroup.enter()
+        DispatchQueue.main.async {
+            capturedWindow = self.bridge?.viewController?.view.window
+            dispatchGroup.leave()
+        }
+
+        // Wait for window capture to complete
+        dispatchGroup.wait()
+
+        guard let window = capturedWindow else {
             print("[NATIVE CHECKOUT] session_start_failed=true")
             call.reject("Failed to get presentation window - view controller or window not available")
             return
@@ -84,14 +97,17 @@ public class ReplyflowWebCheckoutPlugin: CAPPlugin, CAPBridgedPlugin {
             let contextProvider = WebCheckoutPresentationContextProvider(window: window)
             session.presentationContextProvider = contextProvider
 
-            do {
-                try session.start()
-                print("[NATIVE CHECKOUT] session_presented=true")
-                // DO NOT resolve promise here - wait for callback
-                // The promise is resolved in handleCompletion when the callback fires
-            } catch {
-                print("[NATIVE CHECKOUT] session_start_failed=true")
-                call.reject("Failed to start ASWebAuthenticationSession: \(error.localizedDescription)")
+            // Start the session on the main thread
+            DispatchQueue.main.async {
+                do {
+                    try session.start()
+                    print("[NATIVE CHECKOUT] session_presented=true")
+                    // DO NOT resolve promise here - wait for callback
+                    // The promise is resolved in handleCompletion when the callback fires
+                } catch {
+                    print("[NATIVE CHECKOUT] session_start_failed=true")
+                    call.reject("Failed to start ASWebAuthenticationSession: \(error.localizedDescription)")
+                }
             }
         } else {
             print("[NATIVE CHECKOUT] session_creation_failed=true")
