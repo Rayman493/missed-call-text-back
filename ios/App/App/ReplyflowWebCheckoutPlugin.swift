@@ -26,6 +26,12 @@ public class ReplyflowWebCheckoutPlugin: CAPPlugin, CAPBridgedPlugin {
     // Retain ASWebAuthenticationSession to prevent deallocation during checkout
     private var activeSession: ASWebAuthenticationSession?
 
+    // Retain presentation context provider to prevent deallocation
+    private var contextProvider: WebCheckoutPresentationContextProvider?
+
+    // Guard against double promise resolution
+    private var completionCalled = false
+
     #if DEBUG
     public override init() {
         super.init()
@@ -34,6 +40,9 @@ public class ReplyflowWebCheckoutPlugin: CAPPlugin, CAPBridgedPlugin {
     #endif
 
     @objc public func openCheckoutSession(_ call: CAPPluginCall) {
+        // Reset completion guard
+        completionCalled = false
+
         // Get parameters
         guard let checkoutUrl = call.getString("url") else {
             call.reject("Missing required parameter: url")
@@ -51,103 +60,167 @@ public class ReplyflowWebCheckoutPlugin: CAPPlugin, CAPBridgedPlugin {
         print("[NATIVE CHECKOUT] session_started=true")
         print("[NATIVE CHECKOUT] iosVersion=\(iosVersion)")
 
-        // Capture the presentation anchor on the main thread before creating the session
-        // Capacitor plugin methods may execute on bridge queue, so we must dispatch to main thread
-        var capturedWindow: ASPresentationAnchor?
-        let dispatchGroup = DispatchGroup()
-
-        dispatchGroup.enter()
-        DispatchQueue.main.async {
-            capturedWindow = self.bridge?.viewController?.view.window
-            dispatchGroup.leave()
-        }
-
-        // Wait for window capture to complete
-        dispatchGroup.wait()
-
-        guard let window = capturedWindow else {
-            print("[NATIVE CHECKOUT] session_start_failed=true")
-            call.reject("Failed to get presentation window - view controller or window not available")
-            return
-        }
-
-        // Create ASWebAuthenticationSession - must be stored as property to prevent deallocation
-        if #available(iOS 17.4, *) {
-            // Use modern HTTPS callback matching for iOS 17.4+
-            let session = ASWebAuthenticationSession(
-                url: URL(string: checkoutUrl)!,
-                callback: .https(host: callbackHost, path: callbackPath)
-            ) { callbackURL, error in
-                self.handleCompletion(callbackURL: callbackURL, error: error, iosVersion: iosVersion, call: call)
+        // Perform all UIKit-dependent setup on the main thread
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else {
+                print("[NATIVE CHECKOUT] session_start_failed=true")
+                call.reject("Plugin instance deallocated")
+                return
             }
-            self.activeSession = session
-        } else {
-            // Fallback to custom scheme for iOS 15.0-17.3
-            let session = ASWebAuthenticationSession(
-                url: URL(string: checkoutUrl)!,
-                callbackURLScheme: "replyflow"
-            ) { callbackURL, error in
-                self.handleCompletion(callbackURL: callbackURL, error: error, iosVersion: iosVersion, call: call)
+
+            // Diagnostics: check bridge view controller
+            let bridgeVC = self.bridge?.viewController
+            print("[NATIVE CHECKOUT] bridge_view_controller_present=\(bridgeVC != nil)")
+
+            // Diagnostics: try to get window from bridge VC
+            let bridgeWindow = bridgeVC?.view.window
+            print("[NATIVE CHECKOUT] bridge_window_present=\(bridgeWindow != nil)")
+
+            // Prefer foreground window from connected scenes if bridge window is nil
+            var presentationWindow: UIWindow?
+
+            if let bridgeWindow = bridgeWindow {
+                presentationWindow = bridgeWindow
+                print("[NATIVE CHECKOUT] using_bridge_window=true")
+            } else {
+                // Fallback to key window from connected scenes
+                for scene in UIApplication.shared.connectedScenes {
+                    if let windowScene = scene as? UIWindowScene, windowScene.activationState == .foregroundActive {
+                        if let window = windowScene.windows.first {
+                            presentationWindow = window
+                            print("[NATIVE CHECKOUT] using_scene_window=true")
+                            break
+                        }
+                    }
+                }
             }
+
+            print("[NATIVE CHECKOUT] captured_window_present=\(presentationWindow != nil)")
+
+            guard let window = presentationWindow else {
+                print("[NATIVE CHECKOUT] session_start_failed=true")
+                print("[NATIVE CHECKOUT] presentation_on_main_thread=true")
+                call.reject("Failed to get presentation window - no valid window found")
+                return
+            }
+
+            print("[NATIVE CHECKOUT] presentation_on_main_thread=true")
+            print("[NATIVE CHECKOUT] window_is_key=\(window.isKeyWindow)")
+
+            // Create presentation context provider
+            let provider = WebCheckoutPresentationContextProvider(window: window)
+            self.contextProvider = provider
+            print("[NATIVE CHECKOUT] provider_retained=true")
+
+            // Create ASWebAuthenticationSession
+            var session: ASWebAuthenticationSession?
+
+            if #available(iOS 17.4, *) {
+                // Use modern HTTPS callback matching for iOS 17.4+
+                session = ASWebAuthenticationSession(
+                    url: URL(string: checkoutUrl)!,
+                    callback: .https(host: callbackHost, path: callbackPath)
+                ) { [weak self] callbackURL, error in
+                    self?.handleCompletion(callbackURL: callbackURL, error: error, iosVersion: iosVersion, call: call)
+                }
+            } else {
+                // Fallback to custom scheme for iOS 15.0-17.3
+                session = ASWebAuthenticationSession(
+                    url: URL(string: checkoutUrl)!,
+                    callbackURLScheme: "replyflow"
+                ) { [weak self] callbackURL, error in
+                    self?.handleCompletion(callbackURL: callbackURL, error: error, iosVersion: iosVersion, call: call)
+                }
+            }
+
             self.activeSession = session
-        }
+            print("[NATIVE CHECKOUT] session_retained=true")
 
-        // Set presentation context provider with pre-captured window
-        if let session = self.activeSession {
-            let contextProvider = WebCheckoutPresentationContextProvider(window: window)
-            session.presentationContextProvider = contextProvider
+            guard let session = session else {
+                print("[NATIVE CHECKOUT] session_creation_failed=true")
+                call.reject("Failed to create ASWebAuthenticationSession")
+                return
+            }
 
-            // Start the session on the main thread
-            DispatchQueue.main.async {
-                do {
-                    try session.start()
+            // Set presentation context provider
+            session.presentationContextProvider = provider
+
+            // Start the session and check return value
+            do {
+                let started = session.start()
+                print("[NATIVE CHECKOUT] session_start_return=\(started)")
+
+                if started {
                     print("[NATIVE CHECKOUT] session_presented=true")
                     // DO NOT resolve promise here - wait for callback
                     // The promise is resolved in handleCompletion when the callback fires
-                } catch {
+                } else {
                     print("[NATIVE CHECKOUT] session_start_failed=true")
-                    call.reject("Failed to start ASWebAuthenticationSession: \(error.localizedDescription)")
+                    // Clean up retained objects
+                    self.activeSession = nil
+                    self.contextProvider = nil
+                    call.reject("ASWebAuthenticationSession.start() returned false")
                 }
+            } catch {
+                print("[NATIVE CHECKOUT] session_start_failed=true")
+                // Clean up retained objects
+                self.activeSession = nil
+                self.contextProvider = nil
+                call.reject("Failed to start ASWebAuthenticationSession: \(error.localizedDescription)")
             }
-        } else {
-            print("[NATIVE CHECKOUT] session_creation_failed=true")
-            call.reject("Failed to create ASWebAuthenticationSession")
         }
     }
 
     private func handleCompletion(callbackURL: URL?, error: Error?, iosVersion: String, call: CAPPluginCall) {
+        // Idempotency guard - prevent double resolution
+        guard !completionCalled else {
+            return
+        }
+        completionCalled = true
+
         print("[NATIVE CHECKOUT] callback_received=true")
         print("[NATIVE CHECKOUT] session_dismissed=true")
 
         // Clear retained session to allow deallocation
         self.activeSession = nil
+        self.contextProvider = nil
 
         var result: [String: Any] = [
-            "completed": true,
             "iosVersion": iosVersion
         ]
 
         if let error = error {
             let nsError = error as NSError
             let isCanceled = nsError.code == ASWebAuthenticationSessionError.canceledLogin.rawValue
+            let errorDomain = nsError.domain
+            let errorCode = String(nsError.code)
+
+            result["completed"] = false
             result["canceled"] = isCanceled
-            result["errorCode"] = String(nsError.code)
+            result["errorCode"] = errorCode
             result["errorMessage"] = nsError.localizedDescription
+
+            print("[NATIVE CHECKOUT] completion_error_domain=\(errorDomain)")
+            print("[NATIVE CHECKOUT] completion_error_code=\(errorCode)")
 
             if isCanceled {
                 print("[NATIVE CHECKOUT] user_canceled=true")
             } else {
                 print("[NATIVE CHECKOUT] session_error=true")
             }
+        } else {
+            result["completed"] = true
         }
 
         if let callbackURL = callbackURL {
             result["callbackMatched"] = true
             result["callbackUrl"] = callbackURL.absoluteString
             print("[NATIVE CHECKOUT] callback_matched=true")
+            print("[NATIVE CHECKOUT] completion_callback_url_present=true")
         } else {
             result["callbackMatched"] = false
             print("[NATIVE CHECKOUT] callback_matched=false")
+            print("[NATIVE CHECKOUT] completion_callback_url_present=false")
         }
 
         call.resolve(result)

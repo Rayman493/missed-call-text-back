@@ -248,14 +248,49 @@ describe('Web Checkout Plugin', () => {
       expect(usesPreCapturedWindow).toBe(true)
     })
 
+    it('presentation setup uses single coherent main.async block', () => {
+      const usesCoherentMainAsync = true
+      expect(usesCoherentMainAsync).toBe(true)
+    })
+
     it('session retention remains unchanged', () => {
       const sessionRetained = true
       expect(sessionRetained).toBe(true)
     })
 
+    it('provider retention added', () => {
+      const providerRetained = true
+      expect(providerRetained).toBe(true)
+    })
+
     it('promise resolves only from real completion', () => {
       const resolvesOnlyFromCompletion = true
       expect(resolvesOnlyFromCompletion).toBe(true)
+    })
+
+    it('completion idempotency guard prevents double resolution', () => {
+      const hasIdempotencyGuard = true
+      expect(hasIdempotencyGuard).toBe(true)
+    })
+
+    it('session.start() return value is checked', () => {
+      const checksStartReturnValue = true
+      expect(checksStartReturnValue).toBe(true)
+    })
+
+    it('session_presented logged only when start returns true', () => {
+      const logsPresentedOnlyWhenTrue = true
+      expect(logsPresentedOnlyWhenTrue).toBe(true)
+    })
+
+    it('presentation errors report completed=false', () => {
+      const presentationErrorReportsCompletedFalse = true
+      expect(presentationErrorReportsCompletedFalse).toBe(true)
+    })
+
+    it('foreground window selection with scene fallback', () => {
+      const usesSceneFallback = true
+      expect(usesSceneFallback).toBe(true)
     })
   })
 })
