@@ -26,11 +26,13 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
 
   private var authSession: ASWebAuthenticationSession?
   private weak var currentCall: CAPPluginCall?
+  private var contextProvider: StripeConnectPresentationContextProvider?
 
   public func openConnectOnboarding(_ call: CAPPluginCall) {
     // Cancel any existing session before starting a new one
     authSession?.cancel()
     authSession = nil
+    contextProvider = nil
 
     guard let url = call.getString("url") else {
       call.reject("URL is required")
@@ -73,15 +75,51 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
       }
       print("[STRIPE CONNECT] captured_window_present=true")
 
+      // Prefer foreground window from connected scenes if bridge window is nil
+      var presentationWindow: UIWindow?
+
+      if let bridgeWindow = bridgeWindow {
+        presentationWindow = bridgeWindow
+        print("[STRIPE CONNECT] using_bridge_window=true")
+      } else {
+        // Fallback to key window from connected scenes
+        for scene in UIApplication.shared.connectedScenes {
+          if let windowScene = scene as? UIWindowScene, windowScene.activationState == .foregroundActive {
+            if let window = windowScene.windows.first {
+              presentationWindow = window
+              print("[STRIPE CONNECT] using_scene_window=true")
+              break
+            }
+          }
+        }
+      }
+
+      guard let window = presentationWindow else {
+        print("[STRIPE CONNECT] session_start_failed=true")
+        self.currentCall?.reject("Failed to get presentation window - no valid window found")
+        return
+      }
+
+      print("[STRIPE CONNECT] presentation_on_main_thread=true")
+      print("[STRIPE CONNECT] window_is_key=\(window.isKeyWindow)")
+
+      // Create presentation context provider
+      let provider = StripeConnectPresentationContextProvider(window: window)
+      self.contextProvider = provider
+      print("[STRIPE CONNECT] provider_retained=true")
+
       // Create and retain the session strongly
       authSession = ASWebAuthenticationSession(
         url: URL(string: url)!,
-        callbackURLScheme: nil
+        callback: .https(host: callbackHost, path: callbackPath)
       ) { [weak self] callbackURL, error in
         guard let self = self else { return }
 
         if let error = error {
           print("[STRIPE CONNECT] Error: \(error.localizedDescription)")
+          // Clean up retained objects
+          self.authSession = nil
+          self.contextProvider = nil
           self.currentCall?.reject(error.localizedDescription)
           self.currentCall = nil
           return
@@ -91,6 +129,9 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
 
         guard let callbackURL = callbackURL else {
           print("[STRIPE CONNECT] No callback URL")
+          // Clean up retained objects
+          self.authSession = nil
+          self.contextProvider = nil
           self.currentCall?.reject("No callback URL")
           self.currentCall = nil
           return
@@ -110,28 +151,36 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
           print("[STRIPE CONNECT] callback_matched=false")
           self.currentCall?.reject("Callback URL did not match expected path")
         }
+        // Clean up retained objects
+        self.authSession = nil
+        self.contextProvider = nil
         self.currentCall = nil
       }
 
-      print("[STRIPE CONNECT] provider_retained=true")
       print("[STRIPE CONNECT] session_retained=true")
 
-      // Use ephemeral session for privacy
-      if #available(iOS 13.0, *) {
-        authSession?.prefersEphemeralWebBrowserSession = false
+      guard let session = authSession else {
+        print("[STRIPE CONNECT] session_creation_failed=true")
+        self.currentCall?.reject("Failed to create ASWebAuthenticationSession")
+        return
       }
 
-      authSession?.presentationContextProvider = self.bridge?.viewController
+      // Set presentation context provider
+      session.presentationContextProvider = provider
 
-      let started = authSession?.start()
-      print("[STRIPE CONNECT] session_start_return=\(started ?? false)")
+      // Start the session and check return value
+      let started = session.start()
+      print("[STRIPE CONNECT] session_start_return=\(started)")
 
-      if started == true {
+      if started {
         print("[STRIPE CONNECT] session_presented=true")
       } else {
         print("[STRIPE CONNECT] session_presented=false")
-        currentCall?.reject("Failed to start authentication session")
-        currentCall = nil
+        // Clean up retained objects
+        self.authSession = nil
+        self.contextProvider = nil
+        self.currentCall?.reject("Failed to start authentication session")
+        self.currentCall = nil
       }
     } else {
       // Fallback for iOS < 17.4
@@ -145,6 +194,21 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
     currentCall = nil
     #endif
   }
+}
+
+// Dedicated presentation context provider to avoid UIViewController extension warning
+// Captures the window on the main thread before the authentication session needs it
+class StripeConnectPresentationContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
+    private let window: ASPresentationAnchor
+
+    init(window: ASPresentationAnchor) {
+        self.window = window
+        super.init()
+    }
+
+    public func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        return window
+    }
 }
 
 #if compiler(>=5.9)
