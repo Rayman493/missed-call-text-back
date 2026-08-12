@@ -28,6 +28,10 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
   private weak var currentCall: CAPPluginCall?
 
   public func openConnectOnboarding(_ call: CAPPluginCall) {
+    // Cancel any existing session before starting a new one
+    authSession?.cancel()
+    authSession = nil
+
     guard let url = call.getString("url") else {
       call.reject("URL is required")
       return
@@ -140,14 +144,6 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
     currentCall?.reject("Stripe Connect onboarding requires iOS 17.4 or later")
     currentCall = nil
     #endif
-  }
-
-  public override func pluginRemove() {
-    // Clean up session when plugin is removed
-    authSession?.cancel()
-    authSession = nil
-    currentCall = nil
-    print("[STRIPE CONNECT] session_dismissed=true (plugin removal)")
   }
 }
 
