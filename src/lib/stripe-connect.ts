@@ -47,14 +47,14 @@ export async function openStripeConnectOnboarding(url: string): Promise<void> {
 
       // Handle the callback result
       if (result.callbackMatched && result.callbackUrl) {
-        console.log('[STRIPE CONNECT] Callback matched, navigating to settings with return marker')
+        console.log('[STRIPE CONNECT] callback_matched=true')
         // Navigate to settings with connect return marker to trigger status refresh
         window.location.href = '/dashboard/settings?stripe_connect_return=1'
         return
       }
 
       if (result.completed) {
-        console.log('[STRIPE CONNECT] Onboarding completed without callback match')
+        console.log('[STRIPE CONNECT] completed=true')
         // Navigate to settings to trigger status refresh
         window.location.href = '/dashboard/settings?stripe_connect_return=1'
         return

@@ -472,6 +472,8 @@ export default function SettingsContent() {
   // Stripe Connect state
   const [isConnectingStripe, setIsConnectingStripe] = useState(false)
   const [stripeStatusChecking, setStripeStatusChecking] = useState(false)
+  const [stripeConnectLoading, setStripeConnectLoading] = useState(false)
+  const [stripeConnectLoadingMessage, setStripeConnectLoadingMessage] = useState('')
   const isStripeConnectUnavailable = process.env.NEXT_PUBLIC_STRIPE_CONNECT_ENABLED === 'false'
 
   const supabase = createBrowserClient()
@@ -1103,7 +1105,7 @@ export default function SettingsContent() {
 
   // Handle Stripe Connect onboarding
   const handleConnectStripe = async () => {
-    if (isStripeConnectUnavailable) {
+    if (isStripeConnectUnavailable || isConnectingStripe) {
       return
     }
 
@@ -1112,8 +1114,12 @@ export default function SettingsContent() {
       return
     }
 
+    // Show loading modal immediately
+    setStripeConnectLoading(true)
+    setStripeConnectLoadingMessage('Opening Stripe')
     setIsConnectingStripe(true)
-    setStripeStatusChecking(false) // Reset checking state
+    setStripeStatusChecking(false)
+
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -1147,6 +1153,8 @@ export default function SettingsContent() {
         showToast('Stripe already connected', 'success')
         refreshBusiness()
       } else if (data.url) {
+        // Hide loading modal when native session presents
+        setStripeConnectLoading(false)
         // Use native plugin for iOS, fallback to window.location.href for others
         await openStripeConnectOnboarding(data.url)
       } else {
@@ -1157,6 +1165,7 @@ export default function SettingsContent() {
       showToast(error instanceof Error ? error.message : 'We couldn\'t connect Stripe. Please try again.', 'error')
     } finally {
       setIsConnectingStripe(false)
+      setStripeConnectLoading(false)
     }
   }
 
@@ -1202,8 +1211,12 @@ export default function SettingsContent() {
 
   // Refresh Stripe Connect status after onboarding return
   const refreshStripeStatus = async () => {
-    if (!business?.stripe_connect_account_id) return
+    if (!business?.id) {
+      console.log('[STRIPE CONNECT] No business ID, skipping refresh')
+      return
+    }
 
+    console.log('[STRIPE CONNECT] status_refresh_started=true')
     try {
       setStripeStatusChecking(true)
       const response = await fetch('/api/stripe/connect/refresh', {
@@ -1211,12 +1224,24 @@ export default function SettingsContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ business_id: business.id })
+        body: JSON.stringify({ business_id: business!.id })
       })
 
       if (response.ok) {
+        const data = await response.json()
+        console.log('[STRIPE CONNECT] status_refresh_completed=true', {
+          canonicalStatus: data.canonicalStatus,
+          charges_enabled: data.charges_enabled,
+          details_submitted: data.details_submitted,
+        })
         await refreshBusiness()
         showToast('Stripe Connect status updated', 'success')
+
+        // If status is pending_verification, perform bounded recheck
+        if (data.canonicalStatus === 'pending_verification' || data.canonicalStatus === 'setup_incomplete') {
+          console.log('[STRIPE CONNECT] Transitional status, starting bounded recheck')
+          performBoundedRecheck()
+        }
       } else {
         console.error('[STRIPE CONNECT] Failed to refresh status')
       }
@@ -1225,6 +1250,55 @@ export default function SettingsContent() {
     } finally {
       setStripeStatusChecking(false)
     }
+  }
+
+  // Bounded recheck for transitional Stripe Connect statuses
+  const performBoundedRecheck = () => {
+    let recheckCount = 0
+    const maxRechecks = 5 // 5 checks * 3 seconds = 15 seconds total
+    const recheckInterval = 3000 // 3 seconds
+
+    const recheck = async () => {
+      if (recheckCount >= maxRechecks) {
+        console.log('[STRIPE CONNECT] Bounded recheck completed, max attempts reached')
+        return
+      }
+
+      recheckCount++
+      console.log(`[STRIPE CONNECT] Bounded recheck attempt ${recheckCount}/${maxRechecks}`)
+
+      try {
+        const response = await fetch('/api/stripe/connect/refresh', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ business_id: business!.id })
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          console.log('[STRIPE CONNECT] Recheck result:', data.canonicalStatus)
+
+          await refreshBusiness()
+
+          // Stop recheck if status stabilizes to connected
+          if (data.canonicalStatus === 'connected') {
+            console.log('[STRIPE CONNECT] Status stabilized to connected, stopping recheck')
+            return
+          }
+
+          // Continue recheck if still transitional
+          if (data.canonicalStatus === 'pending_verification' || data.canonicalStatus === 'setup_incomplete') {
+            setTimeout(recheck, recheckInterval)
+          }
+        }
+      } catch (error) {
+        console.error('[STRIPE CONNECT] Recheck error:', error)
+      }
+    }
+
+    setTimeout(recheck, recheckInterval)
   }
 
   // Delete account handler
@@ -1436,6 +1510,30 @@ export default function SettingsContent() {
     }
   }, [])
 
+  // App resume reconciliation for Stripe Connect
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && business?.stripe_connect_account_id) {
+        // Only refresh if we're on the payments section and have a Connect account
+        const urlParams = new URLSearchParams(window.location.search)
+        const isPaymentsSection = urlParams.get('stripe_connect_return') !== '1' // Don't double-refresh on return
+
+        if (isPaymentsSection && !stripeStatusChecking) {
+          console.log('[STRIPE CONNECT] App resume detected, checking status')
+          // Debounce to avoid multiple refreshes
+          setTimeout(() => {
+            refreshStripeStatus()
+          }, 500)
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [business, stripeStatusChecking])
+
   // Check URL params for Stripe onboarding return
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -1452,11 +1550,19 @@ export default function SettingsContent() {
     const urlParams = new URLSearchParams(window.location.search)
     const stripeConnectReturn = urlParams.get('stripe_connect_return')
     if (stripeConnectReturn === '1') {
-      console.log('[Settings] Stripe Connect native return detected, refreshing status')
+      console.log('[STRIPE CONNECT] callback_resolved=true')
+      // Show checking state immediately
+      setStripeConnectLoading(true)
+      setStripeConnectLoadingMessage('Checking Stripe connection')
       setStripeStatusChecking(true)
-      refreshStripeStatus()
+
       // Clean up URL
       window.history.replaceState({}, '', '/dashboard/settings#payments')
+
+      // Trigger authoritative refresh
+      refreshStripeStatus().finally(() => {
+        setStripeConnectLoading(false)
+      })
     }
   }, [])
 
@@ -2994,7 +3100,13 @@ export default function SettingsContent() {
                           )}
                         </div>
                         <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                          Accept secure credit card payments from customers.
+                          {business?.stripe_charges_enabled && business?.stripe_details_submitted
+                            ? 'Stripe is ready to accept payments.'
+                            : business?.stripe_connect_account_id && business?.stripe_details_submitted && !business?.stripe_charges_enabled
+                              ? 'Stripe is reviewing your account.'
+                              : business?.stripe_connect_account_id
+                                ? 'Finish setting up your Stripe account.'
+                                : 'Accept secure credit card payments from customers.'}
                         </p>
                       </div>
                       {!isConnectingStripe && (
@@ -4213,6 +4325,25 @@ export default function SettingsContent() {
                     Switch to Business Number
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Stripe Connect Loading Modal */}
+          {stripeConnectLoading && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-4">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl">
+                <div className="flex justify-center mb-4">
+                  <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
+                  {stripeConnectLoadingMessage}
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {stripeConnectLoadingMessage === 'Opening Stripe'
+                    ? 'Securely connecting your Stripe account...'
+                    : 'Confirming your account with Stripe.'}
+                </p>
               </div>
             </div>
           )}
