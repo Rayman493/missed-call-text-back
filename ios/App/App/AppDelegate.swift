@@ -1,7 +1,6 @@
 import UIKit
 import Capacitor
 import WebKit
-import ReplyflowStripeTerminal
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -76,10 +75,9 @@ class CustomBridgeViewController: CAPBridgeViewController {
 
     override open func capacitorDidLoad() {
         super.capacitorDidLoad()
-        bridge?.registerPluginInstance(ReplyflowStripeTerminalPlugin())
-        print("[ReplyflowStripeTerminal] plugin instance registration requested")
 
         // Register production web checkout plugin for native iOS Stripe checkout
+        // This is an App-local plugin and requires manual registration
         let webCheckoutPlugin = ReplyflowWebCheckoutPlugin()
         bridge?.registerPluginInstance(webCheckoutPlugin)
         print("[NATIVE CHECKOUT] plugin_registered=true")
