@@ -153,19 +153,21 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
         print("[STRIPE CONNECT] callback_url_present=true")
         print("[STRIPE CONNECT] Callback received: (host/path only, no params logged)")
 
+        var result: [String: Any] = [:]
+
         // Check if callback matches expected host/path
         if callbackURL.host == callbackHost && callbackURL.path == callbackPath {
           print("[STRIPE CONNECT] callback_matched=true")
-          self.currentCall?.resolve([
-            "completed": true,
-            "callbackMatched": true,
-            "callbackUrl": callbackURL.absoluteString
-          ])
+          result["completed"] = true
+          result["callbackMatched"] = true
         } else {
           print("[STRIPE CONNECT] callback_matched=false")
-          self.currentCall?.reject("Callback URL did not match expected path")
+          result["completed"] = false
+          result["callbackMatched"] = false
         }
         print("[STRIPE CONNECT] session_dismissed=true")
+
+        self.currentCall?.resolve(result)
         // Clean up retained objects
         self.authSession = nil
         self.contextProvider = nil

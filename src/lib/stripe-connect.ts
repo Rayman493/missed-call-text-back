@@ -43,7 +43,15 @@ export async function openStripeConnectOnboarding(url: string): Promise<{ comple
         callbackHost: 'www.replyflowhq.com',
         callbackPath: '/dashboard/settings'
       })
-      console.log('[STRIPE CONNECT] Native onboarding session completed:', result)
+
+      console.log('[STRIPE CONNECT] native_result_received=true')
+      console.log('[STRIPE CONNECT] native_completed=', result?.completed)
+      console.log('[STRIPE CONNECT] native_callback_matched=', result?.callbackMatched)
+
+      if (!result || result.completed === undefined || result.callbackMatched === undefined) {
+        console.error('[STRIPE CONNECT] Native result is invalid or undefined')
+        throw new Error('Stripe Connect returned an invalid result. Please try again.')
+      }
 
       // Return the result directly without navigation
       // The caller (handleConnectStripe) will handle status refresh

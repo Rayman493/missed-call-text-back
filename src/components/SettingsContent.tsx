@@ -1160,11 +1160,13 @@ export default function SettingsContent() {
 
         // After native session completes, show checking state and refresh status
         if (result.completed || result.callbackMatched) {
-          console.log('[STRIPE CONNECT] Native session completed, refreshing status')
+          console.log('[STRIPE CONNECT] callback_resolved=true')
           setStripeConnectLoading(true)
           setStripeConnectLoadingMessage('Checking Stripe connection')
           setStripeStatusChecking(true)
+          console.log('[STRIPE CONNECT] status_refresh_started=true')
           await refreshStripeStatus()
+          console.log('[STRIPE CONNECT] status_refresh_completed=true')
         }
       } else {
         throw new Error('No onboarding URL returned')
