@@ -35,6 +35,8 @@ export function isNativeIOS(): boolean {
 }
 
 export async function openStripeConnectOnboarding(url: string): Promise<{ completed: boolean; callbackMatched: boolean }> {
+  console.log('[STRIPE CONNECT] web_build_marker=CONNECT_CALL_FIX_2026_08_12')
+
   if (isNativeIOS()) {
     console.log('[STRIPE CONNECT] Opening Connect onboarding in native web session (iOS)')
     try {
@@ -44,6 +46,7 @@ export async function openStripeConnectOnboarding(url: string): Promise<{ comple
         callbackPath: '/dashboard/settings'
       })
 
+      console.log('[STRIPE CONNECT] native_promise_returned=true', { hasResult: !!result })
       console.log('[STRIPE CONNECT] native_result_received=true')
       console.log('[STRIPE CONNECT] native_completed=', result?.completed)
       console.log('[STRIPE CONNECT] native_callback_matched=', result?.callbackMatched)

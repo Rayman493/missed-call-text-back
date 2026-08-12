@@ -25,7 +25,6 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
   ]
 
   private var authSession: ASWebAuthenticationSession?
-  private weak var currentCall: CAPPluginCall?
   private var contextProvider: StripeConnectPresentationContextProvider?
 
   @objc public func openConnectOnboarding(_ call: CAPPluginCall) {
@@ -51,15 +50,12 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
       return
     }
 
-    // Store current call for lifecycle management
-    currentCall = call
-
     DispatchQueue.main.async { [weak self] in
-      self?.openConnectOnboardingNative(url: url, callbackHost: callbackHost, callbackPath: callbackPath)
+      self?.openConnectOnboardingNative(url: url, callbackHost: callbackHost, callbackPath: callbackPath, call: call)
     }
   }
 
-  private func openConnectOnboardingNative(url: String, callbackHost: String, callbackPath: String) {
+  private func openConnectOnboardingNative(url: String, callbackHost: String, callbackPath: String, call: CAPPluginCall) {
     #if compiler(>=5.9)
     print("[STRIPE CONNECT] session_started=true")
 
@@ -100,7 +96,7 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
 
       guard let window = presentationWindow else {
         print("[STRIPE CONNECT] session_start_failed=true")
-        self.currentCall?.reject("Failed to get presentation window - no valid window found")
+        call.reject("Failed to get presentation window - no valid window found")
         return
       }
 
@@ -117,68 +113,14 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
         url: URL(string: url)!,
         callback: .https(host: callbackHost, path: callbackPath)
       ) { [weak self] callbackURL, error in
-        guard let self = self else { return }
-
-        if let error = error {
-          print("[STRIPE CONNECT] completion_error_present=true")
-          let nsError = error as NSError
-          print("[STRIPE CONNECT] completion_error_code=\(nsError.code)")
-          print("[STRIPE CONNECT] completion_error_domain=\(nsError.domain)")
-
-          let isCanceled = nsError.code == ASWebAuthenticationSessionError.canceledLogin.rawValue
-          print("[STRIPE CONNECT] user_canceled=\(isCanceled)")
-
-          print("[STRIPE CONNECT] Error: \(error.localizedDescription)")
-          // Clean up retained objects
-          self.authSession = nil
-          self.contextProvider = nil
-          self.currentCall?.reject(error.localizedDescription)
-          self.currentCall = nil
-          return
-        }
-
-        print("[STRIPE CONNECT] callback_received=true")
-
-        guard let callbackURL = callbackURL else {
-          print("[STRIPE CONNECT] callback_url_present=false")
-          print("[STRIPE CONNECT] No callback URL")
-          // Clean up retained objects
-          self.authSession = nil
-          self.contextProvider = nil
-          self.currentCall?.reject("No callback URL")
-          self.currentCall = nil
-          return
-        }
-
-        print("[STRIPE CONNECT] callback_url_present=true")
-        print("[STRIPE CONNECT] Callback received: (host/path only, no params logged)")
-
-        var result: [String: Any] = [:]
-
-        // Check if callback matches expected host/path
-        if callbackURL.host == callbackHost && callbackURL.path == callbackPath {
-          print("[STRIPE CONNECT] callback_matched=true")
-          result["completed"] = true
-          result["callbackMatched"] = true
-        } else {
-          print("[STRIPE CONNECT] callback_matched=false")
-          result["completed"] = false
-          result["callbackMatched"] = false
-        }
-        print("[STRIPE CONNECT] session_dismissed=true")
-
-        self.currentCall?.resolve(result)
-        // Clean up retained objects
-        self.authSession = nil
-        self.contextProvider = nil
-        self.currentCall = nil
+        self?.handleCompletion(callbackURL: callbackURL, error: error, callbackHost: callbackHost, callbackPath: callbackPath, call: call)
       }
 
       print("[STRIPE CONNECT] session_retained=true")
 
       guard let session = authSession else {
         print("[STRIPE CONNECT] session_creation_failed=true")
-        self.currentCall?.reject("Failed to create ASWebAuthenticationSession")
+        call.reject("Failed to create ASWebAuthenticationSession")
         return
       }
 
@@ -196,20 +138,81 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
         // Clean up retained objects
         self.authSession = nil
         self.contextProvider = nil
-        self.currentCall?.reject("Failed to start authentication session")
-        self.currentCall = nil
+        call.reject("Failed to start authentication session")
       }
     } else {
       // Fallback for iOS < 17.4
       print("[STRIPE CONNECT] iOS version < 17.4, not supported")
-      currentCall?.reject("Stripe Connect onboarding requires iOS 17.4 or later")
-      currentCall = nil
+      call.reject("Stripe Connect onboarding requires iOS 17.4 or later")
     }
     #else
     print("[STRIPE CONNECT] Swift compiler version < 5.9, not supported")
-    currentCall?.reject("Stripe Connect onboarding requires iOS 17.4 or later")
-    currentCall = nil
+    call.reject("Stripe Connect onboarding requires iOS 17.4 or later")
     #endif
+  }
+
+  private func handleCompletion(callbackURL: URL?, error: Error?, callbackHost: String, callbackPath: String, call: CAPPluginCall) {
+    print("[STRIPE CONNECT] call_present_before_resolve=true")
+    print("[STRIPE CONNECT] resolve_attempted=true")
+
+    if let error = error {
+      print("[STRIPE CONNECT] completion_error_present=true")
+      let nsError = error as NSError
+      print("[STRIPE CONNECT] completion_error_code=\(nsError.code)")
+      print("[STRIPE CONNECT] completion_error_domain=\(nsError.domain)")
+
+      let isCanceled = nsError.code == ASWebAuthenticationSessionError.canceledLogin.rawValue
+      print("[STRIPE CONNECT] user_canceled=\(isCanceled)")
+
+      print("[STRIPE CONNECT] Error: \(error.localizedDescription)")
+      // Clean up retained objects
+      self.authSession = nil
+      self.contextProvider = nil
+      call.reject(error.localizedDescription)
+      print("[STRIPE CONNECT] resolve_completed=true")
+      return
+    }
+
+    print("[STRIPE CONNECT] callback_received=true")
+
+    guard let callbackURL = callbackURL else {
+      print("[STRIPE CONNECT] callback_url_present=false")
+      print("[STRIPE CONNECT] No callback URL")
+      // Clean up retained objects
+      self.authSession = nil
+      self.contextProvider = nil
+      call.reject("No callback URL")
+      print("[STRIPE CONNECT] resolve_completed=true")
+      return
+    }
+
+    print("[STRIPE CONNECT] callback_url_present=true")
+    print("[STRIPE CONNECT] Callback received: (host/path only, no params logged)")
+
+    var result: [String: Any] = [:]
+
+    // Check if callback matches expected host/path
+    if callbackURL.host == callbackHost && callbackURL.path == callbackPath {
+      print("[STRIPE CONNECT] callback_matched=true")
+      result["completed"] = true
+      result["callbackMatched"] = true
+      print("[STRIPE CONNECT] resolve_completed_value=true")
+      print("[STRIPE CONNECT] resolve_callback_matched_value=true")
+    } else {
+      print("[STRIPE CONNECT] callback_matched=false")
+      result["completed"] = false
+      result["callbackMatched"] = false
+      print("[STRIPE CONNECT] resolve_completed_value=false")
+      print("[STRIPE CONNECT] resolve_callback_matched_value=false")
+    }
+    print("[STRIPE CONNECT] session_dismissed=true")
+
+    call.resolve(result)
+    print("[STRIPE CONNECT] resolve_completed=true")
+
+    // Clean up retained objects
+    self.authSession = nil
+    self.contextProvider = nil
   }
 }
 
