@@ -33,9 +33,18 @@ function validateProductionConfiguration() {
     return;
   }
 
+  // In Capacitor native environment, NEXT_PUBLIC_* variables are embedded in the bundle
+  // at build time by Next.js and are not available as process.env at runtime.
+  // The actual Supabase client configuration is authoritative.
+  // Skip this runtime process.env check for native clients.
+  if (Capacitor.isNativePlatform()) {
+    console.log('[Config] Native client - skipping runtime process.env validation (values embedded at build time)');
+    return;
+  }
+
   console.log('[Config] Validating production configuration...');
 
-  // Check for required environment variables
+  // Check for required environment variables (server/desktop only)
   const requiredVars = [
     'NEXT_PUBLIC_SUPABASE_URL',
     'NEXT_PUBLIC_SUPABASE_ANON_KEY',

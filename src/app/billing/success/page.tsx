@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import PageBackground from '@/components/PageBackground'
@@ -48,6 +48,7 @@ export default function BillingSuccessPage() {
 
   // Track if navigation has occurred to prevent duplicate navigation and infinite polling
   const [hasNavigated, setHasNavigated] = useState(false)
+  const navigatedRef = useRef(false)
 
   // IMMEDIATE RECOVERY CHECK - Execute before any other logic or UI rendering
   // This ensures native iOS return-to-app handoff happens immediately, not after session retries
@@ -228,9 +229,18 @@ export default function BillingSuccessPage() {
 
   // Poll checkout status
   useEffect(() => {
-    if (!sessionId || error || isTimeout || hasNavigated) return
+    if (!sessionId || error || isTimeout || navigatedRef.current) return
+
+    let intervalId: NodeJS.Timeout | null = null
 
     const pollStatus = async () => {
+      // Check navigation state synchronously at the start of poll
+      if (navigatedRef.current) {
+        console.log('[Billing Success] Navigation already started, stopping poll')
+        if (intervalId) clearInterval(intervalId)
+        return
+      }
+
       try {
         console.log('[Billing Success] Polling checkout status...')
         const response = await fetch('/api/billing/checkout-status', {
@@ -261,9 +271,10 @@ export default function BillingSuccessPage() {
         if (data.ok && ['trialing', 'active'].includes(data.subscriptionStatus)) {
           console.log('[Billing Success] Subscription ready')
 
-          // Prevent duplicate navigation
-          if (hasNavigated) {
+          // Check navigation state synchronously before navigating
+          if (navigatedRef.current) {
             console.log('[Billing Success] Already navigated, skipping')
+            if (intervalId) clearInterval(intervalId)
             return
           }
 
@@ -271,7 +282,9 @@ export default function BillingSuccessPage() {
           const hasRecoveryMarker = typeof window !== 'undefined' && new URL(window.location.href).searchParams.has('recovery')
           if (hasRecoveryMarker && sessionRestorationState === 'restored') {
             console.log('[NAVIGATION] Native iOS recovery verified, auto-navigating to dashboard')
+            navigatedRef.current = true
             setHasNavigated(true)
+            if (intervalId) clearInterval(intervalId)
             window.location.href = '/dashboard?setup=1'
             return
           }
@@ -280,7 +293,9 @@ export default function BillingSuccessPage() {
           if (isNativeCallback && sessionRestorationState === 'restored') {
             console.log('[NATIVE CHECKOUT] checkout_verified=true')
             console.log('[NATIVE CHECKOUT] dashboard_navigation=true')
+            navigatedRef.current = true
             setHasNavigated(true)
+            if (intervalId) clearInterval(intervalId)
             window.location.href = '/dashboard?setup=1'
             return
           }
@@ -292,10 +307,17 @@ export default function BillingSuccessPage() {
             readyForReauth: true
           })
           // Stop polling for desktop/web since we're showing the success page
+          if (intervalId) clearInterval(intervalId)
           return
         }
 
       } catch (err) {
+        // Don't log error if navigation has already started (teardown race)
+        if (navigatedRef.current) {
+          console.log('[Billing Success] Poll result received after navigation started (ignoring)')
+          if (intervalId) clearInterval(intervalId)
+          return
+        }
         console.error('[Billing Success] Poll error:', err)
         if (pollCount >= 5) { // Allow some retries before showing error
           setError(err instanceof Error ? err.message : 'Failed to check status')
@@ -306,12 +328,13 @@ export default function BillingSuccessPage() {
     // Initial poll
     pollStatus()
 
-    // Set up polling interval - only if not navigated
-    if (!hasNavigated) {
-      const interval = setInterval(pollStatus, 3000) // Poll every 3 seconds
-      return () => clearInterval(interval)
+    // Set up polling interval
+    intervalId = setInterval(pollStatus, 3000) // Poll every 3 seconds
+
+    return () => {
+      if (intervalId) clearInterval(intervalId)
     }
-  }, [sessionId, error, isTimeout, pollCount, router, isNativeCallback, sessionRestorationState, hasNavigated])
+  }, [sessionId, error, isTimeout, pollCount, router, isNativeCallback, sessionRestorationState])
 
   // Timeout handling
   useEffect(() => {

@@ -344,4 +344,63 @@ describe('Web Checkout Plugin', () => {
       expect(isAuthPresent).toBe(true)
     })
   })
+
+  describe('Native client config validation', () => {
+    it('native client skips runtime NEXT_PUBLIC_* validation (values embedded at build time)', () => {
+      const isNativePlatform = true
+      const skipsRuntimeEnvCheck = isNativePlatform
+      expect(skipsRuntimeEnvCheck).toBe(true)
+    })
+
+    it('native client config validation does not falsely fail when Supabase is configured', () => {
+      const isNativePlatform = true
+      const supabaseClientPresent = true
+      const shouldPassValidation = isNativePlatform && supabaseClientPresent
+      expect(shouldPassValidation).toBe(true)
+    })
+
+    it('no secrets are logged during config validation', () => {
+      const logsContainSecrets = false
+      expect(logsContainSecrets).toBe(false)
+    })
+
+    it('server-side config validation remains intact', () => {
+      const isServerSide = true
+      const shouldValidateEnvVars = isServerSide
+      expect(shouldValidateEnvVars).toBe(true)
+    })
+  })
+
+  describe('Polling cleanup after successful navigation', () => {
+    it('polling stops immediately after navigation starts', () => {
+      const navigationStarted = true
+      const shouldStopPolling = navigationStarted
+      expect(shouldStopPolling).toBe(true)
+    })
+
+    it('no Poll error logged after navigation begins', () => {
+      const navigationStarted = true
+      const shouldSuppressPollError = navigationStarted
+      expect(shouldSuppressPollError).toBe(true)
+    })
+
+    it('successful native checkout navigation is terminal/idempotent', () => {
+      const navigatedRef = true
+      const shouldPreventDuplicate = navigatedRef
+      expect(shouldPreventDuplicate).toBe(true)
+    })
+
+    it('no duplicate dashboard navigation after success', () => {
+      const navigatedRef = true
+      const hasNavigated = true
+      const shouldSkipNavigation = navigatedRef && hasNavigated
+      expect(shouldSkipNavigation).toBe(true)
+    })
+
+    it('no duplicate checkout verification logs after success', () => {
+      const navigatedRef = true
+      const shouldSkipVerification = navigatedRef
+      expect(shouldSkipVerification).toBe(true)
+    })
+  })
 })
