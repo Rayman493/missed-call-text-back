@@ -47,7 +47,7 @@ export default function BillingSuccessPage() {
   // IMMEDIATE RECOVERY CHECK - Execute before any other logic or UI rendering
   // This ensures native iOS return-to-app handoff happens immediately, not after session retries
   const [showNativeReturn, setShowNativeReturn] = useState(false)
-  const [nativeReturnAttempted, setNativeReturnAttempted] = useState(false)
+  const [returnButtonState, setReturnButtonState] = useState<'idle' | 'opening'>('idle')
 
   useEffect(() => {
     if (!sessionId) return
@@ -74,13 +74,19 @@ export default function BillingSuccessPage() {
     }
   }, [sessionId])
 
-  const handleNativeReturn = () => {
+  const handleReturnButtonTap = () => {
     if (!sessionId) return
 
-    setNativeReturnAttempted(true)
-    const deepLinkUrl = `replyflow://billing/success?session_id=${sessionId}&recovery=1`
-    console.log('[BILLING RETURN] User tapped return button, navigating to deep-link:', deepLinkUrl)
-    window.location.href = deepLinkUrl
+    // Show opening state briefly
+    setReturnButtonState('opening')
+
+    // Reset to idle after a bounded interval if page remains visible
+    // This timeout is only for UI state reset, NOT for inferring payment success
+    const resetTimeout = setTimeout(() => {
+      setReturnButtonState('idle')
+    }, 3000)
+
+    return () => clearTimeout(resetTimeout)
   }
 
   // Log execution context for diagnostics
@@ -311,13 +317,13 @@ export default function BillingSuccessPage() {
               Your ReplyFlow account is ready.
             </p>
 
-            {/* Return Button */}
+            {/* Return Button - uses true user-gesture anchor */}
             <a
               href={`replyflow://billing/success?session_id=${sessionId}&recovery=1`}
-              onClick={handleNativeReturn}
+              onClick={handleReturnButtonTap}
               className="inline-flex items-center justify-center rounded-lg bg-amber-600 hover:bg-amber-700 px-8 py-4 text-sm font-semibold text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 w-full transition-colors"
             >
-              {nativeReturnAttempted ? 'Opening ReplyFlow...' : 'Return to ReplyFlow'}
+              {returnButtonState === 'opening' ? 'Opening ReplyFlow...' : 'Return to ReplyFlow'}
             </a>
 
             <p className="text-muted-foreground text-sm mt-4">
