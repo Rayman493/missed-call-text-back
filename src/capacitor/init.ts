@@ -65,6 +65,16 @@ export async function initializeCapacitor() {
   // Validate production configuration before initializing plugins
   validateProductionConfiguration();
 
+  // Import web session diagnostics for manual iOS testing only
+  // This does NOT auto-run - it only registers window.runWebSessionDiagnostic()
+  if (Capacitor.getPlatform() === 'ios') {
+    import('./web-session-diagnostics').then(() => {
+      console.log('[WEB SESSION TEST] diagnostic_registered=true');
+    }).catch((err) => {
+      console.log('[WEB SESSION TEST] diagnostic_registration_failed', err);
+    });
+  }
+
   try {
     // Initialize Status Bar
     const platform = Capacitor.getPlatform();

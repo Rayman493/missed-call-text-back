@@ -20,7 +20,7 @@ interface ReplyflowWebSessionDiagnosticsPlugin {
 
 declare global {
   interface Window {
-    ReplyflowWebSessionDiagnostics?: ReplyflowWebSessionDiagnosticsPlugin
+    ReplyflowWebSessionDiagnosticsPlugin?: ReplyflowWebSessionDiagnosticsPlugin
   }
 }
 
@@ -57,7 +57,7 @@ export async function runWebSessionDiagnostic() {
   console.log('[WEB SESSION TEST] before_local_auth_storage', hasLocalStorage ? 'PRESENT' : 'MISSING')
 
   // Call native diagnostic
-  const plugin = (window as any).ReplyflowWebSessionDiagnostics
+  const plugin = (window as any).ReplyflowWebSessionDiagnosticsPlugin
   if (!plugin) {
     console.log('[WEB SESSION TEST] Native plugin not available')
     return
