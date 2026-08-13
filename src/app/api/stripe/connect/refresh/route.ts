@@ -73,20 +73,32 @@ export async function POST(request: Request) {
 
     // Determine canonical status
     let canonicalStatus = 'not_connected'
-    if (account.charges_enabled && account.details_submitted) {
+
+    if (!business.stripe_connect_account_id) {
+      canonicalStatus = 'not_connected'
+    } else if (account.charges_enabled && account.details_submitted) {
       canonicalStatus = 'connected'
-    } else if (account.details_submitted) {
-      // Check if there are pending requirements or verification
+    } else if (!account.details_submitted) {
+      // User has not completed onboarding requirements
+      canonicalStatus = 'setup_incomplete'
+    } else {
+      // details_submitted=true but charges not yet enabled
+      // Check if there are pending requirements or verification in progress
       const hasPendingRequirements = (account.requirements?.currently_due?.length ?? 0) > 0 ||
                                      (account.requirements?.eventually_due?.length ?? 0) > 0
-      const isPendingVerification = account.requirements?.disabled_reason?.includes('pending_verification')
-      if (hasPendingRequirements || isPendingVerification) {
+      const isPendingVerification = account.requirements?.disabled_reason?.includes('pending_verification') ||
+                                     account.requirements?.disabled_reason?.includes('under_review')
+
+      if (hasPendingRequirements) {
+        // User still has requirements to complete
+        canonicalStatus = 'setup_incomplete'
+      } else if (isPendingVerification) {
+        // User submitted requirements, Stripe is reviewing
         canonicalStatus = 'pending_verification'
       } else {
-        canonicalStatus = 'setup_incomplete'
+        // No explicit pending requirements but charges not enabled - treat as pending verification
+        canonicalStatus = 'pending_verification'
       }
-    } else if (business.stripe_connect_account_id) {
-      canonicalStatus = 'setup_incomplete'
     }
 
     console.log('[STRIPE CONNECT REFRESH] stage=canonical_status_determined canonical_status=', canonicalStatus)
@@ -99,7 +111,11 @@ export async function POST(request: Request) {
     }
 
     console.log('[STRIPE CONNECT REFRESH] source=connect_refresh stage=database_update_started')
-    console.log('[STRIPE CONNECT REFRESH] update_attempted=true')
+    console.log('[STRIPE CONNECT REFRESH] stage=update_attempt')
+    console.log('[STRIPE CONNECT REFRESH] update_payload_status=', updateData.stripe_connect_status)
+    console.log('[STRIPE CONNECT REFRESH] update_payload_charges_enabled=', updateData.stripe_charges_enabled)
+    console.log('[STRIPE CONNECT REFRESH] update_payload_details_submitted=', updateData.stripe_details_submitted)
+    console.log('[STRIPE CONNECT REFRESH] update_payload_payouts_enabled=', updateData.stripe_payouts_enabled)
 
     // Update business with current status
     // IMPORTANT: Must include user_id filter to match the read query and prevent updating wrong business
@@ -112,11 +128,17 @@ export async function POST(request: Request) {
       .single()
 
     console.log('[STRIPE CONNECT REFRESH] update_error_present=', !!updateError)
+    if (updateError) {
+      console.error('[STRIPE CONNECT REFRESH] update_error_code=', updateError.code)
+      console.error('[STRIPE CONNECT REFRESH] update_error_message=', updateError.message)
+      console.error('[STRIPE CONNECT REFRESH] update_error_details=', updateError.details)
+      console.error('[STRIPE CONNECT REFRESH] update_error_hint=', updateError.hint)
+    }
     console.log('[STRIPE CONNECT REFRESH] updated_row_present=', !!updatedBusiness)
 
     if (updateError) {
       console.error('[STRIPE CONNECT REFRESH] source=connect_refresh stage=database_update_failed', { error: updateError.message })
-      return NextResponse.json({ error: 'Failed to update business' }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to update business', details: updateError.message }, { status: 500 })
     }
 
     if (!updatedBusiness) {

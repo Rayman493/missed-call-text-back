@@ -1121,6 +1121,36 @@ export default function SettingsContent() {
       return
     }
 
+    // If already connected, open Stripe management dashboard
+    if (stripeStatus === 'connected' && business.stripe_connect_account_id) {
+      try {
+        const response = await fetch('/api/stripe/connect/management-link', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            business_id: business.id,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to get Stripe management link')
+        }
+
+        const data = await response.json()
+        if (data.url) {
+          window.open(data.url, '_blank', 'noopener,noreferrer')
+        } else {
+          throw new Error('No management URL returned')
+        }
+      } catch (error) {
+        console.error('[Settings] Error opening Stripe management:', error)
+        showToast('Failed to open Stripe management. Please try again.', 'error')
+      }
+      return
+    }
+
     // Show loading modal immediately
     setStripeConnectLoading(true)
     setStripeConnectLoadingMessage('Opening Stripe')
@@ -2939,10 +2969,16 @@ export default function SettingsContent() {
                           
                           // Stripe not connected
                           if (!stripeChargesEnabled) {
+                            let stripeMessage = 'Connect Stripe to enable Tap to Pay.'
+                            if (stripeStatus === 'setup_incomplete') {
+                              stripeMessage = 'Finish setting up Stripe to enable Tap to Pay.'
+                            } else if (stripeStatus === 'pending_verification') {
+                              stripeMessage = 'Stripe is reviewing your account. Tap to Pay will be available when verification is complete.'
+                            }
                             return (
                               <div className="p-2.5 sm:p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                                 <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300">
-                                  <span className="font-semibold">Requires Stripe:</span> Connect Stripe to enable Tap to Pay.
+                                  <span className="font-semibold">Requires Stripe:</span> {stripeMessage}
                                 </p>
                               </div>
                             )
@@ -3093,7 +3129,7 @@ export default function SettingsContent() {
                           <span className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-full font-medium">
                             Recommended
                           </span>
-                          {stripeChargesEnabled && stripeDetailsSubmitted ? (
+                          {stripeStatus === 'connected' ? (
                             <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
                               <span className="w-1 h-1 bg-green-500 rounded-full" />
                               Connected
@@ -3103,15 +3139,15 @@ export default function SettingsContent() {
                               <span className="w-1 h-1 bg-blue-500 rounded-full animate-pulse" />
                               Checking...
                             </span>
-                          ) : business?.stripe_connect_account_id && stripeDetailsSubmitted && !stripeChargesEnabled ? (
+                          ) : stripeStatus === 'pending_verification' ? (
                             <span className="text-xs px-2.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full font-medium flex items-center gap-1.5">
                               <span className="w-1 h-1 bg-amber-500 rounded-full" />
                               Verification Pending
                             </span>
-                          ) : business?.stripe_connect_account_id ? (
+                          ) : stripeStatus === 'setup_incomplete' ? (
                             <span className="text-xs px-2.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full font-medium flex items-center gap-1.5">
                               <span className="w-1 h-1 bg-amber-500 rounded-full" />
-                              Setup In Progress
+                              Setup Incomplete
                             </span>
                           ) : (
                             <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
@@ -3120,13 +3156,13 @@ export default function SettingsContent() {
                           )}
                         </div>
                         <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                          {stripeChargesEnabled && stripeDetailsSubmitted
+                          {stripeStatus === 'connected'
                             ? 'Stripe is ready to accept payments.'
-                            : business?.stripe_connect_account_id && stripeDetailsSubmitted && !stripeChargesEnabled
-                              ? 'Stripe is reviewing your account.'
-                              : business?.stripe_connect_account_id
-                                ? 'Finish setting up your Stripe account.'
-                                : 'Accept secure credit card payments from customers.'}
+                            : stripeStatus === 'pending_verification'
+                              ? 'Stripe is reviewing your account. This may take some time.'
+                              : stripeStatus === 'setup_incomplete'
+                                ? 'Finish setting up your Stripe account to accept payments.'
+                                : 'Connect Stripe to accept card payments.'}
                         </p>
                       </div>
                       {!isConnectingStripe && (
@@ -3134,19 +3170,19 @@ export default function SettingsContent() {
                           onClick={handleConnectStripe}
                           disabled={isConnectingStripe || isStripeConnectUnavailable}
                           className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
-                            stripeChargesEnabled && stripeDetailsSubmitted
+                            stripeStatus === 'connected'
                               ? 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
                               : isStripeConnectUnavailable
                                 ? 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
                                 : 'bg-blue-600 hover:bg-blue-700 text-white'
                           }`}
                         >
-                          {stripeChargesEnabled && stripeDetailsSubmitted
+                          {stripeStatus === 'connected'
                             ? 'Manage Stripe'
-                            : business?.stripe_connect_account_id && stripeDetailsSubmitted && !stripeChargesEnabled
-                              ? 'Verification Pending'
-                              : business?.stripe_connect_account_id
-                                ? 'Complete Setup'
+                            : stripeStatus === 'pending_verification'
+                              ? 'Check Status'
+                              : stripeStatus === 'setup_incomplete'
+                                ? 'Continue Setup'
                                 : isStripeConnectUnavailable
                                   ? 'Unavailable'
                                   : 'Connect'}

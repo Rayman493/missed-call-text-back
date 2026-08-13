@@ -28,15 +28,26 @@ function determineCanonicalStatus(account: Stripe.Account): {
 
   if (charges_enabled && details_submitted) {
     status = 'connected'
-  } else if (details_submitted) {
-    // Check if there are pending requirements or verification
+  } else if (!details_submitted) {
+    // User has not completed onboarding requirements
+    status = 'setup_incomplete'
+  } else {
+    // details_submitted=true but charges not yet enabled
+    // Check if there are pending requirements or verification in progress
     const hasPendingRequirements = (account.requirements?.currently_due?.length ?? 0) > 0 ||
                                    (account.requirements?.eventually_due?.length ?? 0) > 0
-    const isPendingVerification = account.requirements?.disabled_reason?.includes('pending_verification')
-    if (hasPendingRequirements || isPendingVerification) {
+    const isPendingVerification = account.requirements?.disabled_reason?.includes('pending_verification') ||
+                                   account.requirements?.disabled_reason?.includes('under_review')
+
+    if (hasPendingRequirements) {
+      // User still has requirements to complete
+      status = 'setup_incomplete'
+    } else if (isPendingVerification) {
+      // User submitted requirements, Stripe is reviewing
       status = 'pending_verification'
     } else {
-      status = 'setup_incomplete'
+      // No explicit pending requirements but charges not enabled - treat as pending verification
+      status = 'pending_verification'
     }
   }
 
