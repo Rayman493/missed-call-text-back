@@ -8,7 +8,7 @@
 export interface MappedTapToPayError {
   title: string
   message: string
-  action: 'retry' | 'open_app_settings' | 'open_location_settings' | 'back' | 'none'
+  action: 'retry' | 'open_app_settings' | 'open_location_settings' | 'back' | 'configure' | 'none'
   technicalCode?: string
   technicalMessage?: string
 }
@@ -327,6 +327,20 @@ export function mapTapToPayError(
       title: 'iOS Update Required',
       message: 'Update your iPhone to use Tap to Pay on iPhone.',
       action: 'back',
+      technicalCode: code,
+      technicalMessage: message,
+    }
+  }
+
+  // Terminal Location address errors - configuration error, not retryable
+  if (code === 'terminal_location_address_required' ||
+      code === 'terminal_location_address_invalid' ||
+      message.includes('a valid business address is required') ||
+      message.includes('add a valid business address')) {
+    return {
+      title: 'Business Address Required',
+      message: 'Add your business address before using Tap to Pay.',
+      action: 'configure',
       technicalCode: code,
       technicalMessage: message,
     }

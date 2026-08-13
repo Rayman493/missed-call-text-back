@@ -181,6 +181,31 @@ const handleSendReceiptSubmit = async () => {
   }
 }
 
+const handleOpenStripeManagement = async () => {
+  if (!business?.id || !business.stripe_connect_account_id) {
+    return
+  }
+
+  try {
+    const response = await fetch('/api/stripe/connect/management-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ business_id: business.id }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to open Stripe management')
+    }
+
+    const data = await response.json()
+    if (data.url) {
+      window.open(data.url, '_blank', 'noopener,noreferrer')
+    }
+  } catch (error) {
+    console.error('[QuickTapToPayModal] Failed to open Stripe management:', error)
+  }
+}
+
 // Canonical association object for customer/job selection
 type PaymentAssociation =
   | {
@@ -1564,6 +1589,21 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                         >
                           Back
                         </button>
+                      ) : mappedError?.action === 'configure' ? (
+                        <>
+                          <button
+                            onClick={() => cancelPayment('user_back')}
+                            className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                          >
+                            Back
+                          </button>
+                          <button
+                            onClick={handleOpenStripeManagement}
+                            className="flex-1 px-4 py-3 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors active:scale-95"
+                          >
+                            Complete Business Profile
+                          </button>
+                        </>
                       ) : (
                         <>
                           <button
