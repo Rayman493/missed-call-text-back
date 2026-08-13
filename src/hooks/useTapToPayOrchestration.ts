@@ -1714,8 +1714,21 @@ export function useTapToPayOrchestration({
           setLastSuccessfulStage('connected')
         } catch (connectError: any) {
           const durationMs = Date.now() - connectStartTime
-          const isTimeout = connectError?.message?.includes('Timeout') || connectError?.name === 'Error'
-          
+          const errorMessage = connectError?.message || ''
+
+          // Explicit timeout detection: withTimeout throws "Timeout: ${stage}"
+          const isTimeout = errorMessage.includes('Timeout:')
+
+          // Configuration errors that should not be retried
+          const isConfigurationError =
+            errorMessage.includes('terminal_location_address_required') ||
+            errorMessage.includes('terminal_location_address_invalid')
+
+          // Account/authentication errors that should not be retried
+          const isAccountError =
+            errorMessage.includes('stripe connect account not configured') ||
+            errorMessage.includes('stripe connect account not ready')
+
           console.log('[TTP Hook] CONNECT_ERROR_CAUGHT', {
             errorName: connectError?.name,
             errorMessage: connectError?.message,
@@ -1725,11 +1738,21 @@ export function useTapToPayOrchestration({
             technicalMessage: connectError?.technicalMessage,
             durationMs,
             isTimeout,
+            isConfigurationError,
+            isAccountError,
             attemptToken: localAttemptToken,
             terminalSessionId: terminalService.getSessionId(),
             paymentState: paymentStateRef.current,
             timestamp: new Date().toISOString()
           })
+
+          // Configuration and account errors should not be retried - propagate immediately
+          if (isConfigurationError || isAccountError) {
+            const errorType = isConfigurationError ? 'CONFIGURATION_ERROR_NO_RETRY' : 'ACCOUNT_ERROR_NO_RETRY'
+            console.log('[TTP Hook]', errorType, { errorMessage })
+            dispatchTTPEvent(errorType, terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader', errorMessage)
+            throw connectError
+          }
 
           // On timeout, check if native connection actually succeeded concurrently
           if (isTimeout) {

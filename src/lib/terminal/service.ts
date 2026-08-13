@@ -734,8 +734,20 @@ export class TerminalBridgeService {
     })
 
     if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`Failed to fetch terminal location: ${error}`)
+      let errorText = await response.text()
+      let errorCode = 'unknown'
+
+      // Try to parse as JSON to extract error code
+      try {
+        const errorData = JSON.parse(errorText)
+        errorCode = errorData.error || 'unknown'
+        errorText = errorData.message || errorText
+      } catch {
+        // Not JSON, use raw text
+      }
+
+      // Include error code in message for detection by orchestration layer
+      throw new Error(`${errorCode}: ${errorText}`)
     }
 
     const data = await response.json()
