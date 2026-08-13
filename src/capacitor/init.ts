@@ -14,6 +14,7 @@ import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { pushService } from '@/lib/push-service';
 import { TerminalBridgeService } from '@/lib/terminal/service';
+import { createBrowserClient } from '@/lib/supabase/browser';
 
 // Import production web checkout plugin for native iOS Stripe checkout
 // This provides automatic return-to-app behavior using ASWebAuthenticationSession
@@ -134,11 +135,59 @@ export async function initializeCapacitor() {
     console.log('[Capacitor] Initializing push notification service');
     await pushService.initialize();
 
-    // Opportunistic Tap to Pay warm-up
-    console.log('[Capacitor] Opportunistic Tap to Pay warm-up');
+    // Opportunistic Tap to Pay warm-up (now with eligibility checks)
+    console.log('[TTP WARMUP] checking eligibility...');
     warmUpTapToPay();
   } catch (error) {
     console.error('[Capacitor] Error initializing native plugins:', error);
+  }
+}
+
+/**
+ * Check if Tap to Pay warm-up prerequisites are met
+ * Returns true only when all conditions for successful Terminal initialization are satisfied
+ */
+async function isTapToPayWarmUpEligible(): Promise<{ eligible: boolean; reason?: string }> {
+  try {
+    // Check for authenticated session
+    const supabase = createBrowserClient()
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+    if (!sessionError || !session) {
+      return { eligible: false, reason: 'no_session' }
+    }
+
+    // Check for business
+    const { data: business, error: businessError } = await supabase
+      .from('businesses')
+      .select('id, stripe_connect_account_id, stripe_connect_status, stripe_charges_enabled')
+      .eq('user_id', session.user.id)
+      .maybeSingle()
+
+    if (businessError || !business) {
+      return { eligible: false, reason: 'no_business' }
+    }
+
+    // Check for Stripe Connect account
+    if (!business.stripe_connect_account_id) {
+      return { eligible: false, reason: 'no_stripe_account' }
+    }
+
+    // Check Stripe Connect status
+    if (business.stripe_connect_status !== 'connected') {
+      return { eligible: false, reason: 'stripe_not_connected' }
+    }
+
+    // Check charges enabled
+    if (!business.stripe_charges_enabled) {
+      return { eligible: false, reason: 'stripe_charges_not_enabled' }
+    }
+
+    return { eligible: true }
+  } catch (error) {
+    // If we can't check eligibility, skip warm-up rather than risk errors
+    console.log('[TTP WARMUP] Eligibility check failed, skipping warm-up:', error)
+    return { eligible: false, reason: 'eligibility_check_failed' }
   }
 }
 
@@ -154,28 +203,38 @@ let warmUpInFlight = false;
 async function warmUpTapToPay() {
   // Guard against concurrent warm-up calls
   if (warmUpInFlight) {
-    console.log('[Capacitor] Tap to Pay warm-up skipped (already in progress)');
+    console.log('[TTP WARMUP] skipped (already in progress)');
     return;
   }
 
   warmUpInFlight = true;
   try {
-    const terminalService = TerminalBridgeService.getInstance();
-    if (!terminalService) {
-      console.log('[Capacitor] Tap to Pay warm-up skipped (not available on this platform)');
+    // Check eligibility before initializing
+    const { eligible, reason } = await isTapToPayWarmUpEligible()
+
+    if (!eligible) {
+      console.log('[TTP WARMUP] skipped reason=', reason);
       return;
     }
+
+    const terminalService = TerminalBridgeService.getInstance();
+    if (!terminalService) {
+      console.log('[TTP WARMUP] skipped (not available on this platform)');
+      return;
+    }
+
+    console.log('[TTP WARMUP] eligible=true, proceeding with warm-up');
     const t0 = Date.now();
     await terminalService.initialize();
     const durationMs = Date.now() - t0;
-    console.log('[Capacitor] Tap to Pay warm-up completed in', durationMs, 'ms');
+    console.log('[TTP WARMUP] completed in', durationMs, 'ms');
     if (durationMs > 300) {
-      console.log('[Capacitor] Tap to Pay initialization exceeded 300ms threshold:', durationMs, 'ms');
+      console.log('[TTP WARMUP] initialization exceeded 300ms threshold:', durationMs, 'ms');
     }
   } catch (error) {
     // Warm-up is opportunistic - failures are silent
     // Payment flow will initialize normally when modal opens
-    console.log('[Capacitor] Tap to Pay warm-up failed (opportunistic, will retry on modal open):', error);
+    console.log('[TTP WARMUP] failed (opportunistic, will retry on modal open):', error);
   } finally {
     warmUpInFlight = false;
   }
