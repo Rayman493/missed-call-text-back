@@ -3180,7 +3180,7 @@ export default function SettingsContent() {
                           {stripeStatus === 'connected'
                             ? 'Stripe is ready to accept payments.'
                             : stripeStatus === 'pending_verification'
-                              ? 'Stripe is reviewing your account. This may take some time.'
+                              ? 'Stripe is reviewing your account. Review your verification status in Stripe.'
                               : stripeStatus === 'setup_incomplete'
                                 ? 'Finish setting up your Stripe account to accept payments.'
                                 : 'Connect Stripe to accept card payments.'}
@@ -3201,7 +3201,7 @@ export default function SettingsContent() {
                           {stripeStatus === 'connected'
                             ? 'Manage Stripe'
                             : stripeStatus === 'pending_verification'
-                              ? 'Check Status'
+                              ? 'Review in Stripe'
                               : stripeStatus === 'setup_incomplete'
                                 ? 'Continue Setup'
                                 : isStripeConnectUnavailable
