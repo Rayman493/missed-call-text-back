@@ -18,6 +18,7 @@ interface BusinessContextType {
   refreshBusiness: (force?: boolean) => Promise<void>
   setBusiness: (business: Business | null) => void
   updateBusinessField: (field: string, value: any) => void
+  invalidateBusinessCache: () => void
 }
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined)
@@ -61,19 +62,22 @@ function writeBusinessCache(business: Business, userId: string | null) {
   sessionStorage.setItem('replyflow_business_verified', 'true')
 }
 
-function clearBusinessCache(userId?: string | null) {
+export function clearBusinessCache(userId?: string | null) {
   if (typeof window === 'undefined') return
   // Clear the specific user's cache
   if (userId) {
     localStorage.removeItem(getBusinessCacheKey(userId))
   } else {
     // Clear all business caches if no user specified
+    // Collect keys first to avoid modifying during iteration
+    const keysToRemove: string[] = []
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
       if (key && key.startsWith(BUSINESS_CACHE_KEY_PREFIX)) {
-        localStorage.removeItem(key)
+        keysToRemove.push(key)
       }
     }
+    keysToRemove.forEach(key => localStorage.removeItem(key))
   }
   sessionStorage.removeItem('replyflow_business_verified')
 }
@@ -117,6 +121,11 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       setBusinessVerified(true)
       writeBusinessCache(nextBusiness, nextBusiness.user_id || userIdRef.current)
     }
+  }, [])
+
+  const invalidateBusinessCache = useCallback(() => {
+    console.log('[BusinessContext] invalidateBusinessCache called')
+    clearBusinessCache(userIdRef.current)
   }, [])
 
   const fetchBusiness = useCallback(async (force: boolean = false) => {
@@ -331,9 +340,10 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         if (business) {
           setBusiness({ ...business, [field]: value })
         }
-      }
+      },
+      invalidateBusinessCache
     }
-  }, [business, loading, error, fetchComplete, businessMissingConfirmed, businessVerified, fetchBusiness])
+  }, [business, loading, error, fetchComplete, businessMissingConfirmed, businessVerified, fetchBusiness, invalidateBusinessCache])
 
   // Show setup error if env vars are missing
   if (!supabase) {

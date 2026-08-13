@@ -73,7 +73,7 @@ const isIOS = () => {
 
 export default function SettingsContent() {
   const router = useRouter()
-  const { business, setBusiness, refreshBusiness } = useBusiness()
+  const { business, setBusiness, refreshBusiness, invalidateBusinessCache } = useBusiness()
   const { user, signOut } = useAuth()
   const { sendingSource, isLoading: sendingSourceLoading, updateSendingSource } = useSendingSource()
   const tapToPayAwareness = useTapToPayAwareness(business)
@@ -1289,8 +1289,12 @@ export default function SettingsContent() {
         setLocalStripeDetailsSubmitted(data.details_submitted)
         console.log('[STRIPE CONNECT UI] local_status_after=', data.canonicalStatus, 'charges_enabled=', data.charges_enabled)
 
-        // Sync global business object in background
-        await refreshBusiness()
+        // Invalidate cache and sync global business object from fresh database state
+        // This ensures BusinessContext reflects the canonical Stripe state from the database
+        // rather than potentially stale cached state
+        console.log('[STRIPE CONNECT] business_cache_invalidated=true')
+        invalidateBusinessCache()
+        await refreshBusiness(true) // Force DB fetch to guarantee fresh state after authoritative Stripe refresh
 
         console.log('[STRIPE CONNECT UI] BusinessContext_after_refresh status=', business?.stripe_connect_status, 'charges_enabled=', business?.stripe_charges_enabled, 'account_id_suffix=', business?.stripe_connect_account_id?.slice(-4))
 
