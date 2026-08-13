@@ -55,28 +55,13 @@ export async function POST(request: NextRequest) {
     const business = businessResult.business
     console.log('[TTP API] Business access verified:', business.id)
 
-    console.log('[TTP_TOKEN_STRIPE_STATE] ========== TOKEN REQUEST START ==========')
-    console.log('[TTP_TOKEN_STRIPE_STATE] authenticated_user_id=', userId)
-    console.log('[TTP_TOKEN_STRIPE_STATE] resolved_business_id=', business.id)
-    console.log('[TTP_TOKEN_STRIPE_STATE] business_user_id=', business.user_id)
-    console.log('[TTP_TOKEN_STRIPE_STATE] user_id_match=', business.user_id === userId)
-
     // 3. Retrieve connected Stripe account ID
     const stripeAccountId = business.stripe_connect_account_id
 
-    console.log('[TTP_TOKEN_STRIPE_STATE] has_stripe_connect_account_id=', !!stripeAccountId)
-    console.log('[TTP_TOKEN_STRIPE_STATE] stripe_connect_account_id_suffix=', stripeAccountId ? stripeAccountId.slice(-4) : 'null')
-    console.log('[TTP_TOKEN_STRIPE_STATE] stripe_connect_status=', business.stripe_connect_status)
-    console.log('[TTP_TOKEN_STRIPE_STATE] stripe_details_submitted=', business.stripe_details_submitted)
-    console.log('[TTP_TOKEN_STRIPE_STATE] stripe_charges_enabled=', business.stripe_charges_enabled)
-    console.log('[TTP_TOKEN_STRIPE_STATE] stripe_payouts_enabled=', business.stripe_payouts_enabled)
-    console.log('[TTP_TOKEN_STRIPE_STATE] stripe_customer_id=', business.stripe_customer_id)
-    console.log('[TTP_TOKEN_STRIPE_STATE] stripe_subscription_id=', business.stripe_subscription_id)
-
-    console.log('[TTP CONNECT GATE] account_id_present=', !!stripeAccountId)
+    console.log('[TTP TOKEN] account_id_suffix=', stripeAccountId ? stripeAccountId.slice(-4) : 'null', 'status=', business.stripe_connect_status, 'charges_enabled=', business.stripe_charges_enabled)
 
     if (!stripeAccountId) {
-      console.error('[TTP CONNECT GATE] Stripe Connect account not configured for business:', business.id)
+      console.error('[TTP TOKEN] Stripe Connect account not configured for business:', business.id)
       return NextResponse.json(
         { error: 'Stripe Connect account not configured' },
         { status: 400 }

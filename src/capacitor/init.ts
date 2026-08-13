@@ -153,7 +153,7 @@ async function isTapToPayWarmUpEligible(): Promise<{ eligible: boolean; reason?:
     const supabase = createBrowserClient()
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-    if (!sessionError || !session) {
+    if (sessionError || !session) {
       return { eligible: false, reason: 'no_session' }
     }
 
