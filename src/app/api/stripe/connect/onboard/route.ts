@@ -134,12 +134,12 @@ export async function POST(request: Request) {
         .from('businesses')
         .update({
           stripe_connect_account_id: accountId,
-          stripe_connect_status: 'pending',
+          stripe_connect_status: 'setup_incomplete',
           stripe_details_submitted: false,
         })
         .eq('id', business_id)
 
-      console.log('[STRIPE CONNECT] source=connect_onboard after_onboard_status=pending')
+      console.log('[STRIPE CONNECT] source=connect_onboard after_onboard_status=setup_incomplete')
 
       console.log('[STRIPE CONNECT DB] after_onboard_status=pending')
       console.log('[STRIPE CONNECT DB] after_onboard_account_present=true')

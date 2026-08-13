@@ -113,11 +113,18 @@ export interface Business {
 
   // Stripe Connect fields
   stripe_connect_account_id?: string | null;
-  stripe_connect_status?: 'not_connected' | 'pending' | 'connected' | 'restricted' | string | null;
+  stripe_connect_status?: StripeConnectStatus | null;
   stripe_charges_enabled?: boolean | null;
   stripe_payouts_enabled?: boolean | null;
   stripe_details_submitted?: boolean | null;
   stripe_terminal_location_id?: string | null;
+
+// Canonical Stripe Connect status
+export type StripeConnectStatus =
+  | 'not_connected'
+  | 'setup_incomplete'
+  | 'pending_verification'
+  | 'connected'
 
   // Multi-provider payment fields
   venmo_username?: string | null;

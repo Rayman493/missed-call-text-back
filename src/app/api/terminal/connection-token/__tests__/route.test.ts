@@ -161,7 +161,7 @@ describe('POST /api/terminal/connection-token', () => {
         auto_reply_message: null,
         created_at: new Date().toISOString(),
         stripe_connect_account_id: 'acct_123',
-        stripe_connect_status: 'pending',
+        stripe_connect_status: 'setup_incomplete',
       },
       reason: 'found',
     })
