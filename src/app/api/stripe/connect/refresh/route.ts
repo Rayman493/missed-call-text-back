@@ -71,16 +71,42 @@ export async function POST(request: Request) {
       disabled_reason: account.requirements?.disabled_reason,
     })
 
+    // Log live Stripe account state for pending_verification investigation
+    console.log('[STRIPE CONNECT LIVE STATE]', {
+      account_id_suffix: account.id.slice(-4),
+      type: account.type,
+      country: account.country,
+      business_type: account.business_type,
+      charges_enabled: account.charges_enabled,
+      payouts_enabled: account.payouts_enabled,
+      details_submitted: account.details_submitted,
+      disabled_reason: account.requirements?.disabled_reason,
+      currently_due_keys: account.requirements?.currently_due?.map(r => r) || [],
+      eventually_due_keys: account.requirements?.eventually_due?.map(r => r) || [],
+      past_due_keys: account.requirements?.past_due?.map(r => r) || [],
+      pending_verification_keys: account.requirements?.pending_verification?.map(r => r) || [],
+      future_currently_due_keys: account.future_requirements?.currently_due?.map(r => r) || [],
+      future_eventually_due_keys: account.future_requirements?.eventually_due?.map(r => r) || [],
+      future_past_due_keys: account.future_requirements?.past_due?.map(r => r) || [],
+      future_pending_verification_keys: account.future_requirements?.pending_verification?.map(r => r) || [],
+      card_payments: account.capabilities?.card_payments,
+      transfers: account.capabilities?.transfers,
+    })
+
     // Determine canonical status
     let canonicalStatus = 'not_connected'
+    let canonicalBranch = 'unknown'
 
     if (!business.stripe_connect_account_id) {
       canonicalStatus = 'not_connected'
+      canonicalBranch = 'no_account'
     } else if (account.charges_enabled && account.details_submitted) {
       canonicalStatus = 'connected'
+      canonicalBranch = 'connected'
     } else if (!account.details_submitted) {
       // User has not completed onboarding requirements
       canonicalStatus = 'setup_incomplete'
+      canonicalBranch = 'setup_incomplete_details_not_submitted'
     } else {
       // details_submitted=true but charges not yet enabled
       // Check if there are pending requirements or verification in progress
@@ -92,14 +118,19 @@ export async function POST(request: Request) {
       if (hasPendingRequirements) {
         // User still has requirements to complete
         canonicalStatus = 'setup_incomplete'
+        canonicalBranch = 'setup_incomplete_requirements'
       } else if (isPendingVerification) {
         // User submitted requirements, Stripe is reviewing
         canonicalStatus = 'pending_verification'
+        canonicalBranch = 'pending_verification_disabled_reason'
       } else {
         // No explicit pending requirements but charges not enabled - treat as pending verification
         canonicalStatus = 'pending_verification'
+        canonicalBranch = 'pending_verification_fallback'
       }
     }
+
+    console.log('[STRIPE CONNECT CANONICAL] branch=', canonicalBranch, 'status=', canonicalStatus)
 
     console.log('[STRIPE CONNECT REFRESH] stage=canonical_status_determined canonical_status=', canonicalStatus)
 
