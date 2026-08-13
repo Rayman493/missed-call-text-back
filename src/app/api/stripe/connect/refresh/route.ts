@@ -71,6 +71,35 @@ export async function POST(request: Request) {
       disabled_reason: account.requirements?.disabled_reason,
     })
 
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] ========== REFRESH START ==========')
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] business_id=', business_id)
+
+    // BEFORE database state
+    const { data: beforeBusiness } = await supabase
+      .from('businesses')
+      .select('stripe_connect_status, stripe_charges_enabled, stripe_payouts_enabled, stripe_details_submitted, stripe_connect_account_id')
+      .eq('id', business_id)
+      .single()
+
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH BEFORE database stripe_connect_status=', beforeBusiness?.stripe_connect_status)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH BEFORE database stripe_charges_enabled=', beforeBusiness?.stripe_charges_enabled)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH BEFORE database stripe_payouts_enabled=', beforeBusiness?.stripe_payouts_enabled)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH BEFORE database stripe_details_submitted=', beforeBusiness?.stripe_details_submitted)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH BEFORE database stripe_connect_account_id=', beforeBusiness?.stripe_connect_account_id)
+
+    // RAW RELEVANT STRIPE STATE
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH RAW STRIPE charges_enabled=', account.charges_enabled)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH RAW STRIPE payouts_enabled=', account.payouts_enabled)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH RAW STRIPE details_submitted=', account.details_submitted)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH RAW STRIPE requirements.currently_due_count=', account.requirements?.currently_due?.length ?? 0)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH RAW STRIPE requirements.eventually_due_count=', account.requirements?.eventually_due?.length ?? 0)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH RAW STRIPE requirements.disabled_reason=', account.requirements?.disabled_reason)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH RAW STRIPE capabilities.transfers=', account.capabilities?.transfers)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH RAW STRIPE capabilities.card_payments=', account.capabilities?.card_payments)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH RAW STRIPE type=', account.type)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH RAW STRIPE business_type=', account.business_type)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH RAW STRIPE controller=', account.controller?.is_controller)
+
     // Determine canonical status
     let canonicalStatus = 'not_connected'
 
@@ -147,10 +176,17 @@ export async function POST(request: Request) {
     }
 
     console.log('[STRIPE CONNECT REFRESH] source=connect_refresh stage=database_update_success')
-    console.log('[STRIPE CONNECT REFRESH] source=connect_refresh persisted_status_after_update=', updatedBusiness.stripe_connect_status)
-    console.log('[STRIPE CONNECT REFRESH] source=connect_refresh persisted_charges_enabled_after_update=', updatedBusiness.stripe_charges_enabled)
+    console.log('[STRIPE_CONNECT REFRESH] source=connect_refresh persisted_status_after_update=', updatedBusiness.stripe_connect_status)
+    console.log('[STRIPE_CONNECT REFRESH] source=connect_refresh persisted_charges_enabled_after_update=', updatedBusiness.stripe_charges_enabled)
     console.log('[STRIPE CONNECT REFRESH] source=connect_refresh persisted_details_submitted_after_update=', updatedBusiness.stripe_details_submitted)
-    console.log('[STRIPE CONNECT REFRESH] source=connect_refresh account_id_present_after_update=', !!updatedBusiness.stripe_connect_account_id)
+    console.log('[STRIPE_CONNECT REFRESH] source=connect_refresh account_id_present_after_update=', !!updatedBusiness.stripe_connect_account_id)
+
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH AFTER update_payload_status=', updateData.stripe_connect_status)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH AFTER update_payload_charges_enabled=', updateData.stripe_charges_enabled)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH AFTER update_payload_payouts_enabled=', updateData.stripe_payouts_enabled)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH AFTER update_payload_details_submitted=', updateData.stripe_details_submitted)
+
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH ========== REFRESH END ==========')
 
     // Direct post-write readback to verify persistence
     const { data: readbackBusiness, error: readbackError } = await supabase

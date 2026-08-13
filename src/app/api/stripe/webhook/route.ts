@@ -2060,8 +2060,46 @@ export async function POST(request: Request) {
           break
         }
 
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] ========== ACCOUNT.UPDATED START ==========')
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] event_id=', event.id)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] stripe_account_id=', account.id)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] business_id=', businessId)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] event_created=', event.created)
+
+        // BEFORE database state
+        const { data: beforeBusiness } = await supabase
+          .from('businesses')
+          .select('stripe_connect_status, stripe_charges_enabled, stripe_payouts_enabled, stripe_details_submitted, stripe_connect_account_id')
+          .eq('id', businessId)
+          .single()
+
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] BEFORE database stripe_connect_status=', beforeBusiness?.stripe_connect_status)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] BEFORE database stripe_charges_enabled=', beforeBusiness?.stripe_charges_enabled)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] BEFORE database stripe_payouts_enabled=', beforeBusiness?.stripe_payouts_enabled)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] BEFORE database stripe_details_submitted=', beforeBusiness?.stripe_details_submitted)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] BEFORE database stripe_connect_account_id=', beforeBusiness?.stripe_connect_account_id)
+
+        // RAW RELEVANT STRIPE STATE
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] RAW STRIPE charges_enabled=', account.charges_enabled)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] RAW STRIPE payouts_enabled=', account.payouts_enabled)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] RAW STRIPE details_submitted=', account.details_submitted)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] RAW STRIPE requirements.currently_due_count=', account.requirements?.currently_due?.length ?? 0)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] RAW STRIPE requirements.past_due_count=', account.requirements?.past_due?.length ?? 0)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] RAW STRIPE requirements.disabled_reason=', account.requirements?.disabled_reason)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] RAW STRIPE capabilities.transfers=', account.capabilities?.transfers)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] RAW STRIPE capabilities.card_payments=', account.capabilities?.card_payments)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] RAW STRIPE type=', account.type)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] RAW STRIPE business_type=', account.business_type)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] RAW STRIPE controller=', account.controller?.is_controller)
+
         // Use shared canonical status determination
         const canonical = determineCanonicalStatus(account)
+
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] DERIVED canonical.status=', canonical.status)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] DERIVED canonical.charges_enabled=', canonical.charges_enabled)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] DERIVED canonical.payouts_enabled=', canonical.payouts_enabled)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] DERIVED canonical.details_submitted=', canonical.details_submitted)
+        console.log('[STRIPE_CONNECT_STATUS_AUDIT] source=account_updated_webhook')
 
         console.log('[STRIPE CONNECT WEBHOOK] canonical_status=', canonical.status)
         console.log('[STRIPE CONNECT WEBHOOK] charges_enabled=', canonical.charges_enabled)
@@ -2082,9 +2120,28 @@ export async function POST(request: Request) {
           .eq('id', businessId)
 
         if (updateError) {
-          console.error('[STRIPE CONNECT WEBHOOK] Failed to update business:', updateError)
+          console.error('[STRIPE_CONNECT_STATUS_AUDIT] AFTER database update_error=', updateError.message)
+          console.error('[STRIPE_CONNECT_STATUS_AUDIT] AFTER update_occurred=false')
         } else {
-          console.log('[STRIPE CONNECT WEBHOOK] Updated business Stripe Connect status')
+          console.log('[STRIPE_CONNECT_STATUS_AUDIT] AFTER database update_occurred=true')
+          console.log('[STRIPE_CONNECT_STATUS_AUDIT] AFTER update_payload_status=', updateData.stripe_connect_status)
+          console.log('[STRIPE_CONNECT_STATUS_AUDIT] AFTER update_payload_charges_enabled=', updateData.stripe_charges_enabled)
+          console.log('[STRIPE_CONNECT_STATUS_AUDIT] AFTER update_payload_payouts_enabled=', updateData.stripe_payouts_enabled)
+          console.log('[STRIPE_CONNECT_STATUS_AUDIT] AFTER update_payload_details_submitted=', updateData.stripe_details_submitted)
+
+          // Verify what was actually persisted
+          const { data: afterBusiness } = await supabase
+            .from('businesses')
+            .select('stripe_connect_status, stripe_charges_enabled, stripe_payouts_enabled, stripe_details_submitted')
+            .eq('id', businessId)
+            .single()
+
+          console.log('[STRIPE_CONNECT_STATUS_AUDIT] AFTER PERSISTED stripe_connect_status=', afterBusiness?.stripe_connect_status)
+          console.log('[STRIPE_CONNECT_STATUS_AUDIT] AFTER PERSISTED stripe_charges_enabled=', afterBusiness?.stripe_charges_enabled)
+          console.log('[STRIPE_CONNECT_STATUS_AUDIT] AFTER PERSISTED stripe_payouts_enabled=', afterBusiness?.stripe_payouts_enabled)
+          console.log('[STRIPE_CONNECT_STATUS_AUDIT] AFTER PERSISTED stripe_details_submitted=', afterBusiness?.stripe_details_submitted)
+
+          console.log('[STRIPE_CONNECT_STATUS_AUDIT] ========== ACCOUNT.UPDATED END ==========')
         }
 
         // Mark event as processed
