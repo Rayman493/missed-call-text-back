@@ -10,6 +10,44 @@ import { normalizeStripeCustomerId } from '@/lib/supabase/admin'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
 
+/**
+ * Determine canonical Stripe Connect status from a Stripe account object
+ * This logic must be consistent across all endpoints (refresh, webhook, onboard)
+ */
+function determineCanonicalStatus(account: Stripe.Account): {
+  status: 'not_connected' | 'setup_incomplete' | 'pending_verification' | 'connected'
+  details_submitted: boolean
+  charges_enabled: boolean
+  payouts_enabled: boolean
+} {
+  const details_submitted = account.details_submitted
+  const charges_enabled = account.charges_enabled
+  const payouts_enabled = account.payouts_enabled
+
+  let status: 'not_connected' | 'setup_incomplete' | 'pending_verification' | 'connected' = 'not_connected'
+
+  if (charges_enabled && details_submitted) {
+    status = 'connected'
+  } else if (details_submitted) {
+    // Check if there are pending requirements or verification
+    const hasPendingRequirements = (account.requirements?.currently_due?.length ?? 0) > 0 ||
+                                   (account.requirements?.eventually_due?.length ?? 0) > 0
+    const isPendingVerification = account.requirements?.disabled_reason?.includes('pending_verification')
+    if (hasPendingRequirements || isPendingVerification) {
+      status = 'pending_verification'
+    } else {
+      status = 'setup_incomplete'
+    }
+  }
+
+  return {
+    status,
+    details_submitted,
+    charges_enabled,
+    payouts_enabled,
+  }
+}
+
 export const dynamic = 'force-dynamic'
 
 // Lease duration for processing claims (5 minutes)
@@ -1994,7 +2032,7 @@ export async function POST(request: Request) {
 
       case 'account.updated': {
         console.log('[STRIPE CONNECT] ========== ACCOUNT.UPDATED START ==========')
-        
+
         const account = event.data.object as Stripe.Account
         const accountId = account.id
         const metadata = account.metadata || {}
@@ -2011,20 +2049,19 @@ export async function POST(request: Request) {
           break
         }
 
-        // Update business Stripe Connect status
-        const updateData: any = {
-          stripe_charges_enabled: account.charges_enabled,
-          stripe_payouts_enabled: account.payouts_enabled,
-          stripe_details_submitted: account.details_submitted,
-        }
+        // Use shared canonical status determination
+        const canonical = determineCanonicalStatus(account)
 
-        // Determine overall status
-        if (account.charges_enabled && account.payouts_enabled) {
-          updateData.stripe_connect_status = 'connected'
-        } else if (account.details_submitted) {
-          updateData.stripe_connect_status = 'pending'
-        } else {
-          updateData.stripe_connect_status = 'not_connected'
+        console.log('[STRIPE CONNECT WEBHOOK] canonical_status=', canonical.status)
+        console.log('[STRIPE CONNECT WEBHOOK] charges_enabled=', canonical.charges_enabled)
+        console.log('[STRIPE CONNECT WEBHOOK] details_submitted=', canonical.details_submitted)
+
+        // Update business Stripe Connect status using canonical logic
+        const updateData: any = {
+          stripe_charges_enabled: canonical.charges_enabled,
+          stripe_payouts_enabled: canonical.payouts_enabled,
+          stripe_details_submitted: canonical.details_submitted,
+          stripe_connect_status: canonical.status,
         }
 
         const { error: updateError } = await supabase
@@ -2033,9 +2070,9 @@ export async function POST(request: Request) {
           .eq('id', businessId)
 
         if (updateError) {
-          console.error('[STRIPE CONNECT] Failed to update business:', updateError)
+          console.error('[STRIPE CONNECT WEBHOOK] Failed to update business:', updateError)
         } else {
-          console.log('[STRIPE CONNECT] Updated business Stripe Connect status')
+          console.log('[STRIPE CONNECT WEBHOOK] Updated business Stripe Connect status')
         }
 
         // Mark event as processed

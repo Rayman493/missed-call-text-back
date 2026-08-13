@@ -1264,6 +1264,13 @@ export default function SettingsContent() {
         await refreshBusiness()
         console.log('[STRIPE CONNECT UI] business_status_after_refresh=', business?.stripe_connect_status)
 
+        // Invariant check: if we just confirmed connected but DB says otherwise, log regression
+        if (data.canonicalStatus === 'connected' && business?.stripe_connect_status !== 'connected') {
+          console.error('[STRIPE CONNECT INVARIANT] regression_detected=true')
+          console.error('[STRIPE CONNECT INVARIANT] confirmed_status=connected')
+          console.error('[STRIPE CONNECT INVARIANT] persisted_status=', business.stripe_connect_status)
+        }
+
         showToast('Stripe Connect status updated', 'success')
 
         // If status is pending_verification, perform bounded recheck

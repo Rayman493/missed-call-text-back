@@ -58,6 +58,12 @@ export async function POST(request: NextRequest) {
     // 3. Retrieve connected Stripe account ID
     const stripeAccountId = business.stripe_connect_account_id
 
+    console.log('[TTP CONNECT GATE] persisted_status=', business.stripe_connect_status)
+    console.log('[TTP CONNECT GATE] account_id_present=', !!stripeAccountId)
+    console.log('[TTP CONNECT GATE] stripe_details_submitted=', business.stripe_details_submitted)
+    console.log('[TTP CONNECT GATE] stripe_charges_enabled=', business.stripe_charges_enabled)
+    console.log('[TTP CONNECT GATE] stripe_payouts_enabled=', business.stripe_payouts_enabled)
+
     console.log('[TTP CONNECT GATE] account_id_present=', !!stripeAccountId)
 
     if (!stripeAccountId) {
@@ -80,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     // Use canonical status to provide specific error messages
     if (canonicalStatus === 'setup_incomplete') {
-      console.error('[TTP CONNECT GATE] Stripe setup incomplete')
+      console.error('[TTP CONNECT GATE] blocked_reason=setup_incomplete')
       return NextResponse.json(
         { error: 'Stripe setup incomplete. Please complete your Stripe account setup.' },
         { status: 400 }
@@ -88,7 +94,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (canonicalStatus === 'pending_verification') {
-      console.error('[TTP CONNECT GATE] Stripe verification pending')
+      console.error('[TTP CONNECT GATE] blocked_reason=pending_verification')
       return NextResponse.json(
         { error: 'Stripe verification pending. Please wait for Stripe to review your account.' },
         { status: 400 }
@@ -96,7 +102,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (canonicalStatus !== 'connected') {
-      console.error('[TTP CONNECT GATE] Stripe Connect account not in connected state:', canonicalStatus)
+      console.error('[TTP CONNECT GATE] blocked_reason=not_connected_or_unknown status=', canonicalStatus)
       return NextResponse.json(
         { error: 'Stripe Connect account not ready' },
         { status: 400 }

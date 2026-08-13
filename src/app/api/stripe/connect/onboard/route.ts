@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id, user_id, stripe_connect_account_id, stripe_connect_status')
+      .select('id, user_id, stripe_connect_account_id, stripe_connect_status, stripe_charges_enabled, stripe_details_submitted')
       .eq('id', business_id)
       .eq('user_id', user.id)
       .single()
@@ -86,14 +86,20 @@ export async function POST(request: Request) {
       id: business.id,
       user_id: business.user_id,
       stripe_connect_account_id: business.stripe_connect_account_id,
-      stripe_connect_status: business.stripe_connect_status
+      stripe_connect_status: business.stripe_connect_status,
     })
+
+    console.log('[STRIPE CONNECT DB] before_status=', business.stripe_connect_status)
+    console.log('[STRIPE CONNECT DB] before_account_present=', !!business.stripe_connect_account_id)
+    console.log('[STRIPE CONNECT DB] before_charges_enabled=', business.stripe_charges_enabled)
+    console.log('[STRIPE CONNECT DB] before_details_submitted=', business.stripe_details_submitted)
 
     // Create or retrieve Stripe Connect account
     let accountId = business.stripe_connect_account_id
 
     if (!accountId) {
-      console.log('[STRIPE CONNECT] Creating new Express account for business:', business_id)
+      console.log('[STRIPE CONNECT ACCOUNT] existing_account_present=false')
+      console.log('[STRIPE CONNECT ACCOUNT] creating_new_account=true')
       
       const account = await stripe.accounts.create({
         type: 'express',
@@ -120,6 +126,7 @@ export async function POST(request: Request) {
       })
 
       accountId = account.id
+      console.log('[STRIPE CONNECT ACCOUNT] account_fingerprint=', accountId.slice(-4))
       console.log('[STRIPE CONNECT] Created account:', accountId)
 
       // Update business with account ID
@@ -131,7 +138,13 @@ export async function POST(request: Request) {
           stripe_details_submitted: false,
         })
         .eq('id', business_id)
+
+      console.log('[STRIPE CONNECT DB] after_onboard_status=pending')
+      console.log('[STRIPE CONNECT DB] after_onboard_account_present=true')
     } else {
+      console.log('[STRIPE CONNECT ACCOUNT] existing_account_present=true')
+      console.log('[STRIPE CONNECT ACCOUNT] account_fingerprint=', accountId.slice(-4))
+      console.log('[STRIPE CONNECT ACCOUNT] reused_existing_account=true')
       console.log('[STRIPE CONNECT] Using existing account:', accountId)
       
       // Fetch the existing Stripe account to check its actual status
