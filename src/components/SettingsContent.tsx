@@ -1262,13 +1262,16 @@ export default function SettingsContent() {
 
         // Sync global business object in background
         await refreshBusiness()
-        console.log('[STRIPE CONNECT UI] business_status_after_refresh=', business?.stripe_connect_status)
 
-        // Invariant check: if we just confirmed connected but DB says otherwise, log regression
-        if (data.canonicalStatus === 'connected' && business?.stripe_connect_status !== 'connected') {
+        // Invariant check: use the verified persisted response, not stale business closure
+        // The response now comes from server-side readback, not Stripe object
+        const persistedStatus = data.canonicalStatus
+        console.log('[STRIPE CONNECT UI] refreshed_business_status=', persistedStatus)
+
+        if (persistedStatus !== 'connected') {
           console.error('[STRIPE CONNECT INVARIANT] regression_detected=true')
           console.error('[STRIPE CONNECT INVARIANT] confirmed_status=connected')
-          console.error('[STRIPE CONNECT INVARIANT] persisted_status=', business.stripe_connect_status)
+          console.error('[STRIPE CONNECT INVARIANT] persisted_status=', persistedStatus)
         }
 
         showToast('Stripe Connect status updated', 'success')

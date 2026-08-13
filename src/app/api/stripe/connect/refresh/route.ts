@@ -6,6 +6,7 @@ import getStripe from '@/lib/stripe'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
+  console.log('[STRIPE CONNECT REFRESH] server_build_marker=CONNECT_PERSIST_FIX_2026_08_13')
   console.log('[STRIPE CONNECT REFRESH] Request received')
   try {
     const stripe = getStripe()
@@ -97,7 +98,8 @@ export async function POST(request: Request) {
       stripe_payouts_enabled: account.payouts_enabled,
     }
 
-    console.log('[STRIPE CONNECT REFRESH] stage=database_update_started')
+    console.log('[STRIPE CONNECT REFRESH] source=connect_refresh stage=database_update_started')
+    console.log('[STRIPE CONNECT REFRESH] update_attempted=true')
 
     // Update business with current status
     // IMPORTANT: Must include user_id filter to match the read query and prevent updating wrong business
@@ -108,6 +110,9 @@ export async function POST(request: Request) {
       .eq('user_id', user.id)
       .select('stripe_connect_status, stripe_charges_enabled, stripe_details_submitted, stripe_payouts_enabled, stripe_connect_account_id')
       .single()
+
+    console.log('[STRIPE CONNECT REFRESH] update_error_present=', !!updateError)
+    console.log('[STRIPE CONNECT REFRESH] updated_row_present=', !!updatedBusiness)
 
     if (updateError) {
       console.error('[STRIPE CONNECT REFRESH] source=connect_refresh stage=database_update_failed', { error: updateError.message })
@@ -133,21 +138,34 @@ export async function POST(request: Request) {
       .eq('user_id', user.id)
       .single()
 
+    console.log('[STRIPE CONNECT REFRESH] source=connect_refresh_readback readback_error_present=', !!readbackError)
     console.log('[STRIPE CONNECT REFRESH] source=connect_refresh_readback readback_status=', readbackBusiness?.stripe_connect_status)
     console.log('[STRIPE CONNECT REFRESH] source=connect_refresh_readback readback_charges_enabled=', readbackBusiness?.stripe_charges_enabled)
     console.log('[STRIPE CONNECT REFRESH] source=connect_refresh_readback readback_details_submitted=', readbackBusiness?.stripe_details_submitted)
+    console.log('[STRIPE CONNECT REFRESH] source=connect_refresh_readback readback_account_id_present=', !!readbackBusiness?.stripe_connect_account_id)
 
     if (readbackError || !readbackBusiness) {
       console.error('[STRIPE CONNECT REFRESH] source=connect_refresh_readback stage=readback_failed', { error: readbackError?.message })
+      return NextResponse.json({ error: 'Failed to verify persistence' }, { status: 500 })
     }
 
+    // Verify readback matches canonical state
+    if (readbackBusiness.stripe_connect_status !== canonicalStatus) {
+      console.error('[STRIPE CONNECT REFRESH] source=connect_refresh_readback stage=readback_mismatch', {
+        canonical: canonicalStatus,
+        persisted: readbackBusiness.stripe_connect_status
+      })
+      return NextResponse.json({ error: 'Persistence verification failed' }, { status: 500 })
+    }
+
+    // Return verified persisted state, not Stripe object
     return NextResponse.json({
       success: true,
-      canonicalStatus,
-      stripe_connect_status: canonicalStatus,
-      charges_enabled: account.charges_enabled,
-      payouts_enabled: account.payouts_enabled,
-      details_submitted: account.details_submitted,
+      canonicalStatus: readbackBusiness.stripe_connect_status,
+      stripe_connect_status: readbackBusiness.stripe_connect_status,
+      charges_enabled: readbackBusiness.stripe_charges_enabled,
+      payouts_enabled: readbackBusiness.stripe_payouts_enabled,
+      details_submitted: readbackBusiness.stripe_details_submitted,
     })
   } catch (error: any) {
     console.error('[STRIPE CONNECT REFRESH] stage=unhandled_error', { error: error?.message, stack: error?.stack })
