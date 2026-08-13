@@ -130,7 +130,7 @@ export async function POST(request: Request) {
       console.log('[STRIPE CONNECT] Created account:', accountId)
 
       // Update business with account ID
-      await supabase
+      const { error: updateError } = await supabase
         .from('businesses')
         .update({
           stripe_connect_account_id: accountId,
@@ -138,6 +138,23 @@ export async function POST(request: Request) {
           stripe_details_submitted: false,
         })
         .eq('id', business_id)
+
+      if (updateError) {
+        console.error('[STRIPE CONNECT] Failed to persist account ID:', updateError)
+        return NextResponse.json({ error: 'Failed to save Stripe account' }, { status: 500 })
+      }
+
+      // Verify the account ID was actually persisted
+      const { data: verifyBusiness } = await supabase
+        .from('businesses')
+        .select('stripe_connect_account_id')
+        .eq('id', business_id)
+        .single()
+
+      if (!verifyBusiness?.stripe_connect_account_id) {
+        console.error('[STRIPE CONNECT] Account ID not persisted after update')
+        return NextResponse.json({ error: 'Account ID not saved' }, { status: 500 })
+      }
 
       console.log('[STRIPE CONNECT] source=connect_onboard after_onboard_status=setup_incomplete')
 
@@ -160,17 +177,35 @@ export async function POST(request: Request) {
       // If account is fully enabled, return connected status
       if (account.charges_enabled && account.details_submitted) {
         console.log('[STRIPE CONNECT] Account is fully connected')
-        
-        // Sync status to database
-        await supabase
+
+        // Sync status to database - include account ID to ensure it's persisted
+        const { error: updateError } = await supabase
           .from('businesses')
           .update({
+            stripe_connect_account_id: accountId,
             stripe_connect_status: 'connected',
             stripe_details_submitted: account.details_submitted,
             stripe_charges_enabled: account.charges_enabled,
             stripe_payouts_enabled: account.payouts_enabled,
           })
           .eq('id', business_id)
+
+        if (updateError) {
+          console.error('[STRIPE CONNECT] Failed to update to connected status:', updateError)
+          return NextResponse.json({ error: 'Failed to update Stripe status' }, { status: 500 })
+        }
+
+        // Verify the update persisted
+        const { data: verifyBusiness } = await supabase
+          .from('businesses')
+          .select('stripe_connect_account_id, stripe_connect_status')
+          .eq('id', business_id)
+          .single()
+
+        if (!verifyBusiness?.stripe_connect_account_id || verifyBusiness.stripe_connect_status !== 'connected') {
+          console.error('[STRIPE CONNECT] Connected status not persisted correctly')
+          return NextResponse.json({ error: 'Status verification failed' }, { status: 500 })
+        }
 
         console.log('[STRIPE CONNECT] source=connect_onboard after_onboard_status=connected')
         

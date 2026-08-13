@@ -133,6 +133,7 @@ export async function POST(request: Request) {
     console.log('[STRIPE CONNECT REFRESH] stage=canonical_status_determined canonical_status=', canonicalStatus)
 
     const updateData = {
+      stripe_connect_account_id: business.stripe_connect_account_id,
       stripe_connect_status: canonicalStatus,
       stripe_details_submitted: account.details_submitted,
       stripe_charges_enabled: account.charges_enabled,
@@ -205,6 +206,13 @@ export async function POST(request: Request) {
     if (readbackError || !readbackBusiness) {
       console.error('[STRIPE CONNECT REFRESH] source=connect_refresh_readback stage=readback_failed', { error: readbackError?.message })
       return NextResponse.json({ error: 'Failed to verify persistence' }, { status: 500 })
+    }
+
+    // CRITICAL: Verify account ID was persisted
+    if (!readbackBusiness.stripe_connect_account_id) {
+      console.error('[STRIPE CONNECT REFRESH] CRITICAL: Account ID missing in readback after update')
+      console.error('[STRIPE CONNECT REFRESH] readback_account_id=', readbackBusiness.stripe_connect_account_id)
+      return NextResponse.json({ error: 'Stripe account ID not persisted' }, { status: 500 })
     }
 
     // Verify readback matches canonical state
