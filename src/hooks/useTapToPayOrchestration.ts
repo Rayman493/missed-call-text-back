@@ -632,8 +632,7 @@ export function useTapToPayOrchestration({
               })
               // Update local business state immediately to avoid stale state
               if (business) {
-                const businessAny = business as any
-                businessAny.tap_to_pay_education_completed_at = new Date().toISOString()
+                business.tap_to_pay_education_completed_at = new Date().toISOString()
               }
               const educationDurationMs = Date.now() - educationStartTime
               dispatchTTPEvent('PAYMENT_FLOW_RESUMED_AFTER_EDUCATION', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'resumed')
@@ -696,8 +695,7 @@ export function useTapToPayOrchestration({
             })
             // Update local business state immediately to avoid stale state
             if (business) {
-              const businessAny = business as any
-              businessAny.tap_to_pay_education_completed_at = new Date().toISOString()
+              business.tap_to_pay_education_completed_at = new Date().toISOString()
             }
             const educationDurationMs = Date.now() - educationStartTime
             dispatchTTPEvent('PAYMENT_FLOW_RESUMED_AFTER_EDUCATION', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'resumed')
@@ -787,8 +785,7 @@ export function useTapToPayOrchestration({
             console.log('[TTP Hook] Custom education completion persisted')
             // Update local business state immediately to avoid stale state
             if (business) {
-              const businessAny = business as any
-              businessAny.tap_to_pay_education_completed_at = new Date().toISOString()
+              business.tap_to_pay_education_completed_at = new Date().toISOString()
             }
             return { completed: true, method: 'fallback' }
           } else {
@@ -1558,7 +1555,7 @@ export function useTapToPayOrchestration({
           stage: 'education_gate',
           meta: {
             businessId: business.id,
-            businessEducationCompletedAt: (business as any).tap_to_pay_education_completed_at,
+            businessEducationCompletedAt: business.tap_to_pay_education_completed_at,
             deviceEducationCompleted: deviceEducationState.completed,
             deviceEducationCompletedAt: deviceEducationState.completedAt,
             deviceEducationVersion: deviceEducationState.educationVersion,
@@ -1596,8 +1593,7 @@ export function useTapToPayOrchestration({
             if (response.ok) {
               console.log('[TTP Hook] Business-level education audit record updated')
               // Update local business state immediately to avoid stale state
-              const businessAny = business as any
-              businessAny.tap_to_pay_education_completed_at = new Date().toISOString()
+              business.tap_to_pay_education_completed_at = new Date().toISOString()
             } else {
               console.warn('[TTP Hook] Failed to update business-level audit record (non-critical)')
             }
@@ -1938,8 +1934,7 @@ export function useTapToPayOrchestration({
       dispatchTTPEvent('PAYMENT_INTENT_CREATION_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'creating_payment_intent')
 
       // Emit EDUCATION_GATE_VERIFIED before PaymentIntent creation
-      const businessAny = business as any
-      const educationCompleted = businessAny?.tap_to_pay_education_completed_at != null
+      const educationCompleted = business?.tap_to_pay_education_completed_at != null
       await logTapToPayEvent('EDUCATION_GATE_VERIFIED', {
         correlationId: getCorrelationId() ?? undefined,
         attemptId: terminalService.getCurrentAttemptId() ?? undefined,
@@ -1949,7 +1944,7 @@ export function useTapToPayOrchestration({
         stage: 'education_gate',
         meta: {
           educationCompleted,
-          educationCompletedAt: businessAny?.tap_to_pay_education_completed_at
+          educationCompletedAt: business?.tap_to_pay_education_completed_at
         }
       }).catch(() => {})
       updateAppleChecklist('paymentHeldUntilEducationCompleted', educationCompleted ? 'shown' : 'skipped')

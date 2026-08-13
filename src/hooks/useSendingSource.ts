@@ -89,7 +89,7 @@ export function useSendingSource(): UseSendingSourceReturn {
 
   // Get the current sending source, defaulting to 'replyflow'
   // Use optimistic value if available, otherwise use business value
-  const sendingSource: SendingSource = optimisticSource || ((business as any)?.default_sending_source as SendingSource) || 'replyflow'
+  const sendingSource: SendingSource = optimisticSource || (business?.default_sending_source as SendingSource) || 'replyflow'
 
   // Determine the effective source (considering platform limitations)
   // Desktop can't use Business Number as default, but we preserve the saved preference

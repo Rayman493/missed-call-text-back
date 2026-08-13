@@ -74,8 +74,7 @@ export function useTapToPayAwareness(business: Business | null): UseTapToPayAwar
         }
 
         // 3. Check if already acknowledged
-        const businessAny = business as any
-        if (businessAny.tap_to_pay_awareness_acknowledged_at) {
+        if (business.tap_to_pay_awareness_acknowledged_at) {
           setIsAcknowledged(true)
           setState(prev => ({ ...prev, isLoading: false, isEligible: false }))
           return
@@ -157,8 +156,7 @@ export function useTapToPayAwareness(business: Business | null): UseTapToPayAwar
     await tapToPayCapabilityStore.checkCapability({ forceRefresh: true })
     
     // Recalculate eligibility after refresh
-    const businessAny = business as any
-    if (business?.stripe_charges_enabled && !businessAny?.tap_to_pay_awareness_acknowledged_at) {
+    if (business?.stripe_charges_enabled && !business?.tap_to_pay_awareness_acknowledged_at) {
       const storeState = tapToPayCapabilityStore.getState()
       const isEligible = !!storeState.status?.supported
       setState(prev => ({ ...prev, isEligible }))

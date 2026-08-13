@@ -145,9 +145,8 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
         const paymentsPaidCount = (paymentsPaidCountRes as any)?.count as number | null
         const calendarConnectedAt = (calendarConnectedRes as any)?.data?.created_at as string | undefined
 
-        const businessAny = business as any
-        const daysSinceCreation = businessAny?.created_at
-          ? Math.floor((new Date().getTime() - new Date(businessAny.created_at).getTime()) / (1000 * 60 * 60 * 24))
+        const daysSinceCreation = business?.created_at
+          ? Math.floor((new Date().getTime() - new Date(business.created_at).getTime()) / (1000 * 60 * 60 * 24))
           : 0
 
         const defs: (Omit<AchievementItem, 'earned' | 'earnedAt' | 'progressCurrent' | 'progressTarget'> & {

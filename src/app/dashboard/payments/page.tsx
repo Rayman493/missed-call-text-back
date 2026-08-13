@@ -176,10 +176,9 @@ export default function PaymentsPage() {
   }, [showMarkPaidConfirm])
 
   // Determine which payment methods are configured
-  const businessAny = business as any
   const isStripeConfigured = business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled === true
-  const isVenmoConfigured = businessAny?.venmo_username && businessAny.venmo_username.length > 0
-  const isPaypalConfigured = businessAny?.paypal_payment_link && businessAny.paypal_payment_link.length > 0
+  const isVenmoConfigured = business?.venmo_username && business.venmo_username.length > 0
+  const isPaypalConfigured = business?.paypal_payment_link && business.paypal_payment_link.length > 0
 
   const configuredPaymentMethods = useMemo<Array<'stripe' | 'venmo' | 'paypal'>>(() => {
     const methods: Array<'stripe' | 'venmo' | 'paypal'> = []
@@ -339,12 +338,12 @@ export default function PaymentsPage() {
     }
 
     // Client-side validation for payment method configuration
-    if (paymentProvider === 'venmo' && !businessAny?.venmo_username) {
+    if (paymentProvider === 'venmo' && !business?.venmo_username) {
       setError('Venmo hasn\'t been connected yet. Connect Venmo in Settings → Payments before sending Venmo payment requests.')
       return
     }
 
-    if (paymentProvider === 'paypal' && !businessAny?.paypal_payment_link) {
+    if (paymentProvider === 'paypal' && !business?.paypal_payment_link) {
       setError('PayPal hasn\'t been connected yet. Connect PayPal in Settings → Payments before sending PayPal payment requests.')
       return
     }
