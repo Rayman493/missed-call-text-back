@@ -1291,7 +1291,14 @@ export default function SettingsContent() {
         console.log('[STRIPE CONNECT UI] ttp_stripe_ready_after=', data.charges_enabled)
 
         // Sync global business object in background
+        console.log('[STRIPE CONNECT UI] Calling refreshBusiness() to sync BusinessContext')
         await refreshBusiness()
+        console.log('[STRIPE CONNECT UI] refreshBusiness() completed')
+
+        // Log what BusinessContext now contains
+        console.log('[STRIPE CONNECT UI] BusinessContext_after_refresh stripe_connect_status=', business?.stripe_connect_status)
+        console.log('[STRIPE CONNECT UI] BusinessContext_after_refresh stripe_charges_enabled=', business?.stripe_charges_enabled)
+        console.log('[STRIPE CONNECT UI] BusinessContext_after_refresh stripe_connect_account_id=', business?.stripe_connect_account_id)
 
         // Invariant check: use the verified persisted response, not stale business closure
         // The response now comes from server-side readback, not Stripe object

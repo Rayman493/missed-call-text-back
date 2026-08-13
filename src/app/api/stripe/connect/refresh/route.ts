@@ -217,6 +217,10 @@ export async function POST(request: Request) {
     }
 
     // Return verified persisted state, not Stripe object
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH RETURNING canonicalStatus=', readbackBusiness.stripe_connect_status)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH RETURNING charges_enabled=', readbackBusiness.stripe_charges_enabled)
+    console.log('[STRIPE_CONNECT_STATUS_AUDIT] REFRESH RETURNING stripe_connect_account_id=', readbackBusiness.stripe_connect_account_id)
+
     return NextResponse.json({
       success: true,
       canonicalStatus: readbackBusiness.stripe_connect_status,

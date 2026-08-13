@@ -905,6 +905,16 @@ export const db = {
       name: data.name,
       userId: userId
     })
+
+    console.log('[getBusinessByUserId] Stripe Connect fields:', {
+      stripe_connect_account_id: data.stripe_connect_account_id ? data.stripe_connect_account_id.slice(-4) : null,
+      stripe_connect_status: data.stripe_connect_status,
+      stripe_charges_enabled: data.stripe_charges_enabled,
+      stripe_payouts_enabled: data.stripe_payouts_enabled,
+      stripe_details_submitted: data.stripe_details_submitted,
+      stripe_customer_id: data.stripe_customer_id ? data.stripe_customer_id.slice(-4) : null,
+    })
+
     return { found: true, business: data, reason: 'found' }
   },
 
