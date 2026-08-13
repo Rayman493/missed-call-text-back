@@ -91,7 +91,7 @@ export function useSettingsFormState({
       'venmo_username',
       'paypal_payment_link',
       'service_location_type'
-    ]
+    ] as (keyof Business)[]
 
     return fieldsToCheck.some(field => {
       const currentValue = current[field]

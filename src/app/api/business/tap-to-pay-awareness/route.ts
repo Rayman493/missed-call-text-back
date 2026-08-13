@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     // Update business with acknowledgment timestamp
     const updatedBusiness = await db.updateBusiness(existingBusiness.id, {
       tap_to_pay_awareness_acknowledged_at: new Date().toISOString()
-    })
+    } as any)
 
     if (!updatedBusiness) {
       console.error('[api/business/tap-to-pay-awareness] Failed to update business')

@@ -1320,8 +1320,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const availableProviders = getAvailableProviders(business)
       if (availableProviders.length > 0) {
         // Use business preferred provider if available, otherwise use priority: Stripe > Venmo > PayPal
-        if (business.preferred_payment_provider && availableProviders.includes(business.preferred_payment_provider as PaymentProvider)) {
-          setSelectedPaymentProvider(business.preferred_payment_provider as PaymentProvider)
+        const businessAny = business as any
+        if (businessAny?.preferred_payment_provider && availableProviders.includes(businessAny.preferred_payment_provider as PaymentProvider)) {
+          setSelectedPaymentProvider(businessAny.preferred_payment_provider as PaymentProvider)
         } else if (availableProviders.includes('stripe')) {
           setSelectedPaymentProvider('stripe')
         } else if (availableProviders.includes('venmo')) {

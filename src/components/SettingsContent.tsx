@@ -146,7 +146,8 @@ export default function SettingsContent() {
   // Trigger education after first successful reader connection
   useEffect(() => {
     if (!business?.stripe_charges_enabled) return
-    if (business?.tap_to_pay_education_completed_at) return
+    const businessAny = business as any
+    if (businessAny?.tap_to_pay_education_completed_at) return
     if (educationOfferedThisSession) return
 
     // Education is triggered by payment orchestration after first successful reader connection
@@ -589,8 +590,8 @@ export default function SettingsContent() {
         business_hours_timezone: businessData.business_hours_timezone,
         after_hours_message: businessData.after_hours_message || DEFAULT_AFTER_HOURS_MESSAGE,
         automation_settings: automationSettings,
-        venmo_username: businessData.venmo_username,
-        paypal_payment_link: businessData.paypal_payment_link
+        venmo_username: (businessData as any).venmo_username,
+        paypal_payment_link: (businessData as any).paypal_payment_link
       }
 
       // Log Out of Office save attempt
@@ -3047,7 +3048,8 @@ export default function SettingsContent() {
                           }
                           
                           // Supported but not acknowledged and not yet enabled via Apple
-                          if (status === 'supported' && !business?.tap_to_pay_awareness_acknowledged_at && appleAccountLinkageState.status !== 'linked') {
+                          const businessAny = business as any
+                          if (status === 'supported' && !businessAny?.tap_to_pay_awareness_acknowledged_at && appleAccountLinkageState.status !== 'linked') {
                             return (
                               <div className="p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                                 <p className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-300">
@@ -3071,7 +3073,7 @@ export default function SettingsContent() {
                                     Apple Account Linked
                                   </div>
                                 )}
-                                {business?.tap_to_pay_education_completed_at ? (
+                                {businessAny?.tap_to_pay_education_completed_at ? (
                                   <div className="flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
                                     Education Completed
@@ -3233,7 +3235,7 @@ export default function SettingsContent() {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
                           <img src="/brands/venmo.png" alt="Venmo" className="h-5 w-auto object-contain sm:h-6 flex-shrink-0" />
-                        {formBusiness.venmo_username ? (
+                        {(formBusiness as any).venmo_username ? (
                           <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                             <span className="w-1 h-1 bg-green-500 rounded-full" />
                             Configured
@@ -3252,8 +3254,8 @@ export default function SettingsContent() {
                   <div className="mt-auto">
                     <input
                       type="text"
-                      value={formBusiness.venmo_username || ''}
-                      onChange={(e) => updateBusiness({ venmo_username: e.target.value })}
+                      value={(formBusiness as any).venmo_username || ''}
+                      onChange={(e) => updateBusiness({ venmo_username: e.target.value } as any)}
                       placeholder="joesplumbing"
                       className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                     />
@@ -3268,7 +3270,7 @@ export default function SettingsContent() {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
                           <img src="/brands/paypal.png" alt="PayPal" className="h-5 w-auto object-contain sm:h-6 flex-shrink-0" />
-                          {formBusiness.paypal_payment_link ? (
+                          {(formBusiness as any).paypal_payment_link ? (
                             <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                               <span className="w-1 h-1 bg-green-500 rounded-full" />
                               Configured
@@ -3287,8 +3289,8 @@ export default function SettingsContent() {
                     <div className="mt-auto">
                       <input
                         type="text"
-                        value={formBusiness.paypal_payment_link || ''}
-                        onChange={(e) => updateBusiness({ paypal_payment_link: e.target.value })}
+                        value={(formBusiness as any).paypal_payment_link || ''}
+                        onChange={(e) => updateBusiness({ paypal_payment_link: e.target.value } as any)}
                         placeholder="https://paypal.me/yourbusiness"
                         className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                       />

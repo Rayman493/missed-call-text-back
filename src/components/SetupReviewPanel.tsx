@@ -156,7 +156,7 @@ export default function SetupReviewPanel({ isOpen, onClose, business, onTestCall
           details: businessInfoComplete 
             ? `Business: ${business.name}`
             : 'Enter your business name and phone number',
-          completionDate: business?.created_at || undefined,
+          completionDate: (business as any)?.created_at || undefined,
           actionText: businessInfoComplete ? undefined : 'Update Business Info',
           actionHref: '/dashboard/settings'
         },

@@ -119,13 +119,6 @@ export interface Business {
   stripe_details_submitted?: boolean | null;
   stripe_terminal_location_id?: string | null;
 
-// Canonical Stripe Connect status
-export type StripeConnectStatus =
-  | 'not_connected'
-  | 'setup_incomplete'
-  | 'pending_verification'
-  | 'connected'
-
   // Multi-provider payment fields
   venmo_username?: string | null;
   paypal_payment_link?: string | null;
@@ -143,6 +136,13 @@ export type StripeConnectStatus =
   created_at: string;
   updated_at?: string;
 }
+
+// Canonical Stripe Connect status
+export type StripeConnectStatus =
+  | 'not_connected'
+  | 'setup_incomplete'
+  | 'pending_verification'
+  | 'connected'
 
 export interface Lead {
   id: string;

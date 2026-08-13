@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     // Update business with education completion timestamp
     const updatedBusiness = await db.updateBusiness(existingBusiness.id, {
       tap_to_pay_education_completed_at: new Date().toISOString()
-    })
+    } as any)
 
     if (!updatedBusiness) {
       console.error('[api/business/tap-to-pay-education] Failed to update business')
