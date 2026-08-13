@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
     // 3. Retrieve connected Stripe account ID
     const stripeAccountId = business.stripe_connect_account_id
     console.log('[TerminalLocation] stripe_account.present=' + (!!stripeAccountId))
+    console.log('[TerminalLocation] DIAGNOSTICS stored_account_id_suffix=' + (stripeAccountId ? stripeAccountId.slice(-4) : 'null'))
 
     if (!stripeAccountId) {
       console.error('[TerminalLocation] error.stage=stripe_account')
@@ -107,6 +108,38 @@ export async function GET(request: NextRequest) {
     try {
       const account = await stripe.accounts.retrieve(stripeAccountId)
       console.log('[TerminalLocation] stripe_account.retrieve.success')
+      console.log('[TerminalLocation] DIAGNOSTICS retrieved_account_id_suffix=' + account.id.slice(-4))
+      console.log('[TerminalLocation] DIAGNOSTICS account_id_match=' + (account.id === stripeAccountId))
+
+      // AUDIT DIAGNOSTICS: Log structural presence only, no PII
+      console.log('[TerminalLocation] DIAGNOSTICS account.business_type=' + (account.business_type || 'null'))
+      console.log('[TerminalLocation] DIAGNOSTICS account.company.present=' + (!!account.company))
+      console.log('[TerminalLocation] DIAGNOSTICS account.company.address.present=' + (!!account.company?.address))
+      if (account.company?.address) {
+        const addr = account.company.address
+        console.log('[TerminalLocation] DIAGNOSTICS account.company.address.line1.present=' + (!!addr.line1))
+        console.log('[TerminalLocation] DIAGNOSTICS account.company.address.city.present=' + (!!addr.city))
+        console.log('[TerminalLocation] DIAGNOSTICS account.company.address.state.present=' + (!!addr.state))
+        console.log('[TerminalLocation] DIAGNOSTICS account.company.address.postal_code.present=' + (!!addr.postal_code))
+        console.log('[TerminalLocation] DIAGNOSTICS account.company.address.country.present=' + (!!addr.country))
+      }
+      console.log('[TerminalLocation] DIAGNOSTICS account.individual.present=' + (!!account.individual))
+      console.log('[TerminalLocation] DIAGNOSTICS account.individual.address.present=' + (!!account.individual?.address))
+      if (account.individual?.address) {
+        const addr = account.individual.address
+        console.log('[TerminalLocation] DIAGNOSTICS account.individual.address.line1.present=' + (!!addr.line1))
+        console.log('[TerminalLocation] DIAGNOSTICS account.individual.address.city.present=' + (!!addr.city))
+        console.log('[TerminalLocation] DIAGNOSTICS account.individual.address.state.present=' + (!!addr.state))
+        console.log('[TerminalLocation] DIAGNOSTICS account.individual.address.postal_code.present=' + (!!addr.postal_code))
+        console.log('[TerminalLocation] DIAGNOSTICS account.individual.address.country.present=' + (!!addr.country))
+      }
+      console.log('[TerminalLocation] DIAGNOSTICS account.business_profile.present=' + (!!account.business_profile))
+      if (account.business_profile) {
+        console.log('[TerminalLocation] DIAGNOSTICS account.business_profile.url.present=' + (!!account.business_profile.url))
+        console.log('[TerminalLocation] DIAGNOSTICS account.business_profile.name.present=' + (!!account.business_profile.name))
+        console.log('[TerminalLocation] DIAGNOSTICS account.business_profile.support_email.present=' + (!!account.business_profile.support_email))
+        console.log('[TerminalLocation] DIAGNOSTICS account.business_profile.support_phone.present=' + (!!account.business_profile.support_phone))
+      }
 
       // Use the company address from the connected Stripe account (already validated by Stripe)
       if (account.company?.address) {
