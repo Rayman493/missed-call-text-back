@@ -74,6 +74,16 @@ export interface Business {
   // Service location type for AI intake routing
   service_location_type?: 'onsite' | 'customer_comes_to_business' | 'remote' | string | null;
 
+  // Canonical merchant business address
+  // ReplyFlow owns the canonical address for Terminal Location creation
+  // Stripe KYC address is not readable after Express onboarding
+  business_address_line1?: string | null;
+  business_address_line2?: string | null;
+  business_address_city?: string | null;
+  business_address_state?: string | null;
+  business_address_postal_code?: string | null;
+  business_address_country?: string | null;
+
   // Out of Office Mode
   out_of_office_enabled?: boolean | null;
   out_of_office_start?: string | null;

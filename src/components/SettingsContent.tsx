@@ -553,6 +553,42 @@ export default function SettingsContent() {
   } = useSettingsFormState({
     initialBusiness: business,
     onSaveBusiness: async (businessData) => {
+      // Check if address fields are being updated
+      const addressFieldsChanged = (
+        businessData.business_address_line1 !== business?.business_address_line1 ||
+        businessData.business_address_line2 !== business?.business_address_line2 ||
+        businessData.business_address_city !== business?.business_address_city ||
+        businessData.business_address_state !== business?.business_address_state ||
+        businessData.business_address_postal_code !== business?.business_address_postal_code ||
+        businessData.business_address_country !== business?.business_address_country
+      )
+
+      // If address fields changed, use server API for authoritative validation and sync
+      if (addressFieldsChanged) {
+        const response = await fetch('/api/business/update-address', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            business_id: businessData.id,
+            business_address_line1: businessData.business_address_line1,
+            business_address_line2: businessData.business_address_line2,
+            business_address_city: businessData.business_address_city,
+            business_address_state: businessData.business_address_state,
+            business_address_postal_code: businessData.business_address_postal_code,
+            business_address_country: businessData.business_address_country
+          })
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to update address')
+        }
+
+        const result = await response.json()
+        // Return the updated business from server response
+        return result.business
+      }
+
       // Use automation_settings directly from businessData (already updated via updateBusiness)
       const automationSettings = businessData.automation_settings || {}
 
@@ -2130,6 +2166,99 @@ export default function SettingsContent() {
                   </div>
                 </>
               )}
+
+              {/* Group: Business Address */}
+              <div id="business-address-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+                <div className="h-px flex-1 bg-border/30"></div>
+                <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'business-address')?.label}</h3>
+                <div className="h-px flex-1 bg-border/30"></div>
+              </div>
+
+              {/* Business Address Section */}
+              <div id="business-address" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+                <div className="mb-5">
+                  <h2 className="text-base font-semibold text-foreground mb-1">Business Address</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Your canonical business address for payments and business profile.</p>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">
+                      Street Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formBusiness.business_address_line1 || ''}
+                      onChange={(e) => updateBusiness({ business_address_line1: e.target.value })}
+                      placeholder="123 Main Street"
+                      className="w-full px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">
+                      Suite, Unit, etc. <span className="text-muted-foreground text-xs">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formBusiness.business_address_line2 || ''}
+                      onChange={(e) => updateBusiness({ business_address_line2: e.target.value })}
+                      placeholder="Apt 4B"
+                      className="w-full px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-sm"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1.5">
+                        City <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formBusiness.business_address_city || ''}
+                        onChange={(e) => updateBusiness({ business_address_city: e.target.value })}
+                        placeholder="San Francisco"
+                        className="w-full px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1.5">
+                        State <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formBusiness.business_address_state || ''}
+                        onChange={(e) => updateBusiness({ business_address_state: e.target.value.toUpperCase() })}
+                        placeholder="CA"
+                        maxLength={2}
+                        className="w-full px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">
+                      ZIP Code <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formBusiness.business_address_postal_code || ''}
+                      onChange={(e) => updateBusiness({ business_address_postal_code: e.target.value })}
+                      placeholder="94102"
+                      className="w-full px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">
+                      Country
+                    </label>
+                    <input
+                      type="text"
+                      value={formBusiness.business_address_country || 'US'}
+                      onChange={(e) => updateBusiness({ business_address_country: e.target.value.toUpperCase() })}
+                      disabled
+                      className="w-full px-3 py-2.5 border border-border/50 rounded-lg bg-slate-100 dark:bg-slate-800/60 text-foreground transition-all duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Currently only US addresses are supported.</p>
+                  </div>
+                </div>
+              </div>
 
               {/* Group: Automation */}
               <div id="automation-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">

@@ -227,6 +227,44 @@ export async function POST(request: Request) {
       ? `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`
       : `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?stripe_onboarding=complete`
 
+    // Prefill canonical business address if available (before Account Link creation)
+    // Stripe Express redacts KYC address after onboarding starts, but accepts prefill before Account Link
+    console.log('[STRIPE CONNECT] Checking for canonical business address to prefill...')
+    const { data: businessForPrefill } = await supabase
+      .from('businesses')
+      .select('business_address_line1, business_address_line2, business_address_city, business_address_state, business_address_postal_code, business_address_country')
+      .eq('id', business_id)
+      .single()
+
+    if (businessForPrefill &&
+        businessForPrefill.business_address_line1 &&
+        businessForPrefill.business_address_city &&
+        businessForPrefill.business_address_state &&
+        businessForPrefill.business_address_postal_code) {
+      try {
+        console.log('[STRIPE CONNECT] Prefilling business address on Stripe account...')
+        await stripe.accounts.update(accountId, {
+          company: {
+            address: {
+              line1: businessForPrefill.business_address_line1,
+              line2: businessForPrefill.business_address_line2 || undefined,
+              city: businessForPrefill.business_address_city,
+              state: businessForPrefill.business_address_state,
+              postal_code: businessForPrefill.business_address_postal_code,
+              country: businessForPrefill.business_address_country || 'US'
+            }
+          }
+        })
+        console.log('[STRIPE CONNECT] Business address prefilled successfully')
+      } catch (prefillError: any) {
+        console.warn('[STRIPE CONNECT] Failed to prefill address (non-critical):', prefillError.message)
+        // Continue without prefill - this is not a blocking error
+        // Stripe may reject prefill for various reasons, but onboarding will still work
+      }
+    } else {
+      console.log('[STRIPE CONNECT] No canonical business address available for prefill')
+    }
+
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`,

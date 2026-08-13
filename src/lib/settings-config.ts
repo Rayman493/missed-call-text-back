@@ -9,7 +9,8 @@ export interface SettingsSection {
 
 // Base sections that are always present
 const baseSections: SettingsSection[] = [
-  { id: 'general', label: 'General', icon: () => null }, 
+  { id: 'general', label: 'General', icon: () => null },
+  { id: 'business-address', label: 'Business Address', icon: () => null },
   { id: 'automation', label: 'Automation', icon: () => null },
   { id: 'notifications', label: 'Notifications', icon: () => null },
   { id: 'integrations', label: 'Integrations', icon: () => null },

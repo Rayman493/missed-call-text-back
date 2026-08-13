@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { analyticsService } from '@/lib/analytics/analytics-service'
+import { validateBusinessAddress } from '@/lib/validation/business-address'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,7 +26,14 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    const { email, password, businessName, businessPhone, service_location_type } = body
+    const {
+      email,
+      password,
+      businessName,
+      businessPhone,
+      service_location_type,
+      businessAddress
+    } = body
 
     // Validate service_location_type if provided
     const validServiceLocationTypes = ['onsite', 'customer_comes_to_business', 'remote']
@@ -34,6 +42,19 @@ export async function POST(request: Request) {
         { ok: false, step: 'validation', error: 'Invalid service location type' },
         { status: 400 }
       )
+    }
+
+    // Validate business address if provided
+    let normalizedAddress = null
+    if (businessAddress) {
+      const addressValidation = validateBusinessAddress(businessAddress)
+      if (!addressValidation.valid) {
+        return NextResponse.json(
+          { ok: false, step: 'validation', error: addressValidation.errors[0].message, field: addressValidation.errors[0].field },
+          { status: 400 }
+        )
+      }
+      normalizedAddress = addressValidation.normalized
     }
 
     // Validate required fields
@@ -166,6 +187,12 @@ export async function POST(request: Request) {
         messaging_status: 'active',
         onboarding_status: 'profile_created',
         service_location_type: service_location_type || 'onsite', // Persist service location type from signup
+        business_address_line1: normalizedAddress?.line1 || null,
+        business_address_line2: normalizedAddress?.line2 || null,
+        business_address_city: normalizedAddress?.city || null,
+        business_address_state: normalizedAddress?.state || null,
+        business_address_postal_code: normalizedAddress?.postal_code || null,
+        business_address_country: normalizedAddress?.country || 'US',
         twilio_phone_number: null, // Will be set during provisioning
         subscription_status: null, // Will be set by Stripe webhook after checkout
         stripe_customer_id: null,

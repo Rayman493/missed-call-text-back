@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import getStripe from '@/lib/stripe'
 import { db, supabaseAdmin } from '@/lib/supabase/admin'
 import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
+import { validateBusinessAddress, isAddressComplete, type BusinessAddress } from '@/lib/validation/business-address'
 
 /**
  * GET /api/terminal/location
@@ -101,93 +102,115 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Retrieve the connected Stripe account to get its validated business address
-    console.log('[TerminalLocation] stripe_account.retrieve.start')
+    // Use canonical business address from ReplyFlow
+    // Stripe KYC address is not readable after Express onboarding (controller.requirement_collection = 'stripe')
+    console.log('[TerminalLocation] canonical_address_check.start')
+    const businessAddress: Partial<BusinessAddress> = {
+      line1: business.business_address_line1 || undefined,
+      line2: business.business_address_line2 || undefined,
+      city: business.business_address_city || undefined,
+      state: business.business_address_state || undefined,
+      postal_code: business.business_address_postal_code || undefined,
+      country: business.business_address_country || undefined
+    }
+    console.log('[TerminalLocation] DIAGNOSTICS canonical_address_present=' + isAddressComplete(businessAddress))
+
+    // If an existing Terminal Location ID is present, attempt to sync it with current canonical address
+    // This handles the case where address was updated but sync failed
+    if (business.stripe_terminal_location_id) {
+      console.log('[TerminalLocation] existing_location_id=' + business.stripe_terminal_location_id.slice(-4))
+
+      // Validate canonical address before sync attempt
+      if (isAddressComplete(businessAddress)) {
+        const addressValidation = validateBusinessAddress(businessAddress)
+
+        if (addressValidation.valid && addressValidation.normalized) {
+          try {
+            console.log('[TerminalLocation] sync_attempt.start')
+
+            // Attempt to update existing Location with current canonical address
+            await stripe.terminal.locations.update(
+              business.stripe_terminal_location_id,
+              {
+                address: {
+                  line1: addressValidation.normalized.line1,
+                  line2: addressValidation.normalized.line2 || undefined,
+                  city: addressValidation.normalized.city,
+                  state: addressValidation.normalized.state,
+                  postal_code: addressValidation.normalized.postal_code,
+                  country: addressValidation.normalized.country
+                }
+              },
+              {
+                stripeAccount: stripeAccountId,
+              }
+            )
+
+            console.log('[TerminalLocation] sync_attempt.success')
+            console.log('[TerminalLocation] location_reused=' + business.stripe_terminal_location_id.slice(-4))
+
+            // Sync succeeded, return the existing location ID
+            return NextResponse.json({
+              location_id: business.stripe_terminal_location_id,
+              display_name: business.name,
+              address: addressValidation.normalized
+            })
+          } catch (syncError: any) {
+            console.warn('[TerminalLocation] sync_attempt.failed')
+            console.warn('[TerminalLocation] sync_reason=' + (syncError?.code || 'unknown'))
+            // Sync failed - clear the ID to force creation of new location with correct address
+            console.log('[TerminalLocation] clearing_stale_location_id')
+            await supabaseAdmin
+              .from('businesses')
+              .update({ stripe_terminal_location_id: null })
+              .eq('id', business.id)
+            // Continue to create new location below
+          }
+        }
+      } else {
+        // Canonical address is incomplete, clear stale location ID
+        console.warn('[TerminalLocation] canonical_address_incomplete clearing_stale_location_id')
+        await supabaseAdmin
+          .from('businesses')
+          .update({ stripe_terminal_location_id: null })
+          .eq('id', business.id)
+      }
+    }
+
     let accountAddress: { line1: string; city: string; state: string; postal_code: string; country: string } | null = null
 
-    try {
-      const account = await stripe.accounts.retrieve(stripeAccountId)
-      console.log('[TerminalLocation] stripe_account.retrieve.success')
-      console.log('[TerminalLocation] DIAGNOSTICS retrieved_account_id_suffix=' + account.id.slice(-4))
-      console.log('[TerminalLocation] DIAGNOSTICS account_id_match=' + (account.id === stripeAccountId))
+    if (isAddressComplete(businessAddress)) {
+      // Validate the stored address
+      const addressValidation = validateBusinessAddress(businessAddress)
 
-      // AUDIT DIAGNOSTICS: Log structural presence only, no PII
-      console.log('[TerminalLocation] DIAGNOSTICS account.business_type=' + (account.business_type || 'null'))
-      console.log('[TerminalLocation] DIAGNOSTICS account.company.present=' + (!!account.company))
-      console.log('[TerminalLocation] DIAGNOSTICS account.company.address.present=' + (!!account.company?.address))
-      if (account.company?.address) {
-        const addr = account.company.address
-        console.log('[TerminalLocation] DIAGNOSTICS account.company.address.line1.present=' + (!!addr.line1))
-        console.log('[TerminalLocation] DIAGNOSTICS account.company.address.city.present=' + (!!addr.city))
-        console.log('[TerminalLocation] DIAGNOSTICS account.company.address.state.present=' + (!!addr.state))
-        console.log('[TerminalLocation] DIAGNOSTICS account.company.address.postal_code.present=' + (!!addr.postal_code))
-        console.log('[TerminalLocation] DIAGNOSTICS account.company.address.country.present=' + (!!addr.country))
-      }
-      console.log('[TerminalLocation] DIAGNOSTICS account.individual.present=' + (!!account.individual))
-      console.log('[TerminalLocation] DIAGNOSTICS account.individual.address.present=' + (!!account.individual?.address))
-      if (account.individual?.address) {
-        const addr = account.individual.address
-        console.log('[TerminalLocation] DIAGNOSTICS account.individual.address.line1.present=' + (!!addr.line1))
-        console.log('[TerminalLocation] DIAGNOSTICS account.individual.address.city.present=' + (!!addr.city))
-        console.log('[TerminalLocation] DIAGNOSTICS account.individual.address.state.present=' + (!!addr.state))
-        console.log('[TerminalLocation] DIAGNOSTICS account.individual.address.postal_code.present=' + (!!addr.postal_code))
-        console.log('[TerminalLocation] DIAGNOSTICS account.individual.address.country.present=' + (!!addr.country))
-      }
-      console.log('[TerminalLocation] DIAGNOSTICS account.business_profile.present=' + (!!account.business_profile))
-      if (account.business_profile) {
-        console.log('[TerminalLocation] DIAGNOSTICS account.business_profile.url.present=' + (!!account.business_profile.url))
-        console.log('[TerminalLocation] DIAGNOSTICS account.business_profile.name.present=' + (!!account.business_profile.name))
-        console.log('[TerminalLocation] DIAGNOSTICS account.business_profile.support_email.present=' + (!!account.business_profile.support_email))
-        console.log('[TerminalLocation] DIAGNOSTICS account.business_profile.support_phone.present=' + (!!account.business_profile.support_phone))
-      }
-
-      // Use the company address from the connected Stripe account (already validated by Stripe)
-      if (account.company?.address) {
-        const addr = account.company.address
+      if (addressValidation.valid && addressValidation.normalized) {
         accountAddress = {
-          line1: addr.line1 || 'Mobile',
-          city: addr.city || 'Mobile',
-          state: addr.state || 'Mobile',
-          postal_code: addr.postal_code || '',
-          country: addr.country || 'US',
+          line1: addressValidation.normalized.line1,
+          city: addressValidation.normalized.city,
+          state: addressValidation.normalized.state,
+          postal_code: addressValidation.normalized.postal_code,
+          country: addressValidation.normalized.country
         }
-        console.log('[TerminalLocation] address.source=stripe_account')
-        console.log('[TerminalLocation] address.line1.present=' + (!!addr.line1))
-        console.log('[TerminalLocation] address.city.present=' + (!!addr.city))
-        console.log('[TerminalLocation] address.state.present=' + (!!addr.state))
-        console.log('[TerminalLocation] address.postal_code.present=' + (!!addr.postal_code))
-        console.log('[TerminalLocation] address.country=' + (addr.country || 'US'))
+        console.log('[TerminalLocation] address.source=replyflow_canonical')
+        console.log('[TerminalLocation] address.validation.success')
+      } else {
+        console.error('[TerminalLocation] error.stage=address_validation')
+        console.error('[TerminalLocation] error.type=stored_address_invalid')
+        console.error('[TerminalLocation] Stored business address is invalid')
+        return NextResponse.json(
+          { error: 'terminal_location_address_invalid', message: 'Add a valid business address before using Tap to Pay.' },
+          { status: 400 }
+        )
       }
-    } catch (accountError) {
-      console.error('[TerminalLocation] error.stage=stripe_account_retrieve')
-      console.error('[TerminalLocation] error.type=stripe_account_retrieve_failed')
-      console.error('[TerminalLocation] Failed to retrieve Stripe account:', accountError)
-    }
-
-    // If no address available from Stripe account, return setup error
-    if (!accountAddress || !accountAddress.postal_code) {
+    } else {
       console.error('[TerminalLocation] error.stage=address_validation')
       console.error('[TerminalLocation] error.type=address_missing')
-      console.error('[TerminalLocation] No valid address available from Stripe account')
+      console.error('[TerminalLocation] No canonical business address found in ReplyFlow')
       return NextResponse.json(
-        { error: 'terminal_location_address_required', message: 'A valid business address is required before Tap to Pay can be enabled.' },
+        { error: 'terminal_location_address_required', message: 'Add a valid business address before using Tap to Pay.' },
         { status: 400 }
       )
     }
-
-    // Validate postal code format (basic check for US format)
-    const postalCodePattern = /^\d{5}(-\d{4})?$/
-    if (!postalCodePattern.test(accountAddress.postal_code)) {
-      console.error('[TerminalLocation] error.stage=address_validation')
-      console.error('[TerminalLocation] error.type=postal_code_invalid')
-      console.error('[TerminalLocation] Invalid postal code format')
-      return NextResponse.json(
-        { error: 'terminal_location_address_invalid', message: 'Add a valid business address before using Tap to Pay.' },
-        { status: 400 }
-      )
-    }
-
-    console.log('[TerminalLocation] address.validation.success')
 
     // Create Terminal Location using the validated address from Stripe account
     const location = await stripe.terminal.locations.create(

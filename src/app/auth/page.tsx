@@ -66,6 +66,11 @@ function AuthContent() {
   const [businessName, setBusinessName] = useState('')
   const [businessPhone, setBusinessPhone] = useState('')
   const [serviceLocationType, setServiceLocationType] = useState<'onsite' | 'customer_comes_to_business' | 'remote' | ''>('')
+  const [addressLine1, setAddressLine1] = useState('')
+  const [addressLine2, setAddressLine2] = useState('')
+  const [addressCity, setAddressCity] = useState('')
+  const [addressState, setAddressState] = useState('')
+  const [addressPostalCode, setAddressPostalCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [errorDisplay, setErrorDisplay] = useState<AuthErrorDisplay | null>(null)
@@ -310,6 +315,33 @@ function AuthContent() {
         return
       }
 
+      // Validate address fields
+      if (!addressLine1.trim() || !addressCity.trim() || !addressState.trim() || !addressPostalCode.trim()) {
+        setError('Please fill in all required address fields.')
+        setLoading(false)
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
+        return
+      }
+
+      // Validate state code
+      if (addressState.length !== 2) {
+        setError('State must be a 2-letter code (e.g., CA).')
+        setLoading(false)
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
+        return
+      }
+
+      // Validate postal code format
+      if (!/^\d{5}(-\d{4})?$/.test(addressPostalCode)) {
+        setError('ZIP code must be in format 12345 or 12345-6789.')
+        setLoading(false)
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
+        return
+      }
+
       // Call the complete-signup endpoint
       const response = await fetch('/api/auth/complete-signup', {
         method: 'POST',
@@ -321,8 +353,15 @@ function AuthContent() {
           password,
           businessName,
           businessPhone,
-          // Persist preferred service location mode as part of signup
           service_location_type: serviceLocationType,
+          businessAddress: {
+            line1: addressLine1,
+            line2: addressLine2,
+            city: addressCity,
+            state: addressState,
+            postal_code: addressPostalCode,
+            country: 'US'
+          }
         }),
       })
 
@@ -914,6 +953,104 @@ function AuthContent() {
                         <div className="text-xs text-slate-400 mt-0.5">{opt.desc}</div>
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-700/50 pt-4 mt-4">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Business Address
+                  </label>
+                  <p className="text-xs text-slate-500 mb-3">
+                    This helps configure payments and your business profile.
+                  </p>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor="addressLine1" className="block text-xs font-medium text-slate-400 mb-1">
+                        Street Address <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        id="addressLine1"
+                        type="text"
+                        value={addressLine1}
+                        onChange={(e) => setAddressLine1(e.target.value)}
+                        required
+                        autoComplete="street-address"
+                        name="addressLine1"
+                        className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                        placeholder="123 Main Street"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="addressLine2" className="block text-xs font-medium text-slate-400 mb-1">
+                        Suite, Unit, etc. <span className="text-slate-500">(optional)</span>
+                      </label>
+                      <input
+                        id="addressLine2"
+                        type="text"
+                        value={addressLine2}
+                        onChange={(e) => setAddressLine2(e.target.value)}
+                        autoComplete="address-line2"
+                        name="addressLine2"
+                        className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                        placeholder="Apt 4B"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label htmlFor="addressCity" className="block text-xs font-medium text-slate-400 mb-1">
+                          City <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                          id="addressCity"
+                          type="text"
+                          value={addressCity}
+                          onChange={(e) => setAddressCity(e.target.value)}
+                          required
+                          autoComplete="address-level2"
+                          name="addressCity"
+                          className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                          placeholder="San Francisco"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="addressState" className="block text-xs font-medium text-slate-400 mb-1">
+                          State <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                          id="addressState"
+                          type="text"
+                          value={addressState}
+                          onChange={(e) => setAddressState(e.target.value.toUpperCase())}
+                          required
+                          maxLength={2}
+                          autoComplete="address-level1"
+                          name="addressState"
+                          className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                          placeholder="CA"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="addressPostalCode" className="block text-xs font-medium text-slate-400 mb-1">
+                        ZIP Code <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        id="addressPostalCode"
+                        type="text"
+                        value={addressPostalCode}
+                        onChange={(e) => setAddressPostalCode(e.target.value)}
+                        required
+                        autoComplete="postal-code"
+                        name="addressPostalCode"
+                        className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                        placeholder="94102"
+                      />
+                    </div>
                   </div>
                 </div>
 

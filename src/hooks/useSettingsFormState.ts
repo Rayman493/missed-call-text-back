@@ -90,7 +90,13 @@ export function useSettingsFormState({
       'automation_settings',
       'venmo_username',
       'paypal_payment_link',
-      'service_location_type'
+      'service_location_type',
+      'business_address_line1',
+      'business_address_line2',
+      'business_address_city',
+      'business_address_state',
+      'business_address_postal_code',
+      'business_address_country'
     ]
 
     return fieldsToCheck.some(field => {

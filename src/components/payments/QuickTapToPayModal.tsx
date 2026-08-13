@@ -1598,10 +1598,26 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                             Back
                           </button>
                           <button
-                            onClick={handleOpenStripeManagement}
+                            onClick={() => {
+                              // Check if this is an address configuration error
+                              const isAddressError =
+                                mappedError?.technicalCode === 'terminal_location_address_required' ||
+                                mappedError?.technicalCode === 'terminal_location_address_invalid'
+
+                              if (isAddressError) {
+                                // Navigate to Business Settings address section
+                                window.location.href = '/dashboard/settings#business-address'
+                              } else {
+                                // Stripe management for other configuration errors
+                                handleOpenStripeManagement()
+                              }
+                            }}
                             className="flex-1 px-4 py-3 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors active:scale-95"
                           >
-                            Complete Business Profile
+                            {mappedError?.technicalCode === 'terminal_location_address_required' ||
+                             mappedError?.technicalCode === 'terminal_location_address_invalid'
+                              ? 'Add Business Address'
+                              : 'Complete Business Profile'}
                           </button>
                         </>
                       ) : (
