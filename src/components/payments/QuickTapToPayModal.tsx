@@ -46,8 +46,7 @@ export default function QuickTapToPayModal({
   const [isLoadingJobs, setIsLoadingJobs] = useState(false)
   const [isNativeSupported, setIsNativeSupported] = useState(false)
   const [disabledReason, setDisabledReason] = useState<string>('')
-  const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
-  
+
   // Location guidance card states (inline on setup screen, not overlays)
 const [showLocationPermissionCard, setShowLocationPermissionCard] = useState(false)
 const [showLocationServicesCard, setShowLocationServicesCard] = useState(false)
@@ -296,6 +295,136 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     resetState: resetReaderState,
     setPreparing: setReaderPreparing,
   } = useTapToPayReaderPresentation(isOpen && hookIsNativeSupported)
+
+  // ===== PRESENTATION PHASE DERIVATION =====
+  // This is a pure presentation layer that maps authoritative paymentState
+  // to stable user-visible phases. It does NOT modify orchestration behavior.
+  type PresentationPhase =
+    | 'ready'
+    | 'preparing'
+    | 'waiting_for_card'
+    | 'processing'
+    | 'confirming'
+    | 'success'
+    | 'declined'
+    | 'canceled'
+    | 'recoverable_error'
+    | 'uncertain'
+    | 'education_pending'
+    | 'education_waiting_for_confirmation'
+
+  const visiblePhase: PresentationPhase = useMemo(() => {
+    // Education states pass through
+    if (paymentState === 'education_pending') return 'education_pending'
+    if (paymentState === 'education_waiting_for_confirmation') return 'education_waiting_for_confirmation'
+
+    // Terminal states pass through
+    if (paymentState === 'ready') return 'ready'
+    if (paymentState === 'canceled') return 'canceled'
+
+    // Collapse preparation states into one stable phase
+    if (paymentState === 'preparing' || paymentState === 'connecting_reader' || paymentState === 'creating_payment_intent') {
+      return 'preparing'
+    }
+
+    // Waiting for card
+    if (paymentState === 'waiting_for_card') return 'waiting_for_card'
+
+    // Processing
+    if (paymentState === 'processing') {
+      // Check if we should show confirming phase instead
+      // Use available evidence: native success + reconciliation in progress
+      // This is presentation-only - actual success gate remains in orchestration
+      const attemptId = terminalService?.getCurrentAttemptId()
+      const sessionId = terminalService?.getSessionId()
+
+      // If we have evidence of native success but not yet authoritative success,
+      // show confirming phase
+      if (lastSuccessfulStage === 'payment_native_succeeded' ||
+          lastSuccessfulStage === 'reconciliation_started') {
+        return 'confirming'
+      }
+
+      return 'processing'
+    }
+
+    // Success - controlled by existing orchestration success gate
+    if (paymentState === 'success') return 'success'
+
+    // Failure - check if it's a decline vs other error
+    if (paymentState === 'failure') {
+      // If the mapped error indicates a decline, show declined phase
+      if (mappedError?.title === 'Card Declined') {
+        return 'declined'
+      }
+      // If it's ambiguous outcome, show uncertain
+      if (mappedError?.title === 'Payment in Progress' ||
+          mappedError?.action === 'back') {
+        return 'uncertain'
+      }
+      // Otherwise show as recoverable error
+      return 'recoverable_error'
+    }
+
+    // Ambiguous state
+    if (paymentState === 'ambiguous') {
+      return 'uncertain'
+    }
+
+    // Pending/ambiguous states
+    if (paymentState === 'pending' || paymentState === 'ambiguous') {
+      return 'uncertain'
+    }
+
+    // Default fallback
+    return 'ready'
+  }, [paymentState, lastSuccessfulStage, mappedError, terminalService])
+
+  // Derive whether error is still presentation-relevant
+  // Errors from preparation should not show if we've advanced to success
+  const isErrorPresentationRelevant = useMemo(() => {
+    // If we're in success phase, no error is relevant
+    if (visiblePhase === 'success') return false
+
+    // If we're in confirming phase, no preparation errors are relevant
+    if (visiblePhase === 'confirming') return false
+
+    // If we're in processing, only show errors if the state is actually failure
+    if (visiblePhase === 'processing' && paymentState !== 'failure') return false
+
+    // Otherwise, error is relevant
+    return true
+  }, [visiblePhase, paymentState])
+
+  // Normalize reader display messages for user-facing presentation
+  // Filter out technical Stripe Terminal messages, keep only actionable customer prompts
+  const normalizedReaderMessage = useMemo(() => {
+    if (!readerState.displayMessage && !readerState.instruction) return null
+
+    // List of technical/internal messages to filter out
+    const technicalPatterns = [
+      /reader/i,
+      /terminal/i,
+      /connect/i,
+      /disconnect/i,
+      /update/i,
+      /config/i,
+      /initialize/i,
+      /ready/i,
+      /scanning/i,
+      /bluetooth/i,
+    ]
+
+    const message = readerState.displayMessage || readerState.instruction || ''
+
+    // If it looks like a technical message, don't display it
+    if (technicalPatterns.some(pattern => pattern.test(message))) {
+      return null
+    }
+
+    // If it's a genuine customer instruction, display it
+    return message
+  }, [readerState.displayMessage, readerState.instruction])
 
   // Ref to store resetToSetup for modal-open effect (avoid unstable dependency)
   const resetToSetupRef = useRef(resetToSetup)
@@ -596,15 +725,15 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     } catch {}
 
     const onPopState = () => {
-      if (paymentState === 'failure') {
-        // On back from failure, go to setup
+      if (visiblePhase === 'recoverable_error' || visiblePhase === 'uncertain' || visiblePhase === 'declined') {
+        // On back from error, go to setup
         // handled by cancelPayment which resets state
         cancelPayment()
-      } else if (paymentState === 'success') {
+      } else if (visiblePhase === 'success') {
         handlePaymentComplete()
-      } else if (paymentState === 'canceled') {
+      } else if (visiblePhase === 'canceled') {
         onClose()
-      } else if (paymentState === 'ready') {
+      } else if (visiblePhase === 'ready') {
         onClose()
       } else {
         // During active payment, allow cancel
@@ -619,13 +748,13 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
         const mod = await import('@capacitor/app')
         const { App } = mod as any
         capListener = await App.addListener('backButton', () => {
-          if (paymentState === 'failure') {
+          if (visiblePhase === 'recoverable_error' || visiblePhase === 'uncertain' || visiblePhase === 'declined') {
             cancelPayment()
-          } else if (paymentState === 'success') {
+          } else if (visiblePhase === 'success') {
             handlePaymentComplete()
-          } else if (paymentState === 'canceled') {
+          } else if (visiblePhase === 'canceled') {
             onClose()
-          } else if (paymentState === 'ready') {
+          } else if (visiblePhase === 'ready') {
             onClose()
           } else {
             cancelPayment()
@@ -638,25 +767,10 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
       window.removeEventListener('popstate', onPopState)
       capListener?.remove?.()
     }
-  }, [isOpen, onClose, paymentState, cancelPayment])
+  }, [isOpen, onClose, visiblePhase, cancelPayment])
 
   // Timer for connecting state to show elapsed time reassurance
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null
-    
-    if (paymentState === 'connecting_reader') {
-      setConnectingElapsedTime(0)
-      interval = setInterval(() => {
-        setConnectingElapsedTime(prev => prev + 1)
-      }, 1000)
-    } else {
-      setConnectingElapsedTime(0)
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval)
-    }
-  }, [paymentState])
+  // REMOVED: We now use a stable "Preparing Tap to Pay" phase instead of time-based messages
 
   if (!isOpen) return null
 
@@ -675,17 +789,18 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                   <Smartphone className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
                 </div>
                 <h3 ref={titleRef} className="text-base font-semibold text-foreground select-none" tabIndex={-1}>
-                  {showPaymentSetup ? 'Tap to Pay' : 
-                   paymentState === 'preparing' ? 'Preparing Tap to Pay…' :
-                   paymentState === 'connecting_reader' ? 'Connecting to Tap to Pay…' :
-                   paymentState === 'creating_payment_intent' ? 'Preparing payment…' :
-                   paymentState === 'waiting_for_card' ? 'Ready for card' :
-                   paymentState === 'processing' ? 'Processing…' :
-                   paymentState === 'success' ? 'Payment Complete' :
-                   paymentState === 'canceled' ? 'Payment Canceled' :
-                   paymentState === 'failure' ? 'Payment Failed' :
-                   paymentState === 'education_pending' ? 'Tap to Pay Setup' :
-                   paymentState === 'education_waiting_for_confirmation' ? 'Tap to Pay Setup' :
+                  {showPaymentSetup ? 'Tap to Pay' :
+                   visiblePhase === 'preparing' ? 'Preparing Tap to Pay' :
+                   visiblePhase === 'waiting_for_card' ? 'Ready for payment' :
+                   visiblePhase === 'processing' ? 'Processing payment' :
+                   visiblePhase === 'confirming' ? 'Confirming payment' :
+                   visiblePhase === 'success' ? 'Payment complete' :
+                   visiblePhase === 'declined' ? 'Payment declined' :
+                   visiblePhase === 'canceled' ? 'Payment canceled' :
+                   visiblePhase === 'recoverable_error' ? 'Payment failed' :
+                   visiblePhase === 'uncertain' ? 'Payment status uncertain' :
+                   visiblePhase === 'education_pending' ? 'Tap to Pay Setup' :
+                   visiblePhase === 'education_waiting_for_confirmation' ? 'Tap to Pay Setup' :
                    'Tap to Pay'}
                 </h3>
               </div>
@@ -693,11 +808,11 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                 onClick={() => {
                   if (showPaymentSetup) {
                     onClose()
-                  } else if (paymentState === 'success') {
+                  } else if (visiblePhase === 'success') {
                     handlePaymentComplete()
-                  } else if (paymentState === 'canceled') {
+                  } else if (visiblePhase === 'canceled') {
                     onClose()
-                  } else if (paymentState === 'failure') {
+                  } else if (visiblePhase === 'recoverable_error' || visiblePhase === 'uncertain' || visiblePhase === 'declined') {
                     onClose()
                   } else {
                     // During active payment states, allow cancellation
@@ -1207,7 +1322,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
               ) : (
                 /* Payment Progress Screen */
                 <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                  {paymentState === 'education_pending' && (
+                  {visiblePhase === 'education_pending' && (
                     <div className="flex flex-col items-center justify-center space-y-5 text-center px-6" role="status" aria-live="polite">
                       <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
                         <BookOpen className="w-8 h-8 text-green-600 dark:text-green-400" />
@@ -1224,67 +1339,33 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                       </div>
                     </div>
                   )}
-                  {paymentState === 'preparing' && (
+
+                  {visiblePhase === 'preparing' && (
                     <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
                       <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
                         <Loader2 className="w-8 h-8 animate-spin text-green-600 dark:text-green-400" />
                       </div>
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-foreground">
-                          {lastSuccessfulStage === 'checking_previous_payment'
-                            ? 'Checking previous payment…'
-                            : 'Initializing payment terminal…'}
-                        </p>
+                        <p className="text-sm font-medium text-foreground">Preparing Tap to Pay</p>
                         <p className="text-xs text-muted-foreground">{formatCurrency(amountCents / 100)}</p>
                       </div>
                       {/* Indeterminate preparation message for Apple configuration */}
                       {readerState.preparing && (
                         <p className="text-xs text-muted-foreground mt-2">
-                          Preparing Tap to Pay on iPhone… This can take a moment the first time.
+                          This may take a moment the first time.
                         </p>
                       )}
                     </div>
                   )}
 
-                  {paymentState === 'connecting_reader' && (
-                    <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
-                      <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center animate-pulse">
-                        <Smartphone className="w-8 h-8 text-green-600 dark:text-green-400" />
-                      </div>
-                      <div className="space-y-2" role="status" aria-live="polite" aria-atomic="true">
-                        <p className="text-sm font-medium text-foreground">Connecting to Tap to Pay…</p>
-                        <p className="text-xs text-muted-foreground max-w-xs leading-relaxed px-4">
-                          {connectingElapsedTime >= 15
-                            ? 'Finishing Tap to Pay setup. This may take a moment the first time.'
-                            : connectingElapsedTime >= 5
-                            ? 'Still connecting securely… this can take a few seconds.'
-                            : 'Preparing the secure payment reader. This may take a few seconds the first time.'}
-                        </p>
-                      </div>
-                      <p className="text-lg font-bold text-foreground">{formatCurrency(amountCents / 100)}</p>
-                    </div>
-                  )}
-
-                  {paymentState === 'creating_payment_intent' && (
-                    <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
-                      <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
-                        <Loader2 className="w-8 h-8 animate-spin text-green-600 dark:text-green-400" />
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-foreground">Preparing payment…</p>
-                        <p className="text-xs text-muted-foreground">{formatCurrency(amountCents / 100)}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {paymentState === 'waiting_for_card' && (
+                  {visiblePhase === 'waiting_for_card' && (
                     <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
                       <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center animate-pulse">
                         <Smartphone className="w-8 h-8 text-green-600 dark:text-green-400" />
                       </div>
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-foreground">Ready for card</p>
-                        <p className="text-xs text-muted-foreground">Tap or insert card</p>
+                        <p className="text-sm font-medium text-foreground">Ready for payment</p>
+                        <p className="text-xs text-muted-foreground">Hold the contactless card or device near the iPhone.</p>
                       </div>
                       <p className="text-lg font-bold text-foreground">{formatCurrency(amountCents / 100)}</p>
                       {/* Software update error - highest priority */}
@@ -1307,37 +1388,40 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                           </p>
                         </div>
                       )}
-                      {/* Reader display message from Stripe Terminal - third priority */}
-                      {!readerState.softwareUpdateError && !readerState.softwareUpdateActive && readerState.displayMessage && (
+                      {/* Normalized reader display message - third priority */}
+                      {!readerState.softwareUpdateError && !readerState.softwareUpdateActive && normalizedReaderMessage && (
                         <div className="mt-3 p-3 bg-muted border border-muted-foreground/20 rounded-lg">
-                          <p className="text-sm text-foreground">{readerState.displayMessage}</p>
-                        </div>
-                      )}
-                      {/* Reader instruction from Stripe Terminal - fourth priority */}
-                      {!readerState.softwareUpdateError && !readerState.softwareUpdateActive && !readerState.displayMessage && readerState.instruction && (
-                        <div className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
-                          <p className="text-sm font-medium text-primary">{readerState.instruction}</p>
+                          <p className="text-sm text-foreground">{normalizedReaderMessage}</p>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {paymentState === 'processing' && (
+                  {visiblePhase === 'processing' && (
                     <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
                       <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
                         <Loader2 className="w-8 h-8 animate-spin text-green-600 dark:text-green-400" />
                       </div>
-                      <p className="text-sm font-medium text-foreground">Processing payment…</p>
+                      <p className="text-sm font-medium text-foreground">Processing payment</p>
                     </div>
                   )}
 
-                  {paymentState === 'success' && (
+                  {visiblePhase === 'confirming' && (
+                    <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
+                      <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-green-600 dark:text-green-400" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground">Confirming payment</p>
+                    </div>
+                  )}
+
+                  {visiblePhase === 'success' && (
                     <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
                       <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center animate-in zoom-in duration-300">
                         <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
                       </div>
                       <div className="space-y-2">
-                        <p className="text-lg font-semibold text-foreground">Payment Successful!</p>
+                        <p className="text-lg font-semibold text-foreground">Payment complete</p>
                         <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(amountCents / 100)}</p>
                       </div>
                       <button
@@ -1350,26 +1434,44 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                     </div>
                   )}
 
-                  {paymentState === 'canceled' && (
+                  {visiblePhase === 'declined' && (
                     <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
                       <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center">
                         <XCircle className="w-8 h-8 text-amber-600 dark:text-amber-400" />
                       </div>
                       <div className="space-y-2">
-                        <p className="text-lg font-semibold text-foreground">Payment Canceled</p>
+                        <p className="text-lg font-semibold text-foreground">Payment declined</p>
+                        <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">{mappedError?.message || 'The payment was declined by the card issuer.'}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {visiblePhase === 'canceled' && (
+                    <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
+                      <div className="w-16 h-16 rounded-full bg-slate-500/10 flex items-center justify-center">
+                        <XCircle className="w-8 h-8 text-slate-600 dark:text-slate-400" />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-lg font-semibold text-foreground">Payment canceled</p>
                         <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">No charge was made. You can try again whenever you're ready.</p>
                       </div>
                     </div>
                   )}
 
-                  {paymentState === 'failure' && (
+                  {(visiblePhase === 'recoverable_error' || visiblePhase === 'uncertain') && (
                     <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
                       <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
                         <XCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
                       </div>
                       <div className="space-y-2">
-                        <p className="text-lg font-semibold text-foreground">{mappedError?.title || 'Payment Failed'}</p>
-                        <p className="text-sm text-red-600 dark:text-red-400 max-w-xs leading-relaxed">{mappedError?.message || error || 'An error occurred'}</p>
+                        <p className="text-lg font-semibold text-foreground">
+                          {visiblePhase === 'uncertain' ? 'Payment status uncertain' : (mappedError?.title || 'Payment failed')}
+                        </p>
+                        <p className="text-sm text-red-600 dark:text-red-400 max-w-xs leading-relaxed">
+                          {visiblePhase === 'uncertain'
+                            ? 'We couldn\'t confirm the final payment status. Please check your payment history before trying again.'
+                            : (mappedError?.message || error || 'An error occurred')}
+                        </p>
                       </div>
                     </div>
                   )}
