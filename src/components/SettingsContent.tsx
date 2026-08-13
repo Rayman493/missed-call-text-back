@@ -2749,7 +2749,7 @@ export default function SettingsContent() {
                 <div className="h-px flex-1 bg-border/30"></div>
               </div>
 
-              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 pb-safe-bottom-4 scroll-mt-[64px]">
                 <div className="mb-5">
                   <h2 className="text-base font-semibold text-foreground mb-1">Payments</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">
@@ -2769,7 +2769,7 @@ export default function SettingsContent() {
                   const showTapToPayCard = isIOSPlatform && !isIPad
 
                   return (
-                    <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${showTapToPayCard ? 'xl:grid-cols-4' : 'lg:grid-cols-3'}`}>
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 gap-5 ${showTapToPayCard ? 'xl:grid-cols-4' : 'lg:grid-cols-3'}`}>
                   {/* Tap to Pay - Only render on supported iPhone (not iPad, iPod, or unsupported devices) */}
                   {(() => {
                     const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
@@ -2788,12 +2788,12 @@ export default function SettingsContent() {
                     }
 
                     return (
-                      <div className="flex flex-col h-full border border-border/30 rounded-lg p-4">
-                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-3">
+                      <div className="flex flex-col h-full border border-border/30 rounded-lg p-4 sm:p-5">
+                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
                           <Smartphone className="h-5 w-auto text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                          <span className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-full font-medium">
+                          <span className="text-[10px] px-2.5 py-0.5 bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-full font-medium">
                             Tap to Pay on iPhone
                           </span>
                           {(() => {
@@ -2945,7 +2945,7 @@ export default function SettingsContent() {
                         })()
                       )}
                     </div>
-                    <div className="mt-auto space-y-2">
+                    <div className="mt-auto space-y-3">
                       {tapToPayAwareness.state.isLoading ? (
                         <div className="p-2.5 sm:p-3">
                           <Skeleton className="h-12 w-full rounded-lg" />
@@ -2976,9 +2976,9 @@ export default function SettingsContent() {
                               stripeMessage = 'Stripe is reviewing your account. Tap to Pay will be available when verification is complete.'
                             }
                             return (
-                              <div className="p-2.5 sm:p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                                <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300">
-                                  <span className="font-semibold">Requires Stripe:</span> {stripeMessage}
+                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30 rounded-lg">
+                                <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">
+                                  <span className="font-medium">Requires Stripe:</span> {stripeMessage}
                                 </p>
                               </div>
                             )
@@ -3121,12 +3121,12 @@ export default function SettingsContent() {
                     )
                   })()}
 
-                  <div className="flex flex-col h-full border border-border/30 rounded-lg p-4">
-                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-3">
+                  <div className="flex flex-col h-full border border-border/30 rounded-lg p-4 sm:p-5">
+                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
                           <img src="/brands/stripe.svg" alt="Stripe" className="h-5 w-auto object-contain sm:h-6 flex-shrink-0" />
-                          <span className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-full font-medium">
+                          <span className="text-[10px] px-2.5 py-0.5 bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-full font-medium">
                             Recommended
                           </span>
                           {stripeStatus === 'connected' ? (
@@ -3189,7 +3189,7 @@ export default function SettingsContent() {
                         </button>
                       )}
                     </div>
-                    <div className="mt-auto space-y-2">
+                    <div className="mt-auto space-y-3">
                       {business?.stripe_charges_enabled && business?.stripe_details_submitted && (
                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-500">
                           {business.stripe_charges_enabled && <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Charges enabled</div>}
@@ -3198,15 +3198,15 @@ export default function SettingsContent() {
                         </div>
                       )}
                       {business?.stripe_connect_account_id && !(business?.stripe_charges_enabled && business?.stripe_details_submitted) && (
-                        <div className="p-2.5 sm:p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                          <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300">
+                        <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30 rounded-lg">
+                          <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">
                             {business?.stripe_details_submitted && !business?.stripe_charges_enabled ? (
                               <>
-                                <span className="font-semibold">Verification pending:</span> Stripe is reviewing your account. This usually takes 1-2 business days.
+                                <span className="font-medium">Verification in progress:</span> Stripe is reviewing your account. This usually takes 1-2 business days.
                               </>
                             ) : (
                               <>
-                                <span className="font-semibold">Setup in progress:</span> Complete Stripe onboarding to accept card payments.
+                                <span className="font-medium">Setup in progress:</span> Complete Stripe onboarding to accept card payments.
                               </>
                             )}
                           </p>
@@ -3228,10 +3228,10 @@ export default function SettingsContent() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col h-full border border-border/30 rounded-lg p-4">
-                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-3">
+                  <div className="flex flex-col h-full border border-border/30 rounded-lg p-4 sm:p-5">
+                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
                           <img src="/brands/venmo.png" alt="Venmo" className="h-5 w-auto object-contain sm:h-6 flex-shrink-0" />
                         {formBusiness.venmo_username ? (
                           <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
@@ -3263,10 +3263,10 @@ export default function SettingsContent() {
                   </div>
                 </div>
 
-                  <div className="flex flex-col h-full border border-border/30 rounded-lg p-4">
-                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-3">
+                  <div className="flex flex-col h-full border border-border/30 rounded-lg p-4 sm:p-5">
+                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
                           <img src="/brands/paypal.png" alt="PayPal" className="h-5 w-auto object-contain sm:h-6 flex-shrink-0" />
                           {formBusiness.paypal_payment_link ? (
                             <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
