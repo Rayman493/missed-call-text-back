@@ -25,7 +25,16 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    const { email, password, businessName, businessPhone } = body
+    const { email, password, businessName, businessPhone, service_location_type } = body
+
+    // Validate service_location_type if provided
+    const validServiceLocationTypes = ['onsite', 'customer_comes_to_business', 'remote']
+    if (service_location_type && !validServiceLocationTypes.includes(service_location_type)) {
+      return NextResponse.json(
+        { ok: false, step: 'validation', error: 'Invalid service location type' },
+        { status: 400 }
+      )
+    }
 
     // Validate required fields
     if (!email || !password) {
@@ -156,6 +165,7 @@ export async function POST(request: Request) {
         sms_type: 'local_a2p',
         messaging_status: 'active',
         onboarding_status: 'profile_created',
+        service_location_type: service_location_type || 'onsite', // Persist service location type from signup
         twilio_phone_number: null, // Will be set during provisioning
         subscription_status: null, // Will be set by Stripe webhook after checkout
         stripe_customer_id: null,

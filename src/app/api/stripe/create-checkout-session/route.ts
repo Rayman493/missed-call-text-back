@@ -18,6 +18,7 @@ export async function POST(request: Request) {
     const checkoutMode = body.checkout_mode || 'trial' // Default to trial for backward compatibility
     const checkoutSource = body.checkout_source || 'unspecified'
     const returnToApp = body.return_to_app === true // Platform-specific signal: checkout originated from native iOS app
+    const businessIdFromClient = body.business_id // Optional: business ID from complete-signup
     
     console.log('[stripe-checkout] Request body parsed:', {
       rawBody: body,
@@ -68,8 +69,43 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication required before starting checkout. Please sign in first.' }, { status: 401 })
     }
 
-    // Get or create user's business using centralized function
-    const business = await db.getOrCreateBusiness(user.id)
+    // Resolve business: use provided business_id if available, otherwise fallback to getOrCreateBusiness
+    let business: any = null
+    if (businessIdFromClient) {
+      console.log('[stripe-checkout] Using business_id from client:', businessIdFromClient)
+      // Verify the business exists and belongs to the user (security check to prevent IDOR)
+      const { data: businessData, error: businessError } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('id', businessIdFromClient)
+        .eq('user_id', user.id)
+        .single()
+
+      if (businessError) {
+        console.error('[stripe-checkout] Failed to resolve business by ID:', businessError)
+        // SECURITY: Do NOT fallback when business_id was explicitly supplied
+        // This prevents bypassing the ownership check
+        return NextResponse.json({
+          error: 'Invalid business ID. Please refresh and try again.',
+          reason: 'invalid_business_id'
+        }, { status: 400 })
+      } else if (!businessData) {
+        console.error('[stripe-checkout] Business ID provided but not found or does not belong to user')
+        // SECURITY: Do NOT fallback when business_id was explicitly supplied
+        // This prevents IDOR attacks
+        return NextResponse.json({
+          error: 'Business not found. Please refresh and try again.',
+          reason: 'business_not_found_or_unauthorized'
+        }, { status: 404 })
+      } else {
+        business = businessData
+        console.log('[stripe-checkout] Business resolved successfully from provided ID:', business.id)
+      }
+    } else {
+      console.log('[stripe-checkout] No business_id provided, using getOrCreateBusiness')
+      // Fallback to original behavior for existing users who don't pass business_id
+      business = await db.getOrCreateBusiness(user.id)
+    }
     
     console.log('[stripe-checkout] Business resolved:', { 
       business: !!business, 

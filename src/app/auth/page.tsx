@@ -398,27 +398,9 @@ function AuthContent() {
       }
 
       console.log('[Auth] Client signed in successfully')
-      
-      // Ensure service_location_type is persisted on the business row prior to checkout
-      // If complete-signup already saved it, this will be a harmless no-op update
-      try {
-        await fetch('/api/business/get-or-create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            businessData: {
-              service_location_type: serviceLocationType,
-            }
-          })
-        })
-      } catch (persistErr) {
-        console.warn('[Auth] Non-fatal: failed to persist service_location_type before checkout', persistErr)
-      }
-      
-      // The business row was already created atomically by /api/auth/complete-signup.
-      // We avoid a redundant client-side RLS-sensitive lookup here; the checkout
-      // endpoint performs its own service-role lookup and will tell us if the row
-      // is genuinely missing.
+
+      // The business row was created atomically by /api/auth/complete-signup with all required fields
+      // including service_location_type. No client-side update needed.
       console.log('[Auth] Starting checkout for business_id from complete-signup:', businessIdFromCompleteSignup)
       
       // Guard against duplicate checkout calls
@@ -446,6 +428,7 @@ function AuthContent() {
             checkout_mode: 'trial',
             checkout_source: 'auth-signup',
             return_to_app: checkNativeIOS(),
+            business_id: businessIdFromCompleteSignup, // Pass business ID from complete-signup
           }),
         })
 
