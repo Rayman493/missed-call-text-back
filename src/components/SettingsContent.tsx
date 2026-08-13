@@ -2976,7 +2976,7 @@ export default function SettingsContent() {
                               stripeMessage = 'Stripe is reviewing your account. Tap to Pay will be available when verification is complete.'
                             }
                             return (
-                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30 rounded-lg">
+                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30 rounded-lg mt-3">
                                 <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">
                                   <span className="font-medium">Requires Stripe:</span> {stripeMessage}
                                 </p>
@@ -2989,7 +2989,7 @@ export default function SettingsContent() {
                             const deviceType = tapToPayAwareness.state.tapToPaySupportStatus?.deviceInfo?.deviceType
                             if (deviceType === 'ipad') {
                               return (
-                                <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg mt-3">
                                   <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
                                     Use a compatible iPhone to accept contactless payments.
                                   </p>
@@ -2997,7 +2997,7 @@ export default function SettingsContent() {
                               )
                             }
                             return (
-                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg">
+                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg mt-3">
                                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
                                   Tap to Pay requires a compatible iPhone.
                                 </p>
@@ -3008,29 +3008,29 @@ export default function SettingsContent() {
                           // Unsupported iOS version
                           if (status === 'unsupported_ios_version') {
                             return (
-                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg">
+                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg mt-3">
                                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
                                   Update iOS to use Tap to Pay on iPhone.
                                 </p>
                               </div>
                             )
                           }
-                          
+
                           // Unavailable
                           if (status === 'unavailable') {
                             return (
-                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg">
+                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg mt-3">
                                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
                                   Tap to Pay is currently unavailable on this device.
                                 </p>
                               </div>
                             )
                           }
-                          
+
                           // Unknown status with retry
                           if (status === 'unknown') {
                             return (
-                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg">
+                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg mt-3">
                                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300 mb-2">
                                   Unable to verify Tap to Pay availability right now.
                                 </p>
@@ -3049,9 +3049,9 @@ export default function SettingsContent() {
                           // Supported but not acknowledged and not yet enabled via Apple
                           if (status === 'supported' && !business?.tap_to_pay_awareness_acknowledged_at && appleAccountLinkageState.status !== 'linked') {
                             return (
-                              <div className="p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                              <div className="p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mt-3">
                                 <p className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-300">
-                                  <span className="font-semibold">New feature available:</span> Set up Tap to Pay to accept contactless payments.
+                                  <span className="font-medium">New feature available:</span> Set up Tap to Pay to accept contactless payments.
                                 </p>
                               </div>
                             )
@@ -3060,31 +3060,31 @@ export default function SettingsContent() {
                           // Supported - show useful information
                           if (status === 'supported' && business?.stripe_charges_enabled) {
                             return (
-                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-500">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                                  Device Supported
+                              <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-slate-600 dark:text-slate-400 mt-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                                  <span>Device Supported</span>
                                 </div>
                                 {appleAccountLinkageState.status === 'linked' && (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                                    Apple Account Linked
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                                    <span>Apple Account Linked</span>
                                   </div>
                                 )}
                                 {business?.tap_to_pay_education_completed_at ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                                    Education Completed
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                                    <span>Education Completed</span>
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-                                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
-                                    Education Required
+                                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0"></span>
+                                    <span>Education Required</span>
                                   </div>
                                 )}
-                                <div className="flex items-center gap-1.5">
-                                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                                  Connected Reader: iPhone
+                                <div className="flex items-center gap-2">
+                                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0"></span>
+                                  <span>Connected Reader: iPhone</span>
                                 </div>
                               </div>
                             )
@@ -3105,7 +3105,7 @@ export default function SettingsContent() {
                           return (
                             <button
                               onClick={handleNativeEducationGuide}
-                              className="mt-2 text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                              className="mt-3 text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5 font-medium"
                               aria-label="Open Tap to Pay on iPhone guide"
                             >
                               Tap to Pay on iPhone Guide
@@ -3169,12 +3169,12 @@ export default function SettingsContent() {
                         <button
                           onClick={handleConnectStripe}
                           disabled={isConnectingStripe || isStripeConnectUnavailable}
-                          className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                          className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border ${
                             stripeStatus === 'connected'
-                              ? 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
+                              ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-sm'
                               : isStripeConnectUnavailable
-                                ? 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
-                                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
+                                : 'bg-blue-600 border-blue-600 hover:bg-blue-700 hover:border-blue-700 text-white shadow-sm shadow-blue-500/20'
                           }`}
                         >
                           {stripeStatus === 'connected'
@@ -3191,14 +3191,14 @@ export default function SettingsContent() {
                     </div>
                     <div className="mt-auto space-y-3">
                       {business?.stripe_charges_enabled && business?.stripe_details_submitted && (
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-500">
-                          {business.stripe_charges_enabled && <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Charges enabled</div>}
-                          {business.stripe_payouts_enabled && <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Payouts enabled</div>}
-                          {!business.stripe_payouts_enabled && <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400"><span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>Additional verification required for payouts</div>}
+                        <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-slate-600 dark:text-slate-400 mt-3">
+                          {business.stripe_charges_enabled && <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span><span>Charges enabled</span></div>}
+                          {business.stripe_payouts_enabled && <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span><span>Payouts enabled</span></div>}
+                          {!business.stripe_payouts_enabled && <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400"><span className="w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0"></span><span>Additional verification required for payouts</span></div>}
                         </div>
                       )}
                       {business?.stripe_connect_account_id && !(business?.stripe_charges_enabled && business?.stripe_details_submitted) && (
-                        <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30 rounded-lg">
+                        <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30 rounded-lg mt-3">
                           <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">
                             {business?.stripe_details_submitted && !business?.stripe_charges_enabled ? (
                               <>
@@ -3213,15 +3213,15 @@ export default function SettingsContent() {
                         </div>
                       )}
                       {isStripeConnectUnavailable ? (
-                        <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg mt-3">
                           <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
                             Stripe card payments are not available yet. You can still use Venmo or PayPal.
                           </p>
                         </div>
                       ) : (!business?.stripe_connect_status || business.stripe_connect_status === 'not_connected') && (
-                        <div className="p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mt-3">
                           <p className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-300">
-                            <span className="font-semibold">Best for cards:</span> Stripe provides the most complete payment experience in ReplyFlow.
+                            <span className="font-medium">Best for cards:</span> Stripe provides the most complete payment experience in ReplyFlow.
                           </p>
                         </div>
                       )}
