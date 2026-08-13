@@ -2055,6 +2055,7 @@ export async function POST(request: Request) {
         console.log('[STRIPE CONNECT WEBHOOK] canonical_status=', canonical.status)
         console.log('[STRIPE CONNECT WEBHOOK] charges_enabled=', canonical.charges_enabled)
         console.log('[STRIPE CONNECT WEBHOOK] details_submitted=', canonical.details_submitted)
+        console.log('[STRIPE CONNECT WEBHOOK] source=account_updated_webhook')
 
         // Update business Stripe Connect status using canonical logic
         const updateData: any = {

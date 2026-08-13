@@ -100,17 +100,46 @@ export async function POST(request: Request) {
     console.log('[STRIPE CONNECT REFRESH] stage=database_update_started')
 
     // Update business with current status
-    const { error: updateError } = await supabase
+    // IMPORTANT: Must include user_id filter to match the read query and prevent updating wrong business
+    const { data: updatedBusiness, error: updateError } = await supabase
       .from('businesses')
       .update(updateData)
       .eq('id', business_id)
+      .eq('user_id', user.id)
+      .select('stripe_connect_status, stripe_charges_enabled, stripe_details_submitted, stripe_payouts_enabled, stripe_connect_account_id')
+      .single()
 
     if (updateError) {
-      console.error('[STRIPE CONNECT REFRESH] stage=database_update_failed', { error: updateError.message })
+      console.error('[STRIPE CONNECT REFRESH] source=connect_refresh stage=database_update_failed', { error: updateError.message })
       return NextResponse.json({ error: 'Failed to update business' }, { status: 500 })
     }
 
-    console.log('[STRIPE CONNECT REFRESH] stage=database_update_success')
+    if (!updatedBusiness) {
+      console.error('[STRIPE CONNECT REFRESH] source=connect_refresh stage=database_update_no_row', { business_id })
+      return NextResponse.json({ error: 'Business row not found after update' }, { status: 404 })
+    }
+
+    console.log('[STRIPE CONNECT REFRESH] source=connect_refresh stage=database_update_success')
+    console.log('[STRIPE CONNECT REFRESH] source=connect_refresh persisted_status_after_update=', updatedBusiness.stripe_connect_status)
+    console.log('[STRIPE CONNECT REFRESH] source=connect_refresh persisted_charges_enabled_after_update=', updatedBusiness.stripe_charges_enabled)
+    console.log('[STRIPE CONNECT REFRESH] source=connect_refresh persisted_details_submitted_after_update=', updatedBusiness.stripe_details_submitted)
+    console.log('[STRIPE CONNECT REFRESH] source=connect_refresh account_id_present_after_update=', !!updatedBusiness.stripe_connect_account_id)
+
+    // Direct post-write readback to verify persistence
+    const { data: readbackBusiness, error: readbackError } = await supabase
+      .from('businesses')
+      .select('stripe_connect_status, stripe_charges_enabled, stripe_details_submitted, stripe_payouts_enabled, stripe_connect_account_id')
+      .eq('id', business_id)
+      .eq('user_id', user.id)
+      .single()
+
+    console.log('[STRIPE CONNECT REFRESH] source=connect_refresh_readback readback_status=', readbackBusiness?.stripe_connect_status)
+    console.log('[STRIPE CONNECT REFRESH] source=connect_refresh_readback readback_charges_enabled=', readbackBusiness?.stripe_charges_enabled)
+    console.log('[STRIPE CONNECT REFRESH] source=connect_refresh_readback readback_details_submitted=', readbackBusiness?.stripe_details_submitted)
+
+    if (readbackError || !readbackBusiness) {
+      console.error('[STRIPE CONNECT REFRESH] source=connect_refresh_readback stage=readback_failed', { error: readbackError?.message })
+    }
 
     return NextResponse.json({
       success: true,

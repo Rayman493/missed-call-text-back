@@ -139,6 +139,8 @@ export async function POST(request: Request) {
         })
         .eq('id', business_id)
 
+      console.log('[STRIPE CONNECT] source=connect_onboard after_onboard_status=pending')
+
       console.log('[STRIPE CONNECT DB] after_onboard_status=pending')
       console.log('[STRIPE CONNECT DB] after_onboard_account_present=true')
     } else {
@@ -169,6 +171,8 @@ export async function POST(request: Request) {
             stripe_payouts_enabled: account.payouts_enabled,
           })
           .eq('id', business_id)
+
+        console.log('[STRIPE CONNECT] source=connect_onboard after_onboard_status=connected')
         
         return NextResponse.json({
           connected: true,
