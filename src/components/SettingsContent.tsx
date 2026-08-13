@@ -1334,6 +1334,23 @@ export default function SettingsContent() {
     }
   }
 
+  // Track BusinessContext Stripe state changes to distinguish stale closure from actual state
+  useEffect(() => {
+    console.log('[STRIPE CONNECT CONTEXT] BusinessContext changed:', {
+      stripe_connect_status: business?.stripe_connect_status,
+      stripe_charges_enabled: business?.stripe_charges_enabled,
+      stripe_connect_account_id_suffix: business?.stripe_connect_account_id?.slice(-4),
+      stripe_payouts_enabled: business?.stripe_payouts_enabled,
+      stripe_details_submitted: business?.stripe_details_submitted,
+    })
+  }, [
+    business?.stripe_connect_account_id,
+    business?.stripe_connect_status,
+    business?.stripe_charges_enabled,
+    business?.stripe_payouts_enabled,
+    business?.stripe_details_submitted,
+  ])
+
   // Bounded recheck for transitional Stripe Connect statuses
   const performBoundedRecheck = () => {
     let recheckCount = 0

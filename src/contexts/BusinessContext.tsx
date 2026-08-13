@@ -105,6 +105,13 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   })
 
   const setBusiness = useCallback((nextBusiness: Business | null) => {
+    console.log('[BusinessContext] setBusiness called:', {
+      hasBusiness: !!nextBusiness,
+      businessId: nextBusiness?.id,
+      stripe_connect_status: nextBusiness?.stripe_connect_status,
+      stripe_charges_enabled: nextBusiness?.stripe_charges_enabled,
+      stripe_connect_account_id_suffix: nextBusiness?.stripe_connect_account_id?.slice(-4),
+    })
     setBusinessState(nextBusiness)
     if (nextBusiness) {
       setBusinessVerified(true)
@@ -122,10 +129,12 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     
     // Skip loading if business is already verified, we have cached data, and not forcing revalidation
     if (!shouldRevalidate && businessVerified && business) {
-      log('[BusinessContext] Skipping fetch - business already verified and data is fresh')
+      log('[BusinessContext] refreshBusiness cacheDecision=hit source=cache age_ms=', now - lastFetchTimestamp)
       setFetchComplete(true)
       return
     }
+
+    log('[BusinessContext] refreshBusiness cacheDecision=miss reason=', force ? 'forced' : 'expired_or_no_cache', 'age_ms=', now - lastFetchTimestamp)
     
     // Skip loading state if revalidating for verified business with cached data (background refresh)
     // Only show loading if we don't have cached data or business is not verified
@@ -195,6 +204,13 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         }
       } else {
         log('[BusinessContext] Business found:', businessData?.id, 'for user:', user.id)
+        console.log('[BusinessContext] fetchBusiness source=database Stripe fields:', {
+          stripe_connect_status: businessData?.stripe_connect_status,
+          stripe_charges_enabled: businessData?.stripe_charges_enabled,
+          stripe_connect_account_id_suffix: businessData?.stripe_connect_account_id?.slice(-4),
+          stripe_payouts_enabled: businessData?.stripe_payouts_enabled,
+          stripe_details_submitted: businessData?.stripe_details_submitted,
+        })
         setBusiness(businessData)
         setBusinessMissingConfirmed(false)
         setBusinessVerified(true)
