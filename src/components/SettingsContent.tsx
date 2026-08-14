@@ -15,6 +15,7 @@ import { useSettingsFormState } from '@/hooks/useSettingsFormState'
 import { useTapToPayAwareness } from '@/hooks/useTapToPayAwareness'
 import { useTapToPayReaderPresentation } from '@/hooks/useTapToPayReaderPresentation'
 import { TapToPayEducationModal } from '@/components/TapToPayEducationModal'
+import { TapToPayAwarenessModal } from '@/components/TapToPayAwarenessModal'
 import { TerminalBridgeService } from '@/lib/terminal/service'
 import { Capacitor } from '@capacitor/core'
 import Link from 'next/link'
@@ -125,6 +126,10 @@ export default function SettingsContent() {
   // Education confirmation modal state
   const [showEducationConfirmationModal, setShowEducationConfirmationModal] = useState(false)
 
+  // Tap to Pay awareness modal state
+  const [showAwarenessModal, setShowAwarenessModal] = useState(false)
+  const [awarenessShownThisSession, setAwarenessShownThisSession] = useState(false)
+
   // Apple Tap to Pay account linkage state (authoritative Apple/Stripe status)
   const [appleAccountLinkageState, setAppleAccountLinkageState] = useState<{
     status: 'unknown' | 'linked' | 'not_linked' | 'error' | 'unavailable'
@@ -153,7 +158,42 @@ export default function SettingsContent() {
     // This component only handles Settings guide entry, not auto-trigger
     // The trigger should be implemented in the payment flow using readerConnected event
   }, [business, educationOfferedThisSession])
-  
+
+  // Show awareness modal when user becomes eligible for Tap to Pay
+  useEffect(() => {
+    // Show modal if eligible and not already shown this session
+    if (tapToPayAwareness.state.isEligible && !showAwarenessModal && !awarenessShownThisSession) {
+      setShowAwarenessModal(true)
+      setAwarenessShownThisSession(true)
+    }
+  }, [tapToPayAwareness.state.isEligible, showAwarenessModal, awarenessShownThisSession])
+
+  const handleAwarenessSetup = async () => {
+    try {
+      await tapToPayAwareness.acknowledgeAwareness()
+      setShowAwarenessModal(false)
+      // Scroll to Tap to Pay card to continue setup
+      const tapToPayCard = document.getElementById('tap-to-pay-card')
+      if (tapToPayCard) {
+        tapToPayCard.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    } catch (error) {
+      console.error('[SettingsContent] Error acknowledging awareness:', error)
+      showToast('Failed to set up Tap to Pay', 'error')
+    }
+  }
+
+  const handleAwarenessDismiss = async () => {
+    try {
+      await tapToPayAwareness.acknowledgeAwareness()
+      setShowAwarenessModal(false)
+    } catch (error) {
+      console.error('[SettingsContent] Error dismissing awareness:', error)
+      // Even if API fails, close modal to avoid blocking user
+      setShowAwarenessModal(false)
+    }
+  }
+
   const handleEducationComplete = async () => {
     try {
       const response = await fetch('/api/business/tap-to-pay-education', {
@@ -2938,7 +2978,7 @@ export default function SettingsContent() {
                     }
 
                     return (
-                      <div className="flex flex-col h-full border border-border/30 rounded-lg p-3 sm:p-4">
+                      <div id="tap-to-pay-card" className="flex flex-col h-full border border-border/30 rounded-lg p-3 sm:p-4">
                     <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -4428,6 +4468,13 @@ export default function SettingsContent() {
             onSave={() => {
               showToast('Settings saved', 'success')
             }}
+          />
+
+          {/* Tap to Pay Awareness Modal */}
+          <TapToPayAwarenessModal
+            isOpen={showAwarenessModal}
+            onSetup={handleAwarenessSetup}
+            onDismiss={handleAwarenessDismiss}
           />
 
           {/* Tap to Pay Education Modal */}
