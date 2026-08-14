@@ -25,20 +25,6 @@ function AuthFooter() {
           <p className="text-slate-400/70 text-xs sm:text-sm">
             © {currentYear} ReplyFlowHQ. All rights reserved.
           </p>
-          <div className="flex items-center gap-4 sm:gap-6 mt-4 md:mt-0">
-            <a
-              href="/privacy"
-              className="text-slate-400/60 hover:text-slate-300/80 text-xs sm:text-sm transition-colors"
-            >
-              Privacy Policy
-            </a>
-            <a
-              href="/terms"
-              className="text-slate-400/60 hover:text-slate-300/80 text-xs sm:text-sm transition-colors"
-            >
-              Terms of Service
-            </a>
-          </div>
         </div>
       </div>
     </footer>

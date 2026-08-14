@@ -4,6 +4,46 @@ import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 
+// Retry function for Google Calendar API calls with exponential backoff
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+  let lastError: Error | null = null
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options)
+      
+      // Success on 2xx, 4xx (client errors should not be retried)
+      if (response.ok || (response.status >= 400 && response.status < 500)) {
+        return response
+      }
+      
+      // Server error (5xx) - retry with backoff
+      if (response.status >= 500) {
+        lastError = new Error(`Google Calendar API returned ${response.status}`)
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000 // Exponential backoff: 2s, 4s, 8s
+          console.log(`[Calendar Create] Retry attempt ${attempt}/${maxRetries} after ${delay}ms`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+          continue
+        }
+      }
+      
+      return response
+    } catch (error) {
+      lastError = error as Error
+      console.error(`[Calendar Create] Fetch attempt ${attempt}/${maxRetries} failed:`, error)
+      
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000
+        await new Promise(resolve => setTimeout(resolve, delay))
+        continue
+      }
+    }
+  }
+  
+  throw lastError || new Error('Max retries exceeded')
+}
+
 export async function POST(request: NextRequest) {
   console.log('[Calendar Create] auth check start')
   
@@ -268,7 +308,7 @@ export async function POST(request: NextRequest) {
       createUrl += `?conferenceDataVersion=1`
     }
 
-    const response = await fetch(createUrl, {
+    const response = await fetchWithRetry(createUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,

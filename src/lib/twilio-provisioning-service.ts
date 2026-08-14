@@ -1235,8 +1235,31 @@ async function purchaseNumber(
       try {
         await client.incomingPhoneNumbers(purchasedNumber.sid).remove();
         console.log('[PURCHASE NUMBER] Released number due to DB insert failure');
+        
+        // Verify release succeeded to prevent orphaned numbers
+        const verifyRelease = await client.incomingPhoneNumbers(purchasedNumber.sid).fetch().catch(() => null);
+        if (verifyRelease) {
+          console.error('[PURCHASE NUMBER] CRITICAL: Number release verification failed - number still exists in Twilio', {
+            phoneNumber: purchasedNumber.phoneNumber,
+            sid: purchasedNumber.sid
+          });
+          // Log to monitoring system for manual intervention
+          console.error('[PURCHASE NUMBER] MANUAL INTERVENTION REQUIRED: Orphaned number in Twilio', {
+            phoneNumber: purchasedNumber.phoneNumber,
+            sid: purchasedNumber.sid,
+            businessId: businessId,
+            reason: 'DB_INSERT_FAILED_RELEASE_FAILED'
+          });
+        }
       } catch (releaseError) {
         console.error('[PURCHASE NUMBER] Failed to release number:', releaseError);
+        // Log to monitoring system for manual intervention
+        console.error('[PURCHASE NUMBER] MANUAL INTERVENTION REQUIRED: Orphaned number in Twilio', {
+          phoneNumber: purchasedNumber.phoneNumber,
+          sid: purchasedNumber.sid,
+          businessId: businessId,
+          reason: 'DB_INSERT_FAILED_RELEASE_EXCEPTION'
+        });
       }
       return { success: false, error: 'Failed to save number to database' };
     }

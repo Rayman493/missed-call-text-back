@@ -1778,6 +1778,22 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
         try {
           await client.incomingPhoneNumbers(purchasedPhoneNumberSid).remove()
           console.log(`[MessagingService] Released number=${purchasedPhoneNumber} correlation_id=${correlationId}`)
+          
+          // CRITICAL: Remove from database to prevent ghost records
+          try {
+            const { error: dbDeleteError } = await supabase
+              .from('twilio_numbers')
+              .delete()
+              .eq('twilio_sid', purchasedPhoneNumberSid)
+            
+            if (dbDeleteError) {
+              console.error(`[MessagingService] Failed to remove ghost database record correlation_id=${correlationId}`, dbDeleteError)
+            } else {
+              console.log(`[MessagingService] Removed ghost database record correlation_id=${correlationId}`)
+            }
+          } catch (dbDeleteException) {
+            console.error(`[MessagingService] Exception removing ghost database record correlation_id=${correlationId}`, dbDeleteException)
+          }
         } catch (releaseError) {
           console.error(`[MessagingService] Failed to release number correlation_id=${correlationId}`, releaseError)
         }
@@ -1819,6 +1835,22 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
           try {
             await client.incomingPhoneNumbers(purchasedPhoneNumberSid).remove()
             console.log(`[Provisioning] Released number=${purchasedPhoneNumber} correlation_id=${correlationId}`)
+            
+            // CRITICAL: Remove from database to prevent ghost records
+            try {
+              const { error: dbDeleteError } = await supabase
+                .from('twilio_numbers')
+                .delete()
+                .eq('twilio_sid', purchasedPhoneNumberSid)
+              
+              if (dbDeleteError) {
+                console.error(`[Provisioning] Failed to remove ghost database record correlation_id=${correlationId}`, dbDeleteError)
+              } else {
+                console.log(`[Provisioning] Removed ghost database record correlation_id=${correlationId}`)
+              }
+            } catch (dbDeleteException) {
+              console.error(`[Provisioning] Exception removing ghost database record correlation_id=${correlationId}`, dbDeleteException)
+            }
           } catch (releaseError) {
             console.error(`[Provisioning] Failed to release number correlation_id=${correlationId}`, releaseError)
           }
@@ -1835,6 +1867,29 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
         try {
           await client.incomingPhoneNumbers(purchasedPhoneNumberSid).remove()
           console.log(`[Provisioning] Released number=${purchasedPhoneNumber} correlation_id=${correlationId}`)
+          
+          // CRITICAL: Remove from database to prevent ghost records
+          try {
+            const { error: dbDeleteError } = await supabase
+              .from('twilio_numbers')
+              .delete()
+              .eq('twilio_sid', purchasedPhoneNumberSid)
+            
+            if (dbDeleteError) {
+              console.error(`[Provisioning] Failed to remove ghost database record correlation_id=${correlationId}`, dbDeleteError)
+              // Log ghost record for manual cleanup
+              console.error('[Provisioning] MANUAL INTERVENTION REQUIRED: Ghost record in database', {
+                phoneNumber: purchasedPhoneNumber,
+                sid: purchasedPhoneNumberSid,
+                businessId: businessId,
+                reason: 'FINAL_VALIDATION_EXCEPTION_GHOST_RECORD'
+              })
+            } else {
+              console.log(`[Provisioning] Removed ghost database record correlation_id=${correlationId}`)
+            }
+          } catch (dbDeleteException) {
+            console.error(`[Provisioning] Exception removing ghost database record correlation_id=${correlationId}`, dbDeleteException)
+          }
         } catch (releaseError) {
           console.error(`[Provisioning] Failed to release number correlation_id=${correlationId}`, releaseError)
         }
@@ -1849,6 +1904,22 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
       try {
         await client.incomingPhoneNumbers(purchasedPhoneNumberSid).remove()
         console.log(`[Provisioning] Released number=${purchasedPhoneNumber} correlation_id=${correlationId}`)
+        
+        // CRITICAL: Remove from database to prevent ghost records
+        try {
+          const { error: dbDeleteError } = await supabase
+            .from('twilio_numbers')
+            .delete()
+            .eq('twilio_sid', purchasedPhoneNumberSid)
+          
+          if (dbDeleteError) {
+            console.error(`[Provisioning] Failed to remove ghost database record correlation_id=${correlationId}`, dbDeleteError)
+          } else {
+            console.log(`[Provisioning] Removed ghost database record correlation_id=${correlationId}`)
+          }
+        } catch (dbDeleteException) {
+          console.error(`[Provisioning] Exception removing ghost database record correlation_id=${correlationId}`, dbDeleteException)
+        }
       } catch (releaseError) {
         console.error(`[Provisioning] Failed to release number correlation_id=${correlationId}`, releaseError)
       }

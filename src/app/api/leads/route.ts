@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     console.log('[API LEADS GET] Fetching leads for business:', business.id!)
     let query = supabase
       .from('leads')
-      .select('id, business_id, caller_phone, status, created_at, raw_metadata, deleted_at')
+      .select('id, business_id, caller_phone, status, created_at, raw_metadata, deleted_at, email, name')
       .eq('business_id', business.id!)
 
     // Apply deleted filter

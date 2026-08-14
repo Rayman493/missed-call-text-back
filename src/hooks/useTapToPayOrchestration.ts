@@ -813,9 +813,8 @@ export function useTapToPayOrchestration({
 
     const checkUnresolvedAttempt = async () => {
       dispatchTTPEvent('RECOVERY_EFFECT_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId())
-      recoveryRunRef.current = true
       
-      // Guard: Skip recovery if a payment is already active
+      // Guard: Skip recovery if a payment is already active (must check BEFORE setting recoveryRunRef)
       if (startInFlight.current || activeAttemptRef.current) {
         console.log('[TTP Hook] RECOVERY_SKIPPED_ACTIVE_ATTEMPT', {
           startInFlight: startInFlight.current,
@@ -824,6 +823,8 @@ export function useTapToPayOrchestration({
         dispatchTTPEvent('RECOVERY_SKIPPED_ACTIVE_ATTEMPT', terminalService.getSessionId(), terminalService.getCurrentAttemptId())
         return
       }
+      
+      recoveryRunRef.current = true
 
       const RECOVERY_TIMEOUT_MS = 15000 // 15 seconds
       const timeoutId = setTimeout(() => {

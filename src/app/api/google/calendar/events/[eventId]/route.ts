@@ -3,6 +3,46 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
 
+// Retry function for Google Calendar API calls with exponential backoff
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+  let lastError: Error | null = null
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options)
+      
+      // Success on 2xx, 4xx (client errors should not be retried)
+      if (response.ok || (response.status >= 400 && response.status < 500)) {
+        return response
+      }
+      
+      // Server error (5xx) - retry with backoff
+      if (response.status >= 500) {
+        lastError = new Error(`Google Calendar API returned ${response.status}`)
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000 // Exponential backoff: 2s, 4s, 8s
+          console.log(`[Google Calendar API] Retry attempt ${attempt}/${maxRetries} after ${delay}ms`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+          continue
+        }
+      }
+      
+      return response
+    } catch (error) {
+      lastError = error as Error
+      console.error(`[Google Calendar API] Fetch attempt ${attempt}/${maxRetries} failed:`, error)
+      
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000
+        await new Promise(resolve => setTimeout(resolve, delay))
+        continue
+      }
+    }
+  }
+  
+  throw lastError || new Error('Max retries exceeded')
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ eventId: string }> }
@@ -140,7 +180,7 @@ export async function PATCH(
     }
 
     // Update event in Google Calendar
-    const patchResponse = await fetch(
+    const patchResponse = await fetchWithRetry(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}`,
       {
         method: 'PATCH',
@@ -268,7 +308,7 @@ export async function DELETE(
     }
 
     // Delete event from Google Calendar
-    const deleteResponse = await fetch(
+    const deleteResponse = await fetchWithRetry(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}`,
       {
         method: 'DELETE',

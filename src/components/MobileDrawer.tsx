@@ -188,21 +188,6 @@ export default function MobileDrawer({ isOpen, onClose, triggerRef }: MobileDraw
             >
               Compliance
             </Link>
-            <div className="h-px bg-slate-700 my-1" />
-            <Link
-              href="/privacy"
-              onClick={handleNavClick}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-            >
-              Privacy Policy
-            </Link>
-            <Link
-              href="/terms"
-              onClick={handleNavClick}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-            >
-              Terms of Service
-            </Link>
           </>
         ) : (
           // Logged out navigation

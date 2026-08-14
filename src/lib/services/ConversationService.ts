@@ -60,6 +60,18 @@ export class ConversationService {
   }
 
   /**
+   * Check if a database error is transient (worth retrying)
+   */
+  private static isTransientDatabaseError(error: any): boolean {
+    if (!error) return false
+    const transientCodes = ['PGRST116', '40001', '40P01'] // Not found, serialization failure, deadlock
+    return transientCodes.includes(error.code) ||
+           error.message?.includes('timeout') ||
+           error.message?.includes('connection') ||
+           error.message?.includes('network')
+  }
+
+  /**
    * Find or create conversation for a lead with idempotent, concurrency-safe behavior
    * 
    * Canonical selection order:
@@ -69,23 +81,56 @@ export class ConversationService {
    * 
    * This handles historical duplicates by selecting the canonical conversation
    * and prevents race conditions through proper error handling.
+   * 
+   * Retry logic for transient database failures:
+   * - Lookup: 3 attempts with exponential backoff (0ms, 1000ms, 3000ms)
+   * - Insert: 3 attempts with exponential backoff (0ms, 1000ms, 3000ms)
    */
   static async findOrCreateConversation(options: FindOrCreateConversationOptions): Promise<{ conversation: Conversation | null; conversationId: string | null; isNew: boolean }> {
     const { lead_id, business_id, status = 'active' } = options
 
     console.log('[ConversationService.findOrCreateConversation] Looking up conversation for lead:', lead_id, 'business:', business_id)
 
-    // Step 1: Try to find existing conversation with canonical selection
+    // Step 1: Try to find existing conversation with canonical selection (with retry for transient errors)
     // Fetch conversations with message counts to determine canonical
-    const { data: existingConversations, error: lookupError } = await supabaseAdmin
-      .from('conversations')
-      .select('id, lead_id, business_id, status, source, started_at, last_activity_at, created_at, messages(id)')
-      .eq('lead_id', lead_id)
-      .eq('business_id', business_id)
-      .order('created_at', { ascending: true }) // Oldest first for canonical selection
+    const retryDelays = [0, 1000, 3000] // 0ms, 1s, 3s
+    
+    let existingConversations = null
+    let lookupError = null
+    
+    for (let attempt = 0; attempt < retryDelays.length; attempt++) {
+      if (attempt > 0) {
+        const delay = retryDelays[attempt]
+        console.log(`[ConversationService.findOrCreateConversation] Retry lookup attempt ${attempt + 1}/${retryDelays.length} after ${delay}ms`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+
+      const result = await supabaseAdmin
+        .from('conversations')
+        .select('id, lead_id, business_id, status, source, started_at, last_activity_at, created_at, messages(id)')
+        .eq('lead_id', lead_id)
+        .eq('business_id', business_id)
+        .order('created_at', { ascending: true })
+
+      if (!result.error) {
+        existingConversations = result.data
+        lookupError = null
+        break
+      }
+
+      lookupError = result.error
+
+      // If error is not transient, don't retry
+      if (!this.isTransientDatabaseError(lookupError)) {
+        console.error('[ConversationService.findOrCreateConversation] Non-transient lookup error:', lookupError)
+        break
+      }
+
+      console.warn('[ConversationService.findOrCreateConversation] Transient lookup error, retrying:', lookupError)
+    }
 
     if (lookupError) {
-      console.error('[ConversationService.findOrCreateConversation] Lookup error:', lookupError)
+      console.error('[ConversationService.findOrCreateConversation] Lookup failed after all retries:', lookupError)
       return { conversation: null, conversationId: null, isNew: false }
     }
 
@@ -105,22 +150,39 @@ export class ConversationService {
       return { conversation: canonicalConversation as Conversation, conversationId: canonicalConversation.id, isNew: false }
     }
 
-    // Step 2: No existing conversation, create new one
+    // Step 2: No existing conversation, create new one (with retry for transient errors)
     console.log('[ConversationService.findOrCreateConversation] No existing conversation found, creating new one')
 
-    const { data: newConversation, error: createError } = await supabaseAdmin
-      .from('conversations')
-      .insert({
-        lead_id,
-        business_id,
-        status,
-        started_at: new Date().toISOString(),
-        last_activity_at: new Date().toISOString()
-      })
-      .select()
-      .single()
+    let newConversation = null
+    let createError = null
 
-    if (createError) {
+    for (let attempt = 0; attempt < retryDelays.length; attempt++) {
+      if (attempt > 0) {
+        const delay = retryDelays[attempt]
+        console.log(`[ConversationService.findOrCreateConversation] Retry insert attempt ${attempt + 1}/${retryDelays.length} after ${delay}ms`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+
+      const result = await supabaseAdmin
+        .from('conversations')
+        .insert({
+          lead_id,
+          business_id,
+          status,
+          started_at: new Date().toISOString(),
+          last_activity_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      if (!result.error) {
+        newConversation = result.data
+        createError = null
+        break
+      }
+
+      createError = result.error
+
       // Handle unique constraint violation (23505) - concurrent insertion race condition
       if (createError.code === '23505') {
         console.log('[ConversationService.findOrCreateConversation] Unique constraint violation - retrying lookup for concurrent insert')
@@ -144,12 +206,27 @@ export class ConversationService {
         return { conversation: canonicalConversation as Conversation, conversationId: canonicalConversation.id, isNew: false }
       }
 
-      console.error('[ConversationService.findOrCreateConversation] Failed to create conversation:', createError)
+      // If error is not transient, don't retry
+      if (!this.isTransientDatabaseError(createError)) {
+        console.error('[ConversationService.findOrCreateConversation] Non-transient create error:', createError)
+        break
+      }
+
+      console.warn('[ConversationService.findOrCreateConversation] Transient create error, retrying:', createError)
+    }
+
+    if (createError) {
+      console.error('[ConversationService.findOrCreateConversation] Failed to create conversation after all retries:', {
+        error: createError,
+        lead_id,
+        business_id,
+        attempts: retryDelays.length
+      })
       return { conversation: null, conversationId: null, isNew: false }
     }
 
     if (!newConversation) {
-      console.error('[ConversationService.findOrCreateConversation] Failed to create conversation - no data returned')
+      console.error('[ConversationService.findOrCreateConversation] Failed to create conversation - no data returned after all retries')
       return { conversation: null, conversationId: null, isNew: false }
     }
 
@@ -158,22 +235,59 @@ export class ConversationService {
   }
 
   /**
-   * Create a conversation with idempotency guard
+   * Create a conversation with idempotency guard and retry logic
    * 
    * This method checks for existing conversations before creating a new one.
    * For most use cases, prefer findOrCreateConversation instead.
+   * 
+   * Retry logic for transient database failures:
+   * - Lookup: 3 attempts with exponential backoff (0ms, 1000ms, 3000ms)
+   * - Insert: 3 attempts with exponential backoff (0ms, 1000ms, 3000ms)
    */
   static async createConversation(conversation: Omit<Conversation, 'id' | 'created_at'>): Promise<Conversation | null> {
-    // IDEMPOTENCY GUARD: Check if conversation already exists for this lead
-    const { data: existingConversation } = await supabaseAdmin
-      .from('conversations')
-      .select('*')
-      .eq('lead_id', conversation.lead_id)
-      .eq('business_id', conversation.business_id)
-      .in('status', ['active', 'open'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    console.log('[ConversationService.createConversation] Creating conversation with idempotency guard', {
+      leadId: conversation.lead_id,
+      businessId: conversation.business_id
+    })
+
+    // IDEMPOTENCY GUARD: Check if conversation already exists for this lead (with retry)
+    const retryDelays = [0, 1000, 3000] // 0ms, 1s, 3s
+    let existingConversation = null
+    let lookupError = null
+
+    for (let attempt = 0; attempt < retryDelays.length; attempt++) {
+      if (attempt > 0) {
+        const delay = retryDelays[attempt]
+        console.log(`[ConversationService.createConversation] Retry lookup attempt ${attempt + 1}/${retryDelays.length} after ${delay}ms`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+
+      const result = await supabaseAdmin
+        .from('conversations')
+        .select('*')
+        .eq('lead_id', conversation.lead_id)
+        .eq('business_id', conversation.business_id)
+        .in('status', ['active', 'open'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!result.error) {
+        existingConversation = result.data
+        lookupError = null
+        break
+      }
+
+      lookupError = result.error
+
+      // If error is not transient, don't retry
+      if (!this.isTransientDatabaseError(lookupError)) {
+        console.error('[ConversationService.createConversation] Non-transient lookup error:', lookupError)
+        break
+      }
+
+      console.warn('[ConversationService.createConversation] Transient lookup error, retrying:', lookupError)
+    }
 
     if (existingConversation) {
       console.log('[ConversationService.createConversation] Reusing existing conversation:', {
@@ -184,19 +298,64 @@ export class ConversationService {
       return existingConversation
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('conversations')
-      .insert(conversation)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('[ConversationService.createConversation] Error:', error)
+    if (lookupError) {
+      console.error('[ConversationService.createConversation] Lookup failed after all retries:', lookupError)
       return null
     }
 
-    console.log('[ConversationService.createConversation] Created conversation:', data.id)
-    return data
+    // No existing conversation, create new one (with retry for transient errors)
+    console.log('[ConversationService.createConversation] No existing conversation, creating new one')
+
+    let newConversation = null
+    let createError = null
+
+    for (let attempt = 0; attempt < retryDelays.length; attempt++) {
+      if (attempt > 0) {
+        const delay = retryDelays[attempt]
+        console.log(`[ConversationService.createConversation] Retry insert attempt ${attempt + 1}/${retryDelays.length} after ${delay}ms`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+
+      const result = await supabaseAdmin
+        .from('conversations')
+        .insert(conversation)
+        .select()
+        .single()
+
+      if (!result.error) {
+        newConversation = result.data
+        createError = null
+        break
+      }
+
+      createError = result.error
+
+      // If error is not transient, don't retry
+      if (!this.isTransientDatabaseError(createError)) {
+        console.error('[ConversationService.createConversation] Non-transient create error:', createError)
+        break
+      }
+
+      console.warn('[ConversationService.createConversation] Transient create error, retrying:', createError)
+    }
+
+    if (createError) {
+      console.error('[ConversationService.createConversation] Failed to create conversation after all retries:', {
+        error: createError,
+        leadId: conversation.lead_id,
+        businessId: conversation.business_id,
+        attempts: retryDelays.length
+      })
+      return null
+    }
+
+    if (!newConversation) {
+      console.error('[ConversationService.createConversation] Failed to create conversation - no data returned after all retries')
+      return null
+    }
+
+    console.log('[ConversationService.createConversation] Created conversation:', newConversation.id)
+    return newConversation
   }
 
   /**

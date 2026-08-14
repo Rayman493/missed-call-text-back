@@ -9,6 +9,7 @@ import { scheduleTwilioRelease, cancelTwilioRelease } from '@/lib/twilio-reclama
 import { normalizeStripeCustomerId } from '@/lib/supabase/admin'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
+import { validateStateTransition } from '@/lib/terminal/state-transition-guards'
 
 /**
  * Determine canonical Stripe Connect status from a Stripe account object
@@ -1820,6 +1821,14 @@ export async function POST(request: Request) {
           break
         }
         
+        // Validate state transition before updating to prevent state corruption
+        const validation = validateStateTransition(paymentRequest.status, 'paid')
+        if (!validation.allowed) {
+          console.error('[TERMINAL PAYMENT] Invalid state transition:', validation.reason, 'from:', paymentRequest.status, 'to: paid')
+          await markEventProcessed(supabase, event.id)
+          break
+        }
+        
         // Update payment request to paid
         const { error: updateError } = await supabase
           .from('payment_requests')
@@ -2055,7 +2064,7 @@ export async function POST(request: Request) {
         const account = event.data.object as Stripe.Account
         const accountId = account.id
         const metadata = account.metadata || {}
-        const businessId = metadata.business_id
+        let businessId = metadata.business_id
 
         console.log('[STRIPE CONNECT] Account ID:', accountId)
         console.log('[STRIPE CONNECT] Business ID:', businessId)
@@ -2064,8 +2073,27 @@ export async function POST(request: Request) {
         console.log('[STRIPE CONNECT] Details submitted:', account.details_submitted)
 
         if (!businessId) {
-          console.log('[STRIPE CONNECT] No business_id in metadata, skipping')
-          break
+          console.log('[STRIPE CONNECT] No business_id in metadata, attempting fallback lookup by account ID')
+          
+          // Fallback: lookup business by stripe_connect_account_id
+          const { data: businessByAccountId, error: lookupError } = await supabase
+            .from('businesses')
+            .select('id')
+            .eq('stripe_connect_account_id', accountId)
+            .maybeSingle()
+          
+          if (lookupError) {
+            console.error('[STRIPE CONNECT] Fallback lookup failed:', lookupError)
+            break
+          }
+          
+          if (businessByAccountId) {
+            businessId = businessByAccountId.id
+            console.log('[STRIPE CONNECT] Found business via fallback lookup:', businessId)
+          } else {
+            console.log('[STRIPE CONNECT] No business found for account via fallback, skipping')
+            break
+          }
         }
 
         console.log('[STRIPE_CONNECT_STATUS_AUDIT] ========== ACCOUNT.UPDATED START ==========')

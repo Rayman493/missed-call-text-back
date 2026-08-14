@@ -106,16 +106,6 @@ function HomepageFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="text-muted-foreground hover:text-foreground text-base transition-colors">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="/terms" className="text-muted-foreground hover:text-foreground text-base transition-colors">
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
                 <Link href="/compliance" className="text-muted-foreground hover:text-foreground text-base transition-colors">
                   Compliance
                 </Link>

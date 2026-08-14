@@ -619,6 +619,7 @@ export default function LeadsPage() {
     const matchesSearch = !searchQuery ||
       lead.caller_phone.includes(searchQuery) ||
       ((lead.name && lead.name !== 'Not collected') ? lead.name.toLowerCase().includes(q) : false) ||
+      ((lead.email && lead.email !== 'Not collected') ? lead.email.toLowerCase().includes(q) : false) ||
       ((intake.customerName && intake.customerName !== 'Not collected') ? intake.customerName.toLowerCase().includes(q) : false) ||
       (intake.serviceRequested?.toLowerCase().includes(q)) ||
       (intake.serviceAddress?.toLowerCase().includes(q)) ||
@@ -1811,6 +1812,7 @@ export default function LeadsPage() {
       isOpen={showAddCustomerModal}
       onClose={() => setShowAddCustomerModal(false)}
       returnTo={returnTo || undefined}
+      onLeadCreated={() => fetchLeads()}
     />
     </DashboardErrorBoundary>
   )
