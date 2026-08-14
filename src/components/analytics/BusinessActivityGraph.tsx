@@ -73,7 +73,6 @@ export default function BusinessActivityGraph() {
           .select('created_at, conversation_id')
           .eq('business_id', business.id)
           .is('deleted_at', null)
-          .is('ignored_at', null)
           .not('conversation_id', 'is', null)
           .gte('created_at', startDateIso)
 

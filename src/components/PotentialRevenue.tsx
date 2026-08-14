@@ -49,7 +49,7 @@ export default function PotentialRevenue({ businessId }: PotentialRevenueProps) 
       // 2. Ready to Invoice - Completed jobs without payment requested
       const { data: jobs } = await supabase
         .from('jobs')
-        .select('id, estimated_amount')
+        .select('id')
         .eq('business_id', businessId)
         .eq('status', 'completed')
 
@@ -57,14 +57,13 @@ export default function PotentialRevenue({ businessId }: PotentialRevenueProps) 
 
       const { data: jobPayments } = await supabase
         .from('payment_requests')
-        .select('job_id')
+        .select('job_id, amount_cents')
         .eq('business_id', businessId)
         .in('job_id', completedJobIds)
 
       const paidJobIds = new Set((jobPayments as any[])?.map((p: any) => p.job_id))
-      const readyToInvoice = (jobs as any[])
-        ?.filter((j: any) => !paidJobIds.has(j.id))
-        .reduce((sum: number, j: any) => sum + (j.estimated_amount || 0), 0) || 0
+      const readyToInvoiceCount = (jobs as any[])
+        ?.filter((j: any) => !paidJobIds.has(j.id)).length || 0
 
       // 3. Awaiting Estimate - Customers who completed intake but have no estimate/job yet
       const { data: allLeads } = await supabase
@@ -94,19 +93,19 @@ export default function PotentialRevenue({ businessId }: PotentialRevenueProps) 
       // 4. Pipeline Opportunity - Scheduled jobs not yet completed
       const { data: scheduledJobs } = await supabase
         .from('jobs')
-        .select('estimated_amount')
+        .select('id')
         .eq('business_id', businessId)
         .in('status', ['scheduled', 'in_progress'])
 
-      const pipelineOpportunity = (scheduledJobs as any[])?.reduce((sum: number, j: any) => sum + (j.estimated_amount || 0), 0) || 0
+      const pipelineOpportunityCount = (scheduledJobs as any[])?.length || 0
 
-      const totalOpportunity = outstandingPayments + readyToInvoice + pipelineOpportunity
+      const totalOpportunity = outstandingPayments
 
       setData({
         outstandingPayments,
-        readyToInvoice,
+        readyToInvoice: readyToInvoiceCount,
         awaitingEstimate,
-        pipelineOpportunity,
+        pipelineOpportunity: pipelineOpportunityCount,
         totalOpportunity
       })
     } catch (err) {
@@ -139,17 +138,17 @@ export default function PotentialRevenue({ businessId }: PotentialRevenueProps) 
 
   const items: RevenueItem[] = [
     {
-      label: 'Outstanding',
+      label: 'Outstanding Payments',
       value: data.outstandingPayments,
       icon: <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
     },
     {
-      label: 'Ready to Invoice',
+      label: 'Jobs Ready to Invoice',
       value: data.readyToInvoice,
       icon: <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
     },
     {
-      label: 'Pipeline',
+      label: 'Scheduled Jobs',
       value: data.pipelineOpportunity,
       icon: <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400" />
     },

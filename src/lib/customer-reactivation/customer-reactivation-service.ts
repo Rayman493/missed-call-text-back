@@ -36,10 +36,10 @@ class CustomerReactivationService implements CustomerReactivationServiceInterfac
     // Get all completed jobs to analyze customer history
     const { data: completedJobs } = await supabase
       .from('jobs')
-      .select('id, lead_id, title, estimated_amount, completed_at')
+      .select('id, lead_id, title')
       .eq('business_id', context.businessId)
       .eq('status', 'completed')
-      .order('completed_at', { ascending: false })
+      .order('updated_at', { ascending: false })
 
     if (!completedJobs || completedJobs.length === 0) {
       return []
@@ -119,20 +119,29 @@ class CustomerReactivationService implements CustomerReactivationServiceInterfac
     if (jobs.length === 0) return null
 
     const lastJob = jobs[0] // Most recent (sorted descending)
-    const lastJobDate = new Date(lastJob.completed_at)
+    const lastJobDate = new Date(lastJob.updated_at) // Use updated_at as proxy for completed_at
     const daysSinceLastService = Math.floor((Date.now() - lastJobDate.getTime()) / (1000 * 60 * 60 * 24))
 
-    // Calculate lifetime revenue
-    const lifetimeRevenue = jobs.reduce((sum: number, j: any) => sum + (j.estimated_amount || 0), 0)
+    // Calculate lifetime revenue from payment requests
+    const jobIds = jobs.map((j: any) => j.id)
+    const { data: payments } = await supabase
+      .from('payment_requests')
+      .select('job_id, amount_cents')
+      .eq('business_id', businessId)
+      .in('job_id', jobIds)
+
+    const paymentsByJobId = new Map((payments || []).map((p: any) => [p.job_id, p.amount_cents]))
+    // Convert cents to dollars
+    const lifetimeRevenue = jobs.reduce((sum: number, j: any) => sum + ((paymentsByJobId.get(j.id) as number | undefined) ?? 0), 0) / 100
     const jobCount = jobs.length
 
-    // Calculate average booking interval
+    // Calculate average booking interval using updated_at as proxy
     let averageInterval: number | null = null
     if (jobs.length >= 2) {
       const intervals: number[] = []
       for (let i = 0; i < jobs.length - 1; i++) {
-        const current = new Date(jobs[i].completed_at)
-        const next = new Date(jobs[i + 1].completed_at)
+        const current = new Date(jobs[i].updated_at)
+        const next = new Date(jobs[i + 1].updated_at)
         const days = Math.floor((current.getTime() - next.getTime()) / (1000 * 60 * 60 * 24))
         intervals.push(days)
       }

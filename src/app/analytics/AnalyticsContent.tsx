@@ -69,13 +69,12 @@ export default function AnalyticsContent() {
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
         // Fetch leads in the last 30 days - include all fields required by calculateLeadStatusCounts
-        // Filter out deleted and ignored customers for accurate metrics
+        // Filter out deleted customers for accurate metrics
         const { data: leads, error: leadsError } = await supabase
           .from('leads')
-          .select('id, status, created_at, business_id, deleted_at, payment_status, ignored_at')
+          .select('id, status, created_at, business_id, deleted_at, payment_status')
           .eq('business_id', business.id)
           .is('deleted_at', null)
-          .is('ignored_at', null)
           .gte('created_at', thirtyDaysAgo)
 
         if (leadsError) {

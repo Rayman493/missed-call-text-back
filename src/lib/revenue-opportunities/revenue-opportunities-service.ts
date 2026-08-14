@@ -151,7 +151,7 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
   ): Promise<RevenueOpportunity[]> {
     const { data: completedJobs } = await supabase
       .from('jobs')
-      .select('id, lead_id, estimated_amount, completed_at')
+      .select('id, lead_id')
       .eq('business_id', businessId)
       .eq('status', 'completed')
 
@@ -162,11 +162,11 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
     // Check which jobs have payment requests
     const { data: payments } = await supabase
       .from('payment_requests')
-      .select('job_id')
+      .select('job_id, amount_cents')
       .eq('business_id', businessId)
       .in('job_id', jobIds)
 
-    const jobsWithPayments = new Set((payments || []).map((p: any) => p.job_id))
+    const jobsWithPayments = new Map((payments || []).map((p: any) => [p.job_id, p.amount_cents]))
     const jobsWithoutPayments = completedJobs.filter((j: any) => !jobsWithPayments.has(j.id))
 
     // Get lead information
@@ -181,20 +181,15 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
 
     return jobsWithoutPayments.map((job: any) => {
       const lead = leadsMap.get(job.lead_id)
-      const daysSinceCompletion = job.completed_at
-        ? Math.floor((Date.now() - new Date(job.completed_at).getTime()) / (1000 * 60 * 60 * 24))
-        : 0
 
       const opportunity = this.createOpportunity({
         customerId: job.lead_id,
         customerName: lead ? this.getCustomerName(lead) : 'Unknown',
         type: 'ready_for_invoice',
-        estimatedValue: job.estimated_amount,
-        whyNow: `Work completed ${daysSinceCompletion} days ago, no payment requested`,
+        estimatedValue: 0, // Cannot calculate without job amount field
+        whyNow: 'Job completed, no payment requested',
         recommendedAction: 'request_payment',
         metadata: {
-          lastJobDate: job.completed_at,
-          daysSinceLastInteraction: daysSinceCompletion,
           completedIntake: false,
           hasEstimate: false,
           hasJob: true,
@@ -208,88 +203,14 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
 
   /**
    * Find repeat customer opportunities
+   * NOTE: This feature is disabled because it requires completed_at field which does not exist in jobs schema
    */
   private async findRepeatCustomerOpportunities(
     businessId: string,
     supabase: any
   ): Promise<RevenueOpportunity[]> {
-    // Get completed jobs grouped by lead
-    const { data: completedJobs } = await supabase
-      .from('jobs')
-      .select('id, lead_id, estimated_amount, completed_at')
-      .eq('business_id', businessId)
-      .eq('status', 'completed')
-      .order('completed_at', { ascending: false })
-
-    if (!completedJobs || completedJobs.length === 0) return []
-
-    // Group by lead
-    const jobsByLead = new Map<string, any[]>()
-    completedJobs.forEach((job: any) => {
-      if (!jobsByLead.has(job.lead_id)) {
-        jobsByLead.set(job.lead_id, [])
-      }
-      jobsByLead.get(job.lead_id)!.push(job)
-    })
-
-    // Find leads with multiple completed jobs
-    const repeatLeads: string[] = []
-    jobsByLead.forEach((jobs, leadId) => {
-      if (jobs.length >= 2) {
-        repeatLeads.push(leadId)
-      }
-    })
-
-    if (repeatLeads.length === 0) return []
-
-    // Get lead information
-    const { data: leads } = await supabase
-      .from('leads')
-      .select('id, phone, raw_metadata')
-      .eq('business_id', businessId)
-      .in('id', repeatLeads)
-
-    const opportunities: RevenueOpportunity[] = []
-
-    for (const lead of leads || []) {
-      const jobs = jobsByLead.get(lead.id) || []
-      const lastJob = jobs[0] // Most recent (sorted descending)
-      const secondLastJob = jobs[1]
-
-      if (lastJob && secondLastJob) {
-        const lastJobDate = new Date(lastJob.completed_at)
-        const secondLastJobDate = new Date(secondLastJob.completed_at)
-        const intervalDays = Math.floor((lastJobDate.getTime() - secondLastJobDate.getTime()) / (1000 * 60 * 60 * 24))
-        const daysSinceLastJob = Math.floor((Date.now() - lastJobDate.getTime()) / (1000 * 60 * 60 * 24))
-
-        // If overdue by more than 20% of normal interval
-        if (daysSinceLastJob > intervalDays * 1.2) {
-          const avgJobValue = jobs.reduce((sum: number, j: any) => sum + (j.estimated_amount || 0), 0) / jobs.length
-
-          const opportunity = this.createOpportunity({
-            customerId: lead.id,
-            customerName: this.getCustomerName(lead),
-            type: 'repeat_customer',
-            estimatedValue: avgJobValue,
-            whyNow: `Usually books every ${intervalDays} days, last job was ${daysSinceLastJob} days ago`,
-            recommendedAction: 'schedule_job',
-            metadata: {
-              lastJobDate: lastJob.completed_at,
-              normalInterval: intervalDays,
-              daysSinceLastInteraction: daysSinceLastJob,
-              completedIntake: false,
-              hasEstimate: false,
-              hasJob: true,
-              hasPaymentRequest: false
-            }
-          })
-
-          opportunities.push(opportunity)
-        }
-      }
-    }
-
-    return opportunities
+    // Disabled - requires completed_at field for timing analysis
+    return []
   }
 
   /**

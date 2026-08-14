@@ -182,6 +182,7 @@ function ScheduleMapComponent({
   const newlyMappableEventIdRef = useRef<string | null>(null) // Track newly mappable event for one-time camera adjustment
   const initialCameraEstablishedRef = useRef(false) // Track if initial camera positioning has been done
   const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter to detect changes
+  const resizeLastSizeRef = useRef<{ width: number; height: number } | null>(null) // Move ref to top level
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [mapReady, setMapReady] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -1184,12 +1185,11 @@ function ScheduleMapComponent({
     if (!mapReady || !mapRef.current || !googleMapRef.current) return
 
     const container = mapRef.current
-    const lastSizeRef = useRef({ width: container.offsetWidth, height: container.offsetHeight })
 
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect
-        const lastSize = lastSizeRef.current
+        const lastSize = resizeLastSizeRef.current || { width: 0, height: 0 }
 
         // Only log if size actually changed (avoid noise)
         if (Math.abs(width - lastSize.width) > 1 || Math.abs(height - lastSize.height) > 1) {
@@ -1201,7 +1201,7 @@ function ScheduleMapComponent({
             userInteracted,
             timestamp: Date.now()
           })
-          lastSizeRef.current = { width, height }
+          resizeLastSizeRef.current = { width, height }
         }
       }
     })
