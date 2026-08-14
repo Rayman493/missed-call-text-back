@@ -206,6 +206,9 @@ function ScheduleMapComponent({
   const [previousDateKey, setPreviousDateKey] = useState<string | null>(null)
   const [lastAutoFitDateKey, setLastAutoFitDateKey] = useState<string | null>(null) // Track when we last auto-fitted to prevent repeated fits
 
+  // TEMPORARY: Performance diagnostic switch - disable high-frequency logging to test smoothness
+  const enableHighFrequencyDiagnostics = useRef(false)
+
   // Increment render count
   renderCountRef.current++
   const currentRenderCount = renderCountRef.current
@@ -394,6 +397,15 @@ function ScheduleMapComponent({
   // Log camera state with deltas (NO precise coordinates - privacy-safe)
   const logCameraState = useCallback((event: string, reason: string = '') => {
     if (!googleMapRef.current) return
+
+    // Skip expensive payload construction if high-frequency diagnostics are disabled
+    // Only low-frequency events (dragstart, dragend, idle, explicit commands) should log
+    if (!enableHighFrequencyDiagnostics.current) {
+      const lowFrequencyEvents = ['dragstart', 'dragend', 'idle', 'container_resize', 'marker_update']
+      if (!lowFrequencyEvents.includes(event)) {
+        return
+      }
+    }
 
     const center = googleMapRef.current.getCenter()
     const zoom = googleMapRef.current.getZoom()
@@ -1143,25 +1155,28 @@ function ScheduleMapComponent({
         }
       })
 
-      map.addListener('drag', () => {
-        logThrottled('drag', () => logCameraState('drag', 'user_dragging'))
-      })
+      // High-frequency diagnostic listeners - only register if diagnostics enabled
+      if (enableHighFrequencyDiagnostics.current) {
+        map.addListener('drag', () => {
+          logThrottled('drag', () => logCameraState('drag', 'user_dragging'))
+        })
 
-      map.addListener('dragend', () => {
-        logCameraState('dragend', 'user_drag_end')
-      })
+        map.addListener('dragend', () => {
+          logCameraState('dragend', 'user_drag_end')
+        })
 
-      map.addListener('zoom_changed', () => {
-        logThrottled('zoom_changed', () => logCameraState('zoom_changed', 'user_zoom'))
-      })
+        map.addListener('zoom_changed', () => {
+          logThrottled('zoom_changed', () => logCameraState('zoom_changed', 'user_zoom'))
+        })
 
-      map.addListener('center_changed', () => {
-        logThrottled('center_changed', () => logCameraState('center_changed', 'user_pan'))
-      })
+        map.addListener('center_changed', () => {
+          logThrottled('center_changed', () => logCameraState('center_changed', 'user_pan'))
+        })
 
-      map.addListener('bounds_changed', () => {
-        logThrottled('bounds_changed', () => logCameraState('bounds_changed', 'viewport_change'))
-      })
+        map.addListener('bounds_changed', () => {
+          logThrottled('bounds_changed', () => logCameraState('bounds_changed', 'viewport_change'))
+        })
+      }
 
       // idle fires after any movement settles (user or programmatic)
       // Event-driven guard: consume pending programmatic move on idle
