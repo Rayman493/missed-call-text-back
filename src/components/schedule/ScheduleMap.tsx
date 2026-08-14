@@ -144,6 +144,9 @@ interface MarkerInfo {
 // Marker icon cache to avoid recreating identical canvas icons
 const markerIconCache = new Map<string, any>()
 
+// Global map instance counter for debugging recreation
+let mapInstanceCounter = 0
+
 function ScheduleMapComponent({
   jobs,
   calendarEvents,
@@ -163,6 +166,10 @@ function ScheduleMapComponent({
 }: ScheduleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const googleMapRef = useRef<any>(null)
+  const mapInstanceIdRef = useRef<string>(`map-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+  const renderCountRef = useRef(0)
+  const lastCameraStateRef = useRef<{ center: { lat: number; lng: number }; zoom: number } | null>(null)
+  const lastLogTimeRef = useRef<{ [key: string]: number }>({}) // For throttling high-frequency events
   const markersRef = useRef<Map<string, any>>(new Map()) // Marker registry keyed by item ID
   const perDateStateRef = useRef<Map<string, MapDateState>>(new Map())
   const calendarEventCoordsCacheRef = useRef<Map<string, { lat: number; lng: number; formattedAddress: string } | null>>(new Map()) // Cache for calendar event coordinates (null = failed geocode)
@@ -197,6 +204,46 @@ function ScheduleMapComponent({
   const [showAllMode, setShowAllMode] = useState(true)
   const [previousDateKey, setPreviousDateKey] = useState<string | null>(null)
   const [lastAutoFitDateKey, setLastAutoFitDateKey] = useState<string | null>(null) // Track when we last auto-fitted to prevent repeated fits
+
+  // Increment render count
+  renderCountRef.current++
+  const currentRenderCount = renderCountRef.current
+
+  // Track prop changes for render logging
+  const jobsIdentityChanged = useRef(false)
+  const calendarEventsIdentityChanged = useRef(false)
+  const tasksIdentityChanged = useRef(false)
+  const selectedDateChanged = useRef(false)
+  const businessLocationChanged = useRef(false)
+
+  // Detect prop identity changes
+  if (jobsIdentityChanged.current === false) {
+    jobsIdentityChanged.current = true
+  }
+  if (calendarEventsIdentityChanged.current === false) {
+    calendarEventsIdentityChanged.current = true
+  }
+  if (tasksIdentityChanged.current === false) {
+    tasksIdentityChanged.current = true
+  }
+
+  // Log renders (throttled - every 5th render or on significant changes)
+  const shouldLogRender = currentRenderCount % 5 === 0 || currentRenderCount === 1
+  if (shouldLogRender) {
+    console.log('[SCHEDULE_MAP_RENDER]', {
+      count: currentRenderCount,
+      mapInstance: mapInstanceIdRef.current,
+      mapReady,
+      jobsCount: jobs.length,
+      eventsCount: calendarEvents.length,
+      tasksCount: tasks.length,
+      selectedDate: selectedDate.toISOString(),
+      mapItemsCount: mapItems.length,
+      userInteracted,
+      showAllMode,
+      mapFilter
+    })
+  }
 
   // Persist map type preference
   useEffect(() => {
@@ -314,6 +361,68 @@ function ScheduleMapComponent({
     return `${hour12}:${minutes} ${ampm}`
   }
 
+  // Log camera state with deltas (NO precise coordinates - privacy-safe)
+  const logCameraState = useCallback((event: string, reason: string = '') => {
+    if (!googleMapRef.current) return
+
+    const center = googleMapRef.current.getCenter()
+    const zoom = googleMapRef.current.getZoom()
+    const bounds = googleMapRef.current.getBounds()
+    const container = mapRef.current
+
+    const currentState = {
+      center: { lat: center.lat(), lng: center.lng() },
+      zoom
+    }
+
+    let deltaInfo = ''
+    if (lastCameraStateRef.current) {
+      const deltaLat = Math.abs(currentState.center.lat - lastCameraStateRef.current.center.lat)
+      const deltaLng = Math.abs(currentState.center.lng - lastCameraStateRef.current.center.lng)
+      const deltaZoom = Math.abs(currentState.zoom - lastCameraStateRef.current.zoom)
+      deltaInfo = `deltaLat=${deltaLat.toFixed(6)} deltaLng=${deltaLng.toFixed(6)} deltaZoom=${deltaZoom.toFixed(2)}`
+    }
+
+    lastCameraStateRef.current = currentState
+
+    const containerWidth = container?.offsetWidth || 0
+    const containerHeight = container?.offsetHeight || 0
+
+    console.log('[SCHEDULE_MAP_CAMERA_STATE]', {
+      event,
+      reason,
+      zoom: currentState.zoom.toFixed(2),
+      mapInstance: mapInstanceIdRef.current,
+      container: `${containerWidth}x${containerHeight}`,
+      deltaInfo,
+      userInteracted,
+      timestamp: Date.now()
+    })
+  }, [userInteracted])
+
+  // Log camera commands with full details (NO precise coordinates - privacy-safe)
+  const logCameraCommand = useCallback((source: string, command: string, details: any) => {
+    console.log('[SCHEDULE_MAP_CAMERA_COMMAND]', {
+      source,
+      command,
+      zoom: details.zoom || 'N/A',
+      reason: details.reason || 'N/A',
+      userInteracted,
+      mapInstance: mapInstanceIdRef.current,
+      timestamp: Date.now()
+    })
+  }, [userInteracted])
+
+  // Throttled logging for high-frequency events (100ms minimum between logs per event type)
+  const logThrottled = useCallback((eventType: string, logFn: () => void) => {
+    const now = Date.now()
+    const lastLog = lastLogTimeRef.current[eventType] || 0
+    if (now - lastLog > 100) {
+      lastLogTimeRef.current[eventType] = now
+      logFn()
+    }
+  }, [])
+
   // Filter items for selected date
   const getItemsForDate = useCallback(() => {
     // Use local timezone to match database dates (YYYY-MM-DD format)
@@ -372,7 +481,7 @@ function ScheduleMapComponent({
   const fitBoundsWithMaxZoom = useCallback((bounds: any, maxZoom: number = 15, paddingBottom: number = 0, reason: string = 'unknown') => {
     if (!googleMapRef.current) return
 
-    console.log('[SCHEDULE_MAP_CAMERA]', { source: 'fitBounds', reason, maxZoom, paddingBottom })
+    logCameraCommand('fitBoundsWithMaxZoom', 'fitBounds', { reason, maxZoom, paddingBottom })
 
     // Check if bounds would actually change viewport (avoid no-op calls)
     const currentBounds = googleMapRef.current.getBounds()
@@ -386,7 +495,7 @@ function ScheduleMapComponent({
                        Math.abs(sw.lng() - currentSw.lng()) < 0.000001
 
     if (isSameBounds) {
-      console.log('[SCHEDULE_MAP_CAMERA]', { source: 'fitBounds', reason, result: 'skipped_no_change' })
+      logCameraCommand('fitBoundsWithMaxZoom', 'fitBounds', { reason, result: 'skipped_no_change' })
       return
     }
 
@@ -409,13 +518,13 @@ function ScheduleMapComponent({
       // Remove listener after first execution
       (window as any).google.maps.event.removeListener(listener)
     })
-  }, [])
+  }, [logCameraCommand])
 
   // Pan to marker without resetting bounds
   const panToMarker = useCallback((lat: number, lng: number, zoom?: number, setUserInteractedFlag: boolean = true, reason: string = 'unknown') => {
     if (!googleMapRef.current) return
 
-    console.log('[SCHEDULE_MAP_CAMERA]', { source: 'panTo', reason, lat, lng, zoom, setUserInteractedFlag })
+    logCameraCommand('panToMarker', 'panTo', { center: `${lat},${lng}`, zoom, reason, setUserInteractedFlag })
 
     // Check if this is actually a camera change (avoid no-op calls)
     const currentCenter = googleMapRef.current.getCenter()
@@ -424,7 +533,7 @@ function ScheduleMapComponent({
     const isSameZoom = zoom === undefined || Math.abs(currentZoom - zoom) < 0.01
 
     if (isSameCenter && isSameZoom) {
-      console.log('[SCHEDULE_MAP_CAMERA]', { source: 'panTo', reason, result: 'skipped_no_change' })
+      logCameraCommand('panToMarker', 'panTo', { reason, result: 'skipped_no_change' })
       return
     }
 
@@ -437,7 +546,7 @@ function ScheduleMapComponent({
     if (setUserInteractedFlag) {
       setUserInteracted(true)
     }
-  }, [])
+  }, [logCameraCommand])
 
   // Reset to show all markers
   const showAllMarkers = useCallback(() => {
@@ -990,18 +1099,44 @@ function ScheduleMapComponent({
         ]
       })
 
+      // Log map instance creation
+      mapInstanceCounter++
+      mapInstanceIdRef.current = `map-${mapInstanceCounter}-${Date.now()}`
+      console.log('[SCHEDULE_MAP_INSTANCE_CREATED]', { id: mapInstanceIdRef.current, timestamp: Date.now() })
+
       // Track user interaction with the map (only genuine user input, not programmatic changes)
       map.addListener('dragstart', () => {
-        console.log('[SCHEDULE_MAP_EVENT]', { event: 'dragstart', programmatic: programmaticCameraChangeRef.current })
+        logCameraState('dragstart', 'user_drag_start')
         if (!programmaticCameraChangeRef.current) {
           setUserInteracted(true)
           setLastAutoFitDateKey(null)
         }
       })
+
+      map.addListener('drag', () => {
+        logThrottled('drag', () => logCameraState('drag', 'user_dragging'))
+      })
+
+      map.addListener('dragend', () => {
+        logCameraState('dragend', 'user_drag_end')
+      })
+
+      map.addListener('zoom_changed', () => {
+        logThrottled('zoom_changed', () => logCameraState('zoom_changed', 'user_zoom'))
+      })
+
+      map.addListener('center_changed', () => {
+        logThrottled('center_changed', () => logCameraState('center_changed', 'user_pan'))
+      })
+
+      map.addListener('bounds_changed', () => {
+        logThrottled('bounds_changed', () => logCameraState('bounds_changed', 'viewport_change'))
+      })
+
       // idle fires after any movement settles (user or programmatic)
       // Event-driven guard: consume pending programmatic move on idle
       map.addListener('idle', () => {
-        console.log('[SCHEDULE_MAP_EVENT]', { event: 'idle', programmatic: programmaticCameraChangeRef.current, pending: pendingProgrammaticMoveRef.current })
+        logCameraState('idle', 'movement_settled')
         if (pendingProgrammaticMoveRef.current) {
           pendingProgrammaticMoveRef.current = false
           programmaticCameraChangeRef.current = false
@@ -1018,7 +1153,7 @@ function ScheduleMapComponent({
       setMapError('Failed to initialize Google Maps')
       setIsLoading(false)
     }
-  }, [isMapLoaded, mapType])
+  }, [isMapLoaded, mapType, logCameraState, logThrottled])
 
   // ResizeObserver to initialize map when container gets dimensions
   useEffect(() => {
@@ -1043,6 +1178,40 @@ function ScheduleMapComponent({
       resizeObserver.disconnect()
     }
   }, [isMapLoaded])
+
+  // ResizeObserver to monitor container size changes after map is initialized
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !googleMapRef.current) return
+
+    const container = mapRef.current
+    const lastSizeRef = useRef({ width: container.offsetWidth, height: container.offsetHeight })
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect
+        const lastSize = lastSizeRef.current
+
+        // Only log if size actually changed (avoid noise)
+        if (Math.abs(width - lastSize.width) > 1 || Math.abs(height - lastSize.height) > 1) {
+          console.log('[SCHEDULE_MAP_RESIZE]', {
+            old: `${lastSize.width}x${lastSize.height}`,
+            new: `${width}x${height}`,
+            reason: 'container_resize',
+            mapInstance: mapInstanceIdRef.current,
+            userInteracted,
+            timestamp: Date.now()
+          })
+          lastSizeRef.current = { width, height }
+        }
+      }
+    })
+
+    resizeObserver.observe(container)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [mapReady, userInteracted])
 
   // Save per-date state before date change
   useEffect(() => {
@@ -1084,6 +1253,13 @@ function ScheduleMapComponent({
     const dateKey = selectedDate.toISOString().split('T')[0]
     const savedState = perDateStateRef.current.get(dateKey)
 
+    console.log('[SCHEDULE_MAP_STATE_RESTORE]', {
+      dateKey,
+      hasSavedState: !!savedState,
+      mapReady,
+      mapInstance: mapInstanceIdRef.current
+    })
+
     if (savedState) {
       setSelectedMapItemId(savedState.selectedMapItemId)
       setMapFilter(savedState.filter)
@@ -1103,11 +1279,16 @@ function ScheduleMapComponent({
         const currentLng = currentCenter.lng()
         const savedLat = savedState.center.lat
         const savedLng = savedState.center.lng
-        const isSameCenter = Math.abs(currentLat - savedLat) < 0.000001 && 
+        const isSameCenter = Math.abs(currentLat - savedLat) < 0.000001 &&
                              Math.abs(currentLng - savedLng) < 0.000001
         const isSameZoom = Math.abs(currentZoom - savedState.zoom) < 0.01
-        
+
         if (!isSameCenter || !isSameZoom) {
+          logCameraCommand('date_state_restoration', 'setCenter+setZoom', {
+            center: savedState.center,
+            zoom: savedState.zoom,
+            reason: 'restore_saved_viewport'
+          })
           programmaticCameraChangeRef.current = true
           pendingProgrammaticMoveRef.current = true
           googleMapRef.current.setCenter(savedState.center)
@@ -1121,7 +1302,7 @@ function ScheduleMapComponent({
     }
 
     setSelectedMarker(null)
-  }, [selectedDate, mapReady])
+  }, [selectedDate, mapReady, logCameraCommand])
 
   // Prepare map items when date changes (with race condition guard)
   useEffect(() => {
@@ -1228,6 +1409,17 @@ function ScheduleMapComponent({
         marker.setMap(null)
         markersRef.current.delete(key)
       }
+    })
+
+    // Log marker lifecycle
+    const createdCount = currentMarkerIds.size - markersRef.current.size
+    const removedCount = markersRef.current.size - currentMarkerIds.size
+    console.log('[SCHEDULE_MAP_MARKERS]', {
+      created: createdCount,
+      removed: removedCount,
+      total: currentMarkerIds.size,
+      reason: 'marker_update_effect',
+      mapInstance: mapInstanceIdRef.current
     })
 
     // Create signature from sorted marker IDs and mapItems coordinates (not Google Maps marker positions)
@@ -1389,12 +1581,24 @@ function ScheduleMapComponent({
 
         // Extract type from marker key
         const type = key.startsWith('appointment:') ? 'appointment' : 'job'
-        
+
         marker.setIcon(createNumberedMarkerIcon(stopNumber, type, isSelected))
         marker.setZIndex(isSelected ? 1000 : 1)
       }
     })
-  }, [selectedMapItemId, mapReady])
+  }, [selectedMapItemId, mapReady, getFilteredMapItems, mapItems])
+
+  // Log map instance destruction on unmount
+  useEffect(() => {
+    return () => {
+      if (googleMapRef.current) {
+        console.log('[SCHEDULE_MAP_INSTANCE_DESTROYED]', {
+          id: mapInstanceIdRef.current,
+          timestamp: Date.now()
+        })
+      }
+    }
+  }, [])
 
   // Create numbered marker icon
   const createNumberedMarkerIcon = (stopNumber: number, type: MapItemType, isSelected: boolean = false): any => {
