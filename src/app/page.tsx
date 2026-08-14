@@ -68,9 +68,18 @@ export default async function Home() {
             return []
           }
         },
-        setAll() {
-          // Server Component cannot set cookies - delegate to middleware
-          // This is a no-op to satisfy @supabase/ssr requirements
+        setAll(cookiesToSet) {
+          try {
+            if (!cookieStore) {
+              return
+            }
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Server Component cannot set cookies - middleware handles session refresh
+            // This is expected and safe when middleware is configured
+          }
         },
       },
     }

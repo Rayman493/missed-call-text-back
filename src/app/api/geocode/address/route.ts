@@ -22,8 +22,14 @@ export async function POST(request: NextRequest) {
           getAll() {
             return cookieStore.getAll()
           },
-          setAll() {
-            // Not needed for read-only auth check
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {
+              // Ignore setAll errors from Server Components
+            }
           },
         },
       }

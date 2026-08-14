@@ -54,16 +54,23 @@ export async function middleware(req: NextRequest) {
 
   // Get authenticated user for secure identity verification
   let user: any = null
+  let handledRefreshTokenError = false
   try {
     const { data: { user: authUser } } = await supabase.auth.getUser()
     user = authUser
   } catch (error: any) {
     // Handle stale refresh token errors gracefully
     if (error?.message?.includes('refresh_token_not_found') || error?.message?.includes('Refresh Token Not Found')) {
+      // Log at info level since this is expected stale session cleanup, not an error
       console.log('[MIDDLEWARE] Stale refresh token detected, clearing auth cookies')
-      // Clear auth cookies by setting them to expire
-      res.cookies.delete('sb-access-token')
-      res.cookies.delete('sb-refresh-token')
+      handledRefreshTokenError = true
+      // Clear all Supabase auth cookies (including v2)
+      const authCookieNames = req.cookies.getAll()
+        .map(c => c.name)
+        .filter(name => name.startsWith('sb-'))
+      authCookieNames.forEach(name => {
+        res.cookies.delete(name)
+      })
     } else {
       console.error('[MIDDLEWARE] Session check error:', error)
     }
