@@ -67,11 +67,21 @@ export default function PotentialRevenue({ businessId }: PotentialRevenueProps) 
         .reduce((sum: number, j: any) => sum + (j.estimated_amount || 0), 0) || 0
 
       // 3. Awaiting Estimate - Customers who completed intake but have no estimate/job yet
-      const { data: leads } = await supabase
+      const { data: allLeads } = await supabase
         .from('leads')
-        .select('id')
+        .select('id, raw_metadata')
         .eq('business_id', businessId)
-        .not('ai_intake', 'is', null)
+
+      // Filter for leads with AI intake data (stored in raw_metadata)
+      const leads = allLeads?.filter((lead: any) => {
+        const rawMetadata = lead.raw_metadata || {}
+        // Check for AI intake completion flags
+        return rawMetadata.ai_intake_completed === true ||
+               rawMetadata.ai_intake_partial === true ||
+               rawMetadata.ai_intake_latest_call_sid ||
+               rawMetadata.extracted_info ||
+               rawMetadata.ai_intake
+      }) || []
 
       const { data: leadJobs } = await supabase
         .from('jobs')

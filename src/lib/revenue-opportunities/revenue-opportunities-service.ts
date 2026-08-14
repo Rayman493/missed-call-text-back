@@ -91,11 +91,21 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
     businessId: string,
     supabase: any
   ): Promise<RevenueOpportunity[]> {
-    const { data: leads } = await supabase
+    const { data: allLeads } = await supabase
       .from('leads')
       .select('id, phone, raw_metadata')
       .eq('business_id', businessId)
-      .not('ai_intake', 'is', null)
+
+    // Filter for leads with AI intake data (stored in raw_metadata)
+    const leads = allLeads?.filter((lead: any) => {
+      const rawMetadata = lead.raw_metadata || {}
+      // Check for AI intake completion flags
+      return rawMetadata.ai_intake_completed === true ||
+             rawMetadata.ai_intake_partial === true ||
+             rawMetadata.ai_intake_latest_call_sid ||
+             rawMetadata.extracted_info ||
+             rawMetadata.ai_intake
+    }) || []
 
     if (!leads || leads.length === 0) return []
 
@@ -290,13 +300,23 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
     supabase: any
   ): Promise<RevenueOpportunity[]> {
     // Get leads with recent messages but no recent activity
-    const { data: leads } = await supabase
+    const { data: allLeads } = await supabase
       .from('leads')
       .select('id, phone, raw_metadata, created_at')
       .eq('business_id', businessId)
-      .not('ai_intake', 'is', null)
       .order('created_at', { ascending: false })
       .limit(50)
+
+    // Filter for leads with AI intake data (stored in raw_metadata)
+    const leads = allLeads?.filter((lead: any) => {
+      const rawMetadata = lead.raw_metadata || {}
+      // Check for AI intake completion flags
+      return rawMetadata.ai_intake_completed === true ||
+             rawMetadata.ai_intake_partial === true ||
+             rawMetadata.ai_intake_latest_call_sid ||
+             rawMetadata.extracted_info ||
+             rawMetadata.ai_intake
+    }) || []
 
     if (!leads || leads.length === 0) return []
 

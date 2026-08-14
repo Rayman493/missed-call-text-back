@@ -72,11 +72,23 @@ class WorkflowService implements WorkflowServiceInterface {
     const summaries: WorkflowSummary[] = []
 
     // Count customers awaiting estimates (AI intake complete, no estimate/job)
-    const { count: awaitingEstimates } = await supabase
+    const { data: allLeads } = await supabase
       .from('leads')
-      .select('*', { count: 'exact', head: true })
+      .select('id, raw_metadata')
       .eq('business_id', businessId)
-      .not('ai_intake', 'is', null)
+
+    // Filter for leads with AI intake data (stored in raw_metadata)
+    const leadsWithIntake = allLeads?.filter((lead: any) => {
+      const rawMetadata = lead.raw_metadata || {}
+      // Check for AI intake completion flags
+      return rawMetadata.ai_intake_completed === true ||
+             rawMetadata.ai_intake_partial === true ||
+             rawMetadata.ai_intake_latest_call_sid ||
+             rawMetadata.extracted_info ||
+             rawMetadata.ai_intake
+    }) || []
+
+    const awaitingEstimates = leadsWithIntake.length
 
     if (awaitingEstimates && awaitingEstimates > 0) {
       summaries.push({

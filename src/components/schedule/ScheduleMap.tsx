@@ -369,8 +369,10 @@ function ScheduleMapComponent({
   }, [])
 
   // Fit bounds with max zoom constraint and bottom padding for nav
-  const fitBoundsWithMaxZoom = useCallback((bounds: any, maxZoom: number = 15, paddingBottom: number = 0) => {
+  const fitBoundsWithMaxZoom = useCallback((bounds: any, maxZoom: number = 15, paddingBottom: number = 0, reason: string = 'unknown') => {
     if (!googleMapRef.current) return
+
+    console.log('[SCHEDULE_MAP_CAMERA]', { source: 'fitBounds', reason, maxZoom, paddingBottom })
 
     // Check if bounds would actually change viewport (avoid no-op calls)
     const currentBounds = googleMapRef.current.getBounds()
@@ -378,13 +380,13 @@ function ScheduleMapComponent({
     const sw = bounds.getSouthWest()
     const currentNe = currentBounds.getNorthEast()
     const currentSw = currentBounds.getSouthWest()
-    const isSameBounds = Math.abs(ne.lat() - currentNe.lat()) < 0.000001 && 
+    const isSameBounds = Math.abs(ne.lat() - currentNe.lat()) < 0.000001 &&
                        Math.abs(ne.lng() - currentNe.lng()) < 0.000001 &&
-                       Math.abs(sw.lat() - currentSw.lat()) < 0.000001 && 
+                       Math.abs(sw.lat() - currentSw.lat()) < 0.000001 &&
                        Math.abs(sw.lng() - currentSw.lng()) < 0.000001
-    
+
     if (isSameBounds) {
-      // No actual camera change needed, don't set guard
+      console.log('[SCHEDULE_MAP_CAMERA]', { source: 'fitBounds', reason, result: 'skipped_no_change' })
       return
     }
 
@@ -410,20 +412,22 @@ function ScheduleMapComponent({
   }, [])
 
   // Pan to marker without resetting bounds
-  const panToMarker = useCallback((lat: number, lng: number, zoom?: number, setUserInteractedFlag: boolean = true) => {
+  const panToMarker = useCallback((lat: number, lng: number, zoom?: number, setUserInteractedFlag: boolean = true, reason: string = 'unknown') => {
     if (!googleMapRef.current) return
-    
+
+    console.log('[SCHEDULE_MAP_CAMERA]', { source: 'panTo', reason, lat, lng, zoom, setUserInteractedFlag })
+
     // Check if this is actually a camera change (avoid no-op calls)
     const currentCenter = googleMapRef.current.getCenter()
     const currentZoom = googleMapRef.current.getZoom()
     const isSameCenter = Math.abs(currentCenter.lat() - lat) < 0.000001 && Math.abs(currentCenter.lng() - lng) < 0.000001
     const isSameZoom = zoom === undefined || Math.abs(currentZoom - zoom) < 0.01
-    
+
     if (isSameCenter && isSameZoom) {
-      // No actual camera change needed, don't set guard
+      console.log('[SCHEDULE_MAP_CAMERA]', { source: 'panTo', reason, result: 'skipped_no_change' })
       return
     }
-    
+
     programmaticCameraChangeRef.current = true
     pendingProgrammaticMoveRef.current = true
     googleMapRef.current.panTo({ lat, lng })
@@ -447,7 +451,13 @@ function ScheduleMapComponent({
     markersRef.current.forEach(marker => {
       bounds.extend(marker.getPosition()!)
     })
-    fitBoundsWithMaxZoom(bounds)
+
+    const bottomNavHeight = typeof window !== 'undefined'
+      ? parseInt(getComputedStyle(document.body).getPropertyValue('--bottom-nav-height')) || 80
+      : 80
+    const bottomPadding = bottomNavHeight + 40
+
+    fitBoundsWithMaxZoom(bounds, 15, bottomPadding, 'show_all_markers')
   }, [fitBoundsWithMaxZoom])
 
   // Navigate to next/previous stop
@@ -470,7 +480,7 @@ function ScheduleMapComponent({
     const selectedItem = sortedItems[currentIndex]
     setSelectedMapItemId(selectedItem.id)
     setShowAllMode(false)
-    panToMarker(selectedItem.latitude, selectedItem.longitude, 15)
+    panToMarker(selectedItem.latitude, selectedItem.longitude, 15, true, 'navigate_to_stop')
   }, [selectedMapItemId, mapItems, getFilteredMapItems, getSortedMappedItems, panToMarker])
 
   // Select a specific map item
@@ -481,7 +491,7 @@ function ScheduleMapComponent({
     
     setSelectedMapItemId(itemId)
     setShowAllMode(false)
-    panToMarker(item.latitude, item.longitude, 15)
+    panToMarker(item.latitude, item.longitude, 15, true, 'select_map_item')
   }, [mapItems, getFilteredMapItems, panToMarker])
 
   // Helper function to extract customer address from lead metadata
@@ -982,22 +992,22 @@ function ScheduleMapComponent({
 
       // Track user interaction with the map (only genuine user input, not programmatic changes)
       map.addListener('dragstart', () => {
+        console.log('[SCHEDULE_MAP_EVENT]', { event: 'dragstart', programmatic: programmaticCameraChangeRef.current })
         if (!programmaticCameraChangeRef.current) {
           setUserInteracted(true)
-          setLastAutoFitDateKey(null) // Reset auto-fit tracking on user interaction
+          setLastAutoFitDateKey(null)
         }
       })
       // idle fires after any movement settles (user or programmatic)
       // Event-driven guard: consume pending programmatic move on idle
       map.addListener('idle', () => {
+        console.log('[SCHEDULE_MAP_EVENT]', { event: 'idle', programmatic: programmaticCameraChangeRef.current, pending: pendingProgrammaticMoveRef.current })
         if (pendingProgrammaticMoveRef.current) {
-          // This idle was caused by a programmatic move
           pendingProgrammaticMoveRef.current = false
           programmaticCameraChangeRef.current = false
         } else if (!programmaticCameraChangeRef.current) {
-          // This idle was caused by user movement
           setUserInteracted(true)
-          setLastAutoFitDateKey(null) // Reset auto-fit tracking on user interaction
+          setLastAutoFitDateKey(null)
         }
       })
 
@@ -1269,55 +1279,69 @@ function ScheduleMapComponent({
     }
 
     // Smart automatic framing logic
+    console.log('[SCHEDULE_MAP_EFFECT]', {
+      effect: 'marker_update_auto_fit_check',
+      markersCount: markersRef.current.size,
+      showAllMode,
+      userInteracted,
+      dateChanged,
+      signatureChanged,
+      initialCameraEstablished: initialCameraEstablishedRef.current,
+      lastAutoFitDateKey
+    })
+
     if (markersRef.current.size === 0) {
-      // Zero mapped items - keep current viewport
       markerSetSignatureRef.current = signature
-      setLastAutoFitDateKey(null) // Reset auto-fit tracking on empty day
+      setLastAutoFitDateKey(null)
     } else if (selectedMapItemId && !userInteracted) {
-      // Explicitly selected item - center on it with detail zoom
-      // Only auto-focus if user hasn't manually moved the map
-      // Explicit selections (selectMapItem, navigateToStop) call panToMarker directly
       const selectedMarker = markersRef.current.get(selectedMapItemId)
       if (selectedMarker) {
         const pos = selectedMarker.getPosition()
-        panToMarker(pos.lat(), pos.lng(), 15, false) // Programmatic: do not set userInteracted
+        panToMarker(pos.lat(), pos.lng(), 15, false, 'selected_item')
         markerSetSignatureRef.current = signature
       }
     } else if (showAllMode && !userInteracted && (dateChanged || signatureChanged)) {
-      // Auto-fit when:
-      // - Show all mode active
-      // - User hasn't manually moved the map
-      // - Date changed OR filter changed OR marker set changed (filter change, new geocoding, etc.)
-      // - We haven't already auto-fitted to this date (prevents repeated fits on same date)
-      // - If not date/filter changed, only fit if initial camera not yet established (prevents late async geocoding jumps)
-      const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && lastAutoFitDateKey !== currentDateKey && !initialCameraEstablishedRef.current)
+      const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && !initialCameraEstablishedRef.current)
+
+      console.log('[SCHEDULE_MAP_EFFECT]', {
+        effect: 'auto_fit_decision',
+        shouldAutoFit,
+        dateChanged,
+        filterChanged,
+        signatureChanged,
+        initialCameraEstablished: initialCameraEstablishedRef.current,
+        lastAutoFitDateKey,
+        currentDateKey
+      })
 
       if (shouldAutoFit) {
         markerSetSignatureRef.current = signature
         setLastAutoFitDateKey(currentDateKey)
-        initialCameraEstablishedRef.current = true // Mark initial camera as established
+        initialCameraEstablishedRef.current = true
 
         if (markersRef.current.size === 1) {
-          // Single stop - center with sensible zoom (neighborhood/city context)
           const singleMarker = markersRef.current.values().next().value
           if (singleMarker) {
             const pos = singleMarker.getPosition()
-            panToMarker(pos.lat(), pos.lng(), 13, false) // Zoom 13 = neighborhood/city context, not building-level
+            panToMarker(pos.lat(), pos.lng(), 13, false, 'single_marker_initial')
           }
         } else {
-          // Multiple stops - fit bounds with padding
           const bounds = new (window as any).google.maps.LatLngBounds()
           markersRef.current.forEach(marker => {
             bounds.extend(marker.getPosition()!)
           })
-          fitBoundsWithMaxZoom(bounds, 15, bottomPadding)
+          fitBoundsWithMaxZoom(bounds, 15, bottomPadding, 'multi_marker_initial')
         }
       } else {
-        // No auto-fit needed, just update signature
         markerSetSignatureRef.current = signature
       }
     } else if (!showAllMode || userInteracted) {
-      // Update signature even if we don't fit bounds, to prevent future unnecessary fits
+      console.log('[SCHEDULE_MAP_EFFECT]', {
+        effect: 'skip_auto_fit',
+        reason: !showAllMode ? 'not_show_all_mode' : 'user_interacted',
+        showAllMode,
+        userInteracted
+      })
       markerSetSignatureRef.current = signature
     }
 
