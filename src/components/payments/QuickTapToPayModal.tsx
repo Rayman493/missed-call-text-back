@@ -417,6 +417,9 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     // If we're in processing, only show errors if the state is actually failure
     if (visiblePhase === 'processing' && paymentState !== 'failure') return false
 
+    // If we're in education states, no error is relevant (education is expected flow)
+    if (visiblePhase === 'education_pending' || visiblePhase === 'education_waiting_for_confirmation') return false
+
     // Otherwise, error is relevant
     return true
   }, [visiblePhase, paymentState])
@@ -441,6 +444,11 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     ]
 
     const message = readerState.displayMessage || readerState.instruction || ''
+
+    // Filter out numeric values (enum codes) and non-string types
+    if (typeof message !== 'string' || message.trim() === '' || /^\d+$/.test(message.trim())) {
+      return null
+    }
 
     // If it looks like a technical message, don't display it
     if (technicalPatterns.some(pattern => pattern.test(message))) {
@@ -1365,6 +1373,20 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                     </div>
                   )}
 
+                  {visiblePhase === 'education_waiting_for_confirmation' && (
+                    <div className="flex flex-col items-center justify-center space-y-5 text-center px-6" role="status" aria-live="polite">
+                      <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-green-600 dark:text-green-400" />
+                      </div>
+                      <div className="space-y-2">
+                        <h2 className="text-lg font-semibold text-foreground">Finishing setup…</h2>
+                        <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
+                          Please confirm to continue with Tap to Pay.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {visiblePhase === 'preparing' && (
                     <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
                       <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
@@ -1501,7 +1523,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                     </div>
                   )}
                   {/* Defensive fallback for unhandled states */}
-                  {(!['ready', 'preparing', 'connecting_reader', 'creating_payment_intent', 'waiting_for_card', 'processing', 'success', 'failure', 'canceled', 'pending', 'ambiguous'].includes(paymentState)) && (
+                  {(!['ready', 'preparing', 'connecting_reader', 'creating_payment_intent', 'waiting_for_card', 'processing', 'success', 'failure', 'canceled', 'pending', 'ambiguous', 'education_pending', 'education_waiting_for_confirmation'].includes(paymentState)) && (
                     <>
                       <AlertCircle className="w-12 h-12 text-red-600 dark:text-red-400" />
                       <p className="text-sm font-medium text-foreground text-center">Something went wrong</p>

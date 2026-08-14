@@ -10,6 +10,8 @@ export const dynamic = 'force-dynamic'
 const provisioningAttempts = new Map<string, number[]>()
 const RATE_LIMIT_WINDOW = 60 * 60 * 1000 // 1 hour
 const MAX_PROVISIONING_ATTEMPTS = 3 // Max 3 provisioning attempts per business per hour
+const BUSINESS_NOT_FOUND_RETRY_DELAY = 2000 // 2 seconds
+const MAX_BUSINESS_NOT_FOUND_RETRIES = 3
 
 // Clean up old entries periodically
 setInterval(() => {
@@ -122,26 +124,76 @@ export async function POST(request: Request) {
     const correlationId = `prov_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     console.log('[ProvisioningTrigger] Generated correlation_id:', correlationId)
 
-    // BETA PROVISIONING: Use server-side admin client to bypass RLS
-    const { data: business, error: businessError } = await supabaseAdmin
-      .from('businesses')
-      .select('id, user_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, provisioning_status, provisioning_error, provisioning_lock_id, last_provisioning_attempt_at, provisioned_at')
-      .eq('id', business_id)
-      .single()
+    // Business lookup with retry for transient BUSINESS_NOT_FOUND errors
+    let business: any = null
+    let businessError: any = null
+    let businessLookupRetries = 0
 
-    console.log('[PROVISIONING FLOW] Business lookup result:', { business, businessError })
+    while (businessLookupRetries <= MAX_BUSINESS_NOT_FOUND_RETRIES) {
+      console.log(`[ProvisioningTrigger] Business lookup attempt ${businessLookupRetries + 1}/${MAX_BUSINESS_NOT_FOUND_RETRIES + 1}`)
+
+      // BETA PROVISIONING: Use server-side admin client to bypass RLS
+      const result = await supabaseAdmin
+        .from('businesses')
+        .select('id, user_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, provisioning_status, provisioning_error, provisioning_lock_id, last_provisioning_attempt_at, provisioned_at')
+        .eq('id', business_id)
+        .single()
+
+      business = result.data
+      businessError = result.error
+
+      if (business) {
+        console.log('[ProvisioningTrigger] Business found successfully')
+        break
+      }
+
+      // Check if this is a PGRST116 (zero rows) error
+      if (businessError?.code === 'PGRST116' && businessLookupRetries < MAX_BUSINESS_NOT_FOUND_RETRIES) {
+        console.warn('[ProvisioningTrigger] Business not found (PGRST116), retrying after delay...')
+        console.warn('[ProvisioningTrigger] This may be a transient race condition')
+        await new Promise(resolve => setTimeout(resolve, BUSINESS_NOT_FOUND_RETRY_DELAY))
+        businessLookupRetries++
+        continue
+      }
+
+      // If not PGRST116 or max retries exceeded, break
+      console.error('[ProvisioningTrigger] Business not found:', businessError)
+      break
+    }
+
+    console.log('[PROVISIONING FLOW] Business lookup result:', { business, businessError, retries: businessLookupRetries })
 
     if (businessError || !business) {
-      console.error('[ProvisioningTrigger] Business not found:', businessError)
+      console.error('[ProvisioningTrigger] Business not found after retries:', businessError)
       console.error('[ProvisioningTrigger] PostgreSQL error details:', {
         code: businessError?.code,
         message: businessError?.message,
         details: businessError?.details,
         hint: businessError?.hint
       } as any)
-      return NextResponse.json({ 
-        error: 'Business not found', 
-        postgres_error: businessError as any
+
+      // Mark business as failed if max retries exceeded
+      if (businessLookupRetries > MAX_BUSINESS_NOT_FOUND_RETRIES) {
+        console.error('[ProvisioningTrigger] Max retries exceeded, marking provisioning as failed')
+        // Attempt to mark as failed (may fail if business truly doesn't exist)
+        try {
+          await supabaseAdmin
+            .from('businesses')
+            .update({
+              provisioning_status: 'failed',
+              provisioning_error: `Business not found after ${MAX_BUSINESS_NOT_FOUND_RETRIES + 1} lookup attempts (PGRST116)`,
+              provisioning_lock_id: null
+            })
+            .eq('id', business_id)
+        } catch (markFailedError) {
+          console.error('[ProvisioningTrigger] Failed to mark as failed (business may not exist):', markFailedError)
+        }
+      }
+
+      return NextResponse.json({
+        error: 'Business not found',
+        postgres_error: businessError as any,
+        retries: businessLookupRetries
       }, { status: 404 })
     }
 

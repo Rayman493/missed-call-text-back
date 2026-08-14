@@ -263,7 +263,7 @@ export async function getInventoryMetrics(): Promise<InventoryMetrics> {
 export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNumber?: string; error?: string }> {
   console.log('[Warm Inventory] ========== provisionWarmNumber HIT ==========');
   console.log('[Warm Inventory] Provisioning new warm number...');
-  
+
   if (!supabase) {
     console.error('[Warm Inventory] Supabase client not configured');
     return { success: false, error: 'Supabase client not configured' };
@@ -280,6 +280,7 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
   }
 
   const client = Twilio(accountSid, authToken);
+  let purchasedNumber: any = null;
 
   try {
     // Step 1: Search for available local numbers
@@ -298,7 +299,7 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
 
     // Step 2: Purchase the number with webhooks
     console.log('[Warm Inventory] Purchasing number with webhooks...');
-    const purchasedNumber = await client.incomingPhoneNumbers.create({
+    purchasedNumber = await client.incomingPhoneNumbers.create({
       phoneNumber: numberToPurchase.phoneNumber,
       voiceUrl: `${appUrl}/api/twilio/voice`,
       statusCallback: `${appUrl}/api/twilio/voice-status`,
@@ -311,9 +312,10 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
 
     // Step 3: Add to Messaging Service if configured
     let senderPoolAttachedAt: string | null = null;
+    let messagingServiceError: string | null = null;
     if (messagingServiceSid) {
       console.log(`[Warm Inventory] Adding number to Messaging Service: ${messagingServiceSid}`);
-      
+
       try {
         const existingPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
           .phoneNumbers
@@ -338,25 +340,31 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
           .list({ limit: 100 });
 
         const isAttached = updatedPhoneNumbers.some(pn => pn.sid === purchasedNumber.sid);
-        
+
         if (!isAttached) {
           console.error('[Warm Inventory] Failed to verify sender pool membership');
-          // Release the number
-          await client.incomingPhoneNumbers(purchasedNumber.sid).remove();
-          return { success: false, error: 'Failed to verify sender pool membership' };
+          messagingServiceError = 'Failed to verify sender pool membership';
+          // Do NOT release the number - it's purchased and we'll track it as needing repair
+        } else {
+          senderPoolAttachedAt = new Date().toISOString();
+          console.log('[Warm Inventory] Sender pool membership verified');
         }
-
-        senderPoolAttachedAt = new Date().toISOString();
-        console.log('[Warm Inventory] Sender pool membership verified');
-      } catch (error) {
+      } catch (error: any) {
         console.error('[Warm Inventory] Failed to add to Messaging Service:', error);
-        // Release the number on failure
-        await client.incomingPhoneNumbers(purchasedNumber.sid).remove();
-        return { success: false, error: 'Failed to add to Messaging Service' };
+        messagingServiceError = error.message || 'Failed to add to Messaging Service';
+        // Do NOT release the number on timeout - it's purchased and we'll track it as needing repair
+        // Only release on definitive failure (not timeout)
+        if (error.code !== 'ECONNABORTED' && error.code !== 'ETIMEDOUT') {
+          console.log('[Warm Inventory] Definitive failure, releasing number');
+          await client.incomingPhoneNumbers(purchasedNumber.sid).remove();
+          return { success: false, error: 'Failed to add to Messaging Service' };
+        } else {
+          console.log('[Warm Inventory] Timeout during Messaging Service add - will track as needing repair');
+        }
       }
     }
 
-    // Step 4: Store in twilio_numbers table as available
+    // Step 4: Store in twilio_numbers table
     console.log('[Warm Inventory] Storing number in twilio_numbers table...');
     const { error: insertError } = await supabase
       .from('twilio_numbers')
@@ -364,10 +372,10 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
         phone_number: purchasedNumber.phoneNumber,
         twilio_sid: purchasedNumber.sid,
         number_type: 'both',
-        status: 'available',
-        sms_status: 'ready',
+        status: messagingServiceError ? 'failed' : 'available',
+        sms_status: messagingServiceError ? 'failed' : 'ready',
         provisioning_status: 'ready',
-        provisioning_error: null,
+        provisioning_error: messagingServiceError || null,
         sender_pool_attached_at: senderPoolAttachedAt,
         business_id: null,
         created_at: new Date().toISOString(),
@@ -379,6 +387,12 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
       // Release the number on failure
       await client.incomingPhoneNumbers(purchasedNumber.sid).remove();
       return { success: false, error: 'Failed to store number in database' };
+    }
+
+    if (messagingServiceError) {
+      console.log('[Warm Inventory] Number purchased but Messaging Service registration failed - tracked as failed for repair');
+      console.log('[Warm Inventory] Number will be available for repair via admin tools');
+      return { success: true, phoneNumber: purchasedNumber.phoneNumber }; // Return success so we don't block replenishment
     }
 
     console.log(`[Warm Inventory] Warm number provisioned successfully: ${purchasedNumber.phoneNumber}`);
@@ -650,6 +664,28 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
     if (!accountSid || !authToken) {
       console.error('[Warm Inventory] ERROR: Missing Twilio credentials for ownership verification');
       return { success: false, error: 'Missing Twilio credentials' };
+    }
+
+    // PROTECT: Block assignment of protected system number
+    if (isSystemPhoneNumber(warmNumber.phone_number)) {
+      console.error('[Warm Inventory] PROTECTED NUMBER ATTEMPTED ASSIGNMENT:', warmNumber.phone_number);
+      console.error('[Warm Inventory] Rolling back assignment to prevent system number misuse');
+
+      // Rollback the assignment
+      await supabase
+        .from('twilio_numbers')
+        .update({
+          status: 'available',
+          business_id: null,
+          assigned_at: null,
+          detached_at: null,
+          detached_reason: 'protected_number_rollback',
+          last_error: 'Attempted to assign protected system number',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', warmNumber.id);
+
+      return { success: false, error: 'Attempted to assign protected system number' };
     }
 
     const client = Twilio(accountSid, authToken);
@@ -1351,7 +1387,14 @@ export async function cleanupExcessInventory(): Promise<CleanupResult> {
       };
     }
 
-    const excessNumbers = selectExcessNumbersForTrim(healthyNumbers, targetAvailable);
+    // Filter out protected system number from cleanup candidates
+    const eligibleNumbers = healthyNumbers.filter(n => !isSystemPhoneNumber(n.phone_number));
+    if (eligibleNumbers.length !== healthyNumbers.length) {
+      const filteredCount = healthyNumbers.length - eligibleNumbers.length;
+      console.log(`[CLEANUP] Filtered out ${filteredCount} protected system number(s) from cleanup`);
+    }
+
+    const excessNumbers = selectExcessNumbersForTrim(eligibleNumbers, targetAvailable);
     if (excessNumbers.length === 0) {
       console.log('[CLEANUP] Computed no excess after selection, nothing to release');
       return {

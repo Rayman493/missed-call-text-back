@@ -81,9 +81,14 @@ export function useTapToPayReaderPresentation(isEnabled: boolean) {
         // readerInputRequested - merchant/customer instruction (text only)
         const inputRequested = await Terminal.addListener('readerInputRequested', (data: any) => {
           if (!mounted) return
+          // Filter out numeric enum values - only render genuine text instructions
+          const rawInstruction = data?.inputOptions
+          const safeInstruction = (typeof rawInstruction === 'string' && rawInstruction.trim().length > 0)
+            ? rawInstruction
+            : null
           setState(prev => ({
             ...prev,
-            instruction: data?.inputOptions || null,
+            instruction: safeInstruction,
           }))
         })
         listenersRef.current.inputRequested = inputRequested
