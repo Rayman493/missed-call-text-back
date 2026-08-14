@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { CreditCard, Copy, ExternalLink, User, X, Smartphone, AlertCircle, Info, ChevronDown, MessageSquare, Link, Filter } from 'lucide-react'
+import { CreditCard, Copy, ExternalLink, User, X, Smartphone, AlertCircle, Info, ChevronDown, MessageSquare, Link, Filter, Edit } from 'lucide-react'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
@@ -38,6 +38,7 @@ interface PaymentRequest {
   payment_provider: string | null
   payment_method_type: string | null
   job_id: string | null
+  display_name: string | null
   leads: {
     id: string
     caller_phone: string
@@ -143,12 +144,18 @@ export default function PaymentsPage() {
   const [showTapToPaySetup, setShowTapToPaySetup] = useState(false)
   const [paymentToMarkPaid, setPaymentToMarkPaid] = useState<PaymentRequest | null>(null)
   const [showOlderPayments, setShowOlderPayments] = useState(false)
+  const [showRenameModal, setShowRenameModal] = useState(false)
+  const [paymentToRename, setPaymentToRename] = useState<PaymentRequest | null>(null)
+  const [renameLabel, setRenameLabel] = useState('')
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [renameError, setRenameError] = useState('')
   useBodyScrollLock(showPaymentModal)
 
   // Lock background scroll when mark-paid confirm is open as well
   useBodyScrollLock(showMarkPaidConfirm)
   useBodyScrollLock(showQuickTapToPay)
   useBodyScrollLock(showTapToPaySetup)
+  useBodyScrollLock(showRenameModal)
 
   // Check native support on mount
   useEffect(() => {
@@ -444,6 +451,15 @@ export default function PaymentsPage() {
     return intake.customerName || 'Customer'
   }
 
+const getPaymentDescription = (payment: PaymentRequest) => {
+    // If custom display_name exists, use it
+    if (payment.display_name) {
+      return payment.display_name
+    }
+    // Otherwise fall back to original description
+    return payment.description
+  }
+
   const copyPaymentLink = async (url: string) => {
     try {
       await navigator.clipboard.writeText(url)
@@ -538,6 +554,62 @@ export default function PaymentsPage() {
       setError(err instanceof Error ? err.message : 'Failed to mark payment as paid')
     } finally {
       setIsMarkingPaid(false)
+    }
+  }
+
+  const handleOpenRenameModal = (payment: PaymentRequest) => {
+    setPaymentToRename(payment)
+    setRenameLabel(payment.display_name || '')
+    setRenameError('')
+    setShowRenameModal(true)
+  }
+
+  const handleCloseRenameModal = () => {
+    setShowRenameModal(false)
+    setPaymentToRename(null)
+    setRenameLabel('')
+    setRenameError('')
+  }
+
+  const handleSaveLabel = async () => {
+    if (!paymentToRename) return
+
+    setIsRenaming(true)
+    setRenameError('')
+
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch(`/api/payments/${paymentToRename.id}/label`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ display_name: renameLabel }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update payment label')
+      }
+
+      setSuccessMessage('Payment label updated successfully')
+      handleCloseRenameModal()
+
+      // Refresh payments to show the updated label
+      await fetchPayments()
+    } catch (err) {
+      console.error('Error updating payment label:', err)
+      setRenameError(err instanceof Error ? err.message : 'Failed to update payment label')
+    } finally {
+      setIsRenaming(false)
     }
   }
 
@@ -796,10 +868,10 @@ export default function PaymentsPage() {
                             <span className="text-gray-400">Amount</span>
                             <span className="text-white font-semibold">{formatCurrency(payment.amount_cents / 100)}</span>
                           </div>
-                          {payment.description && (
+                          {getPaymentDescription(payment) && (
                             <div className="flex justify-between">
                               <span className="text-gray-400">Description</span>
-                              <span className="text-gray-300 truncate max-w-[150px]">{payment.description}</span>
+                              <span className="text-gray-300 truncate max-w-[150px]">{getPaymentDescription(payment)}</span>
                             </div>
                           )}
                           <div className="flex justify-between">
@@ -821,6 +893,15 @@ export default function PaymentsPage() {
                                 className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
                               >
                                 View Customer
+                              </button>
+                            )}
+                            {payment.status === 'paid' && (
+                              <button
+                                onClick={() => handleOpenRenameModal(payment)}
+                                className="p-1.5 text-gray-400 hover:text-white"
+                                title="Rename payment"
+                              >
+                                <Edit className="h-4 w-4" />
                               </button>
                             )}
                             {payment.status === 'pending' && payment.checkout_url && (
@@ -920,10 +1001,10 @@ export default function PaymentsPage() {
                                     <span className="text-gray-400">Amount</span>
                                     <span className="text-white font-semibold">{formatCurrency(payment.amount_cents / 100)}</span>
                                   </div>
-                                  {payment.description && (
+                                  {getPaymentDescription(payment) && (
                                     <div className="flex justify-between">
                                       <span className="text-gray-400">Description</span>
-                                      <span className="text-gray-300 truncate max-w-[150px]">{payment.description}</span>
+                                      <span className="text-gray-300 truncate max-w-[150px]">{getPaymentDescription(payment)}</span>
                                     </div>
                                   )}
                                   <div className="flex justify-between">
@@ -945,6 +1026,15 @@ export default function PaymentsPage() {
                                         className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
                                       >
                                         View Customer
+                                      </button>
+                                    )}
+                                    {payment.status === 'paid' && (
+                                      <button
+                                        onClick={() => handleOpenRenameModal(payment)}
+                                        className="p-1.5 text-gray-400 hover:text-white"
+                                        title="Rename payment"
+                                      >
+                                        <Edit className="h-4 w-4" />
                                       </button>
                                     )}
                                     {payment.status === 'pending' && payment.checkout_url && (
@@ -1077,7 +1167,7 @@ export default function PaymentsPage() {
                               {getPaymentMethodBadge(payment.payment_method_type)}
                             </td>
                             <td className="px-4 py-3 text-gray-400 text-sm max-w-[220px] truncate">
-                              {payment.description}
+                              {getPaymentDescription(payment)}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
@@ -1099,6 +1189,16 @@ export default function PaymentsPage() {
                                       className="text-gray-400 hover:text-white text-xs font-medium transition-colors"
                                     >
                                       View Customer
+                                    </button>
+                                  )}
+                                  {payment.status === 'paid' && (
+                                    <button
+                                      onClick={() => handleOpenRenameModal(payment)}
+                                      className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                      title="Rename payment"
+                                      aria-label="Rename payment"
+                                    >
+                                      <Edit className="h-3.5 w-3.5" />
                                     </button>
                                   )}
                                   {payment.status === 'pending' && payment.checkout_url && (
@@ -1197,7 +1297,7 @@ export default function PaymentsPage() {
                                   {getPaymentMethodBadge(payment.payment_method_type)}
                                 </td>
                                 <td className="px-4 py-3 text-gray-400 text-sm max-w-[220px] truncate">
-                                  {payment.description}
+                                  {getPaymentDescription(payment)}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
@@ -1219,6 +1319,16 @@ export default function PaymentsPage() {
                                           className="text-gray-400 hover:text-white text-xs font-medium transition-colors"
                                         >
                                           View Customer
+                                        </button>
+                                      )}
+                                      {payment.status === 'paid' && (
+                                        <button
+                                          onClick={() => handleOpenRenameModal(payment)}
+                                          className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                          title="Rename payment"
+                                          aria-label="Rename payment"
+                                        >
+                                          <Edit className="h-3.5 w-3.5" />
                                         </button>
                                       )}
                                       {payment.status === 'pending' && payment.checkout_url && (
@@ -1575,6 +1685,79 @@ export default function PaymentsPage() {
                 : 'not_connected'
           }
         />
+
+        {/* Rename Payment Modal */}
+        {showRenameModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm md:items-center md:justify-center">
+            <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full max-h-[calc(100dvh-1rem)] md:max-h-[90vh] overflow-hidden flex flex-col border border-slate-700">
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3.5 md:px-5 md:py-4 border-b border-slate-700 shrink-0">
+                <div className="min-w-0 pr-3">
+                  <h3 className="text-lg font-semibold text-white leading-tight">
+                    Rename Payment
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
+                    Give this payment a custom name for easier organization
+                  </p>
+                </div>
+                <button
+                  onClick={handleCloseRenameModal}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-700 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="overflow-y-auto flex-1 px-4 py-3 md:px-5 md:py-4 space-y-2.5">
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
+                    Payment name
+                  </label>
+                  <input
+                    type="text"
+                    value={renameLabel}
+                    onChange={(e) => setRenameLabel(e.target.value)}
+                    placeholder="e.g., Kitchen deposit, Emergency repair"
+                    maxLength={80}
+                    disabled={isRenaming}
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                  <p className="text-xs text-gray-400 mt-1.5">
+                    This name is only for organizing payments in ReplyFlow. It won't change the customer name or affect receipts.
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {renameLabel.length}/80 characters
+                  </p>
+                </div>
+
+                {renameError && (
+                  <div className="p-3 bg-red-900/30 border border-red-700 rounded-lg">
+                    <p className="text-sm text-red-200">{renameError}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex gap-2.5 justify-end px-4 py-3 md:px-5 md:py-4 border-t border-slate-700 shrink-0">
+                <button
+                  onClick={handleCloseRenameModal}
+                  disabled={isRenaming}
+                  className="px-4 py-2 text-sm font-medium text-gray-300 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveLabel}
+                  disabled={isRenaming || !renameLabel.trim()}
+                  className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isRenaming ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </DashboardShell>
   )
 }
