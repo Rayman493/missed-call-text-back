@@ -421,45 +421,43 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
                   )}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <p className={`text-sm font-medium ${task.completed ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-foreground'}`}>
-                      {task.title}
-                    </p>
-                    {getTaskStatusBadge(task)}
-                  </div>
+                  <p className={`text-sm font-medium mb-1 ${task.completed ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-sforeground'}`}>
+                    {task.title}
+                  </p>
                   {task.notes && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2 line-clamp-2">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 line-clamp-2">
                       {task.notes}
                     </p>
                   )}
-                  <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                     {task.due_date && (
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         <span>{formatDate(task.due_date)}</span>
-                        {task.due_time && <span> at {formatTime(task.due_time)}</span>}
+                        {task.due_time && <span>· {formatTime(task.due_time)}</span>}
                       </div>
                     )}
                     {task.lead_id && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-slate-400 dark:text-slate-500">Customer:</span>
+                      <>
+                        <span className="text-slate-300 dark:text-slate-600">·</span>
                         <button
                           onClick={(e) => handleLeadClick(e, task.lead_id!)}
                           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
                         >
                           {getLeadName(task)}
                         </button>
-                      </div>
+                      </>
                     )}
                     {task.job_id && task.jobs && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-slate-400 dark:text-slate-500">Job:</span>
+                      <>
+                        <span className="text-slate-300 dark:text-slate-600">·</span>
                         <span className="text-slate-700 dark:text-slate-300">{task.jobs.title}</span>
-                      </div>
+                      </>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0 pl-2">
+                  {getTaskStatusBadge(task)}
                   <button
                     onClick={() => useParentModal ? onEditTask!(task) : setEditingTask(task)}
                     className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"

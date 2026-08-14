@@ -240,6 +240,11 @@ async function warmUpTapToPay() {
   }
 }
 
+// Simple deduplication for deep link callbacks
+let lastProcessedDeepLink: string | null = null;
+let lastProcessedTime: number = 0;
+const DEEP_LINK_DEDUP_WINDOW_MS = 2000; // Ignore same URL within 2 seconds
+
 /**
  * Handle deep links from external sources
  * Deep links can be:
@@ -249,6 +254,15 @@ async function warmUpTapToPay() {
  */
 function handleDeepLink(url: string) {
   console.log('[APP URL OPEN] Received deep link:', url);
+
+  // Deduplication: ignore duplicate URLs within time window
+  const now = Date.now();
+  if (lastProcessedDeepLink === url && (now - lastProcessedTime) < DEEP_LINK_DEDUP_WINDOW_MS) {
+    console.log('[APP URL OPEN] Duplicate callback ignored (dedup window)');
+    return;
+  }
+  lastProcessedDeepLink = url;
+  lastProcessedTime = now;
 
   try {
     const urlObj = new URL(url);
@@ -261,7 +275,7 @@ function handleDeepLink(url: string) {
       hasSessionId: urlParams.has('session_id'),
       hasRecoveryMarker: urlParams.has('recovery'),
       hasReturnMarker: urlParams.has('return_to_app'),
-      timestamp: Date.now()
+      timestamp: now
     });
 
     // Close any open Browser instance when receiving deep-link callback
