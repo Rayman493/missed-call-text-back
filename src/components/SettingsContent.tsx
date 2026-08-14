@@ -179,7 +179,7 @@ export default function SettingsContent() {
       }
     } catch (error) {
       console.error('[SettingsContent] Error acknowledging awareness:', error)
-      showToast('Failed to set up Tap to Pay', 'error')
+      showToast('Couldn\'t set up Tap to Pay', 'error')
     }
   }
 
@@ -214,7 +214,7 @@ export default function SettingsContent() {
       showToast('Tap to Pay guide completed', 'success')
     } catch (error) {
       console.error('[SettingsContent] Error completing education:', error)
-      showToast('Failed to complete education', 'error')
+      showToast('Couldn\'t complete Tap to Pay guide', 'error')
     }
   }
 
@@ -237,7 +237,7 @@ export default function SettingsContent() {
       }
     } catch (error) {
       console.error('[SettingsContent] Failed to present native education:', error)
-      showToast('Failed to open Tap to Pay guide', 'error')
+      showToast('Couldn\'t open Tap to Pay guide', 'error')
     }
   }
 
@@ -251,7 +251,7 @@ export default function SettingsContent() {
 
     // Verify Stripe Connect setup is configured
     if (!business?.stripe_charges_enabled) {
-      showToast('Complete payment setup before enabling Tap to Pay', 'error')
+      showToast('Complete payment setup to enable Tap to Pay', 'error')
       return
     }
 
@@ -314,7 +314,7 @@ export default function SettingsContent() {
       } else {
         // Terms not accepted
         setAppleAccountLinkageState({ status: 'not_linked', isLoading: false })
-        showToast('Tap to Pay requires Apple Terms acceptance', 'error')
+        showToast('Tap to Pay requires accepting Apple Terms', 'error')
       }
 
       // Step 5: Disconnect reader (linkage persists independently)
@@ -472,7 +472,7 @@ export default function SettingsContent() {
         await updateSendingSource('replyflow')
         showToast('Messaging switched to ReplyFlow Number.', 'success')
       } catch (err) {
-        showToast('Failed to switch sending number. Please try again.', 'error')
+        showToast('Couldn\'t switch sending number. Please try again.', 'error')
       }
     }
   }
@@ -486,7 +486,7 @@ export default function SettingsContent() {
       await new Promise(resolve => setTimeout(resolve, 100))
       showToast('Business Number enabled. Messages will open in your phone\'s messaging app.', 'success')
     } catch (err) {
-      showToast('Failed to switch sending number. Please try again.', 'error')
+      showToast('Couldn\'t switch sending number. Please try again.', 'error')
     }
   }
 
@@ -865,7 +865,7 @@ export default function SettingsContent() {
       console.error('[Settings] Error fetching ignored contacts:', error)
       // Only show toast for non-authentication errors
       if (error instanceof Error && !error.message.includes('Not authenticated') && !error.message.includes('Unauthorized')) {
-        showToast('Failed to fetch personal contacts', 'error')
+        showToast('Couldn\'t load personal contacts', 'error')
       }
     } finally {
       setIsLoadingIgnored(false)
@@ -898,7 +898,7 @@ export default function SettingsContent() {
       showToast('Contact removed', 'success')
     } catch (error) {
       console.error('Error removing personal contact:', error)
-      showToast('Could not remove contact. Please try again.', 'error')
+      showToast('Couldn\'t remove contact. Please try again.', 'error')
     }
   }
 
@@ -948,7 +948,7 @@ export default function SettingsContent() {
       showToast('Contact added', 'success')
     } catch (error) {
       console.error('Error adding personal contact:', error)
-      showToast(error instanceof Error ? error.message : 'Could not add contact. Please try again.', 'error')
+      showToast(error instanceof Error ? error.message : 'Couldn\'t add contact. Please try again.', 'error')
     } finally {
       setIsAdding(false)
     }
@@ -1127,7 +1127,7 @@ export default function SettingsContent() {
       window.location.href = data.authUrl
     } catch (error) {
       console.error('Error connecting calendar:', error)
-      showToast('Failed to connect calendar', 'error')
+      showToast('Couldn\'t connect calendar', 'error')
     } finally {
       setIsConnectingCalendar(false)
     }
@@ -1147,7 +1147,7 @@ export default function SettingsContent() {
       window.location.href = '/dashboard/settings?calendar=disconnected'
     } catch (error) {
       console.error('Error disconnecting calendar:', error)
-      showToast('Failed to disconnect calendar', 'error')
+      showToast('Couldn\'t disconnect calendar', 'error')
     } finally {
       setIsDisconnectingCalendar(false)
     }
@@ -1222,7 +1222,7 @@ export default function SettingsContent() {
         }
       } catch (error) {
         console.error('[Settings] Error opening Stripe management:', error)
-        showToast('Failed to open Stripe management. Please try again.', 'error')
+        showToast('Couldn\'t open Stripe management. Please try again.', 'error')
       }
       return
     }

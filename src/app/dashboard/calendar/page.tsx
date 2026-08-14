@@ -343,7 +343,7 @@ export default function SchedulePage() {
         window.history.replaceState({}, '', '/dashboard/calendar')
       } else if (calendarStatus === 'error' || status === 'error') {
         // Genuine OAuth/server error
-        showToast('Failed to connect Google Calendar. Please try again.', 'error')
+        showToast('Couldn\'t connect Google Calendar. Please try again.', 'error')
         window.history.replaceState({}, '', '/dashboard/calendar')
       }
 
@@ -504,7 +504,7 @@ export default function SchedulePage() {
       }, 2000)
     } catch (error) {
       console.error('Failed to connect calendar:', error)
-      showToast('Failed to connect calendar', 'error')
+      showToast('Couldn\'t connect calendar', 'error')
       setIsConnecting(false)
     }
   }
@@ -541,7 +541,7 @@ export default function SchedulePage() {
       // Refresh connection status to ensure consistency
       await fetchCalendarStatus()
     } catch (error) {
-      showToast('Failed to disconnect calendar', 'error')
+      showToast('Couldn\'t disconnect calendar', 'error')
     } finally {
       setIsDisconnecting(false)
     }
@@ -786,7 +786,7 @@ export default function SchedulePage() {
       }
     } catch (error) {
       console.error('[GOOGLE CALENDAR SYNC ERROR] Sync failed:', error)
-      showToast('Failed to sync calendar. Please try again.', 'error')
+      showToast('Couldn\'t sync calendar. Please try again.', 'error')
     } finally {
       setIsSyncing(false)
     }
@@ -925,7 +925,7 @@ export default function SchedulePage() {
   const handleNewAppointment = () => {
     // Check if Google Calendar is connected before allowing standalone appointments
     if (!calendarConnected) {
-      showToast('Google Calendar must be connected to create standalone appointments', 'error')
+      showToast('Connect Google Calendar to create standalone appointments', 'error')
       return
     }
     // Open standalone appointment modal
