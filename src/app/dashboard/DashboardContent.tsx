@@ -1137,14 +1137,14 @@ export default function DashboardContent() {
                   <>
                     {/* Daily Brief - Intelligence surface */}
                     <SectionErrorBoundary sectionName="DailyBrief">
-                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-90' : ''}`}>
                         <DailyBrief business={business} />
                       </div>
                     </SectionErrorBoundary>
 
                     {/* Revenue Opportunities - Where money is waiting */}
                     <SectionErrorBoundary sectionName="RevenueOpportunities">
-                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-90' : ''}`}>
                         <RevenueOpportunities business={business} />
                       </div>
                     </SectionErrorBoundary>
@@ -1152,28 +1152,28 @@ export default function DashboardContent() {
                     {/* Draft Summaries - Ready to send */}
                     {/* TODO: DraftSummaries component missing - commented out */}
                     {/* <SectionErrorBoundary sectionName="DraftSummaries">
-                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-90' : ''}`}>
                         <DraftSummaries business={business} />
                       </div>
                     </SectionErrorBoundary> */}
 
                     {/* Customer Success - Relationship opportunities */}
                     <SectionErrorBoundary sectionName="CustomerSuccess">
-                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-90' : ''}`}>
                         <CustomerSuccess business={business} />
                       </div>
                     </SectionErrorBoundary>
 
                     {/* Recent Wins - Milestones */}
                     <SectionErrorBoundary sectionName="RecentWins">
-                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-90' : ''}`}>
                         <RecentWins business={business} />
                       </div>
                     </SectionErrorBoundary>
 
                     {/* Metrics Strip - How am I doing */}
                     <SectionErrorBoundary sectionName="DashboardMetrics">
-                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-90' : ''}`}>
                         <DashboardMetrics business={business} />
                       </div>
                     </SectionErrorBoundary>
@@ -1181,7 +1181,7 @@ export default function DashboardContent() {
                     {/* What's Happening Section */}
                     <div className="space-y-4">
                       <SectionErrorBoundary sectionName="RecentLeadsSection">
-                        <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                        <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-90' : ''}`}>
                           {business?.id && (
                             <RecentLeadsSection
                               businessId={business.id}
@@ -1195,7 +1195,7 @@ export default function DashboardContent() {
                       </SectionErrorBoundary>
 
                       <SectionErrorBoundary sectionName="RecentActivityCard">
-                        <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                        <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-90' : ''}`}>
                           <RecentActivityCard business={business} />
                         </div>
                       </SectionErrorBoundary>
@@ -1205,28 +1205,28 @@ export default function DashboardContent() {
                     <div className="space-y-4">
                       <SectionErrorBoundary sectionName="AnalyticsGrid">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200`}>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-90' : ''} transition-opacity duration-200`}>
                             <RevenueGraph />
                           </div>
-                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200`}>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-90' : ''} transition-opacity duration-200`}>
                             <BusinessActivityGraph />
                           </div>
-                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200`}>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-90' : ''} transition-opacity duration-200`}>
                             <CustomerPipelineGraph />
                           </div>
-                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200`}>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-90' : ''} transition-opacity duration-200`}>
                             <NewCustomersGraph />
                           </div>
-                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200`}>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-90' : ''} transition-opacity duration-200`}>
                             <PaymentCollectionGraph />
                           </div>
-                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200`}>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-90' : ''} transition-opacity duration-200`}>
                             <JobsStatusGraph />
                           </div>
-                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200 col-span-1 sm:col-span-1`}>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-90' : ''} transition-opacity duration-200 col-span-1 sm:col-span-1`}>
                             <LeadConversionGraph />
                           </div>
-                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200 col-span-1 sm:col-span-1`}>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-90' : ''} transition-opacity duration-200 col-span-1 sm:col-span-1`}>
                             <LeadsSourceGraph />
                           </div>
                         </div>

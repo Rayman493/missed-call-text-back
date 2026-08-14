@@ -725,7 +725,7 @@ export default function PaymentsPage() {
 
               <div className="rounded-xl p-3.5 sm:p-4 border border-slate-700/70 bg-[#1e293b] shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
                 <div className="flex items-start justify-between mb-1.5">
-                  <span className="text-gray-400 text-xs font-medium">Collection Rate</span>
+                  <span className="text-gray-400 text-xs font-medium">Payment Success Rate</span>
                   <div className="h-8 w-8 rounded-lg bg-slate-800/60 ring-1 ring-inset ring-slate-600/40 flex items-center justify-center">
                     <CreditCard className="h-4 w-4 text-purple-400" />
                   </div>
@@ -758,7 +758,7 @@ export default function PaymentsPage() {
                   <EmptyState
                     icon={<CreditCard className="w-6 h-6" strokeWidth={1.5} />}
                     title="No payment requests yet"
-                    description="Payment requests you send will appear here"
+                    description="Send payment requests to customers to collect payments via text"
                     primaryAction={
                       <Button onClick={handleStartPaymentRequest} size="sm">
                         <CreditCard className="h-4 w-4" />
@@ -1044,7 +1044,7 @@ export default function PaymentsPage() {
                           <EmptyState
                             icon={<CreditCard className="w-6 h-6" strokeWidth={1.5} />}
                             title="No payment requests yet"
-                            description="Send your first payment request to start tracking customer payments"
+                            description="Send payment requests to customers to collect payments via text"
                             primaryAction={
                               <Button onClick={() => setShowPaymentModal(true)} size="sm">
                                 <CreditCard className="h-4 w-4" />

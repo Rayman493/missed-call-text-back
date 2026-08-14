@@ -1475,7 +1475,7 @@ export default function LeadsPage() {
                   quickFilter === 'active' ? 'No conversations are currently in progress.' :
                   quickFilter === 'completed' ? 'Completed customers will appear here when jobs are finished.' :
                   quickFilter === 'ignored' ? 'No customers are currently blocked from automation.' :
-                  'Missed callers and conversations will automatically appear here when your business number is active.'
+                  'Customers from missed calls, messages, and manual entries will appear here.'
                 }
                 primaryAction={quickFilter === 'all' ? (
                   <button
