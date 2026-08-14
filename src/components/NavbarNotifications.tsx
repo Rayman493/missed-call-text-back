@@ -478,14 +478,14 @@ export default function NavbarNotifications() {
       <button
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative h-10 w-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+        className="relative h-10 w-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
         aria-label="Notifications"
       >
         <Bell className="w-5 h-5" />
-        
+
         {/* Unread Badge - Only show when displayedUnreadCount > 0 */}
         {displayedUnreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 h-5 min-w-[1.25rem] px-1 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full">
+          <span className="absolute -top-0.5 -right-0.5 h-5 min-w-[1.25rem] px-1 flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600 text-white text-[10px] font-bold rounded-full shadow-lg shadow-blue-500/30 ring-2 ring-slate-900">
             {displayedUnreadCount > 99 ? '99+' : displayedUnreadCount}
           </span>
         )}
@@ -496,7 +496,7 @@ export default function NavbarNotifications() {
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed z-50 w-[min(400px,calc(100vw-2rem))] sm:w-96 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden"
+            className="fixed z-50 w-[min(400px,calc(100vw-2rem))] sm:w-96 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl ring-1 ring-white/5 overflow-hidden"
             style={{
               top: `${buttonPosition?.top || 0}px`,
               right: `${buttonPosition?.right || 0}px`,
@@ -504,23 +504,31 @@ export default function NavbarNotifications() {
             }}
           >
             {/* Header */}
-            <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-white">Notifications</h3>
+            <div className="px-4 py-3.5 border-b border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-transparent">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="relative">
+                    <Bell className="w-4 h-4 text-slate-300" />
+                    {displayedUnreadCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                    )}
+                  </div>
+                  <h3 className="text-sm font-semibold text-white tracking-tight">Notification Center</h3>
+                  {displayedUnreadCount > 0 && (
+                    <span className="px-2 py-0.5 bg-blue-500/15 text-blue-400 text-[11px] font-semibold tracking-wide rounded-full border border-blue-500/20">
+                      {displayedUnreadCount}
+                    </span>
+                  )}
+                </div>
                 {displayedUnreadCount > 0 && (
-                  <span className="px-2 py-0.5 bg-blue-600/20 text-blue-400 text-xs font-medium rounded-full">
-                    {displayedUnreadCount} unread
-                  </span>
+                  <button
+                    onClick={handleMarkAllAsRead}
+                    className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all duration-200"
+                  >
+                    Mark all read
+                  </button>
                 )}
               </div>
-              {displayedUnreadCount > 0 && (
-                <button
-                  onClick={handleMarkAllAsRead}
-                  className="px-2.5 py-1.5 sm:px-2.5 sm:py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                >
-                  Mark all as read
-                </button>
-              )}
             </div>
 
             {/* Notifications List - Phase 4: Restore grouping with audit logging */}
@@ -535,11 +543,11 @@ export default function NavbarNotifications() {
                     if (groupNotifications.length === 0) return null
                     
                     return (
-                      <div key={groupName} className="mb-2 sm:mb-3 last:mb-0">
-                        <div className="px-3 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                      <div key={groupName} className="mb-3 last:mb-0">
+                        <div className="px-3 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                           {groupName}
                         </div>
-                        <div className="divide-y divide-slate-700/30">
+                        <div className="space-y-1">
                           {groupNotifications.map((notification, index) => {
                             const displayName = getDisplayName(notification)
                             const displayMessage = getDisplayMessage(notification)
@@ -554,42 +562,42 @@ export default function NavbarNotifications() {
                                 onMouseDown={handleMouseDown}
                                 onMouseMove={handleMouseMove}
                                 onMouseUp={() => handleMouseUp(notification)}
-                                className={`flex items-start gap-3 py-1 sm:py-2 px-4 hover:bg-slate-800/20 transition-colors duration-150 cursor-pointer ${isLast ? '' : 'border-b border-slate-700/30'}`}
+                                className={`flex items-start gap-3 py-3 px-3 sm:px-4 rounded-xl transition-all duration-200 cursor-pointer group relative ${!notification.read ? 'bg-blue-500/5 hover:bg-blue-500/10' : 'hover:bg-slate-800/30'} ${isLast ? '' : 'mb-1'}`}
                               >
                                 {/* Icon */}
-                                <div className={`flex-shrink-0 w-9 h-9 rounded-lg ${getNotificationColor(notification.type)} flex items-center justify-center`}>
+                                <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${getNotificationColor(notification.type)} flex items-center justify-center ring-1 ring-white/5 group-hover:ring-white/10 transition-all`}>
                                   {getNotificationIcon(notification.type)}
                                 </div>
-                                
+
                                 {/* Content */}
-                                <div className="flex-1 min-w-0">
+                                <div className="flex-1 min-w-0 pt-0.5">
                                   {/* Title */}
-                                  <p className="text-sm font-semibold text-slate-100 mb-0">
+                                  <p className="text-sm font-semibold text-white mb-1 leading-tight tracking-tight">
                                     {notification.title || 'Notification'}
                                   </p>
 
-                                  {/* Customer name or phone number (masked for SMS failures) - merged with timestamp */}
-                                  <div className="flex items-center gap-2 mb-0.5">
-                                    {displayName && (
-                                      <p className="text-xs sm:text-sm font-medium text-slate-300">
-                                        {displayName}
-                                      </p>
-                                    )}
-                                    <p className="text-[10px] sm:text-xs text-slate-500">
-                                      {formatNotificationTime(notification.created_at)}
+                                  {/* Customer name or phone number (masked for SMS failures) */}
+                                  {displayName && (
+                                    <p className="text-xs font-medium text-slate-300 mb-1">
+                                      {displayName}
                                     </p>
-                                  </div>
+                                  )}
 
                                   {/* Message preview - canonical title for AI intake */}
-                                  <p className="text-xs sm:text-sm text-slate-400 truncate">
+                                  <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
                                     {displayMessage}
                                   </p>
+
+                                  {/* Timestamp */}
+                                  <p className="text-[10px] text-slate-500 mt-1.5 font-medium tracking-wide uppercase">
+                                    {formatNotificationTime(notification.created_at)}
+                                  </p>
                                 </div>
-                                
-                                {/* Unread indicator dot */}
+
+                                {/* Unread indicator */}
                                 {!notification.read && (
-                                  <div className="flex-shrink-0 mt-0.5">
-                                    <div className={`w-2.5 h-2.5 rounded-full ${getNotificationDotColor(notification.type)}`}></div>
+                                  <div className="flex-shrink-0 mt-1">
+                                    <div className={`w-2 h-2 rounded-full ${getNotificationDotColor(notification.type)} ring-2 ring-slate-900`}></div>
                                   </div>
                                 )}
                               </div>
@@ -601,43 +609,46 @@ export default function NavbarNotifications() {
                   })
                 })()
               ) : loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-700 border-t-blue-500"></div>
                 </div>
               ) : error ? (
                 <div className="text-center py-12 px-4">
-                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <AlertTriangle className="w-8 h-8 text-slate-400" />
+                  <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-3 ring-1 ring-red-500/20">
+                    <AlertTriangle className="w-7 h-7 text-red-400" />
                   </div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Failed to load notifications</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Please try again</p>
+                  <p className="text-sm font-semibold text-white mb-1">Failed to load notifications</p>
+                  <p className="text-xs text-slate-400 mb-4">Please try again</p>
                   <button
                     onClick={refreshNotifications}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-all duration-200"
                   >
                     Retry
                   </button>
                 </div>
               ) : (
                 <div className="text-center py-12 px-4">
-                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Bell className="w-8 h-8 text-slate-400" />
+                  <div className="w-14 h-14 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-3 ring-1 ring-slate-700">
+                    <Bell className="w-7 h-7 text-slate-400" />
                   </div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">You're all caught up</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Notifications will appear here as your business becomes active.</p>
+                  <p className="text-sm font-semibold text-white mb-1">You're all caught up</p>
+                  <p className="text-xs text-slate-400">Notifications will appear here as your business becomes active.</p>
                 </div>
               )}
             </div>
 
             {/* Footer */}
             {notifications.length > 0 && (
-              <div className="px-4 py-2 border-t border-slate-700">
+              <div className="px-4 py-3 border-t border-slate-700/50 bg-gradient-to-t from-slate-800/30 to-transparent">
                 <Link
                   href="/dashboard/notifications"
                   onClick={() => setIsOpen(false)}
-                  className="block w-full text-center text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                  className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-semibold text-slate-300 hover:text-white bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-all duration-200 border border-slate-700/50 hover:border-slate-600/50"
                 >
-                  View all notifications
+                  <span>View all notifications</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </Link>
               </div>
             )}
