@@ -270,9 +270,9 @@ export function getAIIntakeStatus(lead: any, serviceLocationType?: 'onsite' | 'c
 export function getAIIntakeStatusLabel(status: AIIntakeStatus): string {
   switch (status) {
     case 'complete':
-      return 'Complete'
+      return 'Intake Complete'
     case 'partial':
-      return 'Partial'
+      return 'Partial Intake'
     case 'failed':
       return 'Failed'
     case 'not_started':

@@ -4,6 +4,8 @@ import {
   normalizeBusinessNameForSms,
   normalizeCustomerNameForSms,
   polishTimingWrapper,
+  normalizeCallbackTime,
+  normalizeAddressForStorage,
   generateCanonicalRequestTitle
 } from '../ai-intake-formatter'
 
@@ -58,7 +60,7 @@ describe('normalizeCustomerNameForSms', () => {
 describe('polishTimingWrapper', () => {
   it('removes conversational wrappers', () => {
     expect(polishTimingWrapper('Sometime in the next month, if that\'s possible')).toBe('Next month');
-    expect(polishTimingWrapper('Sometime in the afternoon')).toBe('Afternoon');
+    expect(polishTimingWrapper('Sometime in the afternoon')).toBe('Sometime in the afternoon');
     expect(polishTimingWrapper('As soon as you guys can get here')).toBe('As soon as possible');
     expect(polishTimingWrapper('As soon as you can')).toBe('As soon as possible');
     expect(polishTimingWrapper('Whenever you can')).toBe('Whenever');
@@ -525,5 +527,223 @@ describe('generateCanonicalRequestTitle - Demonstrated case', () => {
     expect(generateCanonicalRequestTitle('')).toBe('General Service');
     expect(generateCanonicalRequestTitle(null)).toBe('General Service');
     expect(generateCanonicalRequestTitle(undefined)).toBe('General Service');
+  })
+})
+
+describe('polishTimingWrapper - Completion timing', () => {
+  it('removes I\'d like it completed prefix', () => {
+    expect(polishTimingWrapper('I\'d like it completed within the next month')).toBe('Within the next month');
+  })
+
+  it('removes I would like it completed prefix', () => {
+    expect(polishTimingWrapper('I would like it completed within the next month')).toBe('Within the next month');
+  })
+
+  it('removes I\'d like it done prefix', () => {
+    expect(polishTimingWrapper('I\'d like it done within the next month')).toBe('Within the next month');
+  })
+
+  it('removes I would like it done prefix', () => {
+    expect(polishTimingWrapper('I would like it done within the next month')).toBe('Within the next month');
+  })
+
+  it('removes I\'d like to have it finished prefix', () => {
+    expect(polishTimingWrapper('I\'d like to have it finished by Friday')).toBe('By friday');
+  })
+
+  it('removes I would like to have it finished prefix', () => {
+    expect(polishTimingWrapper('I would like to have it finished by Friday')).toBe('By friday');
+  })
+
+  it('converts There\'s no rush to No rush', () => {
+    expect(polishTimingWrapper('There\'s no rush')).toBe('No rush');
+  })
+
+  it('preserves explicit dates', () => {
+    expect(polishTimingWrapper('I need it done on January 15th')).toBe('On january 15th');
+  })
+
+  it('preserves meaningful ranges', () => {
+    expect(polishTimingWrapper('Between 9 AM and 5 PM')).toBe('Between 9 am and 5 pm');
+  })
+
+  it('preserves before, after, by, and within', () => {
+    expect(polishTimingWrapper('Before the end of the week')).toBe('Before the end of the week');
+    expect(polishTimingWrapper('After the permit is approved')).toBe('After the permit is approved');
+    expect(polishTimingWrapper('By next Friday')).toBe('By next friday');
+    expect(polishTimingWrapper('Within the next month')).toBe('Within the next month');
+  })
+
+  it('preserves conditions', () => {
+    expect(polishTimingWrapper('Once materials are available')).toBe('Once materials are available');
+  })
+
+  it('preserves vague timing when caller was vague', () => {
+    expect(polishTimingWrapper('Whenever works')).toBe('Whenever works');
+  })
+
+  it('does not fabricate appointments or deadlines', () => {
+    expect(polishTimingWrapper('I need it done soon')).not.toContain('specific date');
+    expect(polishTimingWrapper('As soon as possible')).not.toContain('tomorrow');
+  })
+})
+
+describe('normalizeCallbackTime - Callback timing', () => {
+  it('removes are best for calling me suffix', () => {
+    expect(normalizeCallbackTime('Afternoons are best for calling me')).toBe('Afternoons');
+  })
+
+  it('removes is best for calling me suffix', () => {
+    expect(normalizeCallbackTime('Afternoons is best for calling me')).toBe('Afternoons');
+  })
+
+  it('removes are best suffix', () => {
+    expect(normalizeCallbackTime('Afternoons are best')).toBe('Afternoons');
+  })
+
+  it('removes is best suffix', () => {
+    expect(normalizeCallbackTime('Afternoons is best')).toBe('Afternoons');
+  })
+
+  it('removes work best suffix', () => {
+    expect(normalizeCallbackTime('Mornings work best')).toBe('Mornings');
+  })
+
+  it('removes works best suffix', () => {
+    expect(normalizeCallbackTime('Mornings works best')).toBe('Mornings');
+  })
+
+  it('removes you can call me prefix', () => {
+    expect(normalizeCallbackTime('You can call me in the evening')).toBe('In the evening');
+  })
+
+  it('removes call me prefix', () => {
+    expect(normalizeCallbackTime('Call me after 3 PM')).toBe('After 3 pm');
+  })
+
+  it('preserves meaningful qualifiers', () => {
+    expect(normalizeCallbackTime('Afternoons except Tuesdays')).toBe('Afternoons except tuesdays');
+    expect(normalizeCallbackTime('After 3 PM, but not after 6 PM')).toBe('After 3 pm, but not after 6 pm');
+  })
+
+  it('preserves specific times', () => {
+    expect(normalizeCallbackTime('Between 1 and 3 PM')).toBe('Between 1 and 3 pm');
+  })
+
+  it('preserves anytime', () => {
+    expect(normalizeCallbackTime('Anytime is fine')).toBe('Anytime');
+  })
+
+  it('does not invent AM/PM when uncertain', () => {
+    expect(normalizeCallbackTime('Sometime in the afternoon')).toBe('Afternoon');
+    expect(normalizeCallbackTime('Call me at 3')).not.toContain('AM');
+    expect(normalizeCallbackTime('Call me at 3')).not.toContain('PM');
+  })
+
+  it('returns trimmed original when normalization is unsafe', () => {
+    expect(normalizeCallbackTime('Whenever you can, but not too early')).toBe('Whenever you can, but not too early');
+  })
+})
+
+describe('formatAdaptiveIntakeSms - Live demonstrated intake', () => {
+  it('produces exact required SMS for demonstrated live intake', () => {
+    const intakeData = {
+      customerName: 'Ryan',
+      reasonForCalling: 'I was looking to get some new pipes installed in my new house. It\'s getting built right now, and I\'m trying to get the the piping all set up. And I was recommended to you guys by a friend. So I\'d like you guys to come do it for my house',
+      addressOrLocation: '1632 South Pine Drive',
+      desiredCompletionTime: 'I\'d like it completed within the next month',
+      preferredCallbackTime: 'Afternoons are best for calling me'
+    };
+
+    const result = formatAdaptiveIntakeSms(
+      intakeData,
+      '+15551234567',
+      'Production',
+      '',
+      'onsite'
+    );
+
+    // Check exact required output
+    expect(result).toContain('Hi Ryan! Thanks for reaching out to Production.');
+    expect(result).toContain('• Service: New-Construction Plumbing Installation');
+    expect(result).toContain('• Address: 1632 South Pine Drive');
+    expect(result).toContain('• Preferred timing: Within the next month');
+    expect(result).toContain('• Best callback time: Afternoons');
+    expect(result).toContain('We\'ve shared this with the team, and they\'ll follow up soon. Reply here if anything changes.');
+
+    // Verify conversational values are NOT in the SMS
+    expect(result).not.toContain('I\'d like it completed');
+    expect(result).not.toContain('are best for calling me');
+
+    // Verify spacing is correct (exactly one blank line between fields)
+    expect(result).toMatch(/Service:.*\n\n• Address:/s);
+    expect(result).toMatch(/Address:.*\n\n• Preferred timing:/s);
+    expect(result).toMatch(/Preferred timing:.*\n\n• Best callback time:/s);
+  })
+})
+
+describe('normalizeAddressForStorage - Address punctuation', () => {
+  it('removes trailing period', () => {
+    expect(normalizeAddressForStorage('1532 Southpine Drive.')).toBe('1532 Southpine Drive');
+  })
+
+  it('removes trailing comma', () => {
+    expect(normalizeAddressForStorage('1532 Southpine Drive,')).toBe('1532 Southpine Drive');
+  })
+
+  it('removes trailing semicolon', () => {
+    expect(normalizeAddressForStorage('1532 Southpine Drive;')).toBe('1532 Southpine Drive');
+  })
+
+  it('removes trailing colon', () => {
+    expect(normalizeAddressForStorage('1532 Southpine Drive:')).toBe('1532 Southpine Drive');
+  })
+
+  it('removes trailing exclamation mark', () => {
+    expect(normalizeAddressForStorage('1532 Southpine Drive!')).toBe('1532 Southpine Drive');
+  })
+
+  it('removes trailing question mark', () => {
+    expect(normalizeAddressForStorage('1532 Southpine Drive?')).toBe('1532 Southpine Drive');
+  })
+
+  it('preserves internal periods', () => {
+    expect(normalizeAddressForStorage('123 W. Main St.')).toBe('123 W. Main St');
+  })
+
+  it('preserves internal commas', () => {
+    expect(normalizeAddressForStorage('Apt. 4B, 123 Main St.')).toBe('Apt. 4B, 123 Main St');
+  })
+
+  it('preserves hyphens', () => {
+    expect(normalizeAddressForStorage('12-14 North Avenue.')).toBe('12-14 North Avenue');
+  })
+
+  it('preserves apartment details', () => {
+    expect(normalizeAddressForStorage('42 W. Main St., Apt. 3B.')).toBe('42 W. Main St., Apt. 3B');
+  })
+
+  it('preserves suite details', () => {
+    expect(normalizeAddressForStorage('100 Route 51, Suite 200.')).toBe('100 Route 51, Suite 200');
+  })
+
+  it('handles addresses without trailing punctuation', () => {
+    expect(normalizeAddressForStorage('123 W. Main St., Apt. 4B')).toBe('123 W. Main St., Apt. 4B');
+  })
+
+  it('handles null', () => {
+    expect(normalizeAddressForStorage(null)).toBe('');
+  })
+
+  it('handles undefined', () => {
+    expect(normalizeAddressForStorage(undefined)).toBe('');
+  })
+
+  it('handles empty string', () => {
+    expect(normalizeAddressForStorage('')).toBe('');
+  })
+
+  it('trims whitespace', () => {
+    expect(normalizeAddressForStorage('  1532 Southpine Drive.  ')).toBe('1532 Southpine Drive');
   })
 })

@@ -615,6 +615,51 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
  * - null → ""
  * - "" → ""
  */
+// ----------------------------
+// Address normalization (storage)
+// ----------------------------
+
+/**
+ * Normalize address for storage by removing trailing sentence-ending punctuation
+ * Preserves internal punctuation (periods in abbreviations, commas in addresses)
+ *
+ * Examples:
+ * - "1632 Southpine Drive." → "1632 Southpine Drive"
+ * - "123 W. Main St." → "123 W. Main St" (removes trailing but keeps internal)
+ * - "45 St. James Ave." → "45 St. James Ave"
+ * - "Apt. 4B, 123 Main St." → "Apt. 4B, 123 Main St"
+ * - "123 W. Main St., Apt. 4B" → unchanged (no trailing punctuation)
+ * - "100 Route 51, Suite 200;" → "100 Route 51, Suite 200"
+ * - null → ""
+ * - "" → ""
+ */
+export const normalizeAddressForStorage = (text: string | null | undefined): string => {
+  if (!text) return '';
+  const trimmed = text.trim();
+  if (trimmed === '') return '';
+  // Remove trailing sentence-ending punctuation: . , ; : ! ?
+  return trimmed.replace(/[.,;:!?]+$/, '');
+};
+
+// ----------------------------
+// Address normalization (display)
+// ----------------------------
+
+/**
+ * Normalize address for display by removing trailing periods only
+ * that was added during AI extraction. Internal periods (e.g., "W. Main St.")
+ * are preserved.
+ *
+ * Examples:
+ * - "1632 Southpine Drive." → "1632 Southpine Drive"
+ * - "1632 Southpine Drive..." → "1632 Southpine Drive"
+ * - "123 W. Main St." → "123 W. Main St" (removes trailing but keeps internal)
+ * - "45 St. James Ave." → "45 St. James Ave"
+ * - "Apt. 4B, 123 Main St." → "Apt. 4B, 123 Main St"
+ * - "123 W. Main St., Apt. 4B" → unchanged (no trailing period)
+ * - null → ""
+ * - "" → ""
+ */
 export const normalizeAddressForDisplay = (text: string | null | undefined): string => {
   if (!text) return '';
   const trimmed = text.trim();
@@ -977,14 +1022,23 @@ export const polishTimingWrapper = (timing: string | null | undefined): string =
 
   // Remove common conversational wrappers while preserving the core timing
   const wrapperPatterns = [
-    { pattern: /^sometime in the /i, replacement: '' },
-    { pattern: /^sometime in /i, replacement: '' },
+    { pattern: /^sometime in the (next|following)/i, replacement: '$1' },
+    { pattern: /^sometime in (next|following)/i, replacement: '$1' },
+    { pattern: /^sometime (next|following)/i, replacement: '$1' },
     { pattern: /, if that'?s possible$/i, replacement: '' },
-    { pattern: /^sometime /i, replacement: '' },
     { pattern: /, if possible$/i, replacement: '' },
     { pattern: /^as soon as you (?:guys )?can get here$/i, replacement: 'As soon as possible' },
     { pattern: /^as soon as (?:you )?can$/i, replacement: 'As soon as possible' },
     { pattern: /^whenever (?:you )?can$/i, replacement: 'Whenever' },
+    // Completion-time specific patterns
+    { pattern: /^i'?d like it completed /i, replacement: '' },
+    { pattern: /^i would like it completed /i, replacement: '' },
+    { pattern: /^i'?d like it done /i, replacement: '' },
+    { pattern: /^i would like it done /i, replacement: '' },
+    { pattern: /^i'?d like to have it finished /i, replacement: '' },
+    { pattern: /^i would like to have it finished /i, replacement: '' },
+    { pattern: /^i need it done /i, replacement: '' },
+    { pattern: /^there'?s no rush$/i, replacement: 'No rush' },
   ];
 
   for (const { pattern, replacement } of wrapperPatterns) {
@@ -994,8 +1048,40 @@ export const polishTimingWrapper = (timing: string | null | undefined): string =
   // Trim trailing comma, period, or space
   normalized = normalized.replace(/[.,\s]+$/, '').trim();
 
-  // Remove leading "the " if present (after wrapper removal)
-  normalized = normalized.replace(/^the /i, '');
+  // Sentence capitalize
+  normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
+
+  return normalized || 'Not collected';
+};
+
+// Normalize callback timing specifically
+// Removes conversational wrappers while preserving meaningful qualifiers
+export const normalizeCallbackTime = (callbackTime: string | null | undefined): string => {
+  if (!callbackTime || callbackTime.trim() === '') return 'Not collected';
+
+  let normalized = callbackTime.trim();
+
+  // Remove callback-specific conversational wrappers
+  const callbackPatterns = [
+    { pattern: / are best for calling me$/i, replacement: '' },
+    { pattern: / is best for calling me$/i, replacement: '' },
+    { pattern: / are best$/i, replacement: '' },
+    { pattern: / is best$/i, replacement: '' },
+    { pattern: / work best$/i, replacement: '' },
+    { pattern: / works best$/i, replacement: '' },
+    { pattern: /^you can call me /i, replacement: '' },
+    { pattern: /^call me /i, replacement: '' },
+    { pattern: /^sometime in the (morning|afternoon|evening)$/i, replacement: '$1' },
+    { pattern: /^sometime in (morning|afternoon|evening)$/i, replacement: '$1' },
+    { pattern: / is fine$/i, replacement: '' },
+  ];
+
+  for (const { pattern, replacement } of callbackPatterns) {
+    normalized = normalized.replace(pattern, replacement);
+  }
+
+  // Trim trailing comma, period, or space
+  normalized = normalized.replace(/[.,\s]+$/, '').trim();
 
   // Sentence capitalize
   normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
@@ -1130,7 +1216,7 @@ export const formatAdaptiveIntakeSms = (
   const desiredCompletionTime = polishTimingWrapper(
     intakeData?.desiredCompletionTime
   );
-  const callbackTime = polishTimingWrapper(
+  const callbackTime = normalizeCallbackTime(
     intakeData?.callbackTime ?? intakeData?.preferredCallbackTime
   );
   const serviceRequestedRaw = normalizeServiceReason(

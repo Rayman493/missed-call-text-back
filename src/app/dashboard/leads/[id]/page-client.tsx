@@ -826,9 +826,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         // Determine message based on actual outcome
         let intakeMessage = ''
         if (intakeStatus === 'complete') {
-          intakeMessage = `Completed Request: ${serviceRequested}`
+          intakeMessage = `Intake Complete: ${serviceRequested}`
         } else if (intakeStatus === 'partial') {
-          intakeMessage = `Partial Request: ${serviceRequested}`
+          intakeMessage = `Partial Intake: ${serviceRequested}`
         } else if (outcome === 'early_hangup') {
           intakeMessage = `Caller Hung Up: ${serviceRequested}`
         } else if (outcome === 'no_speech') {

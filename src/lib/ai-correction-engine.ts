@@ -7,6 +7,7 @@
 
 import { normalizeExtractedInfo, canonicalizeExtractedInfo } from './ai-field-mapping'
 import { analyzeSemanticCorrection, SemanticCorrectionResult } from './ai-semantic-correction'
+import { normalizeAddressForStorage } from './ai-intake-formatter'
 
 export interface CorrectionDetectionResult {
   isCorrection: boolean
@@ -820,10 +821,15 @@ export function applyCorrection(
         mergedValue
       })
     } else {
-      (updated as any)[finalField] = newValue
+      // Normalize address values to remove trailing punctuation
+      const normalizedValue = (finalField === 'addressOrLocation')
+        ? normalizeAddressForStorage(newValue)
+        : newValue;
+      (updated as any)[finalField] = normalizedValue
       console.log('[CORRECTION FIELD UPDATED]', {
         finalField,
         newValue,
+        normalizedValue,
         updatedValue: (updated as any)[finalField]
       })
     }
