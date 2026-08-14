@@ -1,6 +1,6 @@
 /**
  * Regression tests for Tap to Pay diagnostics opt-in gate
- * 
+ *
  * These tests verify that diagnostics are only shown when explicitly enabled
  * by an engineer, never in production builds or without opt-in.
  */
@@ -47,28 +47,28 @@ describe('Tap to Pay Diagnostics Opt-In Gate', () => {
     it('should hide diagnostics in production web regardless of opt-in', async () => {
       // Simulate production web environment
       vi.stubEnv('NODE_ENV', 'production')
-      
+
       vi.mocked(Capacitor.isNativePlatform).mockReturnValue(false)
       vi.mocked(Preferences.get).mockResolvedValue({ value: 'true' })
 
       const enabled = await isDiagnosticsEnabled(false)
-      
+
       expect(enabled).toBe(false)
-      
+
       vi.unstubAllEnvs()
     })
 
     it('should hide diagnostics in production native release build regardless of opt-in', async () => {
       // Simulate production native release build
       vi.stubEnv('NODE_ENV', 'production')
-      
+
       vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true)
       vi.mocked(Preferences.get).mockResolvedValue({ value: 'true' })
 
       const enabled = await isDiagnosticsEnabled(false) // isNativeDebugBuild = false
-      
+
       expect(enabled).toBe(false)
-      
+
       vi.unstubAllEnvs()
     })
   })
@@ -77,28 +77,28 @@ describe('Tap to Pay Diagnostics Opt-In Gate', () => {
     it('should hide diagnostics in native debug build without opt-in', async () => {
       // Simulate production environment (not dev)
       vi.stubEnv('NODE_ENV', 'production')
-      
+
       vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true)
       vi.mocked(Preferences.get).mockResolvedValue({ value: null }) // No opt-in
 
       const enabled = await isDiagnosticsEnabled(true) // isNativeDebugBuild = true
-      
+
       expect(enabled).toBe(false)
-      
+
       vi.unstubAllEnvs()
     })
 
     it('should hide diagnostics in native debug build with opt-in disabled', async () => {
       // Simulate production environment (not dev)
       vi.stubEnv('NODE_ENV', 'production')
-      
+
       vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true)
       vi.mocked(Preferences.get).mockResolvedValue({ value: 'false' }) // Opt-in disabled
 
       const enabled = await isDiagnosticsEnabled(true) // isNativeDebugBuild = true
-      
+
       expect(enabled).toBe(false)
-      
+
       vi.unstubAllEnvs()
     })
   })
@@ -107,14 +107,14 @@ describe('Tap to Pay Diagnostics Opt-In Gate', () => {
     it('should show diagnostics in native debug build with opt-in enabled', async () => {
       // Simulate production environment (not dev)
       vi.stubEnv('NODE_ENV', 'production')
-      
+
       vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true)
       vi.mocked(Preferences.get).mockResolvedValue({ value: 'true' }) // Opt-in enabled
 
       const enabled = await isDiagnosticsEnabled(true) // isNativeDebugBuild = true
-      
+
       expect(enabled).toBe(true)
-      
+
       vi.unstubAllEnvs()
     })
   })
@@ -123,27 +123,27 @@ describe('Tap to Pay Diagnostics Opt-In Gate', () => {
     it('should hide diagnostics when native environment check fails', async () => {
       // Simulate production environment (not dev)
       vi.stubEnv('NODE_ENV', 'production')
-      
+
       vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true)
       vi.mocked(Preferences.get).mockRejectedValue(new Error('Preferences error'))
 
       const enabled = await isDiagnosticsEnabled(true) // isNativeDebugBuild = true
-      
+
       expect(enabled).toBe(false)
-      
+
       vi.unstubAllEnvs()
     })
 
     it('should hide diagnostics when Capacitor is not available', async () => {
       // Simulate production environment (not dev)
       vi.stubEnv('NODE_ENV', 'production')
-      
+
       vi.mocked(Capacitor.isNativePlatform).mockReturnValue(false) // Not native
 
       const enabled = await isDiagnosticsEnabled(true) // isNativeDebugBuild = true (but not native)
-      
+
       expect(enabled).toBe(false)
-      
+
       vi.unstubAllEnvs()
     })
   })
@@ -152,13 +152,13 @@ describe('Tap to Pay Diagnostics Opt-In Gate', () => {
     it('should allow web development to enable diagnostics', async () => {
       // Simulate development environment
       vi.stubEnv('NODE_ENV', 'development')
-      
+
       vi.mocked(Capacitor.isNativePlatform).mockReturnValue(false)
 
       const enabled = await isDiagnosticsEnabled(false)
-      
+
       expect(enabled).toBe(true)
-      
+
       vi.unstubAllEnvs()
     })
   })
@@ -168,7 +168,7 @@ describe('Tap to Pay Diagnostics Opt-In Gate', () => {
       vi.mocked(Preferences.set).mockResolvedValue()
 
       await enableDiagnostics()
-      
+
       expect(Preferences.set).toHaveBeenCalledWith({
         key: 'ttp_diagnostics_enabled',
         value: 'true'
@@ -179,7 +179,7 @@ describe('Tap to Pay Diagnostics Opt-In Gate', () => {
       vi.mocked(Preferences.remove).mockResolvedValue()
 
       await disableDiagnostics()
-      
+
       expect(Preferences.remove).toHaveBeenCalledWith({
         key: 'ttp_diagnostics_enabled'
       })
@@ -189,7 +189,7 @@ describe('Tap to Pay Diagnostics Opt-In Gate', () => {
       vi.mocked(Preferences.get).mockResolvedValue({ value: 'true' })
 
       const enabled = await isDiagnosticsOptInEnabled()
-      
+
       expect(enabled).toBe(true)
       expect(Preferences.get).toHaveBeenCalledWith({
         key: 'ttp_diagnostics_enabled'
@@ -200,7 +200,7 @@ describe('Tap to Pay Diagnostics Opt-In Gate', () => {
       vi.mocked(Preferences.get).mockResolvedValue({ value: null })
 
       const enabled = await isDiagnosticsOptInEnabled()
-      
+
       expect(enabled).toBe(false)
     })
 
@@ -208,7 +208,7 @@ describe('Tap to Pay Diagnostics Opt-In Gate', () => {
       vi.mocked(Preferences.get).mockResolvedValue({ value: 'false' })
 
       const enabled = await isDiagnosticsOptInEnabled()
-      
+
       expect(enabled).toBe(false)
     })
   })
