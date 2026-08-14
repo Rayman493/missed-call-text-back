@@ -135,20 +135,20 @@ export default function OnboardingSuccess() {
         <div className="flex flex-col gap-4">
           <button
             onClick={handleGoToDashboard}
-            className="w-full bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 transition-colors font-medium text-base"
+            className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium text-base"
           >
             Go to Dashboard
           </button>
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={handleTestSetup}
-              className="flex-1 bg-secondary text-foreground py-2.5 px-4 rounded-md hover:bg-secondary/80 transition-colors font-medium text-sm"
+              className="flex-1 bg-secondary text-foreground py-2.5 px-4 rounded-lg hover:bg-secondary/80 transition-colors font-medium text-sm"
             >
               Optional Real-World Test
             </button>
             <button
               onClick={handleForwardingInstructions}
-              className="flex-1 bg-secondary text-foreground py-2.5 px-4 rounded-md hover:bg-secondary/80 transition-colors font-medium text-sm"
+              className="flex-1 bg-secondary text-foreground py-2.5 px-4 rounded-lg hover:bg-secondary/80 transition-colors font-medium text-sm"
             >
               Forwarding Instructions
             </button>
@@ -226,13 +226,13 @@ export default function OnboardingSuccess() {
                   setShowTestInstructions(false)
                   router.push('/dashboard')
                 }}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium"
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 Go to Dashboard
               </button>
               <button
                 onClick={() => setShowTestInstructions(false)}
-                className="w-full bg-secondary text-foreground py-3 px-4 rounded-md hover:bg-secondary/80 transition-colors"
+                className="w-full bg-secondary text-foreground py-3 px-4 rounded-lg hover:bg-secondary/80 transition-colors"
               >
                 Close
               </button>
@@ -321,13 +321,13 @@ export default function OnboardingSuccess() {
                   setShowForwardingInstructions(false)
                   setShowTestInstructions(true)
                 }}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium"
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 Optional Real-World Test
               </button>
               <button
                 onClick={() => setShowForwardingInstructions(false)}
-                className="w-full bg-secondary text-foreground py-3 px-4 rounded-md hover:bg-secondary/80 transition-colors"
+                className="w-full bg-secondary text-foreground py-3 px-4 rounded-lg hover:bg-secondary/80 transition-colors"
               >
                 Close
               </button>

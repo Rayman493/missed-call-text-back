@@ -1964,7 +1964,7 @@ export default function SettingsContent() {
               </div>
 
               {/* General Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
                 <div className="mb-5">
                   <h2 className="text-base font-semibold text-foreground mb-1">General</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Your business identity and contact details.</p>
@@ -2094,7 +2094,7 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Communication Section */}
-                  <div id="communication" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+                  <div id="communication" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
                     <div className="mb-5">
                       <h2 className="text-base font-semibold text-foreground mb-1">Sending Number</h2>
                       <p className="text-sm text-muted-foreground leading-relaxed">
@@ -2215,7 +2215,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Business Address Section */}
-              <div id="business-address" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+              <div id="business-address" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
                 <div className="mb-5">
                   <h2 className="text-base font-semibold text-foreground mb-1">Business Address</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Your canonical business address for payments and business profile.</p>
@@ -2323,7 +2323,7 @@ export default function SettingsContent() {
               ) : (
               <>
               {/* Automation Settings */}
-              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-4 scroll-mt-[64px]">
+              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-4 scroll-mt-[64px]">
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-base font-semibold text-foreground">Instant Response</h2>
@@ -2862,7 +2862,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Integrations Section */}
-              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
                 <div className="mb-5">
                   <h2 className="text-base font-semibold text-foreground mb-1">Integrations</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Connect services you already use.</p>
@@ -2939,7 +2939,7 @@ export default function SettingsContent() {
                 <div className="h-px flex-1 bg-border/30"></div>
               </div>
 
-              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-4 sm:p-5 pb-safe-bottom-4 scroll-mt-[64px]">
+              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-4 sm:p-5 pb-safe-bottom-4 scroll-mt-[64px]">
                 <div className="mb-4">
                   <h2 className="text-base font-semibold text-foreground mb-1">Payments</h2>
                   <p className="text-sm text-muted-foreground">
@@ -3486,7 +3486,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Contacts Section */}
-              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
                   <div className="flex-1">
                     <h2 className="text-base font-semibold text-foreground mb-1">Personal Contacts</h2>
@@ -3578,7 +3578,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Account Section */}
-              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
                 <div className="mb-5">
                   <h2 className="text-base font-semibold text-foreground mb-1">Account</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Your account details and status.</p>
@@ -3747,7 +3747,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Subscription & Billing Section */}
-              <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+              <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
                 <div className="mb-4">
                   <h2 className="text-base font-semibold text-foreground mb-1">Subscription & Billing</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Manage your subscription and billing.</p>
