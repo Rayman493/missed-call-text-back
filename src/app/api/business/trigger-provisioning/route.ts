@@ -162,7 +162,7 @@ export async function POST(request: Request) {
         console.error('[ProvisioningTrigger] Max retries exceeded, marking provisioning as failed')
         // Attempt to mark as failed (may fail if business truly doesn't exist)
         try {
-          await supabaseAdmin
+          const { error: failError } = await supabaseAdmin
             .from('businesses')
             .update({
               provisioning_status: 'failed',
@@ -170,6 +170,11 @@ export async function POST(request: Request) {
               provisioning_lock_id: null
             })
             .eq('id', business_id)
+            .eq('provisioning_lock_id', correlationId)
+
+          if (failError) {
+            console.warn('[ProvisioningTrigger] lock_release_skipped_not_owner - stale request cannot mark newer request failed')
+          }
         } catch (markFailedError) {
           console.error('[ProvisioningTrigger] Failed to mark as failed (business may not exist):', markFailedError)
         }
@@ -238,17 +243,24 @@ export async function POST(request: Request) {
       }
     }
 
-    // Acquire lock by setting provisioning status and lock ID
-    await supabaseAdmin
-      .from('businesses')
-      .update({
-        provisioning_status: 'provisioning',
-        provisioning_lock_id: correlationId,
-        last_provisioning_attempt_at: new Date().toISOString()
-      })
-      .eq('id', business.id)
+    // Acquire lock atomically using RPC function
+    const { data: lockResult, error: lockError } = await supabaseAdmin.rpc('acquire_provisioning_lock', {
+      p_business_id: business.id,
+      p_lock_id: correlationId
+    });
 
-    console.log('[ProvisioningTrigger] ✓ Acquired lock for business:', business.id)
+    if (lockError || !lockResult) {
+      console.warn('[ProvisioningTrigger] Failed to acquire lock - provisioning already in progress:', {
+        business_id: business.id,
+        lockError
+      });
+      return NextResponse.json({
+        error: 'Provisioning already in progress',
+        provisioning_status: business.provisioning_status
+      }, { status: 409 });
+    }
+
+    console.log('[ProvisioningTrigger] ✓ Acquired lock atomically for business:', business.id)
     console.log('[ProvisioningTrigger] Set provisioning_status=provisioning, lock_id=', correlationId)
 
     // Call provisioning function with correlation ID
@@ -290,8 +302,8 @@ export async function POST(request: Request) {
         console.error('[PROVISIONING FLOW] ✗ CRITICAL ERROR: Invalid provisioning result')
         console.error('[PROVISIONING FLOW] Expected phoneNumber and phoneNumberSid in result')
         
-        // Clear lock and mark as failed
-        await supabaseAdmin
+        // Clear lock and mark as failed with ownership check
+        const { error: failError } = await supabaseAdmin
           .from('businesses')
           .update({
             provisioning_status: 'failed',
@@ -299,6 +311,11 @@ export async function POST(request: Request) {
             provisioning_error: 'Invalid provisioning result returned - missing phoneNumber or phoneNumberSid'
           })
           .eq('id', business.id)
+          .eq('provisioning_lock_id', correlationId)
+
+        if (failError) {
+          console.warn('[ProvisioningTrigger] lock_release_skipped_not_owner - stale request cannot mark newer request failed')
+        }
 
         return NextResponse.json({
           error: 'Provisioning failed - invalid result',
@@ -389,6 +406,7 @@ export async function POST(request: Request) {
             onboarding_status: 'completed' // Advance onboarding
           })
           .eq('id', business.id)
+          .eq('provisioning_lock_id', correlationId)
 
         if (saveError) {
           console.error('[PROVISIONING FLOW] ✗ Database save failed:', saveError)
@@ -399,8 +417,8 @@ export async function POST(request: Request) {
             hint: saveError.hint
           })
           
-          // Mark as failed due to database error
-          await supabaseAdmin
+          // Mark as failed due to database error with ownership check
+          const { error: failError } = await supabaseAdmin
             .from('businesses')
             .update({
               provisioning_status: 'failed',
@@ -408,6 +426,11 @@ export async function POST(request: Request) {
               provisioning_error: `Database save failed: ${saveError.message}`
             })
             .eq('id', business.id)
+            .eq('provisioning_lock_id', correlationId)
+
+          if (failError) {
+            console.warn('[ProvisioningTrigger] lock_release_skipped_not_owner - stale request cannot mark newer request failed')
+          }
 
           return NextResponse.json({
             error: 'Database save failed',
@@ -488,8 +511,8 @@ export async function POST(request: Request) {
       } catch (dbError) {
         console.error('[PROVISIONING FLOW] ✗ Database save error:', dbError)
         
-        // Mark as failed due to database error
-        await supabaseAdmin
+        // Mark as failed due to database error with ownership check
+        const { error: failError } = await supabaseAdmin
           .from('businesses')
           .update({
             provisioning_status: 'failed',
@@ -497,6 +520,11 @@ export async function POST(request: Request) {
             provisioning_error: `Database save error: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`
           })
           .eq('id', business.id)
+          .eq('provisioning_lock_id', correlationId)
+
+        if (failError) {
+          console.warn('[ProvisioningTrigger] lock_release_skipped_not_owner - stale request cannot mark newer request failed')
+        }
 
         return NextResponse.json({
           error: 'Database save error',
@@ -513,8 +541,8 @@ export async function POST(request: Request) {
         stack: twilioError instanceof Error ? twilioError.stack : 'No stack trace'
       })
       
-      // Clear lock and mark as failed
-      await supabaseAdmin
+      // Clear lock and mark as failed with ownership check
+      const { error: failError } = await supabaseAdmin
         .from('businesses')
         .update({
           provisioning_status: 'failed',
@@ -522,6 +550,11 @@ export async function POST(request: Request) {
           provisioning_error: `Twilio purchase failed: ${twilioError instanceof Error ? twilioError.message : 'Unknown error'}`
         })
         .eq('id', business.id)
+        .eq('provisioning_lock_id', correlationId)
+
+      if (failError) {
+        console.warn('[ProvisioningTrigger] lock_release_skipped_not_owner - stale request cannot mark newer request failed')
+      }
 
       return NextResponse.json({
         error: 'Twilio purchase failed',
@@ -544,9 +577,9 @@ export async function POST(request: Request) {
       stack: error instanceof Error ? error.stack : 'No stack trace'
     })
     
-    // Clear lock and mark as failed
+    // Clear lock and mark as failed with ownership check
     if (business_id) {
-      await supabaseAdmin
+      const { error: failError } = await supabaseAdmin
         .from('businesses')
         .update({
           provisioning_status: 'failed',
@@ -554,6 +587,11 @@ export async function POST(request: Request) {
           provisioning_error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`
         })
         .eq('id', business_id)
+        .eq('provisioning_lock_id', correlationId)
+
+      if (failError) {
+        console.warn('[ProvisioningTrigger] lock_release_skipped_not_owner - stale request cannot mark newer request failed')
+      }
     }
 
     return NextResponse.json({

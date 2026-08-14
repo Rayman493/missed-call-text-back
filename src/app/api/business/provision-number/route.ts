@@ -8,6 +8,8 @@ const supabase = createClient(
 );
 
 export async function POST(request: NextRequest) {
+  let business_id: string = '';
+
   try {
     // Authenticate user
     const authHeader = request.headers.get('Authorization');
@@ -74,22 +76,82 @@ export async function POST(request: NextRequest) {
     console.log('[PROVISIONING API] Current provisioning status:', business.provisioning_status);
 
     // Check if already provisioned
-    if (business.provisioning_status === 'ready') {
+    if (business.provisioning_status === 'ready' || business.provisioning_status === 'completed') {
       console.log('[PROVISIONING API] Business already provisioned');
       return NextResponse.json({
         success: true,
         message: 'Business already provisioned',
-        status: 'ready'
+        status: business.provisioning_status
       });
     }
 
-    // Start provisioning
+    // Check if provisioning is already in progress
+    if (business.provisioning_status === 'provisioning') {
+      console.warn('[PROVISIONING API] Provisioning already in progress for business:', business_id);
+      return NextResponse.json({
+        success: false,
+        error: 'Provisioning already in progress',
+        status: 'provisioning'
+      }, { status: 409 });
+    }
+
+    // Start provisioning with atomic lock
     const correlationId = `API-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     console.log('[PROVISIONING API] correlation_id:', correlationId);
+
+    // Acquire lock atomically using raw SQL for conditional UPDATE
+    // Only proceed if status is NOT already 'provisioning'
+    const { data: lockResult, error: lockError } = await supabase.rpc('acquire_provisioning_lock', {
+      p_business_id: business_id,
+      p_lock_id: correlationId
+    });
+
+    if (lockError || !lockResult) {
+      console.warn('[PROVISIONING API] Failed to acquire lock - provisioning already in progress:', {
+        business_id,
+        lockError
+      });
+      return NextResponse.json({
+        success: false,
+        error: 'Provisioning already in progress'
+      }, { status: 409 });
+    }
+
+    console.log('[PROVISIONING API] ✓ Acquired lock atomically');
 
     const result = await provisionTwilioNumberWithCompliance(business_id, correlationId);
 
     console.log('[PROVISIONING API] Provisioning result:', result);
+
+    // Release lock on success or failure with ownership check
+    if (result.success) {
+      const { error: releaseError } = await supabase
+        .from('businesses')
+        .update({
+          provisioning_status: 'ready',
+          provisioning_lock_id: null
+        })
+        .eq('id', business_id)
+        .eq('provisioning_lock_id', correlationId);
+
+      if (releaseError) {
+        console.warn('[PROVISIONING API] lock_release_skipped_not_owner - stale request cannot release newer request lock')
+      }
+    } else {
+      const { error: releaseError } = await supabase
+        .from('businesses')
+        .update({
+          provisioning_status: 'failed',
+          provisioning_lock_id: null,
+          provisioning_error: result.error
+        })
+        .eq('id', business_id)
+        .eq('provisioning_lock_id', correlationId);
+
+      if (releaseError) {
+        console.warn('[PROVISIONING API] lock_release_skipped_not_owner - stale request cannot mark newer request failed')
+      }
+    }
 
     if (result.success) {
       return NextResponse.json({
@@ -112,6 +174,26 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('[PROVISIONING API] Exception:', error);
+
+    // Release lock on exception
+    try {
+      const { error: releaseError } = await supabase
+        .from('businesses')
+        .update({
+          provisioning_status: 'failed',
+          provisioning_lock_id: null,
+          provisioning_error: error.message || 'Internal server error'
+        })
+        .eq('id', business_id)
+        .eq('provisioning_lock_id', correlationId);
+
+      if (releaseError) {
+        console.warn('[PROVISIONING API] lock_release_skipped_not_owner - stale request cannot mark newer request failed')
+      }
+    } catch (releaseError) {
+      console.error('[PROVISIONING API] Failed to release lock on exception:', releaseError);
+    }
+
     return NextResponse.json(
       {
         success: false,

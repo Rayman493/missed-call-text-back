@@ -173,6 +173,8 @@ function ScheduleMapComponent({
   const mapPreparationIdRef = useRef(0) // Monotonically increasing ID to prevent stale async results
   const markerSetSignatureRef = useRef<string>('') // Signature of current marker set to prevent repeated fitBounds
   const newlyMappableEventIdRef = useRef<string | null>(null) // Track newly mappable event for one-time camera adjustment
+  const initialCameraEstablishedRef = useRef(false) // Track if initial camera positioning has been done
+  const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter to detect changes
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [mapReady, setMapReady] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -1254,6 +1256,18 @@ function ScheduleMapComponent({
     const currentDateKey = selectedDate.toLocaleDateString('en-CA')
     const dateChanged = previousDateKey !== null && previousDateKey !== currentDateKey
 
+    // Reset initial camera flag on date change to allow new fit for new date
+    if (dateChanged) {
+      initialCameraEstablishedRef.current = false
+    }
+
+    // Reset initial camera flag on filter change to allow new fit for new filter
+    const filterChanged = previousMapFilterRef.current !== mapFilter
+    if (filterChanged) {
+      initialCameraEstablishedRef.current = false
+      previousMapFilterRef.current = mapFilter
+    }
+
     // Smart automatic framing logic
     if (markersRef.current.size === 0) {
       // Zero mapped items - keep current viewport
@@ -1273,13 +1287,15 @@ function ScheduleMapComponent({
       // Auto-fit when:
       // - Show all mode active
       // - User hasn't manually moved the map
-      // - Date changed OR marker set changed (filter change, new geocoding, etc.)
+      // - Date changed OR filter changed OR marker set changed (filter change, new geocoding, etc.)
       // - We haven't already auto-fitted to this date (prevents repeated fits on same date)
-      const shouldAutoFit = dateChanged || (signatureChanged && lastAutoFitDateKey !== currentDateKey)
+      // - If not date/filter changed, only fit if initial camera not yet established (prevents late async geocoding jumps)
+      const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && lastAutoFitDateKey !== currentDateKey && !initialCameraEstablishedRef.current)
 
       if (shouldAutoFit) {
         markerSetSignatureRef.current = signature
         setLastAutoFitDateKey(currentDateKey)
+        initialCameraEstablishedRef.current = true // Mark initial camera as established
 
         if (markersRef.current.size === 1) {
           // Single stop - center with sensible zoom (neighborhood/city context)
@@ -1300,15 +1316,6 @@ function ScheduleMapComponent({
         // No auto-fit needed, just update signature
         markerSetSignatureRef.current = signature
       }
-    } else if (hasNewAppointmentMarker && newlyMappableEventIdRef.current) {
-      // One-time adjustment to show newly mappable event
-      markerSetSignatureRef.current = signature
-      const newMarker = markersRef.current.get(newlyMappableEventIdRef.current)
-      if (newMarker) {
-        const pos = newMarker.getPosition()
-        panToMarker(pos.lat(), pos.lng(), 15, false) // Programmatic: do not set userInteracted
-      }
-      newlyMappableEventIdRef.current = null // Clear after one-time adjustment
     } else if (!showAllMode || userInteracted) {
       // Update signature even if we don't fit bounds, to prevent future unnecessary fits
       markerSetSignatureRef.current = signature
@@ -1319,7 +1326,7 @@ function ScheduleMapComponent({
       markersRef.current.forEach(marker => marker.setMap(null))
       markersRef.current.clear()
     }
-  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectMapItem, selectedMapItemId, userInteracted, previousDateKey, lastAutoFitDateKey])
+  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectMapItem, selectedMapItemId, userInteracted, previousDateKey, lastAutoFitDateKey, mapFilter])
 
   // Update marker icons when selection changes (without triggering camera changes)
   useEffect(() => {

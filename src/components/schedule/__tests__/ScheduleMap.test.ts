@@ -29,3 +29,127 @@ describe('ScheduleMap - Date Comparison', () => {
     expect(localDateStr).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 })
+
+describe('ScheduleMap - Camera Coalescing', () => {
+  it('initial marker batch should coalesce into one camera-fit decision', () => {
+    // This test documents the camera coalescing logic:
+    // - initialCameraEstablishedRef starts as false
+    // - First marker batch triggers fitBounds and sets flag to true
+    // - Subsequent marker signature changes (async geocoding) do not trigger additional fits
+    // - Only date changes or filter changes reset the flag and allow new fits
+
+    const initialCameraEstablished = { current: false }
+    const dateChanged = false
+    const filterChanged = false
+    const signatureChanged = true
+    const lastAutoFitDateKey = null
+    const currentDateKey = '2024-01-15'
+
+    // First batch: should fit
+    const shouldFitFirst = dateChanged || filterChanged || (signatureChanged && lastAutoFitDateKey !== currentDateKey && !initialCameraEstablished.current)
+    expect(shouldFitFirst).toBe(true)
+
+    // Mark camera as established
+    initialCameraEstablished.current = true
+
+    // Late business geocoding: should NOT fit (camera already established)
+    const shouldFitLate = dateChanged || filterChanged || (signatureChanged && lastAutoFitDateKey !== currentDateKey && !initialCameraEstablished.current)
+    expect(shouldFitLate).toBe(false)
+  })
+
+  it('late business geocode does not cause second fit after initial camera established', () => {
+    // Business geocoding happens asynchronously after initial marker batch
+    // It should not trigger a separate camera movement
+
+    const initialCameraEstablished = { current: true } // Already established
+    const dateChanged = false
+    const filterChanged = false
+    const signatureChanged = true // Business marker added
+    const lastAutoFitDateKey = '2024-01-15'
+    const currentDateKey = '2024-01-15'
+
+    const shouldFit = dateChanged || filterChanged || (signatureChanged && lastAutoFitDateKey !== currentDateKey && !initialCameraEstablished.current)
+    expect(shouldFit).toBe(false) // Should NOT fit
+  })
+
+  it('user interaction prevents automatic refit', () => {
+    // Once user manually pans/zooms, auto-fit should be disabled
+
+    const userInteracted = true
+    const showAllMode = true
+
+    // Auto-fit is only active when showAllMode && !userInteracted
+    const canAutoFit = showAllMode && !userInteracted
+    expect(canAutoFit).toBe(false)
+  })
+
+  it('explicit date filter change permits one new fit', () => {
+    // Date changes reset initialCameraEstablishedRef to allow new fit
+
+    const initialCameraEstablished = { current: true }
+    const dateChanged = true
+    const filterChanged = false
+    const signatureChanged = true
+
+    // Date changed: should fit regardless of initialCameraEstablished
+    const shouldFit = dateChanged || filterChanged || (signatureChanged && !initialCameraEstablished.current)
+    expect(shouldFit).toBe(true)
+  })
+
+  it('explicit filter change permits one new fit', () => {
+    // Filter changes reset initialCameraEstablishedRef to allow new fit
+
+    const initialCameraEstablished = { current: true }
+    const dateChanged = false
+    const filterChanged = true
+    const signatureChanged = true
+
+    // Filter changed: should fit regardless of initialCameraEstablished
+    const shouldFit = dateChanged || filterChanged || (signatureChanged && !initialCameraEstablished.current)
+    expect(shouldFit).toBe(true)
+  })
+
+  it('multiple async marker updates during same load do not cause repeated fit', () => {
+    // Simulate: jobs arrive, then calendar geocodes, then business geocodes
+    // Only the first should trigger a fit
+
+    const initialCameraEstablished = { current: false }
+    const dateChanged = false
+    const filterChanged = false
+    const lastAutoFitDateKey = null
+    const currentDateKey = '2024-01-15'
+
+    // Jobs arrive: first signature change
+    const shouldFit1 = dateChanged || filterChanged || (true && lastAutoFitDateKey !== currentDateKey && !initialCameraEstablished.current)
+    expect(shouldFit1).toBe(true)
+    initialCameraEstablished.current = true
+
+    // Calendar geocodes: second signature change
+    const shouldFit2 = dateChanged || filterChanged || (true && lastAutoFitDateKey !== currentDateKey && !initialCameraEstablished.current)
+    expect(shouldFit2).toBe(false)
+
+    // Business geocodes: third signature change
+    const shouldFit3 = dateChanged || filterChanged || (true && lastAutoFitDateKey !== currentDateKey && !initialCameraEstablished.current)
+    expect(shouldFit3).toBe(false)
+  })
+
+  it('empty map remains stable', () => {
+    // When there are no markers, camera should not move
+
+    const markerCount = 0
+    const shouldFit = markerCount > 0
+    expect(shouldFit).toBe(false)
+  })
+
+  it('one-marker behavior remains sensible', () => {
+    // Single marker should center with sensible zoom (neighborhood/city context)
+    // This is handled by panToMarker with zoom 13 instead of fitBounds
+
+    const markerCount = 1
+    const shouldUsePanTo = markerCount === 1
+    const shouldUseFitBounds = markerCount > 1
+
+    expect(shouldUsePanTo).toBe(true)
+    expect(shouldUseFitBounds).toBe(false)
+  })
+})

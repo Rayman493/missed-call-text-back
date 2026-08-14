@@ -890,21 +890,21 @@ export async function POST(request: Request) {
                 // Only provisionTwilioNumber() should handle Twilio number management
                 // This repair logic was potentially using stale data and interfering with new number persistence
                 
-                // Only provision if no number exists and not already provisioning
-                // Use atomic update to prevent race conditions
-                if (!businessDetails.twilio_phone_number && businessDetails.provisioning_status !== 'provisioning') {
+                // Only provision if no number exists
+                // Use atomic RPC lock acquisition to prevent race conditions
+                if (!businessDetails.twilio_phone_number) {
                   console.log('[Provisioning] Attempting to acquire provisioning lock for business:', businessDetails.id)
-                  
+
+                  const correlationId = `WEBHOOK-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
                   try {
-                    // Atomic lock acquisition: only update if status is not already 'provisioning'
+                    // Atomic lock acquisition via RPC function
                     const { data: lockResult, error: lockError } = await supabase
-                      .from('businesses')
-                      .update({ provisioning_status: 'provisioning' })
-                      .eq('id', businessDetails.id)
-                      .neq('provisioning_status', 'provisioning')
-                      .select('provisioning_status')
-                      .single()
-                    
+                      .rpc('acquire_provisioning_lock', {
+                        p_business_id: businessDetails.id,
+                        p_lock_id: correlationId
+                      })
+
                     if (lockError || !lockResult) {
                       console.log('[Provisioning] Failed to acquire lock - another process may be provisioning')
                       console.log('[Provisioning] Lock error:', lockError)
@@ -912,11 +912,11 @@ export async function POST(request: Request) {
                     } else {
                       console.log('[Provisioning] Lock acquired successfully for business:', businessDetails.id)
                       console.log('[Provisioning] START - calling provisionTwilioNumber')
-                    
+
                       // Import and call provisioning function
                       const { provisionTwilioNumber } = await import('@/lib/twilio')
-                      
-                      const provisioningResult = await provisionTwilioNumber(businessDetails.id)
+
+                      const provisioningResult = await provisionTwilioNumber(businessDetails.id, correlationId)
                       
                       if (provisioningResult) {
                         console.log('[Provisioning] Provisioning succeeded:', provisioningResult.phoneNumber)
@@ -941,9 +941,11 @@ export async function POST(request: Request) {
                               .from('businesses')
                               .update({
                                 provisioning_status: 'failed',
+                                provisioning_lock_id: null,
                                 provisioning_error: 'Failed to save provisioned number to business'
                               })
                               .eq('id', businessDetails.id)
+                              .eq('provisioning_lock_id', correlationId)
                           } else {
                             console.log('[Provisioning] Number saved successfully to business')
                             console.log('[Provisioning] DB twilio_phone_number:', saveResult.dbNumber)
@@ -952,15 +954,21 @@ export async function POST(request: Request) {
                         } else {
                           console.error('[Provisioning] Messaging Service NOT attached - NOT saving number to business')
                           console.error('[Provisioning] Error:', provisioningResult.messagingServiceError)
-                          
-                          // Mark as failed
-                          await supabase
+
+                          // Mark as failed with ownership check
+                          const { error: failError } = await supabase
                             .from('businesses')
                             .update({
                               provisioning_status: 'failed',
+                              provisioning_lock_id: null,
                               provisioning_error: provisioningResult.messagingServiceError || 'Messaging Service attachment failed'
                             })
                             .eq('id', businessDetails.id)
+                            .eq('provisioning_lock_id', correlationId)
+
+                          if (failError) {
+                            console.warn('[Provisioning] lock_release_skipped_not_owner - stale request cannot mark newer request failed')
+                          }
                           
                           console.log('[Provisioning] Business marked as failed')
                         }
@@ -968,24 +976,36 @@ export async function POST(request: Request) {
                         console.log('[Provisioning] Business updated with provisioned number')
                       } else {
                         console.error('[Provisioning] Provisioning failed - no result returned')
-                        await supabase
+                        const { error: failError } = await supabase
                           .from('businesses')
                           .update({
                             provisioning_status: 'failed',
+                            provisioning_lock_id: null,
                             provisioning_error: 'Provisioning failed - no result returned'
                           })
                           .eq('id', businessDetails.id)
+                          .eq('provisioning_lock_id', correlationId)
+
+                        if (failError) {
+                          console.warn('[Provisioning] lock_release_skipped_not_owner - stale request cannot mark newer request failed')
+                        }
                       }
                     }
                   } catch (provisioningError) {
                     console.error('[Provisioning] Error during provisioning:', provisioningError)
-                    await supabase
+                    const { error: failError } = await supabase
                       .from('businesses')
                       .update({
                         provisioning_status: 'failed',
+                        provisioning_lock_id: null,
                         provisioning_error: provisioningError instanceof Error ? provisioningError.message : 'Unknown error'
                       })
                       .eq('id', businessDetails.id)
+                      .eq('provisioning_lock_id', correlationId)
+
+                    if (failError) {
+                      console.warn('[Provisioning] lock_release_skipped_not_owner - stale request cannot mark newer request failed')
+                    }
                   }
                 } else {
                   console.log('[Provisioning] Skipping provisioning - business already has number or is already provisioning')
