@@ -10,6 +10,7 @@ import {
   TTP_DIAGNOSTIC_BUILD_MARKER
 } from '@/lib/tap-to-pay-diagnostics'
 import { TerminalBridgeService } from '@/lib/terminal/service'
+import { isDiagnosticsEnabled as checkDiagnosticsEligibility } from '@/lib/tap-to-pay-diagnostics-opt-in'
 
 interface QuickTapToPayDiagnosticsProps {
   paymentState: string
@@ -61,28 +62,25 @@ export default function QuickTapToPayDiagnostics({
   const isFailure = paymentState === 'failure'
   const failedStage = mappedError?.stage || lastSuccessfulStage
 
-  // Check if diagnostics are enabled (web dev OR native debug build OR Android for physical QA)
+  // Check if diagnostics are enabled (web dev OR native debug build + explicit developer opt-in)
   useEffect(() => {
     const checkDiagnosticsEnabled = async () => {
       let enabled = false
+      let isNativeDebugBuild = false
       
       // Web development check
       if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production') {
         enabled = true
       } else if (Capacitor.isNativePlatform()) {
-        // Native debug build check
+        // Native: require BOTH debug build AND explicit developer opt-in
         try {
           const TerminalBridge = (await import('@/lib/terminal')).default
           const result = await TerminalBridge.getDiagnosticEnvironment()
           setNativeBuildInfo(result)
+          isNativeDebugBuild = result.isNativeDebugBuild === true
 
-          // iOS: require debug build
-          // Android: enable for physical QA regardless of debug/release
-          if (result.platform === 'android') {
-            enabled = true
-          } else {
-            enabled = result.isNativeDebugBuild === true
-          }
+          // Use the centralized gate that requires debug build + opt-in
+          enabled = await checkDiagnosticsEligibility(isNativeDebugBuild)
         } catch {
           enabled = false
         }

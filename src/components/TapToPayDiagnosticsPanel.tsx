@@ -11,6 +11,7 @@ import {
 } from '@/lib/tap-to-pay-diagnostics'
 import { Capacitor } from '@capacitor/core'
 import { TerminalBridgeService } from '@/lib/terminal/service'
+import { isDiagnosticsEnabled as checkDiagnosticsEligibility } from '@/lib/tap-to-pay-diagnostics-opt-in'
 
 async function writeClipboard(text: string) {
   try {
@@ -52,19 +53,23 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
   }
 
   useEffect(() => {
-    // Check if diagnostics are enabled (web dev OR native debug build)
+    // Check if diagnostics are enabled (web dev OR native debug build + explicit developer opt-in)
     const checkDiagnosticsEnabled = async () => {
       let enabled = false
+      let isNativeDebugBuild = false
       
       // Web development check
       if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production') {
         enabled = true
       } else if (Capacitor.isNativePlatform()) {
-        // Native debug build check
+        // Native: require BOTH debug build AND explicit developer opt-in
         try {
           const TerminalBridge = (await import('@/lib/terminal')).default
           const result = await TerminalBridge.getDiagnosticEnvironment()
-          enabled = result.isNativeDebugBuild === true
+          isNativeDebugBuild = result.isNativeDebugBuild === true
+
+          // Use the centralized gate that requires debug build + opt-in
+          enabled = await checkDiagnosticsEligibility(isNativeDebugBuild)
         } catch {
           enabled = false
         }
