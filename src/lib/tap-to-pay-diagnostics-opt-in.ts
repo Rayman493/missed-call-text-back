@@ -44,8 +44,13 @@ export async function isDiagnosticsEnabled(isNativeDebugBuild: boolean = false):
     }
 
     // Must have explicit developer opt-in
-    const optIn = await Preferences.get({ key: TTP_DIAGNOSTICS_OPT_IN_KEY })
-    return optIn.value === 'true'
+    try {
+      const optIn = await Preferences.get({ key: TTP_DIAGNOSTICS_OPT_IN_KEY })
+      return optIn.value === 'true'
+    } catch {
+      // If Preferences fails, default to disabled
+      return false
+    }
   }
 
   // Production web: never enabled
