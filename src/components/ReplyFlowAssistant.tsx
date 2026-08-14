@@ -74,6 +74,7 @@ const suggestedPrompts: SuggestedPrompt[] = [
     icon: <CalendarIcon className="w-4 h-4" />,
     prompts: [
       'How do I connect Google Calendar?',
+      'How do I create an appointment?',
       'Why are events not showing?'
     ]
   },
@@ -83,7 +84,8 @@ const suggestedPrompts: SuggestedPrompt[] = [
     prompts: [
       'Payment Requests overview',
       'Create and send a Payment Request',
-      'Tap to Pay requirements'
+      'How do I connect Stripe?',
+      'Set up Tap to Pay on iPhone'
     ]
   },
   {
@@ -91,7 +93,8 @@ const suggestedPrompts: SuggestedPrompt[] = [
     icon: <SettingsIcon className="w-4 h-4" />,
     prompts: [
       'How do I change business hours?',
-      'How do follow-ups work?'
+      'How do follow-ups work?',
+      'How do I delete my account?'
     ]
   },
   {
@@ -101,7 +104,8 @@ const suggestedPrompts: SuggestedPrompt[] = [
       'SMS did not send after missed call',
       'Call forwarding is not working',
       'Why didn\'t my test call work?',
-      'No lead appeared after my test call'
+      'No lead appeared after my test call',
+      'Push notification missing'
     ]
   },
   {
@@ -109,7 +113,8 @@ const suggestedPrompts: SuggestedPrompt[] = [
     icon: <CreditCard className="w-4 h-4" />,
     prompts: [
       'Manage subscription (Stripe)',
-      'Billing portal (how to use)'
+      'Billing portal (how to use)',
+      'Stripe says verification pending'
     ]
   },
   {
@@ -442,19 +447,41 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
                     <Search className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                   </div>
                   <div>
-                    <p className="text-slate-900 dark:text-white font-medium mb-1">No results found</p>
+                    <p className="text-slate-900 dark:text-white font-medium mb-1">I couldn't find a reliable answer for that yet.</p>
                     <p className="text-slate-600 dark:text-slate-400 text-sm">
-                      We couldn't find documentation matching your search. Try different keywords or browse our knowledge base.
+                      Try rephrasing your question, choose a related guide below, or contact ReplyFlow Support for help.
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 mb-4">
+
+                {/* Suggested related articles */}
+                {relatedQuestions.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Related guides</p>
+                    <div className="space-y-2">
+                      {relatedQuestions.slice(0, 3).map((article) => (
+                        <button
+                          key={article.id}
+                          onClick={() => handleSuggestedQuestion(article.question)}
+                          className="w-full text-left p-2.5 bg-white dark:bg-slate-600 hover:bg-slate-100 dark:hover:bg-slate-500 rounded-lg transition-colors flex items-center gap-2 group"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" />
+                          <span className="text-xs text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
+                            {article.question}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => router.push('/faq')}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-500 transition-colors"
+                    onClick={() => reset()}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
                   >
-                    <BookOpen className="w-4 h-4" />
-                    Browse Documentation
+                    <Search className="w-4 h-4" />
+                    Try Different Keywords
                   </button>
                   <a
                     href="https://mail.google.com/mail/?view=cm&fs=1&to=support@replyflowhq.com"
