@@ -59,7 +59,7 @@ export async function sendSms(
     business_provisioning_status: business?.provisioning_status
   });
 
-  console.log('[SMS TRACE sendSms STEP_1_APPEND_AVAILABILITY]', { 
+  console.log('[SMS TRACE sendSms STEP_1_APPEND_AVAILABILITY]', {
     isOffboarding: options?.isOffboarding,
     skipBusinessAvailabilityAppend: options?.skipBusinessAvailabilityAppend,
     isManual: options?.isManual
@@ -633,9 +633,9 @@ export async function sendSms(
     // Insert successful message record into database
     // Check if this is a system SMS (no lead_id AND not a payment receipt)
     // Payment receipts skip persistence since Twilio is the source of truth for delivery status
-    console.log('[SMS TRACE sendSms STEP_12_DB_INSERT_START]', { 
+    console.log('[SMS TRACE sendSms STEP_12_DB_INSERT_START]', {
       hasLeadId: !!options?.lead_id,
-      source: options?.source 
+      source: options?.source
     });
     const isSystemSms = !options?.lead_id && options?.source !== 'payment_receipt';
     let messageId: string | null = null;
@@ -903,7 +903,7 @@ export async function sendMms(
   // Handle both boolean true and string "true" (defensive programming)
   const shouldSkipAvailabilityNote = options?.isManual === true || (options?.isManual as any) === 'true';
   console.log('[MMS DEBUG] shouldSkipAvailabilityNote:', shouldSkipAvailabilityNote);
-  
+
   if (shouldSkipAvailabilityNote) {
     console.log('[MMS DEBUG] SKIPPING availability note because isManual is truthy');
   } else {
@@ -964,7 +964,7 @@ export async function sendMms(
     console.log('[MMS] 🧪 Simulated MMS sent:', { to, mediaCount: mediaUrls.length });
     console.log('[MMS DEBUG] SIMULATION MODE - message body being inserted:', message);
     console.log('[MMS DEBUG] SIMULATION MODE - isManual:', options?.isManual);
-    
+
     const { data: insertedMessage, error: insertError } = await supabase
       .from('messages')
       .insert({
@@ -1031,7 +1031,7 @@ export async function sendMms(
       mediaUrl: mediaUrls,
       statusCallback: statusCallbackUrl
     })
-    
+
     console.log('[MMS DEBUG] FINAL TWILIO BODY:', message);
     console.log('[MMS DEBUG] FINAL TWILIO BODY contains availability note:', message.includes('Out of Office') || message.includes('business hours'));
 
@@ -1164,12 +1164,12 @@ export async function sendMms(
       error_message: error?.message,
       error_status: error?.status,
     });
-    
+
     errorCode = error?.code || 'UNKNOWN';
     errorMessage = error?.message || 'Unknown error occurred';
-    
+
     await logFailedMessage(business, to, message || '[MMS]', options, errorMessage, errorCode, true);
-    
+
     return { sid: null, messageId: null }
   }
 }
@@ -1203,10 +1203,10 @@ async function logFailedMessage(
       twilio_message_sid: twilioApiCalled ? 'TWILIO_CALLED' : 'NOT_CALLED',
       message_body: message.substring(0, 50) + '...'
     });
-    
+
     // Check if this is a system/offboarding SMS (no lead_id)
     const isSystemSms = !options?.lead_id || options?.isOffboarding;
-    
+
     if (isSystemSms) {
       // Try to insert into system_sms table for account-level messages
       try {
@@ -1236,7 +1236,7 @@ async function logFailedMessage(
       }
       return;
     }
-    
+
     // Insert into messages table for lead/conversation messages
     console.log('[SMS PERSISTENCE] Attempting to insert failed message into database', {
       lead_id: options?.lead_id,
@@ -1305,29 +1305,29 @@ async function logFailedMessage(
 export function normalizePhoneNumber(phone: string): string {
   // Remove all non-digit characters
   const cleaned = phone.replace(/\D/g, '')
-  
+
   // If it starts with 1 and has 11 digits, remove the 1
   if (cleaned.length === 11 && cleaned.startsWith('1')) {
     return cleaned.substring(1)
   }
-  
+
   // If it has 10 digits, return as is
   if (cleaned.length === 10) {
     return cleaned
   }
-  
+
   // Otherwise return the cleaned number (might be international)
   return cleaned
 }
 
 export function formatPhoneNumber(phone: string): string {
   const normalized = normalizePhoneNumber(phone)
-  
+
   // Format as (XXX) XXX-XXXX for 10-digit US numbers
   if (normalized.length === 10) {
     return `(${normalized.slice(0, 3)}) ${normalized.slice(3, 6)}-${normalized.slice(6)}`
   }
-  
+
   // Return as is for other formats
   return phone
 }
@@ -1341,8 +1341,8 @@ export function validateTwilioRequest(payload: any, expectedFields: string[]): b
   return expectedFields.every(field => field in payload)
 }
 
-export async function provisionTwilioNumber(businessId: string, correlationId?: string): Promise<{ 
-  phoneNumber: string; 
+export async function provisionTwilioNumber(businessId: string, correlationId?: string): Promise<{
+  phoneNumber: string;
   phoneNumberSid: string;
   messagingServiceAttached: boolean;
   messagingServiceError?: string;
@@ -1350,10 +1350,10 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
 } | null> {
   console.log('[Provision Path] ========== provisionTwilioNumber HIT ==========');
   console.log(`[Provision Path] businessId=${businessId} correlation_id=${correlationId}`);
-  
+
   // Use provided correlation ID or generate one for backwards compatibility
   const finalCorrelationId = correlationId || `PROV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-  
+
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
   // Use approved A2P 10DLC Messaging Service
@@ -1362,7 +1362,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
   console.log(`[Provisioning] START business_id=${businessId} correlation_id=${correlationId}`)
   console.log(`[Provisioning] TWILIO_MESSAGING_SERVICE_SID env var=${process.env.TWILIO_MESSAGING_SERVICE_SID} correlation_id=${correlationId}`)
   console.log(`[Provisioning] Using Messaging Service=${messagingServiceSid} correlation_id=${correlationId}`)
-  
+
   if (!accountSid || !authToken) {
     console.error(`[Provisioning] Credentials missing correlation_id=${correlationId}`)
     return null
@@ -1370,6 +1370,51 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
 
   console.log(`[Twilio] Active account SID=${accountSid} correlation_id=${correlationId}`)
   console.log(`[Twilio] Purchasing number under account=${accountSid} correlation_id=${correlationId}`)
+
+  // STEP 0: Idempotency check - Check if business already has an assigned number in twilio_numbers
+  console.log(`[PROVISION_IDEMPOTENCY] ========== CHECKING FOR EXISTING ASSIGNMENT ========== correlation_id=${correlationId}`)
+  const { data: existingTwilioNumber } = await supabase
+    .from('twilio_numbers')
+    .select('id, phone_number, twilio_sid, status, sms_status, provisioning_status')
+    .eq('business_id', businessId)
+    .in('status', ['assigned', 'active'])
+    .single()
+
+  if (existingTwilioNumber) {
+    console.log(`[PROVISION_EXISTING_ASSIGNMENT_FOUND] business_id=${businessId} twilio_number_id=${existingTwilioNumber.id} phone_number=${existingTwilioNumber.phone_number} correlation_id=${correlationId}`)
+    console.log(`[PROVISION_IDEMPOTENCY] Business already has assigned number in twilio_numbers, reconciling to businesses table correlation_id=${correlationId}`)
+
+    // Reconcile: Update businesses table with existing number
+    const { error: reconcileError } = await supabase
+      .from('businesses')
+      .update({
+        twilio_phone_number: existingTwilioNumber.phone_number,
+        twilio_phone_number_sid: existingTwilioNumber.twilio_sid,
+        assigned_twilio_number_id: existingTwilioNumber.id,
+        twilio_messaging_service_sid: messagingServiceSid,
+        provisioning_status: 'ready',
+        provisioning_error: null,
+        provisioned_at: new Date().toISOString()
+      })
+      .eq('id', businessId)
+
+    if (reconcileError) {
+      console.error(`[PROVISION_IDEMPOTENCY] Failed to reconcile existing assignment correlation_id=${correlationId}`, reconcileError)
+    } else {
+      console.log(`[PROVISION_ASSIGNMENT_RECONCILED] business_id=${businessId} twilio_number_id=${existingTwilioNumber.id} correlation_id=${correlationId}`)
+    }
+
+    // Return success without purchasing new number
+    console.log(`[PROVISION_IDEMPOTENCY] ========== IDEMPOTENT SUCCESS (EXISTING NUMBER REUSED) ========== correlation_id=${correlationId}`)
+    return {
+      phoneNumber: existingTwilioNumber.phone_number,
+      phoneNumberSid: existingTwilioNumber.twilio_sid,
+      messagingServiceAttached: true,
+      fromWarmInventory: false
+    }
+  }
+
+  console.log(`[PROVISION_IDEMPOTENCY] No existing assignment found in twilio_numbers, proceeding with provisioning correlation_id=${correlationId}`)
 
   // Database guard: Check if business already has a number or is already provisioning
   console.log(`[ProvisioningGuard] ========== CHECKING EXISTING STATE ========== correlation_id=${correlationId}`)
@@ -1386,8 +1431,8 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
     console.log(`[ProvisioningGuard] Existing provisioning_lock_id=${existingBusiness.provisioning_lock_id} correlation_id=${correlationId}`)
 
     // Smart lock: Only block if provisioning by a different request
-    if (existingBusiness.provisioning_status === 'provisioning' && 
-        existingBusiness.provisioning_lock_id && 
+    if (existingBusiness.provisioning_status === 'provisioning' &&
+        existingBusiness.provisioning_lock_id &&
         existingBusiness.provisioning_lock_id !== finalCorrelationId) {
       console.log(`[ProvisioningGuard] ========== LOCK BLOCKED (DIFFERENT REQUEST) ========== correlation_id=${correlationId}`)
       console.log(`[ProvisioningGuard] Business is being provisioned by different request, blocking correlation_id=${correlationId}`)
@@ -1397,7 +1442,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
     }
 
     // Allow provisioning if same request or no lock
-    if (existingBusiness.provisioning_status === 'provisioning' && 
+    if (existingBusiness.provisioning_status === 'provisioning' &&
         (!existingBusiness.provisioning_lock_id || existingBusiness.provisioning_lock_id === finalCorrelationId)) {
       console.log(`[ProvisioningGuard] ========== ALLOWING (SAME REQUEST) ========== correlation_id=${correlationId}`)
       console.log(`[ProvisioningGuard] Business is provisioning but this is the same request, allowing correlation_id=${correlationId}`)
@@ -1422,12 +1467,12 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
   console.log(`[Warm Inventory] ========== START WARM INVENTORY CHECK ========== correlation_id=${correlationId}`);
   console.log(`[Warm Inventory] Checking for available warm numbers before live provisioning correlation_id=${correlationId}`);
   console.log(`[Warm Inventory] Business ID: ${businessId} correlation_id=${correlationId}`);
-  
+
   try {
     console.log(`[Warm Inventory] Importing warm number manager... correlation_id=${correlationId}`);
     const { getAndAssignWarmNumber, triggerBackgroundReplenishment } = await import('@/lib/warm-number-manager')
     console.log(`[Warm Inventory] Warm number manager imported successfully correlation_id=${correlationId}`);
-    
+
     console.log(`[Warm Inventory] Calling getAndAssignWarmNumber... correlation_id=${correlationId}`);
     const warmNumberResult = await getAndAssignWarmNumber(businessId)
     console.log(`[Warm Inventory] getAndAssignWarmNumber returned correlation_id=${correlationId}`);
@@ -1447,7 +1492,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
       console.log(`[Warm Inventory] Business ID: ${businessId} correlation_id=${correlationId}`);
       console.log(`[Warm Inventory] Phone Number: ${warmNumberResult.phoneNumber} correlation_id=${correlationId}`);
       console.log(`[Warm Inventory] Phone SID: ${warmNumberResult.phoneNumberSid} correlation_id=${correlationId}`);
-      
+
       const { error: updateBusinessError } = await supabase
         .from('businesses')
         .update({
@@ -1471,11 +1516,11 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
       } else {
         console.log(`[Warm Inventory] ========== BUSINESS UPDATE SUCCESS ========== correlation_id=${correlationId}`);
         console.log(`[Warm Inventory] ✓ Business updated with warm number correlation_id=${correlationId}`);
-        
+
         console.log(`[Warm Inventory] Triggering background replenishment... correlation_id=${correlationId}`);
         await triggerBackgroundReplenishment()
         console.log(`[Warm Inventory] Background replenishment triggered correlation_id=${correlationId}`);
-        
+
         console.log(`[Warm Inventory] ========== WARM NUMBER ASSIGNMENT COMPLETE ========== correlation_id=${correlationId}`);
         console.log(`[Warm Inventory] Warm number assignment complete, skipping live purchase correlation_id=${correlationId}`);
         return {
@@ -1501,12 +1546,59 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
   console.log(`[Provisioning] Provisioning dedicated local number for business=${businessId} correlation_id=${correlationId}`)
   console.log(`[Provisioning] Using approved Messaging Service=${messagingServiceSid} correlation_id=${correlationId}`)
 
+  // STEP 2.5: FINAL PRE-PURCHASE CHECK - Prevent duplicate purchases
+  console.log(`[PROVISION_PRE_PURCHASE_CHECK] ========== FINAL AUTHORITY CHECK ========== correlation_id=${correlationId}`);
+  const { data: prePurchaseCheck } = await supabase
+    .from('twilio_numbers')
+    .select('id, phone_number, twilio_sid, status')
+    .eq('business_id', businessId)
+    .in('status', ['assigned', 'active'])
+    .single();
+
+  if (prePurchaseCheck) {
+    console.log(`[PROVISION_DUPLICATE_PURCHASE_PREVENTED] business_id=${businessId} twilio_number_id=${prePurchaseCheck.id} phone_number=${prePurchaseCheck.phone_number} correlation_id=${correlationId}`);
+    console.log(`[PROVISION_PRE_PURCHASE_CHECK] Found existing assignment after warm inventory check, preventing duplicate purchase`);
+
+    // Reconcile to businesses table if needed
+    const { data: businessCheck } = await supabase
+      .from('businesses')
+      .select('twilio_phone_number_sid')
+      .eq('id', businessId)
+      .single();
+
+    if (!businessCheck?.twilio_phone_number_sid) {
+      console.log(`[PROVISION_PRE_PURCHASE_CHECK] Reconciling existing assignment to businesses table`);
+      await supabase
+        .from('businesses')
+        .update({
+          twilio_phone_number: prePurchaseCheck.phone_number,
+          twilio_phone_number_sid: prePurchaseCheck.twilio_sid,
+          assigned_twilio_number_id: prePurchaseCheck.id,
+          twilio_messaging_service_sid: messagingServiceSid,
+          provisioning_status: 'ready',
+          provisioning_error: null,
+          provisioned_at: new Date().toISOString()
+        })
+        .eq('id', businessId);
+    }
+
+    return {
+      phoneNumber: prePurchaseCheck.phone_number,
+      phoneNumberSid: prePurchaseCheck.twilio_sid,
+      messagingServiceAttached: true,
+      fromWarmInventory: false
+    };
+  }
+
+  console.log(`[PROVISION_PRE_PURCHASE_CHECK] No existing assignment found, proceeding with live purchase correlation_id=${correlationId}`);
+  console.log(`[PROVISION_LIVE_PURCHASE_REQUIRED] business_id=${businessId} correlation_id=${correlationId}`);
+
   try {
     const client = Twilio(accountSid, authToken)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com'
 
     console.log(`[Provisioning] Searching for available local number correlation_id=${correlationId}`)
-    
+
     // Search for available US local numbers with voice + SMS enabled
     const availableNumbers = await client.availablePhoneNumbers('US')
       .local
@@ -1541,7 +1633,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
     console.log(`[Provisioning] Messaging Service SID=${messagingServiceSid} correlation_id=${correlationId}`)
     console.log(`[Provisioning] Active account SID=${accountSid} correlation_id=${correlationId}`)
     console.log(`[Provisioning] Purchased number is SINGLE SOURCE OF TRUTH correlation_id=${correlationId}`)
-    
+
     // Check for account mismatch
     if (purchasedNumber.accountSid !== accountSid) {
       console.error(`[MessagingService] Account mismatch detected correlation_id=${correlationId}`)
@@ -1551,16 +1643,16 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
       console.error(`[MessagingService] ERROR: Number purchased under different account than active Twilio client`)
       throw new Error(`Account mismatch: Number purchased under account ${purchasedNumber.accountSid} but active client is ${accountSid}`)
     }
-    
+
     console.log(`[MessagingService] Account ownership verified - number purchased under active account correlation_id=${correlationId}`)
     console.log(`[Provisioning] Configured voice webhook=${appUrl}/api/twilio/voice correlation_id=${correlationId}`)
     console.log(`[Provisioning] Configured voice status callback=${appUrl}/api/twilio/voice-status correlation_id=${correlationId}`)
     console.log(`[Provisioning] Configured messaging webhook=${appUrl}/api/twilio/incoming-sms correlation_id=${correlationId}`)
-    
+
     // IMMUTABLE: Store purchased number as single source of truth
     const purchasedPhoneNumber = purchasedNumber.phoneNumber;
     const purchasedPhoneNumberSid = purchasedNumber.sid;
-    
+
     console.log(`[Provisioning] IMMUTABLE purchasedPhoneNumber=${purchasedPhoneNumber} correlation_id=${correlationId}`)
     console.log(`[Provisioning] IMMUTABLE purchasedPhoneNumberSid=${purchasedPhoneNumberSid} correlation_id=${correlationId}`)
     console.log(`[Provisioning] These are the ONLY values that will be saved to database correlation_id=${correlationId}`)
@@ -1580,26 +1672,26 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
       console.log(`[SenderAttach] phoneNumber=${purchasedPhoneNumber} correlation_id=${correlationId}`)
       console.log(`[SenderAttach] phoneNumberSid=${purchasedPhoneNumberSid} correlation_id=${correlationId}`)
       console.log(`[SenderAttach] messagingServiceSid=${messagingServiceSid} correlation_id=${correlationId}`)
-      
+
       console.log(`[MessagingService] Attaching phone number correlation_id=${correlationId}`)
       console.log(`[MessagingService] Messaging Service SID=${messagingServiceSid} correlation_id=${correlationId}`)
       console.log(`[MessagingService] PhoneNumber SID=${purchasedPhoneNumberSid} correlation_id=${correlationId}`)
       console.log(`[MessagingService] PhoneNumber=${purchasedPhoneNumber} correlation_id=${correlationId}`)
       console.log(`[MessagingService] SID type=${purchasedPhoneNumberSid.startsWith('PN') ? 'IncomingPhoneNumber SID (correct)' : 'INVALID - not a PN SID'} correlation_id=${correlationId}`)
-      
+
       try {
         // Check if number is already attached to the Messaging Service
         console.log(`[MessagingService] Fetching current sender pool correlation_id=${correlationId}`)
         const existingPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
           .phoneNumbers
           .list({ limit: 100 })
-        
+
         console.log(`[MessagingService] Current sender pool count=${existingPhoneNumbers.length} correlation_id=${correlationId}`)
         console.log(`[MessagingService] Current sender pool SIDs=${existingPhoneNumbers.map(pn => pn.sid)} correlation_id=${correlationId}`)
         console.log(`[MessagingService] Current sender pool numbers=${existingPhoneNumbers.map(pn => pn.phoneNumber)} correlation_id=${correlationId}`)
-        
+
         const alreadyAttached = existingPhoneNumbers.some(pn => pn.sid === purchasedPhoneNumberSid)
-        
+
         if (alreadyAttached) {
           console.log(`[MessagingService] Number already attached to Messaging Service, skipping correlation_id=${correlationId}`)
           console.log(`[MessagingService] Verification PASSED (already attached) correlation_id=${correlationId}`)
@@ -1609,35 +1701,35 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
           console.log(`[MessagingService] Number not attached, starting attachment correlation_id=${correlationId}`)
           console.log(`[MessagingService] Creating phoneNumberSid=${purchasedPhoneNumberSid} correlation_id=${correlationId}`)
           console.log(`[MessagingService] Twilio API method: client.messaging.v1.services(sid).phoneNumbers.create({phoneNumberSid}) correlation_id=${correlationId}`)
-          
+
           const attachedSender = await client.messaging.v1.services(messagingServiceSid)
             .phoneNumbers
             .create({
               phoneNumberSid: purchasedPhoneNumberSid
             })
-          
+
           console.log(`[MessagingService] Attach response received correlation_id=${correlationId}`)
           console.log(`[MessagingService] Attach response=${JSON.stringify(attachedSender)} correlation_id=${correlationId}`)
           console.log(`[MessagingService] Attached sender SID=${attachedSender.sid} correlation_id=${correlationId}`)
           console.log(`[MessagingService] Attached sender phoneNumber=${attachedSender.phoneNumber} correlation_id=${correlationId}`)
-          
+
           // Verify attachment succeeded
           console.log(`[MessagingService] Verifying attachment correlation_id=${correlationId}`)
           const updatedPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
             .phoneNumbers
             .list({ limit: 100 })
-          
+
           console.log(`[MessagingService] Updated sender pool count=${updatedPhoneNumbers.length} correlation_id=${correlationId}`)
           console.log(`[MessagingService] Updated sender pool SIDs=${updatedPhoneNumbers.map(pn => pn.sid)} correlation_id=${correlationId}`)
           console.log(`[MessagingService] Updated sender pool numbers=${updatedPhoneNumbers.map(pn => pn.phoneNumber)} correlation_id=${correlationId}`)
-          
+
           const isAttached = updatedPhoneNumbers.some(pn => pn.sid === purchasedPhoneNumberSid)
-          
+
           console.log(`[SenderAttach] ========== AFTER ATTACH ========== correlation_id=${correlationId}`)
           console.log(`[SenderAttach] sender pool numbers: ${updatedPhoneNumbers.map(pn => pn.phoneNumber).join(', ')} correlation_id=${correlationId}`)
           console.log(`[SenderAttach] sender pool SIDs: ${updatedPhoneNumbers.map(pn => pn.sid).join(', ')} correlation_id=${correlationId}`)
           console.log(`[SenderAttach] purchased SID in pool: ${isAttached} correlation_id=${correlationId}`)
-          
+
           if (isAttached) {
             console.log(`[SenderAttach] ========== ATTACH VERIFICATION PASSED ========== correlation_id=${correlationId}`)
             console.log(`[MessagingService] Verification PASSED correlation_id=${correlationId}`)
@@ -1649,7 +1741,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
             console.error(`[SenderAttach] Expected purchased SID: ${purchasedPhoneNumberSid} correlation_id=${correlationId}`)
             console.error(`[SenderAttach] Actual sender pool SIDs: ${updatedPhoneNumbers.map(pn => pn.sid).join(', ')} correlation_id=${correlationId}`)
             console.error(`[SenderAttach] This indicates stale number was attached or attach failed correlation_id=${correlationId}`)
-            
+
             const errorMsg = 'Attachment succeeded but verification failed'
             console.error(`[MessagingService] Verification FAILED correlation_id=${correlationId}`)
             console.error(`[MessagingService] ERROR=${errorMsg} correlation_id=${correlationId}`)
@@ -1657,7 +1749,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
             console.error(`[MessagingService] Updated pool SIDs=${updatedPhoneNumbers.map(pn => pn.sid)} correlation_id=${correlationId}`)
             console.error(`[MessagingService] Canonical SID in pool?=${updatedPhoneNumbers.some(pn => pn.sid === purchasedPhoneNumberSid)} correlation_id=${correlationId}`)
             messagingServiceError = errorMsg
-            
+
             // Release the purchased number if attachment fails
             console.log(`[MessagingService] Releasing purchased number due to attachment failure correlation_id=${correlationId}`)
             try {
@@ -1666,7 +1758,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
             } catch (releaseError) {
               console.error(`[MessagingService] Failed to release number correlation_id=${correlationId}`, releaseError)
             }
-            
+
             throw new Error(errorMsg)
           }
         }
@@ -1677,10 +1769,10 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
         console.error(`[MessagingService] Error status=${attachmentError?.status || 'Unknown status'} correlation_id=${correlationId}`)
         console.error(`[MessagingService] More info=${attachmentError?.moreInfo || 'N/A'} correlation_id=${correlationId}`)
         console.error(`[MessagingService] Full error correlation_id=${correlationId}`, attachmentError)
-        
+
         const errorMsg = attachmentError?.message || 'Unknown attachment error'
         messagingServiceError = errorMsg
-        
+
         // Release the purchased number if attachment fails
         console.log(`[MessagingService] Releasing purchased number due to attachment error correlation_id=${correlationId}`)
         try {
@@ -1689,7 +1781,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
         } catch (releaseError) {
           console.error(`[MessagingService] Failed to release number correlation_id=${correlationId}`, releaseError)
         }
-        
+
         // Do NOT swallow this error - propagate it
         throw new Error(`Messaging Service attachment failed: ${errorMsg}`)
       }
@@ -1702,26 +1794,26 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
     console.log(`[Provisioning] FINAL assigned number=${purchasedPhoneNumber} correlation_id=${correlationId}`)
     console.log(`[Provisioning] FINAL assigned number SID=${purchasedPhoneNumberSid} correlation_id=${correlationId}`)
     console.log(`[Provisioning] Messaging Service attached=${messagingServiceAttached} correlation_id=${correlationId}`)
-    
+
     // Final validation: ensure only ONE number was purchased and attached
     if (messagingServiceAttached && messagingServiceSid) {
       console.log(`[Provisioning] Final validation: checking for multiple number purchases correlation_id=${correlationId}`)
-      
+
       try {
         const finalPoolNumbers = await client.messaging.v1.services(messagingServiceSid)
           .phoneNumbers
           .list({ limit: 100 })
-        
+
         console.log(`[Provisioning] Final pool count=${finalPoolNumbers.length} correlation_id=${correlationId}`)
         console.log(`[Provisioning] Final pool numbers=${finalPoolNumbers.map(pn => pn.phoneNumber)} correlation_id=${correlationId}`)
-        
+
         const canonicalInPool = finalPoolNumbers.find(pn => pn.sid === purchasedPhoneNumberSid)
-        
+
         if (!canonicalInPool) {
           console.error(`[Provisioning] CRITICAL ERROR: Canonical number NOT in pool correlation_id=${correlationId}`)
           console.error(`[Provisioning] Canonical number=${purchasedPhoneNumber} correlation_id=${correlationId}`)
           console.error(`[Provisioning] Pool numbers=${finalPoolNumbers.map(pn => pn.phoneNumber)} correlation_id=${correlationId}`)
-          
+
           // Release the purchased number since verification failed
           console.log(`[Provisioning] Releasing number due to verification failure correlation_id=${correlationId}`)
           try {
@@ -1730,14 +1822,14 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
           } catch (releaseError) {
             console.error(`[Provisioning] Failed to release number correlation_id=${correlationId}`, releaseError)
           }
-          
+
           throw new Error(`Critical: Canonical number ${purchasedPhoneNumber} not found in Messaging Service pool after provisioning`)
         }
-        
+
         console.log(`[Provisioning] Final validation passed: canonical number in pool correlation_id=${correlationId}`)
       } catch (validationError: any) {
         console.error(`[Provisioning] Final validation failed correlation_id=${correlationId}`, validationError)
-        
+
         // Release the purchased number since verification failed
         console.log(`[Provisioning] Releasing number due to validation error correlation_id=${correlationId}`)
         try {
@@ -1746,12 +1838,12 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
         } catch (releaseError) {
           console.error(`[Provisioning] Failed to release number correlation_id=${correlationId}`, releaseError)
         }
-        
+
         throw new Error(`Final validation failed: ${validationError.message}`)
       }
     } else if (!messagingServiceAttached) {
       console.error(`[Provisioning] Messaging Service attachment failed, not returning result correlation_id=${correlationId}`)
-      
+
       // Release the purchased number since attachment failed
       console.log(`[Provisioning] Releasing number due to attachment failure correlation_id=${correlationId}`)
       try {
@@ -1760,10 +1852,10 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
       } catch (releaseError) {
         console.error(`[Provisioning] Failed to release number correlation_id=${correlationId}`, releaseError)
       }
-      
+
       return null
     }
-    
+
     console.log(`[Provisioning] STATUS attached correlation_id=${correlationId}`)
     return {
       phoneNumber: purchasedPhoneNumber,
@@ -1790,15 +1882,15 @@ export async function saveProvisionedNumberToBusiness({
 }): Promise<{ success: boolean; dbNumber: string | null; dbNumberSid: string | null }> {
   console.log('[Provision Path] ========== saveProvisionedNumberToBusiness HIT ==========');
   console.log(`[Provision Path] businessId=${businessId} phoneNumber=${phoneNumber}`);
-  
+
   const correlationId = `SAVE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-  
+
   console.log(`[saveProvisionedNumber] ========== START ========== correlation_id=${correlationId}`)
   console.log(`[saveProvisionedNumber] business_id=${businessId} correlation_id=${correlationId}`)
   console.log(`[saveProvisionedNumber] INPUT phoneNumber=${phoneNumber} correlation_id=${correlationId}`)
   console.log(`[saveProvisionedNumber] INPUT phoneNumberSid=${phoneNumberSid} correlation_id=${correlationId}`)
   console.log(`[saveProvisionedNumber] INPUT messagingServiceSid=${messagingServiceSid} correlation_id=${correlationId}`)
-  
+
   const updatePayload = {
     twilio_phone_number: phoneNumber,
     twilio_phone_number_sid: phoneNumberSid,
@@ -1810,27 +1902,27 @@ export async function saveProvisionedNumberToBusiness({
     provisioning_error: null,
     provisioned_at: new Date().toISOString()
   }
-  
+
   console.log(`[saveProvisionedNumber] DB UPDATE PAYLOAD twilio_phone_number=${updatePayload.twilio_phone_number} correlation_id=${correlationId}`)
   console.log(`[saveProvisionedNumber] DB UPDATE PAYLOAD twilio_phone_number_sid=${updatePayload.twilio_phone_number_sid} correlation_id=${correlationId}`)
-  
+
   const { data, error } = await supabase
     .from('businesses')
     .update(updatePayload)
     .eq('id', businessId)
     .select('twilio_phone_number, twilio_phone_number_sid')
     .single()
-  
+
   if (error) {
     console.error(`[saveProvisionedNumber] DB UPDATE FAILED correlation_id=${correlationId}`, error)
     console.error(`[saveProvisionedNumber] ========== END FAILED ========== correlation_id=${correlationId}`)
     return { success: false, dbNumber: null, dbNumberSid: null }
   }
-  
+
   console.log(`[saveProvisionedNumber] DB UPDATE SUCCEEDED correlation_id=${correlationId}`)
   console.log(`[saveProvisionedNumber] DB RETURNED twilio_phone_number=${data.twilio_phone_number} correlation_id=${correlationId}`)
   console.log(`[saveProvisionedNumber] DB RETURNED twilio_phone_number_sid=${data.twilio_phone_number_sid} correlation_id=${correlationId}`)
-  
+
   // HARD ASSERTION: DB number must match purchased number
   if (data.twilio_phone_number !== phoneNumber) {
     console.error(`[saveProvisionedNumber] ========== CRITICAL MISMATCH ========== correlation_id=${correlationId}`)
@@ -1840,7 +1932,7 @@ export async function saveProvisionedNumberToBusiness({
     console.error(`[saveProvisionedNumber] ========== END FAILED ========== correlation_id=${correlationId}`)
     throw new Error(`CRITICAL_PROVISIONING_NUMBER_MISMATCH: Expected ${phoneNumber}, got ${data.twilio_phone_number}`)
   }
-  
+
   if (data.twilio_phone_number_sid !== phoneNumberSid) {
     console.error(`[saveProvisionedNumber] ========== CRITICAL SID MISMATCH ========== correlation_id=${correlationId}`)
     console.error(`[saveProvisionedNumber] EXPECTED (INPUT) phoneNumberSid=${phoneNumberSid} correlation_id=${correlationId}`)
@@ -1849,11 +1941,11 @@ export async function saveProvisionedNumberToBusiness({
     console.error(`[saveProvisionedNumber] ========== END FAILED ========== correlation_id=${correlationId}`)
     throw new Error(`CRITICAL_PROVISIONING_SID_MISMATCH: Expected ${phoneNumberSid}, got ${data.twilio_phone_number_sid}`)
   }
-  
+
   console.log(`[saveProvisionedNumber] ========== HARD ASSERTION PASSED ========== correlation_id=${correlationId}`)
   console.log(`[saveProvisionedNumber] DB number matches purchased number correlation_id=${correlationId}`)
   console.log(`[saveProvisionedNumber] ========== END SUCCESS ========== correlation_id=${correlationId}`)
-  
+
   // Trigger background warm number replenishment after successful assignment
   // This maintains a pool of available warm numbers for future signups
   try {
@@ -1865,56 +1957,56 @@ export async function saveProvisionedNumberToBusiness({
     console.error('[Warm Inventory] replenish failed', error)
     console.warn(`[saveProvisionedNumber] Failed to trigger background replenishment correlation_id=${correlationId}`, error)
   }
-  
-  return { 
-    success: true, 
-    dbNumber: data.twilio_phone_number, 
-    dbNumberSid: data.twilio_phone_number_sid 
+
+  return {
+    success: true,
+    dbNumber: data.twilio_phone_number,
+    dbNumberSid: data.twilio_phone_number_sid
   }
 }
 
 export async function repairProvisioningForBusiness(businessId: string): Promise<boolean> {
   console.log('[Provision Path] ========== repairProvisioningForBusiness HIT ==========');
   console.log(`[Provision Path] businessId=${businessId}`);
-  
+
   const correlationId = `REPAIR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-  
+
   console.log(`[RepairProvisioning] START business_id=${businessId} correlation_id=${correlationId}`)
-  
+
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
   const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID || 'MGe422ac34a7a2b70a646e2084110e54d3'
-  
+
   if (!accountSid || !authToken) {
     console.error(`[RepairProvisioning] Credentials missing correlation_id=${correlationId}`)
     return false
   }
-  
+
   try {
     const client = Twilio(accountSid, authToken)
-    
+
     // Fetch business details
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('id, twilio_phone_number, twilio_phone_number_sid, provisioning_status, provisioning_error')
       .eq('id', businessId)
       .single()
-    
+
     if (businessError || !business) {
       console.error(`[RepairProvisioning] Business not found correlation_id=${correlationId}`, businessError)
       return false
     }
-    
+
     console.log(`[RepairProvisioning] Business twilio_phone_number=${business.twilio_phone_number} correlation_id=${correlationId}`)
     console.log(`[RepairProvisioning] Business twilio_phone_number_sid=${business.twilio_phone_number_sid} correlation_id=${correlationId}`)
     console.log(`[RepairProvisioning] Business provisioning_status=${business.provisioning_status} correlation_id=${correlationId}`)
-    
+
     // Check if business has a number SID
     if (!business.twilio_phone_number_sid) {
       console.error(`[RepairProvisioning] No number SID found, cannot repair correlation_id=${correlationId}`)
       return false
     }
-    
+
     // Verify the number exists in Twilio
     console.log(`[RepairProvisioning] Verifying number exists in Twilio correlation_id=${correlationId}`)
     try {
@@ -1925,19 +2017,19 @@ export async function repairProvisioningForBusiness(businessId: string): Promise
       // Number doesn't exist, need full provisioning
       return false
     }
-    
+
     // Check if number is in sender pool
     console.log(`[RepairProvisioning] Checking sender pool membership correlation_id=${correlationId}`)
     const senderPool = await client.messaging.v1.services(messagingServiceSid)
       .phoneNumbers
       .list({ limit: 100 })
-    
+
     const numberInPool = senderPool.find(pn => pn.sid === business.twilio_phone_number_sid)
-    
+
     if (numberInPool) {
       console.log(`[RepairProvisioning] Number already in sender pool correlation_id=${correlationId}`)
       console.log(`[RepairProvisioning] Updating provisioning_status to attached correlation_id=${correlationId}`)
-      
+
       await supabase
         .from('businesses')
         .update({
@@ -1945,21 +2037,21 @@ export async function repairProvisioningForBusiness(businessId: string): Promise
           provisioning_error: null
         })
         .eq('id', businessId)
-      
+
       console.log(`[RepairProvisioning] Repair complete - status=attached correlation_id=${correlationId}`)
       return true
     }
-    
+
     // Number not in pool, attach it
     // DISABLED: This repair logic was potentially attaching stale numbers to sender pool
     // Only provisionTwilioNumber() should attach numbers to sender pool
     console.log(`[RepairProvisioning] Number not in pool - SKIPPING attach to prevent stale number attachment correlation_id=${correlationId}`)
     console.log(`[RepairProvisioning] Only provisionTwilioNumber() should attach numbers to sender pool correlation_id=${correlationId}`)
     console.log(`[RepairProvisioning] This prevents stale persistence/overwrite logic from attaching wrong numbers correlation_id=${correlationId}`)
-    
+
     // Mark as failed instead of attempting attach
     console.log(`[RepairProvisioning] Marking provisioning_status as failed correlation_id=${correlationId}`)
-    
+
     await supabase
       .from('businesses')
       .update({
@@ -2004,7 +2096,7 @@ export async function sendSystemSms(
 
   if (!systemNumber && !systemMessagingServiceSid) {
     const error = 'REPLYFLOW_SYSTEM_SMS_NUMBER or REPLYFLOW_SYSTEM_MESSAGING_SERVICE_SID is required for system SMS';
-    
+
     if (process.env.NODE_ENV === 'production') {
       console.error('[SYSTEM SMS] Missing required environment variable:', error);
       throw new Error(error);

@@ -41,6 +41,55 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Check intent for external return BEFORE super.onCreate()
+        // This prevents WebView from loading callback URLs on cold start
+        Intent launchIntent = getIntent();
+        Uri intentUri = launchIntent.getData();
+        if (intentUri != null) {
+            String scheme = intentUri.getScheme();
+            String host = intentUri.getHost();
+            String path = intentUri.getPath();
+            String queryString = intentUri.getQuery();
+            Log.d(TAG, "[CAPACITOR_LAUNCH_URL] scheme=" + scheme + ", host=" + host + ", path=" + path + ", query=" + queryString);
+
+            // Check if this is a recognized external return that should NOT be loaded into WebView
+            if ("https".equals(scheme) && "www.replyflowhq.com".equals(host)) {
+                boolean isExternalReturn = false;
+                String externalReturnType = null;
+
+                // Stripe Connect return
+                if ("/dashboard/settings".equals(path) && "stripe_onboarding=complete".equals(queryString)) {
+                    isExternalReturn = true;
+                    externalReturnType = "STRIPE_CONNECT";
+                }
+                // Stripe Checkout return
+                else if ("/billing/success".equals(path) && queryString != null && queryString.contains("session_id=cs_")) {
+                    isExternalReturn = true;
+                    externalReturnType = "STRIPE_CHECKOUT";
+                }
+                // Stripe Portal return
+                else if ("/dashboard/settings".equals(path) && "billing=returned".equals(queryString)) {
+                    isExternalReturn = true;
+                    externalReturnType = "STRIPE_PORTAL";
+                }
+                // Google Calendar return
+                else if ("/dashboard/calendar".equals(path) && queryString != null && (queryString.contains("calendar=connected") || queryString.contains("calendar=cancelled") || queryString.contains("calendar=error"))) {
+                    isExternalReturn = true;
+                    externalReturnType = "GOOGLE_CALENDAR";
+                }
+
+                if (isExternalReturn) {
+                    Log.d(TAG, "[EXTERNAL_RETURN_CLASSIFIED] type=" + externalReturnType + ", preventing WebView navigation on cold start");
+                    // Clear the intent BEFORE super.onCreate() to prevent WebView from loading the callback URL
+                    // IMPORTANT: Do NOT preserve intent data - Capacitor will load it into WebView
+                    // Capacitor will still deliver the URL to JS via appUrlOpen from internal storage
+                    setIntent(new Intent());
+                } else {
+                    Log.d(TAG, "[GENERIC_DEEPLINK_STARTED] not an external return, allowing normal WebView navigation");
+                }
+            }
+        }
+
         // Register custom local plugins BEFORE super.onCreate()
         // Per Capacitor documentation: registerPlugin must come before super.onCreate()
         
@@ -271,6 +320,64 @@ public class MainActivity extends BridgeActivity {
             // Fallback for older Android versions
             android.net.NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
             return networkInfo != null && networkInfo.isConnected();
+        }
+    }
+
+    @Override
+    public void onNewIntent(Intent intent) {
+        // Log intent for diagnostics BEFORE processing
+        Uri intentUri = intent.getData();
+        if (intentUri != null) {
+            String scheme = intentUri.getScheme();
+            String host = intentUri.getHost();
+            String path = intentUri.getPath();
+            String queryString = intentUri.getQuery();
+            Log.d(TAG, "[NATIVE_INTENT_RECEIVED] scheme=" + scheme + ", host=" + host + ", path=" + path + ", query=" + queryString);
+
+            // Check if this is a recognized external return that should NOT be loaded into WebView
+            if ("https".equals(scheme) && "www.replyflowhq.com".equals(host)) {
+                boolean isExternalReturn = false;
+                String externalReturnType = null;
+
+                // Stripe Connect return
+                if ("/dashboard/settings".equals(path) && "stripe_onboarding=complete".equals(queryString)) {
+                    isExternalReturn = true;
+                    externalReturnType = "STRIPE_CONNECT";
+                }
+                // Stripe Checkout return
+                else if ("/billing/success".equals(path) && queryString != null && queryString.contains("session_id=cs_")) {
+                    isExternalReturn = true;
+                    externalReturnType = "STRIPE_CHECKOUT";
+                }
+                // Stripe Portal return
+                else if ("/dashboard/settings".equals(path) && "billing=returned".equals(queryString)) {
+                    isExternalReturn = true;
+                    externalReturnType = "STRIPE_PORTAL";
+                }
+                // Google Calendar return
+                else if ("/dashboard/calendar".equals(path) && queryString != null && (queryString.contains("calendar=connected") || queryString.contains("calendar=cancelled") || queryString.contains("calendar=error"))) {
+                    isExternalReturn = true;
+                    externalReturnType = "GOOGLE_CALENDAR";
+                }
+
+                if (isExternalReturn) {
+                    Log.d(TAG, "[EXTERNAL_RETURN_CLASSIFIED] type=" + externalReturnType + ", preventing WebView navigation");
+                    // Clear the intent BEFORE calling super to prevent WebView from loading the callback URL
+                    // IMPORTANT: Do NOT preserve intent data - Capacitor will load it into WebView
+                    // Capacitor will still deliver the URL to JS via appUrlOpen from internal storage
+                    setIntent(new Intent());
+                    super.onNewIntent(new Intent());
+                } else {
+                    Log.d(TAG, "[GENERIC_DEEPLINK_STARTED] not an external return, allowing normal WebView navigation");
+                    super.onNewIntent(intent);
+                }
+            } else {
+                // Non-HTTPS or non-replyflowhq.com URLs - process normally
+                super.onNewIntent(intent);
+            }
+        } else {
+            // No URI in intent - process normally
+            super.onNewIntent(intent);
         }
     }
 

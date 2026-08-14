@@ -111,14 +111,38 @@ export async function initializeCapacitor() {
 
     // Set up URL/open URL listeners for deep links
     App.addListener('appUrlOpen', async (data) => {
+      console.log('[NAV_SOURCE] source=APP_URL_OPEN_ENTER url=' + data.url);
       console.log('[Capacitor] App opened with URL:', data.url);
 
       // Handle external return reconciliation for Stripe flows
-      await handleExternalReturn(data.url);
+      const handled = await handleExternalReturn(data.url);
 
-      // Handle deep links
-      handleDeepLink(data.url);
+      // Only handle deep links if the URL was not already handled by external return
+      if (!handled) {
+        console.log('[NAV_SOURCE] source=APP_URL_OPEN_HANDLE_DEEP_LINK url=' + data.url);
+        handleDeepLink(data.url);
+      } else {
+        console.log('[NAV_SOURCE] source=APP_URL_OPEN_SKIP_DEEP_LINK handled=true');
+      }
     });
+
+    // Handle launch URL for cold starts (app launched from App Link)
+    const launchUrl = await App.getLaunchUrl();
+    if (launchUrl) {
+      console.log('[NAV_SOURCE] source=GET_LAUNCH_URL url=' + launchUrl.url);
+      console.log('[Capacitor] App launched with URL:', launchUrl.url);
+
+      // Handle external return reconciliation for Stripe flows
+      const handled = await handleExternalReturn(launchUrl.url);
+
+      // Only handle deep links if the URL was not already handled by external return
+      if (!handled) {
+        console.log('[NAV_SOURCE] source=GET_LAUNCH_URL_HANDLE_DEEP_LINK url=' + launchUrl.url);
+        handleDeepLink(launchUrl.url);
+      } else {
+        console.log('[NAV_SOURCE] source=GET_LAUNCH_URL_SKIP_DEEP_LINK handled=true');
+      }
+    }
 
     // Set up back button listener for Android
     App.addListener('backButton', (data) => {
@@ -261,6 +285,7 @@ const DEEP_LINK_DEDUP_WINDOW_MS = 2000; // Ignore same URL within 2 seconds
  * - Universal/App Links: https://www.replyflowhq.com/dashboard/leads/123
  */
 function handleDeepLink(url: string) {
+  console.log('[NAV_SOURCE] source=HANDLE_DEEP_LINK_ENTER url=' + url);
   console.log('[APP URL OPEN] Received deep link:', url);
 
   // Deduplication: ignore duplicate URLs within time window
@@ -358,6 +383,7 @@ function handleDeepLink(url: string) {
       // For other Universal Links, navigate normally
       const path = urlObj.pathname + urlObj.search + urlObj.hash
       console.log('[UNIVERSAL LINK] Navigating to path:', path)
+      console.log('[NAV_SOURCE] source=HANDLE_DEEP_LINK_NAVIGATE destination=' + path)
       window.location.pathname = path
       return
     }

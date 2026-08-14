@@ -80,7 +80,7 @@ export interface CleanupResult {
  * - status='available'
  * - business_id IS NULL
  * - sms_status='ready'
- * 
+ *
  * Does NOT count:
  * - assigned numbers
  * - legacy active rows
@@ -133,7 +133,7 @@ export async function getWarmNumberStats(): Promise<WarmNumberStats> {
 
   try {
     console.log('[Warm Inventory] ========== GETTING WARM NUMBER STATS ==========');
-    
+
     // Available: status='available', business_id IS NULL, sms_status='ready', provisioning_status='ready'
     const { data: available } = await supabase
       .from('twilio_numbers')
@@ -212,7 +212,7 @@ export async function getInventoryMetrics(): Promise<InventoryMetrics> {
 
   try {
     const stats = await getWarmNumberStats();
-    
+
     const assignedCount = stats.assignedCount;
     const availableCount = stats.availableCount;
     const desiredAvailableBuffer = MIN_AVAILABLE_WARM_NUMBERS;
@@ -585,7 +585,7 @@ export async function assignWarmNumberToBusiness(phoneNumber: string, businessId
 export async function triggerBackgroundReplenishment(): Promise<void> {
   console.log('[Warm Inventory] ========== triggerBackgroundReplenishment HIT ==========');
   console.log('[Warm Inventory] Triggering background replenishment...');
-  
+
   // Run asynchronously without awaiting
   ensureWarmNumberMinimum()
     .then((result) => {
@@ -610,10 +610,33 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
   }
 
   try {
+    // STEP 0: Idempotency check - Check if business already has an assigned number
+    console.log(`[Warm Inventory] STEP 0: Checking for existing assignment for business ${businessId}...`);
+    const { data: existingAssignment } = await supabase
+      .from('twilio_numbers')
+      .select('id, phone_number, twilio_sid, status, sms_status, provisioning_status')
+      .eq('business_id', businessId)
+      .in('status', ['assigned', 'active'])
+      .single();
+
+    if (existingAssignment) {
+      console.log(`[PROVISION_EXISTING_ASSIGNMENT_FOUND] business_id=${businessId} twilio_number_id=${existingAssignment.id} phone_number=${existingAssignment.phone_number}`);
+      console.log(`[PROVISION_WARM_CONFLICT_RECONCILED] Business already has assigned number, reusing instead of assigning new warm number`);
+
+      // Return success with existing number (idempotent)
+      return {
+        success: true,
+        phoneNumber: existingAssignment.phone_number,
+        phoneNumberSid: existingAssignment.twilio_sid
+      };
+    }
+
+    console.log(`[Warm Inventory] No existing assignment found, proceeding with warm number assignment`);
+
     // STEP 1: Atomic claim - UPDATE with WHERE conditions to prevent race condition
     // This ensures only one request can claim a specific number
     console.log(`[Warm Inventory] STEP 1: Atomically claiming warm number for business ${businessId}...`);
-    
+
     const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
     const senderPoolAttachedAt = new Date().toISOString();
 
@@ -643,6 +666,29 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
     if (claimError) {
       console.error('[Warm Inventory] ERROR: Atomic claim failed:', claimError);
       console.error('[Warm Inventory] ERROR Details:', JSON.stringify(claimError, null, 2));
+
+      // Check if this is a unique constraint violation due to existing assignment
+      if (claimError.message && claimError.message.includes('unique constraint') || claimError.code === '23505') {
+        console.log(`[Warm Inventory] Unique constraint violation detected - business likely already has assigned number`);
+
+        // Re-check for existing assignment and reconcile
+        const { data: retryExistingAssignment } = await supabase
+          .from('twilio_numbers')
+          .select('id, phone_number, twilio_sid, status, sms_status, provisioning_status')
+          .eq('business_id', businessId)
+          .in('status', ['assigned', 'active'])
+          .single();
+
+        if (retryExistingAssignment) {
+          console.log(`[PROVISION_WARM_CONFLICT_RECONCILED] Found existing assignment after constraint violation, reconciling`);
+          return {
+            success: true,
+            phoneNumber: retryExistingAssignment.phone_number,
+            phoneNumberSid: retryExistingAssignment.twilio_sid
+          };
+        }
+      }
+
       return { success: false, error: 'Failed to claim warm number' };
     }
 
@@ -774,7 +820,7 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
   } catch (error: any) {
     console.error('[Warm Inventory] EXCEPTION: Exception assigning warm number');
     console.error('[Warm Inventory] EXCEPTION Details:', JSON.stringify(error, null, 2));
-    console.error('[Warm Inventory] ========== END WARM INVENTORY ASSIGNMENT (EXCEPTION) ==========');    
+    console.error('[Warm Inventory] ========== END WARM INVENTORY ASSIGNMENT (EXCEPTION) ==========');
     return { success: false, error: error.message };
   }
 }
@@ -832,7 +878,7 @@ export async function verifyAndHealBusinessTwilioAssignment(businessId: string):
       console.error(`[SELF-HEAL] Twilio ownership check failed for ${business.twilio_phone_number}:`, twilioError);
       if (twilioError.code === 20404 || twilioError.status === 404) {
         console.log(`[SELF-HEAL] Number not found in Twilio Active Numbers - invalidating assignment`);
-        
+
         // Invalidate the assignment in twilio_numbers table
         const { error: updateError } = await supabase
           .from('twilio_numbers')
@@ -920,24 +966,24 @@ export async function recycleTwilioNumberToInventory(
   try {
     // STEP 1: Verify Twilio-side configuration before marking as ready
     console.log('[RECYCLE] STEP 1: Verifying Twilio-side configuration before recycling...');
-    
+
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
-    
+
     let isGenuinelyReady = false;
     let verificationDetails: any = {};
-    
+
     if (accountSid && authToken) {
       const client = Twilio(accountSid, authToken);
-      
+
       try {
         // Verify Twilio still owns the number
         console.log('[RECYCLE] Verifying Twilio ownership...');
         await client.incomingPhoneNumbers(phoneNumberSid).fetch();
         verificationDetails.twilioOwnership = 'verified';
         console.log('[RECYCLE] Twilio ownership verified');
-        
+
         // Verify sender pool attachment if messaging service configured
         if (messagingServiceSid) {
           console.log('[RECYCLE] Verifying sender pool attachment...');
@@ -945,7 +991,7 @@ export async function recycleTwilioNumberToInventory(
             .phoneNumbers
             .list({ limit: 100 });
           const isInSenderPool = senderPool.some(pn => pn.sid === phoneNumberSid);
-          
+
           if (isInSenderPool) {
             verificationDetails.senderPool = 'attached';
             console.log('[RECYCLE] Sender pool attachment verified');
@@ -957,7 +1003,7 @@ export async function recycleTwilioNumberToInventory(
           verificationDetails.senderPool = 'not_configured';
           console.log('[RECYCLE] Messaging service not configured, skipping sender pool check');
         }
-        
+
         // Check current provisioning status from database
         console.log('[RECYCLE] Checking current provisioning status...');
         const { data: currentNumber, error: fetchError } = await supabase
@@ -965,20 +1011,20 @@ export async function recycleTwilioNumberToInventory(
           .select('provisioning_status, sms_status')
           .eq('twilio_sid', phoneNumberSid)
           .single();
-        
+
         if (!fetchError && currentNumber) {
           verificationDetails.provisioningStatus = currentNumber.provisioning_status;
           verificationDetails.currentSmsStatus = currentNumber.sms_status;
           console.log('[RECYCLE] Current provisioning status:', currentNumber.provisioning_status);
           console.log('[RECYCLE] Current sms_status:', currentNumber.sms_status);
-          
+
           // Determine readiness based on canonical logic
           // Number is ready if: Twilio owns it, sender pool attached (if configured), provisioning_status is 'ready'
           const senderPoolVerified = !messagingServiceSid || verificationDetails.senderPool === 'attached';
           const provisioningReady = currentNumber.provisioning_status === 'ready';
-          
+
           isGenuinelyReady = senderPoolVerified && provisioningReady;
-          
+
           console.log('[RECYCLE] Readiness determination:', {
             senderPoolVerified,
             provisioningReady,
@@ -988,7 +1034,7 @@ export async function recycleTwilioNumberToInventory(
           console.error('[RECYCLE] Failed to fetch current number status:', fetchError);
           verificationDetails.fetchError = fetchError?.message;
         }
-        
+
       } catch (verifyError: any) {
         console.error('[RECYCLE] Verification failed:', verifyError);
         verificationDetails.verificationError = verifyError?.message;
@@ -999,10 +1045,10 @@ export async function recycleTwilioNumberToInventory(
       verificationDetails.credentialsError = 'missing_credentials';
       isGenuinelyReady = false;
     }
-    
+
     console.log('[RECYCLE] Verification complete:', verificationDetails);
     console.log('[RECYCLE] Final readiness determination:', isGenuinelyReady ? 'ready' : 'pending');
-    
+
     // STEP 2: Fetch current state for compare-and-swap validation
     console.log('[RECYCLE] STEP 2: Fetching current state for compare-and-swap validation...');
     const { data: currentNumber, error: fetchError } = await supabase
@@ -1119,7 +1165,7 @@ export async function recycleTwilioNumberToInventory(
     if (businessUpdateError) {
       console.error('[RECYCLE] ERROR: Failed to clear business references:', businessUpdateError);
       console.error('[RECYCLE] ERROR Details:', JSON.stringify(businessUpdateError, null, 2));
-      
+
       // SAFETY FIX: Compensation rollback with compare-and-swap and full field restoration
       console.error('[RECYCLE] COMPENSATION: Rolling back twilio_numbers update due to business update failure');
       const { error: rollbackError, count: rollbackCount } = await supabase
@@ -1136,25 +1182,25 @@ export async function recycleTwilioNumberToInventory(
         .eq('id', currentNumber.id)
         .eq('business_id', null) // Ensure we're rolling back from the detached state
         .in('status', ['available']);
-      
+
       if (rollbackError || rollbackCount === 0) {
         console.error('[RECYCLE] CRITICAL: Compensation rollback failed - data may be inconsistent', {
           rollbackError: rollbackError?.message,
           rollbackCount
         });
-        return { 
-          success: false, 
-          error: 'CRITICAL: Failed to clear business references AND compensation rollback failed - data may be inconsistent' 
+        return {
+          success: false,
+          error: 'CRITICAL: Failed to clear business references AND compensation rollback failed - data may be inconsistent'
         };
       }
-      
+
       console.error('[RECYCLE] COMPENSATION: Rollback successful');
       return { success: false, error: 'Failed to clear business references - transaction rolled back' };
     }
 
     if (businessUpdateCount === 0) {
       console.error('[RECYCLE] ERROR: Compare-and-swap failed on business update - zero rows updated');
-      
+
       // SAFETY FIX: Compensation rollback with compare-and-swap and full field restoration
       console.error('[RECYCLE] COMPENSATION: Rolling back twilio_numbers update due to business compare-and-swap failure');
       const { error: rollbackError, count: rollbackCount } = await supabase
@@ -1171,18 +1217,18 @@ export async function recycleTwilioNumberToInventory(
         .eq('id', currentNumber.id)
         .eq('business_id', null) // Ensure we're rolling back from the detached state
         .in('status', ['available']);
-      
+
       if (rollbackError || rollbackCount === 0) {
         console.error('[RECYCLE] CRITICAL: Compensation rollback failed - data may be inconsistent', {
           rollbackError: rollbackError?.message,
           rollbackCount
         });
-        return { 
-          success: false, 
-          error: 'CRITICAL: Compare-and-swap failed on business update AND compensation rollback failed - data may be inconsistent' 
+        return {
+          success: false,
+          error: 'CRITICAL: Compare-and-swap failed on business update AND compensation rollback failed - data may be inconsistent'
         };
       }
-      
+
       console.error('[RECYCLE] COMPENSATION: Rollback successful');
       return { success: false, error: 'Compare-and-swap failed on business update - transaction rolled back' };
     }
@@ -1206,10 +1252,10 @@ export async function recycleTwilioNumberToInventory(
  */
 function isTransientError(error: any): boolean {
   if (!error) return false;
-  
+
   const errorMessage = error.message?.toLowerCase() || '';
   const errorCode = error.code?.toLowerCase() || '';
-  
+
   // Network-related transient errors
   if (errorMessage.includes('fetch failed')) return true;
   if (errorMessage.includes('und_err_socket')) return true;
@@ -1221,13 +1267,13 @@ function isTransientError(error: any): boolean {
   if (errorMessage.includes('enotfound')) return true;
   if (errorMessage.includes('econnrefused')) return true;
   if (errorMessage.includes('network')) return true;
-  
+
   // Specific error codes
   if (errorCode.includes('5')) return true; // 5xx server errors
   if (errorCode === '503') return true;
   if (errorCode === '502') return true;
   if (errorCode === '504') return true;
-  
+
   return false;
 }
 
@@ -1247,22 +1293,22 @@ async function retryWithBackoff<T>(
   baseDelayMs: number = 1000
 ): Promise<{ success: boolean; result?: T; error?: string }> {
   let lastError: string = '';
-  
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const result = await fn();
       return { success: true, result };
     } catch (error: any) {
       lastError = error.message || String(error);
-      
+
       console.error(`[RETRY] Attempt ${attempt}/${maxAttempts} failed:`, lastError);
-      
+
       // Don't retry non-transient errors
       if (!isTransientError(error)) {
         console.error('[RETRY] Non-transient error, not retrying');
         break;
       }
-      
+
       // Don't wait after last attempt
       if (attempt < maxAttempts) {
         const delay = baseDelayMs * Math.pow(2, attempt - 1); // Exponential backoff
@@ -1271,7 +1317,7 @@ async function retryWithBackoff<T>(
       }
     }
   }
-  
+
   return { success: false, error: lastError };
 }
 
@@ -1283,13 +1329,13 @@ async function retryWithBackoff<T>(
  * - sms_status='ready'
  * - NOT the protected system number
  * - Newest created_at (to release newest first, keep oldest)
- * 
+ *
  * SAFE ORDERING:
  * 1. Mark as retired in database FIRST
  * 2. Release from Twilio SECOND
  * 3. If database update fails, do NOT release from Twilio
  * 4. Never leave Twilio released while database shows active/available
- * 
+ *
  * Marks numbers as retired in database with detached_at and detached_reason
  * instead of deleting them, for audit trail
  */
@@ -1324,10 +1370,10 @@ export async function cleanupExcessInventory(): Promise<CleanupResult> {
     const metrics = await getInventoryMetrics();
     const availableCount = metrics.availableCount;
     const targetAvailable = metrics.desiredAvailableBuffer;
-    
+
     console.log(`[INVENTORY] target_available: ${targetAvailable}`);
     console.log(`[INVENTORY] available_ready_count: ${availableCount}`);
-    
+
     if (availableCount <= targetAvailable) {
       console.log('[CLEANUP] No excess inventory to clean up');
       return {
@@ -1491,7 +1537,7 @@ export async function cleanupExcessInventory(): Promise<CleanupResult> {
               updated_at: new Date().toISOString(),
             })
             .eq('id', number.id);
-          
+
           if (error) throw error;
         }, 3, 1000);
 
@@ -1569,7 +1615,7 @@ export async function cleanupExcessInventory(): Promise<CleanupResult> {
 
     // Determine overall success
     result.success = result.numbersFailed === 0 || result.numbersRetired > 0;
-    
+
     console.log(`[CLEANUP] Cleanup complete:`, {
       eligible: result.numbersEligible,
       retired: result.numbersRetired,
@@ -1578,7 +1624,7 @@ export async function cleanupExcessInventory(): Promise<CleanupResult> {
       partialFailure: result.partialFailure
     });
     console.log('[CLEANUP] ========== END EXCESS INVENTORY CLEANUP ==========');
-    
+
     return result;
 
   } catch (error: any) {

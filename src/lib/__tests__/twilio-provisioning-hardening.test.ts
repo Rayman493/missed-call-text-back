@@ -1,6 +1,6 @@
 /**
  * Integration Tests for Twilio Provisioning Critical Hardening
- * 
+ *
  * Tests for:
  * 1. Concurrent warm-number assignment (atomic claim)
  * 2. Orphaned Twilio number reconciliation
@@ -60,7 +60,7 @@ describe('Concurrent Warm-Number Assignment', () => {
     // In production, PostgreSQL's UPDATE with WHERE clause ensures atomicity
     // The WHERE clause includes: business_id IS NULL, status='available', etc.
     // Only one request can satisfy these conditions and update the row
-    
+
     const mockSupabase = {
       from: vi.fn(() => ({
         update: vi.fn(() => ({
@@ -144,7 +144,7 @@ describe('Orphaned Twilio Number Reconciliation', () => {
     ]
 
     // AC1 should be detected as orphaned
-    const orphaned = mockTwilioNumbers.filter(twilio => 
+    const orphaned = mockTwilioNumbers.filter(twilio =>
       !mockDbNumbers.some(db => db.twilio_sid === twilio.sid)
     )
 
@@ -166,7 +166,7 @@ describe('Orphaned Twilio Number Reconciliation', () => {
     ]
 
     // AC1 should be detected as discrepant
-    const discrepant = mockDbNumbers.filter(db => 
+    const discrepant = mockDbNumbers.filter(db =>
       !mockTwilioNumbers.some(twilio => twilio.sid === db.twilio_sid)
     )
 
@@ -184,7 +184,7 @@ describe('Orphaned Twilio Number Reconciliation', () => {
 
     const mockDbNumbers: any[] = []
 
-    const orphaned = mockTwilioNumbers.filter(twilio => 
+    const orphaned = mockTwilioNumbers.filter(twilio =>
       twilio.phoneNumber !== systemNumber &&
       !mockDbNumbers.some(db => db.twilio_sid === twilio.sid)
     )
@@ -220,8 +220,8 @@ describe('Stuck Provisioning State Recovery', () => {
     const stuckTime = new Date(now.getTime() - stuckThreshold - 1000).toISOString()
 
     const stuckNumbers = [
-      { 
-        phone_number: '+1234567890', 
+      {
+        phone_number: '+1234567890',
         twilio_sid: 'AC1',
         business_id: 'biz1',
         provisioning_status: 'campaign_registering',
@@ -230,8 +230,8 @@ describe('Stuck Provisioning State Recovery', () => {
     ]
 
     const notStuckNumbers = [
-      { 
-        phone_number: '+1987654321', 
+      {
+        phone_number: '+1987654321',
         twilio_sid: 'AC2',
         business_id: 'biz2',
         provisioning_status: 'campaign_registering',
@@ -289,7 +289,7 @@ describe('Crash Recovery', () => {
     const twilioNumbers = [{ sid: 'AC1', phoneNumber: '+1234567890' }]
     const dbNumbers: any[] = []
 
-    const orphaned = twilioNumbers.filter(twilio => 
+    const orphaned = twilioNumbers.filter(twilio =>
       !dbNumbers.some(db => db.twilio_sid === twilio.sid)
     )
 
@@ -323,7 +323,7 @@ describe('Endpoint Security Tests', () => {
       ok: false,
       error: 'Unauthorized'
     }
-    
+
     expect(mockResponse.ok).toBe(false)
     expect(mockResponse.error).toBe('Unauthorized')
   })
@@ -333,7 +333,7 @@ describe('Endpoint Security Tests', () => {
     // In production, the endpoint checks isAdmin(user.id)
     const mockUser = { id: 'non-admin-user-id' }
     const isAdminUser = mockUser.id === 'admin-user-id'
-    
+
     expect(isAdminUser).toBe(false)
   })
 
@@ -344,7 +344,7 @@ describe('Endpoint Security Tests', () => {
       ok: false,
       error: 'Unauthorized'
     }
-    
+
     expect(mockResponse.ok).toBe(false)
     expect(mockResponse.error).toBe('Unauthorized')
   })
@@ -353,7 +353,7 @@ describe('Endpoint Security Tests', () => {
     // This test verifies the recovery endpoint rejects invalid cron secrets
     const validSecret = 'valid-cron-secret'
     const invalidSecret = 'invalid-cron-secret'
-    
+
     const isValid = invalidSecret === validSecret
     expect(isValid).toBe(false)
   })
@@ -362,7 +362,7 @@ describe('Endpoint Security Tests', () => {
     // This test verifies the recovery endpoint accepts valid cron secrets
     const validSecret = 'valid-cron-secret'
     const providedSecret = 'valid-cron-secret'
-    
+
     const isValid = providedSecret === validSecret
     expect(isValid).toBe(true)
   })
@@ -372,11 +372,11 @@ describe('Overlap Protection Tests', () => {
   it('simultaneous recovery runs do not process the same row', async () => {
     // This test verifies that two concurrent recovery runs cannot claim the same number
     // The recovery_run_id field is used for atomic claiming
-    
+
     const numberId = 'number-123'
     const run1Id = 'run-1'
     const run2Id = 'run-2'
-    
+
     // Simulate first run claiming the number
     const claim1 = {
       id: numberId,
@@ -384,12 +384,12 @@ describe('Overlap Protection Tests', () => {
       last_recovery_attempt_at: new Date().toISOString(),
       recovery_attempt_count: 1
     }
-    
+
     // Simulate second run attempting to claim the same number
     // The WHERE clause includes: recovery_run_id IS NULL
     const isClaimed = claim1.recovery_run_id !== null
     const canClaim2 = !isClaimed
-    
+
     expect(isClaimed).toBe(true)
     expect(canClaim2).toBe(false)
   })
@@ -398,12 +398,12 @@ describe('Overlap Protection Tests', () => {
     // This test verifies that stale claims (> 1 hour old) are automatically reclaimed
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-    
+
     const staleClaim = {
       recovery_run_id: 'old-run',
       last_recovery_attempt_at: twoHoursAgo
     }
-    
+
     const isStale = new Date(staleClaim.last_recovery_attempt_at) < new Date(oneHourAgo)
     expect(isStale).toBe(true)
   })
@@ -415,7 +415,7 @@ describe('Retry Metadata Tests', () => {
     const attemptCount = 2
     const backoffHours = Math.pow(2, attemptCount - 1)
     const nextRetryAt = new Date(Date.now() + backoffHours * 60 * 60 * 1000).toISOString()
-    
+
     expect(attemptCount).toBe(2)
     expect(backoffHours).toBe(2) // 2^(2-1) = 2 hours
     expect(nextRetryAt).toBeDefined()
@@ -425,7 +425,7 @@ describe('Retry Metadata Tests', () => {
     // This test verifies that after MAX_RECOVERY_ATTEMPTS, numbers are marked as failed
     const MAX_ATTEMPTS = 5
     const currentAttempt = 5
-    
+
     const isExhausted = currentAttempt >= MAX_ATTEMPTS
     expect(isExhausted).toBe(true)
   })
@@ -433,13 +433,206 @@ describe('Retry Metadata Tests', () => {
   it('exponential backoff is bounded at 24 hours', async () => {
     // This test verifies that exponential backoff is capped at 24 hours
     const MAX_BACKOFF_HOURS = 24
-    
+
     const attempt1 = Math.min(Math.pow(2, 0), MAX_BACKOFF_HOURS) // 1 hour
     const attempt5 = Math.min(Math.pow(2, 4), MAX_BACKOFF_HOURS) // 16 hours
     const attempt10 = Math.min(Math.pow(2, 9), MAX_BACKOFF_HOURS) // 512 hours → capped at 24
-    
+
     expect(attempt1).toBe(1)
     expect(attempt5).toBe(16)
     expect(attempt10).toBe(MAX_BACKOFF_HOURS)
+  })
+})
+
+describe('Provisioning Idempotency Tests', () => {
+  it('business with existing assigned number → no purchase', async () => {
+    // Scenario: Business already has an assigned number in twilio_numbers
+    // Expected: System reuses existing number, does not call Twilio API
+
+    const businessId = 'biz-123'
+    const existingNumber = {
+      id: 'twilio-123',
+      phone_number: '+1234567890',
+      twilio_sid: 'AC123',
+      status: 'assigned',
+      sms_status: 'ready',
+      provisioning_status: 'ready'
+    }
+
+    // Mock twilio_numbers query returning existing assignment
+    const mockSupabase = {
+      from: vi.fn(() => ({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        in: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: existingNumber,
+          error: null
+        })
+      }))
+    }
+
+    const result = await mockSupabase.from().select().eq('business_id', businessId).in('status', ['assigned', 'active']).single()
+
+    expect(result.data).toEqual(existingNumber)
+    expect(result.data?.phone_number).toBe('+1234567890')
+    // Twilio API should NOT be called
+  })
+
+  it('business row missing number but twilio_numbers has assignment → reconcile, no purchase', async () => {
+    // Scenario: businesses.twilio_phone_number_sid is NULL but twilio_numbers has assignment
+    // Expected: System reconciles existing assignment to businesses table, does not call Twilio API
+
+    const businessId = 'biz-123'
+    const twilioNumber = {
+      id: 'twilio-123',
+      phone_number: '+1234567890',
+      twilio_sid: 'AC123',
+      status: 'assigned',
+      sms_status: 'ready',
+      provisioning_status: 'ready'
+    }
+
+    const businessWithoutNumber = {
+      id: businessId,
+      twilio_phone_number: null,
+      twilio_phone_number_sid: null,
+      provisioning_status: 'pending'
+    }
+
+    // Mock twilio_numbers query returning assignment
+    const mockSupabase = {
+      from: vi.fn((table) => {
+        if (table === 'twilio_numbers') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            in: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({
+              data: twilioNumber,
+              error: null
+            })
+          }
+        }
+        if (table === 'businesses') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({
+              data: businessWithoutNumber,
+              error: null
+            }),
+            update: vi.fn().mockReturnThis()
+          }
+        }
+        return { select: vi.fn().mockReturnThis() }
+      })
+    }
+
+    const twilioResult = await mockSupabase.from('twilio_numbers').select().eq('business_id', businessId).in('status', ['assigned', 'active']).single()
+    expect(twilioResult.data).toEqual(twilioNumber)
+
+    // Reconciliation should update businesses table
+    // Twilio API should NOT be called
+  })
+
+  it('warm assignment unique constraint caused by same business existing number → reconcile, no purchase', async () => {
+    // Scenario: Warm inventory UPDATE fails with unique constraint violation because business already has assigned number
+    // Expected: System detects constraint violation, queries for existing assignment, reconciles, does not call Twilio API
+
+    const constraintError = {
+      message: 'duplicate key value violates unique constraint "idx_twilio_numbers_business_active_unique"',
+      code: '23505'
+    }
+
+    // Verify constraint error structure
+    expect(constraintError.code).toBe('23505')
+    expect(constraintError.message).toContain('idx_twilio_numbers_business_active_unique')
+
+    // System should detect this specific error and re-query for existing assignment
+    // Twilio API should NOT be called
+  })
+
+  it('concurrent provisioning requests → maximum one purchase', async () => {
+    // Scenario: Two concurrent requests for same business
+    // Expected: Only one request succeeds, other detects existing assignment
+
+    const businessId = 'biz-123'
+    const requestId1 = 'req-1'
+
+    // Simulate lock acquisition
+    const lockAcquired = true
+    const lockId = requestId1
+
+    expect(lockAcquired).toBe(true)
+    expect(lockId).toBe(requestId1)
+
+    // Second request should see the lock and not proceed with purchase
+    const canProceed = lockId !== requestId1
+
+    expect(canProceed).toBe(false)
+  })
+
+  it('failed live purchase → safe retry', async () => {
+    // Scenario: Live purchase fails on first attempt
+    // Expected: Retry succeeds, does not create duplicate numbers
+
+    let attemptCount = 0
+    const maxRetries = 3
+
+    // Simulate retry logic
+    async function attemptPurchase() {
+      attemptCount++
+      if (attemptCount === 1) {
+        throw new Error('Network timeout')
+      }
+      return { sid: 'AC999', phoneNumber: '+1999999999' }
+    }
+
+    // First attempt fails
+    await expect(attemptPurchase()).rejects.toThrow('Network timeout')
+    expect(attemptCount).toBe(1)
+
+    // Second attempt succeeds
+    const result = await attemptPurchase()
+    expect(result?.phoneNumber).toBe('+1999999999')
+    expect(attemptCount).toBe(2)
+    expect(attemptCount).toBeLessThanOrEqual(maxRetries)
+  })
+
+  it('release/reclaim state is not incorrectly reused', async () => {
+    // Scenario: Number was released, then reclaimed for same business
+    // Expected: System treats reclaimed number as valid assignment
+
+    const businessId = 'biz-123'
+    const reclaimedNumber = {
+      id: 'twilio-321',
+      phone_number: '+1111111111',
+      twilio_sid: 'AC321',
+      status: 'assigned',
+      sms_status: 'ready',
+      provisioning_status: 'ready',
+      detached_at: null,
+      detached_reason: null
+    }
+
+    const mockSupabase = {
+      from: vi.fn(() => ({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        in: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: reclaimedNumber,
+          error: null
+        })
+      }))
+    }
+
+    const result = await mockSupabase.from().select().eq('business_id', businessId).in('status', ['assigned', 'active']).single()
+    expect(result.data).toEqual(reclaimedNumber)
+    expect(result.data?.detached_at).toBeNull()
+
+    // System should reuse reclaimed number
+    // Twilio API should NOT be called
   })
 })

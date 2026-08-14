@@ -1,20 +1,22 @@
 /**
  * Centralized External Return Handler
- * 
- * Handles return flows from external browsers (Stripe Connect, Stripe Checkout, OAuth, etc.)
+ *
+ * Handles return flows from external browsers (Stripe Connect, Stripe Checkout, Stripe Portal, OAuth, etc.)
  * ensuring authoritative server-side status reconciliation rather than trusting client callback parameters.
- * 
+ *
  * Principles:
  * - BROWSER CALLBACK != AUTHORITATIVE SUCCESS
  * - Server-side status is source of truth
  * - Idempotent and deduplicated
  * - Works on Android, iOS, and web
+ * - Recognized returns skip generic deep-link navigation
+ * - Clean internal route navigation without transient parameters
  */
 
 import { Capacitor } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
 
-export type PendingStripeOperation = 'connect_onboarding' | 'checkout' | null
+export type PendingStripeOperation = 'connect_onboarding' | 'checkout' | 'portal' | null
 
 const PENDING_STRIPE_OPERATION_KEY = 'pending_stripe_operation'
 const PENDING_STRIPE_OPERATION_TIMESTAMP_KEY = 'pending_stripe_operation_timestamp'
@@ -24,6 +26,56 @@ const STRIPE_RECONCILIATION_LAST_TIME_KEY = 'stripe_reconciliation_last_time'
 
 const RECONCILIATION_DEDUP_WINDOW_MS = 5000 // Don't reconcile more than once every 5 seconds
 const OPERATION_EXPIRY_MS = 300000 // Pending operations expire after 5 minutes
+
+/**
+ * Centralized External Return Registry
+ *
+ * Maps external return URLs to their handlers, internal destinations, and reconciliation logic.
+ * All recognized returns skip generic deep-link navigation and trigger authoritative reconciliation.
+ */
+interface ExternalReturnFlow {
+  name: string
+  matcher: (url: URL) => boolean
+  internalDestination: string
+  reconcile: (businessId?: string) => Promise<void>
+}
+
+const EXTERNAL_RETURN_FLOWS: ExternalReturnFlow[] = [
+  {
+    name: 'STRIPE_CONNECT',
+    matcher: (url) => url.searchParams.get('stripe_onboarding') === 'complete',
+    internalDestination: '/dashboard/settings',
+    reconcile: async (businessId) => {
+      const result = await reconcileStripeStatus(businessId)
+      console.log('[STRIPE CONNECT RETURN] Reconciliation result:', result)
+    }
+  },
+  {
+    name: 'STRIPE_CHECKOUT',
+    matcher: (url) => url.searchParams.get('session_id')?.startsWith('cs_') || url.searchParams.get('checkout') === 'success',
+    internalDestination: '/billing/success',
+    reconcile: async (businessId) => {
+      // Stripe Checkout reconciliation is handled by the billing/success page itself
+      // via /api/billing/checkout-status polling
+      // We just need to navigate to the clean route without transient params
+      console.log('[STRIPE CHECKOUT RETURN] Navigating to billing/success for status polling')
+    }
+  },
+  {
+    name: 'STRIPE_PORTAL',
+    matcher: (url) => url.searchParams.get('billing') === 'returned',
+    internalDestination: '/dashboard/settings',
+    reconcile: async (businessId) => {
+      // Stripe Portal reconciliation - refresh billing status from backend
+      const result = await fetch('/api/billing/checkout-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_billing: true })
+      })
+      console.log('[STRIPE PORTAL RETURN] Billing status refresh result:', result.ok)
+    }
+  }
+]
 
 /**
  * Check if running in Capacitor native environment
@@ -48,7 +100,7 @@ export async function setPendingStripeOperation(operation: PendingStripeOperatio
   if (businessId) {
     await Preferences.set({ key: PENDING_STRIPE_OPERATION_BUSINESS_ID_KEY, value: businessId })
   }
-  console.log('[EXTERNAL RETURN] Pending Stripe operation set:', operation, 'businessId:', businessId)
+  console.log('[EXTERNAL RETURN] Pending operation set:', operation, 'businessId:', businessId)
 }
 
 /**
@@ -191,24 +243,43 @@ export async function reconcileStripeStatus(businessId?: string): Promise<{ succ
 /**
  * Handle external return from browser (called by appUrlOpen listener)
  * This should be called from the Capacitor init.ts appUrlOpen handler
+ *
+ * @returns true if the URL was handled and navigation should be skipped, false otherwise
  */
-export async function handleExternalReturn(url: string): Promise<void> {
-  console.log('[EXTERNAL RETURN] Handling external return:', url)
+export async function handleExternalReturn(url: string): Promise<boolean> {
+  console.log('[NAV_SOURCE] source=EXTERNAL_RETURN_HANDLER_ENTER url=' + url)
 
-  // Check if this is a Stripe return URL
   const urlObj = new URL(url)
-  const isStripeReturn = urlObj.searchParams.get('stripe_onboarding') === 'complete' ||
-                       urlObj.searchParams.get('checkout') === 'success' ||
-                       urlObj.searchParams.get('session_id')?.startsWith('cs_')
 
-  if (!isStripeReturn) {
-    console.log('[EXTERNAL RETURN] Not a Stripe return URL, skipping reconciliation')
-    return
+  // Check against centralized external return registry for HTTPS URLs
+  if (urlObj.protocol === 'https:') {
+    for (const flow of EXTERNAL_RETURN_FLOWS) {
+      if (flow.matcher(urlObj)) {
+        console.log('[EXTERNAL RETURN] Recognized flow:', flow.name)
+
+        // Trigger authoritative reconciliation
+        const pending = await getPendingStripeOperation()
+        await flow.reconcile(pending.businessId)
+
+        // Navigate to clean internal route without transient parameters
+        console.log('[EXTERNAL RETURN] Navigating to clean route:', flow.internalDestination)
+        console.log('[NAV_SOURCE] source=EXTERNAL_RETURN_HANDLER_NAVIGATE destination=' + flow.internalDestination)
+        window.location.href = flow.internalDestination
+
+        // Clear pending operation after successful handling
+        if (pending.operation) {
+          await setPendingStripeOperation(null)
+        }
+
+        console.log('[NAV_SOURCE] source=EXTERNAL_RETURN_HANDLER_EXIT handled=true')
+        return true // Signal to skip generic deep-link navigation
+      }
+    }
   }
 
-  // Trigger reconciliation using business ID from pending operation
-  const result = await reconcileStripeStatus()
-  console.log('[EXTERNAL RETURN] Reconciliation result:', result)
+  console.log('[EXTERNAL RETURN] Not a recognized external return URL, skipping')
+  console.log('[NAV_SOURCE] source=EXTERNAL_RETURN_HANDLER_EXIT handled=false')
+  return false
 }
 
 /**
