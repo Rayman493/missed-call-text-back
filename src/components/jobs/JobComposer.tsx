@@ -168,7 +168,7 @@ export default function JobComposer({
 
       const data = await response.json()
       onSave(data.job)
-      onShowToast?.(editJob ? 'Job updated successfully' : 'Job created successfully', 'success')
+      onShowToast?.(editJob ? 'Job updated' : 'Job created', 'success')
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save job')

@@ -158,7 +158,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
       }
 
       const result = await response.json()
-      onShowToast?.(taskToEdit ? 'Task updated successfully' : 'Task created successfully', 'success')
+      onShowToast?.(taskToEdit ? 'Task updated' : 'Task created', 'success')
       // Pass the created/updated task to parent for optimistic update
       onTaskCreated(!taskToEdit, result.task || null)
       handleClose()

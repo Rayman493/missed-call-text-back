@@ -692,11 +692,11 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                     <h2 className="text-base sm:text-lg font-semibold text-foreground">
-                      Setup Complete
+                      You're all set
                     </h2>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    ReplyFlow is actively monitoring your business line.
+                    ReplyFlow is ready to help manage your customer conversations.
                   </p>
                 </div>
                 <button

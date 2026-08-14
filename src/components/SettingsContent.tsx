@@ -279,7 +279,7 @@ export default function SettingsContent() {
       if (initialCheck.isLinked) {
         console.log('[SettingsContent] Apple account already linked, no enablement needed')
         setAppleAccountLinkageState({ status: 'linked', isLoading: false })
-        showToast('Tap to Pay is already enabled', 'success')
+        showToast('Tap to Pay is already set up', 'success')
         setIsEnablingTapToPay(false)
         return
       }
@@ -310,7 +310,7 @@ export default function SettingsContent() {
       if (finalCheck.isLinked) {
         // Success: Apple Terms were accepted
         setAppleAccountLinkageState({ status: 'linked', isLoading: false })
-        showToast('Tap to Pay enabled successfully', 'success')
+        showToast('Tap to Pay enabled — you can now accept contactless payments', 'success')
       } else {
         // Terms not accepted
         setAppleAccountLinkageState({ status: 'not_linked', isLoading: false })
@@ -895,7 +895,7 @@ export default function SettingsContent() {
 
       // Update local state
       setIgnoredContacts(prev => prev.filter(contact => contact.id !== contactId))
-      showToast('Contact removed successfully', 'success')
+      showToast('Contact removed', 'success')
     } catch (error) {
       console.error('Error removing personal contact:', error)
       showToast('Could not remove contact. Please try again.', 'error')
@@ -944,8 +944,8 @@ export default function SettingsContent() {
       setPhoneNumber('')
       setLabel('')
       setShowAddModal(false)
-      
-      showToast('Contact added successfully', 'success')
+
+      showToast('Contact added', 'success')
     } catch (error) {
       console.error('Error adding personal contact:', error)
       showToast(error instanceof Error ? error.message : 'Could not add contact. Please try again.', 'error')
@@ -1057,7 +1057,7 @@ export default function SettingsContent() {
       }
 
       // Success
-      showToast('Password updated successfully', 'success')
+      showToast('Password updated', 'success')
       setShowChangePasswordModal(false)
       setCurrentPassword('')
       setNewPassword('')
@@ -1143,7 +1143,7 @@ export default function SettingsContent() {
         throw new Error('Failed to disconnect calendar')
       }
       setCalendarConnected(false)
-      showToast('Calendar disconnected successfully', 'success')
+      showToast('Calendar disconnected', 'success')
       window.location.href = '/dashboard/settings?calendar=disconnected'
     } catch (error) {
       console.error('Error disconnecting calendar:', error)

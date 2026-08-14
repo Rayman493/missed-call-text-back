@@ -333,7 +333,7 @@ export default function SchedulePage() {
       const status = searchParams.get('status') // From deep link (replyflow://calendar?status=...)
 
       if (calendarStatus === 'connected' || status === 'connected') {
-        showToast('Google Calendar connected successfully!', 'success')
+        showToast('Google Calendar connected — your appointments will stay in sync', 'success')
         setTokenExpired(false)
         setScheduleTab('agenda') // Switch to Agenda tab after successful connection
         window.history.replaceState({}, '', '/dashboard/calendar')
@@ -536,7 +536,7 @@ export default function SchedulePage() {
       setEvents([])
       setLastSyncTime(null)
       setTokenExpired(false)
-      showToast('Calendar disconnected successfully', 'success')
+      showToast('Calendar disconnected', 'success')
 
       // Refresh connection status to ensure consistency
       await fetchCalendarStatus()
@@ -824,7 +824,7 @@ export default function SchedulePage() {
 
   const handleJobDeleted = (job: Job) => {
     setJobs(prev => prev.filter(j => j.id !== job.id))
-    showToast('Job deleted', 'success')
+    showToast('Job removed', 'success')
   }
 
   const getJobsForDay = (date: Date): Job[] => {
@@ -1802,9 +1802,9 @@ export default function SchedulePage() {
                       await fetchEvents()
                       // Show success message
                       if (created?.meetingUrl) {
-                        showToast('Appointment created. Google Meet link created.', 'success')
+                        showToast('Appointment added to calendar with Google Meet link', 'success')
                       } else {
-                        showToast('Appointment created.', 'success')
+                        showToast('Appointment added to calendar', 'success')
                       }
                     }}
                     defaultDate={selectedDay || undefined}
@@ -1859,7 +1859,7 @@ export default function SchedulePage() {
                         // Refresh events from Google Calendar
                         await fetchEvents()
                         // Show success message
-                        showToast('Appointment updated.', 'success')
+                        showToast('Appointment updated on calendar', 'success')
                       }}
                       onDelete={async () => {
                         // Remove the deleted event from local state
@@ -1870,7 +1870,7 @@ export default function SchedulePage() {
                         // Refresh events from Google Calendar
                         await fetchEvents()
                         // Show success message
-                        showToast('Appointment deleted.', 'success')
+                        showToast('Appointment removed from calendar', 'success')
                       }}
                     />
                   )}

@@ -145,7 +145,7 @@ export default function ProvisioningSuccessBanner({ checkoutSuccess = false }: P
           </div>
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-green-100 mb-2">
-              Your ReplyFlow number is ready
+              Your ReplyFlow number is ready — let's finish setting up call forwarding
             </h3>
             <p className="text-sm text-green-300 mb-4">
               To activate ReplyFlow, forward missed calls from your business phone to your ReplyFlow number.

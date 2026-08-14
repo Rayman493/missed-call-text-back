@@ -1834,7 +1834,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
             ) : (
               <div className="text-center py-4 space-y-4">
                 <CheckCircle2 className="w-12 h-12 text-green-600 dark:text-green-400 mx-auto mb-2" />
-                <p className="text-sm font-medium text-foreground">Receipt sent successfully!</p>
+                <p className="text-sm font-medium text-foreground">Receipt sent to customer</p>
                 <button
                   onClick={() => setShowReceiptModal(false)}
                   className="w-full px-4 py-3 h-11 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
