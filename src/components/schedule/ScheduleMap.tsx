@@ -183,6 +183,7 @@ function ScheduleMapComponent({
   const initialCameraEstablishedRef = useRef(false) // Track if initial camera positioning has been done
   const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter to detect changes
   const resizeLastSizeRef = useRef<{ width: number; height: number } | null>(null) // Move ref to top level
+  const [businessGeocodeTrigger, setBusinessGeocodeTrigger] = useState(0) // Counter to trigger map items refresh when business geocoding completes
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [mapReady, setMapReady] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -370,6 +371,29 @@ function ScheduleMapComponent({
       if (result) {
         businessCoordsCacheRef.current = result
         console.log('[ScheduleMap] Business geocoded: success=true')
+
+        // If map is ready and user hasn't interacted yet, center on business location
+        // This handles the case where geocoding completes after initial render
+        if (mapReady && googleMapRef.current && !userInteractedRef.current) {
+          const dateKey = selectedDate.toISOString().split('T')[0]
+          const savedState = perDateStateRef.current.get(dateKey)
+          // Only center if there's no saved state for this date
+          if (!savedState) {
+            logCameraCommand('business_geocode_center', 'setCenter+setZoom', {
+              center: `${result.lat},${result.lng}`,
+              zoom: 13,
+              reason: 'business_location_after_geocode'
+            })
+            programmaticCameraChangeRef.current = true
+            pendingProgrammaticMoveRef.current = true
+            googleMapRef.current.setCenter({ lat: result.lat, lng: result.lng })
+            googleMapRef.current.setZoom(13)
+          }
+        }
+
+        // Trigger immediate map items refresh to show business marker
+        // This fixes the timing issue where marker wouldn't appear until next date change
+        setBusinessGeocodeTrigger(prev => prev + 1)
       } else {
         businessCoordsCacheRef.current = null
         console.log('[ScheduleMap] Business geocoding: success=false')
@@ -1342,15 +1366,30 @@ function ScheduleMapComponent({
         }
       }
     } else {
-      // First visit - use defaults
+      // First visit - prioritize business location, then markers, then fallback
       setShowAllMode(true)
       userInteractedRef.current = false
+
+      // Try to center on business location first
+      if (mapReady && googleMapRef.current && businessCoordsCacheRef.current) {
+        const { lat, lng } = businessCoordsCacheRef.current
+        logCameraCommand('first_visit_business_center', 'setCenter', {
+          center: `${lat},${lng}`,
+          zoom: 13,
+          reason: 'first_visit_business_location'
+        })
+        programmaticCameraChangeRef.current = true
+        pendingProgrammaticMoveRef.current = true
+        googleMapRef.current.setCenter({ lat, lng })
+        googleMapRef.current.setZoom(13)
+      }
+      // If no business location yet, the marker update effect will handle auto-fit when markers arrive
     }
 
     setSelectedMarker(null)
   }, [selectedDate, mapReady, logCameraCommand])
 
-  // Prepare map items when date changes (with race condition guard)
+  // Prepare map items when date changes or business geocoding completes (with race condition guard)
   useEffect(() => {
     const preparationId = ++mapPreparationIdRef.current
     const dateKey = selectedDate.toISOString().split('T')[0]
@@ -1373,7 +1412,7 @@ function ScheduleMapComponent({
     return () => {
       isCancelled = true
     }
-  }, [prepareMapItems, selectedDate])
+  }, [prepareMapItems, selectedDate, businessGeocodeTrigger])
 
   // Update markers when map items change or map becomes ready
   useEffect(() => {
