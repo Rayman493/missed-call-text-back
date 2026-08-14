@@ -68,6 +68,10 @@ export default async function Home() {
             return []
           }
         },
+        setAll() {
+          // Server Component cannot set cookies - delegate to middleware
+          // This is a no-op to satisfy @supabase/ssr requirements
+        },
       },
     }
   )

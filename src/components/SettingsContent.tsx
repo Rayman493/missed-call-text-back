@@ -161,12 +161,12 @@ export default function SettingsContent() {
 
   // Show awareness modal when user becomes eligible for Tap to Pay
   useEffect(() => {
-    // Show modal if eligible and not already shown this session
-    if (tapToPayAwareness.state.isEligible && !showAwarenessModal && !awarenessShownThisSession) {
+    // Show modal if eligible and not already acknowledged (persisted state)
+    if (tapToPayAwareness.state.isEligible && !showAwarenessModal && !tapToPayAwareness.isAcknowledged) {
       setShowAwarenessModal(true)
       setAwarenessShownThisSession(true)
     }
-  }, [tapToPayAwareness.state.isEligible, showAwarenessModal, awarenessShownThisSession])
+  }, [tapToPayAwareness.state.isEligible, showAwarenessModal, tapToPayAwareness.isAcknowledged])
 
   const handleAwarenessSetup = async () => {
     try {

@@ -1698,7 +1698,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                   ) : paymentState === 'success' ? (
                     <button
                       onClick={handlePaymentComplete}
-                      className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors active:scale-95"
+                      className="flex-1 px-4 py-3 h-11 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors active:scale-95"
                     >
                       Done
                     </button>
