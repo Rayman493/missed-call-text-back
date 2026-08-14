@@ -4,7 +4,8 @@
  * Opens Stripe Connect onboarding using the appropriate mechanism for the current platform.
  *
  * Native iOS (iOS 17.4+): Uses ASWebAuthenticationSession for automatic return-to-app behavior.
- * Desktop/web/Android: Uses window.location.href for normal browser navigation.
+ * Android: Uses Capacitor Browser plugin for controlled external browser with App Link return.
+ * Desktop/web: Uses window.location.href for normal browser navigation.
  *
  * IMPORTANT: Connect onboarding does NOT indicate account connection success. Account
  * status must be verified through server-side refresh endpoint or Stripe webhook.
@@ -12,6 +13,8 @@
 
 import { Capacitor } from '@capacitor/core'
 import { registerPlugin } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
+import { setPendingStripeOperation } from '@/lib/external-return-handler'
 
 /**
  * Normalize Stripe Connect native plugin errors to user-friendly messages
@@ -60,8 +63,14 @@ export function isNativeIOS(): boolean {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
 }
 
-export async function openStripeConnectOnboarding(url: string): Promise<{ completed: boolean; callbackMatched: boolean }> {
+export async function openStripeConnectOnboarding(url: string, businessId?: string): Promise<{ completed: boolean; callbackMatched: boolean }> {
   console.log('[STRIPE CONNECT] web_build_marker=CONNECT_CALL_FIX_2026_08_12')
+
+  // Set pending operation for reconciliation on return/resume
+  if (businessId) {
+    await setPendingStripeOperation('connect_onboarding')
+    console.log('[STRIPE CONNECT] Pending operation set for business:', businessId)
+  }
 
   if (isNativeIOS()) {
     console.log('[STRIPE CONNECT] Opening Connect onboarding in native web session (iOS)')
@@ -103,8 +112,23 @@ export async function openStripeConnectOnboarding(url: string): Promise<{ comple
       const normalizedMessage = normalizeStripeConnectError(errorMessage)
       throw new Error(normalizedMessage)
     }
+  } else if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
+    // Android: Use Capacitor Browser plugin for controlled external browser
+    console.log('[STRIPE CONNECT] Opening Connect onboarding in Capacitor Browser (Android)')
+    try {
+      await Browser.open({ url })
+      // Browser.open() doesn't wait for completion - returns immediately
+      // The actual return happens via App Link and appUrlOpen listener
+      return { completed: false, callbackMatched: false }
+    } catch (error) {
+      console.error('[STRIPE CONNECT] Browser.open failed:', error)
+      // Fallback to window.location.href if Browser plugin fails
+      window.location.href = url
+      return { completed: false, callbackMatched: false }
+    }
   } else {
-    console.log('[STRIPE CONNECT] Opening Connect onboarding in browser (desktop/web/Android)')
+    // Desktop/web: Use normal browser navigation
+    console.log('[STRIPE CONNECT] Opening Connect onboarding in browser (desktop/web)')
     window.location.href = url
     return { completed: false, callbackMatched: false }
   }

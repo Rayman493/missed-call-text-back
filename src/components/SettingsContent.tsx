@@ -1229,7 +1229,7 @@ export default function SettingsContent() {
         // Hide loading modal when native session presents
         setStripeConnectLoading(false)
         // Use native plugin for iOS, fallback to window.location.href for others
-        const result = await openStripeConnectOnboarding(data.url)
+        const result = await openStripeConnectOnboarding(data.url, business.id)
 
         // After native session completes, show checking state and refresh status
         if (result.completed || result.callbackMatched) {

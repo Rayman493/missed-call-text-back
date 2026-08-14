@@ -32,12 +32,34 @@
             </intent-filter>
 
             <!-- App Links for https://www.replyflowhq.com -->
+            <!-- Stripe Connect onboarding return -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" />
                 <data android:host="www.replyflowhq.com" />
+                <data android:pathPrefix="/dashboard/settings" />
+            </intent-filter>
+
+            <!-- Stripe Checkout success return -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="www.replyflowhq.com" />
+                <data android:pathPrefix="/billing/success" />
+            </intent-filter>
+
+            <!-- Calendar OAuth return -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="www.replyflowhq.com" />
+                <data android:pathPrefix="/dashboard/calendar" />
             </intent-filter>
 
         </activity>

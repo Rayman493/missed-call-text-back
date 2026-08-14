@@ -15,6 +15,7 @@ import { Browser } from '@capacitor/browser';
 import { pushService } from '@/lib/push-service';
 import { TerminalBridgeService } from '@/lib/terminal/service';
 import { createBrowserClient } from '@/lib/supabase/browser';
+import { handleExternalReturn, handleAppResume } from '@/lib/external-return-handler';
 
 // Import production web checkout plugin for native iOS Stripe checkout
 // This provides automatic return-to-app behavior using ASWebAuthenticationSession
@@ -97,18 +98,25 @@ export async function initializeCapacitor() {
     console.log('[Capacitor] Splash screen hidden');
 
     // Set up app state listeners
-    App.addListener('appStateChange', ({ isActive }) => {
+    App.addListener('appStateChange', async ({ isActive }) => {
       console.log('[Capacitor] App state changed:', isActive ? 'active' : 'inactive');
-      // Warm up Tap to Pay when app returns to foreground
+
+      // Handle external return reconciliation on app resume
       if (isActive) {
+        await handleAppResume();
+        // Warm up Tap to Pay when app returns to foreground
         warmUpTapToPay();
       }
     });
 
     // Set up URL/open URL listeners for deep links
-    App.addListener('appUrlOpen', (data) => {
+    App.addListener('appUrlOpen', async (data) => {
       console.log('[Capacitor] App opened with URL:', data.url);
-      // Handle deep links here
+
+      // Handle external return reconciliation for Stripe flows
+      await handleExternalReturn(data.url);
+
+      // Handle deep links
       handleDeepLink(data.url);
     });
 

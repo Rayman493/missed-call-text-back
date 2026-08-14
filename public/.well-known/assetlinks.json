@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.replyflowhq.app",
+      "sha256_cert_fingerprints": [
+        "9D:73:5C:EE:F2:61:3D:33:79:E5:CB:CD:C5:DA:99:F2:F2:BE:44:97:62:5E:76:89:AF:F8:C9:9C:1B:6E:F6:3A"
+      ]
+    }
+  }
+]
