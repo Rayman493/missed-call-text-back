@@ -1486,13 +1486,6 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                         <p className="text-lg font-semibold text-foreground">Payment complete</p>
                         <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(amountCents / 100)}</p>
                       </div>
-                      <button
-                        onClick={handleSendReceipt}
-                        className="mt-4 px-6 py-3 h-11 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors active:scale-95"
-                        aria-label="Send receipt to customer"
-                      >
-                        Send Receipt
-                      </button>
                     </div>
                   )}
 
@@ -1696,12 +1689,21 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                       )}
                     </>
                   ) : paymentState === 'success' ? (
-                    <button
-                      onClick={handlePaymentComplete}
-                      className="flex-1 px-4 py-3 h-11 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors active:scale-95"
-                    >
-                      Done
-                    </button>
+                    <div className="flex gap-3 items-stretch">
+                      <button
+                        onClick={handleSendReceipt}
+                        className="flex-1 px-4 py-3 h-11 text-sm font-medium bg-white dark:bg-gray-800 text-foreground border border-border rounded-lg hover:bg-muted dark:hover:bg-gray-700 transition-colors active:scale-95 inline-flex items-center justify-center"
+                        aria-label="Send receipt to customer"
+                      >
+                        Send Receipt
+                      </button>
+                      <button
+                        onClick={handlePaymentComplete}
+                        className="flex-1 px-4 py-3 h-11 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors active:scale-95 inline-flex items-center justify-center"
+                      >
+                        Done
+                      </button>
+                    </div>
                   ) : (
                     <button
                       onClick={() => {
