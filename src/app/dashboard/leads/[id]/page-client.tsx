@@ -48,6 +48,7 @@ import RevenueOpportunityCard from '@/components/RevenueOpportunityCard'
 import CustomerReactivationCard from '@/components/CustomerReactivationCard'
 import CustomerSuccessCard from '@/components/CustomerSuccessCard'
 import CustomerActivityTimeline from '@/components/CustomerActivityTimeline'
+import { groupCorrectionsWithSourceMessages } from '@/lib/timeline-event-ordering'
 import { ImageMessage } from '@/components/ImageMessage'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
@@ -1001,21 +1002,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       created_at: message.created_at,
       data: message
     }))
-    
-    // Combine and sort chronologically with tie-breaker
-    const timeline = [...messageItems, ...voicemailItems, ...systemEvents].sort((a, b) => {
-      const timeDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      if (timeDiff !== 0) return timeDiff
-      
-      // Tie-breaker: inbound before outbound if same timestamp
-      const aDirection = a.type === 'message' ? a.data?.direction : null
-      const bDirection = b.type === 'message' ? b.data?.direction : null
-      if (aDirection === 'inbound' && bDirection === 'outbound') return -1
-      if (aDirection === 'outbound' && bDirection === 'inbound') return 1
-      
-      // Final tie-breaker: id ascending
-      return a.id.localeCompare(b.id)
-    })
+
+    // Combine all events
+    const allEvents = [...messageItems, ...voicemailItems, ...systemEvents]
+
+    // Group correction events with their source messages
+    const timeline = groupCorrectionsWithSourceMessages(allEvents, leadData?.raw_metadata?.corrected_fields)
 
     // Debug logging for timeline order
     console.log('[TIMELINE DEBUG] Timeline items after sorting:', {
@@ -1023,6 +1015,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       messages: messageItems.length,
       voicemails: voicemailItems.length,
       systemEvents: systemEvents.length,
+      hasCorrections: !!leadData?.raw_metadata?.corrected_fields,
+      correctedFields: leadData?.raw_metadata?.corrected_fields,
       items: timeline.map((item, idx) => ({
         index: idx,
         type: item.type,
