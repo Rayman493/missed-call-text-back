@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import getStripe from '@/lib/stripe'
+import { getAppBaseUrl } from '@/lib/urls'
 
 export const dynamic = 'force-dynamic'
 
@@ -109,7 +110,7 @@ export async function POST(request: Request) {
         },
         business_type: 'company',
         business_profile: {
-          url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`,
+          url: `${getAppBaseUrl()}/dashboard/settings`,
           mcc: '5734', // Computer Programming, Data Processing, etc.
         },
         settings: {
@@ -222,10 +223,11 @@ export async function POST(request: Request) {
     // Create account link for onboarding
     // For native iOS (iOS 17.4+), use HTTPS callback suitable for ASWebAuthenticationSession
     // For other platforms, use standard return_url with query parameter
+    const baseUrl = getAppBaseUrl()
     const isNativeIOS = request.headers.get('user-agent')?.includes('iOS')
     const return_url = isNativeIOS
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`
-      : `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?stripe_onboarding=complete`
+      ? `${baseUrl}/dashboard/settings`
+      : `${baseUrl}/dashboard/settings?stripe_onboarding=complete`
 
     // Prefill canonical business address if available (before Account Link creation)
     // Stripe Express redacts KYC address after onboarding starts, but accepts prefill before Account Link
@@ -267,7 +269,7 @@ export async function POST(request: Request) {
 
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`,
+      refresh_url: `${baseUrl}/dashboard/settings`,
       return_url,
       type: 'account_onboarding',
     })

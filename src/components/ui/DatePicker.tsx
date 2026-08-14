@@ -1,6 +1,6 @@
 'use client'
 
-import { Calendar, X } from 'lucide-react'
+import { X } from 'lucide-react'
 
 interface DatePickerProps {
   value: string // YYYY-MM-DD format

@@ -328,29 +328,19 @@ export default function SetupStatusCard({
               <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 leading-tight">Setup completed</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => setShowForwardingInstructions(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-accent/40 hover:bg-accent/60 text-foreground text-xs font-medium rounded-md transition-colors"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Review Setup
-            </button>
-            <button
-              type="button"
-              aria-label="Expand setup details"
-              aria-expanded={false}
-              onClick={(e) => {
-                e.preventDefault()
-                setUserHasToggled(true)
-                setIsExpanded(true)
-              }}
-              className="inline-flex items-center gap-1.5 px-2 py-1.5 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-xs sm:text-sm font-medium rounded-md transition-colors cursor-pointer"
-            >
-              <ChevronDown className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <button
+            type="button"
+            aria-label="Expand setup details"
+            aria-expanded={false}
+            onClick={(e) => {
+              e.preventDefault()
+              setUserHasToggled(true)
+              setIsExpanded(true)
+            }}
+            className="inline-flex items-center gap-1.5 px-2 py-1.5 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-xs sm:text-sm font-medium rounded-md transition-colors cursor-pointer flex-shrink-0"
+          >
+            <ChevronDown className="w-3.5 h-3.5" />
+          </button>
         </div>
         </div>
       </>

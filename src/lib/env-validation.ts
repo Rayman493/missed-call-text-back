@@ -72,8 +72,8 @@ const ENV_VARIABLES: EnvVarConfig[] = [
   },
   {
     name: 'REPLYFLOW_SYSTEM_SMS_NUMBER',
-    description: 'ReplyFlow system SMS number',
-    required: false,
+    description: 'ReplyFlow system SMS number (production required for system number protection)',
+    required: process.env.NODE_ENV === 'production',
     category: 'twilio',
   },
   {
@@ -83,7 +83,7 @@ const ENV_VARIABLES: EnvVarConfig[] = [
     category: 'twilio',
     fallback: '',
   },
-  
+
   // Stripe
   {
     name: 'STRIPE_SECRET_KEY',
@@ -96,6 +96,32 @@ const ENV_VARIABLES: EnvVarConfig[] = [
     description: 'Stripe webhook signing secret',
     required: true,
     category: 'stripe',
+  },
+  {
+    name: 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY',
+    description: 'Stripe publishable key (client-side)',
+    required: true,
+    category: 'stripe',
+  },
+
+  // Google OAuth
+  {
+    name: 'GOOGLE_CLIENT_ID',
+    description: 'Google OAuth 2.0 Client ID',
+    required: true,
+    category: 'calendar',
+  },
+  {
+    name: 'GOOGLE_CLIENT_SECRET',
+    description: 'Google OAuth 2.0 Client Secret',
+    required: true,
+    category: 'calendar',
+  },
+  {
+    name: 'GOOGLE_REDIRECT_URI',
+    description: 'Google OAuth redirect URI',
+    required: true,
+    category: 'calendar',
   },
   
   // AI Services
@@ -146,7 +172,7 @@ const ENV_VARIABLES: EnvVarConfig[] = [
     description: 'Application URL',
     required: true,
     category: 'system',
-    fallback: process.env.VERCEL_URL || 'https://replyflowhq.com',
+    fallback: process.env.VERCEL_URL || 'https://www.replyflowhq.com',
   },
   {
     name: 'VERCEL_URL',

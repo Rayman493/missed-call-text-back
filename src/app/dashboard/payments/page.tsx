@@ -1314,7 +1314,7 @@ export default function PaymentsPage() {
               </div>
 
               {/* Content - flex-1 overflow-y-auto */}
-              <div data-scroll-lock-allow className="overflow-y-auto flex-1 overscroll-contain px-4 py-3 md:px-5 md:py-4 space-y-2.5 md:space-y-3" style={{ maxHeight: 'calc(100dvh-10rem)', WebkitOverflowScrolling: 'touch' }}>
+              <div data-scroll-lock-allow className="overflow-y-auto flex-1 overscroll-contain px-4 py-3 md:px-5 md:py-4 space-y-2.5 md:space-y-3" style={{ maxHeight: 'calc(100dvh-10rem-var(--bottom-nav-height,80px))', WebkitOverflowScrolling: 'touch', paddingBottom: 'var(--bottom-nav-height,80px)' }}>
                 {paymentPrefill && (
                   <div className="p-3 bg-[#0f172a] border border-slate-700 rounded-lg">
                     <div className="flex items-center justify-between">

@@ -76,11 +76,23 @@ interface Task {
   job_id: string | null
 }
 
+interface Business {
+  id: string
+  name: string | null
+  business_address_line1?: string | null
+  business_address_line2?: string | null
+  business_address_city?: string | null
+  business_address_state?: string | null
+  business_address_postal_code?: string | null
+  business_address_country?: string | null
+}
+
 interface ScheduleMapProps {
   jobs: Job[]
   calendarEvents: CalendarEvent[]
   tasks: Task[]
   selectedDate: Date
+  business?: Business | null
   onPreviousDay: () => void
   onNextDay: () => void
   onGoToToday: () => void
@@ -93,7 +105,7 @@ interface ScheduleMapProps {
   onAddLocationEvent?: (event: CalendarEvent) => void
 }
 
-type MapItemType = 'job' | 'appointment' | 'task'
+type MapItemType = 'job' | 'appointment' | 'task' | 'business'
 
 type MapFilter = 'all' | 'jobs' | 'appointments'
 
@@ -137,6 +149,7 @@ function ScheduleMapComponent({
   calendarEvents,
   tasks,
   selectedDate,
+  business,
   onPreviousDay,
   onNextDay,
   onGoToToday,
@@ -153,6 +166,8 @@ function ScheduleMapComponent({
   const markersRef = useRef<Map<string, any>>(new Map()) // Marker registry keyed by item ID
   const perDateStateRef = useRef<Map<string, MapDateState>>(new Map())
   const calendarEventCoordsCacheRef = useRef<Map<string, { lat: number; lng: number; formattedAddress: string } | null>>(new Map()) // Cache for calendar event coordinates (null = failed geocode)
+  const businessCoordsCacheRef = useRef<{ lat: number; lng: number; formattedAddress: string } | null>(null) // Cache for business coordinates
+  const lastBusinessAddressRef = useRef<string | null>(null) // Track last business address for invalidation
   const programmaticCameraChangeRef = useRef(false) // Guard to distinguish user vs programmatic movement
   const pendingProgrammaticMoveRef = useRef(false) // Track if a programmatic move is in progress
   const mapPreparationIdRef = useRef(0) // Monotonically increasing ID to prevent stale async results
@@ -206,6 +221,82 @@ function ScheduleMapComponent({
     }
   }, [mapType, mapReady])
 
+  // Format canonical business address
+  const formatBusinessAddress = useCallback((biz: Business | null | undefined): string | null => {
+    if (!biz) return null
+
+    const parts = [
+      biz.business_address_line1,
+      biz.business_address_line2,
+      biz.business_address_city,
+      biz.business_address_state,
+      biz.business_address_postal_code,
+      biz.business_address_country
+    ].filter(Boolean)
+
+    return parts.length > 0 ? parts.join(', ') : null
+  }, [])
+
+  // Geocode business address using existing API endpoint (consistent with calendar events)
+  const geocodeBusinessAddress = useCallback(async (address: string): Promise<{ lat: number; lng: number; formattedAddress: string } | null> => {
+    try {
+      const response = await fetch('/api/geocode/address', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address })
+      })
+      const result = await response.json()
+      if (result.success) {
+        return {
+          lat: result.latitude,
+          lng: result.longitude,
+          formattedAddress: result.formattedAddress
+        }
+      }
+      return null
+    } catch (error) {
+      console.log('[ScheduleMap] Business geocoding request failed')
+      return null
+    }
+  }, [])
+
+  // Geocode business address when it changes
+  useEffect(() => {
+    if (!business) {
+      businessCoordsCacheRef.current = null
+      lastBusinessAddressRef.current = null
+      return
+    }
+
+    const businessAddress = formatBusinessAddress(business)
+    if (!businessAddress) {
+      businessCoordsCacheRef.current = null
+      lastBusinessAddressRef.current = null
+      return
+    }
+
+    // Check if address has changed
+    if (lastBusinessAddressRef.current === businessAddress) {
+      return
+    }
+
+    lastBusinessAddressRef.current = businessAddress
+
+    // Geocode the address using API (no Google Maps dependency)
+    const geocode = async () => {
+      const result = await geocodeBusinessAddress(businessAddress)
+      if (result) {
+        businessCoordsCacheRef.current = result
+        console.log('[ScheduleMap] Business geocoded: success=true')
+      } else {
+        businessCoordsCacheRef.current = null
+        console.log('[ScheduleMap] Business geocoding: success=false')
+      }
+    }
+
+    geocode()
+  }, [business, formatBusinessAddress, geocodeBusinessAddress])
+
   // Format date for display
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
@@ -223,8 +314,9 @@ function ScheduleMapComponent({
 
   // Filter items for selected date
   const getItemsForDate = useCallback(() => {
-    const dateStr = selectedDate.toISOString().split('T')[0]
-    
+    // Use local timezone to match database dates (YYYY-MM-DD format)
+    const dateStr = selectedDate.toLocaleDateString('en-CA')
+
     const filteredJobs = jobs.filter(job => {
       if (!job.scheduled_date) return false
       return job.scheduled_date === dateStr
@@ -732,6 +824,26 @@ function ScheduleMapComponent({
       }
     }
 
+    // Add business location marker if available
+    const businessCoords = businessCoordsCacheRef.current
+    if (businessCoords && business) {
+      items.push({
+        id: 'business:home',
+        type: 'business',
+        title: business.name || 'Business',
+        customerName: null,
+        customerPhone: null,
+        address: businessCoords.formattedAddress,
+        scheduledDate: null,
+        scheduledTime: null,
+        status: 'business',
+        leadId: null,
+        jobId: null,
+        latitude: businessCoords.lat,
+        longitude: businessCoords.lng
+      })
+    }
+
     // Check if this preparation is still the most recent (prevents stale async results)
     if (preparationId !== mapPreparationIdRef.current) {
       return
@@ -1063,6 +1175,7 @@ function ScheduleMapComponent({
 
       const isSelected = selectedMapItemId !== null && markerInfo.items.some(item => item.id === selectedMapItemId)
       const stopNumber = stopNumberLookup.get(primaryItem.id) || 1
+      const isBusinessMarker = primaryItem.type === 'business'
 
       // Check if marker already exists
       const existingMarker = markersRef.current.get(markerKey)
@@ -1076,9 +1189,11 @@ function ScheduleMapComponent({
         const marker = new (window as any).google.maps.Marker({
           position: markerInfo.position,
           map: googleMapRef.current,
-          title: markerInfo.items.length === 1
-            ? `Stop ${stopNumber}: ${primaryItem.title}`
-            : `${markerInfo.items.length} stops at this location`,
+          title: isBusinessMarker
+            ? `${primaryItem.title} (Business location)`
+            : markerInfo.items.length === 1
+              ? `Stop ${stopNumber}: ${primaryItem.title}`
+              : `${markerInfo.items.length} stops at this location`,
           icon: createNumberedMarkerIcon(stopNumber, primaryItem.type, isSelected),
           zIndex: isSelected ? 1000 : 1
         })
@@ -1135,8 +1250,8 @@ function ScheduleMapComponent({
       : 80
     const bottomPadding = bottomNavHeight + 40 // Add extra breathing room
 
-    // Get current date key for auto-fit logic
-    const currentDateKey = selectedDate.toISOString().split('T')[0]
+    // Get current date key for auto-fit logic (use local timezone)
+    const currentDateKey = selectedDate.toLocaleDateString('en-CA')
     const dateChanged = previousDateKey !== null && previousDateKey !== currentDateKey
 
     // Smart automatic framing logic
@@ -1260,7 +1375,8 @@ function ScheduleMapComponent({
       return markerIconCache.get(cacheKey)
     }
 
-    const color = type === 'job' ? '#8B5CF6' : '#3B82F6' // Purple for jobs, blue for appointments
+    const isBusiness = type === 'business'
+    const color = isBusiness ? '#10B981' : type === 'job' ? '#8B5CF6' : '#3B82F6' // Green for business, purple for jobs, blue for appointments
     const size = isSelected ? 44 : 36
     const strokeWidth = isSelected ? 4 : 2
     const textColor = '#FFFFFF'
@@ -1282,12 +1398,16 @@ function ScheduleMapComponent({
     ctx.lineWidth = strokeWidth
     ctx.stroke()
 
-    // Draw number
+    // Draw number or business icon
     ctx.fillStyle = textColor
     ctx.font = `bold ${size * 0.4}px system-ui, -apple-system, sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(stopNumber.toString(), size / 2, size / 2)
+    if (isBusiness) {
+      ctx.fillText('🏠', size / 2, size / 2)
+    } else {
+      ctx.fillText(stopNumber.toString(), size / 2, size / 2)
+    }
 
     const icon = {
       url: canvas.toDataURL(),
@@ -1683,9 +1803,9 @@ function ScheduleMapComponent({
         </div>
       )}
 
-      {/* Map Container - Increased height on mobile */}
+      {/* Map Container - Increased height on mobile with bottom padding for nav */}
       <div className="flex-1 min-h-[50vh] md:min-h-0 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
-        <div ref={mapRef} className="w-full h-full" />
+        <div ref={mapRef} className="w-full h-full" style={{ paddingBottom: 'var(--bottom-nav-height, 80px)' }} />
         
         {/* Map Controls Stack */}
         <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">

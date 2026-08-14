@@ -272,7 +272,7 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com';
 
   if (!accountSid || !authToken) {
     console.error('[Warm Inventory] Missing Twilio credentials');

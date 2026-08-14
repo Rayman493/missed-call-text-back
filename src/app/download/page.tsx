@@ -6,7 +6,7 @@ import { DownloadSection } from './DownloadSection'
 export const metadata: Metadata = {
   title: 'Download ReplyFlow',
   description: 'Download ReplyFlow for iPhone or Android, or continue using ReplyFlow on the web.',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://replyflowhq.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://www.replyflowhq.com'),
   alternates: {
     canonical: '/download',
   },

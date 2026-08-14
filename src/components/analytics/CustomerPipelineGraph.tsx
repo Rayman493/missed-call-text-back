@@ -124,6 +124,7 @@ export default function CustomerPipelineGraph() {
           />
         ) : (
           <div className="h-[260px]">
+            {/* If chart doesn't render: check container dimensions, data array length, and console for errors */}
             <div className="h-full w-full select-none">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data} layout="vertical" margin={{ top: 16, right: 16, bottom: 8, left: 8 }}>

@@ -281,13 +281,26 @@ export default function DashboardContent() {
   const checkoutStatus = searchParams?.get('checkout')
   const supabase = createBrowserClient()
 
+  // Toast state for user feedback
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+
+  // Toast function
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 4000)
+  }
+
   // Force business refresh when returning from Stripe cancel to ensure stale cached data is cleared
   useEffect(() => {
     if (checkoutStatus === 'cancelled' && refreshBusiness) {
       console.log('[Dashboard] Stripe cancel detected, forcing business refresh to clear stale cached data')
       refreshBusiness(true) // Force refresh
+      // Show user-friendly cancellation message
+      showToast('Checkout Not Completed. You can try again when you\'re ready.', 'info')
+      // Clean up URL to prevent stale message on refresh
+      router.replace('/dashboard')
     }
-  }, [checkoutStatus, refreshBusiness])
+  }, [checkoutStatus, refreshBusiness, router])
 
   // Central setup health - single source of truth
   const latestLead = processedLeads[0] || null
@@ -1042,6 +1055,16 @@ export default function DashboardContent() {
             {/* App Header */}
             <AppHeader showNavigation={true} />
 
+            {/* Toast Notification */}
+            {toast && (
+              <div className="fixed top-16 left-1/2 transform -translate-x-1/2 z-50 px-4 py-3 rounded-lg shadow-lg max-w-sm mx-4 animate-in slide-in-from-top-2 duration-300" style={{
+                backgroundColor: toast.type === 'success' ? '#10b981' : toast.type === 'error' ? '#ef4444' : '#3b82f6',
+                color: 'white'
+              }}>
+                <p className="text-sm font-medium text-center">{toast.message}</p>
+              </div>
+            )}
+
             {/* Main Content - Improved mobile spacing with safe-area */}
             <div className="flex-1 pt-2.5 sm:pt-3.5 lg:pt-7 px-3 sm:px-4 lg:px-6 pb-20 sm:pb-8 relative" style={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}>
               <div className="max-w-[1400px] mx-auto space-y-4">
@@ -1307,7 +1330,7 @@ export default function DashboardContent() {
                               onClick={async () => {
                                 if (!business?.id) return;
                                 
-                                const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com';
+                                const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com';
                                 
                                 try {
                                   const response = await fetch(`${appUrl}/api/business/retry-provisioning`, {

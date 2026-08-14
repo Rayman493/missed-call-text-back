@@ -4845,7 +4845,7 @@ async function triggerVoicemailFallback(
     const twilioClient = require('twilio')(twilioAccountSid, twilioAuthToken);
     
     // Redirect the call to the voicemail endpoint
-    const voicemailUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://replyflowhq.com'}/api/twilio/voicemail`;
+    const voicemailUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.replyflowhq.com'}/api/twilio/voicemail`;
     
     console.log('[VOICEMAIL FALLBACK START]', { callSid, voicemailUrl });
     

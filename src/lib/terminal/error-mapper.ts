@@ -101,12 +101,40 @@ export function mapTapToPayError(
     }
   }
 
+  // Debuggable application - APK is debuggable (separate from Developer Options)
+  // This is checked BEFORE the broader device security check to ensure correct classification
+  if (
+    lowerCode.includes('debug_build_not_supported') ||
+    code === 'INTEGRATION_ERROR.TAP_TO_PAY_DEBUG_NOT_SUPPORTED'
+  ) {
+    // Production-safe behavior: if this somehow occurs in a production build,
+    // show a clean unavailable message without developer instructions
+    if (process.env.NODE_ENV === 'production') {
+      return {
+        title: 'Tap to Pay Unavailable',
+        message: 'Tap to Pay is not available on this device. Please contact ReplyFlow support for assistance.',
+        action: 'none',
+        technicalCode: code,
+        technicalMessage: message,
+      }
+    }
+
+    // Development build: accurate diagnostic presentation
+    return {
+      title: 'Release Build Required',
+      message: 'Real Tap to Pay requires a non-debuggable release build. Install a release build to use Tap to Pay.',
+      action: 'none',
+      technicalCode: code,
+      technicalMessage: message,
+    }
+  }
+
   // Device security requirements not met (Developer Options enabled, device tampered, etc.)
+  // Note: debug_build_not_supported is handled separately above
   if (
     lowerCode.includes('device_not_secure') ||
     lowerCode.includes('tap_to_pay_insecure_environment') ||
     lowerCode.includes('tap_to_pay_device_tampered') ||
-    lowerCode.includes('debug_build_not_supported') ||
     lowerMessage.includes('developer options') ||
     lowerMessage.includes('insecure environment')
   ) {

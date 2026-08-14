@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 
     // Get request body
     const body = await request.json()
-    const { business_id, lead_id, conversation_id, amount_cents, description, payment_provider, skip_sms } = body
+    const { business_id, lead_id, conversation_id, amount_cents, description, payment_provider, skip_sms, attempt_id } = body
 
     console.log('[PAYMENT REQUEST] Incoming payload:', {
       business_id,
@@ -63,6 +63,7 @@ export async function POST(request: Request) {
       description,
       payment_provider,
       skip_sms,
+      attempt_id,
     })
 
     // Validate required fields with specific error messages
@@ -76,10 +77,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing amount_cents' }, { status: 400 })
     }
 
-    // Validate amount
-    if (amount_cents <= 0) {
+    // CRITICAL: Validate amount type and range to prevent money corruption
+    const amountNum = Number(amount_cents)
+    if (isNaN(amountNum) || !Number.isInteger(amountNum)) {
+      return NextResponse.json({ error: 'Amount must be a valid integer in cents' }, { status: 400 })
+    }
+    if (amountNum <= 0) {
       return NextResponse.json({ error: 'Amount must be greater than 0' }, { status: 400 })
     }
+    if (amountNum > 100000000) { // Max $1,000,000 to prevent absurd amounts
+      return NextResponse.json({ error: 'Amount exceeds maximum allowed' }, { status: 400 })
+    }
+    const validatedAmountCents = amountNum
 
     // Validate payment provider
     const provider: PaymentProvider = payment_provider || 'stripe'
@@ -302,6 +311,16 @@ export async function POST(request: Request) {
     console.log('[PAYMENT REQUEST] Payment description:', paymentDescription)
     console.log('[PAYMENT REQUEST] Payment provider:', provider)
 
+    // CRITICAL: Generate or validate attempt ID for idempotency
+    // Client generates UUID for each logical payment request attempt
+    // This ensures the same logical attempt gets the same Stripe idempotency key across retries
+    const paymentAttemptId = attempt_id || crypto.randomUUID()
+    console.log('[PAYMENT REQUEST] Using attempt_id:', paymentAttemptId, 'client_provided:', !!attempt_id)
+
+    // CRITICAL: Generate idempotency key using attempt ID
+    // This ensures Stripe idempotency even if client retries with same attempt ID
+    const idempotencyKey = `payment-request-${business_id}-${lead_id}-${validatedAmountCents}-${paymentAttemptId}`
+
     // Generate payment link based on provider
     let paymentLink = ''
     let checkoutSession = null
@@ -321,7 +340,7 @@ export async function POST(request: Request) {
                   name: paymentDescription,
                   description: `Payment from ${business.twilio_phone_number}`,
                 },
-                unit_amount: amount_cents,
+                unit_amount: validatedAmountCents,
               },
               quantity: 1,
             },
@@ -340,6 +359,7 @@ export async function POST(request: Request) {
           customer_email: undefined, // Don't require email for payments
         }, {
           stripeAccount: business.stripe_connect_account_id, // Destination charge
+          idempotencyKey: idempotencyKey, // Prevent duplicate sessions on retry
         })
         console.log('[PAYMENT REQUEST] Stripe Checkout Session created successfully:', checkoutSession.id)
         console.log('[PAYMENT REQUEST] Checkout Session URL:', checkoutSession.url)
@@ -351,7 +371,7 @@ export async function POST(request: Request) {
       }
     } else if (provider === 'venmo') {
       console.log('[PAYMENT REQUEST] Generating Venmo payment link with amount and note...')
-      const venmoResult = generatePaymentLink('venmo', business, amount_cents, paymentDescription)
+      const venmoResult = generatePaymentLink('venmo', business, validatedAmountCents, paymentDescription)
       if (venmoResult.error) {
         console.warn('[PAYMENT REQUEST] Venmo link generation warning:', venmoResult.error)
         // Continue with the link even if there's a warning (fallback behavior)
@@ -360,7 +380,7 @@ export async function POST(request: Request) {
       console.log('[PAYMENT REQUEST] Venmo link generated:', paymentLink)
     } else if (provider === 'paypal') {
       console.log('[PAYMENT REQUEST] Generating PayPal payment link with amount...')
-      const paypalResult = generatePaymentLink('paypal', business, amount_cents)
+      const paypalResult = generatePaymentLink('paypal', business, validatedAmountCents)
       if (paypalResult.error) {
         console.warn('[PAYMENT REQUEST] PayPal link generation warning:', paypalResult.error)
         // Continue with the link even if there's a warning (fallback behavior)
@@ -382,7 +402,7 @@ export async function POST(request: Request) {
       .from('payment_requests')
       .select('id, created_at')
       .eq('lead_id', lead_id)
-      .eq('amount_cents', amount_cents)
+      .eq('amount_cents', validatedAmountCents)
       .eq('payment_provider', provider)
       .eq('status', 'pending')
       .gte('created_at', fiveMinutesAgo)
@@ -401,7 +421,7 @@ export async function POST(request: Request) {
       business_id: business_id,
       lead_id: lead_id,
       conversation_id: finalConversationId,
-      amount_cents: amount_cents,
+      amount_cents: validatedAmountCents,
       currency: 'usd',
       description: paymentDescription,
       status: 'pending',
@@ -409,6 +429,7 @@ export async function POST(request: Request) {
       requested_by: user.id,
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
       token: token,
+      attempt_id: paymentAttemptId, // Track attempt for idempotency and recovery
     }
 
     // Add Stripe-specific fields only for Stripe
@@ -441,9 +462,32 @@ export async function POST(request: Request) {
     // If insert failed due to missing token column, retry without token (only for Stripe)
     const errorCode = (paymentRequestError as any)?.code
     const errorMessage = (paymentRequestError as any)?.message || ''
-    const isMissingTokenColumnError = errorCode === '42703' || 
+    const isMissingTokenColumnError = errorCode === '42703' ||
                                      (errorCode === 'PGRST204' && errorMessage.includes('token') && errorMessage.includes('payment_requests'))
-    
+
+    // Handle UNIQUE constraint violation - duplicate request with same attempt_id
+    const isUniqueConstraintViolation = errorCode === '23505' && errorMessage.includes('payment_requests_attempt_id_unique')
+
+    if (paymentRequestError && isUniqueConstraintViolation) {
+      console.log('[PAYMENT REQUEST] UNIQUE constraint violation - fetching existing payment request with attempt_id:', paymentAttemptId)
+
+      // Fetch the existing payment request
+      const { data: existingRequest } = await supabase
+        .from('payment_requests')
+        .select('id, checkout_url, status, stripe_checkout_session_id')
+        .eq('business_id', business_id)
+        .eq('attempt_id', paymentAttemptId)
+        .single()
+
+      if (existingRequest) {
+        console.log('[PAYMENT REQUEST] Found existing payment request:', existingRequest.id, 'status:', existingRequest.status)
+        // Stripe idempotency ensures the same Checkout Session was returned, so return existing
+        return NextResponse.json({
+          payment_request: existingRequest
+        })
+      }
+    }
+
     if (paymentRequestError && isMissingTokenColumnError && provider === 'stripe') {
       console.log('[PAYMENT REQUEST] Token column missing from schema/cache, retrying insert without token')
       console.log('[PAYMENT REQUEST] Error code:', errorCode)
@@ -505,7 +549,7 @@ export async function POST(request: Request) {
     const leadStatusUpdate: any = {
       payment_status: 'pending',
       last_payment_request_id: paymentRequest.id,
-      last_payment_amount_cents: amount_cents,
+      last_payment_amount_cents: validatedAmountCents,
       last_payment_requested_at: new Date().toISOString(),
     }
 
@@ -649,7 +693,7 @@ If you have questions, reply to this message.`
       conversation_id: finalConversationId,
       lead_id: lead_id,
       business_id: business_id,
-      amount_cents: amount_cents,
+      amount_cents: validatedAmountCents,
       description: paymentDescription,
       status: paymentRequest.status,
       payment_provider: provider,

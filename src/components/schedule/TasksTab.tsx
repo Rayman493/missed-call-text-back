@@ -29,6 +29,7 @@ interface Task {
     title: string
     customer_name: string | null
   } | null
+  business_id?: string
 }
 
 interface TasksTabProps {
@@ -484,8 +485,14 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
         <NewTaskModal
           isOpen={isNewTaskModalOpen}
           onClose={() => setIsNewTaskModalOpen(false)}
-          onTaskCreated={(isNew) => {
-            fetchTasks()
+          onTaskCreated={(isNew, task) => {
+            if (isNew && task) {
+              // Optimistically add new task to local state
+              setTasks(prev => [...prev, task])
+            } else {
+              // For edits or if task not returned, fetch from server
+              fetchTasks()
+            }
             setIsNewTaskModalOpen(false)
           }}
           onShowToast={showToast}
@@ -497,8 +504,13 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
         <NewTaskModal
           isOpen={!!editingTask}
           onClose={() => setEditingTask(null)}
-          onTaskCreated={(isNew) => {
-            fetchTasks()
+          onTaskCreated={(isNew, task) => {
+            if (task) {
+              // Optimistically update task in local state
+              setTasks(prev => prev.map(t => t.id === task.id ? task : t))
+            } else {
+              fetchTasks()
+            }
             setEditingTask(null)
           }}
           taskToEdit={editingTask}

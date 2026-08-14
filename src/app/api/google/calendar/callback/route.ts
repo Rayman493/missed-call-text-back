@@ -21,6 +21,26 @@ export async function GET(request: NextRequest) {
   // Handle OAuth errors
   if (error) {
     console.error('[GOOGLE OAUTH] OAuth error:', error)
+
+    // Detect native app context
+    const userAgent = request.headers.get('user-agent') || ''
+    const isNativeApp = userAgent.includes('Capacitor') || userAgent.includes('ReplyFlow')
+
+    // Distinguish user cancellation (access_denied) from other errors
+    if (error === 'access_denied') {
+      console.log('[GOOGLE OAUTH] User denied access')
+      if (isNativeApp) {
+        const appLink = `replyflow://calendar?status=cancelled`
+        return NextResponse.redirect(new URL(appLink))
+      }
+      return NextResponse.redirect(new URL('/dashboard/calendar?calendar=cancelled', request.url))
+    }
+
+    // Other OAuth errors
+    if (isNativeApp) {
+      const appLink = `replyflow://calendar?status=error`
+      return NextResponse.redirect(new URL(appLink))
+    }
     return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
   }
 

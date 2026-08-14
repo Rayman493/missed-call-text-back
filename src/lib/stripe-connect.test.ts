@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { normalizeStripeConnectError } from './stripe-connect'
 
 describe('Stripe Connect native plugin', () => {
   it('native iOS modern version uses native Connect plugin', () => {
@@ -138,5 +139,61 @@ describe('Tap to Pay plugin registration', () => {
   it('payment orchestration files untouched', () => {
     const paymentOrchestrationModified = false
     expect(paymentOrchestrationModified).toBe(false)
+  })
+})
+
+describe('Stripe Connect error normalization', () => {
+  it('user cancellation shows Stripe Setup Not Completed', () => {
+    const error = normalizeStripeConnectError('User canceled the onboarding')
+    expect(error).toBe('Stripe Setup Not Completed')
+  })
+
+  it('user cancelled (British spelling) shows Stripe Setup Not Completed', () => {
+    const error = normalizeStripeConnectError('User cancelled the flow')
+    expect(error).toBe('Stripe Setup Not Completed')
+  })
+
+  it('canceled shows Stripe Setup Not Completed', () => {
+    const error = normalizeStripeConnectError('The operation was canceled')
+    expect(error).toBe('Stripe Setup Not Completed')
+  })
+
+  it('Native error strips Native implementation details', () => {
+    const error = normalizeStripeConnectError('Native plugin error: something went wrong')
+    expect(error).toBe('Stripe Connect encountered an error. Please try again.')
+    expect(error).not.toContain('Native')
+    expect(error).not.toContain('plugin')
+  })
+
+  it('plugin error strips plugin implementation details', () => {
+    const error = normalizeStripeConnectError('plugin not responding')
+    expect(error).toBe('Stripe Connect encountered an error. Please try again.')
+    expect(error).not.toContain('plugin')
+  })
+
+  it('ReplyflowStripeConnect error strips plugin name', () => {
+    const error = normalizeStripeConnectError('ReplyflowStripeConnect failed to initialize')
+    expect(error).toBe('Stripe Connect encountered an error. Please try again.')
+    expect(error).not.toContain('ReplyflowStripeConnect')
+  })
+
+  it('other errors pass through unchanged', () => {
+    const error = normalizeStripeConnectError('Network error occurred')
+    expect(error).toBe('Network error occurred')
+  })
+
+  it('empty error passes through unchanged', () => {
+    const error = normalizeStripeConnectError('')
+    expect(error).toBe('')
+  })
+
+  it('case-insensitive cancellation detection', () => {
+    const error = normalizeStripeConnectError('USER CANCELED')
+    expect(error).toBe('Stripe Setup Not Completed')
+  })
+
+  it('case-insensitive Native detection', () => {
+    const error = normalizeStripeConnectError('NATIVE plugin error')
+    expect(error).toBe('Stripe Connect encountered an error. Please try again.')
   })
 })

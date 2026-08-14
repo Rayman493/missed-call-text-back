@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Calendar, Briefcase, User } from 'lucide-react'
+import { X, Briefcase, User } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
@@ -16,15 +16,17 @@ interface Task {
   due_date: string | null
   due_time: string | null
   completed: boolean
+  completed_at: string | null
   lead_id: string | null
   job_id: string | null
   created_at: string
+  business_id?: string
 }
 
 interface NewTaskModalProps {
   isOpen: boolean
   onClose: () => void
-  onTaskCreated: (isNew?: boolean) => void
+  onTaskCreated: (isNew?: boolean, task?: Task | null) => void
   taskToEdit?: Task | null
   onShowToast?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
   onTaskDeleted?: () => void
@@ -155,8 +157,10 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         throw new Error(error.error || 'Failed to save task')
       }
 
+      const result = await response.json()
       onShowToast?.(taskToEdit ? 'Task updated successfully' : 'Task created successfully', 'success')
-      onTaskCreated(!taskToEdit)
+      // Pass the created/updated task to parent for optimistic update
+      onTaskCreated(!taskToEdit, result.task || null)
       handleClose()
     } catch (error) {
       console.error('[NewTaskModal] Failed to save task:', error)

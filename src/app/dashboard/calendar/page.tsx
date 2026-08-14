@@ -56,9 +56,11 @@ interface Task {
   due_date: string | null
   due_time: string | null
   completed: boolean
+  completed_at: string | null
   lead_id: string | null
   job_id: string | null
   created_at: string
+  business_id?: string
 }
 
 // Lightweight MeetingsTab component (scoped, no new files)
@@ -328,12 +330,19 @@ export default function SchedulePage() {
   useEffect(() => {
     if (searchParams) {
       const calendarStatus = searchParams.get('calendar')
-      if (calendarStatus === 'connected') {
+      const status = searchParams.get('status') // From deep link (replyflow://calendar?status=...)
+
+      if (calendarStatus === 'connected' || status === 'connected') {
         showToast('Google Calendar connected successfully!', 'success')
         setTokenExpired(false)
         setScheduleTab('agenda') // Switch to Agenda tab after successful connection
         window.history.replaceState({}, '', '/dashboard/calendar')
-      } else if (calendarStatus === 'error') {
+      } else if (calendarStatus === 'cancelled' || status === 'cancelled') {
+        // User cancelled or denied access
+        showToast('Google Calendar Not Connected. You can try again anytime.', 'info')
+        window.history.replaceState({}, '', '/dashboard/calendar')
+      } else if (calendarStatus === 'error' || status === 'error') {
+        // Genuine OAuth/server error
         showToast('Failed to connect Google Calendar. Please try again.', 'error')
         window.history.replaceState({}, '', '/dashboard/calendar')
       }
@@ -1669,6 +1678,7 @@ export default function SchedulePage() {
                         calendarEvents={events}
                         tasks={tasks}
                         selectedDate={mapSelectedDate}
+                        business={business}
                         onPreviousDay={handleMapPreviousDay}
                         onNextDay={handleMapNextDay}
                         onGoToToday={handleMapGoToToday}

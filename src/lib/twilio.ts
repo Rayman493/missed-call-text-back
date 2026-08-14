@@ -363,7 +363,7 @@ export async function sendSms(
 
   try {
     // Get app URL for status callback
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com'
     const statusCallbackUrl = `${appUrl}/api/twilio/message-status`
     console.log('[SMS TRACE sendSms STEP_9_CALLBACK_URL]', { appUrl, statusCallbackUrl });
 
@@ -1010,7 +1010,7 @@ export async function sendMms(
   let errorCode = '';
 
   try {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com'
     const statusCallbackUrl = `${appUrl}/api/twilio/message-status`
     const fromNumber = business.twilio_phone_number;
 
@@ -1503,7 +1503,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
 
   try {
     const client = Twilio(accountSid, authToken)
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com'
 
     console.log(`[Provisioning] Searching for available local number correlation_id=${correlationId}`)
     

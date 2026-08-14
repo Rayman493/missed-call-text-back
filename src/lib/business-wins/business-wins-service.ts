@@ -246,36 +246,67 @@ class BusinessWinsService implements BusinessWinsServiceInterface {
       })
     }
 
-    // 10th customer
-    if (paidPayments.length === 10) {
-      const tenthPayment = paidPayments[0]
-      const lead = leads.find(l => l.id === tenthPayment.customer_id)
-      wins.push({
-        id: `10th-customer-${tenthPayment.id}`,
-        category: 'customer',
-        title: '10th Customer',
-        description: 'You now have 10 paying customers',
-        achievedAt: tenthPayment.created_at,
-        customerId: tenthPayment.customer_id,
-        customerName: lead ? getLeadDisplayName(lead) : 'A customer',
-        metadata: {}
-      })
+    // 10th customer - count unique customers, not payment records
+    const uniqueCustomerIds = new Set(paidPayments.filter(p => p.customer_id).map(p => p.customer_id))
+    if (uniqueCustomerIds.size === 10) {
+      // Find the payment that brought us to 10 unique customers
+      const customerPaymentCounts: Record<string, number> = {}
+      let tenthCustomerId: string | null = null
+      let tenthPayment: any = null
+
+      for (const payment of paidPayments) {
+        if (!payment.customer_id) continue
+        customerPaymentCounts[payment.customer_id] = (customerPaymentCounts[payment.customer_id] || 0) + 1
+        if (Object.keys(customerPaymentCounts).length === 10 && !tenthCustomerId) {
+          tenthCustomerId = payment.customer_id
+          tenthPayment = payment
+        }
+      }
+
+      if (tenthPayment && tenthCustomerId) {
+        const lead = leads.find(l => l.id === tenthCustomerId)
+        wins.push({
+          id: `10th-customer-${tenthPayment.id}`,
+          category: 'customer',
+          title: '10th Customer',
+          description: 'You now have 10 paying customers',
+          achievedAt: tenthPayment.created_at,
+          customerId: tenthCustomerId,
+          customerName: lead ? getLeadDisplayName(lead) : 'A customer',
+          metadata: {}
+        })
+      }
     }
 
-    // 100th customer
-    if (paidPayments.length === 100) {
-      const hundredthPayment = paidPayments[0]
-      const lead = leads.find(l => l.id === hundredthPayment.customer_id)
-      wins.push({
-        id: `100th-customer-${hundredthPayment.id}`,
-        category: 'customer',
-        title: '100th Customer',
-        description: 'You now have 100 paying customers',
-        achievedAt: hundredthPayment.created_at,
-        customerId: hundredthPayment.customer_id,
-        customerName: lead ? getLeadDisplayName(lead) : 'A customer',
-        metadata: {}
-      })
+    // 100th customer - count unique customers, not payment records
+    if (uniqueCustomerIds.size === 100) {
+      // Find the payment that brought us to 100 unique customers
+      const customerPaymentCounts: Record<string, number> = {}
+      let hundredthCustomerId: string | null = null
+      let hundredthPayment: any = null
+
+      for (const payment of paidPayments) {
+        if (!payment.customer_id) continue
+        customerPaymentCounts[payment.customer_id] = (customerPaymentCounts[payment.customer_id] || 0) + 1
+        if (Object.keys(customerPaymentCounts).length === 100 && !hundredthCustomerId) {
+          hundredthCustomerId = payment.customer_id
+          hundredthPayment = payment
+        }
+      }
+
+      if (hundredthPayment && hundredthCustomerId) {
+        const lead = leads.find(l => l.id === hundredthCustomerId)
+        wins.push({
+          id: `100th-customer-${hundredthPayment.id}`,
+          category: 'customer',
+          title: '100th Customer',
+          description: 'You now have 100 paying customers',
+          achievedAt: hundredthPayment.created_at,
+          customerId: hundredthCustomerId,
+          customerName: lead ? getLeadDisplayName(lead) : 'A customer',
+          metadata: {}
+        })
+      }
     }
 
     // Highest lifetime value customer

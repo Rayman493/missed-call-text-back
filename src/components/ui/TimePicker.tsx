@@ -1,6 +1,6 @@
 'use client'
 
-import { Clock, X } from 'lucide-react'
+import { X } from 'lucide-react'
 
 interface TimePickerProps {
   value: string // HH:MM format (24-hour)

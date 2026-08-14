@@ -37,7 +37,7 @@ export async function createMmsMediaAccessUrl(storagePath: string): Promise<stri
   }
 
   // Build URL using URL object to avoid encoding issues
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://replyflowhq.com'
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.replyflowhq.com'
   const serveUrl = new URL('/api/mms-media/serve', baseUrl)
   serveUrl.searchParams.set('path', storagePath)
   serveUrl.searchParams.set('token', token)

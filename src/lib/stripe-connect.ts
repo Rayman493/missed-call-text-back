@@ -13,6 +13,32 @@
 import { Capacitor } from '@capacitor/core'
 import { registerPlugin } from '@capacitor/core'
 
+/**
+ * Normalize Stripe Connect native plugin errors to user-friendly messages
+ * Internal implementation details are stripped before showing to users
+ */
+export function normalizeStripeConnectError(errorMessage: string): string {
+  const lowerError = errorMessage.toLowerCase()
+
+  // Normalize user cancellation/incomplete onboarding to user-friendly message
+  if (lowerError.includes('canceled') ||
+      lowerError.includes('cancelled') ||
+      lowerError.includes('user cancelled') ||
+      lowerError.includes('user canceled')) {
+    return 'Stripe Setup Not Completed'
+  }
+
+  // Strip raw native/plugin implementation details
+  if (errorMessage.includes('Native') ||
+      errorMessage.includes('plugin') ||
+      errorMessage.includes('ReplyflowStripeConnect')) {
+    return 'Stripe Connect encountered an error. Please try again.'
+  }
+
+  // Return original message for other errors (rare)
+  return errorMessage
+}
+
 export interface StripeConnectPlugin {
   openConnectOnboarding(options: {
     url: string
@@ -73,8 +99,9 @@ export async function openStripeConnectOnboarding(url: string): Promise<{ comple
         throw new Error('Stripe Connect is not available. Please try again.')
       }
 
-      // For other errors (e.g., user cancellation), throw the error
-      throw error
+      // Normalize error to user-friendly message
+      const normalizedMessage = normalizeStripeConnectError(errorMessage)
+      throw new Error(normalizedMessage)
     }
   } else {
     console.log('[STRIPE CONNECT] Opening Connect onboarding in browser (desktop/web/Android)')

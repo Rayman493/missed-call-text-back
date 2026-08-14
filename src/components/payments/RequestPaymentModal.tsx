@@ -274,6 +274,9 @@ export default function RequestPaymentModal({
         conversationId = selectedLead.raw_metadata?.conversationId
       }
 
+      // Generate attempt ID for idempotency - stable across retries
+      const attemptId = crypto.randomUUID()
+
       const payload = {
         business_id: business?.id,
         lead_id: leadId,
@@ -281,6 +284,7 @@ export default function RequestPaymentModal({
         amount_cents: Math.round(parseFloat(paymentAmount) * 100),
         description: paymentDescription || undefined,
         payment_provider: paymentProvider,
+        attempt_id: attemptId,
       }
 
       const response = await fetch('/api/payments/create', {
