@@ -738,6 +738,20 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     }
     closeHandledRef.current = true
 
+    // Clear payment fields for next payment (important for Apple video clarity)
+    setAmountCents(0)
+    setAmountDisplay('')
+    setSelectedLeadId(null)
+    setSelectedJobId(null)
+    setDescription('')
+    setPaymentAssociation({
+      type: 'quick',
+      leadId: null,
+      jobId: null,
+      label: 'Quick Payment',
+      secondaryLabel: null
+    })
+
     // Dispatch event for Recent Payments refresh before closing modal
     const paymentIntentId = terminalService?.getPaymentIntentId()
     if (paymentIntentId) {
