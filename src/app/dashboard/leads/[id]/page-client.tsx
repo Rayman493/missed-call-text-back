@@ -58,6 +58,7 @@ import Modal from '@/components/ui/Modal'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2 } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
+import { SidebarSection } from '@/components/SidebarSection'
 import SuccessBanner from '@/components/SuccessBanner'
 import BusinessPhoneModal from '@/components/BusinessPhoneModal'
 import { launchSMS, copyToClipboard, openBusinessSms } from '@/lib/sms-launch'
@@ -3813,154 +3814,108 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </div>
 
                       {/* Schedule - Unified Jobs + Tasks */}
-                      <div>
-                        <div className="px-1 py-1">
-                          <div className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-3">Schedule</div>
-                        </div>
-                        <div className="space-y-4">
-                          <div className="p-3">
-                            <button
-                              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: !prev.schedule }))}
-                              className="flex items-center justify-between w-full mb-2 group"
-                            >
-                              <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Schedule</h3>
-                              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.schedule ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </button>
-                            {collapsedSections.schedule && (
-                              <div className="text-sm text-muted-foreground">
-                                {leadJobs.length === 0 && leadTasks.length === 0 ? (
-                                  <span>No scheduled work</span>
-                                ) : (
-                                  <span>
-                                    {leadJobs.length} job{leadJobs.length !== 1 ? 's' : ''}, {leadTasks.length} task{leadTasks.length !== 1 ? 's' : ''}
-                                  </span>
-                                )}
+                      <SidebarSection
+                        title="Schedule"
+                        collapsible={true}
+                        isCollapsed={collapsedSections.schedule}
+                        onToggleCollapse={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: !prev.schedule }))}
+                        className="mb-3"
+                      >
+                        {leadJobs.length === 0 && leadTasks.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No scheduled work</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {/* Jobs */}
+                            {leadJobs.map((job: any) => (
+                              <div key={job.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg transition-all duration-200">
+                                <div className="flex-shrink-0 w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center">
+                                  <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                  </svg>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
+                                  <p className="text-xs text-muted-foreground/80">
+                                    {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
+                                    {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
+                                  </p>
+                                </div>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-border/30">
+                                  {formatJobStatus(job.status).text}
+                                </span>
                               </div>
-                            )}
-                            {!collapsedSections.schedule && (
-                              <div className="transition-all duration-200">
-                                {leadJobs.length === 0 && leadTasks.length === 0 ? (
-                                  <div className="text-center py-4">
-                                    <p className="text-sm text-muted-foreground">No scheduled work</p>
-                                  </div>
-                                ) : (
-                                  <div className="space-y-2">
-                                    {/* Jobs */}
-                                    {leadJobs.map((job: any) => (
-                                      <div key={job.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg transition-all duration-200">
-                                        <div className="flex-shrink-0 w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center">
-                                          <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                          </svg>
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                          <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
-                                          <p className="text-xs text-muted-foreground/80">
-                                            {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
-                                            {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
-                                          </p>
-                                        </div>
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-border/30">
-                                          {formatJobStatus(job.status).text}
-                                        </span>
-                                      </div>
-                                    ))}
-                                    {/* Tasks */}
-                                    {leadTasks.map((task: any) => (
-                                      <div key={task.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg transition-all duration-200">
-                                        <div className="flex-shrink-0 w-6 h-6 rounded bg-purple-500/10 flex items-center justify-center">
-                                          <svg className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                          </svg>
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                          <p className="text-sm font-medium text-foreground truncate">{task.title || 'Task'}</p>
-                                          <p className="text-xs text-muted-foreground/80">
-                                            {task.due_date ? formatDate(task.due_date) : 'No due date'}
-                                            {task.due_time ? ` • ${task.due_time}` : ''}
-                                          </p>
-                                        </div>
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-border/30">
-                                          {task.completed ? 'Done' : 'Open'}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+                            ))}
+                            {/* Tasks */}
+                            {leadTasks.map((task: any) => (
+                              <div key={task.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg transition-all duration-200">
+                                <div className="flex-shrink-0 w-6 h-6 rounded bg-purple-500/10 flex items-center justify-center">
+                                  <svg className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-medium text-foreground truncate">{task.title || 'Task'}</p>
+                                  <p className="text-xs text-muted-foreground/80">
+                                    {task.due_date ? formatDate(task.due_date) : 'No due date'}
+                                    {task.due_time ? ` • ${task.due_time}` : ''}
+                                  </p>
+                                </div>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-border/30">
+                                  {task.completed ? 'Done' : 'Open'}
+                                </span>
                               </div>
-                            )}
+                            ))}
                           </div>
-                        </div>
-                      </div>
+                        )}
+                      </SidebarSection>
 
                       {/* Payment */}
-                      <div>
-                        <div className="px-1 py-1">
-                          <div className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-3">Payment</div>
-                        </div>
-                        <div className="space-y-4">
-                          <div className="p-3">
-                            {paymentRequests.length === 0 ? (
-                              <div className="text-center py-4">
-                                <p className="text-sm text-muted-foreground">No payments yet</p>
-                              </div>
-                            ) : (
-                              <div>
-                                <div className="text-sm font-medium text-foreground mb-2">
-                                  {paymentRequests.filter((pr: any) => pr.status === 'paid').length === paymentRequests.length
-                                    ? `Paid ${formatCurrency(paymentRequests.reduce((sum: number, pr: any) => sum + (pr.amount_cents || 0), 0) / 100)}`
-                                    : `$${(paymentRequests.reduce((sum: number, pr: any) => sum + (pr.amount_cents || 0) - (pr.status === 'paid' ? pr.amount_cents || 0 : 0), 0) / 100).toFixed(2)} outstanding`
-                                  }
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {paymentRequests.length} request{paymentRequests.length !== 1 ? 's' : ''}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Internal Notes */}
-                      <div>
-                        <div className="px-1 py-1">
-                          <div className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-3">Internal Notes</div>
-                        </div>
-                        <div className="space-y-4">
-                          <div className="p-3">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <div className="text-[10px] text-muted-foreground/70">Private</div>
-                                </div>
-                                {Boolean((leadData?.notes || '').trim()) ? (
-                                  <div className="text-xs text-muted-foreground line-clamp-3 break-words">
-                                    {(leadData?.notes || '').trim()}
-                                  </div>
-                                ) : (
-                                  <div className="text-xs text-muted-foreground/70">
-                                    No notes yet
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setInternalNotesValue(leadData?.notes || '')
-                                    setShowInternalNotesModal(true)
-                                  }}
-                                  className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                                >
-                                  {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add'}
-                                </button>
-                              </div>
+                      <SidebarSection
+                        title="Payments"
+                        className="mb-3"
+                      >
+                        {paymentRequests.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No payments yet</p>
+                        ) : (
+                          <div>
+                            <div className="text-sm font-medium text-foreground mb-2">
+                              {paymentRequests.filter((pr: any) => pr.status === 'paid').length === paymentRequests.length
+                                ? `Paid ${formatCurrency(paymentRequests.reduce((sum: number, pr: any) => sum + (pr.amount_cents || 0), 0) / 100)}`
+                                : `$${(paymentRequests.reduce((sum: number, pr: any) => sum + (pr.amount_cents || 0) - (pr.status === 'paid' ? pr.amount_cents || 0 : 0), 0) / 100).toFixed(2)} outstanding`
+                              }
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {paymentRequests.length} request{paymentRequests.length !== 1 ? 's' : ''}
                             </div>
                           </div>
-                        </div>
-                      </div>
+                        )}
+                      </SidebarSection>
+
+                      {/* Internal Notes */}
+                      <SidebarSection
+                        title="Internal Notes"
+                        headerAction={
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setInternalNotesValue(leadData?.notes || '')
+                              setShowInternalNotesModal(true)
+                            }}
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                          >
+                            {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add'}
+                          </button>
+                        }
+                      >
+                        <div className="text-[10px] text-muted-foreground/70 mb-2">Private</div>
+                        {Boolean((leadData?.notes || '').trim()) ? (
+                          <div className="text-xs text-muted-foreground line-clamp-3 break-words">
+                            {(leadData?.notes || '').trim()}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No notes yet</p>
+                        )}
+                      </SidebarSection>
                     </div>
                   )
                 })()}
