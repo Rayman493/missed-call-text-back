@@ -201,7 +201,7 @@ function ScheduleMapComponent({
     }
     return 'roadmap'
   })
-  const [userInteracted, setUserInteracted] = useState(false)
+  const userInteractedRef = useRef(false) // Use ref to prevent re-renders
   const [showAllMode, setShowAllMode] = useState(true)
   const [previousDateKey, setPreviousDateKey] = useState<string | null>(null)
   const [lastAutoFitDateKey, setLastAutoFitDateKey] = useState<string | null>(null) // Track when we last auto-fitted to prevent repeated fits
@@ -240,7 +240,7 @@ function ScheduleMapComponent({
       tasksCount: tasks.length,
       selectedDate: selectedDate.toISOString(),
       mapItemsCount: mapItems.length,
-      userInteracted,
+      userInteracted: userInteractedRef.current,
       showAllMode,
       mapFilter
     })
@@ -297,12 +297,22 @@ function ScheduleMapComponent({
       })
       const result = await response.json()
       if (result.success) {
+        console.log('[SCHEDULE_MAP_BUSINESS_GEOCODE]', {
+          success: true,
+          hasCity: !!result.formattedAddress,
+          resultState: result.state || result.region || 'unknown',
+          resultCountry: result.country || 'unknown'
+        })
         return {
           lat: result.latitude,
           lng: result.longitude,
           formattedAddress: result.formattedAddress
         }
       }
+      console.log('[SCHEDULE_MAP_BUSINESS_GEOCODE]', {
+        success: false,
+        error: result.error || 'unknown'
+      })
       return null
     } catch (error) {
       console.log('[ScheduleMap] Business geocoding request failed')
@@ -320,6 +330,14 @@ function ScheduleMapComponent({
 
     const businessAddress = formatBusinessAddress(business)
     if (!businessAddress) {
+      console.log('[SCHEDULE_MAP_BUSINESS_ADDRESS]', {
+        hasAddress: false,
+        hasLine1: !!business.business_address_line1,
+        hasCity: !!business.business_address_city,
+        hasState: !!business.business_address_state,
+        hasPostal: !!business.business_address_postal_code,
+        hasCountry: !!business.business_address_country
+      })
       businessCoordsCacheRef.current = null
       lastBusinessAddressRef.current = null
       return
@@ -331,6 +349,17 @@ function ScheduleMapComponent({
     }
 
     lastBusinessAddressRef.current = businessAddress
+
+    console.log('[SCHEDULE_MAP_BUSINESS_ADDRESS]', {
+      hasAddress: true,
+      hasLine1: !!business.business_address_line1,
+      hasCity: !!business.business_address_city,
+      hasState: !!business.business_address_state,
+      hasPostal: !!business.business_address_postal_code,
+      hasCountry: !!business.business_address_country,
+      state: business.business_address_state || 'missing',
+      country: business.business_address_country || 'missing'
+    })
 
     // Geocode the address using API (no Google Maps dependency)
     const geocode = async () => {
@@ -396,10 +425,10 @@ function ScheduleMapComponent({
       mapInstance: mapInstanceIdRef.current,
       container: `${containerWidth}x${containerHeight}`,
       deltaInfo,
-      userInteracted,
+      userInteracted: userInteractedRef.current,
       timestamp: Date.now()
     })
-  }, [userInteracted])
+  }, [])
 
   // Log camera commands with full details (NO precise coordinates - privacy-safe)
   const logCameraCommand = useCallback((source: string, command: string, details: any) => {
@@ -408,11 +437,11 @@ function ScheduleMapComponent({
       command,
       zoom: details.zoom || 'N/A',
       reason: details.reason || 'N/A',
-      userInteracted,
+      userInteracted: userInteractedRef.current,
       mapInstance: mapInstanceIdRef.current,
       timestamp: Date.now()
     })
-  }, [userInteracted])
+  }, [])
 
   // Throttled logging for high-frequency events (100ms minimum between logs per event type)
   const logThrottled = useCallback((eventType: string, logFn: () => void) => {
@@ -545,7 +574,7 @@ function ScheduleMapComponent({
       googleMapRef.current.setZoom(zoom)
     }
     if (setUserInteractedFlag) {
-      setUserInteracted(true)
+      userInteractedRef.current = true
     }
   }, [logCameraCommand])
 
@@ -553,7 +582,7 @@ function ScheduleMapComponent({
   const showAllMarkers = useCallback(() => {
     setSelectedMapItemId(null)
     setShowAllMode(true)
-    setUserInteracted(false)
+    userInteractedRef.current = false
 
     if (!googleMapRef.current || markersRef.current.size === 0) return
 
@@ -1109,7 +1138,7 @@ function ScheduleMapComponent({
       map.addListener('dragstart', () => {
         logCameraState('dragstart', 'user_drag_start')
         if (!programmaticCameraChangeRef.current) {
-          setUserInteracted(true)
+          userInteractedRef.current = true
           setLastAutoFitDateKey(null)
         }
       })
@@ -1142,7 +1171,7 @@ function ScheduleMapComponent({
           pendingProgrammaticMoveRef.current = false
           programmaticCameraChangeRef.current = false
         } else if (!programmaticCameraChangeRef.current) {
-          setUserInteracted(true)
+          userInteractedRef.current = true
           setLastAutoFitDateKey(null)
         }
       })
@@ -1198,7 +1227,7 @@ function ScheduleMapComponent({
             new: `${width}x${height}`,
             reason: 'container_resize',
             mapInstance: mapInstanceIdRef.current,
-            userInteracted,
+            userInteracted: userInteractedRef.current,
             timestamp: Date.now()
           })
           resizeLastSizeRef.current = { width, height }
@@ -1211,7 +1240,7 @@ function ScheduleMapComponent({
     return () => {
       resizeObserver.disconnect()
     }
-  }, [mapReady, userInteracted])
+  }, [mapReady])
 
   // Save per-date state before date change
   useEffect(() => {
@@ -1226,7 +1255,7 @@ function ScheduleMapComponent({
       }
 
       // Save current viewport if map exists and user has interacted
-      if (googleMapRef.current && userInteracted) {
+      if (googleMapRef.current && userInteractedRef.current) {
         const center = googleMapRef.current.getCenter()
         const zoom = googleMapRef.current.getZoom()
         state.center = { lat: center.lat(), lng: center.lng() }
@@ -1237,16 +1266,16 @@ function ScheduleMapComponent({
       if (
         state.selectedMapItemId !== selectedMapItemId ||
         state.filter !== mapFilter ||
-        state.userInteracted !== userInteracted
+        state.userInteracted !== userInteractedRef.current
       ) {
         state.selectedMapItemId = selectedMapItemId
         state.filter = mapFilter
-        state.userInteracted = userInteracted
+        state.userInteracted = userInteractedRef.current
         perDateStateRef.current.set(previousDateKey, state)
       }
     }
     setPreviousDateKey(dateKey)
-  }, [selectedDate, selectedMapItemId, mapFilter, userInteracted, previousDateKey])
+  }, [selectedDate, selectedMapItemId, mapFilter, previousDateKey])
 
   // Restore per-date state when date changes
   useEffect(() => {
@@ -1257,7 +1286,8 @@ function ScheduleMapComponent({
       dateKey,
       hasSavedState: !!savedState,
       mapReady,
-      mapInstance: mapInstanceIdRef.current
+      mapInstance: mapInstanceIdRef.current,
+      userInteracted: userInteractedRef.current
     })
 
     if (savedState) {
@@ -1266,12 +1296,13 @@ function ScheduleMapComponent({
       // Only restore userInteracted if it's true (user had manually moved the map)
       // Don't reset it to false if user has already interacted in current session
       if (savedState.userInteracted) {
-        setUserInteracted(true)
+        userInteractedRef.current = true
       }
 
       // Restore viewport immediately if map is ready and saved viewport exists
       // This prevents race condition with marker rendering effect
-      if (mapReady && googleMapRef.current && savedState.center && savedState.zoom) {
+      // IMPORTANT: Only restore if user is NOT currently interacting
+      if (mapReady && googleMapRef.current && savedState.center && savedState.zoom && !userInteractedRef.current) {
         // Check if this is actually a camera change (avoid no-op calls)
         const currentCenter = googleMapRef.current.getCenter()
         const currentZoom = googleMapRef.current.getZoom()
@@ -1298,7 +1329,7 @@ function ScheduleMapComponent({
     } else {
       // First visit - use defaults
       setShowAllMode(true)
-      setUserInteracted(false)
+      userInteractedRef.current = false
     }
 
     setSelectedMarker(null)
@@ -1475,7 +1506,7 @@ function ScheduleMapComponent({
       effect: 'marker_update_auto_fit_check',
       markersCount: markersRef.current.size,
       showAllMode,
-      userInteracted,
+      userInteracted: userInteractedRef.current,
       dateChanged,
       signatureChanged,
       initialCameraEstablished: initialCameraEstablishedRef.current,
@@ -1485,14 +1516,14 @@ function ScheduleMapComponent({
     if (markersRef.current.size === 0) {
       markerSetSignatureRef.current = signature
       setLastAutoFitDateKey(null)
-    } else if (selectedMapItemId && !userInteracted) {
+    } else if (selectedMapItemId && !userInteractedRef.current) {
       const selectedMarker = markersRef.current.get(selectedMapItemId)
       if (selectedMarker) {
         const pos = selectedMarker.getPosition()
         panToMarker(pos.lat(), pos.lng(), 15, false, 'selected_item')
         markerSetSignatureRef.current = signature
       }
-    } else if (showAllMode && !userInteracted && (dateChanged || signatureChanged)) {
+    } else if (showAllMode && !userInteractedRef.current && (dateChanged || signatureChanged)) {
       const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && !initialCameraEstablishedRef.current)
 
       console.log('[SCHEDULE_MAP_EFFECT]', {
@@ -1527,12 +1558,12 @@ function ScheduleMapComponent({
       } else {
         markerSetSignatureRef.current = signature
       }
-    } else if (!showAllMode || userInteracted) {
+    } else if (!showAllMode || userInteractedRef.current) {
       console.log('[SCHEDULE_MAP_EFFECT]', {
         effect: 'skip_auto_fit',
         reason: !showAllMode ? 'not_show_all_mode' : 'user_interacted',
         showAllMode,
-        userInteracted
+        userInteracted: userInteractedRef.current
       })
       markerSetSignatureRef.current = signature
     }
@@ -1542,7 +1573,7 @@ function ScheduleMapComponent({
       markersRef.current.forEach(marker => marker.setMap(null))
       markersRef.current.clear()
     }
-  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectMapItem, selectedMapItemId, userInteracted, previousDateKey, lastAutoFitDateKey, mapFilter])
+  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectMapItem, selectedMapItemId, previousDateKey, lastAutoFitDateKey, mapFilter])
 
   // Update marker icons when selection changes (without triggering camera changes)
   useEffect(() => {

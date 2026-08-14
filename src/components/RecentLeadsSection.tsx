@@ -91,12 +91,13 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
           `)
           .eq('business_id', businessId)
           .is('deleted_at', null)
-          .order('last_message_at', { ascending: false, nullsFirst: false })
-          .order('first_contact_at', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false })
           .not('status', 'eq', 'ignored')
 
         console.log('[RecentLeadsSection] Query error:', error)
+        console.log('[RecentLeadsSection] Error code:', error?.code)
+        console.log('[RecentLeadsSection] Error message:', error?.message)
+        console.log('[RecentLeadsSection] Error details:', error?.details)
         console.log('[RecentLeadsSection] Query data length:', data?.length)
         console.log('[RecentLeadsSection] Query data:', data)
 
