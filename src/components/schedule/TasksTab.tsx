@@ -421,7 +421,7 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
                   )}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium mb-1 ${task.completed ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-sforeground'}`}>
+                  <p className={`text-sm font-medium mb-1 ${task.completed ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-foreground'}`}>
                     {task.title}
                   </p>
                   {task.notes && (

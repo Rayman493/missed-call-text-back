@@ -854,6 +854,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                 }}
                 className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
                 style={{ minWidth: '44px', minHeight: '44px' }}
+                aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1757,8 +1758,8 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
       
       {/* Receipt Modal */}
       {showReceiptModal && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-background rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+          <div className="bg-background rounded-xl shadow-xl max-w-md w-full p-6 space-y-4 max-h-[calc(100dvh-32px)] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-foreground">Send Receipt</h2>
               <button

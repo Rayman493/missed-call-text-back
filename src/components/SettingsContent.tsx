@@ -3315,7 +3315,12 @@ export default function SettingsContent() {
                                 : 'Connect Stripe to accept card payments.'}
                         </p>
                       </div>
-                      {!isConnectingStripe && (
+                      {isConnectingStripe ? (
+                        <div className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-slate-400"></div>
+                          Connecting...
+                        </div>
+                      ) : (
                         <button
                           onClick={handleConnectStripe}
                           disabled={isConnectingStripe || isStripeConnectUnavailable}
@@ -3382,7 +3387,7 @@ export default function SettingsContent() {
                     <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <img src="/brands/venmo.png" alt="Venmo" className="h-5 w-auto object-contain sm:h-6 flex-shrink-0" />
+                          <img src="/brands/venmo.png" alt="Venmo" className="h-5 w-auto object-contain sm:h-6 max-w-20 flex-shrink-0" />
                         {formBusiness.venmo_username ? (
                           <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                             <span className="w-1 h-1 bg-green-500 rounded-full" />
