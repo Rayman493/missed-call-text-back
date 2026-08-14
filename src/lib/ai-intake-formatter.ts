@@ -1,5 +1,11 @@
 import { sanitizeCustomerName, sanitizeServiceRequested, sanitizeAdditionalDetails, sanitizeServiceAddress, sanitizeTiming } from './content-sanitization'
 
+// Placeholder names that should be rejected
+const PLACEHOLDER_NAMES = new Set([
+  'unknown', 'not provided', 'not collected', 'n/a', 'caller', 'customer',
+  'unknown caller', 'unknown customer', 'not provided name'
+])
+
 // Helper function to detect if a string looks like a phone number
 function looksLikePhoneNumber(text: string): boolean {
   if (!text || typeof text !== 'string') return false;
@@ -316,6 +322,16 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     /^um /i,
     /^uh /i,
     /^yeah /i,
+    // Critical additions to remove command verbs at start
+    /^get /i,
+    /^need /i,
+    /^want /i,
+    /^looking /i,
+    /^come /i,
+    /^help /i,
+    /^someone /i,
+    /^trying /i,
+    /^see /i,
   ];
 
   for (const pattern of conversationalPrefixes) {
@@ -353,18 +369,82 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
   // Define industry-specific service mappings with primary focus
   const serviceMappings: Record<string, RegExp[]> = {
     'Lawn Mowing': [/\blawn\s*(?:mow|cut|trim|maintenance|care|service)/i, /\bgrass\s*(?:cut|mow|trim)/i, /\byard\s*(?:mow|cut|trim|work)/i],
+    'Recurring Lawn Mowing': [/\blawn\s*(?:mow|cut|trim)\s*(?:every|weekly|biweekly|monthly|recurring)/i, /\bgrass\s*(?:cut|mow)\s*(?:every|weekly|biweekly|monthly|recurring)/i],
     'Pressure Washing': [/\bpressure\s*(?:wash|wash|clean)/i, /\bdriveway\s*(?:wash|clean)/i],
     'Piano Lessons': [/\bpiano\s*(?:lesson|learn|teach|class|instruction)/i],
     'AC Repair': [/\b(?:air\s*conditioner|ac|a\/c|hvac)\s*(?:repair|fix|not working|broken|leaking|stopped)/i, /\bair\s*(?:conditioning|conditioner)\s*(?:problem|issue|trouble)/i],
+    'Furnace Installation': [/\bfurnace\s*(?:install|installation|new|replace)/i],
     'Fence Installation': [/\bfence\s*(?:install|installation|new|replace|put in|set up)/i],
     'Kitchen Leak Repair': [/\bkitchen\s*(?:sink|faucet|pipe)\s*(?:leak|drip|leaking|dripping)/i, /\bkitchen\s*(?:plumbing|repair|fix)/i],
-    'Plumbing Repair': [/\bplumbing\s*(?:repair|fix|issue|problem)/i, /\b(?:sink|faucet|pipe|toilet|drain)\s*(?:leak|drip|leaking|dripping|clogged|blocked)/i],
+    // Context-aware plumbing mappings
+    // Note: New-Construction Plumbing Installation is handled via upgrade logic after matching Pipe Installation
+    // Priority: Check for construction context after matching plumbing installation
+    // This is handled by a separate pass below
+    'Pipe Installation': [
+      /\b(?:pipe|pipes|piping)\s*(?:install|installation|new|set up)(?!\s*(?:new\s*(?:construction|house|home|build)))/i,
+      /\bplumbing\s*(?:install|installation|new)(?!\s*(?:new\s*(?:construction|house|home|build)))/i,
+      /\b(?:new\s*)?(?:pipe|pipes)\s*(?:install|installation)(?!\s*(?:construction|house|home|build))/i
+    ],
+    'Drain Cleaning': [
+      /\b(?:drain|drains)\s*(?:clean|cleaning|unclog|clog|block|clear)/i,
+      /\b(?:clogged|blocked)\s*(?:drain|drains)/i,
+      /\b(?:unclog|clear)\s*(?:drain|drains)/i
+    ],
+    'Plumbing Repair': [
+      /\bplumbing\s*(?:repair|fix|issue|problem)/i,
+      /\b(?:sink|faucet|pipe|toilet|drain)\s*(?:leak|drip|leaking|dripping|clogged|blocked)(?!\s*(?:new\s*(?:construction|house|home|build)))/i
+    ],
+    'Plumbing Service': [
+      /\bplumbing\s*(?:service|work|help)/i,
+      /\b(?:pipe|pipes)\s*(?:service|work|help)/i
+    ],
+    // HVAC mappings
+    'Air Conditioning Repair': [
+      /\b(?:air\s*conditioner|ac|a\/c)\s*(?:repair|fix|not working|broken|leaking|stopped|blowing\s*warm)/i,
+      /\bair\s*(?:conditioning|conditioner)\s*(?:problem|issue|trouble)/i
+    ],
+    'Furnace Repair': [
+      /\bfurnace\s*(?:repair|fix|not working|broken)/i,
+      /\b(?:heating|heater)\s*(?:repair|fix|not working|broken)/i
+    ],
+    // Electrical mappings
+    'Electrical Panel Upgrade': [
+      /\belectrical\s*(?:panel)\s*(?:upgrade|replace|update)/i,
+      /\bpanel\s*(?:upgrade|replace|update)\s*(?:electrical)/i
+    ],
+    'Electrical Outlet Repair': [
+      /\b(?:outlet|outlets)\s*(?:repair|fix|sparking|broken|not working)/i,
+      /\b(?:electrical)\s*(?:outlet)\s*(?:repair|fix)/i
+    ],
+    // Roofing mappings
+    'Storm Damage Roof Inspection': [
+      /\broof\s*(?:inspection|inspect|check|look|assess)\s*(?:storm|damage|after\s*storm|hail|wind)/i,
+      /\b(?:storm|damage|hail|wind)\s*(?:roof\s*(?:inspection|inspect|check|look|assess))/i
+    ],
+    'Roof Repair': [
+      /\broof\s*(?:repair|fix|leak|replace)/i,
+      /\b(?:leaking|leak)\s*(?:roof)/i
+    ],
+    // Cleaning mappings
+    'Move-Out Cleaning': [
+      /\b(?:move-?out|moving\s*out)\s*(?:clean|cleaning)/i,
+      /\bclean\s*(?:before\s*move|moving)/i
+    ],
+    'House Cleaning': [
+      /\bhouse\s*(?:clean|cleaning|maid|service)/i,
+      /\bhome\s*(?:clean|cleaning)/i
+    ],
+    // Painting mappings
+    'Interior House Painting': [
+      /\b(?:interior|inside)\s*(?:house|home)\s*(?:paint|painting)/i,
+      /\bpaint\s*(?:interior|inside)\s*(?:house|home)/i
+    ],
+    'Painting': [
+      /\bpaint(?:ing)?\s*(?:interior|exterior|house|home|room)/i
+    ],
     'Electrical Repair': [/\belectrical\s*(?:repair|fix|issue|problem|work)/i, /\b(?:outlet|switch|wire|wiring|circuit)\s*(?:repair|fix|broken|not working)/i],
     'Carpet Cleaning': [/\bcarpet\s*(?:clean|wash|shampoo|steam)/i],
-    'House Cleaning': [/\bhouse\s*(?:clean|cleaning|maid|service)/i, /\bhome\s*(?:clean|cleaning)/i],
     'Window Cleaning': [/\bwindow\s*(?:clean|wash|cleaning)/i],
-    'Roof Repair': [/\broof\s*(?:repair|fix|leak|replace)/i],
-    'Painting': [/\bpaint(?:ing)?\s*(?:interior|exterior|house|home|room)/i],
     'Flooring': [/\bfloor(?:ing)?\s*(?:install|installation|repair|replace|refinish)/i],
     'HVAC Service': [/\bhvac\s*(?:service|maintenance|repair|install)/i, /\b(?:heating|cooling|furnace|boiler)\s*(?:service|repair|install)/i],
     'Pool Service': [/\bpool\s*(?:clean|cleaning|maintenance|service|repair)/i],
@@ -393,17 +473,57 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
   };
 
   // Try to match against service mappings first
-  for (const [serviceTitle, patterns] of Object.entries(serviceMappings)) {
+  // Sort mappings by specificity (longer patterns first) to ensure context-aware patterns match before general ones
+  const sortedMappings = Object.entries(serviceMappings).sort((a, b) => b[0].length - a[0].length);
+
+  // Priority check: burst, frozen, repair, replacement must match before construction-related patterns
+  const priorityPatterns = [
+    { title: 'Burst Pipe Repair', patterns: [/\bburst\s*(?:pipe|pipes)/i, /\b(?:pipe|pipes)\s*burst/i] },
+    { title: 'Frozen Pipe Repair', patterns: [/\bfrozen\s*(?:pipe|pipes)/i, /\b(?:pipe|pipes)\s*frozen/i] },
+    { title: 'Pipe Replacement', patterns: [/\b(?:pipe|pipes)\s*(?:replace|replacement|swap|change)/i, /\b(?:replace|changing)\s*(?:pipe|pipes)/i] },
+  ];
+
+  for (const { title, patterns } of priorityPatterns) {
+    for (const pattern of patterns) {
+      if (pattern.test(processed)) {
+        return title;
+      }
+    }
+  }
+
+  let matchedTitle: string | null = null;
+
+  for (const [serviceTitle, patterns] of sortedMappings) {
     for (const pattern of patterns) {
       if (pattern.test(processed)) {
         // Ensure the result is 2-5 words
         const titleWords = serviceTitle.split(' ');
         if (titleWords.length >= 2 && titleWords.length <= 5) {
-          return serviceTitle;
+          matchedTitle = serviceTitle;
+          break;
         }
       }
     }
+    if (matchedTitle) break;
   }
+
+  // Rule priority: Repair, burst, frozen, replacement intent cannot be overwritten by construction context
+  const isRepairPriority = matchedTitle === 'Pipe Repair' || matchedTitle === 'Burst Pipe Repair' || matchedTitle === 'Frozen Pipe Repair' || matchedTitle === 'Pipe Replacement';
+
+  if (matchedTitle && !isRepairPriority && matchedTitle === 'Pipe Installation') {
+    const hasPlumbing = /\b(?:pipe|pipes|piping|plumbing)\s*(?:install|installation|new|set up)/i.test(processed);
+    // Must have explicit construction context - not just "new" or "house"
+    // Exclude patterns like "30-year-old house" or "existing house"
+    const hasConstructionContext = /\b(?:getting\s*built|being\s*built|under\s*construction|construction\s*project|building\s*a\s*new)\b/i.test(processed);
+
+    // Must have both plumbing installation language AND explicit construction context
+    // "New pipes" or "new house" alone must not trigger new-construction classification
+    if (hasPlumbing && hasConstructionContext) {
+      matchedTitle = 'New-Construction Plumbing Installation';
+    }
+  }
+
+  if (matchedTitle) return matchedTitle;
 
   // Fallback: Extract key service nouns (2-5 words max)
   const priorityNouns = [
@@ -463,6 +583,18 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
   const titleCased = finalWords.map(word =>
     word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
   ).join(' ');
+
+  // Enforce maximum length (80 characters)
+  const MAX_LENGTH = 80;
+  if (titleCased.length > MAX_LENGTH) {
+    // Truncate at word boundary
+    const truncated = titleCased.substring(0, MAX_LENGTH);
+    const lastSpace = truncated.lastIndexOf(' ');
+    if (lastSpace > 0) {
+      return truncated.substring(0, lastSpace);
+    }
+    return truncated;
+  }
 
   return titleCased || 'General Service';
 };
@@ -805,6 +937,72 @@ export const normalizeText = (text: string | null | undefined): string => {
   return safeTrimAndCapitalize(text);
 };
 
+// Normalize business name for SMS interpolation
+// Trims whitespace and rejects placeholders
+export const normalizeBusinessNameForSms = (businessName: string | null | undefined): string | null => {
+  if (!businessName || businessName.trim() === '') return null;
+
+  const trimmed = businessName.trim();
+
+  // Reject placeholders
+  const lower = trimmed.toLowerCase();
+  if (PLACEHOLDER_NAMES.has(lower)) {
+    return null;
+  }
+
+  // Collapse multiple internal spaces to single space
+  const normalized = trimmed.replace(/\s+/g, ' ').trim();
+
+  return normalized || null;
+};
+
+// Normalize customer name for SMS greeting
+// Rejects placeholders and phone numbers
+export const normalizeCustomerNameForSms = (customerName: string | null | undefined): string | null => {
+  const normalized = normalizeCustomerName(customerName);
+
+  // Reject placeholders
+  if (normalized && PLACEHOLDER_NAMES.has(normalized.toLowerCase())) {
+    return null;
+  }
+
+  return normalized;
+};
+
+// Polish conversational timing wrappers without changing meaning
+export const polishTimingWrapper = (timing: string | null | undefined): string => {
+  if (!timing || timing.trim() === '') return 'Not collected';
+
+  let normalized = timing.trim();
+
+  // Remove common conversational wrappers while preserving the core timing
+  const wrapperPatterns = [
+    { pattern: /^sometime in the /i, replacement: '' },
+    { pattern: /^sometime in /i, replacement: '' },
+    { pattern: /, if that'?s possible$/i, replacement: '' },
+    { pattern: /^sometime /i, replacement: '' },
+    { pattern: /, if possible$/i, replacement: '' },
+    { pattern: /^as soon as you (?:guys )?can get here$/i, replacement: 'As soon as possible' },
+    { pattern: /^as soon as (?:you )?can$/i, replacement: 'As soon as possible' },
+    { pattern: /^whenever (?:you )?can$/i, replacement: 'Whenever' },
+  ];
+
+  for (const { pattern, replacement } of wrapperPatterns) {
+    normalized = normalized.replace(pattern, replacement);
+  }
+
+  // Trim trailing comma, period, or space
+  normalized = normalized.replace(/[.,\s]+$/, '').trim();
+
+  // Remove leading "the " if present (after wrapper removal)
+  normalized = normalized.replace(/^the /i, '');
+
+  // Sentence capitalize
+  normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
+
+  return normalized || 'Not collected';
+};
+
 // Helper function to format AI intake summary (used by SMS and dashboard)
 // Accepts both Simple Mode field names and canonical field names interchangeably.
 export const formatAiIntakeSummary = (
@@ -921,7 +1119,7 @@ export const formatAdaptiveIntakeSms = (
   serviceLocationType?: 'onsite' | 'customer_comes_to_business' | 'remote' | string | null
 ): string => {
   // Read canonical field names with backward compatibility
-  const customerName = normalizeCustomerName(
+  const customerName = normalizeCustomerNameForSms(
     intakeData?.customerName ?? intakeData?.callerName
   );
   const serviceAddress = normalizeAddressForDisplay(
@@ -929,31 +1127,37 @@ export const formatAdaptiveIntakeSms = (
       intakeData?.serviceAddress ?? intakeData?.addressOrLocation
     )
   );
-  const desiredCompletionTime = normalizeTiming(
+  const desiredCompletionTime = polishTimingWrapper(
     intakeData?.desiredCompletionTime
   );
-  const callbackTime = normalizeTiming(
+  const callbackTime = polishTimingWrapper(
     intakeData?.callbackTime ?? intakeData?.preferredCallbackTime
   );
-  const serviceRequested = normalizeServiceReason(
+  const serviceRequestedRaw = normalizeServiceReason(
     intakeData?.serviceRequested ?? intakeData?.reasonForCalling
   );
 
+  // Use canonical title for SMS Service field (concise, professional summary)
+  // Priority: intakeData.request (canonical) → serviceRequested (canonicalized) → fallback
+  const serviceRequested = intakeData?.request
+    ? generateCanonicalRequestTitle(intakeData.request)
+    : generateCanonicalRequestTitle(serviceRequestedRaw);
+
   // Determine which fields have actual meaningful values
-  const hasName = customerName && customerName !== 'Not collected' && customerName.trim() !== '';
-  const hasRequest = serviceRequested && serviceRequested !== 'Not collected' && serviceRequested.trim() !== '';
-  const hasAddress = serviceAddress && serviceAddress !== 'Not collected' && serviceAddress.trim() !== '';
+  const hasName = customerName && customerName.trim() !== '';
+  const hasRequest = serviceRequested && serviceRequested !== 'General Service' && serviceRequested.trim() !== '';
+  const hasAddress = serviceAddress && serviceAddress.trim() !== '';
   const hasCompletionTime = desiredCompletionTime && desiredCompletionTime !== 'Not collected' && desiredCompletionTime.trim() !== '';
   const hasCallbackTime = callbackTime && callbackTime !== 'Not collected' && callbackTime.trim() !== '';
 
-  // Business name: use if available, otherwise omit entirely
-  const displayName = businessName && businessName.trim() ? businessName : null;
+  // Business name: normalize and reject placeholders
+  const displayName = normalizeBusinessNameForSms(businessName);
   const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
 
   // Determine if location should be shown (for non-onsite businesses, location may not be relevant)
   const mode = typeof serviceLocationType === 'string' ? serviceLocationType.trim().toLowerCase() : 'onsite';
   const normalizedMode = (mode === 'onsite' || mode === 'customer_comes_to_business' || mode === 'remote') ? mode : 'onsite';
-  const shouldShowLocation = normalizedMode === 'onsite' || hasAddress;
+  const shouldShowLocation = normalizedMode === 'onsite' && hasAddress;
 
   // Semantic completeness: prioritize useful information
   // Customer name improves personalization but doesn't make intake substantially complete
@@ -1001,8 +1205,8 @@ export const formatAdaptiveIntakeSms = (
     const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
 
     // Build dynamic list of missing fields to request
-    const missingFields = [];
     const hasDetails = intakeData?.requestDetails && intakeData.requestDetails !== 'Not collected' && intakeData.requestDetails.trim() !== '';
+    const missingFields = [];
     if (!hasDetails) missingFields.push('Any important details');
     if (!hasAddress && shouldShowLocation) missingFields.push('Service address');
     if (!hasCompletionTime) missingFields.push('When you\'d like the work completed');
@@ -1010,63 +1214,44 @@ export const formatAdaptiveIntakeSms = (
 
     let missingFieldsText;
     if (missingFields.length === 0) {
-      missingFieldsText = 'We\'ll pass this along. Reply here if you\'d like to add or change anything.';
+      missingFieldsText = 'We\'ll share these details with the team, and they\'ll follow up soon. Reply here if you\'d like to add anything.';
     } else if (missingFields.length === 1) {
-      missingFieldsText = `We'll pass this along. Reply here with ${missingFields[0].toLowerCase()}.`;
+      missingFieldsText = `We'll share these details with the team, and they'll follow up soon. Reply here with ${missingFields[0].toLowerCase()}.`;
     } else {
-      missingFieldsText = `We'll pass this along. To help us get everything ready, reply with:\n${missingFields.map(f => `• ${f}`).join('\n')}`;
+      missingFieldsText = `To help us get everything ready, reply with:\n${missingFields.map(f => `• ${f}`).join('\n')}`;
     }
 
-    return `${prefix}${greeting}${businessPart}\n\nWe got your request for ${serviceRequested.toLowerCase()}.\n\n${missingFieldsText}`;
+    return `${prefix}${greeting}${businessPart}\n\nWe got your request for ${serviceRequested}.\n\n${missingFieldsText}`;
   }
 
   // Level C: Partial intake - service + some context
   if (meaningfulFieldCount === 2) {
     const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
     const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
-    let body = `${prefix}${greeting}${businessPart}\n\nHere's what we got:\n`;
+    let body = `${prefix}${greeting}${businessPart}\n\nHere's what we captured:\n`;
 
     // Service (always show if available)
     if (hasRequest) {
-      body += `• Request: ${serviceRequested}`;
+      body += `• Service: ${serviceRequested}`;
     }
 
     // Location (without emoji to avoid UCS-2 encoding)
     if (shouldShowLocation && hasAddress) {
-      body += `\n• Address: ${serviceAddress}`;
+      body += `\n\n• Address: ${serviceAddress}`;
     }
 
     // Timing (without emoji)
     if (hasCompletionTime) {
-      body += `\n• Desired completion: ${desiredCompletionTime}`;
+      body += `\n\n• Preferred timing: ${desiredCompletionTime}`;
     }
 
     // Callback (without emoji)
     if (hasCallbackTime) {
-      body += `\n• Best callback: ${callbackTime}`;
+      body += `\n\n• Best callback time: ${callbackTime}`;
     }
 
-    // Build dynamic list of missing fields to request
-    // Canonical intake requirements from voice flow:
-    // - Always required: request, details, timing, callback
-    // - Conditional (onsite only): address
-    const hasDetails = intakeData?.requestDetails && intakeData.requestDetails !== 'Not collected' && intakeData.requestDetails.trim() !== '';
-    const missingFields = [];
-    if (!hasDetails) missingFields.push('Any important details');
-    if (!hasAddress && shouldShowLocation) missingFields.push('Service address');
-    if (!hasCompletionTime) missingFields.push('When you\'d like the work completed');
-    if (!hasCallbackTime) missingFields.push('Best time to call you back');
-
-    let missingFieldsText;
-    if (missingFields.length === 0) {
-      missingFieldsText = 'We\'ll pass this along. Reply here if you\'d like to add or change anything.';
-    } else if (missingFields.length === 1) {
-      missingFieldsText = `We'll pass this along. Reply here with ${missingFields[0].toLowerCase()}.`;
-    } else {
-      missingFieldsText = `We'll pass this along. To help us get everything ready, reply with:\n${missingFields.map(f => `• ${f}`).join('\n')}`;
-    }
-
-    body += `\n\n${missingFieldsText}`;
+    // Partial intake closing
+    body += `\n\nWe've shared these details with the team, and they'll follow up soon. Reply here if you'd like to add anything.`;
 
     return body.trim();
   }
@@ -1074,31 +1259,29 @@ export const formatAdaptiveIntakeSms = (
   // Level D: Complete intake - sufficient information
   const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
   const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
-  let body = `${prefix}${greeting}${businessPart}\n\nHere's what we got:\n`;
+  let body = `${prefix}${greeting}${businessPart}\n\nHere's what we captured:\n`;
 
   if (hasRequest) {
-    body += `• Request: ${serviceRequested}`;
+    body += `• Service: ${serviceRequested}`;
   }
 
-  // Show details if present (canonical field from voice flow)
-  const hasDetails = intakeData?.requestDetails && intakeData.requestDetails !== 'Not collected' && intakeData.requestDetails.trim() !== '';
-  if (hasDetails) {
-    body += `\n• Details: ${intakeData.requestDetails}`;
-  }
-
+  // Location (without emoji to avoid UCS-2 encoding)
   if (shouldShowLocation && hasAddress) {
-    body += `\n• Address: ${serviceAddress}`;
+    body += `\n\n• Address: ${serviceAddress}`;
   }
 
+  // Timing (without emoji)
   if (hasCompletionTime) {
-    body += `\n• Desired completion: ${desiredCompletionTime}`;
+    body += `\n\n• Preferred timing: ${desiredCompletionTime}`;
   }
 
+  // Callback (without emoji)
   if (hasCallbackTime) {
-    body += `\n• Best callback: ${callbackTime}`;
+    body += `\n\n• Best callback time: ${callbackTime}`;
   }
 
-  body += `\n\nWe've got everything we need for now. We'll share this with the business and they'll follow up soon. Reply here if anything changes.`;
+  // Complete intake closing
+  body += `\n\nWe've shared this with the team, and they'll follow up soon. Reply here if anything changes.`;
 
   return body.trim();
 };

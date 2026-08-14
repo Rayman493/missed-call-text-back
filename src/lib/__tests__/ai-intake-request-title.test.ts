@@ -315,5 +315,50 @@ describe('generateCanonicalRequestTitle', () => {
 
   it('handles already-canonical titles', () => {
     expect(generateCanonicalRequestTitle('Lawn Mowing')).toBe('Lawn Mowing')
+    expect(generateCanonicalRequestTitle('Plumbing Repair')).toBe('Plumbing Repair')
+  })
+
+  // Critical test for demonstrated new-construction plumbing case - exact verbatim production input
+  it('recognizes new-construction plumbing installation from exact production input', () => {
+    const input = 'I was looking to get some new pipes installed in my new house. It\'s getting built right now, and I\'m trying to get the the piping all set up. And I was recommended to you guys by a friend. So I\'d like you guys to come do it for my house.'
+    const result = generateCanonicalRequestTitle(input)
+    expect(result).toBe('New-Construction Plumbing Installation')
+  })
+
+  // Multi-signal rule tests
+  it('new pipes in existing house does not trigger new-construction', () => {
+    expect(generateCanonicalRequestTitle('I need new pipes installed in my 30-year-old house')).toBe('Pipe Installation')
+  })
+
+  it('explicit construction context triggers new-construction', () => {
+    expect(generateCanonicalRequestTitle('We are building a new house and need the plumbing installed')).toBe('New-Construction Plumbing Installation')
+  })
+
+  it('new house with leak is repair, not new-construction', () => {
+    expect(generateCanonicalRequestTitle('My new house has a leaking pipe')).toBe('Pipe Repair')
+  })
+
+  it('construction context with burst pipe retains burst priority', () => {
+    expect(generateCanonicalRequestTitle('The house is under construction and a pipe burst')).toBe('Burst Pipe Repair')
+  })
+
+  it('referral commentary does not affect classification', () => {
+    const input = 'I was recommended by a friend to get some new pipes installed in my new house. It\'s getting built right now.'
+    expect(generateCanonicalRequestTitle(input)).toBe('New-Construction Plumbing Installation')
+  })
+
+  it('timing commentary does not affect classification', () => {
+    const input = 'I need new pipes installed in my new house. It\'s getting built right now. I need it done next month.'
+    expect(generateCanonicalRequestTitle(input)).toBe('New-Construction Plumbing Installation')
+  })
+
+  it('callback commentary does not affect classification', () => {
+    const input = 'I need new pipes installed in my new house. It\'s getting built right now. Call me in the afternoon.'
+    expect(generateCanonicalRequestTitle(input)).toBe('New-Construction Plumbing Installation')
+  })
+
+  it('address commentary does not affect classification', () => {
+    const input = 'I need new pipes installed in my new house at 123 Main Street. It\'s getting built right now.'
+    expect(generateCanonicalRequestTitle(input)).toBe('New-Construction Plumbing Installation')
   })
 })
