@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, forwardRef } from 'react'
 
 interface PasswordInputProps {
   id: string
@@ -14,7 +14,7 @@ interface PasswordInputProps {
   disabled?: boolean
 }
 
-export default function PasswordInput({
+const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(({
   id,
   name,
   value,
@@ -24,32 +24,32 @@ export default function PasswordInput({
   autoComplete = 'current-password',
   className = '',
   disabled = false,
-}: PasswordInputProps) {
+}, ref) => {
   const [showPassword, setShowPassword] = useState(false)
 
   return (
     <div className="relative">
       <input
+        ref={ref}
         id={id}
         name={name}
-        type="text"
+        type={showPassword ? 'text' : 'password'}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
         required={required}
         autoComplete={autoComplete}
         disabled={disabled}
-        style={{
-          WebkitTextSecurity: showPassword ? 'none' : 'disc',
-        } as React.CSSProperties}
-        className={`w-full px-4 py-3 h-12 border border-slate-600/80 dark:border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 dark:bg-slate-800/50 text-slate-100 dark:text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80 pr-12 text-base leading-normal font-sans disabled:opacity-50 ${className}`}
+        className={`w-full pr-12 text-base leading-normal font-sans disabled:opacity-50 ${className}`}
       />
       <button
         type="button"
         onClick={() => setShowPassword(!showPassword)}
         disabled={disabled}
-        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400/70 hover:text-slate-300 transition-colors p-2 rounded-md hover:bg-slate-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300 transition-colors p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label={showPassword ? 'Hide password' : 'Show password'}
+        aria-pressed={showPassword}
+        tabIndex={-1}
       >
         {showPassword ? (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,4 +64,8 @@ export default function PasswordInput({
       </button>
     </div>
   )
-}
+})
+
+PasswordInput.displayName = 'PasswordInput'
+
+export default PasswordInput

@@ -47,7 +47,7 @@ import FollowUpSettings from '@/components/FollowUpSettings'
 import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate } from '@/lib/out-of-office'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
-import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, Eye, EyeOff, RefreshCw } from 'lucide-react'
+import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, RefreshCw } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
@@ -451,9 +451,6 @@ export default function SettingsContent() {
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwordError, setPasswordError] = useState('')
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
-  const [showNewPassword, setShowNewPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   // Change email modal state
   const [showChangeEmailModal, setShowChangeEmailModal] = useState(false)
@@ -1067,9 +1064,6 @@ export default function SettingsContent() {
       setNewPassword('')
       setConfirmNewPassword('')
       setPasswordError('')
-      setShowCurrentPassword(false)
-      setShowNewPassword(false)
-      setShowConfirmPassword(false)
     } catch (error) {
       console.error('Password change error:', error)
       setPasswordError('Failed to update password. Please try again.')
@@ -4023,9 +4017,9 @@ export default function SettingsContent() {
                         required={false}
                         autoComplete="current-password"
                         disabled={isDeleting}
-                        className={`${
-                          deletePasswordError 
-                            ? 'border-red-500 focus:ring-red-500' 
+                        className={`h-12 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all ${
+                          deletePasswordError
+                            ? 'border-red-500 focus:ring-red-500'
                             : 'border-slate-200/70 dark:border-slate-700/50 focus:ring-red-500/40 focus:border-red-500/80'
                         }`}
                       />
@@ -4173,32 +4167,18 @@ export default function SettingsContent() {
                       Current Password
                     </label>
                     <div className="relative">
-                      <input
+                      <PasswordInput
                         ref={currentPasswordRef}
                         id="currentPassword"
-                        type={showCurrentPassword ? 'text' : 'password'}
+                        name="currentPassword"
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
                         required
                         autoComplete="current-password"
-                        className="w-full px-3 py-2.5 pr-10 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
                         placeholder="Enter current password"
                         disabled={isChangingPassword}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            handleChangePassword()
-                          }
-                        }}
+                        className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                        tabIndex={-1}
-                      >
-                        {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
                     </div>
                   </div>
 
@@ -4208,32 +4188,18 @@ export default function SettingsContent() {
                       New Password
                     </label>
                     <div className="relative">
-                      <input
+                      <PasswordInput
                         ref={newPasswordRef}
                         id="newPassword"
-                        type={showNewPassword ? 'text' : 'password'}
+                        name="newPassword"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         required
                         autoComplete="new-password"
-                        className="w-full px-3 py-2.5 pr-10 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
                         placeholder="Enter new password"
                         disabled={isChangingPassword}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            handleChangePassword()
-                          }
-                        }}
+                        className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                        tabIndex={-1}
-                      >
-                        {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
                     </div>
                     
                     {/* Password Strength Indicator */}
@@ -4295,32 +4261,18 @@ export default function SettingsContent() {
                       Confirm New Password
                     </label>
                     <div className="relative">
-                      <input
+                      <PasswordInput
                         ref={confirmPasswordRef}
                         id="confirmNewPassword"
-                        type={showConfirmPassword ? 'text' : 'password'}
+                        name="confirmNewPassword"
                         value={confirmNewPassword}
                         onChange={(e) => setConfirmNewPassword(e.target.value)}
                         required
                         autoComplete="new-password"
-                        className="w-full px-3 py-2.5 pr-10 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
                         placeholder="Confirm new password"
                         disabled={isChangingPassword}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            handleChangePassword()
-                          }
-                        }}
+                        className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                        tabIndex={-1}
-                      >
-                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -4333,9 +4285,6 @@ export default function SettingsContent() {
                       setNewPassword('')
                       setConfirmNewPassword('')
                       setPasswordError('')
-                      setShowCurrentPassword(false)
-                      setShowNewPassword(false)
-                      setShowConfirmPassword(false)
                     }}
                     disabled={isChangingPassword}
                     className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
@@ -4432,7 +4381,7 @@ export default function SettingsContent() {
                       onChange={(e) => setEmailPassword(e.target.value)}
                       required
                       autoComplete="current-password"
-                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
+                      className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
                       placeholder="Enter current password"
                       disabled={isChangingEmail}
                     />

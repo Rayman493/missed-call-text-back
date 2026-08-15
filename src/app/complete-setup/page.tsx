@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
 import BrandIcon from '@/components/BrandIcon'
+import PasswordInput from '@/components/PasswordInput'
 import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
 import AppBackButton from '@/components/AppBackButton'
 
@@ -396,14 +397,16 @@ export default function CompleteSetupPage() {
                 <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1">
                   Enter your password to confirm account deletion
                 </label>
-                <input
+                <PasswordInput
                   id="password"
-                  type="password"
+                  name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
                   placeholder="Enter your password"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={isDeleting}
+                  className="h-12 px-4 py-3 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-950"
                 />
                 <div className="mt-2">
                   <Link
