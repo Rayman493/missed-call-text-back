@@ -338,7 +338,7 @@ export class NotificationServiceServer {
       actionText: actionText || notificationData.action_text
     })
 
-    const { error } = await supabaseAdmin
+    const { data: insertedData, error } = await supabaseAdmin
       .from('notifications')
       .insert({
         business_id: businessId,
@@ -351,6 +351,8 @@ export class NotificationServiceServer {
         read: false,
         created_at: new Date().toISOString()
       })
+      .select('id')
+      .single()
 
     if (error) {
       console.error('[NOTIFICATIONS INSERT ERROR]', {
@@ -361,15 +363,16 @@ export class NotificationServiceServer {
       })
       return false
     } else {
-      console.log('[NOTIFICATIONS INSERT SUCCESS]', { businessId, type })
+      const notificationId = insertedData.id
+      console.log('[NOTIFICATIONS INSERT SUCCESS]', { businessId, type, notificationId })
 
       // Send push notification asynchronously (best-effort, does not block)
       // This is fire-and-forget - failures are logged but don't affect the business event
       setImmediate(async () => {
         try {
-          console.log('[PUSH] delivery triggered')
+          console.log('[PUSH] delivery triggered', { notificationId })
           const notification = {
-            id: '', // We don't have the inserted row id here; delivery modules do not require it for transport
+            id: notificationId,
             business_id: businessId,
             type,
             title: notificationData.title,
@@ -379,7 +382,10 @@ export class NotificationServiceServer {
           }
           await sendPushForNotification(notification)
         } catch (pushError) {
-          console.error('[NOTIFICATIONS PUSH ERROR]', pushError)
+          console.error('[NOTIFICATIONS PUSH ERROR]', {
+            notificationId,
+            error: pushError instanceof Error ? pushError.message : String(pushError)
+          })
           // Push failures are logged but do not affect the notification creation success
         }
       })
