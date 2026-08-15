@@ -309,6 +309,50 @@ const ENV_VARIABLES: EnvVarConfig[] = [
     required: false,
     category: 'system',
   },
+
+  // Feature Flags (Optional - for disabling broken features)
+  {
+    name: 'FEATURE_FLAG_AI_VOICE',
+    description: 'Enable AI voice assistant',
+    required: false,
+    category: 'system',
+  },
+  {
+    name: 'FEATURE_FLAG_AI_INTAKE',
+    description: 'Enable AI intake field extraction',
+    required: false,
+    category: 'system',
+  },
+  {
+    name: 'FEATURE_FLAG_TAP_TO_PAY',
+    description: 'Enable Tap to Pay terminal payments',
+    required: false,
+    category: 'system',
+  },
+  {
+    name: 'FEATURE_FLAG_STRIPE_CONNECT',
+    description: 'Enable Stripe Connect onboarding',
+    required: false,
+    category: 'system',
+  },
+  {
+    name: 'FEATURE_FLAG_CALENDAR_SYNC',
+    description: 'Enable Google Calendar sync',
+    required: false,
+    category: 'system',
+  },
+  {
+    name: 'FEATURE_FLAG_PUSH_NOTIFICATIONS',
+    description: 'Enable push notifications',
+    required: false,
+    category: 'system',
+  },
+  {
+    name: 'FEATURE_FLAG_SMART_FILTERING',
+    description: 'Enable smart call filtering',
+    required: false,
+    category: 'system',
+  },
 ]
 
 /**
