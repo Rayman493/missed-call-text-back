@@ -1037,7 +1037,7 @@ export default function SchedulePage() {
     return (
       <DashboardShell
         title="Schedule"
-        contentClassName="flex-1 flex items-center justify-center px-3 sm:px-4 lg:px-6 pb-24 md:pb-8 relative z-10"
+        contentClassName="flex-1 flex items-center justify-center px-4 sm:px-5 lg:px-7 pb-20 md:pb-10 relative z-10"
         innerClassName=""
         maxWidthClassName="max-w-[1400px] mx-auto"
       >
@@ -1052,16 +1052,16 @@ export default function SchedulePage() {
   return (
     <DashboardShell
       title="Schedule"
-      contentClassName="flex-1 pt-3 sm:pt-4 lg:pt-8 px-3 sm:px-4 lg:px-5 pb-40 md:pb-8 relative z-10"
+      contentClassName="flex-1 pt-6 sm:pt-8 lg:pt-10 px-4 sm:px-5 lg:px-7 pb-20 md:pb-10 relative z-10"
       contentStyle={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}
       innerClassName=""
       maxWidthClassName="max-w-[1400px] mx-auto"
     >
               {/* Loading State */}
               {isLoading ? (
-                <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[340px_1fr] gap-4 items-stretch py-4">
+                <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[340px_1fr] gap-6 items-stretch py-6">
                   {/* Skeleton Today's Schedule */}
-                  <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 animate-pulse">
+                  <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6 animate-pulse">
                     <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2 mb-2"></div>
                     <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mb-4"></div>
                     {[1, 2, 3].map(i => (
@@ -1070,14 +1070,14 @@ export default function SchedulePage() {
                   </div>
                   {/* Skeleton Calendar */}
                   <div>
-                    <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 mb-4 animate-pulse">
+                    <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6 mb-4 animate-pulse">
                       <div className="flex items-center gap-2">
                         <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-10"></div>
                         <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded flex-1 w-1/3"></div>
                         <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-32"></div>
                       </div>
                     </div>
-                    <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 animate-pulse">
+                    <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6 animate-pulse">
                       <div className="grid grid-cols-7 gap-2 mb-4">
                         {[1,2,3,4,5,6,7].map(i => <div key={i} className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>)}
                       </div>
@@ -1090,7 +1090,7 @@ export default function SchedulePage() {
               ) : (
                 <>
                   {/* Mobile-first: Calendar first, then Today's Schedule. Desktop: Today's Schedule sticky on left */}
-                  <div className="grid grid-cols-1 gap-4 lg:gap-5 items-stretch">
+                  <div className="grid grid-cols-1 gap-6 lg:gap-5 items-stretch">
 
                   {/* Tab toggle + Calendar / Today content */}
                   <div className="min-w-0">
@@ -1245,7 +1245,7 @@ export default function SchedulePage() {
                       {/* Token Expired Warning Banner - show first if needed */}
                       {tokenExpired && (
                         <div className="mb-4">
-                          <div className="bg-amber-900/20 border border-amber-800 rounded-xl p-3 sm:p-4">
+                          <div className="bg-amber-900/20 border border-amber-800 rounded-xl p-3 sm:p-6">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                               <div className="flex items-start gap-2">
                                 <div className="w-6 h-6 bg-amber-900/40 rounded-full flex items-center justify-center flex-shrink-0">
@@ -1283,7 +1283,7 @@ export default function SchedulePage() {
                       )}
 
                       {/* Compact Status Bar - Desktop: Simplified */}
-                      <div className="hidden md:flex items-center justify-between gap-4 mb-4 p-3 bg-slate-900/50 border border-slate-700/50 rounded-xl shadow-sm">
+                      <div className="hidden md:flex items-center justify-between gap-6 mb-4 p-3 bg-slate-900/50 border border-slate-700/50 rounded-xl shadow-sm">
                         {/* Single compact summary */}
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -1478,7 +1478,7 @@ export default function SchedulePage() {
                       </div>
 
                       {/* Calendar Grid */}
-                      <div className="grid grid-cols-1 gap-4">
+                      <div className="grid grid-cols-1 gap-6">
                         <CalendarGrid
                           month={currentMonth}
                           events={visibleMonthEvents}
@@ -1493,7 +1493,7 @@ export default function SchedulePage() {
 
                         {/* Selected Day Events - shown inline below calendar */}
                         {selectedDay && (
-                          <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
+                          <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6 sm:p-6">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                               <h3 className="text-lg font-semibold text-foreground">
                                 {selectedDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -1953,7 +1953,7 @@ function JobsTab({
       <button
         key={job.id}
         onClick={() => onJobClick(job)}
-        className={`w-full text-left rounded-xl p-4 transition-all hover:shadow-sm active:scale-[0.99] ${
+        className={`w-full text-left rounded-xl p-6 transition-all hover:shadow-sm active:scale-[0.99] ${
           isActive
             ? 'bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
             : isCompleted
