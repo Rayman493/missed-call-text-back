@@ -1684,12 +1684,16 @@ export default function SettingsContent() {
     if (calendarStatus === 'disconnected') {
       showToast('Google Calendar disconnected', 'success')
       setCalendarConnected(false)
-      // Clean up URL
-      window.history.replaceState({}, '', '/dashboard/settings')
+      // Clean up URL params but preserve hash to maintain active section
+      const url = new URL(window.location.href)
+      url.search = ''
+      window.history.replaceState({}, '', url.toString())
     } else if (calendarStatus === 'error') {
       showToast('Failed to connect Google Calendar', 'error')
-      // Clean up URL
-      window.history.replaceState({}, '', '/dashboard/settings')
+      // Clean up URL params but preserve hash to maintain active section
+      const url = new URL(window.location.href)
+      url.search = ''
+      window.history.replaceState({}, '', url.toString())
     }
   }, [])
 
