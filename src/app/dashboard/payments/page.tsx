@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { CreditCard, Copy, ExternalLink, User, X, Smartphone, AlertCircle, Info, ChevronDown, MessageSquare, Link, Filter, Edit } from 'lucide-react'
+import { CreditCard, Copy, ExternalLink, User, X, Smartphone, AlertCircle, Info, ChevronDown, MessageSquare, Link, Filter, Edit, RefreshCw } from 'lucide-react'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
@@ -11,7 +11,7 @@ import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
-import { getCustomerStatusStyle } from '@/lib/customer-status'
+import { getPaymentStatusStyle } from '@/lib/payment-status'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import QuickTapToPayModal from '@/components/payments/QuickTapToPayModal'
@@ -58,20 +58,8 @@ interface PaymentStats {
 }
 
 function getStatusColor(status: string): string {
-  switch (status) {
-    case 'pending':
-      return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800/50'
-    case 'paid':
-      return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800/50'
-    case 'cancelled':
-      return 'bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700/50'
-    case 'expired':
-      return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/50'
-    case 'failed':
-      return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/50'
-    default:
-      return 'bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700/50'
-  }
+  const style = getPaymentStatusStyle(status)
+  return style.badgeClass
 }
 
 function getPaymentMethodBadge(methodType: string | null) {
@@ -99,13 +87,14 @@ function getPaymentMethodBadge(methodType: string | null) {
 }
 
 const getStatusLabel = (status: string) => {
-  const style = getCustomerStatusStyle(status)
+  const style = getPaymentStatusStyle(status)
   return style.label
 }
 
 // Payment filter options
 const paymentFilterOptions: DropdownOption[] = [
   { value: 'all', label: 'All Payments' },
+  { value: 'draft', label: 'Draft' },
   { value: 'pending', label: 'Pending' },
   { value: 'paid', label: 'Paid' },
   { value: 'cancelled', label: 'Cancelled' },
@@ -149,6 +138,7 @@ export default function PaymentsPage() {
   const [renameLabel, setRenameLabel] = useState('')
   const [isRenaming, setIsRenaming] = useState(false)
   const [renameError, setRenameError] = useState('')
+  const [isReconciling, setIsReconciling] = useState(false)
   useBodyScrollLock(showPaymentModal)
 
   // Lock background scroll when mark-paid confirm is open as well
@@ -613,6 +603,47 @@ const getPaymentDescription = (payment: PaymentRequest) => {
     }
   }
 
+  const handleCheckStatus = async (payment: PaymentRequest) => {
+    setIsReconciling(true)
+    setError('')
+
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch(`/api/payments/${payment.id}/reconcile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to check payment status')
+      }
+
+      const result = await response.json()
+      console.log('[Payments] Reconciliation result:', result)
+
+      setSuccessMessage('Payment status updated')
+
+      // Refresh payments to show updated status
+      await fetchPayments()
+    } catch (err) {
+      console.error('Error checking payment status:', err)
+      setError(err instanceof Error ? err.message : 'Failed to check payment status')
+    } finally {
+      setIsReconciling(false)
+    }
+  }
+
   return (
     <DashboardShell
       title="Payments"
@@ -938,6 +969,17 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                 Mark Paid
                               </button>
                             )}
+                            {payment.status === 'pending' && payment.payment_method_type === 'card_present' && (
+                              <button
+                                onClick={() => handleCheckStatus(payment)}
+                                disabled={isReconciling}
+                                className="p-1.5 text-blue-400 hover:text-blue-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
+                                title="Check payment status with Stripe"
+                              >
+                                <RefreshCw className={`h-4 w-4 ${isReconciling ? 'animate-spin' : ''}`} />
+                                Check Status
+                              </button>
+                            )}
                           </div>
                           {payment.status === 'pending' && (
                             <button
@@ -1069,6 +1111,28 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                       >
                                         <CreditCard className="h-4 w-4" />
                                         Mark Paid
+                                      </button>
+                                    )}
+                                    {payment.status === 'pending' && payment.payment_method_type === 'card_present' && (
+                                      <button
+                                        onClick={() => handleCheckStatus(payment)}
+                                        disabled={isReconciling}
+                                        className="p-1.5 text-blue-400 hover:text-blue-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
+                                        title="Check payment status with Stripe"
+                                      >
+                                        <RefreshCw className={`h-4 w-4 ${isReconciling ? 'animate-spin' : ''}`} />
+                                        Check Status
+                                      </button>
+                                    )}
+                                    {payment.status === 'pending' && payment.payment_method_type === 'card_present' && (
+                                      <button
+                                        onClick={() => handleCheckStatus(payment)}
+                                        disabled={isReconciling}
+                                        className="p-1.5 text-blue-400 hover:text-blue-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
+                                        title="Check payment status with Stripe"
+                                      >
+                                        <RefreshCw className={`h-4 w-4 ${isReconciling ? 'animate-spin' : ''}`} />
+                                        Check Status
                                       </button>
                                     )}
                                   </div>
@@ -1237,6 +1301,17 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                       Mark Paid
                                     </button>
                                   )}
+                                  {payment.status === 'pending' && payment.payment_method_type === 'card_present' && (
+                                    <button
+                                      onClick={() => handleCheckStatus(payment)}
+                                      disabled={isReconciling}
+                                      className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 text-xs font-medium transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                      aria-label="Check payment status"
+                                    >
+                                      <RefreshCw className={`h-3.5 w-3.5 ${isReconciling ? 'animate-spin' : ''}`} />
+                                      Check Status
+                                    </button>
+                                  )}
                                 </div>
                                 {payment.status === 'pending' && (
                                   <button
@@ -1367,8 +1442,30 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                           Mark Paid
                                         </button>
                                       )}
-                                    </div>
-                                    {payment.status === 'pending' && (
+                                      {payment.status === 'pending' && payment.payment_method_type === 'card_present' && (
+                                        <button
+                                          onClick={() => handleCheckStatus(payment)}
+                                          disabled={isReconciling}
+                                          className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 text-xs font-medium transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                          aria-label="Check payment status"
+                                        >
+                                          <RefreshCw className={`h-3.5 w-3.5 ${isReconciling ? 'animate-spin' : ''}`} />
+                                          Check Status
+                                        </button>
+                                      )}
+                                    {payment.status === 'pending' && payment.payment_method_type === 'card_present' && (
+                                      <button
+                                        onClick={() => handleCheckStatus(payment)}
+                                        disabled={isReconciling}
+                                        className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 text-xs font-medium transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        aria-label="Check payment status"
+                                      >
+                                        <RefreshCw className={`h-3.5 w-3.5 ${isReconciling ? 'animate-spin' : ''}`} />
+                                        Check Status
+                                      </button>
+                                    )}
+                                  </div>
+                                  {payment.status === 'pending' && (
                                       <button
                                         onClick={() => handleCancelPayment(payment)}
                                         disabled={isCancelling}
