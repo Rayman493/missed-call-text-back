@@ -833,6 +833,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         const hasTiming = Boolean(extractedInfo.desiredCompletionTime || extractedInfo.desiredCompletion)
         const hasCallback = Boolean(extractedInfo.callbackTime || extractedInfo.preferredCallbackTime)
         
+        // Detect quality issues
+        const serviceRaw = extractedInfo.serviceRequested || extractedInfo.reasonForCalling || extractedInfo.request || ''
+        const serviceLooksLikeQuestion = hasService && /^(how much|what do you charge|what are your|when are you|do you|can you|who|what|when|where|why|how)\s/i.test(serviceRaw)
+        
         // Determine message based on actual outcome
         let intakeMessage = ''
         if (intakeStatus === 'complete') {
@@ -876,6 +880,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               hasAddress,
               hasTiming,
               hasCallback
+            },
+            // Add quality issue flags for trust
+            qualityIssues: {
+              serviceLooksLikeQuestion
             }
           }
         })

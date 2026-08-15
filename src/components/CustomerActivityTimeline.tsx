@@ -40,6 +40,9 @@ interface ActivityEvent {
     hasTiming: boolean
     hasCallback: boolean
   }
+  qualityIssues?: {
+    serviceLooksLikeQuestion: boolean
+  }
 }
 
 interface CustomerActivityTimelineProps {
@@ -114,6 +117,10 @@ export default function CustomerActivityTimeline({ leadData, onNavigateToJob, on
         const hasTiming = Boolean(extractedInfo.desiredCompletionTime || extractedInfo.desiredCompletion)
         const hasCallback = Boolean(extractedInfo.callbackTime || extractedInfo.preferredCallbackTime)
         
+        // Detect quality issues
+        const serviceRaw = extractedInfo.serviceRequested || extractedInfo.reasonForCalling || extractedInfo.request || ''
+        const serviceLooksLikeQuestion = hasService && /^(how much|what do you charge|what are your|when are you|do you|can you|who|what|when|where|why|how)\s/i.test(serviceRaw)
+        
         let title = 'AI intake completed'
         if (outcome === 'early_hangup') title = 'Caller hung up'
         else if (outcome === 'no_speech') title = 'No speech detected'
@@ -148,6 +155,10 @@ export default function CustomerActivityTimeline({ leadData, onNavigateToJob, on
             hasAddress,
             hasTiming,
             hasCallback
+          },
+          // Add quality issue flags for trust
+          qualityIssues: {
+            serviceLooksLikeQuestion
           }
         })
       })

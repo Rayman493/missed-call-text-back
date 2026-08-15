@@ -12,11 +12,28 @@ const PLACEHOLDER_SERVICES = new Set([
   'unknown', 'n/a', 'request', 'help needed'
 ])
 
+// Question patterns that indicate the customer asked about pricing, hours, etc. instead of requesting a service
+const QUESTION_PATTERNS = [
+  /^(how much|what do you charge|how much do you charge|what's the price|pricing|cost|rates)/i,
+  /^(what are your|what time do you|when are you|hours|open|close|business hours)/i,
+  /^(do you|can you|will you|are you|is it)/i,
+  /^(where are you|what's your address|location|directions)/i,
+  /^(who|what|when|where|why|how)\s/i,
+  /^(can i|is it possible|do you offer|do you provide)/i
+]
+
 // Helper function to detect if a string is a placeholder value
 function isPlaceholderValue(text: string | null | undefined, placeholderSet: Set<string>): boolean {
   if (!text || text.trim() === '') return true
   const normalized = text.trim().toLowerCase()
   return placeholderSet.has(normalized)
+}
+
+// Helper function to detect if text looks like a question instead of a service request
+function looksLikeQuestion(text: string | null | undefined): boolean {
+  if (!text || text.trim() === '') return false
+  const normalized = text.trim()
+  return QUESTION_PATTERNS.some(pattern => pattern.test(normalized))
 }
 
 // Helper function to detect if a string looks like a phone number
@@ -1252,6 +1269,10 @@ export const formatAdaptiveIntakeSms = (
   const hasCompletionTime = desiredCompletionTime && desiredCompletionTime !== 'Not collected' && desiredCompletionTime.trim() !== '';
   const hasCallbackTime = callbackTime && callbackTime !== 'Not collected' && callbackTime.trim() !== '';
 
+  // Detect potential quality issues
+  const serviceLooksLikeQuestion = hasRequest && looksLikeQuestion(serviceRequestedRaw);
+  const serviceIsQuestionOrPlaceholder = serviceLooksLikeQuestion || !hasRequest;
+
   // Business name: normalize and reject placeholders
   const displayName = normalizeBusinessNameForSms(businessName);
   const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
@@ -1286,6 +1307,9 @@ export const formatAdaptiveIntakeSms = (
     normalizedMode,
     serviceLocationType: mode,
     extractedInfoKeys: Object.keys(intakeData || {}),
+    // Quality issue flags for trust
+    serviceLooksLikeQuestion,
+    serviceIsQuestionOrPlaceholder,
     timestamp: new Date().toISOString()
   });
 
