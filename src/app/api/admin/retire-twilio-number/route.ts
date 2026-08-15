@@ -11,11 +11,29 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { phoneNumber, reason } = body
+    const { phoneNumber, reason, confirmPhoneNumber } = body
 
     if (!phoneNumber) {
       return NextResponse.json({ success: false, error: 'Phone number required' }, { status: 400 })
     }
+
+    // EXPLICIT CONFIRMATION CHECK: Require phone number confirmation
+    if (!confirmPhoneNumber || confirmPhoneNumber !== phoneNumber) {
+      console.error('[ADMIN RETIRE TWILIO] CONFIRMATION_CHECK: Phone number confirmation failed', {
+        expected: phoneNumber,
+        received: confirmPhoneNumber
+      })
+      return NextResponse.json({
+        success: false,
+        error: 'Phone number confirmation required',
+        details: {
+          phoneNumber,
+          message: 'Please confirm the phone number to retire it'
+        }
+      }, { status: 400 })
+    }
+
+    console.log('[ADMIN RETIRE TWILIO] CONFIRMATION_CHECK: Phone number confirmed', phoneNumber)
 
     // Get user from session using server-side client with cookie handling
     const cookieStore = await cookies()

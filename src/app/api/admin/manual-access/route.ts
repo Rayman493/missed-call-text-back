@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { businessId, action, expiresAt, reason, note } = body
+    const { businessId, action, expiresAt, reason, note, confirmBusinessId } = body
 
     if (!businessId) {
       return NextResponse.json({ error: 'businessId is required' }, { status: 400 })
@@ -56,6 +56,24 @@ export async function POST(request: Request) {
 
     if (!action || !['grant', 'revoke'].includes(action)) {
       return NextResponse.json({ error: 'action must be grant or revoke' }, { status: 400 })
+    }
+
+    // EXPLICIT CONFIRMATION CHECK: Require business ID confirmation for grant action
+    if (action === 'grant') {
+      if (!confirmBusinessId || confirmBusinessId !== businessId) {
+        console.error('[MANUAL ACCESS] CONFIRMATION_CHECK: Business ID confirmation failed for grant', {
+          expected: businessId,
+          received: confirmBusinessId
+        })
+        return NextResponse.json({
+          error: 'Business ID confirmation required',
+          details: {
+            businessId,
+            message: 'Please confirm the business ID to grant manual access'
+          }
+        }, { status: 400 })
+      }
+      console.log('[MANUAL ACCESS] CONFIRMATION_CHECK: Business ID confirmed for grant', businessId)
     }
 
     const serviceSupabase = createClient(

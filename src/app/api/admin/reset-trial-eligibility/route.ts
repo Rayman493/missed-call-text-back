@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { business_id, business_phone_number } = body
+    const { business_id, business_phone_number, confirmBusinessId } = body
 
     if (!business_id && !business_phone_number) {
       return NextResponse.json(
@@ -34,6 +34,28 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // EXPLICIT CONFIRMATION CHECK: Require business ID confirmation
+    const targetBusinessId = business_id || business_phone_number
+    if (!confirmBusinessId || confirmBusinessId !== targetBusinessId) {
+      console.error('[admin-reset-trial] CONFIRMATION_CHECK: Business identifier confirmation failed', {
+        expected: targetBusinessId,
+        received: confirmBusinessId
+      })
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'Business identifier confirmation required',
+          details: {
+            businessId: targetBusinessId,
+            message: 'Please confirm the business ID or phone number to reset trial eligibility'
+          }
+        },
+        { status: 400 }
+      )
+    }
+
+    console.log('[admin-reset-trial] CONFIRMATION_CHECK: Business identifier confirmed', targetBusinessId)
 
     console.log('[admin-reset-trial] Resetting trial eligibility for:', { business_id, business_phone_number })
 

@@ -11,11 +11,29 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { businessId, force } = body
+    const { businessId, force, confirmBusinessId } = body
 
     if (!businessId) {
       return NextResponse.json({ success: false, error: 'Business ID required' }, { status: 400 })
     }
+
+    // EXPLICIT CONFIRMATION CHECK: Require business ID confirmation
+    if (!confirmBusinessId || confirmBusinessId !== businessId) {
+      console.error('[ADMIN REPROVISION] CONFIRMATION_CHECK: Business ID confirmation failed', {
+        expected: businessId,
+        received: confirmBusinessId
+      })
+      return NextResponse.json({
+        success: false,
+        error: 'Business ID confirmation required',
+        details: {
+          businessId,
+          message: 'Please confirm the business ID to reprovision Twilio number'
+        }
+      }, { status: 400 })
+    }
+
+    console.log('[ADMIN REPROVISION] CONFIRMATION_CHECK: Business ID confirmed', businessId)
 
     // Get user from session using server-side client with cookie handling
     const cookieStore = await cookies()

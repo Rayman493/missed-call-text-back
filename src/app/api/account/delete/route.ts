@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}))
     const dryRun = body.dryRun === true
     const password = body.password
+    const confirmBusinessName = body.confirmBusinessName
 
     if (dryRun) {
       console.log('[delete-account] DRY RUN MODE - No actual deletions will occur')
@@ -193,6 +194,39 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[delete-account] Found businesses:', businessIds.length, businessIds)
+
+    // EXPLICIT CONFIRMATION CHECK: Require business name confirmation for deletion
+    if (!dryRun) {
+      const firstBusiness = businesses && businesses.length > 0 ? businesses[0] : null
+      if (!firstBusiness || !firstBusiness.name) {
+        console.error('[delete-account] CONFIRMATION_CHECK: No business name available for confirmation')
+        return NextResponse.json(
+          { ok: false, step: 'confirmation_check', error: 'Business name required for confirmation' },
+          { status: 400 }
+        )
+      }
+
+      if (!confirmBusinessName || confirmBusinessName !== firstBusiness.name) {
+        console.error('[delete-account] CONFIRMATION_CHECK: Business name confirmation failed', {
+          expected: firstBusiness.name,
+          received: confirmBusinessName
+        })
+        return NextResponse.json(
+          {
+            ok: false,
+            step: 'confirmation_check',
+            error: 'Business name confirmation required',
+            details: {
+              businessName: firstBusiness.name,
+              message: 'Please confirm the business name to delete this account'
+            }
+          },
+          { status: 400 }
+        )
+      }
+
+      console.log('[delete-account] CONFIRMATION_CHECK: Business name confirmed', firstBusiness.name)
+    }
 
     // PROTECTED ACCOUNT CHECK: Block deletion if any business is protected
     const protectedBusiness = businesses?.find((b: any) => b.is_protected_account === true)

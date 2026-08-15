@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { action, businessId } = body
+    const { action, businessId, confirmBusinessId } = body
 
     if (!action || !businessId) {
       return NextResponse.json({ success: false, error: 'Action and businessId required' }, { status: 400 })
@@ -199,6 +199,25 @@ export async function POST(request: NextRequest) {
 
       case 'reset_onboarding':
         console.log('[ADMIN SUPPORT ACTION] Executing reset_onboarding')
+        
+        // EXPLICIT CONFIRMATION CHECK: Require business ID confirmation
+        if (!confirmBusinessId || confirmBusinessId !== businessId) {
+          console.error('[ADMIN SUPPORT ACTION] CONFIRMATION_CHECK: Business ID confirmation failed for reset_onboarding', {
+            expected: businessId,
+            received: confirmBusinessId
+          })
+          return NextResponse.json({
+            success: false,
+            error: 'Business ID confirmation required',
+            details: {
+              businessId,
+              message: 'Please confirm the business ID to reset onboarding'
+            }
+          }, { status: 400 })
+        }
+        
+        console.log('[ADMIN SUPPORT ACTION] CONFIRMATION_CHECK: Business ID confirmed for reset_onboarding', businessId)
+        
         // Fetch before state
         const { data: beforeOnboardingBusiness } = await supabaseAdmin
           .from('businesses')
@@ -330,6 +349,25 @@ export async function POST(request: NextRequest) {
 
       case 'extend_grace_period':
         console.log('[ADMIN SUPPORT ACTION] Executing extend_grace_period')
+        
+        // EXPLICIT CONFIRMATION CHECK: Require business ID confirmation
+        if (!confirmBusinessId || confirmBusinessId !== businessId) {
+          console.error('[ADMIN SUPPORT ACTION] CONFIRMATION_CHECK: Business ID confirmation failed for extend_grace_period', {
+            expected: businessId,
+            received: confirmBusinessId
+          })
+          return NextResponse.json({
+            success: false,
+            error: 'Business ID confirmation required',
+            details: {
+              businessId,
+              message: 'Please confirm the business ID to extend grace period'
+            }
+          }, { status: 400 })
+        }
+        
+        console.log('[ADMIN SUPPORT ACTION] CONFIRMATION_CHECK: Business ID confirmed for extend_grace_period', businessId)
+        
         // Extend grace period by 30 days
         const { data: extendBusiness } = await supabaseAdmin
           .from('businesses')
@@ -399,6 +437,24 @@ export async function POST(request: NextRequest) {
         if (!releaseBusiness.twilio_phone_number) {
           return NextResponse.json({ success: false, error: 'No Twilio number assigned' }, { status: 400 })
         }
+
+        // EXPLICIT CONFIRMATION CHECK: Require phone number confirmation for release
+        if (!confirmBusinessId || confirmBusinessId !== releaseBusiness.twilio_phone_number) {
+          console.error('[ADMIN SUPPORT ACTION] CONFIRMATION_CHECK: Phone number confirmation failed for release_twilio_number_now', {
+            expected: releaseBusiness.twilio_phone_number,
+            received: confirmBusinessId
+          })
+          return NextResponse.json({
+            success: false,
+            error: 'Phone number confirmation required',
+            details: {
+              phoneNumber: releaseBusiness.twilio_phone_number,
+              message: 'Please confirm the phone number to release it immediately'
+            }
+          }, { status: 400 })
+        }
+
+        console.log('[ADMIN SUPPORT ACTION] CONFIRMATION_CHECK: Phone number confirmed for release_twilio_number_now', releaseBusiness.twilio_phone_number)
 
         const releaseBeforeState = {
           twilio_phone_number: releaseBusiness.twilio_phone_number,

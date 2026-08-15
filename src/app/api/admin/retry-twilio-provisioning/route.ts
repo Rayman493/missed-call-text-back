@@ -51,12 +51,30 @@ export async function POST(request: Request) {
 
     // Parse request body
     const body = await request.json()
-    const { business_id } = body
+    const { business_id, confirmBusinessId } = body
 
     if (!business_id) {
       console.error('[Admin Twilio Retry] Missing business_id in request body');
       return NextResponse.json({ error: 'Missing business_id' }, { status: 400 })
     }
+
+    // EXPLICIT CONFIRMATION CHECK: Require business ID confirmation
+    if (!confirmBusinessId || confirmBusinessId !== business_id) {
+      console.error('[Admin Twilio Retry] CONFIRMATION_CHECK: Business ID confirmation failed', {
+        expected: business_id,
+        received: confirmBusinessId
+      })
+      return NextResponse.json({
+        success: false,
+        error: 'Business ID confirmation required',
+        details: {
+          businessId: business_id,
+          message: 'Please confirm the business ID to retry provisioning'
+        }
+      }, { status: 400 })
+    }
+
+    console.log('[Admin Twilio Retry] CONFIRMATION_CHECK: Business ID confirmed', business_id)
 
     // Use service role key for admin operations
     const serviceSupabase = createClient(
