@@ -9,26 +9,18 @@ import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks } from '@/lib/chart-utils'
-
-type TimeRange = '7d' | '30d' | '90d' | '1y'
+import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe, getDaysInTimeframe } from '@/lib/analytics-timeframe'
 
 interface NewCustomersData {
   date: string
   customers: number
 }
 
-const TIME_RANGE_OPTIONS = [
-  { value: '7d' as TimeRange, label: 'Last 7 Days' },
-  { value: '30d' as TimeRange, label: 'Last 30 Days' },
-  { value: '90d' as TimeRange, label: 'Last 90 Days' },
-  { value: '1y' as TimeRange, label: 'This Year' },
-]
-
 export default function NewCustomersGraph() {
   const { business } = useBusiness()
   const [data, setData] = useState<NewCustomersData[]>([])
   const [loading, setLoading] = useState(true)
-  const [timeRange, setTimeRange] = useState<TimeRange>('30d')
+  const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,25 +28,9 @@ export default function NewCustomersGraph() {
 
       try {
         const supabase = createBrowserClient()
-        
-        // Calculate date range
-        const now = new Date()
-        let startDate: Date
-        switch (timeRange) {
-          case '7d':
-            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-            break
-          case '30d':
-            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-            break
-          case '90d':
-            startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
-            break
-          case '1y':
-            startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
-            break
-        }
 
+        // Calculate date range using shared utility
+        const startDate = getStartDateForTimeframe(timeRange)
         const startDateIso = startDate.toISOString()
 
         // Fetch leads grouped by date
@@ -97,8 +73,8 @@ export default function NewCustomersGraph() {
   const peakDay = data.length > 0 ? data.reduce((max, day) => day.customers > max.customers ? day : max, data[0]) : null
 
   // Calculate average across the selected period, not just days with customers
-  const daysInRange: Record<TimeRange, number> = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 }
-  const averageDaily = totalCustomers > 0 ? (totalCustomers / daysInRange[timeRange]) : 0
+  const daysInRange = getDaysInTimeframe(timeRange)
+  const averageDaily = totalCustomers > 0 ? (totalCustomers / daysInRange) : 0
 
   // Calculate max value for Y-axis ticks
   const maxValue = data.length > 0 ? Math.max(...data.map(d => d.customers)) : 0
@@ -114,7 +90,7 @@ export default function NewCustomersGraph() {
           <PremiumSelect
             value={timeRange}
             onChange={setTimeRange}
-            options={TIME_RANGE_OPTIONS}
+            options={ANALYTICS_TIMEFRAME_OPTIONS}
           />
         </div>
 

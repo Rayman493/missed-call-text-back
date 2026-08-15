@@ -9,15 +9,7 @@ import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks } from '@/lib/chart-utils'
-
-type TimeRange = '7d' | '30d' | '90d' | '1y'
-
-const TIME_RANGE_OPTIONS = [
-  { value: '7d' as TimeRange, label: 'Last 7 Days' },
-  { value: '30d' as TimeRange, label: 'Last 30 Days' },
-  { value: '90d' as TimeRange, label: 'Last 90 Days' },
-  { value: '1y' as TimeRange, label: 'This Year' },
-]
+import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe } from '@/lib/analytics-timeframe'
 
 const SERIES_LABELS: Record<string, string> = {
   conversations: 'Conversations',
@@ -38,8 +30,7 @@ export default function BusinessActivityGraph() {
   const { business } = useBusiness()
   const [data, setData] = useState<ActivityData[]>([])
   const [loading, setLoading] = useState(true)
-  const [timeRange, setTimeRange] = useState<TimeRange>('30d')
-  const [showLegend, setShowLegend] = useState(true)
+  const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,25 +38,9 @@ export default function BusinessActivityGraph() {
 
       try {
         const supabase = createBrowserClient()
-        
-        // Calculate date range
-        const now = new Date()
-        let startDate: Date
-        switch (timeRange) {
-          case '7d':
-            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-            break
-          case '30d':
-            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-            break
-          case '90d':
-            startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
-            break
-          case '1y':
-            startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
-            break
-        }
 
+        // Calculate date range using shared utility
+        const startDate = getStartDateForTimeframe(timeRange)
         const startDateIso = startDate.toISOString()
 
         // Fetch conversations (leads with conversation_id)
@@ -176,19 +151,11 @@ export default function BusinessActivityGraph() {
           <div>
             <h3 className="text-sm font-semibold text-foreground">Customer Engagement</h3>
           </div>
-          <div className="flex items-center gap-2">
-            <PremiumSelect
-              value={timeRange}
-              onChange={setTimeRange}
-              options={TIME_RANGE_OPTIONS}
-            />
-            <button
-              onClick={() => setShowLegend(!showLegend)}
-              className="text-[11px] border border-border/40 rounded-lg px-2.5 py-1.5 bg-background text-foreground hover:bg-muted/40 transition-colors"
-            >
-              {showLegend ? 'Hide' : 'Show'}
-            </button>
-          </div>
+          <PremiumSelect
+            value={timeRange}
+            onChange={setTimeRange}
+            options={ANALYTICS_TIMEFRAME_OPTIONS}
+          />
         </div>
 
         {!isEmpty && (
@@ -269,38 +236,36 @@ export default function BusinessActivityGraph() {
                       )
                     }}
                   />
-                  {showLegend && (
-                    <Legend
-                      content={({ payload }: any) => (
-                        <div className="flex flex-wrap gap-3 justify-center pt-2">
-                          {payload.map((entry: any, index: number) => {
-                            const key = entry.dataKey as string
-                            const label = SERIES_LABELS[key] || entry.dataKey
-                            const total = data.reduce((sum, day) => {
-                              const value = day[key as keyof ActivityData]
-                              return sum + (typeof value === 'number' ? value : 0)
-                            }, 0)
-                            return (
-                              <div key={index} className="flex items-center gap-1.5">
-                                <div
-                                  className="w-2.5 h-2.5 rounded-full"
-                                  style={{ backgroundColor: entry.color }}
-                                />
-                                <span className="text-[10px] text-muted-foreground">
-                                  {label}: <span className="font-medium text-foreground">{total}</span>
-                                </span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                      wrapperStyle={{ paddingTop: '12px' }}
-                      iconType="circle"
-                      iconSize={CHART_STYLES.legendIconSize}
-                      verticalAlign="bottom"
-                      height={28}
-                    />
-                  )}
+                  <Legend
+                    content={({ payload }: any) => (
+                      <div className="flex flex-wrap gap-3 justify-center pt-2">
+                        {payload.map((entry: any, index: number) => {
+                          const key = entry.dataKey as string
+                          const label = SERIES_LABELS[key] || entry.dataKey
+                          const total = data.reduce((sum, day) => {
+                            const value = day[key as keyof ActivityData]
+                            return sum + (typeof value === 'number' ? value : 0)
+                          }, 0)
+                          return (
+                            <div key={index} className="flex items-center gap-1.5">
+                              <div
+                                className="w-2.5 h-2.5 rounded-full"
+                                style={{ backgroundColor: entry.color }}
+                              />
+                              <span className="text-[10px] text-muted-foreground">
+                                {label}: <span className="font-medium text-foreground">{total}</span>
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                    wrapperStyle={{ paddingTop: '12px' }}
+                    iconType="circle"
+                    iconSize={CHART_STYLES.legendIconSize}
+                    verticalAlign="bottom"
+                    height={28}
+                  />
                   <Line
                     type="monotone"
                     dataKey="conversations"

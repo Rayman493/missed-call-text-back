@@ -6,8 +6,10 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
+import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { PremiumTooltip, CHART_STYLES, formatInteger } from '@/lib/chart-utils'
+import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe } from '@/lib/analytics-timeframe'
 
 interface LeadSourceData {
   name: string
@@ -34,6 +36,7 @@ export default function LeadsSourceGraph() {
   const [data, setData] = useState<LeadSourceData[]>([])
   const [loading, setLoading] = useState(true)
   const [unclassifiedCount, setUnclassifiedCount] = useState(0)
+  const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('90d')
 
   useEffect(() => {
     let isMounted = true
@@ -43,13 +46,17 @@ export default function LeadsSourceGraph() {
       try {
         const supabase = createBrowserClient()
 
+        // Calculate date range based on selected timeframe
+        const startDate = getStartDateForTimeframe(timeRange)
+        const startDateIso = startDate.toISOString()
+
         // Fetch leads with raw_metadata for source classification
         const { data: leads } = await supabase
           .from('leads')
           .select('raw_metadata')
           .eq('business_id', business.id)
           .is('deleted_at', null)
-          .gte('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
+          .gte('created_at', startDateIso)
 
         if (!isMounted) return
 
@@ -195,7 +202,7 @@ export default function LeadsSourceGraph() {
 
     fetchData()
     return () => { isMounted = false }
-  }, [business?.id])
+  }, [business?.id, timeRange])
 
   const isEmpty = data.length === 0
 
@@ -207,8 +214,15 @@ export default function LeadsSourceGraph() {
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
-        <div className="mb-3">
-          <h3 className="text-sm font-semibold text-foreground">Leads by Source</h3>
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Leads by Source</h3>
+          </div>
+          <PremiumSelect
+            value={timeRange}
+            onChange={setTimeRange}
+            options={ANALYTICS_TIMEFRAME_OPTIONS}
+          />
         </div>
 
         {!isEmpty && (
@@ -219,7 +233,7 @@ export default function LeadsSourceGraph() {
             </div>
             {replyflowIntake > 0 && (
               <div className="text-[11px] text-muted-foreground/70 mt-1">
-                {replyflowIntake} captured by ReplyFlow (last 90 days)
+                {replyflowIntake} captured by ReplyFlow ({ANALYTICS_TIMEFRAME_OPTIONS.find(o => o.value === timeRange)?.label.toLowerCase()})
               </div>
             )}
             {unclassifiedCount > 0 && (
@@ -270,8 +284,8 @@ export default function LeadsSourceGraph() {
                   />
                 </PieChart>
               </ResponsiveContainer>
-              {/* Center KPI */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              {/* Center KPI - properly centered in donut hole */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ transform: 'translateY(-2px)' }}>
                 <span className="text-2xl font-semibold text-foreground">{formatInteger(trueTotal)}</span>
                 <span className="text-[10px] text-muted-foreground">Leads</span>
               </div>

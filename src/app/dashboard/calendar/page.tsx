@@ -1097,7 +1097,7 @@ export default function SchedulePage() {
 
                   {/* Schedule Tab Toggle */}
                   <div className="hidden md:flex mb-3">
-                    <div className="flex bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-0.5 w-full border border-slate-200/50 dark:border-slate-700/50">
+                    <div className="inline-flex bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-0.5 w-fit border border-slate-200/50 dark:border-slate-700/50">
                       <button
                         onClick={() => setScheduleTab('agenda')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${

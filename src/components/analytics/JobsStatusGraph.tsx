@@ -6,8 +6,10 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { Briefcase } from 'lucide-react'
 import Card from '@/components/ui/Card'
+import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks } from '@/lib/chart-utils'
+import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe } from '@/lib/analytics-timeframe'
 
 interface JobStatusData {
   status: string
@@ -33,6 +35,7 @@ export default function JobsStatusGraph() {
   const { business } = useBusiness()
   const [data, setData] = useState<JobStatusData[]>([])
   const [loading, setLoading] = useState(true)
+  const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('90d')
 
   useEffect(() => {
     let isMounted = true
@@ -42,12 +45,16 @@ export default function JobsStatusGraph() {
       try {
         const supabase = createBrowserClient()
 
-        // Fetch jobs grouped by status
-        // No time filter - show all-time job status distribution
+        // Calculate date range based on selected timeframe
+        const startDate = getStartDateForTimeframe(timeRange)
+        const startDateIso = startDate.toISOString()
+
+        // Fetch jobs grouped by status for selected timeframe
         const { data: jobs } = await supabase
           .from('jobs')
           .select('status')
           .eq('business_id', business.id)
+          .gte('created_at', startDateIso)
 
         if (!isMounted) return
 
@@ -94,7 +101,7 @@ export default function JobsStatusGraph() {
 
     fetchData()
     return () => { isMounted = false }
-  }, [business?.id])
+  }, [business?.id, timeRange])
 
   const isEmpty = data.length === 0
 
@@ -110,8 +117,15 @@ export default function JobsStatusGraph() {
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
-        <div className="mb-3">
-          <h3 className="text-sm font-semibold text-foreground">Jobs by Status</h3>
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Jobs by Status</h3>
+          </div>
+          <PremiumSelect
+            value={timeRange}
+            onChange={setTimeRange}
+            options={ANALYTICS_TIMEFRAME_OPTIONS}
+          />
         </div>
 
         {!isEmpty && (
@@ -119,7 +133,7 @@ export default function JobsStatusGraph() {
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-semibold text-foreground">{totalJobs.toLocaleString()}</span>
               <span className="text-xs text-muted-foreground">
-                {totalJobs === 1 ? 'job' : 'jobs'} • all time
+                {totalJobs === 1 ? 'job' : 'jobs'} • {ANALYTICS_TIMEFRAME_OPTIONS.find(o => o.value === timeRange)?.label.toLowerCase()}
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground/70 mt-1">

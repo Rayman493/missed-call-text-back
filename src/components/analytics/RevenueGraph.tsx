@@ -9,26 +9,18 @@ import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis } from '@/lib/chart-utils'
-
-type TimeRange = '7d' | '30d' | '90d' | '1y'
+import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe } from '@/lib/analytics-timeframe'
 
 interface RevenueData {
   date: string
   revenue: number
 }
 
-const TIME_RANGE_OPTIONS = [
-  { value: '7d' as TimeRange, label: 'Last 7 Days' },
-  { value: '30d' as TimeRange, label: 'Last 30 Days' },
-  { value: '90d' as TimeRange, label: 'Last 90 Days' },
-  { value: '1y' as TimeRange, label: 'This Year' },
-]
-
 export default function RevenueGraph() {
   const { business } = useBusiness()
   const [data, setData] = useState<RevenueData[]>([])
   const [loading, setLoading] = useState(true)
-  const [timeRange, setTimeRange] = useState<TimeRange>('30d')
+  const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,25 +34,9 @@ export default function RevenueGraph() {
 
       try {
         const supabase = createBrowserClient()
-        
-        // Calculate date range
-        const now = new Date()
-        let startDate: Date
-        switch (timeRange) {
-          case '7d':
-            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-            break
-          case '30d':
-            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-            break
-          case '90d':
-            startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
-            break
-          case '1y':
-            startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
-            break
-        }
 
+        // Calculate date range using shared utility
+        const startDate = getStartDateForTimeframe(timeRange)
         const startDateIso = startDate.toISOString()
 
         // Fetch completed payments
@@ -117,7 +93,7 @@ export default function RevenueGraph() {
           <PremiumSelect
             value={timeRange}
             onChange={setTimeRange}
-            options={TIME_RANGE_OPTIONS}
+            options={ANALYTICS_TIMEFRAME_OPTIONS}
           />
         </div>
 
