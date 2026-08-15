@@ -358,6 +358,20 @@ export async function POST(request: NextRequest) {
           .single()
 
         if (integration && !integrationError) {
+          // Set sync status to pending before attempting sync
+          try {
+            await supabase
+              .from('jobs')
+              .update({
+                calendar_sync_status: 'pending',
+                calendar_last_sync_attempt_at: new Date().toISOString()
+              })
+              .eq('id', job.id)
+          } catch (statusUpdateError) {
+            console.error('[JOBS CALENDAR SYNC] Failed to set pending status:', statusUpdateError)
+            // Continue anyway - non-critical
+          }
+
           // Check if token is expired and refresh if needed
           let accessToken = integration.access_token
           if (integration.expires_at && new Date(integration.expires_at) < new Date()) {
@@ -432,10 +446,16 @@ export async function POST(request: NextRequest) {
             const createdEvent = await response.json()
             googleCalendarEventId = createdEvent.id
 
-            // Update job with Google Calendar event ID
+            // Update job with Google Calendar event ID and sync status
             await supabase
               .from('jobs')
-              .update({ google_calendar_event_id: createdEvent.id })
+              .update({
+                google_calendar_event_id: createdEvent.id,
+                calendar_sync_status: 'synced',
+                calendar_sync_error: null,
+                calendar_last_sync_attempt_at: new Date().toISOString(),
+                calendar_last_synced_at: new Date().toISOString()
+              })
               .eq('id', job.id)
 
             console.log('[JOBS CALENDAR SYNC] Google Calendar event created successfully:', {
@@ -444,29 +464,61 @@ export async function POST(request: NextRequest) {
               googleCalendarEventId: createdEvent.id,
               title: title.trim(),
               scheduledDate: scheduled_date,
-              scheduledTime: scheduled_time
+              scheduledTime: scheduled_time,
+              correlationId: `JOB-${job.id}`
             })
           } else {
+            const errorBody = await response.text().catch(() => 'No error body')
             console.error('[JOBS CALENDAR SYNC] Failed to create Google Calendar event:', {
               jobId: job.id,
               businessId: business.id,
               title: title.trim(),
               scheduledDate: scheduled_date,
               scheduledTime: scheduled_time,
-              responseStatus: response.status
+              responseStatus: response.status,
+              errorBody: errorBody.substring(0, 200),
+              correlationId: `JOB-${job.id}`
             })
+
+            // Update job with sync failure status
+            await supabase
+              .from('jobs')
+              .update({
+                calendar_sync_status: 'failed',
+                calendar_sync_error: `Google Calendar API returned ${response.status}`,
+                calendar_last_sync_attempt_at: new Date().toISOString()
+              })
+              .eq('id', job.id)
+
             // Don't fail the job creation if calendar sync fails
           }
         }
       } catch (calendarError) {
+        const errorMessage = calendarError instanceof Error ? calendarError.message : String(calendarError)
         console.error('[JOBS CALENDAR SYNC] Exception creating Google Calendar event:', {
           jobId: job.id,
           businessId: business.id,
           title: title.trim(),
           scheduledDate: scheduled_date,
           scheduledTime: scheduled_time,
-          error: calendarError instanceof Error ? calendarError.message : String(calendarError)
+          error: errorMessage,
+          correlationId: `JOB-${job.id}`
         })
+
+        // Update job with sync failure status
+        try {
+          await supabase
+            .from('jobs')
+            .update({
+              calendar_sync_status: 'failed',
+              calendar_sync_error: errorMessage.substring(0, 500),
+              calendar_last_sync_attempt_at: new Date().toISOString()
+            })
+            .eq('id', job.id)
+        } catch (updateError) {
+          console.error('[JOBS CALENDAR SYNC] Failed to update sync status:', updateError)
+        }
+
         // Don't fail the job creation if calendar sync fails
       }
     }

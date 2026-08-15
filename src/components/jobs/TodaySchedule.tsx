@@ -230,6 +230,16 @@ export default function TodaySchedule({
                       'text-blue-400'
                     }`} />
 
+                    {/* Calendar sync status indicator */}
+                    {job.calendar_sync_status === 'failed' && (
+                      <div
+                        className="w-3.5 h-3.5 flex-shrink-0 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center"
+                        title="Calendar sync failed. Your appointment is saved in ReplyFlow."
+                      >
+                        <div className="w-2 h-2 rounded-full bg-orange-500 dark:bg-orange-400" />
+                      </div>
+                    )}
+
                     {/* Time + info */}
                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onJobClick(job)}>
                       <div className="flex items-baseline gap-1.5">

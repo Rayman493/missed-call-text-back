@@ -38,6 +38,10 @@ export interface Job {
   confirmation_sms_sent_at: string | null
   confirmation_sms_message_sid: string | null
   google_calendar_event_id: string | null
+  calendar_sync_status: 'pending' | 'synced' | 'failed' | 'not_required' | null
+  calendar_sync_error: string | null
+  calendar_last_sync_attempt_at: string | null
+  calendar_last_synced_at: string | null
   created_at: string
   updated_at: string
 }
