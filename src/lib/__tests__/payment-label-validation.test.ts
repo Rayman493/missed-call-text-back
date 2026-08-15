@@ -126,8 +126,8 @@ describe('isPaymentLabelEditable', () => {
     expect(isPaymentLabelEditable('paid')).toBe(true)
   })
 
-  it('prevents editing pending payments', () => {
-    expect(isPaymentLabelEditable('pending')).toBe(false)
+  it('allows editing pending payments', () => {
+    expect(isPaymentLabelEditable('pending')).toBe(true)
   })
 
   it('prevents editing failed payments', () => {

@@ -895,7 +895,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                 View Customer
                               </button>
                             )}
-                            {payment.status === 'paid' && (
+                            {(payment.status === 'paid' || payment.status === 'pending') && (
                               <button
                                 onClick={() => handleOpenRenameModal(payment)}
                                 className="p-1.5 text-gray-400 hover:text-white"
@@ -1102,6 +1102,9 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                         Customer
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                        Description
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Phone Number
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
@@ -1109,9 +1112,6 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Payment Method
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                        Description
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Status
@@ -1157,6 +1157,9 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                 </span>
                               </div>
                             </td>
+                            <td className="px-4 py-3 text-gray-400 text-sm max-w-[220px] truncate">
+                              {getPaymentDescription(payment)}
+                            </td>
                             <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
                               {payment.leads ? formatPhoneNumber(payment.leads.caller_phone) : '-'}
                             </td>
@@ -1165,9 +1168,6 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
                               {getPaymentMethodBadge(payment.payment_method_type)}
-                            </td>
-                            <td className="px-4 py-3 text-gray-400 text-sm max-w-[220px] truncate">
-                              {getPaymentDescription(payment)}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
@@ -1191,7 +1191,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                       View Customer
                                     </button>
                                   )}
-                                  {payment.status === 'paid' && (
+                                  {(payment.status === 'paid' || payment.status === 'pending') && (
                                     <button
                                       onClick={() => handleOpenRenameModal(payment)}
                                       className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"

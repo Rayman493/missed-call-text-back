@@ -67,12 +67,12 @@ export function validatePaymentLabel(label: string | null | undefined): Validati
 /**
  * Check if a payment status is eligible for label editing.
  *
- * Only completed payments (status = 'paid') can be renamed.
- * This prevents misleading labels on pending, failed, or canceled payments.
+ * Editable statuses: paid, pending
+ * Non-editable statuses: failed, canceled, expired
  *
  * @param status - The payment status
  * @returns true if the payment can be renamed
  */
 export function isPaymentLabelEditable(status: string): boolean {
-  return status === 'paid'
+  return status === 'paid' || status === 'pending'
 }

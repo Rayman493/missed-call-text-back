@@ -70,10 +70,10 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    // Verify payment is eligible for label editing (must be paid)
+    // Verify payment is eligible for label editing (must be paid or pending)
     if (!isPaymentLabelEditable(payment.status)) {
       return NextResponse.json(
-        { error: 'Only completed payments can be renamed' },
+        { error: 'Only paid and pending payments can be renamed' },
         { status: 400 }
       )
     }
