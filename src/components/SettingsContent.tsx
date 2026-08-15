@@ -1503,7 +1503,10 @@ export default function SettingsContent() {
       const response = await fetch('/api/account/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: deletePassword }),
+        body: JSON.stringify({
+          password: deletePassword,
+          deleteConfirmation: deleteConfirmText
+        }),
       })
 
       const result = await response.json().catch(() => ({}))
