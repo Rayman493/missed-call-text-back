@@ -291,13 +291,12 @@ export async function POST(request: Request) {
             console.error('[MMS API] Upload error:', {
               error: uploadError,
               message: uploadError.message,
-              statusCode: uploadError.statusCode,
               filePath,
               fileName
             })
-            return NextResponse.json({ 
+            return NextResponse.json({
               error: 'Failed to upload media',
-              details: uploadError.message 
+              details: uploadError.message
             }, { status: 500 })
           }
           
