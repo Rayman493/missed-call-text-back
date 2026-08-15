@@ -617,9 +617,9 @@ const getPaymentDescription = (payment: PaymentRequest) => {
     <DashboardShell
       title="Payments"
       maxWidthClassName="max-w-7xl mx-auto"
-      contentClassName="flex-1 px-3 sm:px-6 lg:px-8 py-3 sm:py-5 pb-24 md:pb-8 relative z-10"
+      contentClassName="flex-1 px-4 sm:px-5 lg:px-7 py-6 sm:py-8 lg:py-10 pb-20 md:pb-10 relative z-10"
       contentStyle={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}
-      innerClassName="space-y-4 sm:space-y-5"
+      innerClassName="space-y-6"
     >
         <PageHeader
           title="Payments"
@@ -630,7 +630,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         <FocusSection business={business} view="payments" title="Collection Priorities" compact />
 
         {/* Action Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           {/* Tap to Pay Card */}
           {(() => {
             const isStripeReady = business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled
@@ -750,7 +750,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         ) : (
           <>
             {/* Overview Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
               <div className="rounded-xl p-3.5 sm:p-4 border border-slate-700/70 bg-[#1e293b] shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
                 <div className="flex items-start justify-between mb-1.5">
                   <span className="text-gray-400 text-xs font-medium">Pending Amount</span>
@@ -809,7 +809,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             </div>
 
             {/* Table toolbar */}
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-6">
               <div className="flex-1">
                 {/* Optional: Add label if needed */}
               </div>
