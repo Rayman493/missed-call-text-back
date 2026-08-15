@@ -12,6 +12,7 @@ import { dispatchAutomaticCustomerSms } from '@/lib/auto-sms-dispatcher'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 import { isPersonalVoicemailCall, isUpdateVoicemailCall } from '@/lib/call-pipeline-classification'
 import { notificationServiceServer } from '@/lib/notifications-server'
+import { logClassifiedError } from '@/lib/error-classifier'
 
 // Transcript spam detection patterns
 const AUTOMATED_PATTERNS = [
@@ -1228,6 +1229,17 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
       const dispatchResult = await dispatchAutomaticCustomerSms(dispatchParams)
 
       autoReplySent = !!dispatchResult.twilioMessageSid
+
+      // Log SMS dispatch outcome for observability
+      if (!autoReplySent && dispatchResult.reason) {
+        console.log('[VOICE STATUS SMS DISPATCH FAILED]', {
+          callSid: CallSid,
+          businessId: business.id,
+          leadId: lead.id,
+          reason: dispatchResult.reason,
+          timestamp: new Date().toISOString()
+        })
+      }
 
       // FINAL RECOVERY OUTCOME INSTRUMENTATION
       // Update final_recovery_outcome based on actual customer-facing result
