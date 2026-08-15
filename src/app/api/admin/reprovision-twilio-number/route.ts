@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { recoverBusinessWithInvalidTwilioNumber } from '@/lib/twilio-recovery'
+import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     // Fetch business details
     const { data: business, error: fetchError } = await supabaseAdmin
       .from('businesses')
-      .select('id, twilio_phone_number, twilio_phone_number_sid, provisioning_status')
+      .select('id, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, forwarding_verified, call_forwarding_enabled')
       .eq('id', businessId)
       .single()
 
@@ -72,6 +73,17 @@ export async function POST(request: NextRequest) {
     // If force is true or provisioning_status is needs_reprovision, clear the current Twilio assignment
     if (force || business.provisioning_status === 'needs_reprovision') {
       console.log('[ADMIN REPROVISION] Clearing current Twilio assignment')
+      
+      // Capture before state for audit logging
+      const beforeState = {
+        twilio_phone_number: business.twilio_phone_number,
+        twilio_phone_number_sid: business.twilio_phone_number_sid,
+        twilio_messaging_service_sid: business.twilio_messaging_service_sid,
+        provisioning_status: business.provisioning_status,
+        forwarding_verified: business.forwarding_verified,
+        call_forwarding_enabled: business.call_forwarding_enabled,
+      }
+      
       const { error: updateError } = await supabaseAdmin
         .from('businesses')
         .update({
@@ -89,6 +101,28 @@ export async function POST(request: NextRequest) {
         console.error('[ADMIN REPROVISION] Failed to clear Twilio assignment:', updateError)
         return NextResponse.json({ success: false, error: 'Failed to clear Twilio assignment' }, { status: 500 })
       }
+
+      // Audit logging (non-blocking)
+      logAdminAction({
+        actingAdminUserId: user.id,
+        actingAdminEmail: getUserEmail(user),
+        action: force ? 'reprovision_twilio_number_forced' : 'reprovision_twilio_number',
+        targetBusinessId: businessId,
+        resourceIdentifiers: {
+          phone_number: business.twilio_phone_number,
+          twilio_sid: business.twilio_phone_number_sid,
+        },
+        beforeState,
+        afterState: {
+          twilio_phone_number: null,
+          twilio_phone_number_sid: null,
+          twilio_messaging_service_sid: null,
+          provisioning_status: 'provisioning',
+          forwarding_verified: false,
+          call_forwarding_enabled: false,
+        },
+        metadata: { force },
+      })
     }
 
     // Trigger provisioning

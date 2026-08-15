@@ -14,6 +14,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { reconcileTwilioInventory } from '@/lib/twilio-provisioning-service'
+import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,6 +74,18 @@ export async function GET(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Audit logging (non-blocking)
+    logAdminAction({
+      actingAdminUserId: user.id,
+      actingAdminEmail: getUserEmail(user),
+      action: 'reconcile_twilio_inventory',
+      metadata: {
+        orphaned_count: result.numbersInTwilioNotInDb.length,
+        discrepant_count: result.numbersInDbNotInTwilio.length,
+        system_number_found: !!result.systemNumber,
+      },
+    })
 
     return NextResponse.json({
       ok: true,

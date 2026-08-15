@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/admin'
+import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,7 +42,8 @@ export async function POST(request: NextRequest) {
       trial_started_at: null,
     }
 
-    let query = supabaseAdmin.from('businesses').update(updateData)
+    // Fetch business before update for audit logging
+    let query = supabaseAdmin.from('businesses').select('id, twilio_phone_number, trial_started_at')
 
     if (business_id) {
       query = query.eq('id', business_id)
@@ -49,7 +51,26 @@ export async function POST(request: NextRequest) {
       query = query.eq('twilio_phone_number', business_phone_number)
     }
 
-    const { data: business, error } = await query
+    const { data: beforeBusiness, error: fetchError } = await query.single()
+
+    if (fetchError) {
+      console.error('[admin-reset-trial] Error fetching business:', fetchError)
+      return NextResponse.json(
+        { ok: false, error: fetchError.message },
+        { status: 500 }
+      )
+    }
+
+    // Perform update
+    let updateQuery = supabaseAdmin.from('businesses').update(updateData)
+
+    if (business_id) {
+      updateQuery = updateQuery.eq('id', business_id)
+    } else if (business_phone_number) {
+      updateQuery = updateQuery.eq('twilio_phone_number', business_phone_number)
+    }
+
+    const { data: business, error } = await updateQuery
       .select('id, twilio_phone_number, trial_started_at')
       .single()
 
@@ -62,6 +83,21 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[admin-reset-trial] Successfully reset trial eligibility:', business)
+
+    // Audit logging (non-blocking)
+    logAdminAction({
+      actingAdminUserId: user.id,
+      actingAdminEmail: getUserEmail(user),
+      action: 'reset_trial_eligibility',
+      targetBusinessId: business_id,
+      resourceIdentifiers: business?.twilio_phone_number ? { phone_number: business.twilio_phone_number } : undefined,
+      beforeState: {
+        trial_started_at: beforeBusiness?.trial_started_at,
+      },
+      afterState: {
+        trial_started_at: null,
+      },
+    })
 
     return NextResponse.json({
       ok: true,

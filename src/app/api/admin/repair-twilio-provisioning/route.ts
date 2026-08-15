@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import Twilio from 'twilio'
+import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -169,6 +170,13 @@ export async function POST(request: Request) {
 
     // Update business provisioning status
     console.log('[Repair Twilio Provisioning] Updating business provisioning status')
+    
+    // Capture before state for audit logging
+    const beforeState = {
+      provisioning_status: business.provisioning_status,
+      provisioning_error: business.provisioning_error,
+    }
+    
     const { error: updateError } = await supabase
       .from('businesses')
       .update({
@@ -184,6 +192,24 @@ export async function POST(request: Request) {
     }
 
     console.log('[Repair Twilio Provisioning] STATUS attached')
+
+    // Audit logging (non-blocking)
+    logAdminAction({
+      actingAdminUserId: user.id,
+      actingAdminEmail: getUserEmail(user),
+      action: 'repair_twilio_provisioning',
+      targetBusinessId: business_id,
+      resourceIdentifiers: {
+        phone_number: business.twilio_phone_number,
+        twilio_sid: business.twilio_phone_number_sid,
+      },
+      beforeState,
+      afterState: {
+        provisioning_status: 'attached',
+        provisioning_error: null,
+        provisioned_at: new Date().toISOString(),
+      },
+    })
 
     return NextResponse.json({
       success: true,

@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { cancelTwilioRelease } from '@/lib/twilio-reclamation'
+import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -114,6 +115,14 @@ export async function POST(request: NextRequest) {
         })
         if (retryData.success) {
           message = 'Provisioning retry initiated'
+          
+          // Audit logging (non-blocking)
+          logAdminAction({
+            actingAdminUserId: user.id,
+            actingAdminEmail: getUserEmail(user),
+            action: 'support_retry_provisioning',
+            targetBusinessId: businessId,
+          })
         } else {
           return NextResponse.json({ success: false, error: retryData.error || 'Provisioning retry failed' }, { status: 500 })
         }
@@ -134,6 +143,14 @@ export async function POST(request: NextRequest) {
         })
         if (reconcileData.success) {
           message = 'Messaging service reconciled'
+          
+          // Audit logging (non-blocking)
+          logAdminAction({
+            actingAdminUserId: user.id,
+            actingAdminEmail: getUserEmail(user),
+            action: 'support_reconcile_messaging_service',
+            targetBusinessId: businessId,
+          })
         } else {
           return NextResponse.json({ success: false, error: reconcileData.error || 'Reconciliation failed' }, { status: 500 })
         }
@@ -141,6 +158,13 @@ export async function POST(request: NextRequest) {
 
       case 'mark_forwarding_verified':
         console.log('[ADMIN SUPPORT ACTION] Executing mark_forwarding_verified')
+        // Fetch before state
+        const { data: beforeForwardingBusiness } = await supabaseAdmin
+          .from('businesses')
+          .select('id, forwarding_verified, forwarding_verified_at')
+          .eq('id', businessId)
+          .single()
+        
         // Mark forwarding verified
         const { error: updateError } = await supabaseAdmin
           .from('businesses')
@@ -153,11 +177,35 @@ export async function POST(request: NextRequest) {
         if (updateError) {
           return NextResponse.json({ success: false, error: 'Failed to update forwarding status' }, { status: 500 })
         }
+        
+        // Audit logging (non-blocking)
+        logAdminAction({
+          actingAdminUserId: user.id,
+          actingAdminEmail: getUserEmail(user),
+          action: 'mark_forwarding_verified',
+          targetBusinessId: businessId,
+          beforeState: {
+            forwarding_verified: beforeForwardingBusiness?.forwarding_verified,
+            forwarding_verified_at: beforeForwardingBusiness?.forwarding_verified_at,
+          },
+          afterState: {
+            forwarding_verified: true,
+            forwarding_verified_at: new Date().toISOString(),
+          },
+        })
+        
         message = 'Forwarding marked as verified'
         break
 
       case 'reset_onboarding':
         console.log('[ADMIN SUPPORT ACTION] Executing reset_onboarding')
+        // Fetch before state
+        const { data: beforeOnboardingBusiness } = await supabaseAdmin
+          .from('businesses')
+          .select('id, onboarding_status, phone_setup_completed_at, forwarding_verified')
+          .eq('id', businessId)
+          .single()
+        
         // Reset onboarding state
         const { error: resetError } = await supabaseAdmin
           .from('businesses')
@@ -170,6 +218,25 @@ export async function POST(request: NextRequest) {
         if (resetError) {
           return NextResponse.json({ success: false, error: 'Failed to reset onboarding' }, { status: 500 })
         }
+        
+        // Audit logging (non-blocking)
+        logAdminAction({
+          actingAdminUserId: user.id,
+          actingAdminEmail: getUserEmail(user),
+          action: 'reset_onboarding',
+          targetBusinessId: businessId,
+          beforeState: {
+            onboarding_status: beforeOnboardingBusiness?.onboarding_status,
+            phone_setup_completed_at: beforeOnboardingBusiness?.phone_setup_completed_at,
+            forwarding_verified: beforeOnboardingBusiness?.forwarding_verified,
+          },
+          afterState: {
+            onboarding_status: 'not_started',
+            phone_setup_completed_at: null,
+            forwarding_verified: false,
+          },
+        })
+        
         message = 'Onboarding state reset'
         break
 
@@ -201,6 +268,15 @@ export async function POST(request: NextRequest) {
           error: refreshData.error
         })
         message = 'Subscription refresh triggered'
+        
+        // Audit logging (non-blocking)
+        logAdminAction({
+          actingAdminUserId: user.id,
+          actingAdminEmail: getUserEmail(user),
+          action: 'support_refresh_subscription',
+          targetBusinessId: businessId,
+          resourceIdentifiers: { stripe_customer_id: business.stripe_customer_id },
+        })
         break
 
       case 'view_stripe_portal':
@@ -239,6 +315,14 @@ export async function POST(request: NextRequest) {
         const cancelResult = await cancelTwilioRelease(businessId)
         if (cancelResult.success) {
           message = 'Twilio number release canceled'
+          
+          // Audit logging (non-blocking)
+          logAdminAction({
+            actingAdminUserId: user.id,
+            actingAdminEmail: getUserEmail(user),
+            action: 'support_cancel_twilio_release',
+            targetBusinessId: businessId,
+          })
         } else {
           return NextResponse.json({ success: false, error: cancelResult.error || 'Failed to cancel release' }, { status: 500 })
         }
@@ -249,7 +333,7 @@ export async function POST(request: NextRequest) {
         // Extend grace period by 30 days
         const { data: extendBusiness } = await supabaseAdmin
           .from('businesses')
-          .select('twilio_release_at')
+          .select('twilio_release_at, twilio_release_status, twilio_release_reason')
           .eq('id', businessId)
           .single()
 
@@ -260,6 +344,12 @@ export async function POST(request: NextRequest) {
         const currentReleaseDate = extendBusiness.twilio_release_at ? new Date(extendBusiness.twilio_release_at) : new Date()
         const extendedReleaseDate = new Date(currentReleaseDate)
         extendedReleaseDate.setDate(extendedReleaseDate.getDate() + 30)
+
+        const beforeState = {
+          twilio_release_at: extendBusiness.twilio_release_at,
+          twilio_release_status: extendBusiness.twilio_release_status,
+          twilio_release_reason: extendBusiness.twilio_release_reason,
+        }
 
         const { error: extendError } = await supabaseAdmin
           .from('businesses')
@@ -274,6 +364,22 @@ export async function POST(request: NextRequest) {
           console.error('[ADMIN SUPPORT ACTION] extend_grace_period error:', extendError)
           return NextResponse.json({ success: false, error: 'Failed to extend grace period' }, { status: 500 })
         }
+        
+        // Audit logging (non-blocking)
+        logAdminAction({
+          actingAdminUserId: user.id,
+          actingAdminEmail: getUserEmail(user),
+          action: 'extend_grace_period',
+          targetBusinessId: businessId,
+          beforeState,
+          afterState: {
+            twilio_release_at: extendedReleaseDate.toISOString(),
+            twilio_release_status: 'scheduled',
+            twilio_release_reason: 'grace_period_extended_by_admin',
+          },
+          metadata: { days_extended: 30 },
+        })
+        
         message = `Grace period extended to ${extendedReleaseDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`
         break
 
@@ -282,7 +388,7 @@ export async function POST(request: NextRequest) {
         // Release number immediately
         const { data: releaseBusiness } = await supabaseAdmin
           .from('businesses')
-          .select('twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid')
+          .select('twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, onboarding_status')
           .eq('id', businessId)
           .single()
 
@@ -292,6 +398,14 @@ export async function POST(request: NextRequest) {
 
         if (!releaseBusiness.twilio_phone_number) {
           return NextResponse.json({ success: false, error: 'No Twilio number assigned' }, { status: 400 })
+        }
+
+        const releaseBeforeState = {
+          twilio_phone_number: releaseBusiness.twilio_phone_number,
+          twilio_phone_number_sid: releaseBusiness.twilio_phone_number_sid,
+          twilio_messaging_service_sid: releaseBusiness.twilio_messaging_service_sid,
+          provisioning_status: releaseBusiness.provisioning_status,
+          onboarding_status: releaseBusiness.onboarding_status,
         }
 
         // TODO: Implement actual Twilio number release logic
@@ -317,6 +431,33 @@ export async function POST(request: NextRequest) {
           console.error('[ADMIN SUPPORT ACTION] release_twilio_number_now error:', releaseNowError)
           return NextResponse.json({ success: false, error: 'Failed to release number' }, { status: 500 })
         }
+        
+        // Audit logging (non-blocking)
+        logAdminAction({
+          actingAdminUserId: user.id,
+          actingAdminEmail: getUserEmail(user),
+          action: 'release_twilio_number_now',
+          targetBusinessId: businessId,
+          resourceIdentifiers: {
+            phone_number: releaseBusiness.twilio_phone_number,
+            twilio_sid: releaseBusiness.twilio_phone_number_sid,
+          },
+          beforeState: releaseBeforeState,
+          afterState: {
+            twilio_phone_number: null,
+            twilio_phone_number_sid: null,
+            twilio_messaging_service_sid: null,
+            provisioning_status: 'released',
+            twilio_release_status: 'released',
+            forwarding_verified: false,
+            call_forwarding_enabled: false,
+            onboarding_status: 'number_released',
+          },
+          metadata: {
+            release_reason: 'admin_manual_release',
+          },
+        })
+        
         message = 'Twilio number released immediately'
         break
 

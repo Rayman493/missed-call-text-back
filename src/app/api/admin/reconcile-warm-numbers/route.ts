@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { isAdmin } from '@/lib/admin';
 import Twilio from 'twilio';
 import { ensureWarmNumberMinimum } from '@/lib/warm-number-manager';
+import { logAdminAction, getUserEmail } from '@/lib/admin-audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -223,6 +224,21 @@ export async function POST(request: NextRequest) {
     console.log(`[Warm Inventory Sync] Numbers added: ${result.numbersAdded}`);
     console.log(`[Warm Inventory Sync] Available after: ${result.availableAfter}`);
     console.log(`[Warm Inventory Sync] ========== RECONCILIATION END ==========`);
+
+    // Audit logging (non-blocking)
+    logAdminAction({
+      actingAdminUserId: user.id,
+      actingAdminEmail: getUserEmail(user),
+      action: 'reconcile_warm_numbers',
+      metadata: {
+        checked_count: availableNumbers.length,
+        kept_available_count: validCount,
+        marked_failed_count: failedCount,
+        replenished_count: result.numbersAdded,
+        available_after: result.availableAfter,
+        failed_numbers: failedNumbers,
+      },
+    })
 
     return NextResponse.json({
       success: true,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/admin'
+import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,6 +37,21 @@ export async function POST(request: NextRequest) {
 
     console.log('[admin-reset-tap-to-pay-education] Resetting Tap to Pay education for business:', business_id)
 
+    // Fetch business before update for audit logging
+    const { data: beforeBusiness, error: fetchError } = await supabaseAdmin
+      .from('businesses')
+      .select('id, tap_to_pay_education_completed_at')
+      .eq('id', business_id)
+      .single()
+
+    if (fetchError) {
+      console.error('[admin-reset-tap-to-pay-education] Error fetching business:', fetchError)
+      return NextResponse.json(
+        { ok: false, error: fetchError.message },
+        { status: 500 }
+      )
+    }
+
     // Update business to clear education completion
     const { data: business, error } = await supabaseAdmin
       .from('businesses')
@@ -55,6 +71,20 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[admin-reset-tap-to-pay-education] Successfully reset Tap to Pay education:', business)
+
+    // Audit logging (non-blocking)
+    logAdminAction({
+      actingAdminUserId: user.id,
+      actingAdminEmail: getUserEmail(user),
+      action: 'reset_tap_to_pay_education',
+      targetBusinessId: business_id,
+      beforeState: {
+        tap_to_pay_education_completed_at: beforeBusiness?.tap_to_pay_education_completed_at,
+      },
+      afterState: {
+        tap_to_pay_education_completed_at: null,
+      },
+    })
 
     return NextResponse.json({
       ok: true,

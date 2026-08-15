@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import { isAdmin } from '@/lib/admin'
 import { provisionTwilioNumber } from '@/lib/twilio'
+import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -92,6 +93,23 @@ export async function POST(request: Request) {
     if (provisioned) {
       console.log('[Admin Twilio Retry] Provisioning complete:', provisioned.phoneNumber);
       console.log('[Admin Twilio Retry] Provisioned number SID:', provisioned.phoneNumberSid);
+
+      // Audit logging (non-blocking)
+      logAdminAction({
+        actingAdminUserId: user.id,
+        actingAdminEmail: getUserEmail(user),
+        action: 'retry_twilio_provisioning',
+        targetBusinessId: business_id,
+        resourceIdentifiers: {
+          phone_number: provisioned.phoneNumber,
+          twilio_sid: provisioned.phoneNumberSid,
+        },
+        afterState: {
+          twilio_phone_number: provisioned.phoneNumber,
+          twilio_phone_number_sid: provisioned.phoneNumberSid,
+        },
+      })
+
       return NextResponse.json({
         success: true,
         twilio_phone_number: provisioned.phoneNumber,
@@ -99,6 +117,18 @@ export async function POST(request: Request) {
       })
     } else {
       console.error('[Admin Twilio Retry] Failed to provision number for business:', business_id);
+      
+      // Audit logging for failed attempt (non-blocking)
+      logAdminAction({
+        actingAdminUserId: user.id,
+        actingAdminEmail: getUserEmail(user),
+        action: 'retry_twilio_provisioning_failed',
+        targetBusinessId: business_id,
+        metadata: {
+          error: 'Failed to provision Twilio number',
+        },
+      })
+      
       return NextResponse.json({
         success: false,
         error: 'Failed to provision Twilio number',
