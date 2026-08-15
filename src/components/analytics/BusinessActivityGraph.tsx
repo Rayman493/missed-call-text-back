@@ -8,6 +8,7 @@ import { Activity } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks } from '@/lib/chart-utils'
 
 type TimeRange = '7d' | '30d' | '90d' | '1y'
 
@@ -153,7 +154,7 @@ export default function BusinessActivityGraph() {
   const isEmpty = data.length === 0
 
   // Calculate summary KPIs
-  const totalInteractions = data.reduce((sum, day) => 
+  const totalInteractions = data.reduce((sum, day) =>
     sum + day.conversations + day.appointments + day.paymentRequests + day.completedJobs, 0
   )
   const peakDay = data.length > 0 ? data.reduce((max, day) => {
@@ -161,6 +162,12 @@ export default function BusinessActivityGraph() {
     return dayTotal > (max.conversations + max.appointments + max.paymentRequests + max.completedJobs) ? day : max
   }, data[0]) : null
   const averageDaily = data.length > 0 ? Math.round(totalInteractions / data.length) : 0
+
+  // Calculate max value for Y-axis ticks
+  const maxValue = data.length > 0 ? Math.max(...data.map(d =>
+    d.conversations + d.appointments + d.paymentRequests + d.completedJobs
+  )) : 0
+  const yTicks = getIntegerTicks(maxValue)
 
   return (
     <Card className="h-full" variant="hero" padding="md">
@@ -212,42 +219,49 @@ export default function BusinessActivityGraph() {
           <div className="h-[260px]">
             <div className="h-full w-full select-none">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/10 pointer-events-none" vertical={false} />
-                  <XAxis 
-                    dataKey="date" 
+                <LineChart data={data} margin={CHART_STYLES.margin}>
+                  <CartesianGrid
+                    strokeDasharray={CHART_STYLES.gridStrokeDasharray}
+                    stroke={CHART_STYLES.gridStroke}
+                    strokeOpacity={CHART_STYLES.gridStrokeOpacity}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="date"
                     className="text-[10px] text-muted-foreground/60 pointer-events-none"
-                    tick={{ fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
+                    tick={{ fontSize: CHART_STYLES.tickFontSize }}
+                    axisLine={CHART_STYLES.axisLine}
+                    tickLine={CHART_STYLES.tickLine}
                     interval="preserveStartEnd"
                   />
-                  <YAxis 
+                  <YAxis
                     className="text-[10px] text-muted-foreground/60 pointer-events-none"
-                    tick={{ fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
+                    tick={{ fontSize: CHART_STYLES.tickFontSize }}
+                    axisLine={CHART_STYLES.axisLine}
+                    tickLine={CHART_STYLES.tickLine}
+                    ticks={yTicks}
+                    tickFormatter={formatInteger}
                   />
                   <Tooltip
                     content={({ active, payload, label }: any) => {
                       if (!active || !payload || payload.length === 0) return null
 
                       return (
-                        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-                          <p className="text-[11px] font-medium text-foreground mb-2">{label}</p>
+                        <div className="bg-card border border-border/50 rounded-lg shadow-lg px-3 py-2.5 min-w-[160px]">
+                          <p className="text-[11px] font-semibold text-foreground mb-1.5">{label}</p>
                           {payload.map((entry: any, index: number) => {
                             const key = entry.dataKey as string
                             const label = SERIES_LABELS[key] || entry.dataKey
                             return (
-                              <div key={index} className="flex items-center justify-between gap-4 text-[10px]">
-                                <div className="flex items-center gap-1.5">
+                              <div key={index} className="flex items-center justify-between gap-3 text-[11px]">
+                                <div className="flex items-center gap-2">
                                   <div
-                                    className="w-2 h-2 rounded-full"
+                                    className="w-2 h-2 rounded-full shrink-0"
                                     style={{ backgroundColor: entry.color }}
                                   />
                                   <span className="text-muted-foreground">{label}</span>
                                 </div>
-                                <span className="font-medium text-foreground">{entry.value}</span>
+                                <span className="font-medium text-foreground tabular-nums">{entry.value}</span>
                               </div>
                             )
                           })}
@@ -282,45 +296,45 @@ export default function BusinessActivityGraph() {
                       )}
                       wrapperStyle={{ paddingTop: '12px' }}
                       iconType="circle"
-                      iconSize={6}
+                      iconSize={CHART_STYLES.legendIconSize}
                       verticalAlign="bottom"
                       height={28}
                     />
                   )}
-                  <Line 
-                    type="monotone" 
-                    dataKey="conversations" 
-                    stroke="#3b82f6" 
-                    strokeWidth={2}
+                  <Line
+                    type="monotone"
+                    dataKey="conversations"
+                    stroke="#3b82f6"
+                    strokeWidth={CHART_STYLES.lineStrokeWidth}
                     dot={false}
-                    activeDot={{ r: 4, fill: '#3b82f6', strokeWidth: 2 }}
+                    activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#3b82f6', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Conversations"
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="appointments" 
-                    stroke="#22c55e" 
-                    strokeWidth={2}
+                  <Line
+                    type="monotone"
+                    dataKey="appointments"
+                    stroke="#22c55e"
+                    strokeWidth={CHART_STYLES.lineStrokeWidth}
                     dot={false}
-                    activeDot={{ r: 4, fill: '#22c55e', strokeWidth: 2 }}
+                    activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#22c55e', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Appointments"
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="paymentRequests" 
-                    stroke="#f59e0b" 
-                    strokeWidth={2}
+                  <Line
+                    type="monotone"
+                    dataKey="paymentRequests"
+                    stroke="#f59e0b"
+                    strokeWidth={CHART_STYLES.lineStrokeWidth}
                     dot={false}
-                    activeDot={{ r: 4, fill: '#f59e0b', strokeWidth: 2 }}
+                    activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#f59e0b', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Payment Requests"
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="completedJobs" 
-                    stroke="#8b5cf6" 
-                    strokeWidth={2}
+                  <Line
+                    type="monotone"
+                    dataKey="completedJobs"
+                    stroke="#8b5cf6"
+                    strokeWidth={CHART_STYLES.lineStrokeWidth}
                     dot={false}
-                    activeDot={{ r: 4, fill: '#8b5cf6', strokeWidth: 2 }}
+                    activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#8b5cf6', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Completed Jobs"
                   />
                 </LineChart>

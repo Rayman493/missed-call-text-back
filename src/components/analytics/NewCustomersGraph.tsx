@@ -8,6 +8,7 @@ import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks } from '@/lib/chart-utils'
 
 type TimeRange = '7d' | '30d' | '90d' | '1y'
 
@@ -99,6 +100,10 @@ export default function NewCustomersGraph() {
   const daysInRange: Record<TimeRange, number> = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 }
   const averageDaily = totalCustomers > 0 ? (totalCustomers / daysInRange[timeRange]) : 0
 
+  // Calculate max value for Y-axis ticks
+  const maxValue = data.length > 0 ? Math.max(...data.map(d => d.customers)) : 0
+  const yTicks = getIntegerTicks(maxValue)
+
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
@@ -146,39 +151,39 @@ export default function NewCustomersGraph() {
           <div className="h-[260px]">
             <div className="h-full w-full select-none" style={{ touchAction: 'manipulation' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data} margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/10 pointer-events-none" vertical={false} />
-                  <XAxis 
-                    dataKey="date" 
+                <BarChart data={data} margin={CHART_STYLES.margin} barGap={CHART_STYLES.barGap} barCategoryGap={CHART_STYLES.categoryGap}>
+                  <CartesianGrid
+                    strokeDasharray={CHART_STYLES.gridStrokeDasharray}
+                    stroke={CHART_STYLES.gridStroke}
+                    strokeOpacity={CHART_STYLES.gridStrokeOpacity}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="date"
                     className="text-[10px] text-muted-foreground/60 pointer-events-none"
-                    tick={{ fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
+                    tick={{ fontSize: CHART_STYLES.tickFontSize }}
+                    axisLine={CHART_STYLES.axisLine}
+                    tickLine={CHART_STYLES.tickLine}
                     interval="preserveStartEnd"
                   />
-                  <YAxis 
+                  <YAxis
                     className="text-[10px] text-muted-foreground/60 pointer-events-none"
-                    tick={{ fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
+                    tick={{ fontSize: CHART_STYLES.tickFontSize }}
+                    axisLine={CHART_STYLES.axisLine}
+                    tickLine={CHART_STYLES.tickLine}
+                    ticks={yTicks}
+                    tickFormatter={formatInteger}
                   />
-                  <Tooltip 
-                    shared={false}
+                  <Tooltip
+                    content={<PremiumTooltip />}
                     cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      fontSize: '11px'
-                    }}
-                    itemStyle={{ color: 'hsl(var(--foreground))' }}
                   />
-                  <Bar 
-                    dataKey="customers" 
-                    fill="hsl(var(--primary))" 
+                  <Bar
+                    dataKey="customers"
+                    fill="hsl(var(--primary))"
                     fillOpacity={0.8}
-                    radius={[3, 3, 0, 0]}
+                    radius={CHART_STYLES.barRadius}
+                    maxBarSize={CHART_STYLES.barMaxSize}
                     className="hover:fill-opacity-100 transition-all"
                   />
                 </BarChart>

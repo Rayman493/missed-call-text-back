@@ -232,28 +232,28 @@ export default function LeadConversionGraph() {
           />
         ) : (
           <div className="h-[260px] overflow-y-auto">
-            <div className="space-y-3">
+            <div className="space-y-4">
               {data.map((stage, index) => (
-                <div key={stage.name} className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-20 text-xs font-medium text-muted-foreground text-right">
+                <div key={stage.name} className="flex items-center gap-4">
+                  <div className="flex-shrink-0 w-24 text-xs font-medium text-muted-foreground text-right">
                     {stage.name}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="h-6 bg-muted/30 rounded-md overflow-hidden relative">
+                    <div className="h-7 bg-muted/20 rounded-full overflow-hidden relative">
                       <div
-                        className="h-full rounded-md transition-all duration-500"
+                        className="h-full rounded-full transition-all duration-500"
                         style={{
                           width: `${stage.percentage}%`,
                           backgroundColor: stage.color,
-                          opacity: 0.8
+                          opacity: 0.9
                         }}
                       />
                     </div>
                   </div>
-                  <div className="flex-shrink-0 w-16 text-xs font-semibold text-foreground text-right">
+                  <div className="flex-shrink-0 w-16 text-xs font-semibold text-foreground text-right tabular-nums">
                     {stage.count}
                   </div>
-                  <div className="flex-shrink-0 w-12 text-xs text-muted-foreground text-right">
+                  <div className="flex-shrink-0 w-14 text-xs text-muted-foreground/70 text-right tabular-nums">
                     {stage.percentage}%
                   </div>
                 </div>

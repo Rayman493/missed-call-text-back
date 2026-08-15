@@ -7,6 +7,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recha
 import { CreditCard } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
+import { PremiumTooltip, CHART_STYLES, formatInteger } from '@/lib/chart-utils'
 
 interface PaymentStatusData {
   name: string
@@ -91,6 +92,7 @@ export default function PaymentCollectionGraph() {
   const totalPayments = data.reduce((sum, item) => sum + item.value, 0)
   const paidPayments = data.find(d => d.name === 'Paid')?.value || 0
   const pendingPayments = data.find(d => d.name === 'Pending')?.value || 0
+  const collectionRate = totalPayments > 0 ? Math.round((paidPayments / totalPayments) * 100) : 0
 
   return (
     <Card className="h-full" variant="hero" padding="md">
@@ -125,16 +127,16 @@ export default function PaymentCollectionGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <div className="h-full w-full select-none">
+            <div className="h-full w-full select-none relative">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={data}
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={2}
+                    innerRadius={CHART_STYLES.donutInnerRadius}
+                    outerRadius={CHART_STYLES.donutOuterRadius}
+                    paddingAngle={CHART_STYLES.donutPaddingAngle}
                     dataKey="value"
                   >
                     {data.map((entry, index) => (
@@ -142,26 +144,24 @@ export default function PaymentCollectionGraph() {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      fontSize: '11px'
-                    }}
-                    itemStyle={{ color: 'hsl(var(--foreground))' }}
-                    formatter={(value: any, name?: any) => [value, name]}
+                    content={<PremiumTooltip />}
                   />
                   <Legend
                     verticalAlign="bottom"
                     height={36}
                     iconType="circle"
-                    wrapperStyle={{ fontSize: '11px' }}
+                    iconSize={CHART_STYLES.legendIconSize}
+                    wrapperStyle={{ fontSize: `${CHART_STYLES.legendFontSize}px` }}
                   />
-              </PieChart>
-            </ResponsiveContainer>
+                </PieChart>
+              </ResponsiveContainer>
+              {/* Center KPI */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-2xl font-semibold text-foreground">{collectionRate}%</span>
+                <span className="text-[10px] text-muted-foreground">Collected</span>
+              </div>
+            </div>
           </div>
-        </div>
         )}
       </div>
     </Card>

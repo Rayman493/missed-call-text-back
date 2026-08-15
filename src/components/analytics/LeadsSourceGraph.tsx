@@ -7,6 +7,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recha
 import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
+import { PremiumTooltip, CHART_STYLES, formatInteger } from '@/lib/chart-utils'
 
 interface LeadSourceData {
   name: string
@@ -241,16 +242,16 @@ export default function LeadsSourceGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <div className="h-full w-full select-none">
+            <div className="h-full w-full select-none relative">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={data}
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={2}
+                    innerRadius={CHART_STYLES.donutInnerRadius}
+                    outerRadius={CHART_STYLES.donutOuterRadius}
+                    paddingAngle={CHART_STYLES.donutPaddingAngle}
                     dataKey="value"
                   >
                     {data.map((entry, index) => (
@@ -258,24 +259,22 @@ export default function LeadsSourceGraph() {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      fontSize: '11px'
-                    }}
-                    itemStyle={{ color: 'hsl(var(--foreground))' }}
-                    formatter={(value: any, name?: any) => [value, name]}
+                    content={<PremiumTooltip />}
                   />
                   <Legend
                     verticalAlign="bottom"
                     height={36}
                     iconType="circle"
-                    wrapperStyle={{ fontSize: '11px' }}
+                    iconSize={CHART_STYLES.legendIconSize}
+                    wrapperStyle={{ fontSize: `${CHART_STYLES.legendFontSize}px` }}
                   />
                 </PieChart>
               </ResponsiveContainer>
+              {/* Center KPI */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-2xl font-semibold text-foreground">{formatInteger(trueTotal)}</span>
+                <span className="text-[10px] text-muted-foreground">Leads</span>
+              </div>
             </div>
           </div>
         )}

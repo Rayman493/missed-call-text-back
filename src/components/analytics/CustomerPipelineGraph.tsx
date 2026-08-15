@@ -8,6 +8,7 @@ import { Funnel } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { getCustomerStatusStyle, getAllCustomerStatuses } from '@/lib/customer-status'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks } from '@/lib/chart-utils'
 
 interface PipelineData {
   status: string
@@ -85,6 +86,10 @@ export default function CustomerPipelineGraph() {
   const totalCustomers = data.reduce((sum, item) => sum + item.count, 0)
   const largestGroup = data.length > 0 ? data.reduce((max, item) => item.count > max.count ? item : max, data[0]) : null
 
+  // Calculate max value for X-axis ticks
+  const maxValue = data.length > 0 ? Math.max(...data.map(d => d.count)) : 0
+  const xTicks = getIntegerTicks(maxValue)
+
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
@@ -124,45 +129,45 @@ export default function CustomerPipelineGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            {/* If chart doesn't render: check container dimensions, data array length, and console for errors */}
             <div className="h-full w-full select-none">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data} layout="vertical" margin={{ top: 16, right: 16, bottom: 8, left: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/10 pointer-events-none" horizontal={false} />
+                <BarChart data={data} layout="vertical" margin={{ top: 8, right: 12, bottom: 8, left: 4 }}>
+                  <CartesianGrid
+                    strokeDasharray={CHART_STYLES.gridStrokeDasharray}
+                    stroke={CHART_STYLES.gridStroke}
+                    strokeOpacity={CHART_STYLES.gridStrokeOpacity}
+                    horizontal={false}
+                  />
                   <XAxis
                     type="number"
                     className="text-[10px] text-muted-foreground/60 pointer-events-none"
-                    tick={{ fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
+                    tick={{ fontSize: CHART_STYLES.tickFontSize }}
+                    axisLine={CHART_STYLES.axisLine}
+                    tickLine={CHART_STYLES.tickLine}
                     domain={[0, 'auto']}
-                    tickFormatter={(value) => Math.round(value).toString()}
+                    ticks={xTicks}
+                    tickFormatter={formatInteger}
                     allowDecimals={false}
                   />
                   <YAxis
                     type="category"
                     dataKey="status"
                     className="text-[10px] text-muted-foreground/60 pointer-events-none"
-                    tick={{ fontSize: 10 }}
+                    tick={{ fontSize: CHART_STYLES.tickFontSize }}
                     width={100}
-                    axisLine={false}
-                    tickLine={false}
+                    axisLine={CHART_STYLES.axisLine}
+                    tickLine={CHART_STYLES.tickLine}
                   />
                   <Tooltip
-                    shared={false}
+                    content={<PremiumTooltip />}
                     cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      fontSize: '11px'
-                    }}
-                    itemStyle={{ color: 'hsl(var(--foreground))' }}
-                    formatter={(value: any, name?: any) => [value, 'Customers']}
-                    labelFormatter={(label: any) => label}
                   />
-                  <Bar dataKey="count" radius={[0, 3, 3, 0]} barSize={24}>
+                  <Bar
+                    dataKey="count"
+                    radius={[0, 3, 3, 0]}
+                    barSize={24}
+                    maxBarSize={CHART_STYLES.barMaxSize}
+                  >
                     {data.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.85} />
                     ))}

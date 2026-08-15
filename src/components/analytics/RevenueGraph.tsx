@@ -8,6 +8,7 @@ import { DollarSign } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
+import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis } from '@/lib/chart-utils'
 
 type TimeRange = '7d' | '30d' | '90d' | '1y'
 
@@ -103,6 +104,9 @@ export default function RevenueGraph() {
   const peakDay = data.length > 0 ? data.reduce((max, day) => day.revenue > max.revenue ? day : max, data[0]) : null
   const averageDaily = data.length > 0 ? Math.round(totalRevenue / data.length) : 0
 
+  // Single-point state: emphasize the actual observation
+  const isSinglePoint = data.length === 1
+
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
@@ -156,41 +160,42 @@ export default function RevenueGraph() {
           <div className="h-[260px]">
             <div className="h-full w-full select-none">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/10 pointer-events-none" vertical={false} />
-                  <XAxis 
-                    dataKey="date" 
+                <LineChart data={data} margin={CHART_STYLES.margin}>
+                  <CartesianGrid
+                    strokeDasharray={CHART_STYLES.gridStrokeDasharray}
+                    stroke={CHART_STYLES.gridStroke}
+                    strokeOpacity={CHART_STYLES.gridStrokeOpacity}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="date"
                     className="text-[10px] text-muted-foreground/60 pointer-events-none"
-                    tick={{ fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
+                    tick={{ fontSize: CHART_STYLES.tickFontSize }}
+                    axisLine={CHART_STYLES.axisLine}
+                    tickLine={CHART_STYLES.tickLine}
                     interval="preserveStartEnd"
                   />
-                  <YAxis 
+                  <YAxis
                     className="text-[10px] text-muted-foreground/60 pointer-events-none"
-                    tick={{ fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(value) => `$${value}`}
+                    tick={{ fontSize: CHART_STYLES.tickFontSize }}
+                    axisLine={CHART_STYLES.axisLine}
+                    tickLine={CHART_STYLES.tickLine}
+                    tickFormatter={formatCurrencyAxis}
                   />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      fontSize: '11px'
+                  <Tooltip
+                    content={<PremiumTooltip />}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#16a34a"
+                    strokeWidth={CHART_STYLES.lineStrokeWidth}
+                    dot={isSinglePoint}
+                    activeDot={{
+                      r: isSinglePoint ? 6 : CHART_STYLES.activeDotRadius,
+                      fill: '#16a34a',
+                      strokeWidth: isSinglePoint ? 0 : CHART_STYLES.lineStrokeWidth
                     }}
-                    itemStyle={{ color: 'hsl(var(--foreground))' }}
-                    formatter={(value: any) => [`$${(value || 0).toFixed(2)}`, 'Revenue']}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke="#16a34a" 
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4, fill: '#16a34a', strokeWidth: 2 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
