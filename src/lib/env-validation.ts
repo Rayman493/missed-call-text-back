@@ -288,6 +288,27 @@ const ENV_VARIABLES: EnvVarConfig[] = [
     required: false,
     category: 'push',
   },
+
+  // Analytics
+  {
+    name: 'NEXT_PUBLIC_POSTHOG_KEY',
+    description: 'PostHog API key for analytics',
+    required: false,
+    category: 'system',
+  },
+  {
+    name: 'NEXT_PUBLIC_POSTHOG_HOST',
+    description: 'PostHog API host',
+    required: false,
+    category: 'system',
+    fallback: 'https://app.posthog.com',
+  },
+  {
+    name: 'NEXT_PUBLIC_SENTRY_DSN',
+    description: 'Sentry DSN for error monitoring',
+    required: false,
+    category: 'system',
+  },
 ]
 
 /**

@@ -19,13 +19,17 @@ export type AnalyticsEventName =
   | 'onboarding_started'
   | 'onboarding_completed'
   // Business events
+  | 'twilio_connected'
   | 'ai_call_answered'
   | 'customer_created'
+  | 'customer_viewed'
   | 'appointment_scheduled'
+  | 'schedule_used'
   | 'job_created'
   | 'job_completed'
   | 'payment_requested'
   | 'payment_received'
+  | 'subscription_started'
   | 'message_sent'
   // Intelligence events
   | 'daily_brief_opened'
@@ -59,6 +63,9 @@ export interface EventProperties {
     durationMs?: number
   }
   // Business events
+  twilio_connected?: {
+    phoneNumberType?: 'local' | 'toll_free'
+  }
   ai_call_answered?: {
     callDuration?: number
     aiConfidence?: number
@@ -66,8 +73,14 @@ export interface EventProperties {
   customer_created?: {
     source?: 'manual' | 'ai_call' | 'import'
   }
+  customer_viewed?: {
+    customerId?: string
+  }
   appointment_scheduled?: {
     isRecurring?: boolean
+  }
+  schedule_used?: {
+    view?: 'agenda' | 'calendar' | 'map'
   }
   job_created?: {
     jobType?: string
@@ -82,6 +95,10 @@ export interface EventProperties {
   payment_received?: {
     amount?: number
     provider?: 'stripe' | 'paypal' | 'tap_to_pay'
+  }
+  subscription_started?: {
+    plan?: string
+    trial?: boolean
   }
   message_sent?: {
     direction?: 'inbound' | 'outbound'
