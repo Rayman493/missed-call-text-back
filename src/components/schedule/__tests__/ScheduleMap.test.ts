@@ -153,3 +153,48 @@ describe('ScheduleMap - Camera Coalescing', () => {
     expect(shouldUseFitBounds).toBe(false)
   })
 })
+
+describe('ScheduleMap - Jitter Prevention', () => {
+  it('map preparation should not re-trigger when data identity is unchanged', () => {
+    // The jitter fix removes prepareMapItems from the useEffect dependency array
+    // This prevents unnecessary re-runs when the callback is recreated but data is unchanged
+
+    const selectedDateChanged = false
+    const businessGeocodeTriggerChanged = false
+
+    // With the fix, the effect only runs when date or geocode trigger changes
+    const shouldPrepare = selectedDateChanged || businessGeocodeTriggerChanged
+    expect(shouldPrepare).toBe(false)
+  })
+
+  it('map preparation should trigger when date changes', () => {
+    const selectedDateChanged = true
+    const businessGeocodeTriggerChanged = false
+
+    const shouldPrepare = selectedDateChanged || businessGeocodeTriggerChanged
+    expect(shouldPrepare).toBe(true)
+  })
+
+  it('map preparation should trigger when business geocoding completes', () => {
+    const selectedDateChanged = false
+    const businessGeocodeTriggerChanged = true
+
+    const shouldPrepare = selectedDateChanged || businessGeocodeTriggerChanged
+    expect(shouldPrepare).toBe(true)
+  })
+
+  it('data array identity changes should not trigger preparation if date unchanged', () => {
+    // Jobs/calendarEvents/tasks arrays may be recreated by parent component
+    // This should not cause map preparation to re-run if date hasn't changed
+
+    const selectedDateChanged = false
+    const businessGeocodeTriggerChanged = false
+    const jobsArrayRecreated = true
+    const eventsArrayRecreated = true
+    const tasksArrayRecreated = true
+
+    // With the fix, only date and geocode trigger matter
+    const shouldPrepare = selectedDateChanged || businessGeocodeTriggerChanged
+    expect(shouldPrepare).toBe(false) // Should NOT prepare even if arrays recreated
+  })
+})

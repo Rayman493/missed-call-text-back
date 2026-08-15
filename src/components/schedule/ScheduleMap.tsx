@@ -232,8 +232,8 @@ function ScheduleMapComponent({
     tasksIdentityChanged.current = true
   }
 
-  // Log renders (throttled - every 5th render or on significant changes)
-  const shouldLogRender = currentRenderCount % 5 === 0 || currentRenderCount === 1
+  // Log renders (throttled - only on first render and every 20th render to reduce console noise)
+  const shouldLogRender = currentRenderCount === 1 || currentRenderCount % 20 === 0
   if (shouldLogRender) {
     console.log('[SCHEDULE_MAP_RENDER]', {
       count: currentRenderCount,
@@ -1412,7 +1412,7 @@ function ScheduleMapComponent({
     return () => {
       isCancelled = true
     }
-  }, [prepareMapItems, selectedDate, businessGeocodeTrigger])
+  }, [selectedDate, businessGeocodeTrigger])
 
   // Update markers when map items change or map becomes ready
   useEffect(() => {
