@@ -214,24 +214,6 @@ function ScheduleMapComponent({
   renderCountRef.current++
   const currentRenderCount = renderCountRef.current
 
-  // Track prop changes for render logging
-  const jobsIdentityChanged = useRef(false)
-  const calendarEventsIdentityChanged = useRef(false)
-  const tasksIdentityChanged = useRef(false)
-  const selectedDateChanged = useRef(false)
-  const businessLocationChanged = useRef(false)
-
-  // Detect prop identity changes
-  if (jobsIdentityChanged.current === false) {
-    jobsIdentityChanged.current = true
-  }
-  if (calendarEventsIdentityChanged.current === false) {
-    calendarEventsIdentityChanged.current = true
-  }
-  if (tasksIdentityChanged.current === false) {
-    tasksIdentityChanged.current = true
-  }
-
   // Log renders (throttled - only on first render and every 20th render to reduce console noise)
   const shouldLogRender = currentRenderCount === 1 || currentRenderCount % 20 === 0
   if (shouldLogRender) {
