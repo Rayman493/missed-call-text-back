@@ -51,12 +51,26 @@
 	<string>ReplyFlow uses your location to enable accepting in-person payments securely.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>ReplyFlow uses Bluetooth to support payments and nearby device communication required by Stripe Terminal.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>https</string>
+		<string>http</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>replyflow</string>
+			</array>
+		</dict>
+	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<dict>
+			<key>applinks</key>
+			<array>
+				<string>applinks:www.replyflowhq.com</string>
 			</array>
 		</dict>
 	</array>
