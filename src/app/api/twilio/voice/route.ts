@@ -37,6 +37,7 @@ function logCallTrace(data: {
   messageId?: string
   aiCallRecordId?: string
   existingOrCreated?: 'existing' | 'created' | 'updated'
+  correlationId?: string
   reason?: string
 }) {
   console.log('[CALL TRACE]', JSON.stringify(data))
@@ -368,12 +369,16 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
     const ForwardedFrom = params.ForwardedFrom;
     const Caller = params.Caller;
     const Direction = params.Direction;
-    
+
+    // Generate unified correlation ID for AI call lifecycle tracing
+    const correlationId = `AI-${CallSid || 'unknown'}-${Date.now()}`;
+
     console.log('[MAIN VOICE REQUEST]', {
       callSid: CallSid,
       from: From,
       to: To,
-      forwardedFrom: ForwardedFrom
+      forwardedFrom: ForwardedFrom,
+      correlationId
     });
     
     // Log raw Twilio params for debugging
@@ -453,6 +458,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
       from: From,
       to: To,
       forwardedFrom: ForwardedFrom,
+      correlationId,
       reason: 'Looking up business by Twilio number'
     })
     
@@ -487,6 +493,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
           businessId: business.id,
           businessName: business.name,
           existingOrCreated: 'existing',
+          correlationId,
           reason: `Found business via ${lookupSource} using ${candidate}`
         })
         
@@ -504,6 +511,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         from: From,
         to: To,
         forwardedFrom: ForwardedFrom,
+        correlationId,
         reason: `No business found for candidates: ${uniqueCandidates.join(', ')}`
       })
 
@@ -1199,6 +1207,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
             forwardedFrom: ForwardedFrom,
             businessId: business.id,
             businessName: business.name,
+            correlationId,
             reason: 'Creating AI session and baseline lead/conversation before AI asks questions'
           })
 
@@ -1206,6 +1215,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
             business_id: business.id,
             lead_id: null,
             call_sid: CallSid,
+            correlation_id: correlationId,
           })
 
           if (!session) {
@@ -1220,6 +1230,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
               forwardedFrom: ForwardedFrom,
               businessId: business.id,
               businessName: business.name,
+              correlationId,
               reason: 'Failed to create AI session'
             })
 
@@ -1332,6 +1343,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
                 forwardedFrom: ForwardedFrom,
                 businessId: business.id,
                 businessName: business.name,
+                correlationId,
                 reason: 'Baseline lead/conversation creation failed - falling back to voicemail'
               })
 
@@ -1359,6 +1371,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
               leadId: baselineLeadId || undefined,
               conversationId: baselineConversationId || undefined,
               existingOrCreated: baselineRecords.isNew ? 'created' : 'existing',
+              correlationId,
               reason: baselineRecords.leadId
                 ? 'Created AI session and attached baseline lead/conversation'
                 : 'Created AI session but baseline lead/conversation unavailable'

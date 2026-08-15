@@ -34,6 +34,7 @@ export interface AICallSession {
   urgency: string | null
   callback_number: string | null
   error_message: string | null
+  correlation_id: string | null
   raw_metadata: any
   created_at: string
   updated_at: string
@@ -44,6 +45,7 @@ export interface CreateSessionParams {
   lead_id: string | null
   call_sid: string
   openai_session_id?: string
+  correlation_id?: string
 }
 
 export interface UpdateSessionParams {
@@ -76,6 +78,7 @@ export async function createAISession(params: CreateSessionParams): Promise<AICa
       openai_session_id: params.openai_session_id || null,
       status: 'started',
       started_at: new Date().toISOString(),
+      correlation_id: params.correlation_id || null,
     }
 
     const { data, error } = await supabaseAdmin
