@@ -522,7 +522,13 @@ function ScheduleMapComponent({
         const timeB = b.scheduledTime || '00:00'
         return timeA.localeCompare(timeB)
       })
-      .map((item, index) => ({ ...item, stopNumber: index + 1 }))
+      .map((item, index) => {
+        // Business markers don't get stop numbers
+        if (item.type === 'business') {
+          return { ...item, stopNumber: undefined }
+        }
+        return { ...item, stopNumber: index + 1 }
+      })
   }, [])
 
   // Fit bounds with max zoom constraint and bottom padding for nav
@@ -1414,11 +1420,19 @@ function ScheduleMapComponent({
         // Stable tie-breaker: use item ID for identical times
         return a.id.localeCompare(b.id)
       })
-      .map((item, index) => ({ ...item, stopNumber: index + 1 }))
+      .map((item, index) => {
+        // Business markers don't get stop numbers
+        if (item.type === 'business') {
+          return { ...item, stopNumber: undefined }
+        }
+        return { ...item, stopNumber: index + 1 }
+      })
 
     const stopNumberLookup = new Map<string, number>()
     sortedWithStopNumbers.forEach(item => {
-      stopNumberLookup.set(item.id, item.stopNumber!)
+      if (item.stopNumber !== undefined) {
+        stopNumberLookup.set(item.id, item.stopNumber)
+      }
     })
 
     // Group items by location
@@ -1442,7 +1456,7 @@ function ScheduleMapComponent({
 
       if (existingMarker) {
         // Update existing marker
-        existingMarker.setIcon(createNumberedMarkerIcon(stopNumber, primaryItem.type, isSelected))
+        existingMarker.setIcon(createNumberedMarkerIcon(isBusinessMarker ? 0 : stopNumber, primaryItem.type, isSelected))
         existingMarker.setZIndex(isSelected ? 1000 : 1)
       } else {
         // Create new marker
@@ -1454,7 +1468,7 @@ function ScheduleMapComponent({
             : markerInfo.items.length === 1
               ? `Stop ${stopNumber}: ${primaryItem.title}`
               : `${markerInfo.items.length} stops at this location`,
-          icon: createNumberedMarkerIcon(stopNumber, primaryItem.type, isSelected),
+          icon: createNumberedMarkerIcon(isBusinessMarker ? 0 : stopNumber, primaryItem.type, isSelected),
           zIndex: isSelected ? 1000 : 1
         })
 
@@ -1625,11 +1639,19 @@ function ScheduleMapComponent({
         if (timeCompare !== 0) return timeCompare
         return a.id.localeCompare(b.id)
       })
-      .map((item, index) => ({ ...item, stopNumber: index + 1 }))
+      .map((item, index) => {
+        // Business markers don't get stop numbers
+        if (item.type === 'business') {
+          return { ...item, stopNumber: undefined }
+        }
+        return { ...item, stopNumber: index + 1 }
+      })
 
     const stopNumberLookup = new Map<string, number>()
     sortedWithStopNumbers.forEach(item => {
-      stopNumberLookup.set(item.id, item.stopNumber!)
+      if (item.stopNumber !== undefined) {
+        stopNumberLookup.set(item.id, item.stopNumber)
+      }
     })
 
     markersRef.current.forEach((marker, key) => {
@@ -1647,9 +1669,10 @@ function ScheduleMapComponent({
         const stopNumber = stopNumberLookup.get(key) || 1
 
         // Extract type from marker key
-        const type = key.startsWith('appointment:') ? 'appointment' : 'job'
+        const type = key.startsWith('appointment:') ? 'appointment' : key.startsWith('business:') ? 'business' : 'job'
+        const isBusiness = type === 'business'
 
-        marker.setIcon(createNumberedMarkerIcon(stopNumber, type, isSelected))
+        marker.setIcon(createNumberedMarkerIcon(isBusiness ? 0 : stopNumber, type, isSelected))
         marker.setZIndex(isSelected ? 1000 : 1)
       }
     })
@@ -1669,8 +1692,8 @@ function ScheduleMapComponent({
 
   // Create numbered marker icon
   const createNumberedMarkerIcon = (stopNumber: number, type: MapItemType, isSelected: boolean = false): any => {
-    // Cache key based on all inputs that affect visual output
-    const cacheKey = `${stopNumber}-${type}-${isSelected}`
+    // Use 0 for business markers in cache key
+    const cacheKey = `${type === 'business' ? 0 : stopNumber}-${type}-${isSelected}`
 
     // Return cached icon if available
     if (markerIconCache.has(cacheKey)) {
@@ -2080,23 +2103,44 @@ function ScheduleMapComponent({
                 onClick={() => selectMapItem(item.id)}
                 className={`flex-shrink-0 px-3 py-2 rounded-lg border transition-colors ${
                   selectedMapItemId === item.id
-                    ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 ring-2 ring-purple-300 dark:ring-purple-700'
-                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 ring-2 ring-green-300 dark:ring-green-700'
+                    : item.type === 'business'
+                      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/30'
+                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <div className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs ${
-                    item.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                  }`}>
-                    {item.stopNumber}
-                  </div>
+                  {item.type === 'business' ? (
+                    <div className="w-6 h-6 rounded flex items-center justify-center text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                      🏠
+                    </div>
+                  ) : (
+                    <div className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs ${
+                      item.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                    }`}>
+                      {item.stopNumber}
+                    </div>
+                  )}
                   <div className="text-left">
-                    <p className="text-xs font-medium text-foreground truncate max-w-[100px]">
-                      {item.scheduledTime ? formatTime(item.scheduledTime) : 'No time'}
-                    </p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[100px]">
-                      {item.customerName || 'No customer'}
-                    </p>
+                    {item.type === 'business' ? (
+                      <>
+                        <p className="text-xs font-medium text-foreground truncate max-w-[100px]">
+                          {item.title}
+                        </p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[100px]">
+                          Home Base
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs font-medium text-foreground truncate max-w-[100px]">
+                          {item.scheduledTime ? formatTime(item.scheduledTime) : 'No time'}
+                        </p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[100px]">
+                          {item.customerName || 'No customer'}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               </button>
@@ -2141,16 +2185,34 @@ function ScheduleMapComponent({
           <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 z-20">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
-                  selectedItem.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                }`}>
-                  {selectedItem.stopNumber}
-                </div>
+                {selectedItem.type === 'business' ? (
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                    🏠
+                  </div>
+                ) : (
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
+                    selectedItem.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                  }`}>
+                    {selectedItem.stopNumber}
+                  </div>
+                )}
                 <div>
-                  <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                    Stop {selectedItem.stopNumber} · {selectedItem.scheduledTime ? formatTime(selectedItem.scheduledTime) : 'No time'}
-                  </p>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground">{selectedItem.customerName || 'No customer'}</h3>
+                  {selectedItem.type === 'business' ? (
+                    <>
+                      <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                        Business Location
+                      </p>
+                      <h3 className="font-semibold text-slate-900 dark:text-foreground">{selectedItem.title}</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Home Base</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                        Stop {selectedItem.stopNumber} · {selectedItem.scheduledTime ? formatTime(selectedItem.scheduledTime) : 'No time'}
+                      </p>
+                      <h3 className="font-semibold text-slate-900 dark:text-foreground">{selectedItem.customerName || 'No customer'}</h3>
+                    </>
+                  )}
                 </div>
               </div>
               <button

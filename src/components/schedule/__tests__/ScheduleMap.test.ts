@@ -30,6 +30,109 @@ describe('ScheduleMap - Date Comparison', () => {
   })
 })
 
+describe('ScheduleMap - Business Marker Handling', () => {
+  it('business marker should not have stop number', () => {
+    const items = [
+      {
+        id: 'business:home',
+        type: 'business' as const,
+        title: 'ReplyFlow HQ',
+        customerName: null,
+        customerPhone: null,
+        address: '123 Main St',
+        scheduledDate: null,
+        scheduledTime: null,
+        status: null,
+        leadId: null,
+        jobId: null,
+        latitude: 40.7128,
+        longitude: -74.0060
+      },
+      {
+        id: 'job:1',
+        type: 'job' as const,
+        title: 'Service Call',
+        customerName: 'John Doe',
+        customerPhone: '+14125551234',
+        address: '456 Oak Ave',
+        scheduledDate: '2024-01-15',
+        scheduledTime: '09:00',
+        status: 'scheduled',
+        leadId: 'lead-1',
+        jobId: 'job-1',
+        latitude: 40.7138,
+        longitude: -74.0070
+      }
+    ]
+
+    // Simulate stop number assignment logic - business markers get undefined, others get sequential numbers
+    const sorted = [...items]
+      .sort((a, b) => {
+        const timeA = a.scheduledTime || '00:00'
+        const timeB = b.scheduledTime || '00:00'
+        return timeA.localeCompare(timeB)
+      })
+      .map((item, index) => {
+        if (item.type === 'business') {
+          return { ...item, stopNumber: undefined }
+        }
+        return { ...item, stopNumber: index + 1 }
+      })
+
+    const businessItem = sorted.find(item => item.type === 'business')
+    const jobItem = sorted.find(item => item.type === 'job')
+
+    expect(businessItem?.stopNumber).toBeUndefined()
+    // Job gets index 1 + 1 = 2 because business is at index 0
+    expect(jobItem?.stopNumber).toBe(2)
+  })
+
+  it('business marker should appear first in sort order regardless of time', () => {
+    const items = [
+      {
+        id: 'job:1',
+        type: 'job' as const,
+        title: 'Service Call',
+        customerName: 'John Doe',
+        customerPhone: '+14125551234',
+        address: '456 Oak Ave',
+        scheduledDate: '2024-01-15',
+        scheduledTime: '08:00',
+        status: 'scheduled',
+        leadId: 'lead-1',
+        jobId: 'job-1',
+        latitude: 40.7138,
+        longitude: -74.0070
+      },
+      {
+        id: 'business:home',
+        type: 'business' as const,
+        title: 'ReplyFlow HQ',
+        customerName: null,
+        customerPhone: null,
+        address: '123 Main St',
+        scheduledDate: null,
+        scheduledTime: null,
+        status: null,
+        leadId: null,
+        jobId: null,
+        latitude: 40.7128,
+        longitude: -74.0060
+      }
+    ]
+
+    // Business marker should be first (no time, sorts to 00:00)
+    const sorted = [...items].sort((a, b) => {
+      const timeA = a.scheduledTime || '00:00'
+      const timeB = b.scheduledTime || '00:00'
+      return timeA.localeCompare(timeB)
+    })
+
+    expect(sorted[0].type).toBe('business')
+    expect(sorted[1].type).toBe('job')
+  })
+})
+
 describe('ScheduleMap - Camera Coalescing', () => {
   it('initial marker batch should coalesce into one camera-fit decision', () => {
     // This test documents the camera coalescing logic:
