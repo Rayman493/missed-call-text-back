@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { sendTestPush } from '@/lib/push-delivery'
+import { isAdmin } from '@/lib/admin'
 
 /**
  * Test Push Notification Endpoint
@@ -13,6 +14,8 @@ import { sendTestPush } from '@/lib/push-delivery'
  * SECURITY: This should be gated to admin/dev only in production.
  * For now, it requires authentication and business ownership.
  */
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user using server-side client with RLS
@@ -46,6 +49,11 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Check admin access
+    if (!isAdmin(user.id)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Get the user's business_id

@@ -1,24 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
+import { isAdmin } from '@/lib/admin'
+
+export const dynamic = 'force-dynamic'
 
 /**
  * POST /api/admin/reconcile-test-twilio-number
- * 
+ *
  * Reconcile Test Account's twilio_numbers row to fix routing regression
- * 
+ *
  * This endpoint ensures that businesses with twilio_phone_number have a corresponding
  * twilio_numbers row with the correct status for routing.
+ *
+ * SECURITY: Requires admin authentication
  */
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate user using server-side client with RLS
+    const cookieStore = await cookies()
+    console.log('[SUPABASE SSR SOURCE] admin-reconcile-test-twilio-number')
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value }) =>
+                cookieStore.set(name, value)
+              )
+            } catch {
+              // Ignore setAll errors from Server Components
+            }
+          },
+        },
+      }
+    )
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Check admin access
+    if (!isAdmin(user.id)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     console.log('[RECONCILE TEST TWILIO NUMBER] Starting reconciliation')
-    
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    
-    // Skip auth for debugging - use service role directly
+    const serviceRoleSupabase = createClient(supabaseUrl, supabaseServiceKey)
+
     console.log('[RECONCILE TEST TWILIO NUMBER] Using service role for reconciliation')
 
     const body = await request.json()
@@ -33,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     // Find business with this phone number
     console.log('[RECONCILE TEST TWILIO NUMBER] Step 1: Finding business by twilio_phone_number')
-    const { data: business, error: businessError } = await supabase
+    const { data: business, error: businessError } = await serviceRoleSupabase
       .from('businesses')
       .select('id, name, twilio_phone_number, twilio_phone_number_sid, assigned_twilio_number_id')
       .eq('twilio_phone_number', phoneNumber)
@@ -58,7 +98,7 @@ export async function POST(request: NextRequest) {
 
     // Check if twilio_numbers row exists
     console.log('[RECONCILE TEST TWILIO NUMBER] Step 2: Checking for existing twilio_numbers row')
-    const { data: existingTwilioNumber, error: twilioError } = await supabase
+    const { data: existingTwilioNumber, error: twilioError } = await serviceRoleSupabase
       .from('twilio_numbers')
       .select('id, business_id, status')
       .eq('phone_number', phoneNumber)
@@ -75,7 +115,7 @@ export async function POST(request: NextRequest) {
       // Update status to 'active' if it's not already
       if (existingTwilioNumber.status !== 'active' && existingTwilioNumber.status !== 'assigned') {
         console.log('[RECONCILE TEST TWILIO NUMBER] Step 3: Updating status to active')
-        const { error: updateError } = await supabase
+        const { error: updateError } = await serviceRoleSupabase
           .from('twilio_numbers')
           .update({ status: 'active' })
           .eq('id', existingTwilioNumber.id)
@@ -90,7 +130,7 @@ export async function POST(request: NextRequest) {
       // Update businesses.assigned_twilio_number_id if not set
       if (!business.assigned_twilio_number_id || business.assigned_twilio_number_id !== existingTwilioNumber.id) {
         console.log('[RECONCILE TEST TWILIO NUMBER] Step 4: Updating businesses.assigned_twilio_number_id')
-        const { error: updateError } = await supabase
+        const { error: updateError } = await serviceRoleSupabase
           .from('businesses')
           .update({ assigned_twilio_number_id: existingTwilioNumber.id })
           .eq('id', business.id)
@@ -132,7 +172,7 @@ export async function POST(request: NextRequest) {
     
     console.log('[RECONCILE TEST TWILIO NUMBER] Insert payload:', twilioNumberPayload)
     
-    const { data: insertedTwilioNumber, error: insertError } = await supabase
+    const { data: insertedTwilioNumber, error: insertError } = await serviceRoleSupabase
       .from('twilio_numbers')
       .insert(twilioNumberPayload)
       .select()
@@ -152,7 +192,7 @@ export async function POST(request: NextRequest) {
 
     // Update businesses table with assigned_twilio_number_id
     console.log('[RECONCILE TEST TWILIO NUMBER] Step 4: Updating businesses table')
-    const { error: updateError } = await supabase
+    const { error: updateError } = await serviceRoleSupabase
       .from('businesses')
       .update({ assigned_twilio_number_id: insertedTwilioNumber.id })
       .eq('id', business.id)
@@ -166,7 +206,7 @@ export async function POST(request: NextRequest) {
 
     // Verify the insert
     console.log('[RECONCILE TEST TWILIO NUMBER] Step 5: Verifying insert')
-    const { data: verification, error: verificationError } = await supabase
+    const { data: verification, error: verificationError } = await serviceRoleSupabase
       .from('twilio_numbers')
       .select('id, business_id, phone_number, status')
       .eq('id', insertedTwilioNumber.id)
