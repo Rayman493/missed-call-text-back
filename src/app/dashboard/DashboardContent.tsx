@@ -1066,8 +1066,8 @@ export default function DashboardContent() {
             )}
 
             {/* Main Content - Improved mobile spacing with safe-area */}
-            <div className="flex-1 pt-2.5 sm:pt-3.5 lg:pt-7 px-3 sm:px-4 lg:px-6 pb-20 sm:pb-8 relative" style={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}>
-              <div className="max-w-[1400px] mx-auto space-y-4">
+            <div className="flex-1 pt-6 sm:pt-8 lg:pt-10 px-4 sm:px-5 lg:px-7 pb-20 sm:pb-10 relative" style={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}>
+              <div className="max-w-[1400px] mx-auto space-y-6">
 
                 {/* Single Collapsible Setup/Status Card - Consolidates all onboarding/health/status banners */}
                 <SectionErrorBoundary sectionName="SetupStatusCard">
@@ -1179,7 +1179,7 @@ export default function DashboardContent() {
                     </SectionErrorBoundary>
 
                     {/* What's Happening Section */}
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <SectionErrorBoundary sectionName="RecentLeadsSection">
                         <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-90' : ''}`}>
                           {business?.id && (
@@ -1202,7 +1202,7 @@ export default function DashboardContent() {
                     </div>
 
                     {/* Business Performance Section */}
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <SectionErrorBoundary sectionName="AnalyticsGrid">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className={`${!business?.forwarding_verified ? 'opacity-90' : ''} transition-opacity duration-200`}>
@@ -1288,7 +1288,7 @@ export default function DashboardContent() {
 
                       {/* Collapsible Content */}
                       {!adminPanelCollapsed && (
-                        <div className="mt-4 space-y-4">
+                        <div className="mt-4 space-y-6">
                           {/* Provisioning Status */}
                           <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200/50 dark:border-slate-700/50">
                             <h3 className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Provisioning</h3>
