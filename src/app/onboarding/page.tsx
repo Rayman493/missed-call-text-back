@@ -351,11 +351,11 @@ export default function OnboardingPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 sm:p-8">
-        <div className="max-w-md w-full bg-slate-800 rounded-xl shadow-lg p-5 sm:p-8">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 sm:p-10">
+        <div className="max-w-md w-full bg-slate-800 rounded-xl shadow-lg p-6 sm:p-10">
           {/* Progress indicator */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
               <p className="text-xs text-slate-400">Getting started</p>
               <p className="text-xs text-slate-400">Almost ready — about 2 minutes</p>
             </div>
@@ -364,8 +364,8 @@ export default function OnboardingPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-100">Welcome to ReplyFlow</h1>
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight">Welcome to ReplyFlow</h1>
             <button
               onClick={handleSignOut}
               className="text-xs text-slate-400 hover:text-slate-300 transition-colors"
@@ -373,7 +373,7 @@ export default function OnboardingPage() {
               Sign out
             </button>
           </div>
-          <p className="text-sm text-slate-400 mb-5">You keep your phone number. We only handle missed calls.</p>
+          <p className="text-sm text-slate-400 mb-6 leading-relaxed">You keep your phone number. We only handle missed calls.</p>
           
           {/* Pricing Information */}
           <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-3 mb-6">
@@ -408,7 +408,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          <form onSubmit={handleOnboarding} className="space-y-4">
+          <form onSubmit={handleOnboarding} className="space-y-6">
             <div>
               <label htmlFor="businessName" className="block text-sm font-medium text-slate-300 mb-2">
                 Business Name
@@ -420,7 +420,7 @@ export default function OnboardingPage() {
                 onChange={(e) => setBusinessName(e.target.value)}
                 required
                 placeholder="e.g., ABC Plumbing"
-                className="w-full px-3 py-3 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white text-sm"
+                className="w-full px-4 py-3 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white text-sm"
               />
             </div>
 
@@ -435,7 +435,7 @@ export default function OnboardingPage() {
                 onChange={(e) => setBusinessPhone(e.target.value)}
                 required
                 placeholder="Your business phone (the number customers call)"
-                className="w-full px-3 py-3 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white text-sm"
+                className="w-full px-4 py-3 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white text-sm"
               />
               <p className="mt-2 text-xs text-slate-400">
                 This is the number your customers call. ReplyFlow will handle missed calls to this number.
