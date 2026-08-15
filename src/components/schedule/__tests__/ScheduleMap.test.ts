@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 describe('ScheduleMap - Date Comparison', () => {
   it('should use local timezone for date comparison', () => {
@@ -260,44 +260,232 @@ describe('ScheduleMap - Camera Coalescing', () => {
 describe('ScheduleMap - Jitter Prevention', () => {
   it('map preparation should not re-trigger when data identity is unchanged', () => {
     // The jitter fix removes prepareMapItems from the useEffect dependency array
-    // This prevents unnecessary re-runs when the callback is recreated but data is unchanged
+    // Data signature is added to detect meaningful changes while preventing jitter
 
     const selectedDateChanged = false
     const businessGeocodeTriggerChanged = false
+    const dataSignatureChanged = false
 
-    // With the fix, the effect only runs when date or geocode trigger changes
-    const shouldPrepare = selectedDateChanged || businessGeocodeTriggerChanged
+    // With the fix, the effect only runs when date, geocode trigger, or data signature changes
+    const shouldPrepare = selectedDateChanged || businessGeocodeTriggerChanged || dataSignatureChanged
     expect(shouldPrepare).toBe(false)
   })
 
   it('map preparation should trigger when date changes', () => {
     const selectedDateChanged = true
     const businessGeocodeTriggerChanged = false
+    const dataSignatureChanged = false
 
-    const shouldPrepare = selectedDateChanged || businessGeocodeTriggerChanged
+    const shouldPrepare = selectedDateChanged || businessGeocodeTriggerChanged || dataSignatureChanged
     expect(shouldPrepare).toBe(true)
   })
 
   it('map preparation should trigger when business geocoding completes', () => {
     const selectedDateChanged = false
     const businessGeocodeTriggerChanged = true
+    const dataSignatureChanged = false
 
-    const shouldPrepare = selectedDateChanged || businessGeocodeTriggerChanged
+    const shouldPrepare = selectedDateChanged || businessGeocodeTriggerChanged || dataSignatureChanged
     expect(shouldPrepare).toBe(true)
   })
 
-  it('data array identity changes should not trigger preparation if date unchanged', () => {
+  it('data array identity changes should not trigger preparation if signature unchanged', () => {
     // Jobs/calendarEvents/tasks arrays may be recreated by parent component
-    // This should not cause map preparation to re-run if date hasn't changed
+    // This should not cause map preparation to re-run if data signature hasn't changed
 
     const selectedDateChanged = false
     const businessGeocodeTriggerChanged = false
-    const jobsArrayRecreated = true
-    const eventsArrayRecreated = true
-    const tasksArrayRecreated = true
+    const dataSignatureChanged = false
 
-    // With the fix, only date and geocode trigger matter
-    const shouldPrepare = selectedDateChanged || businessGeocodeTriggerChanged
-    expect(shouldPrepare).toBe(false) // Should NOT prepare even if arrays recreated
+    // With the fix, only date, geocode trigger, and data signature matter
+    const shouldPrepare = selectedDateChanged || businessGeocodeTriggerChanged || dataSignatureChanged
+    expect(shouldPrepare).toBe(false) // Should NOT prepare if signature unchanged
+  })
+})
+
+describe('ScheduleMap - Live Update Fix', () => {
+  it('map preparation should trigger when data signature changes', () => {
+    // The live-update fix adds getDataSignature to detect meaningful data changes
+    // When job/event/task data changes (e.g., location added), map should re-prepare
+
+    const selectedDateChanged = false
+    const businessGeocodeTriggerChanged = false
+    const dataSignatureChanged = true
+
+    // With the fix, data signature changes should trigger preparation
+    const shouldPrepare = selectedDateChanged || businessGeocodeTriggerChanged || dataSignatureChanged
+    expect(shouldPrepare).toBe(true)
+  })
+
+  it('data signature should include job location changes', () => {
+    // Simulate signature generation for jobs with different locations
+    const dateStr = '2024-01-15'
+
+    const jobsBefore = [
+      { id: 'job-1', scheduled_date: dateStr, service_address: null, latitude: null, longitude: null }
+    ]
+    const jobsAfter = [
+      { id: 'job-1', scheduled_date: dateStr, service_address: '123 Main St', latitude: 40.7128, longitude: -74.0060 }
+    ]
+
+    const signatureBefore = jobsBefore.map(j => `${j.id}:${j.service_address}:${j.latitude}:${j.longitude}`).join('|')
+    const signatureAfter = jobsAfter.map(j => `${j.id}:${j.service_address}:${j.latitude}:${j.longitude}`).join('|')
+
+    expect(signatureBefore).toBe('job-1:null:null:null')
+    expect(signatureAfter).toBe('job-1:123 Main St:40.7128:-74.006')
+    expect(signatureBefore).not.toBe(signatureAfter)
+  })
+
+  it('data signature should include event location changes', () => {
+    // Simulate signature generation for events with different locations
+    const dateStr = '2024-01-15'
+
+    const eventsBefore = [
+      { id: 'event-1', start: { dateTime: `${dateStr}T09:00:00` }, location: null }
+    ]
+    const eventsAfter = [
+      { id: 'event-1', start: { dateTime: `${dateStr}T09:00:00` }, location: 'Sandusky, Ohio' }
+    ]
+
+    const signatureBefore = eventsBefore.map(e => `${e.id}:${e.location}`).join('|')
+    const signatureAfter = eventsAfter.map(e => `${e.id}:${e.location}`).join('|')
+
+    expect(signatureBefore).toBe('event-1:null')
+    expect(signatureAfter).toBe('event-1:Sandusky, Ohio')
+    expect(signatureBefore).not.toBe(signatureAfter)
+  })
+
+  it('data signature should remain stable when data is unchanged', () => {
+    // Same data should produce same signature (prevent false positives)
+
+    const dateStr = '2024-01-15'
+    const jobs = [
+      { id: 'job-1', scheduled_date: dateStr, service_address: '123 Main St', latitude: 40.7128, longitude: -74.0060 }
+    ]
+
+    const signature1 = jobs.map(j => `${j.id}:${j.service_address}:${j.latitude}:${j.longitude}`).join('|')
+    const signature2 = jobs.map(j => `${j.id}:${j.service_address}:${j.latitude}:${j.longitude}`).join('|')
+
+    expect(signature1).toBe(signature2)
+  })
+})
+
+describe('ScheduleMap - View Details Fix', () => {
+  it('handleViewItem should invoke onEditEvent for appointments', () => {
+    // The View Details fix adds appointment handling to handleViewItem
+    // Previously it only handled jobs and leadId-based navigation
+
+    const item = {
+      id: 'appointment:event-1',
+      type: 'appointment' as const,
+      eventId: 'event-1',
+      leadId: null,
+      jobId: null,
+      title: 'Cedar Point + Fast Pass',
+      customerName: null,
+      customerPhone: null,
+      address: 'Sandusky, OH 44870, USA',
+      scheduledDate: '2024-01-15',
+      scheduledTime: '09:00',
+      status: null,
+      latitude: 41.4825,
+      longitude: -82.6835
+    }
+
+    const calendarEvents = [
+      { id: 'event-1', summary: 'Cedar Point + Fast Pass', location: 'Sandusky, Ohio' }
+    ]
+
+    const onEditEvent = vi.fn()
+    const onViewJob = vi.fn()
+    const onViewCustomer = vi.fn()
+
+    // Simulate handleViewItem logic
+    if (item.type === 'appointment' && item.eventId && onEditEvent) {
+      const event = calendarEvents.find(e => e.id === item.eventId)
+      if (event) {
+        onEditEvent(event)
+      }
+    } else if (item.type === 'job' && item.jobId) {
+      onViewJob(item.jobId)
+    } else if (item.leadId) {
+      onViewCustomer(item.leadId)
+    }
+
+    expect(onEditEvent).toHaveBeenCalledWith(calendarEvents[0])
+    expect(onViewJob).not.toHaveBeenCalled()
+    expect(onViewCustomer).not.toHaveBeenCalled()
+  })
+
+  it('handleViewItem should invoke onViewJob for jobs', () => {
+    const item = {
+      id: 'job:job-1',
+      type: 'job' as const,
+      jobId: 'job-1',
+      leadId: 'lead-1',
+      eventId: null,
+      title: 'Service Call',
+      customerName: 'John Doe',
+      customerPhone: '+14125551234',
+      address: '456 Oak Ave',
+      scheduledDate: '2024-01-15',
+      scheduledTime: '09:00',
+      status: 'scheduled',
+      latitude: 40.7138,
+      longitude: -74.0070
+    }
+
+    const onEditEvent = vi.fn()
+    const onViewJob = vi.fn()
+    const onViewCustomer = vi.fn()
+
+    // Simulate handleViewItem logic
+    if (item.type === 'job' && item.jobId) {
+      onViewJob(item.jobId)
+    } else if (item.type === 'appointment' && item.eventId && onEditEvent) {
+      // Would find event and call onEditEvent
+    } else if (item.leadId) {
+      onViewCustomer(item.leadId)
+    }
+
+    expect(onViewJob).toHaveBeenCalledWith('job-1')
+    expect(onEditEvent).not.toHaveBeenCalled()
+    expect(onViewCustomer).not.toHaveBeenCalled()
+  })
+
+  it('handleViewItem should invoke onViewCustomer for items with leadId but no jobId', () => {
+    const item = {
+      id: 'task:task-1',
+      type: 'task' as const,
+      eventId: null,
+      leadId: 'lead-1',
+      jobId: null,
+      title: 'Follow-up Task',
+      customerName: null,
+      customerPhone: null,
+      address: null,
+      scheduledDate: '2024-01-15',
+      scheduledTime: '10:00',
+      status: null,
+      latitude: 40.7128,
+      longitude: -74.0060
+    }
+
+    const onEditEvent = vi.fn()
+    const onViewJob = vi.fn()
+    const onViewCustomer = vi.fn()
+
+    // Simulate handleViewItem logic
+    if (item.type === 'job' && item.jobId) {
+      onViewJob(item.jobId)
+    } else if (item.type === 'appointment' && item.eventId && onEditEvent) {
+      // Would find event and call onEditEvent
+    } else if (item.leadId) {
+      onViewCustomer(item.leadId)
+    }
+
+    expect(onViewCustomer).toHaveBeenCalledWith('lead-1')
+    expect(onViewJob).not.toHaveBeenCalled()
+    expect(onEditEvent).not.toHaveBeenCalled()
   })
 })

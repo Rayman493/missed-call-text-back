@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { formatPhoneNumber, getLeadDisplayName } from '@/lib/utils'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { formatCalendarRelativeDate, formatCalendarRelativeFutureDate } from '@/lib/utils'
 import DashboardErrorBoundary from './DashboardErrorBoundary'
 import Link from 'next/link'
 import LeadTimeline from '@/components/LeadTimeline'
@@ -326,29 +327,12 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
   }
 
   const formatRelativeTime = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-    
-    if (diffDays === 0) return 'Today'
-    if (diffDays === 1) return 'Yesterday'
-    if (diffDays < 7) return `${diffDays} days ago`
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`
-    return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`
-  }
+  return formatCalendarRelativeDate(dateString)
+}
 
   const formatFollowUpTime = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = date.getTime() - now.getTime()
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-    
-    if (diffDays === 0) return 'Today'
-    if (diffDays === 1) return 'Tomorrow'
-    if (diffDays < 7) return `In ${diffDays} days`
-    return `In ${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''}`
-  }
+  return formatCalendarRelativeFutureDate(dateString)
+}
 
   if (loading) {
     return (

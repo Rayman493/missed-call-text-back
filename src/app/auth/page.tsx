@@ -128,6 +128,28 @@ function AuthContent() {
     }
   }, [mode])
 
+  // Reset scroll position when signup step changes (mobile scroll bug fix)
+  const prevSignupStepRef = React.useRef<number | null>(null)
+  useEffect(() => {
+    // Skip if this is the first render or if not in signup mode
+    if (prevSignupStepRef.current === null || isSignIn) {
+      prevSignupStepRef.current = signupStep
+      return
+    }
+
+    // Only reset scroll if the step actually changed
+    if (prevSignupStepRef.current !== signupStep) {
+      // Reset window scroll to top with immediate behavior (not smooth)
+      window.scrollTo({
+        top: 0,
+        behavior: 'auto'
+      })
+      console.log('[Auth] Reset scroll to top on step change:', prevSignupStepRef.current, '→', signupStep)
+    }
+
+    prevSignupStepRef.current = signupStep
+  }, [signupStep, isSignIn])
+
   
   // Show setup error if env vars are missing
   if (!supabase) {

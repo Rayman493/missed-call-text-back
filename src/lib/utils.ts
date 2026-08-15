@@ -52,6 +52,72 @@ export function formatRelativeTime(date: string | null): string {
   return formatDateTime(date)
 }
 
+/**
+ * Format a date as a calendar-relative label (Today, Yesterday, or formatted date)
+ * Uses calendar-day comparison, not elapsed time.
+ *
+ * @param date - Date string to format
+ * @returns 'Today', 'Yesterday', or formatted date (e.g., 'Aug 13', 'Dec 31')
+ */
+export function formatCalendarRelativeDate(date: string | null): string {
+  if (!date) return 'N/A'
+
+  const dateObj = new Date(date)
+  const now = new Date()
+
+  // Normalize to midnight for calendar-day comparison
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+
+  // Reset time portion for comparison
+  const dateNormalized = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate())
+
+  if (dateNormalized.getTime() === today.getTime()) {
+    return 'Today'
+  }
+
+  if (dateNormalized.getTime() === yesterday.getTime()) {
+    return 'Yesterday'
+  }
+
+  // Return formatted date for older dates
+  return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+/**
+ * Format a future date as a calendar-relative label (Today, Tomorrow, or formatted date)
+ * Uses calendar-day comparison, not elapsed time.
+ *
+ * @param date - Date string to format
+ * @returns 'Today', 'Tomorrow', or formatted date (e.g., 'Aug 13')
+ */
+export function formatCalendarRelativeFutureDate(date: string | null): string {
+  if (!date) return 'N/A'
+
+  const dateObj = new Date(date)
+  const now = new Date()
+
+  // Normalize to midnight for calendar-day comparison
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+
+  // Reset time portion for comparison
+  const dateNormalized = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate())
+
+  if (dateNormalized.getTime() === today.getTime()) {
+    return 'Today'
+  }
+
+  if (dateNormalized.getTime() === tomorrow.getTime()) {
+    return 'Tomorrow'
+  }
+
+  // Return formatted date for future dates
+  return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 export function truncateText(text: string, maxLength: number = 50): string {
   if (text.length <= maxLength) return text
   return text.substring(0, maxLength) + '...'

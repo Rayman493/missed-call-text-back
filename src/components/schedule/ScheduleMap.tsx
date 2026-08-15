@@ -131,6 +131,8 @@ interface MapItem {
   status: string | null
   leadId: string | null
   jobId: string | null
+  taskId: string | null
+  eventId: string | null
   latitude: number
   longitude: number
   stopNumber?: number
@@ -710,6 +712,7 @@ function ScheduleMapComponent({
     type: 'job' | 'appointment' | 'task'
     title: string
     customerName: string | null
+    customerPhone: string | null
     address: string | null
     scheduledDate: string | null
     scheduledTime: string | null
@@ -762,6 +765,7 @@ function ScheduleMapComponent({
         type: 'job',
         title: job.title,
         customerName: job.customer_name,
+        customerPhone: job.customer_phone,
         address: serviceAddress,
         scheduledDate: job.scheduled_date,
         scheduledTime: job.scheduled_time,
@@ -785,6 +789,7 @@ function ScheduleMapComponent({
         type: 'appointment',
         title: event.summary,
         customerName: null,
+        customerPhone: null,
         address: event.location,
         scheduledDate: (event.start.dateTime || event.start.date)?.split('T')[0] || null,
         scheduledTime: event.start.dateTime ? event.start.dateTime.split('T')[1]?.substring(0, 5) || null : null,
@@ -806,6 +811,7 @@ function ScheduleMapComponent({
         type: 'task',
         title: task.title,
         customerName: null,
+        customerPhone: null,
         address: null,
         scheduledDate: task.due_date,
         scheduledTime: task.due_time,
@@ -864,6 +870,8 @@ function ScheduleMapComponent({
           status: job.status,
           leadId: job.lead_id,
           jobId: job.id,
+          taskId: null,
+          eventId: job.google_calendar_event_id || null,
           latitude: job.latitude!,
           longitude: job.longitude!
         })
@@ -900,6 +908,8 @@ function ScheduleMapComponent({
               status: job.status,
               leadId: job.lead_id,
               jobId: job.id,
+              taskId: null,
+              eventId: job.google_calendar_event_id || null,
               latitude: result.latitude,
               longitude: result.longitude
             })
@@ -949,6 +959,8 @@ function ScheduleMapComponent({
           status: null,
           leadId: null,
           jobId: null,
+          taskId: null,
+          eventId: event.id,
           latitude: cached.lat,
           longitude: cached.lng
         })
@@ -983,6 +995,8 @@ function ScheduleMapComponent({
               status: null,
               leadId: null,
               jobId: null,
+              taskId: null,
+              eventId: event.id,
               latitude: result.latitude,
               longitude: result.longitude
             })
@@ -1014,6 +1028,8 @@ function ScheduleMapComponent({
         status: 'business',
         leadId: null,
         jobId: null,
+        taskId: null,
+        eventId: null,
         latitude: businessCoords.lat,
         longitude: businessCoords.lng
       })
@@ -1377,7 +1393,16 @@ function ScheduleMapComponent({
     setSelectedMarker(null)
   }, [selectedDate, mapReady, logCameraCommand])
 
-  // Prepare map items when date changes or business geocoding completes (with race condition guard)
+  // Generate a signature of the data to detect meaningful changes without causing jitter
+  const getDataSignature = useCallback(() => {
+    const dateStr = selectedDate.toLocaleDateString('en-CA')
+    const jobIds = jobs.filter(j => j.scheduled_date === dateStr).map(j => `${j.id}:${j.service_address}:${j.latitude}:${j.longitude}`).join('|')
+    const eventIds = calendarEvents.filter(e => (e.start.dateTime || e.start.date)?.startsWith(dateStr)).map(e => `${e.id}:${e.location}`).join('|')
+    const taskIds = tasks.filter(t => t.due_date === dateStr && !t.completed).map(t => t.id).join('|')
+    return `${dateStr}|${jobIds}|${eventIds}|${taskIds}`
+  }, [jobs, calendarEvents, tasks, selectedDate])
+
+  // Prepare map items when date changes, business geocoding completes, or data meaningfully changes (with race condition guard)
   useEffect(() => {
     const preparationId = ++mapPreparationIdRef.current
     const dateKey = selectedDate.toISOString().split('T')[0]
@@ -1400,7 +1425,7 @@ function ScheduleMapComponent({
     return () => {
       isCancelled = true
     }
-  }, [selectedDate, businessGeocodeTrigger])
+  }, [selectedDate, businessGeocodeTrigger, getDataSignature])
 
   // Update markers when map items change or map becomes ready
   useEffect(() => {
@@ -1747,14 +1772,19 @@ function ScheduleMapComponent({
   }
 
   // Handle marker info card actions
-  const handleViewItem = (item: MapItem) => {
+  const handleViewItem = useCallback((item: MapItem) => {
     if (item.type === 'job' && item.jobId) {
       onViewJob(item.jobId)
+    } else if (item.type === 'appointment' && item.eventId && onEditEvent) {
+      const event = calendarEvents.find(e => e.id === item.eventId)
+      if (event) {
+        onEditEvent(event)
+      }
     } else if (item.leadId) {
       onViewCustomer(item.leadId)
     }
     setSelectedMarker(null)
-  }
+  }, [calendarEvents, onViewJob, onEditEvent, onViewCustomer])
 
   // Loading state - only show skeleton if Google Maps itself is not loaded
   if (!isMapLoaded && !mapError) {
@@ -2054,7 +2084,7 @@ function ScheduleMapComponent({
                           onClick={handleAddLocationClick}
                           className="text-[10px] px-1.5 py-0.5 md:px-2 md:py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                         >
-                          Add
+                          Add location
                         </button>
                       )}
                       {item.hasLocation && (
