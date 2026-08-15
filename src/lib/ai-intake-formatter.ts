@@ -6,6 +6,19 @@ const PLACEHOLDER_NAMES = new Set([
   'unknown caller', 'unknown customer', 'not provided name'
 ])
 
+// Placeholder service values that should be treated as missing
+const PLACEHOLDER_SERVICES = new Set([
+  'general service', 'general', 'service', 'not specified', 'not provided',
+  'unknown', 'n/a', 'request', 'help needed'
+])
+
+// Helper function to detect if a string is a placeholder value
+function isPlaceholderValue(text: string | null | undefined, placeholderSet: Set<string>): boolean {
+  if (!text || text.trim() === '') return true
+  const normalized = text.trim().toLowerCase()
+  return placeholderSet.has(normalized)
+}
+
 // Helper function to detect if a string looks like a phone number
 function looksLikePhoneNumber(text: string): boolean {
   if (!text || typeof text !== 'string') return false;
@@ -1230,8 +1243,11 @@ export const formatAdaptiveIntakeSms = (
     : generateCanonicalRequestTitle(serviceRequestedRaw);
 
   // Determine which fields have actual meaningful values
-  const hasName = customerName && customerName.trim() !== '';
-  const hasRequest = serviceRequested && serviceRequested !== 'General Service' && serviceRequested.trim() !== '';
+  const hasName = customerName && customerName.trim() !== '' && !isPlaceholderValue(customerName, PLACEHOLDER_NAMES);
+  const hasRequest = serviceRequested && 
+                     serviceRequested.trim() !== '' && 
+                     serviceRequested !== 'General Service' &&
+                     !isPlaceholderValue(serviceRequested, PLACEHOLDER_SERVICES);
   const hasAddress = serviceAddress && serviceAddress.trim() !== '';
   const hasCompletionTime = desiredCompletionTime && desiredCompletionTime !== 'Not collected' && desiredCompletionTime.trim() !== '';
   const hasCallbackTime = callbackTime && callbackTime !== 'Not collected' && callbackTime.trim() !== '';
@@ -1255,6 +1271,23 @@ export const formatAdaptiveIntakeSms = (
     hasCallbackTime // Callback preference
   ];
   const meaningfulFieldCount = meaningfulFields.filter(Boolean).length;
+
+  // OBSERVABILITY: Log field presence for debugging and monitoring
+  console.log('[AI SMS FORMATTER FIELD PRESENCE]', {
+    callerPhone,
+    businessName: displayName,
+    hasName,
+    hasRequest,
+    hasAddress,
+    hasCompletionTime,
+    hasCallbackTime,
+    shouldShowLocation,
+    meaningfulFieldCount,
+    normalizedMode,
+    serviceLocationType: mode,
+    extractedInfoKeys: Object.keys(intakeData || {}),
+    timestamp: new Date().toISOString()
+  });
 
   // Level A: Minimal information - no useful details
   if (meaningfulFieldCount === 0) {

@@ -824,13 +824,33 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         const outcome = aiCall.outcome
         const intakeStatus = getAIIntakeStatus({ aiCallRecords: [aiCall] })
         const serviceRequested = getLeadRequestTitle(leadData) || 'Unknown request'
+        const extractedInfo = aiCall.extracted_info || leadData?.raw_metadata?.extracted_info || {}
+        
+        // Determine which fields are present for observability
+        const hasName = Boolean(extractedInfo.customerName || extractedInfo.callerName || extractedInfo.name)
+        const hasService = Boolean(extractedInfo.serviceRequested || extractedInfo.reasonForCalling || extractedInfo.request)
+        const hasAddress = Boolean(extractedInfo.serviceAddress || extractedInfo.addressOrLocation)
+        const hasTiming = Boolean(extractedInfo.desiredCompletionTime || extractedInfo.desiredCompletion)
+        const hasCallback = Boolean(extractedInfo.callbackTime || extractedInfo.preferredCallbackTime)
         
         // Determine message based on actual outcome
         let intakeMessage = ''
         if (intakeStatus === 'complete') {
           intakeMessage = `Intake Complete: ${serviceRequested}`
         } else if (intakeStatus === 'partial') {
-          intakeMessage = `Partial Intake: ${serviceRequested}`
+          // For partial intakes, show what was captured to improve trust
+          const capturedFields = []
+          if (hasName) capturedFields.push('name')
+          if (hasService) capturedFields.push('service')
+          if (hasAddress) capturedFields.push('address')
+          if (hasTiming) capturedFields.push('timing')
+          if (hasCallback) capturedFields.push('callback')
+          
+          const capturedText = capturedFields.length > 0 
+            ? ` (${capturedFields.join(', ')})` 
+            : ' (no fields captured)'
+          
+          intakeMessage = `Partial Intake: ${serviceRequested}${capturedText}`
         } else if (outcome === 'early_hangup') {
           intakeMessage = `Caller Hung Up: ${serviceRequested}`
         } else if (outcome === 'no_speech') {
@@ -848,7 +868,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           data: {
             message: intakeMessage,
             timestamp: aiCall.created_at,
-            isDivider: false
+            isDivider: false,
+            // Add field presence for observability and debugging
+            fieldPresence: {
+              hasName,
+              hasService,
+              hasAddress,
+              hasTiming,
+              hasCallback
+            }
           }
         })
       })

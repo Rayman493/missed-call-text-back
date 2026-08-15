@@ -33,6 +33,13 @@ interface ActivityEvent {
   metadata?: Record<string, any>
   navigable?: boolean
   onClick?: () => void
+  fieldPresence?: {
+    hasName: boolean
+    hasService: boolean
+    hasAddress: boolean
+    hasTiming: boolean
+    hasCallback: boolean
+  }
 }
 
 interface CustomerActivityTimelineProps {
@@ -98,10 +105,34 @@ export default function CustomerActivityTimeline({ leadData, onNavigateToJob, on
     if (leadData.aiCallRecords && leadData.aiCallRecords.length > 0) {
       leadData.aiCallRecords.forEach((aiCall: any) => {
         const outcome = aiCall.outcome
+        const extractedInfo = aiCall.extracted_info || leadData?.raw_metadata?.extracted_info || {}
+        
+        // Determine which fields are present for observability
+        const hasName = Boolean(extractedInfo.customerName || extractedInfo.callerName || extractedInfo.name)
+        const hasService = Boolean(extractedInfo.serviceRequested || extractedInfo.reasonForCalling || extractedInfo.request)
+        const hasAddress = Boolean(extractedInfo.serviceAddress || extractedInfo.addressOrLocation)
+        const hasTiming = Boolean(extractedInfo.desiredCompletionTime || extractedInfo.desiredCompletion)
+        const hasCallback = Boolean(extractedInfo.callbackTime || extractedInfo.preferredCallbackTime)
+        
         let title = 'AI intake completed'
         if (outcome === 'early_hangup') title = 'Caller hung up'
         else if (outcome === 'no_speech') title = 'No speech detected'
         else if (outcome === 'ai_connection_failed') title = 'AI connection failed'
+        else if (outcome === 'partial_intake' || outcome === 'partial') {
+          // For partial intakes, show what was captured
+          const capturedFields = []
+          if (hasName) capturedFields.push('name')
+          if (hasService) capturedFields.push('service')
+          if (hasAddress) capturedFields.push('address')
+          if (hasTiming) capturedFields.push('timing')
+          if (hasCallback) capturedFields.push('callback')
+          
+          const capturedText = capturedFields.length > 0 
+            ? ` (${capturedFields.join(', ')})` 
+            : ' (no fields captured)'
+          
+          title = `Partial intake${capturedText}`
+        }
 
         activityEvents.push({
           id: `ai-intake-${aiCall.id}`,
@@ -110,6 +141,14 @@ export default function CustomerActivityTimeline({ leadData, onNavigateToJob, on
           timestamp: aiCall.created_at,
           navigable: !!onNavigateToIntake,
           onClick: onNavigateToIntake,
+          // Add field presence for observability
+          fieldPresence: {
+            hasName,
+            hasService,
+            hasAddress,
+            hasTiming,
+            hasCallback
+          }
         })
       })
     }
