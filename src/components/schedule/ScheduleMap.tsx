@@ -185,6 +185,34 @@ const HOME_BASE_ONLY_ZOOM = 13 // Local zoom for single marker (shows ~5-10 mile
 const SINGLE_STOP_ZOOM = 13 // Local zoom for single service stop
 const MULTI_MARKER_MAX_ZOOM = 15 // Max zoom for multi-marker fit bounds
 
+// Responsive padding for fitBounds (accounts for UI elements on different screen sizes)
+const getResponsivePadding = useCallback(() => {
+  if (typeof window === 'undefined') {
+    return { top: 0, right: 0, bottom: 0, left: 0 }
+  }
+
+  const isMobile = window.innerWidth < 768
+  const bottomNavHeight = parseInt(getComputedStyle(document.body).getPropertyValue('--bottom-nav-height')) || 80
+
+  if (isMobile) {
+    // Mobile: account for top header, Today's Schedule panel, bottom nav, map controls
+    return {
+      top: 180, // Today's Schedule panel + header
+      right: 20, // Right edge cushion for map controls
+      bottom: bottomNavHeight + 40, // Bottom nav + breathing room
+      left: 20 // Left edge cushion
+    }
+  } else {
+    // Desktop: more breathing room, less UI obstruction
+    return {
+      top: 60, // Header
+      right: 40, // Right cushion
+      bottom: 40, // Bottom cushion
+      left: 40 // Left cushion
+    }
+  }
+}, [])
+
 const markerSetSignatureRef = useRef<string>('') // Signature of current marker set to prevent repeated fitBounds
   const newlyMappableEventIdRef = useRef<string | null>(null) // Track newly mappable event for one-time camera adjustment
   const initialCameraEstablishedRef = useRef(false) // Track if initial camera positioning has been done
@@ -523,11 +551,11 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       })
   }, [])
 
-  // Fit bounds with max zoom constraint and bottom padding for nav
-  const fitBoundsWithMaxZoom = useCallback((bounds: any, maxZoom: number = 15, paddingBottom: number = 0, reason: string = 'unknown') => {
+  // Fit bounds with max zoom constraint and responsive padding
+  const fitBoundsWithMaxZoom = useCallback((bounds: any, maxZoom: number = 15, padding?: { top: number; right: number; bottom: number; left: number }, reason: string = 'unknown') => {
     if (!googleMapRef.current) return
 
-    logCameraCommand('fitBoundsWithMaxZoom', 'fitBounds', { reason, maxZoom, paddingBottom })
+    logCameraCommand('fitBoundsWithMaxZoom', 'fitBounds', { reason, maxZoom, padding })
 
     // Check if bounds would actually change viewport (avoid no-op calls)
     const currentBounds = googleMapRef.current.getBounds()
@@ -548,9 +576,9 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     programmaticCameraChangeRef.current = true
     pendingProgrammaticMoveRef.current = true
 
-    // Apply bottom padding if specified (for bottom nav)
-    if (paddingBottom > 0) {
-      googleMapRef.current.fitBounds(bounds, 0, 0, 0, paddingBottom)
+    // Apply responsive padding if specified, otherwise use default fitBounds
+    if (padding) {
+      googleMapRef.current.fitBounds(bounds, padding.top, padding.right, padding.bottom, padding.left)
     } else {
       googleMapRef.current.fitBounds(bounds)
     }
@@ -607,13 +635,9 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       bounds.extend(marker.getPosition()!)
     })
 
-    const bottomNavHeight = typeof window !== 'undefined'
-      ? parseInt(getComputedStyle(document.body).getPropertyValue('--bottom-nav-height')) || 80
-      : 80
-    const bottomPadding = bottomNavHeight + 40
-
-    fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, bottomPadding, 'show_all_markers')
-  }, [fitBoundsWithMaxZoom])
+    const padding = getResponsivePadding()
+    fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'show_all_markers')
+  }, [fitBoundsWithMaxZoom, getResponsivePadding])
 
   // Navigate to next/previous stop
   const navigateToStop = useCallback((direction: 'next' | 'previous') => {
@@ -1530,11 +1554,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       }
     }
 
-    // Get bottom nav height from CSS variable for padding
-    const bottomNavHeight = typeof window !== 'undefined'
-      ? parseInt(getComputedStyle(document.body).getPropertyValue('--bottom-nav-height')) || 80
-      : 80
-    const bottomPadding = bottomNavHeight + 40 // Add extra breathing room
+    // Get responsive padding for multi-marker views
+    const padding = getResponsivePadding()
 
     // Get current date key for auto-fit logic (use local timezone)
     const currentDateKey = selectedDate.toLocaleDateString('en-CA')
@@ -1607,12 +1628,12 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           }
         } else {
           // State 3 & 4: Multiple markers (Home Base + service stops, or multiple service stops)
-          // Fit bounds to show all markers with padding
+          // Fit bounds to show all markers with responsive padding
           const bounds = new (window as any).google.maps.LatLngBounds()
           markersRef.current.forEach(marker => {
             bounds.extend(marker.getPosition()!)
           })
-          fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, bottomPadding, 'multi_marker_auto_fit')
+          fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'multi_marker_auto_fit')
         }
       } else {
         markerSetSignatureRef.current = signature
@@ -1632,7 +1653,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       markersRef.current.forEach(marker => marker.setMap(null))
       markersRef.current.clear()
     }
-  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectMapItem, selectedMapItemId, previousDateKey, lastAutoFitDateKey, mapFilter])
+  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectMapItem, selectedMapItemId, previousDateKey, lastAutoFitDateKey, mapFilter, getResponsivePadding])
 
   // Update marker icons when selection changes (without triggering camera changes)
   useEffect(() => {
