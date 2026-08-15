@@ -180,7 +180,12 @@ function ScheduleMapComponent({
   const programmaticCameraChangeRef = useRef(false) // Guard to distinguish user vs programmatic movement
   const pendingProgrammaticMoveRef = useRef(false) // Track if a programmatic move is in progress
   const mapPreparationIdRef = useRef(0) // Monotonically increasing ID to prevent stale async results
-  const markerSetSignatureRef = useRef<string>('') // Signature of current marker set to prevent repeated fitBounds
+  // Constants for viewport behavior
+const HOME_BASE_ONLY_ZOOM = 13 // Local zoom for single marker (shows ~5-10 miles)
+const SINGLE_STOP_ZOOM = 13 // Local zoom for single service stop
+const MULTI_MARKER_MAX_ZOOM = 15 // Max zoom for multi-marker fit bounds
+
+const markerSetSignatureRef = useRef<string>('') // Signature of current marker set to prevent repeated fitBounds
   const newlyMappableEventIdRef = useRef<string | null>(null) // Track newly mappable event for one-time camera adjustment
   const initialCameraEstablishedRef = useRef(false) // Track if initial camera positioning has been done
   const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter to detect changes
@@ -356,24 +361,9 @@ function ScheduleMapComponent({
         businessCoordsCacheRef.current = result
         console.log('[ScheduleMap] Business geocoded: success=true')
 
-        // If map is ready and user hasn't interacted yet, center on business location
-        // This handles the case where geocoding completes after initial render
-        if (mapReady && googleMapRef.current && !userInteractedRef.current) {
-          const dateKey = selectedDate.toISOString().split('T')[0]
-          const savedState = perDateStateRef.current.get(dateKey)
-          // Only center if there's no saved state for this date
-          if (!savedState) {
-            logCameraCommand('business_geocode_center', 'setCenter+setZoom', {
-              center: `${result.lat},${result.lng}`,
-              zoom: 13,
-              reason: 'business_location_after_geocode'
-            })
-            programmaticCameraChangeRef.current = true
-            pendingProgrammaticMoveRef.current = true
-            googleMapRef.current.setCenter({ lat: result.lat, lng: result.lng })
-            googleMapRef.current.setZoom(13)
-          }
-        }
+        // Do NOT manually set camera here - let the marker update effect handle viewport
+        // This prevents race conditions where camera is set before all markers are ready
+        // The marker update effect will auto-fit when markers are added/changed
 
         // Trigger immediate map items refresh to show business marker
         // This fixes the timing issue where marker wouldn't appear until next date change
@@ -622,7 +612,7 @@ function ScheduleMapComponent({
       : 80
     const bottomPadding = bottomNavHeight + 40
 
-    fitBoundsWithMaxZoom(bounds, 15, bottomPadding, 'show_all_markers')
+    fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, bottomPadding, 'show_all_markers')
   }, [fitBoundsWithMaxZoom])
 
   // Navigate to next/previous stop
@@ -1370,24 +1360,10 @@ function ScheduleMapComponent({
         }
       }
     } else {
-      // First visit - prioritize business location, then markers, then fallback
+      // First visit - no saved state, let marker update effect handle initial camera
       setShowAllMode(true)
       userInteractedRef.current = false
-
-      // Try to center on business location first
-      if (mapReady && googleMapRef.current && businessCoordsCacheRef.current) {
-        const { lat, lng } = businessCoordsCacheRef.current
-        logCameraCommand('first_visit_business_center', 'setCenter', {
-          center: `${lat},${lng}`,
-          zoom: 13,
-          reason: 'first_visit_business_location'
-        })
-        programmaticCameraChangeRef.current = true
-        pendingProgrammaticMoveRef.current = true
-        googleMapRef.current.setCenter({ lat, lng })
-        googleMapRef.current.setZoom(13)
-      }
-      // If no business location yet, the marker update effect will handle auto-fit when markers arrive
+      // The marker update effect will auto-fit when markers arrive
     }
 
     setSelectedMarker(null)
@@ -1599,7 +1575,10 @@ function ScheduleMapComponent({
         markerSetSignatureRef.current = signature
       }
     } else if (showAllMode && !userInteractedRef.current && (dateChanged || signatureChanged)) {
-      const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && !initialCameraEstablishedRef.current)
+      // Auto-fit should happen when: date changes, filter changes, OR marker set meaningfully changes
+      // Remove the !initialCameraEstablishedRef.current restriction to allow viewport updates when marker set changes
+      // This fixes the bug where switching from 1 marker to 2 markers doesn't refit the viewport
+      const shouldAutoFit = dateChanged || filterChanged || signatureChanged
 
       console.log('[SCHEDULE_MAP_EFFECT]', {
         effect: 'auto_fit_decision',
@@ -1617,18 +1596,23 @@ function ScheduleMapComponent({
         setLastAutoFitDateKey(currentDateKey)
         initialCameraEstablishedRef.current = true
 
+        // Explicit viewport policy based on marker count
         if (markersRef.current.size === 1) {
+          // State 1: Single marker (Home Base only or single service stop)
+          // Center on it with local zoom
           const singleMarker = markersRef.current.values().next().value
           if (singleMarker) {
             const pos = singleMarker.getPosition()
-            panToMarker(pos.lat(), pos.lng(), 13, false, 'single_marker_initial')
+            panToMarker(pos.lat(), pos.lng(), HOME_BASE_ONLY_ZOOM, false, 'single_marker_auto_fit')
           }
         } else {
+          // State 3 & 4: Multiple markers (Home Base + service stops, or multiple service stops)
+          // Fit bounds to show all markers with padding
           const bounds = new (window as any).google.maps.LatLngBounds()
           markersRef.current.forEach(marker => {
             bounds.extend(marker.getPosition()!)
           })
-          fitBoundsWithMaxZoom(bounds, 15, bottomPadding, 'multi_marker_initial')
+          fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, bottomPadding, 'multi_marker_auto_fit')
         }
       } else {
         markerSetSignatureRef.current = signature
