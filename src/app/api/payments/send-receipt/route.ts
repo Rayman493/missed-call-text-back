@@ -141,13 +141,21 @@ export async function POST(request: NextRequest) {
     })
 
     if (!result.sid) {
-      console.error('[RECEIPT API] SMS send failed')
+      console.error('[RECEIPT API] SMS send failed', {
+        paymentRequestId,
+        businessId: business.id,
+        to: normalizedPhone,
+        messageLength: sanitizedMessage.length,
+        timestamp: new Date().toISOString()
+      })
       return NextResponse.json({ error: 'Failed to send receipt' }, { status: 500 })
     }
 
-    console.log('[RECEIPT API] Receipt sent successfully:', {
+    console.log('[RECEIPT API] Receipt sent successfully', {
       twilioSid: result.sid,
-      to: normalizedPhone
+      to: normalizedPhone,
+      paymentRequestId,
+      timestamp: new Date().toISOString()
     })
 
     return NextResponse.json({

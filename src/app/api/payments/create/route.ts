@@ -621,8 +621,15 @@ If you have questions, reply to this message.`
         })
         console.log('[PAYMENT REQUEST] SMS result:', JSON.stringify(smsResult, null, 2))
       } catch (smsError) {
-        console.error('[PAYMENT REQUEST] SMS sending failed with exception:', smsError)
-        console.error('[PAYMENT REQUEST] SMS error stack:', smsError instanceof Error ? smsError.stack : 'No stack trace')
+        console.error('[PAYMENT REQUEST] SMS sending failed with exception', {
+          error: smsError instanceof Error ? smsError.message : 'Unknown',
+          stack: smsError instanceof Error ? smsError.stack : 'No stack trace',
+          paymentRequestId: paymentRequest.id,
+          leadId: lead_id,
+          businessId: business_id,
+          callerPhone: lead.caller_phone,
+          timestamp: new Date().toISOString()
+        })
         // Payment request was created but SMS failed - return partial success
         return NextResponse.json({
           payment_request_id: paymentRequest.id,
@@ -635,7 +642,13 @@ If you have questions, reply to this message.`
       }
 
       if (!smsResult.sid) {
-        console.error('[PAYMENT REQUEST] SMS sent but no SID returned')
+        console.error('[PAYMENT REQUEST] SMS sent but no SID returned', {
+          paymentRequestId: paymentRequest.id,
+          leadId: lead_id,
+          businessId: business_id,
+          callerPhone: lead.caller_phone,
+          timestamp: new Date().toISOString()
+        })
         // Payment request was created but SMS failed - return partial success
         return NextResponse.json({
           payment_request_id: paymentRequest.id,
@@ -647,7 +660,12 @@ If you have questions, reply to this message.`
         })
       }
 
-      console.log('[PAYMENT REQUEST] SMS sent successfully, SID:', smsResult.sid)
+      console.log('[PAYMENT REQUEST] SMS sent successfully', {
+        sid: smsResult.sid,
+        paymentRequestId: paymentRequest.id,
+        leadId: lead_id,
+        timestamp: new Date().toISOString()
+      })
     } else {
       console.log('[PAYMENT REQUEST] Skipping SMS send due to skip_sms parameter')
     }
