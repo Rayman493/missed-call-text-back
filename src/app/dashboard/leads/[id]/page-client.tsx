@@ -3184,10 +3184,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   if (loading) {
     return (
-      <main className="h-screen bg-background p-4 sm:p-8">
+      <main className="h-screen bg-background p-6 sm:p-10">
         <div className="max-w-4xl mx-auto">
           {/* Skeleton Header */}
-          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border border-border/50 p-4 sm:p-5 mb-6">
+          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border border-border/50 p-6 mb-6">
             <div className="animate-pulse">
               <div className="h-6 bg-muted rounded w-1/3 mb-2"></div>
               <div className="h-4 bg-muted rounded w-1/2"></div>
@@ -3195,8 +3195,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           
           {/* Skeleton Messages */}
-          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border border-border/50 p-4 sm:p-5">
-            <div className="space-y-4">
+          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border border-border/50 p-6">
+            <div className="space-y-6">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="animate-pulse">
                   <div className={`h-4 bg-muted rounded w-3/4 ${i % 2 === 0 ? 'ml-auto' : ''}`}></div>
@@ -3213,7 +3213,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   if (!leadData) {
     return (
-      <main className="h-screen bg-background p-4 sm:p-8">
+      <main className="h-screen bg-background p-6 sm:p-10">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
             <Link
@@ -3224,7 +3224,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               ← Back to Customers
             </Link>
           </div>
-          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border border-border/50 p-8 text-center">
+          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border border-border/50 p-10 text-center">
             <h1 className="text-2xl font-bold text-foreground mb-2">Customer not found</h1>
             <p className="text-muted-foreground mb-6">
               {error || 'The customer you\'re looking for doesn\'t exist or you don\'t have permission to view it.'}
@@ -3256,7 +3256,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Customer Identity Header - Distinct from global navigation */}
       <div className="flex-shrink-0 border-y border-slate-700/35 bg-slate-900/60">
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-3">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           {/* Mobile Layout: Compact Information Header */}
           <div className="md:hidden">
             <div className="flex items-center gap-2">
