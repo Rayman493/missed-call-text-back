@@ -764,8 +764,8 @@ export default function LeadsPage() {
             <AppHeader title="Customers" />
 
           {/* Main Content */}
-          <main className="flex-1 pt-3.5 lg:pt-7 px-4 lg:px-6 pb-6 md:pb-6 relative z-10 overflow-y-auto" style={{ paddingBottom: 'var(--bottom-nav-height, 80px)' }}>
-            <div className="max-w-[1400px] mx-auto space-y-2.5 sm:space-y-3.5 lg:space-y-5">
+          <main className="flex-1 pt-6 sm:pt-8 lg:pt-10 px-4 sm:px-5 lg:px-7 pb-6 md:pb-10 relative z-10 overflow-y-auto" style={{ paddingBottom: 'var(--bottom-nav-height, 80px)' }}>
+            <div className="max-w-[1400px] mx-auto space-y-6">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
 
@@ -1064,14 +1064,14 @@ export default function LeadsPage() {
               />
             </div>
 
-            {/* Customers Header - Compact on mobile */}
-            <div className="mb-1.5 sm:mb-4">
+            {/* Customers Header - Improved hierarchy */}
+            <div className="pt-2 pb-6">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
                     Customers
                   </h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 hidden sm:block">
+                  <p className="text-sm text-muted-foreground mt-2 leading-relaxed hidden sm:block">
                     Manage conversations, requests, jobs and customer history.
                   </p>
                 </div>
@@ -1079,7 +1079,7 @@ export default function LeadsPage() {
             </div>
 
             {/* Search, Filter, and Overflow - single line layout */}
-            <div className="mb-4">
+            <div className="mb-6">
               <div className="flex items-center gap-2">
                 {/* Search input */}
                 <div className="relative flex-1">
