@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,13 +64,19 @@ export async function POST(request: NextRequest) {
     // Fetch business details
     const { data: business, error: fetchError } = await supabaseAdmin
       .from('businesses')
-      .select('id, name, is_protected_account')
+      .select('id, name, is_protected_account, protected_reason')
       .eq('id', businessId)
       .single()
 
     if (fetchError || !business) {
       console.error('[ADMIN PROTECT BUSINESS] Failed to fetch business:', fetchError)
       return NextResponse.json({ success: false, error: 'Business not found' }, { status: 404 })
+    }
+
+    // Capture before state for audit logging
+    const beforeState = {
+      is_protected_account: business.is_protected_account,
+      protected_reason: business.protected_reason,
     }
 
     if (action === 'protect') {
@@ -87,6 +94,21 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('[ADMIN PROTECT BUSINESS] Business protected successfully', { businessId, businessName: business.name })
+
+      // Audit logging (non-blocking)
+      logAdminAction({
+        actingAdminUserId: user.id,
+        actingAdminEmail: getUserEmail(user),
+        action: 'protect_business',
+        targetBusinessId: businessId,
+        resourceIdentifiers: { business_name: business.name },
+        beforeState,
+        afterState: {
+          is_protected_account: true,
+          protected_reason: reason || 'Protected by admin',
+        },
+        metadata: { reason },
+      })
     } else {
       const { error: updateError } = await supabaseAdmin
         .from('businesses')
@@ -102,6 +124,20 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('[ADMIN PROTECT BUSINESS] Business unprotected successfully', { businessId, businessName: business.name })
+
+      // Audit logging (non-blocking)
+      logAdminAction({
+        actingAdminUserId: user.id,
+        actingAdminEmail: getUserEmail(user),
+        action: 'unprotect_business',
+        targetBusinessId: businessId,
+        resourceIdentifiers: { business_name: business.name },
+        beforeState,
+        afterState: {
+          is_protected_account: false,
+          protected_reason: null,
+        },
+      })
     }
 
     return NextResponse.json({

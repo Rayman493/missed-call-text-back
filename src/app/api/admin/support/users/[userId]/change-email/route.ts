@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { logAdminAction } from '@/lib/admin-audit'
+import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -141,19 +141,20 @@ export async function POST(
       })
       
       // Log failed attempt
-      await logAdminAction({
-        acting_admin_user_id: user.id,
-        acting_admin_email: user.email || '',
-        target_user_id: userId,
-        target_email: newEmail,
-        action: 'admin_login_email_changed',
-        support_reason: supportReason,
-        old_email: oldEmail,
-        new_email: newEmail,
-        success: false,
-        error_message: updateError.message
+      logAdminAction({
+        actingAdminUserId: user.id,
+        actingAdminEmail: getUserEmail(user),
+        targetUserId: userId,
+        action: 'admin_login_email_change_failed',
+        resourceIdentifiers: oldEmail && newEmail ? { old_email: oldEmail, new_email: newEmail } : undefined,
+        metadata: {
+          supportReason,
+          old_email: oldEmail,
+          new_email: newEmail,
+          error_message: updateError.message,
+        },
       })
-      
+
       // Map duplicate email error to 409 Conflict
       if (updateError.message?.toLowerCase().includes('duplicate') || 
           updateError.message?.toLowerCase().includes('already been registered') ||
@@ -165,16 +166,15 @@ export async function POST(
     }
 
     // Audit log
-    await logAdminAction({
-      acting_admin_user_id: user.id,
-      acting_admin_email: user.email || '',
-      target_user_id: userId,
-      target_email: newEmail,
+    logAdminAction({
+      actingAdminUserId: user.id,
+      actingAdminEmail: getUserEmail(user),
+      targetUserId: userId,
       action: 'admin_login_email_changed',
-      support_reason: supportReason,
-      old_email: oldEmail,
-      new_email: newEmail,
-      success: true
+      resourceIdentifiers: oldEmail && newEmail ? { old_email: oldEmail, new_email: newEmail } : undefined,
+      beforeState: oldEmail ? { email: oldEmail } : undefined,
+      afterState: newEmail ? { email: newEmail } : undefined,
+      metadata: { supportReason },
     })
 
     return NextResponse.json({

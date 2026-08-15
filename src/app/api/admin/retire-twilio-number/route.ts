@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { validateTwilioNumberLifecycleMutation, maskPhoneNumber } from '@/lib/twilio-lifecycle-validator'
+import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -262,37 +263,34 @@ export async function POST(request: NextRequest) {
 
     // P0 FIX 2: Emit audit event
     console.log('[ADMIN RETIRE TWILIO] Emitting audit event')
-    try {
-      await supabaseAdmin
-        .from('admin_audit_logs')
-        .insert({
-          acting_admin_user_id: user.id,
-          acting_admin_email: user.email,
-          action: 'retire_twilio_number',
-          support_reason: reason || 'Admin retirement',
-          success: true,
-          target_user_id: business?.user_id || null,
-          target_email: business?.user_id ? null : null, // Would need to fetch user email
-          metadata: {
-            business_id: business?.id || null,
-            business_name: business?.name || null,
-            twilio_number_id: twilioNumber.id,
-            masked_phone_number: maskPhoneNumber(phoneNumber),
-            previous_status: previousStatus,
-            new_status: 'retired',
-            previous_business_id: previousBusinessId,
-            new_business_id: null,
-            subscription_status: business?.subscription_status || null,
-            is_protected_account: business?.is_protected_account || false,
-            protected_reason: business?.protected_reason || null,
-            deployment_version: process.env.VERCEL_GIT_COMMIT_SHA || 'unknown',
-            timestamp: new Date().toISOString()
-          }
-        })
-    } catch (auditError) {
-      console.error('[ADMIN RETIRE TWILIO] Failed to emit audit event:', auditError)
-      // Don't fail the operation for audit failures
-    }
+    logAdminAction({
+      actingAdminUserId: user.id,
+      actingAdminEmail: getUserEmail(user),
+      action: 'retire_twilio_number',
+      targetBusinessId: business?.id,
+      targetUserId: business?.user_id,
+      resourceIdentifiers: {
+        business_name: business?.name,
+        twilio_number_id: twilioNumber.id,
+        masked_phone_number: maskPhoneNumber(phoneNumber),
+      },
+      beforeState: {
+        previous_status: previousStatus,
+        previous_business_id: previousBusinessId,
+      },
+      afterState: {
+        new_status: 'retired',
+        new_business_id: null,
+      },
+      metadata: {
+        reason: reason || 'Admin retirement',
+        twilio_number_sid: twilioNumber.sid,
+        subscription_status: business?.subscription_status,
+        is_protected_account: business?.is_protected_account,
+        protected_reason: business?.protected_reason,
+        deployment_version: process.env.VERCEL_GIT_COMMIT_SHA,
+      },
+    })
 
     console.log('[ADMIN RETIRE TWILIO] Number retired successfully', { phoneNumber })
 

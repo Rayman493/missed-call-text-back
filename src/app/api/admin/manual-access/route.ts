@@ -5,6 +5,7 @@ import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { isEligibleForProvisioning } from '@/lib/subscription'
 import { scheduleTwilioRelease, cancelTwilioRelease } from '@/lib/twilio-reclamation'
+import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,6 +69,24 @@ export async function POST(request: Request) {
       }
     )
 
+    // Fetch current business state for audit logging
+    const { data: currentBusiness, error: fetchError } = await serviceSupabase
+      .from('businesses')
+      .select('id, name, manual_access_enabled, manual_access_granted_by, manual_access_expires_at')
+      .eq('id', businessId)
+      .single()
+
+    if (fetchError || !currentBusiness) {
+      console.error('[MANUAL ACCESS] Failed to fetch business for audit:', fetchError)
+      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    }
+
+    const beforeState = {
+      manual_access_enabled: currentBusiness.manual_access_enabled,
+      manual_access_granted_by: currentBusiness.manual_access_granted_by,
+      manual_access_expires_at: currentBusiness.manual_access_expires_at,
+    }
+
     if (action === 'grant') {
       // If expiresAt is provided, set it to end-of-day to avoid timezone confusion
       // Example: Admin selects 2026-06-05, store as 2026-06-05T23:59:59.999Z
@@ -105,6 +124,22 @@ export async function POST(request: Request) {
         grantedBy: user.id,
         reason,
         expiresAt: updateData.manual_access_expires_at
+      })
+
+      // Audit logging (non-blocking)
+      logAdminAction({
+        actingAdminUserId: user.id,
+        actingAdminEmail: getUserEmail(user),
+        action: 'grant_manual_access',
+        targetBusinessId: businessId,
+        resourceIdentifiers: { business_name: currentBusiness.name },
+        beforeState,
+        afterState: {
+          manual_access_enabled: true,
+          manual_access_granted_by: user.id,
+          manual_access_expires_at: processedExpiresAt,
+        },
+        metadata: { reason, note },
       })
 
       // Cancel any scheduled Twilio release since access is being restored
@@ -170,6 +205,21 @@ export async function POST(request: Request) {
       console.log('[MANUAL ACCESS] Access revoked', {
         businessId,
         revokedBy: user.id
+      })
+
+      // Audit logging (non-blocking)
+      logAdminAction({
+        actingAdminUserId: user.id,
+        actingAdminEmail: getUserEmail(user),
+        action: 'revoke_manual_access',
+        targetBusinessId: businessId,
+        resourceIdentifiers: { business_name: currentBusiness.name },
+        beforeState,
+        afterState: {
+          manual_access_enabled: false,
+          manual_access_granted_by: null,
+          manual_access_expires_at: null,
+        },
       })
 
       // Schedule Twilio release since access is being revoked

@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { logAdminAction } from '@/lib/admin-audit'
+import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -116,13 +116,12 @@ export async function POST(
     }
 
     // Audit log
-    await logAdminAction({
-      acting_admin_user_id: user.id,
-      acting_admin_email: user.email || '',
-      target_user_id: userId,
-      target_email: targetUser.user.email,
+    logAdminAction({
+      actingAdminUserId: user.id,
+      actingAdminEmail: getUserEmail(user),
+      targetUserId: userId,
+      resourceIdentifiers: targetUser.user.email ? { target_email: targetUser.user.email } : undefined,
       action: 'admin_resend_verification_email',
-      success: true
     })
 
     return NextResponse.json({

@@ -7,6 +7,7 @@ import { twilioClient } from '@/lib/twilio'
 import { sendOffboardingEmail, sendAccountDeletionConfirmationEmail, sendJourneyEmail } from '@/lib/email'
 import { sendSms, sendSystemSms } from '@/lib/twilio'
 import { isSystemPhoneNumber } from '@/lib/twilio-assignment'
+import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
 
@@ -1254,26 +1255,23 @@ If forwarding does not stop immediately, restart your phone or contact your carr
     // Audit logging failure should NOT block deletion
     try {
       const business = businesses && businesses.length > 0 ? businesses[0] : null
-      await supabaseAdmin
-        .from('admin_audit_logs')
-        .insert({
-          acting_admin_user_id: user.id,
-          acting_admin_email: user.email,
-          target_business_id: summary.businessId || null,
-          target_user_id: user.id,
-          action: 'account_deletion',
-          changes: {
-            deletion_status: dryRun ? 'dry_run' : 'completed',
-            tables_deleted: summary.tablesDeleted,
-            stripe_cancellation: summary.stripeResult?.cancellationSucceeded,
-            twilio_number_released: summary.twilioNumberReleased,
-            auth_deletion_result: summary.authDeletionResult,
-            analytics: analytics
-          },
-          support_reason: dryRun ? 'Dry run - no actual deletion' : 'Account deletion requested by user',
-          created_at: new Date().toISOString()
-        })
-      console.log('[delete-account] Admin audit log entry created for account deletion')
+      logAdminAction({
+        actingAdminUserId: user.id,
+        actingAdminEmail: getUserEmail(user),
+        action: dryRun ? 'account_deletion_dry_run' : 'account_deletion',
+        targetBusinessId: summary.businessId || undefined,
+        targetUserId: user.id,
+        resourceIdentifiers: business ? { business_name: business.name } : undefined,
+        afterState: {
+          deletion_status: dryRun ? 'dry_run' : 'completed',
+          tables_deleted: summary.tablesDeleted,
+          stripe_cancellation: summary.stripeResult?.cancellationSucceeded,
+          twilio_number_released: summary.twilioNumberReleased,
+          auth_deletion_result: summary.authDeletionResult,
+          analytics,
+        },
+        metadata: dryRun ? { mode: 'dry_run' } : undefined,
+      })
     } catch (auditLogError) {
       console.error('[delete-account] Failed to create admin audit log entry (deletion completed)', {
         error: auditLogError instanceof Error ? auditLogError.message : String(auditLogError)
