@@ -1926,28 +1926,30 @@ export default function SettingsContent() {
               <div className="max-w-[1200px] mx-auto">
 
             {/* Page Header - normal flow */}
-            <div className="pt-6 pb-4">
-              <h1 className="text-3xl font-semibold text-foreground mb-2">
-                Settings
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Manage your business settings and preferences.
-              </p>
+            <div className="pt-8 pb-6">
+              <div className="flex flex-col gap-1">
+                <h1 className="text-3xl font-bold text-foreground tracking-tight">
+                  Settings
+                </h1>
+                <p className="text-base text-muted-foreground leading-relaxed">
+                  Manage your business settings, integrations, and preferences.
+                </p>
+              </div>
             </div>
 
             {/* Settings Navigation Tabs - sticky only */}
-            <div ref={settingsTabsContainerRef} className="sticky z-40 border-b border-border/50 bg-background py-4 top-0 backdrop-blur-sm" style={{ backgroundColor: 'var(--background)' }}>
-              <nav ref={settingsTabsNavRef} className="flex items-center gap-3 overflow-x-auto custom-scrollbar-horizontal">
+            <div ref={settingsTabsContainerRef} className="sticky z-40 border-b border-border/50 bg-background/95 backdrop-blur-sm py-5 top-0" style={{ backgroundColor: 'var(--background)' }}>
+              <nav ref={settingsTabsNavRef} className="flex items-center gap-2 overflow-x-auto custom-scrollbar-horizontal">
                 {settingsSections.map((section) => (
                   <button
                     key={section.id}
                     ref={(element) => { sectionTabRefs.current[section.id] = element }}
                     onClick={() => handleSectionClick(section.id)}
                     aria-current={activeSection === section.id ? 'location' : undefined}
-                    className={`px-5 py-3 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+                    className={`px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                       activeSection === section.id
-                        ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 shadow-md'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent'
+                        ? 'bg-foreground text-background shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
                     {section.label}
@@ -1961,19 +1963,19 @@ export default function SettingsContent() {
             {/* Settings Sections */}
             <div className="space-y-6 pb-32">
               {/* Group: General */}
-              <div id="general-divider" className="flex items-center gap-4 mb-6 scroll-mt-[64px]">
+              <div id="general-divider" className="flex items-center gap-4 mb-8 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-border/30"></div>
                 <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'general')?.label}</h3>
                 <div className="h-px flex-1 bg-border/30"></div>
               </div>
 
               {/* General Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
-                <div className="mb-5">
-                  <h2 className="text-base font-semibold text-foreground mb-1">General</h2>
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
+                <div className="mb-8">
+                  <h2 className="text-lg font-semibold text-foreground mb-2">General</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Your business identity and contact details.</p>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-5">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">
                       Business Name
@@ -2091,14 +2093,14 @@ export default function SettingsContent() {
               {/* Group: Communication - Only show on native mobile */}
               {isNativeMobile() && (
                 <>
-                  <div id="communication-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+                  <div id="communication-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
                     <div className="h-px flex-1 bg-border/30"></div>
                     <h3 className="text-sm font-medium text-muted-foreground">Communication</h3>
                     <div className="h-px flex-1 bg-border/30"></div>
                   </div>
 
                   {/* Communication Section */}
-                  <div id="communication" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+                  <div id="communication" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
                     <div className="mb-5">
                       <h2 className="text-base font-semibold text-foreground mb-1">Sending Number</h2>
                       <p className="text-sm text-muted-foreground leading-relaxed">
@@ -2212,19 +2214,19 @@ export default function SettingsContent() {
               )}
 
               {/* Group: Business Address */}
-              <div id="business-address-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+              <div id="business-address-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-border/30"></div>
                 <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'business-address')?.label}</h3>
                 <div className="h-px flex-1 bg-border/30"></div>
               </div>
 
               {/* Business Address Section */}
-              <div id="business-address" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
-                <div className="mb-5">
-                  <h2 className="text-base font-semibold text-foreground mb-1">Business Address</h2>
+              <div id="business-address" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
+                <div className="mb-8">
+                  <h2 className="text-lg font-semibold text-foreground mb-2">Business Address</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Your canonical business address for payments and business profile.</p>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-5">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">
                       Street Address <span className="text-red-500">*</span>
@@ -2305,7 +2307,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Group: Automation */}
-              <div id="automation-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+              <div id="automation-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-border/30"></div>
                 <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'automation')?.label}</h3>
                 <div className="h-px flex-1 bg-border/30"></div>
@@ -2544,7 +2546,7 @@ export default function SettingsContent() {
                         </div>
                         
                         {/* Timezone and Hours Selector */}
-                        <div className="space-y-4">
+                        <div className="space-y-5">
                           <div>
                             <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
                               Timezone
@@ -2763,7 +2765,7 @@ export default function SettingsContent() {
                         </div>
 
                         {/* Out of Office Settings */}
-                        <div className="space-y-4">
+                        <div className="space-y-5">
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
@@ -2850,7 +2852,7 @@ export default function SettingsContent() {
 
               {/* Group: Permissions */}
               {/* Group: Notifications */}
-              <div id="notifications-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+              <div id="notifications-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-border/30"></div>
                 <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'notifications')?.label}</h3>
                 <div className="h-px flex-1 bg-border/30"></div>
@@ -2859,16 +2861,16 @@ export default function SettingsContent() {
               <NotificationsPreferences />
 
               {/* Group: Integrations */}
-              <div id="integrations-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+              <div id="integrations-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-border/30"></div>
                 <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'integrations')?.label}</h3>
                 <div className="h-px flex-1 bg-border/30"></div>
               </div>
 
               {/* Integrations Section */}
-              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
-                <div className="mb-5">
-                  <h2 className="text-base font-semibold text-foreground mb-1">Integrations</h2>
+              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
+                <div className="mb-8">
+                  <h2 className="text-lg font-semibold text-foreground mb-2">Integrations</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Connect services you already use.</p>
                 </div>
 
@@ -2937,7 +2939,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Group: Payments */}
-              <div id="payments-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+              <div id="payments-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-border/30"></div>
                 <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'payments')?.label}</h3>
                 <div className="h-px flex-1 bg-border/30"></div>
@@ -3483,15 +3485,15 @@ export default function SettingsContent() {
               </div>
 
               {/* Group: Contacts */}
-              <div id="contacts-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+              <div id="contacts-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-border/30"></div>
                 <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'contacts')?.label}</h3>
                 <div className="h-px flex-1 bg-border/30"></div>
               </div>
 
               {/* Contacts Section */}
-              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
                   <div className="flex-1">
                     <h2 className="text-base font-semibold text-foreground mb-1">Personal Contacts</h2>
                     <p className="text-sm text-muted-foreground leading-relaxed">Add your own phone number, friends, family, employees, or other personal callers. Calls from these numbers stay out of your customer workflow and their voicemails appear in ReplyFlow's Personal section.</p>
@@ -3511,7 +3513,7 @@ export default function SettingsContent() {
                   </button>
                 </div>
                 </div>
-                <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-3 sm:space-y-5">
                   {isLoadingIgnored ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
@@ -3575,16 +3577,16 @@ export default function SettingsContent() {
               )}
 
               {/* Group: Account */}
-              <div id="account-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+              <div id="account-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-border/30"></div>
                 <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'account')?.label}</h3>
                 <div className="h-px flex-1 bg-border/30"></div>
               </div>
 
               {/* Account Section */}
-              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
-                <div className="mb-5">
-                  <h2 className="text-base font-semibold text-foreground mb-1">Account</h2>
+              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
+                <div className="mb-8">
+                  <h2 className="text-lg font-semibold text-foreground mb-2">Account</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Your account details and status.</p>
                 </div>
                 <div className="space-y-px bg-border/20 rounded-lg overflow-hidden">
@@ -3751,7 +3753,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Subscription & Billing Section */}
-              <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+              <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
                 <div className="mb-4">
                   <h2 className="text-base font-semibold text-foreground mb-1">Subscription & Billing</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Manage your subscription and billing.</p>
@@ -3842,10 +3844,15 @@ export default function SettingsContent() {
               </div>
 
               {/* Danger Zone Section */}
-              <div id="danger-zone" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-red-200/40 dark:border-red-900/30 shadow-sm p-5 scroll-mt-[64px]">
-                <div className="mb-4">
-                  <h2 className="text-base font-semibold text-red-700 dark:text-red-400 mb-1">Danger Zone</h2>
-                  <p className="text-sm text-red-600/70 dark:text-red-400/70 leading-relaxed">Permanent destructive actions that cannot be undone.</p>
+              <div id="danger-zone" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border-2 border-red-200/50 dark:border-red-900/40 shadow-sm p-6 scroll-mt-[64px]">
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                    <h2 className="text-lg font-semibold text-red-700 dark:text-red-400">Danger Zone</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed ml-7">
+                    Permanent destructive actions that cannot be undone.
+                  </p>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex-1">
@@ -3902,7 +3909,7 @@ export default function SettingsContent() {
                 </div>
 
                 {/* Scrollable Body */}
-                <div className="flex-1 min-h-0 overflow-y-scroll p-6 space-y-4 overscroll-contain pb-24 sm:pb-6" style={{ touchAction: 'pan-y' }} data-scroll-lock-allow>
+                <div className="flex-1 min-h-0 overflow-y-scroll p-6 space-y-5 overscroll-contain pb-24 sm:pb-6" style={{ touchAction: 'pan-y' }} data-scroll-lock-allow>
                   {/* What happens on deletion */}
                   <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
@@ -4152,7 +4159,7 @@ export default function SettingsContent() {
                   </div>
                 )}
 
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-5">
                   {/* Current Password */}
                   <div>
                     <label htmlFor="currentPassword" className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
@@ -4363,7 +4370,7 @@ export default function SettingsContent() {
                   </div>
                 )}
 
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-5">
                   <div>
                     <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
                       Current Email
@@ -4496,7 +4503,7 @@ export default function SettingsContent() {
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
                   Finished reviewing Tap to Pay?
                 </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-8">
                   Confirm that you reviewed Apple's Tap to Pay on iPhone guide.
                 </p>
                 <div className="flex gap-3">
