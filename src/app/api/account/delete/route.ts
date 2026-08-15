@@ -1249,6 +1249,38 @@ If forwarding does not stop immediately, restart your phone or contact your carr
       authDeletionResult: summary.authDeletionResult,
     })
 
+    // Create admin audit log entry for account deletion
+    // This ensures account deletion is consistent with other sensitive admin actions
+    // Audit logging failure should NOT block deletion
+    try {
+      const business = businesses && businesses.length > 0 ? businesses[0] : null
+      await supabaseAdmin
+        .from('admin_audit_logs')
+        .insert({
+          acting_admin_user_id: user.id,
+          acting_admin_email: user.email,
+          target_business_id: summary.businessId || null,
+          target_user_id: user.id,
+          action: 'account_deletion',
+          changes: {
+            deletion_status: dryRun ? 'dry_run' : 'completed',
+            tables_deleted: summary.tablesDeleted,
+            stripe_cancellation: summary.stripeResult?.cancellationSucceeded,
+            twilio_number_released: summary.twilioNumberReleased,
+            auth_deletion_result: summary.authDeletionResult,
+            analytics: analytics
+          },
+          support_reason: dryRun ? 'Dry run - no actual deletion' : 'Account deletion requested by user',
+          created_at: new Date().toISOString()
+        })
+      console.log('[delete-account] Admin audit log entry created for account deletion')
+    } catch (auditLogError) {
+      console.error('[delete-account] Failed to create admin audit log entry (deletion completed)', {
+        error: auditLogError instanceof Error ? auditLogError.message : String(auditLogError)
+      })
+      // Do not block deletion - audit logging failure is non-critical
+    }
+
     return NextResponse.json({ ok: true, dryRun, summary })
   } catch (error) {
     console.error('[delete-account] Unexpected error:', error)
