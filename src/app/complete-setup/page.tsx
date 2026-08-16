@@ -165,20 +165,20 @@ export default function CompleteSetupPage() {
       }
     }
 
-    // Check sessionStorage immediately when listener attaches (in case event already fired)
-    ;(async () => {
+    // Poll sessionStorage periodically to catch Stripe return even if event listener timing is off
+    const sessionStoragePollInterval = setInterval(() => {
       try {
         const stripeReturnType = sessionStorage.getItem('stripe_return_type')
         if (stripeReturnType === 'STRIPE_CHECKOUT' && user) {
-          console.log('[ACCOUNT_CREATION_BRIDGE] sessionStorage flag detected on listener attach:', stripeReturnType)
+          console.log('[ACCOUNT_CREATION_BRIDGE] sessionStorage flag detected by polling:', stripeReturnType)
           sessionStorage.removeItem('stripe_return_type')
           sessionStorage.removeItem('stripe_return_timestamp')
-          await triggerReconciliation()
+          triggerReconciliation()
         }
       } catch (e) {
-        console.error('[ACCOUNT_CREATION_BRIDGE] sessionStorage check error on attach:', e)
+        // Ignore sessionStorage errors
       }
-    })()
+    }, 1000) // Check every second
 
     // Listen for custom Stripe return event (primary signal)
     window.addEventListener('stripeReturn', handleStripeReturn)
@@ -192,6 +192,7 @@ export default function CompleteSetupPage() {
     })
 
     return () => {
+      clearInterval(sessionStoragePollInterval)
       window.removeEventListener('stripeReturn', handleStripeReturn)
       console.log('[ACCOUNT_CREATION_RESUME] stripeReturn event listener removed')
       appStateListener.then(handle => handle.remove())
