@@ -1564,6 +1564,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     // Reset initial camera flag on date change to allow new fit for new date
     if (dateChanged) {
       initialCameraEstablishedRef.current = false
+      // Also reset user interaction flag on date change - date changes should always auto-fit
+      userInteractedRef.current = false
     }
 
     // Reset initial camera flag on filter change to allow new fit for new filter
@@ -1571,6 +1573,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     if (filterChanged) {
       initialCameraEstablishedRef.current = false
       previousMapFilterRef.current = mapFilter
+      // Reset user interaction flag on filter change - filter changes should always auto-fit
+      userInteractedRef.current = false
     }
 
     // Smart automatic framing logic
@@ -1595,11 +1599,13 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         panToMarker(pos.lat(), pos.lng(), 15, false, 'selected_item')
         markerSetSignatureRef.current = signature
       }
-    } else if (showAllMode && !userInteractedRef.current && (dateChanged || signatureChanged)) {
+    } else if (showAllMode && (dateChanged || signatureChanged)) {
       // Auto-fit should happen when: date changes, filter changes, OR marker set meaningfully changes
-      // Remove the !initialCameraEstablishedRef.current restriction to allow viewport updates when marker set changes
-      // This fixes the bug where switching from 1 marker to 2 markers doesn't refit the viewport
-      const shouldAutoFit = dateChanged || filterChanged || signatureChanged
+      // Date and filter changes always trigger auto-fit regardless of user interaction
+      // Signature changes (marker set changes) trigger if:
+      //   - User hasn't interacted yet, OR
+      //   - This is the first marker set (initialCameraEstablished is false)
+      const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && (!userInteractedRef.current || !initialCameraEstablishedRef.current))
 
       console.log('[SCHEDULE_MAP_EFFECT]', {
         effect: 'auto_fit_decision',

@@ -4000,7 +4000,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {/* Message Area - Scrollable viewport with flex-1 */}
             <div className="flex-1 overflow-y-auto scroll-smooth overscroll-contain bg-muted/20 min-h-0" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
             {/* Mobile Message Thread */}
-            <div ref={mobileConversationContainerRef} className="min-h-full px-3 py-2 flex flex-col justify-end">
+            <div ref={mobileConversationContainerRef} className="px-3 py-2 flex flex-col justify-end">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>

@@ -598,8 +598,8 @@ const getPaymentDescription = (payment: PaymentRequest) => {
       setSuccessMessage('Payment label updated successfully')
       handleCloseRenameModal()
 
-      // Background refresh to ensure consistency with server
-      fetchPayments().catch(err => console.error('Background refresh failed:', err))
+      // No background refresh needed - optimistic update is sufficient
+      // Other refresh mechanisms (payment completion events, page focus) will keep data in sync
     } catch (err) {
       console.error('Error updating payment label:', err)
       setRenameError(err instanceof Error ? err.message : 'Failed to update payment label')
