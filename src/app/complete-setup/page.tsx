@@ -129,6 +129,23 @@ export default function CompleteSetupPage() {
       } catch (error) {
         console.error('[ACCOUNT_CREATION_RESUME] Error checking pending operation on resume:', error)
       }
+
+      // Check sessionStorage flag from native bridge as fallback
+      try {
+        const stripeReturnType = sessionStorage.getItem('stripe_return_type')
+        const stripeReturnTimestamp = sessionStorage.getItem('stripe_return_timestamp')
+        
+        if (stripeReturnType === 'STRIPE_CHECKOUT' && user) {
+          console.log('[ACCOUNT_CREATION_BRIDGE] sessionStorage flag detected on app resume:', stripeReturnType)
+          // Clear the flag to prevent duplicate reconciliation
+          sessionStorage.removeItem('stripe_return_type')
+          sessionStorage.removeItem('stripe_return_timestamp')
+          // Trigger reconciliation
+          await triggerReconciliation()
+        }
+      } catch (e) {
+        console.error('[ACCOUNT_CREATION_BRIDGE] sessionStorage check error:', e)
+      }
     }
 
     const triggerReconciliation = async () => {
@@ -181,24 +198,6 @@ export default function CompleteSetupPage() {
       if (!user || !business) {
         console.log('[ACCOUNT_CREATION_RECONCILE] → SKIP: no user or business')
         return
-      }
-
-      // Check sessionStorage flag from native bridge as fallback
-      try {
-        const stripeReturnType = sessionStorage.getItem('stripe_return_type')
-        const stripeReturnTimestamp = sessionStorage.getItem('stripe_return_timestamp')
-        
-        if (stripeReturnType === 'STRIPE_CHECKOUT') {
-          console.log('[ACCOUNT_CREATION_BRIDGE] sessionStorage flag detected:', stripeReturnType)
-          // Clear the flag to prevent duplicate reconciliation
-          sessionStorage.removeItem('stripe_return_type')
-          sessionStorage.removeItem('stripe_return_timestamp')
-          // Trigger reconciliation
-          await triggerReconciliation()
-          return
-        }
-      } catch (e) {
-        console.error('[ACCOUNT_CREATION_BRIDGE] sessionStorage check error:', e)
       }
 
       try {
