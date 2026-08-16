@@ -17,10 +17,19 @@ import { Capacitor } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
 
 export type PendingStripeOperation = 'connect_onboarding' | 'checkout' | 'portal' | null
+export type PendingGoogleOperation = 'calendar_connect' | null
 
 const PENDING_STRIPE_OPERATION_KEY = 'pending_stripe_operation'
 const PENDING_STRIPE_OPERATION_TIMESTAMP_KEY = 'pending_stripe_operation_timestamp'
 const PENDING_STRIPE_OPERATION_BUSINESS_ID_KEY = 'pending_stripe_operation_business_id'
+const PENDING_STRIPE_OPERATION_USER_ID_KEY = 'pending_stripe_operation_user_id'
+const PENDING_STRIPE_OPERATION_UUID_KEY = 'pending_stripe_operation_uuid'
+
+const PENDING_GOOGLE_OPERATION_KEY = 'pending_google_operation'
+const PENDING_GOOGLE_OPERATION_TIMESTAMP_KEY = 'pending_google_operation_timestamp'
+const PENDING_GOOGLE_OPERATION_USER_ID_KEY = 'pending_google_operation_user_id'
+const PENDING_GOOGLE_OPERATION_UUID_KEY = 'pending_google_operation_uuid'
+
 const STRIPE_RECONCILIATION_IN_FLIGHT_KEY = 'stripe_reconciliation_in_flight'
 const STRIPE_RECONCILIATION_LAST_TIME_KEY = 'stripe_reconciliation_last_time'
 
@@ -87,26 +96,33 @@ function isNative(): boolean {
 /**
  * Set a pending Stripe operation that needs reconciliation on return/resume
  */
-export async function setPendingStripeOperation(operation: PendingStripeOperation, businessId?: string): Promise<void> {
+export async function setPendingStripeOperation(operation: PendingStripeOperation, businessId?: string, userId?: string): Promise<void> {
   if (!operation) {
     await Preferences.remove({ key: PENDING_STRIPE_OPERATION_KEY })
     await Preferences.remove({ key: PENDING_STRIPE_OPERATION_TIMESTAMP_KEY })
     await Preferences.remove({ key: PENDING_STRIPE_OPERATION_BUSINESS_ID_KEY })
+    await Preferences.remove({ key: PENDING_STRIPE_OPERATION_USER_ID_KEY })
+    await Preferences.remove({ key: PENDING_STRIPE_OPERATION_UUID_KEY })
     return
   }
 
+  const operationUuid = crypto.randomUUID()
   await Preferences.set({ key: PENDING_STRIPE_OPERATION_KEY, value: operation })
   await Preferences.set({ key: PENDING_STRIPE_OPERATION_TIMESTAMP_KEY, value: Date.now().toString() })
   if (businessId) {
     await Preferences.set({ key: PENDING_STRIPE_OPERATION_BUSINESS_ID_KEY, value: businessId })
   }
-  console.log('[EXTERNAL RETURN] Pending operation set:', operation, 'businessId:', businessId)
+  if (userId) {
+    await Preferences.set({ key: PENDING_STRIPE_OPERATION_USER_ID_KEY, value: userId })
+  }
+  await Preferences.set({ key: PENDING_STRIPE_OPERATION_UUID_KEY, value: operationUuid })
+  console.log('[EXTERNAL RETURN] Pending operation set:', operation, 'businessId:', businessId, 'userId:', userId, 'uuid:', operationUuid)
 }
 
 /**
  * Get the current pending Stripe operation (expires after 5 minutes)
  */
-export async function getPendingStripeOperation(): Promise<{ operation: PendingStripeOperation; businessId?: string }> {
+export async function getPendingStripeOperation(): Promise<{ operation: PendingStripeOperation; businessId?: string; userId?: string; operationUuid?: string }> {
   try {
     const timestampStr = await Preferences.get({ key: PENDING_STRIPE_OPERATION_TIMESTAMP_KEY })
     if (!timestampStr.value) return { operation: null }
@@ -122,9 +138,13 @@ export async function getPendingStripeOperation(): Promise<{ operation: PendingS
 
     const operation = await Preferences.get({ key: PENDING_STRIPE_OPERATION_KEY })
     const businessId = await Preferences.get({ key: PENDING_STRIPE_OPERATION_BUSINESS_ID_KEY })
+    const userId = await Preferences.get({ key: PENDING_STRIPE_OPERATION_USER_ID_KEY })
+    const operationUuid = await Preferences.get({ key: PENDING_STRIPE_OPERATION_UUID_KEY })
     return {
       operation: operation.value as PendingStripeOperation,
-      businessId: businessId.value || undefined
+      businessId: businessId.value || undefined,
+      userId: userId.value || undefined,
+      operationUuid: operationUuid.value || undefined
     }
   } catch (error) {
     console.error('[EXTERNAL RETURN] Error getting pending operation:', error)
@@ -200,6 +220,26 @@ export async function reconcileStripeStatus(businessId?: string): Promise<{ succ
     if (!businessId) {
       console.log('[EXTERNAL RETURN] Pending operation exists but business ID not stored')
       return { success: false, error: 'Missing business ID' }
+    }
+  }
+
+  // Validate user ID to prevent cross-account contamination
+  const pending = await getPendingStripeOperation()
+  if (pending.userId) {
+    try {
+      const supabase = await import('@/lib/supabase/browser').then(m => m.createBrowserClient())
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user && user.id !== pending.userId) {
+        console.log('[EXTERNAL RETURN] Pending operation belongs to different user, rejecting', {
+          pendingUserId: pending.userId,
+          currentUserId: user.id
+        })
+        await setPendingStripeOperation(null)
+        return { success: false, error: 'User mismatch' }
+      }
+    } catch (error) {
+      console.error('[EXTERNAL RETURN] Error validating user ID:', error)
+      // Continue with reconciliation if validation fails (fail open)
     }
   }
 
@@ -297,21 +337,83 @@ export async function handleExternalReturn(url: string): Promise<boolean> {
 }
 
 /**
+ * Set a pending Google operation that needs reconciliation on return/resume
+ */
+export async function setPendingGoogleOperation(operation: PendingGoogleOperation, userId?: string): Promise<void> {
+  if (!operation) {
+    await Preferences.remove({ key: PENDING_GOOGLE_OPERATION_KEY })
+    await Preferences.remove({ key: PENDING_GOOGLE_OPERATION_TIMESTAMP_KEY })
+    await Preferences.remove({ key: PENDING_GOOGLE_OPERATION_USER_ID_KEY })
+    await Preferences.remove({ key: PENDING_GOOGLE_OPERATION_UUID_KEY })
+    return
+  }
+
+  const operationUuid = crypto.randomUUID()
+  await Preferences.set({ key: PENDING_GOOGLE_OPERATION_KEY, value: operation })
+  await Preferences.set({ key: PENDING_GOOGLE_OPERATION_TIMESTAMP_KEY, value: Date.now().toString() })
+  if (userId) {
+    await Preferences.set({ key: PENDING_GOOGLE_OPERATION_USER_ID_KEY, value: userId })
+  }
+  await Preferences.set({ key: PENDING_GOOGLE_OPERATION_UUID_KEY, value: operationUuid })
+  console.log('[EXTERNAL RETURN] Pending Google operation set:', operation, 'userId:', userId, 'uuid:', operationUuid)
+}
+
+/**
+ * Get the current pending Google operation (expires after 5 minutes)
+ */
+export async function getPendingGoogleOperation(): Promise<{ operation: PendingGoogleOperation; userId?: string; operationUuid?: string }> {
+  try {
+    const timestampStr = await Preferences.get({ key: PENDING_GOOGLE_OPERATION_TIMESTAMP_KEY })
+    if (!timestampStr.value) return { operation: null }
+
+    const timestamp = parseInt(timestampStr.value, 10)
+    const now = Date.now()
+
+    if (now - timestamp > OPERATION_EXPIRY_MS) {
+      console.log('[EXTERNAL RETURN] Pending Google operation expired, clearing')
+      await setPendingGoogleOperation(null)
+      return { operation: null }
+    }
+
+    const operation = await Preferences.get({ key: PENDING_GOOGLE_OPERATION_KEY })
+    const userId = await Preferences.get({ key: PENDING_GOOGLE_OPERATION_USER_ID_KEY })
+    const operationUuid = await Preferences.get({ key: PENDING_GOOGLE_OPERATION_UUID_KEY })
+    return {
+      operation: operation.value as PendingGoogleOperation,
+      userId: userId.value || undefined,
+      operationUuid: operationUuid.value || undefined
+    }
+  } catch (error) {
+    console.error('[EXTERNAL RETURN] Error getting pending Google operation:', error)
+    return { operation: null }
+  }
+}
+
+/**
  * Handle app resume (called by appStateChange listener)
  * This should be called from the Capacitor init.ts appStateChange listener
  */
 export async function handleAppResume(): Promise<void> {
   console.log('[EXTERNAL RETURN] App resumed, checking for pending operations')
 
-  const pending = await getPendingStripeOperation()
-  if (!pending.operation) {
+  const pendingStripe = await getPendingStripeOperation()
+  if (pendingStripe.operation) {
+    console.log('[EXTERNAL RETURN] Pending Stripe operation found:', pendingStripe.operation, 'businessId:', pendingStripe.businessId)
+    // Trigger reconciliation using the business ID from pending operation
+    const result = await reconcileStripeStatus(pendingStripe.businessId)
+    console.log('[EXTERNAL RETURN] App resume Stripe reconciliation result:', result)
+  } else {
     console.log('[EXTERNAL RETURN] No pending Stripe operation')
-    return
   }
 
-  console.log('[EXTERNAL RETURN] Pending operation found:', pending.operation, 'businessId:', pending.businessId)
-
-  // Trigger reconciliation using the business ID from pending operation
-  const result = await reconcileStripeStatus(pending.businessId)
-  console.log('[EXTERNAL RETURN] App resume reconciliation result:', result)
+  const pendingGoogle = await getPendingGoogleOperation()
+  if (pendingGoogle.operation) {
+    console.log('[EXTERNAL RETURN] Pending Google operation found:', pendingGoogle.operation)
+    // For Google, we just need to refresh the calendar status
+    // The calendar page will handle the actual status check
+    // Clear the operation after detecting it
+    await setPendingGoogleOperation(null)
+  } else {
+    console.log('[EXTERNAL RETURN] No pending Google operation')
+  }
 }

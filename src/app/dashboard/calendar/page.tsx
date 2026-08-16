@@ -207,7 +207,7 @@ function MeetingsTab({
 }
 
 export default function SchedulePage() {
-  const { user } = useAuth()
+  const { user, authHydrated } = useAuth()
   const { business } = useBusiness()
   const supabase = createBrowserClient()
   const searchParams = useSearchParams()
@@ -328,6 +328,10 @@ export default function SchedulePage() {
 
   // Check for OAuth success/error redirect
   useEffect(() => {
+    // Wait for auth hydration to complete before processing OAuth return
+    // AUTH UNKNOWN is NOT UNAUTHENTICATED - must wait for session restoration
+    if (!authHydrated) return
+
     if (searchParams) {
       const calendarStatus = searchParams.get('calendar')
       const status = searchParams.get('status') // From deep link (replyflow://calendar?status=...)
@@ -337,18 +341,27 @@ export default function SchedulePage() {
         setTokenExpired(false)
         setScheduleTab('agenda') // Switch to Agenda tab after successful connection
         window.history.replaceState({}, '', '/dashboard/calendar')
+        // Clear pending Google operation after successful return
+        const { setPendingGoogleOperation } = require('@/lib/external-return-handler')
+        setPendingGoogleOperation(null)
       } else if (calendarStatus === 'cancelled' || status === 'cancelled') {
         // User cancelled or denied access
         showToast('Google Calendar Not Connected. You can try again anytime.', 'info')
         window.history.replaceState({}, '', '/dashboard/calendar')
+        // Clear pending Google operation on cancel
+        const { setPendingGoogleOperation } = require('@/lib/external-return-handler')
+        setPendingGoogleOperation(null)
       } else if (calendarStatus === 'error' || status === 'error') {
         // Genuine OAuth/server error
         showToast('Couldn\'t connect Google Calendar. Please try again.', 'error')
         window.history.replaceState({}, '', '/dashboard/calendar')
+        // Clear pending Google operation on error
+        const { setPendingGoogleOperation } = require('@/lib/external-return-handler')
+        setPendingGoogleOperation(null)
       }
 
     }
-  }, [searchParams])
+  }, [searchParams, authHydrated])
 
   const fetchJobs = async () => {
     setIsLoadingJobs(true)
@@ -492,7 +505,12 @@ export default function SchedulePage() {
       }
 
       const data = await response.json() as { authUrl: string }
-      
+
+      // Set pending operation so app resume can reconcile Google Calendar status
+      const { setPendingGoogleOperation } = await import('@/lib/external-return-handler')
+      await setPendingGoogleOperation('calendar_connect', user?.id)
+      console.log('[CALENDAR] Pending Google operation set for user:', user?.id)
+
       // Use Capacitor OAuth helper for native environment, standard redirect for web
       const callbackUrl = `${window.location.origin}/dashboard/calendar?calendar=connected`
       await openOAuthFlow(data.authUrl, callbackUrl)

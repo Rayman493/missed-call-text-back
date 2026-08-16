@@ -12,6 +12,7 @@ interface AuthContextType {
   session: any
   loading: boolean
   user: any
+  authHydrated: boolean
   signOut: (options?: { manual?: boolean }) => Promise<void>
   accessToken: string | null
 }
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<any>(null)
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [authHydrated, setAuthHydrated] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const authSubscriptionRef = useRef<any>(null)
@@ -101,7 +103,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('[Auth] Session restore failed:', error)
       } finally {
         setLoading(false)
+        setAuthHydrated(true)
         initialLoadRef.current = false
+
+        // Process any pending return URL that arrived before auth hydration
+        // This handles cold return from external providers
+        if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+          try {
+            const { processPendingReturnAfterAuth } = await import('@/capacitor/init')
+            await processPendingReturnAfterAuth()
+          } catch (error) {
+            console.error('[Auth] Failed to process pending return after auth:', error)
+          }
+        }
       }
     }
 
@@ -176,21 +190,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Handle routing based on auth state
   useEffect(() => {
-    if (loading || !isClient) return
+    // Wait for auth hydration to complete before making redirect decisions
+    // AUTH UNKNOWN is NOT UNAUTHENTICATED - must wait for getSession() to finish
+    if (loading || !isClient || !authHydrated) return
 
     const searchParams = new URLSearchParams(window.location.search)
     const checkoutStatus = searchParams.get('checkout')
     const sessionId = searchParams.get('session_id')
     const billingReturned = searchParams.get('billing') === 'returned'
-    
+
     const isCheckoutSuccess = checkoutStatus === 'success' || sessionId?.startsWith('cs_')
-    
+
     // Allow users returning from Stripe checkout to have time to recover session
     // Do NOT redirect to signin when checkout=success - let AuthGuard handle recovery flow
+    // Only redirect after auth hydration is complete AND no valid session exists
     if (!user && (pathname?.startsWith('/dashboard') || pathname?.startsWith('/onboarding')) && !isCheckoutSuccess && !billingReturned) {
       router.push('/auth/signin')
     }
-  }, [user, loading, router, isClient, pathname])
+  }, [user, loading, authHydrated, router, isClient, pathname])
 
   // Sign out function that clears all sensitive data
   const signOut = async (options?: { manual?: boolean }) => {
@@ -278,7 +295,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, loading, user, signOut, accessToken }}>
+    <AuthContext.Provider value={{ session, loading, user, authHydrated, signOut, accessToken }}>
       {children}
     </AuthContext.Provider>
   )

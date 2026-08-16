@@ -15,6 +15,7 @@ interface BusinessContextType {
   fetchComplete: boolean
   businessMissingConfirmed: boolean // True only if PGRST116 confirmed no business
   businessVerified: boolean // True if business was previously verified (cached)
+  businessHydrated: boolean // True if initial business fetch has completed
   refreshBusiness: (force?: boolean) => Promise<void>
   setBusiness: (business: Business | null) => void
   updateBusinessField: (field: string, value: any) => void
@@ -90,6 +91,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [fetchComplete, setFetchComplete] = useState(!!cachedBusinessPayload?.business)
   const [businessMissingConfirmed, setBusinessMissingConfirmed] = useState(false)
+  const [businessHydrated, setBusinessHydrated] = useState(!!cachedBusinessPayload?.business)
   const [lastFetchTimestamp, setLastFetchTimestamp] = useState<number>(cachedBusinessPayload?.verifiedAt ?? 0)
   const userIdRef = useRef<string | null>(null)
   const authSubscriptionRef = useRef<any>(null)
@@ -168,6 +170,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         setBusinessVerified(false)
         setLoading(false)
         setFetchComplete(true)
+        setBusinessHydrated(true)
         return
       }
 
@@ -201,6 +204,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           setBusinessVerified(false)
           setLoading(false)
           setFetchComplete(true)
+          setBusinessHydrated(true)
         } else {
           // For other errors, do NOT assume no business - keep business null but mark fetch as complete
           // This prevents sending existing users to onboarding due to transient failures
@@ -210,6 +214,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           setBusinessMissingConfirmed(false) // Not confirmed, could be error
           if (shouldShowLoading) setLoading(false)
           setFetchComplete(true)
+          setBusinessHydrated(true)
         }
       } else {
         log('[BusinessContext] Business found:', businessData?.id, 'for user:', user.id)
@@ -226,6 +231,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         if (businessData) writeBusinessCache(businessData, user.id)
         setLoading(false)
         setFetchComplete(true)
+        setBusinessHydrated(true)
       }
       
       // Update last fetch timestamp
@@ -234,6 +240,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       setError(err.message || 'Failed to fetch business')
       if (shouldShowLoading) setLoading(false)
       setFetchComplete(true)
+      setBusinessHydrated(true)
     }
   }, [supabase, businessVerified, business, lastFetchTimestamp])
 
@@ -334,6 +341,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       fetchComplete,
       businessMissingConfirmed,
       businessVerified,
+      businessHydrated,
       refreshBusiness: (force?: boolean) => fetchBusiness(force),
       setBusiness,
       updateBusinessField: (field: string, value: any) => {
@@ -343,7 +351,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       },
       invalidateBusinessCache
     }
-  }, [business, loading, error, fetchComplete, businessMissingConfirmed, businessVerified, fetchBusiness, invalidateBusinessCache])
+  }, [business, loading, error, fetchComplete, businessMissingConfirmed, businessVerified, businessHydrated, fetchBusiness, invalidateBusinessCache])
 
   // Show setup error if env vars are missing
   if (!supabase) {

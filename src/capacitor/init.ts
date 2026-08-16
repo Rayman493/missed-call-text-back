@@ -1,6 +1,6 @@
 /**
  * Capacitor Initialization
- * 
+ *
  * This file initializes Capacitor plugins and handles app lifecycle events.
  * It should be imported early in the app initialization (e.g., in layout.tsx or a dedicated init component).
  */
@@ -20,6 +20,10 @@ import { handleExternalReturn, handleAppResume } from '@/lib/external-return-han
 // Import production web checkout plugin for native iOS Stripe checkout
 // This provides automatic return-to-app behavior using ASWebAuthenticationSession
 import '@/lib/web-checkout';
+
+// Global ref to store pending return URL for processing after auth hydration
+let pendingReturnUrl: string | null = null;
+let pendingReturnProcessed = false;
 
 /**
  * Validate critical production configuration
@@ -114,7 +118,13 @@ export async function initializeCapacitor() {
       console.log('[NAV_SOURCE] source=APP_URL_OPEN_ENTER url=' + data.url);
       console.log('[Capacitor] App opened with URL:', data.url);
 
-      // Handle external return reconciliation for Stripe flows
+      // Store return URL for processing after auth hydration
+      // External return may arrive before React/AuthContext initializes
+      pendingReturnUrl = data.url;
+      pendingReturnProcessed = false;
+
+      // Attempt to handle external return reconciliation for Stripe flows
+      // If auth is not yet hydrated, this will store the operation and defer reconciliation
       const handled = await handleExternalReturn(data.url);
 
       // Only handle deep links if the URL was not already handled by external return
@@ -132,7 +142,12 @@ export async function initializeCapacitor() {
       console.log('[NAV_SOURCE] source=GET_LAUNCH_URL url=' + launchUrl.url);
       console.log('[Capacitor] App launched with URL:', launchUrl.url);
 
-      // Handle external return reconciliation for Stripe flows
+      // Store return URL for processing after auth hydration
+      pendingReturnUrl = launchUrl.url;
+      pendingReturnProcessed = false;
+
+      // Attempt to handle external return reconciliation for Stripe flows
+      // If auth is not yet hydrated, this will store the operation and defer reconciliation
       const handled = await handleExternalReturn(launchUrl.url);
 
       // Only handle deep links if the URL was not already handled by external return
@@ -493,4 +508,25 @@ export async function clearSecureData(): Promise<void> {
     return;
   }
   await Preferences.clear();
+}
+
+/**
+ * Process pending return URL after auth hydration
+ * This should be called from AuthContext after authHydrated becomes true
+ */
+export async function processPendingReturnAfterAuth(): Promise<void> {
+  if (!pendingReturnUrl || pendingReturnProcessed) {
+    return
+  }
+
+  console.log('[AUTH_RETURN] Processing pending return URL after auth hydration:', pendingReturnUrl)
+  pendingReturnProcessed = true
+
+  const handled = await handleExternalReturn(pendingReturnUrl)
+  if (!handled) {
+    console.log('[AUTH_RETURN] Processing as deep link:', pendingReturnUrl)
+    handleDeepLink(pendingReturnUrl)
+  }
+
+  pendingReturnUrl = null
 }

@@ -354,8 +354,8 @@ export default function CompleteSetupPage() {
       if (response.ok && checkoutData.url) {
         // Set pending operation so app resume can reconcile subscription status
         const { setPendingStripeOperation } = await import('@/lib/external-return-handler')
-        await setPendingStripeOperation('checkout', business.id)
-        console.log('[CompleteSetup] Pending checkout operation set for business:', business.id)
+        await setPendingStripeOperation('checkout', business.id, user?.id)
+        console.log('[CompleteSetup] Pending checkout operation set for business:', business.id, 'user:', user?.id)
 
         await openStripeCheckout(checkoutData.url)
       } else {

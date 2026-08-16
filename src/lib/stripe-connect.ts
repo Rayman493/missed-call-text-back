@@ -63,13 +63,13 @@ export function isNativeIOS(): boolean {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
 }
 
-export async function openStripeConnectOnboarding(url: string, businessId?: string): Promise<{ completed: boolean; callbackMatched: boolean }> {
+export async function openStripeConnectOnboarding(url: string, businessId?: string, userId?: string): Promise<{ completed: boolean; callbackMatched: boolean }> {
   console.log('[STRIPE CONNECT] web_build_marker=CONNECT_CALL_FIX_2026_08_12')
 
   // Set pending operation for reconciliation on return/resume
   if (businessId) {
-    await setPendingStripeOperation('connect_onboarding')
-    console.log('[STRIPE CONNECT] Pending operation set for business:', businessId)
+    await setPendingStripeOperation('connect_onboarding', businessId, userId)
+    console.log('[STRIPE CONNECT] Pending operation set for business:', businessId, 'user:', userId)
   }
 
   if (isNativeIOS()) {

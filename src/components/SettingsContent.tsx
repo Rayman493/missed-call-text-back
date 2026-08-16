@@ -1266,13 +1266,13 @@ export default function SettingsContent() {
       } else if (data.url) {
         // Set pending operation so app resume can reconcile Stripe Connect status
         const { setPendingStripeOperation } = await import('@/lib/external-return-handler')
-        await setPendingStripeOperation('connect_onboarding', business.id)
-        console.log('[STRIPE CONNECT] Pending connect_onboarding operation set for business:', business.id)
+        await setPendingStripeOperation('connect_onboarding', business.id, user?.id)
+        console.log('[STRIPE CONNECT] Pending connect_onboarding operation set for business:', business.id, 'user:', user?.id)
 
         // Hide loading modal when native session presents
         setStripeConnectLoading(false)
         // Use native plugin for iOS, fallback to window.location.href for others
-        const result = await openStripeConnectOnboarding(data.url, business.id)
+        const result = await openStripeConnectOnboarding(data.url, business.id, user?.id)
 
         // After native session completes, show checking state and refresh status
         if (result.completed || result.callbackMatched) {

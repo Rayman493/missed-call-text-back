@@ -43,23 +43,30 @@ describe('External Return Handler', () => {
   })
 
   describe('Pending Operation Tracking', () => {
-    it('should set and retrieve pending operation with business ID', async () => {
+    it('should set and retrieve pending operation with business ID and user ID', async () => {
       vi.mocked(Preferences.set).mockResolvedValue(undefined)
       vi.mocked(Preferences.get).mockImplementation(async (key) => {
         if (key.key === 'pending_stripe_operation') return { value: 'connect_onboarding' }
         if (key.key === 'pending_stripe_operation_timestamp') return { value: Date.now().toString() }
         if (key.key === 'pending_stripe_operation_business_id') return { value: 'test-business-id' }
+        if (key.key === 'pending_stripe_operation_user_id') return { value: 'test-user-id' }
+        if (key.key === 'pending_stripe_operation_uuid') return { value: 'test-uuid' }
         return { value: null }
       })
 
-      await setPendingStripeOperation('connect_onboarding', 'test-business-id')
-      
+      await setPendingStripeOperation('connect_onboarding', 'test-business-id', 'test-user-id')
+
       expect(Preferences.set).toHaveBeenCalledWith({ key: 'pending_stripe_operation', value: 'connect_onboarding' })
       expect(Preferences.set).toHaveBeenCalledWith({ key: 'pending_stripe_operation_business_id', value: 'test-business-id' })
+      expect(Preferences.set).toHaveBeenCalledWith({ key: 'pending_stripe_operation_user_id', value: 'test-user-id' })
+      // UUID is set, but we don't validate its exact value
+      expect(Preferences.set).toHaveBeenCalledTimes(5)
 
       const pending = await getPendingStripeOperation()
       expect(pending.operation).toBe('connect_onboarding')
       expect(pending.businessId).toBe('test-business-id')
+      expect(pending.userId).toBe('test-user-id')
+      expect(pending.operationUuid).toBeDefined()
     })
 
     it('should clear pending operation when set to null', async () => {
@@ -70,6 +77,8 @@ describe('External Return Handler', () => {
       expect(Preferences.remove).toHaveBeenCalledWith({ key: 'pending_stripe_operation' })
       expect(Preferences.remove).toHaveBeenCalledWith({ key: 'pending_stripe_operation_timestamp' })
       expect(Preferences.remove).toHaveBeenCalledWith({ key: 'pending_stripe_operation_business_id' })
+      expect(Preferences.remove).toHaveBeenCalledWith({ key: 'pending_stripe_operation_user_id' })
+      expect(Preferences.remove).toHaveBeenCalledWith({ key: 'pending_stripe_operation_uuid' })
     })
 
     it('should expire pending operation after 5 minutes', async () => {
@@ -121,10 +130,6 @@ describe('External Return Handler', () => {
     })
 
     it('should trigger reconciliation for Stripe Checkout return URL', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ canonicalStatus: 'connected' })
-      })
       vi.mocked(Preferences.get).mockImplementation(async (key) => {
         if (key.key === 'stripe_reconciliation_in_flight') return { value: 'false' }
         if (key.key === 'stripe_reconciliation_last_time') return { value: null }
@@ -136,9 +141,11 @@ describe('External Return Handler', () => {
       vi.mocked(Preferences.set).mockResolvedValue(undefined)
       vi.mocked(Preferences.remove).mockResolvedValue(undefined)
 
-      await handleExternalReturn('https://www.replyflowhq.com/billing/success?checkout=success')
+      const result = await handleExternalReturn('https://www.replyflowhq.com/billing/success?checkout=success')
 
-      expect(fetch).toHaveBeenCalled()
+      // Stripe Checkout doesn't call reconcileStripeStatus - it navigates to billing/success
+      // The billing/success page handles reconciliation via polling
+      expect(result).toBe(true)
     })
   })
 
