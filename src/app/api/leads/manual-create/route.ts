@@ -16,7 +16,10 @@ export async function POST(request: NextRequest) {
       phoneNumber,
       email,
       address,
-      notes
+      notes,
+      reasonForCalling,
+      desiredCompletionTime,
+      preferredCallbackTime
     } = body
 
     // Validate required fields
@@ -77,9 +80,12 @@ export async function POST(request: NextRequest) {
         raw_metadata: {
           extracted_info: {
             callerName: customerName || null,
+            reasonForCalling: reasonForCalling || null,
             addressOrLocation: address || null,
             email: email || null,
-            importantDetails: notes || null
+            importantDetails: notes || null,
+            desiredCompletionTime: desiredCompletionTime || null,
+            preferredCallbackTime: preferredCallbackTime || null
           }
         }
       })
@@ -103,9 +109,12 @@ export async function POST(request: NextRequest) {
       const mergedExtractedInfo = {
         ...existingExtractedInfo,
         callerName: customerName || existingExtractedInfo.callerName,
+        reasonForCalling: reasonForCalling || existingExtractedInfo.reasonForCalling,
         addressOrLocation: address || existingExtractedInfo.addressOrLocation,
         email: email || existingExtractedInfo.email,
-        importantDetails: notes || existingExtractedInfo.importantDetails
+        importantDetails: notes || existingExtractedInfo.importantDetails,
+        desiredCompletionTime: desiredCompletionTime || existingExtractedInfo.desiredCompletionTime,
+        preferredCallbackTime: preferredCallbackTime || existingExtractedInfo.preferredCallbackTime
       }
 
       if (!leadId) {

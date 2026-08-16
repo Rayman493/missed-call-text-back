@@ -63,7 +63,7 @@ export default function CalendarDayCell({
     <div
       onClick={onClick}
       className={`
-        min-h-[48px] sm:min-h-[64px] md:min-h-[86px] p-1 sm:p-1.5 md:p-2 rounded-lg border transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-start justify-start gap-1
+        min-h-[48px] sm:min-h-[64px] md:min-h-[86px] p-0.5 sm:p-1.5 md:p-2 rounded-lg border transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-start justify-start gap-1
         ${isCurrentMonth
           ? isWeekend
             ? 'bg-slate-50 dark:bg-slate-900/50 border-slate-200/70 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/70'
@@ -105,13 +105,13 @@ export default function CalendarDayCell({
         {visibleEvents.map((event, index) => (
           <div
             key={`${event.id}-${index}`}
-            className={`flex items-center gap-1 text-[10px] leading-none truncate ${getEventColor(event.type)}`}
+            className={`flex items-center gap-0.5 text-[10px] leading-none ${getEventColor(event.type)}`}
             title={event.summary}
           >
-            <div className="flex items-center justify-center w-4 h-4 flex-none shrink-0">
+            <div className="flex items-center justify-center w-3 h-3 sm:w-4 sm:h-4 flex-none shrink-0">
               {getEventIcon(event.type)}
             </div>
-            <span className="truncate font-medium">{event.summary}</span>
+            <span className="truncate font-medium min-w-0 flex-1">{event.summary}</span>
           </div>
         ))}
         {overflowCount > 0 && (

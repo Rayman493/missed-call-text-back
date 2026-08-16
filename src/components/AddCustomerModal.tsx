@@ -24,7 +24,10 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
     phoneNumber: '',
     email: '',
     address: '',
-    notes: ''
+    notes: '',
+    reasonForCalling: '',
+    desiredCompletionTime: '',
+    preferredCallbackTime: ''
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -104,7 +107,10 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
           phoneNumber: formData.phoneNumber.trim(),
           email: formData.email.trim() || undefined,
           address: formData.address.trim() || undefined,
-          notes: formData.notes.trim() || undefined
+          notes: formData.notes.trim() || undefined,
+          reasonForCalling: formData.reasonForCalling.trim() || undefined,
+          desiredCompletionTime: formData.desiredCompletionTime.trim() || undefined,
+          preferredCallbackTime: formData.preferredCallbackTime.trim() || undefined
         })
       })
 
@@ -123,7 +129,10 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
         phoneNumber: '',
         email: '',
         address: '',
-        notes: ''
+        notes: '',
+        reasonForCalling: '',
+        desiredCompletionTime: '',
+        preferredCallbackTime: ''
       })
 
       // If a workflow provided a callback, hand the lead back without redirecting
@@ -136,7 +145,10 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
           phoneNumber: '',
           email: '',
           address: '',
-          notes: ''
+          notes: '',
+          reasonForCalling: '',
+          desiredCompletionTime: '',
+          preferredCallbackTime: ''
         })
         setError('')
         
@@ -199,9 +211,10 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
 
         {/* Scrollable Form Body */}
         <div className="overflow-y-auto flex-1 overflow-x-hidden overscroll-contain" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
-          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 pb-4">
-            {/* Required Fields */}
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 pb-4">
+            {/* CONTACT Section */}
             <div className="space-y-4">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contact</h3>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
                   Customer Name <span className="text-red-500">*</span>
@@ -235,10 +248,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                   disabled={isSubmitting}
                 />
               </div>
-            </div>
 
-            {/* Optional Fields */}
-            <div className="space-y-4 pt-4 border-t border-border/50">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
                   Email
@@ -257,10 +267,47 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                   disabled={isSubmitting}
                 />
               </div>
+            </div>
+
+            {/* INTAKE Section */}
+            <div className="space-y-4 pt-4 border-t border-border/50">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Intake</h3>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Reason for Calling
+                </label>
+                <input
+                  type="text"
+                  value={formData.reasonForCalling}
+                  onChange={(e) => handleInputChange('reasonForCalling', e.target.value)}
+                  placeholder="e.g., Piano lessons, HVAC repair, Consultation"
+                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                  disabled={isSubmitting}
+                  autoCapitalize="sentences"
+                  autoCorrect="on"
+                />
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  Address
+                  Details
+                </label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => handleInputChange('notes', e.target.value)}
+                  placeholder="Any additional details..."
+                  rows={2}
+                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none resize-none"
+                  disabled={isSubmitting}
+                  autoCapitalize="sentences"
+                  autoCorrect="on"
+                  spellCheck="true"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Location
                 </label>
                 <input
                   type="text"
@@ -278,18 +325,33 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  Notes
+                  Desired Completion Time
                 </label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
-                  placeholder="Any additional details..."
-                  rows={2}
-                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none resize-none"
+                <input
+                  type="text"
+                  value={formData.desiredCompletionTime}
+                  onChange={(e) => handleInputChange('desiredCompletionTime', e.target.value)}
+                  placeholder="e.g., tomorrow, next week, by Friday"
+                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
                   disabled={isSubmitting}
                   autoCapitalize="sentences"
                   autoCorrect="on"
-                  spellCheck="true"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Preferred Callback Time
+                </label>
+                <input
+                  type="text"
+                  value={formData.preferredCallbackTime}
+                  onChange={(e) => handleInputChange('preferredCallbackTime', e.target.value)}
+                  placeholder="e.g., afternoon, 2pm, morning"
+                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                  disabled={isSubmitting}
+                  autoCapitalize="sentences"
+                  autoCorrect="on"
                 />
               </div>
             </div>

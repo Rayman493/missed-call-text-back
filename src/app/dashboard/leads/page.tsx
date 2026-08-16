@@ -1309,55 +1309,36 @@ export default function LeadsPage() {
                   </DropdownMenuPortal>
                 </DropdownMenu>
 
-                {/* Overflow menu for secondary actions */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="h-10 w-10 inline-flex items-center justify-center bg-background border border-border/50 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
-                      title="More options"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                      </svg>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuContent
-                      align="end"
-                      side="bottom"
-                      sideOffset={8}
-                      collisionPadding={12}
-                      avoidCollisions
-                      className="w-[200px] max-w-[calc(100vw-24px)] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 z-[10000]"
-                    >
-                      <DropdownMenuItem
-                        onSelect={() => setShowAddCustomerModal(true)}
-                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 outline-none focus:bg-muted/50 cursor-pointer"
-                      >
-                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        <span className="text-sm text-foreground">Add Customer</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator className="my-1 h-px bg-border/50" />
-                      <DropdownMenuItem
-                        onSelect={fetchLeads}
-                        disabled={loading || refreshing}
-                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 outline-none focus:bg-muted/50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {refreshing ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                        ) : (
-                          <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                        )}
-                        <span className="text-sm text-foreground">Refresh</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenuPortal>
-                </DropdownMenu>
+                {/* Add Customer button */}
+                <button
+                  type="button"
+                  className="h-10 w-10 inline-flex items-center justify-center bg-background border border-border/50 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                  onClick={() => setShowAddCustomerModal(true)}
+                  aria-label="Add customer"
+                  title="Add customer"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+
+                {/* Refresh button */}
+                <button
+                  type="button"
+                  className="h-10 w-10 inline-flex items-center justify-center bg-background border border-border/50 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={fetchLeads}
+                  disabled={loading || refreshing}
+                  aria-label="Refresh customers"
+                  title="Refresh customers"
+                >
+                  {refreshing ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  )}
+                </button>
               </div>
             </div>
 

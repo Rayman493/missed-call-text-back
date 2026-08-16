@@ -8,7 +8,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Toast, { ToastContainer } from '@/components/Toast'
 import Link from 'next/link'
-import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink, Pencil } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
@@ -631,7 +631,13 @@ export default function SchedulePage() {
       return j.scheduled_date >= startKey && j.scheduled_date <= endKey
     }).length
 
-    return { appointments, jobs: jobCount }
+    const taskCount = tasks.filter(t => {
+      if (!t.due_date || t.completed) return false
+      const taskDate = new Date(t.due_date)
+      return taskDate >= startOfMonth && taskDate <= endOfMonth
+    }).length
+
+    return { appointments, jobs: jobCount, tasks: taskCount }
   }
 
   const getEventsForDay = (date: Date) => {
@@ -1284,15 +1290,29 @@ export default function SchedulePage() {
 
                       {/* Compact Status Bar - Desktop: Simplified */}
                       <div className="hidden md:flex items-center justify-between gap-6 mb-4 p-3 bg-slate-900/50 border border-slate-700/50 rounded-xl shadow-sm">
-                        {/* Single compact summary */}
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          <p className="text-sm text-slate-300">
-                            <span className="font-semibold text-foreground">{getThisMonthCounts().appointments} appointments</span>
-                            <span className="text-slate-400 mx-1">•</span>
-                            <span className="font-semibold text-foreground">{getThisMonthCounts().jobs} jobs</span>
-                            <span className="text-slate-400 ml-1">this month</span>
-                          </p>
+                        {/* Equal-width summary columns */}
+                        <div className="grid grid-cols-3 gap-4 flex-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <p className="text-sm text-slate-300">
+                              <span className="font-semibold text-foreground">{getThisMonthCounts().tasks}</span>
+                              <span className="text-slate-400 ml-1">tasks</span>
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                            <p className="text-sm text-slate-300">
+                              <span className="font-semibold text-foreground">{getThisMonthCounts().jobs}</span>
+                              <span className="text-slate-400 ml-1">jobs</span>
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                            <p className="text-sm text-slate-300">
+                              <span className="font-semibold text-foreground">{getThisMonthCounts().appointments}</span>
+                              <span className="text-slate-400 ml-1">appointments</span>
+                            </p>
+                          </div>
                         </div>
 
                         {/* Calendar Status & Actions - Simplified */}
@@ -1300,11 +1320,6 @@ export default function SchedulePage() {
                           <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
                             <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-sm shadow-emerald-400/30"></div>
                             <span className="text-xs font-medium text-emerald-100">Connected</span>
-                            {lastSyncTime && (
-                              <span className="text-[10px] text-emerald-200/60 font-normal">
-                                • {formatTimeAgo(lastSyncTime)}
-                              </span>
-                            )}
                           </div>
                           <button
                             onClick={() => handleAddEvent()}
@@ -1378,18 +1393,23 @@ export default function SchedulePage() {
                       </div>
 
                       
-                      {/* Mobile: Compact Metrics - single summary */}
+                      {/* Mobile: Compact Metrics - equal-width columns */}
                       <div className="md:hidden mb-3">
-                        <div className="flex items-center justify-around gap-2 p-2 bg-slate-900/50 border border-slate-700/50 rounded-lg">
-                          <div className="flex items-center gap-1.5">
+                        <div className="grid grid-cols-3 gap-2 p-2 bg-slate-900/50 border border-slate-700/50 rounded-lg">
+                          <div className="flex items-center justify-center gap-1.5">
                             <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                            <span className="text-xs font-medium text-foreground">{getThisMonthCounts().appointments}</span>
-                            <span className="text-[10px] text-slate-400">appointments</span>
+                            <span className="text-xs font-medium text-foreground">{getThisMonthCounts().tasks}</span>
+                            <span className="text-[10px] text-slate-400">tasks</span>
                           </div>
-                          <div className="w-px h-4 bg-slate-700"></div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
                             <span className="text-xs font-medium text-foreground">{getThisMonthCounts().jobs}</span>
                             <span className="text-[10px] text-slate-400">jobs</span>
+                          </div>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                            <span className="text-xs font-medium text-foreground">{getThisMonthCounts().appointments}</span>
+                            <span className="text-[10px] text-slate-400">appointments</span>
                           </div>
                         </div>
                       </div>
@@ -1585,37 +1605,55 @@ export default function SchedulePage() {
                                         : 'No time'
 
                                       return (
-                                        <button
+                                        <div
                                           key={job.id}
-                                          onClick={() => {
-                                            setSelectedJob(job as Job)
-                                            setIsJobDetailsOpen(true)
-                                          }}
-                                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors w-full text-left"
+                                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                                         >
-                                          <div className="flex-shrink-0 mt-0.5">
-                                            <Briefcase className="w-4 h-4 text-green-600 dark:text-green-400" />
-                                          </div>
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-                                              {job.title}
-                                            </p>
-                                            {job.customer_name && (
-                                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                                {job.customer_name}
-                                              </p>
-                                            )}
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                              <p className="text-xs text-slate-500 dark:text-slate-400">
-                                                {time}
-                                              </p>
-                                              <span className="text-xs text-slate-400 dark:text-slate-500">•</span>
-                                              <p className="text-xs text-slate-600 dark:text-slate-400">
-                                                {job.status.replace('_', ' ')}
-                                              </p>
+                                          <button
+                                            onClick={() => {
+                                              setSelectedJob(job as Job)
+                                              setIsJobDetailsOpen(true)
+                                            }}
+                                            className="flex items-start gap-3 flex-1 min-w-0 text-left"
+                                          >
+                                            <div className="flex-shrink-0 mt-0.5">
+                                              <Briefcase className="w-4 h-4 text-green-600 dark:text-green-400" />
                                             </div>
-                                          </div>
-                                        </button>
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                                                {job.title}
+                                              </p>
+                                              {job.customer_name && (
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                  {job.customer_name}
+                                                </p>
+                                              )}
+                                              <div className="flex items-center gap-2 mt-0.5">
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                  {time}
+                                                </p>
+                                                <span className="text-xs text-slate-400 dark:text-slate-500">•</span>
+                                                <p className="text-xs text-slate-600 dark:text-slate-400">
+                                                  {job.status.replace('_', ' ')}
+                                                </p>
+                                              </div>
+                                            </div>
+                                          </button>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              setEditingJob(job as Job)
+                                              setJobPrefill(undefined)
+                                              setNewJobDefaultDate(undefined)
+                                              setIsJobComposerOpen(true)
+                                            }}
+                                            aria-label={`Edit job: ${job.title}`}
+                                            className="flex-shrink-0 p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                                            title="Edit job"
+                                          >
+                                            <Pencil className="w-4 h-4" />
+                                          </button>
+                                        </div>
                                       )
                                     }
                                   })}
@@ -1743,6 +1781,8 @@ export default function SchedulePage() {
                       let serviceAddress = undefined
                       let title = undefined
                       let notes = undefined
+                      let requestedCompletionLabel = undefined
+                      let callbackPreferenceLabel = undefined
 
                       if (leadData) {
                         // Use getLeadAIIntake for canonical field resolution with phone number filtering
@@ -1752,14 +1792,16 @@ export default function SchedulePage() {
                         customerName = intake.customerName || undefined
                         customerPhone = intake.customerPhone || undefined
                         serviceAddress = intake.serviceAddress || undefined
-                        title = getLeadRequestTitle(leadData) || intake.serviceRequested || undefined
+                        title = getLeadRequestTitle(leadData) || intake.serviceRequested || intake.reasonForCalling || undefined
                         
                         const noteParts = [
-                          intake.additionalDetails,
-                          intake.desiredCompletion ? `Desired completion: ${intake.desiredCompletion}` : null,
-                          intake.callbackTime ? `Best callback time: ${intake.callbackTime}` : null,
+                          intake.additionalDetails || intake.importantDetails,
                         ].filter(Boolean)
                         notes = noteParts.length > 0 ? noteParts.join('\n\n') : undefined
+
+                        // Extract timing fields for Job prefill
+                        requestedCompletionLabel = intake.desiredCompletionTime || intake.desiredCompletion || undefined
+                        callbackPreferenceLabel = intake.preferredCallbackTime || intake.callbackTime || undefined
                       }
 
                       // Open job composer with the newly created customer pre-selected
@@ -1770,7 +1812,9 @@ export default function SchedulePage() {
                         service_address: serviceAddress,
                         title: title,
                         notes: notes,
-                        conversation_id: leadData?.conversation_id || undefined
+                        conversation_id: leadData?.conversation_id || undefined,
+                        requested_completion_label: requestedCompletionLabel,
+                        callback_preference_label: callbackPreferenceLabel
                       })
                       setIsJobComposerOpen(true)
                     }}
