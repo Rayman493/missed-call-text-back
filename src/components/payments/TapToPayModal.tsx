@@ -441,7 +441,10 @@ export default function TapToPayModal({
     return 'Payment failed. Please try again.'
   }
 
-  const checkAttemptStatus = async (terminalAttemptId: string) => {
+  const checkAttemptStatus = async (terminalAttemptId: string, retryCount: number = 0, maxRetries: number = 10) => {
+    const isMounted = { current: true }
+    const timeoutIds: number[] = []
+
     try {
       const headers = await terminalService.getAuthHeaders()
       const response = await fetch(`/api/terminal/attempt-status?terminalAttemptId=${terminalAttemptId}`, {
@@ -449,8 +452,18 @@ export default function TapToPayModal({
         headers,
       })
 
+      if (!isMounted.current) {
+        console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=recovery_check_cancelled (component unmounted)')
+        return
+      }
+
       if (response.ok) {
         const data = await response.json()
+
+        if (!isMounted.current) {
+          console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=recovery_result_ignored (component unmounted)')
+          return
+        }
 
         if (data.status === 'paid') {
           setPaymentState('success')
@@ -464,10 +477,23 @@ export default function TapToPayModal({
           setError(data.message || 'Payment failed')
           terminalService.clearUnresolvedAttempt()
         } else if (data.status === 'processing') {
-          setPaymentState('ambiguous')
-          setError('Payment is still processing - please wait')
-          // Continue polling - do NOT convert to failed on timeout
-          setTimeout(() => checkAttemptStatus(terminalAttemptId), 3000)
+          if (retryCount >= maxRetries) {
+            console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=recovery_timeout retries=' + retryCount)
+            setPaymentState('ambiguous')
+            setError('Unable to confirm payment status. Please check your payment history before trying again.')
+            // CRITICAL: DO NOT clear unresolved attempt - server must reconcile
+            // Financial guard remains active even after polling stops
+          } else {
+            console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=recovery_retry count=' + (retryCount + 1) + '/' + maxRetries)
+            setPaymentState('ambiguous')
+            setError('Payment is still processing - please wait')
+            const timeoutId = setTimeout(() => {
+              if (isMounted.current) {
+                checkAttemptStatus(terminalAttemptId, retryCount + 1, maxRetries)
+              }
+            }, 3000) as unknown as number
+            timeoutIds.push(timeoutId)
+          }
         } else if (data.status === 'not_found') {
           // Attempt not found - clear and allow new payment
           terminalService.clearUnresolvedAttempt()
@@ -476,15 +502,24 @@ export default function TapToPayModal({
         }
       } else {
         console.error('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=recovery_check_failed')
-        setPaymentState('ambiguous')
-        setError('Unable to check payment status. Please try again.')
+        if (isMounted.current) {
+          setPaymentState('ambiguous')
+          setError('Unable to check payment status. Please try again.')
+        }
         // Do NOT clear unresolved attempt - keep for retry
       }
     } catch (error) {
       console.error('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=recovery_check_error error=' + (error instanceof Error ? error.message : 'Unknown'))
-      setPaymentState('ambiguous')
-      setError('Unable to check payment status. Please try again.')
+      if (isMounted.current) {
+        setPaymentState('ambiguous')
+        setError('Unable to check payment status. Please try again.')
+      }
       // Do NOT clear unresolved attempt - keep for retry
+    }
+
+    return () => {
+      isMounted.current = false
+      timeoutIds.forEach(id => clearTimeout(id))
     }
   }
 

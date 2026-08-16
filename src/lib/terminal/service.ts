@@ -1475,9 +1475,10 @@ export class TerminalBridgeService {
   }
 
   // Persist unresolved attempt ID for app restart recovery
+  // CRITICAL: No time-based expiration - server must reconcile authoritatively
   private persistUnresolvedAttempt(terminalAttemptId: string) {
     try {
-      localStorage.setItem('terminal_unresolved_attempt_id', terminalAttemptId)
+      localStorage.setItem('terminal_unresolved_attempt', terminalAttemptId)
       console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=persisted')
     } catch (error) {
       console.error('[TAP_ATTEMPT] failed to persist attempt ID:', error)
@@ -1487,7 +1488,7 @@ export class TerminalBridgeService {
   // Clear unresolved attempt ID when attempt is terminal
   clearUnresolvedAttempt() {
     try {
-      localStorage.removeItem('terminal_unresolved_attempt_id')
+      localStorage.removeItem('terminal_unresolved_attempt')
       console.log('[TAP_ATTEMPT] stage=unresolved_attempt_cleared')
     } catch (error) {
       console.error('[TAP_ATTEMPT] failed to clear attempt ID:', error)
@@ -1495,9 +1496,10 @@ export class TerminalBridgeService {
   }
 
   // Get unresolved attempt ID for recovery
+  // No time-based expiration - server must reconcile authoritatively
   getUnresolvedAttempt(): string | null {
     try {
-      const attemptId = localStorage.getItem('terminal_unresolved_attempt_id')
+      const attemptId = localStorage.getItem('terminal_unresolved_attempt')
       if (attemptId) {
         console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=recovered')
       }
