@@ -496,7 +496,7 @@ export default function NavbarNotifications() {
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed z-50 w-[min(400px,calc(100vw-2rem))] sm:w-96 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl ring-1 ring-white/5 overflow-hidden"
+            className="fixed z-50 w-[min(400px,calc(100vw-2rem))] sm:w-96 bg-slate-900/95 backdrop-blur-xl border border-border elevated-surface-border rounded-2xl shadow-2xl ring-1 ring-white/5 overflow-hidden"
             style={{
               top: `${buttonPosition?.top || 0}px`,
               right: `${buttonPosition?.right || 0}px`,

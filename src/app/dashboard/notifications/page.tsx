@@ -11,7 +11,7 @@ import AppBackButton from '@/components/AppBackButton'
 
 export default function NotificationsPage() {
   const { business } = useBusiness()
-  const { refreshNotifications } = useNotifications()
+  const { notifications: contextNotifications, notificationCount: contextCount, displayedUnreadCount, loading: contextLoading, error: contextError, refreshNotifications, markAsRead: contextMarkAsRead, markAllAsRead: contextMarkAllAsRead, deleteNotification: contextDeleteNotification, initializeForBusiness } = useNotifications()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [notificationCount, setNotificationCount] = useState<NotificationCount>({ total: 0, unread: 0 })
   const [loading, setLoading] = useState(true)
@@ -48,93 +48,44 @@ export default function NotificationsPage() {
   }, [business?.id])
 
   const handleMarkAsRead = async (notificationId: string) => {
-    // Optimistically update UI
+    // Use context's markAsRead which has optimistic updates
+    await contextMarkAsRead(notificationId)
+    // Update local state to match
     setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
     )
-    setNotificationCount(prev => ({
-      unread: Math.max(0, prev.unread - 1),
-      total: prev.total
-    }))
-
-    try {
-      await notificationService.markAsRead(notificationId)
-    } catch (error) {
-      console.error('[NOTIFICATION MARK READ] Failed to mark as read:', error)
-      // Revert on error
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, read: false } : n)
-      )
-      setNotificationCount(prev => ({
-        unread: prev.unread + 1,
-        total: prev.total
-      }))
-    }
   }
 
   const handleMarkAllAsRead = async () => {
-    if (!business?.id) return
-
-    // Optimistically update UI
-    const unreadCount = notifications.filter(n => !n.read).length
+    // Use context's markAllAsRead which has optimistic updates for bell badge
+    await contextMarkAllAsRead()
+    // Update local state to match
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
     setNotificationCount(prev => ({
-      unread: Math.max(0, prev.unread - unreadCount),
+      unread: 0,
       total: prev.total
     }))
-
-    try {
-      // Mark each notification as read individually
-      for (const notification of notifications.filter(n => !n.read)) {
-        await notificationService.markAsRead(notification.id)
-      }
-      // Refresh notification context to update dashboard bell and dropdown
-      refreshNotifications()
-    } catch (error) {
-      console.error('[NOTIFICATION MARK ALL READ] Failed to mark all as read:', error)
-      // Revert on error - refetch to get accurate state
-      const fetchedNotifications = await notificationService.getNotifications(business.id)
-      setNotifications(fetchedNotifications)
-      const count = await notificationService.getNotificationCount(business.id)
-      setNotificationCount(count)
-      refreshNotifications()
-    }
   }
 
   const handleDeleteNotification = async (notificationId: string) => {
-    // Optimistically remove from UI
-    const deletedNotification = notifications.find(n => n.id === notificationId)
+    // Use context's deleteNotification which has optimistic updates
+    await contextDeleteNotification(notificationId)
+    // Update local state to match
     setNotifications(prev => prev.filter(n => n.id !== notificationId))
-    setNotificationCount(prev => ({
-      unread: deletedNotification && !deletedNotification.read ? Math.max(0, prev.unread - 1) : prev.unread,
-      total: Math.max(0, prev.total - 1)
-    }))
-
-    try {
-      await notificationService.deleteNotification(notificationId)
-    } catch (error) {
-      console.error('[NOTIFICATION DELETE] Failed to delete notification:', error)
-      // Restore notification if delete failed
-      if (deletedNotification) {
-        setNotifications(prev => [...prev, deletedNotification])
-        setNotificationCount(prev => ({
-          unread: deletedNotification && !deletedNotification.read ? prev.unread + 1 : prev.unread,
-          total: prev.total + 1
-        }))
-      }
-    }
   }
 
   const handleClearAll = async () => {
     if (!business?.id || notifications.length === 0) return
 
-    // Optimistically clear all from UI
+    // Optimistically clear all from local UI
     const previousNotifications = [...notifications]
     setNotifications([])
     setNotificationCount({ unread: 0, total: 0 })
 
     try {
       await notificationService.clearAllNotifications(business.id)
+      // Refresh context to update bell badge
+      refreshNotifications()
     } catch (error) {
       console.error('[NOTIFICATION CLEAR ALL] Failed to clear notifications:', error)
       // Restore notifications if clear failed
@@ -149,44 +100,44 @@ export default function NotificationsPage() {
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
       case 'new_lead':
-        return <User className="w-5 h-5 text-blue-600" />
+        return <User className="w-5 h-5 text-blue-500" />
       case 'customer_reply':
-        return <MessageSquare className="w-5 h-5 text-green-600" />
+        return <MessageSquare className="w-5 h-5 text-green-500" />
       case 'followup_completed':
-        return <CheckCircle className="w-5 h-5 text-purple-600" />
+        return <CheckCircle className="w-5 h-5 text-purple-500" />
       case 'forwarding_disconnected':
-        return <AlertTriangle className="w-5 h-5 text-red-600" />
+        return <AlertTriangle className="w-5 h-5 text-red-500" />
       case 'sms_failed':
-        return <AlertTriangle className="w-5 h-5 text-red-600" />
+        return <AlertTriangle className="w-5 h-5 text-red-500" />
       case 'trial_ending':
-        return <Clock className="w-5 h-5 text-amber-600" />
+        return <Clock className="w-5 h-5 text-amber-500" />
       case 'subscription_issue':
-        return <CreditCard className="w-5 h-5 text-amber-600" />
+        return <CreditCard className="w-5 h-5 text-amber-500" />
       case 'voicemail_received':
-        return <PhoneMissed className="w-5 h-5 text-blue-600" />
+        return <PhoneMissed className="w-5 h-5 text-blue-500" />
       default:
-        return <Bell className="w-5 h-5 text-slate-600" />
+        return <Bell className="w-5 h-5 text-slate-400" />
     }
   }
 
-  const getNotificationAccent = (type: Notification['type']) => {
+  const getNotificationColor = (type: Notification['type']) => {
     switch (type) {
       case 'new_lead':
-        return 'border-l-4 border-l-blue-500'
+        return 'bg-blue-500/10 text-blue-500'
       case 'customer_reply':
-        return 'border-l-4 border-l-green-500'
+        return 'bg-green-500/10 text-green-500'
       case 'followup_completed':
-        return 'border-l-4 border-l-purple-500'
+        return 'bg-purple-500/10 text-purple-500'
       case 'forwarding_disconnected':
       case 'sms_failed':
-        return 'border-l-4 border-l-red-500'
+        return 'bg-red-500/10 text-red-500'
       case 'trial_ending':
       case 'subscription_issue':
-        return 'border-l-4 border-l-amber-500'
+        return 'bg-amber-500/10 text-amber-500'
       case 'voicemail_received':
-        return 'border-l-4 border-l-blue-500'
+        return 'bg-blue-500/10 text-blue-500'
       default:
-        return 'border-l-4 border-l-slate-300 dark:border-l-slate-600'
+        return 'bg-slate-500/10 text-slate-400'
     }
   }
 
@@ -298,39 +249,41 @@ export default function NotificationsPage() {
       <AppHeader showNavigation={true} />
       <div className="max-w-5xl mx-auto px-4 py-6">
         {/* Header */}
-        <div className="mb-4 flex items-center gap-3">
-          <AppBackButton fallbackHref="/dashboard" label="Back" />
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
-            <p className="text-muted-foreground mt-1">
-              Stay updated on your ReplyFlow activity.
-            </p>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AppBackButton fallbackHref="/dashboard" label="Back" />
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Stay updated on your ReplyFlow activity.
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Actions */}
-        {notifications.length > 0 && (
-          <div className="mb-6 flex items-center gap-3">
-            <button
-              onClick={handleClearAll}
-              className="px-4 py-2 bg-white dark:bg-card border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            >
-              Clear all
-            </button>
-            {notificationCount.unread > 0 && (
+          {/* Actions - secondary utility */}
+          {notifications.length > 0 && (
+            <div className="flex items-center gap-2 shrink-0">
+              {notificationCount.unread > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shrink-0"
+                >
+                  Mark all as read
+                </button>
+              )}
               <button
-                onClick={handleMarkAllAsRead}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors"
+                onClick={handleClearAll}
+                className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors shrink-0"
               >
-                Mark all as read
+                Clear all
               </button>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
 
         {/* Notifications List */}
         <div
-          className="space-y-3"
+          className="space-y-3 pb-[env(safe-area-inset-bottom)]"
           onPointerMove={handlePointerMove}
         >
           {notifications.length > 0 ? (
@@ -360,36 +313,39 @@ export default function NotificationsPage() {
                   // Clear the ref after processing
                   pointerStateRef.current = null
                 }}
-                className={`group relative bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-4 transition-all duration-200 hover:shadow-md focus:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 select-none touch-pan-y cursor-pointer ${getNotificationAccent(notification.type)} ${
+                className={`group relative bg-card border border-border rounded-xl p-4 transition-all duration-200 hover:shadow-md focus:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 select-none touch-pan-y cursor-pointer ${
                   notification.read
-                    ? ''
-                    : 'bg-slate-50/50 dark:bg-slate-800/50'
-                } ${pressedNotificationId === notification.id ? 'bg-slate-100 dark:bg-slate-700/50' : ''}`}
+                    ? 'hover:bg-muted/30'
+                    : 'bg-blue-500/5 hover:bg-blue-500/10'
+                } ${pressedNotificationId === notification.id ? 'bg-muted/50' : ''}`}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="shrink-0">
+                <div className="flex items-start gap-3">
+                  {/* Icon */}
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${getNotificationColor(notification.type)} flex items-center justify-center ring-1 ring-white/5 group-hover:ring-white/10 transition-all`}>
                     {getNotificationIcon(notification.type)}
                   </div>
-                  <div className="flex-1 min-w-0">
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 pt-0.5">
                     {/* Title with timestamp */}
-                    <div className="flex items-start justify-between mb-2 pr-16">
-                      <h3 className={`font-semibold text-slate-900 dark:text-foreground ${notification.read ? 'text-slate-600 dark:text-slate-400' : ''}`}>
-                        {notification.title}
+                    <div className="flex items-start justify-between mb-1">
+                      <h3 className={`font-semibold text-foreground leading-tight tracking-tight ${notification.read ? 'text-muted-foreground' : ''}`}>
+                        {notification.title || 'Notification'}
                       </h3>
-                      <span className="text-sm text-slate-500 dark:text-slate-400 flex-shrink-0 ml-2">
+                      <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
                         {formatTime(notification.created_at)}
                       </span>
                     </div>
 
                     {/* Customer context */}
                     {getLeadContext(notification) && (
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                      <p className="text-sm text-muted-foreground mb-1">
                         Customer: {getLeadContext(notification)}
                       </p>
                     )}
 
                     {/* Message */}
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                    <p className="text-sm text-muted-foreground">
                       {notification.message}
                     </p>
                   </div>
@@ -403,7 +359,7 @@ export default function NotificationsPage() {
                         e.stopPropagation()
                         handleMarkAsRead(notification.id)
                       }}
-                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-white dark:bg-card rounded shadow-sm"
+                      className="p-1.5 text-muted-foreground hover:text-foreground transition-colors bg-card rounded shadow-sm"
                       title="Mark as read"
                     >
                       <Check className="w-4 h-4" />
@@ -414,7 +370,7 @@ export default function NotificationsPage() {
                       e.stopPropagation()
                       handleDeleteNotification(notification.id)
                     }}
-                    className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-white dark:bg-card rounded shadow-sm"
+                    className="p-1.5 text-muted-foreground hover:text-red-500 transition-colors bg-card rounded shadow-sm"
                     title="Delete notification"
                   >
                     <X className="w-4 h-4" />
@@ -423,13 +379,13 @@ export default function NotificationsPage() {
               </div>
             ))
           ) : (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Bell className="w-8 h-8 text-slate-400" />
+            <div className="text-center py-16 px-4">
+              <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4 ring-1 ring-border">
+                <Bell className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">You're all caught up</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                New leads and customer replies will appear here.
+              <h3 className="text-lg font-semibold text-foreground mb-2">You're all caught up</h3>
+              <p className="text-sm text-muted-foreground">
+                New ReplyFlow activity will appear here.
               </p>
             </div>
           )}

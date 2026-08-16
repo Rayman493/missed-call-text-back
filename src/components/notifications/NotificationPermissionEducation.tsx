@@ -166,7 +166,7 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
     >
       <div 
         ref={modalRef}
-        className="bg-white dark:bg-slate-800/95 rounded-2xl shadow-2xl border border-white/10 dark:border-slate-700/50 max-w-md w-full p-6 transition-all duration-200 ease-out"
+        className="bg-card border border-border elevated-surface-border rounded-2xl shadow-2xl max-w-md w-full p-6 transition-all duration-200 ease-out"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >

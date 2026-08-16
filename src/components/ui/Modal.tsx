@@ -101,7 +101,7 @@ export default function Modal({
             relative w-full max-w-lg
             max-h-[100dvh] md:max-h-[90vh]
             overflow-hidden
-            rounded-xl border border-border/50
+            rounded-xl border border-border elevated-surface-border
             bg-card
             shadow-sm
             flex flex-col min-h-0 animate-in zoom-in-95 duration-200 motion-reduce:animate-none motion-reduce:transition-none

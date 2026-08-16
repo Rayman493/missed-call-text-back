@@ -72,7 +72,7 @@ export default function Dropdown({
         className={`
           flex items-center justify-between w-full
           ${sizeClasses[size]}
-          rounded-lg border border-border/50
+          rounded-lg border border-border elevated-surface-border
           bg-card text-foreground
           hover:border-border hover:bg-muted/30
           focus:outline-none focus:ring-2 focus:ring-blue-500/40
