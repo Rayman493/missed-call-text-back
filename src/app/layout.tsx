@@ -146,7 +146,7 @@ export default function RootLayout({
                   console.log('[ACCOUNT_CREATION_BRIDGE] JS Stripe return event dispatched (retry)');
                 }, 500);
               };
-              console.log('[ACCOUNT_CREATION_BRIDGE] global JS receiver registered in layout script tag');
+              console.log('[ACCOUNT_CREATION_BRIDGE] global JS receiver registered in layout script tag, version=', window.__stripeReturnReceiverVersion);
             `,
           }}
         />

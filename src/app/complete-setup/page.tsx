@@ -33,6 +33,52 @@ export default function CompleteSetupPage() {
 
   const checkoutCancelled = searchParams?.get('checkout') === 'cancelled'
 
+  // Track document visibility and app state
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      console.log('[ACCOUNT_CREATION_LIFECYCLE] visibility_change', {
+        hidden: document.hidden,
+        visibilityState: document.visibilityState,
+        route: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+        timestamp: Date.now()
+      })
+    }
+
+    const handleAppStateChange = async ({ isActive }: { isActive: boolean }) => {
+      console.log('[ACCOUNT_CREATION_LIFECYCLE] app_state_change', {
+        isActive,
+        route: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+        userPresent: !!user,
+        authLoading,
+        timestamp: Date.now()
+      })
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    App.addListener('appStateChange', handleAppStateChange)
+
+    // Log initial state
+    console.log('[ACCOUNT_CREATION_LIFECYCLE] complete_setup_mount', {
+      route: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+      userPresent: !!user,
+      userId: user?.id?.substring(0, 8) || null,
+      authLoading,
+      businessPresent: !!business,
+      businessId: business?.id?.substring(0, 8) || null,
+      documentHidden: document.hidden,
+      timestamp: Date.now()
+    })
+
+    return () => {
+      console.log('[ACCOUNT_CREATION_LIFECYCLE] complete_setup_unmount', {
+        route: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+        timestamp: Date.now()
+      })
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      App.removeAllListeners()
+    }
+  }, [user, authLoading, business])
+
   useEffect(() => {
     if (checkoutCancelled && refreshBusiness) {
       refreshBusiness(true)
@@ -41,7 +87,15 @@ export default function CompleteSetupPage() {
 
   // If user is not authenticated, redirect to signin
   useEffect(() => {
+    console.log('[ACCOUNT_CREATION_LIFECYCLE] complete-setup auth guard check', {
+      route: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+      authLoading,
+      userPresent: !!user,
+      userId: user?.id?.substring(0, 8) || null,
+      timestamp: Date.now()
+    })
     if (!authLoading && !user) {
+      console.log('[ACCOUNT_CREATION_LIFECYCLE] redirect_to_signup source=complete-setup-auth-guard reason=user_null route=/complete-setup')
       router.replace('/auth/signin')
     }
   }, [authLoading, user, router])
