@@ -257,14 +257,28 @@ export async function handleExternalReturn(url: string): Promise<boolean> {
       if (flow.matcher(urlObj)) {
         console.log('[EXTERNAL RETURN] Recognized flow:', flow.name)
 
+        // Set session storage for cross-navigation state
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          sessionStorage.setItem('external_return_flow', flow.name)
+          sessionStorage.setItem('external_return_timestamp', Date.now().toString())
+          console.log('[EXTERNAL RETURN] Set session storage for flow:', flow.name)
+        }
+
         // Trigger authoritative reconciliation
         const pending = await getPendingStripeOperation()
         await flow.reconcile(pending.businessId)
 
-        // Navigate to clean internal route without transient parameters
-        console.log('[EXTERNAL RETURN] Navigating to clean route:', flow.internalDestination)
+        // Navigate to clean internal route with parameter intact
+        // Let component handle cleanup after reconciliation
+        console.log('[EXTERNAL RETURN] Navigating to clean route with parameter:', flow.internalDestination)
         console.log('[NAV_SOURCE] source=EXTERNAL_RETURN_HANDLER_NAVIGATE destination=' + flow.internalDestination)
-        window.location.href = flow.internalDestination
+
+        // For Stripe Connect, keep parameter so Settings useEffect can trigger
+        const navigationUrl = flow.name === 'STRIPE_CONNECT'
+          ? flow.internalDestination + '?stripe_onboarding=complete'
+          : flow.internalDestination
+
+        window.location.href = navigationUrl
 
         // Clear pending operation after successful handling
         if (pending.operation) {

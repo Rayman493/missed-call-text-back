@@ -18,11 +18,12 @@ export default function CompleteSetupPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, loading: authLoading } = useAuth()
-  const { business, loading: businessLoading, refreshBusiness } = useBusiness()
+  const { business, loading: businessLoading, refreshBusiness, invalidateBusinessCache } = useBusiness()
   const [password, setPassword] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
   const [isRedirectingToStripe, setIsRedirectingToStripe] = useState(false)
   const [isResolvingCheckoutState, setIsResolvingCheckoutState] = useState(true)
+  const [isInitialMount, setIsInitialMount] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
@@ -61,6 +62,10 @@ export default function CompleteSetupPage() {
       router.replace('/onboarding')
     }
   }, [businessLoading, business, user, router])
+
+  useEffect(() => {
+    setIsInitialMount(false)
+  }, [])
 
   useEffect(() => {
     const routeFromFreshBusinessState = async () => {
@@ -137,11 +142,136 @@ export default function CompleteSetupPage() {
     routeFromFreshBusinessState()
   }, [authLoading, user, router, refreshBusiness, businessLoading, business])
 
+  // Bounded retry for subscription verification after Stripe return
+  // This handles the case where user returns from Stripe but webhook hasn't processed yet
+  useEffect(() => {
+    if (!user || isInitialMount) return // Only retry on resume, not initial mount
+
+    const isMounted = { current: true }
+    const timeoutIds: number[] = []
+
+    const checkSubscriptionWithRetry = async () => {
+      let retryCount = 0
+      const maxRetries = 10 // 10 retries * 3 seconds = 30 seconds total
+      const retryInterval = 3000 // 3 seconds
+
+      const checkSubscription = async () => {
+        if (!isMounted.current) {
+          console.log('[CompleteSetup] Subscription check cancelled (component unmounted)')
+          return
+        }
+
+        if (retryCount >= maxRetries) {
+          console.log('[CompleteSetup] Subscription check timeout after', maxRetries * retryInterval / 1000, 'seconds')
+          if (isMounted.current) {
+            setIsResolvingCheckoutState(false)
+          }
+          return
+        }
+
+        retryCount++
+        console.log(`[CompleteSetup] Subscription check ${retryCount}/${maxRetries}`)
+
+        try {
+          const { data: freshBusiness } = await supabase
+            .from('businesses')
+            .select('subscription_status')
+            .eq('user_id', user.id)
+            .single()
+
+          if (!isMounted.current) {
+            console.log('[CompleteSetup] Subscription check result ignored (component unmounted)')
+            return
+          }
+
+          const subscriptionActive = freshBusiness?.subscription_status === 'trialing' || freshBusiness?.subscription_status === 'active'
+
+          if (subscriptionActive) {
+            console.log('[CompleteSetup] Subscription now active, redirecting to dashboard')
+            await refreshBusiness(true)
+            const provisioningPending = freshBusiness?.provisioning_status === 'pending' || freshBusiness?.provisioning_status === 'provisioning'
+            if (isMounted.current) {
+              router.replace(provisioningPending ? '/dashboard?setup=1' : '/dashboard')
+            }
+          } else {
+            // Not yet active, retry
+            const timeoutId = setTimeout(checkSubscription, retryInterval) as unknown as number
+            timeoutIds.push(timeoutId)
+          }
+        } catch (error) {
+          console.error('[CompleteSetup] Subscription check error:', error)
+          // On error, still retry to handle transient failures
+          if (isMounted.current) {
+            const timeoutId = setTimeout(checkSubscription, retryInterval) as unknown as number
+            timeoutIds.push(timeoutId)
+          }
+        }
+      }
+
+      // Start bounded check only if subscription is not yet active
+      const { data: initialBusiness } = await supabase
+        .from('businesses')
+        .select('subscription_status')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!isMounted.current) {
+        console.log('[CompleteSetup] Initial business check ignored (component unmounted)')
+        return
+      }
+
+      const initiallyActive = initialBusiness?.subscription_status === 'trialing' || initialBusiness?.subscription_status === 'active'
+
+      if (!initiallyActive) {
+        console.log('[CompleteSetup] Subscription not yet active, starting bounded retry')
+        checkSubscription()
+      } else {
+        console.log('[CompleteSetup] Subscription already active, no retry needed')
+        if (isMounted.current) {
+          setIsResolvingCheckoutState(false)
+        }
+      }
+    }
+
+    // Check for pending Stripe operation before starting retry
+    // Only retry if there's evidence user actually went through Stripe
+    const checkPendingOperation = async () => {
+      try {
+        const { Preferences } = await import('@capacitor/preferences')
+        const operationResult = await Preferences.get({ key: 'pending_stripe_operation' })
+        const pendingOperation = operationResult.value
+
+        if (pendingOperation === 'checkout') {
+          console.log('[CompleteSetup] Pending checkout operation detected, starting retry')
+          checkSubscriptionWithRetry()
+        } else {
+          console.log('[CompleteSetup] No pending checkout operation, skipping retry')
+          if (isMounted.current) {
+            setIsResolvingCheckoutState(false)
+          }
+        }
+      } catch (error) {
+        console.error('[CompleteSetup] Error checking pending operation:', error)
+        // On error, still check subscription state to be safe
+        checkSubscriptionWithRetry()
+      }
+    }
+
+    checkPendingOperation()
+
+    return () => {
+      console.log('[CompleteSetup] Cleanup: cancelling subscription retry')
+      isMounted.current = false
+      timeoutIds.forEach(id => clearTimeout(id))
+    }
+  }, [isInitialMount, user])
+
   // Handle app resume to refresh business state after returning from Stripe
   useEffect(() => {
-    const handleResume = () => {
-      console.log('[CompleteSetup] App resumed, refreshing business state')
-      refreshBusiness(true)
+    const handleResume = async () => {
+      console.log('[CompleteSetup] App resumed, forcing cache invalidation and refreshing business state')
+      await invalidateBusinessCache()
+      await refreshBusiness(true)
     }
 
     let capListener: { remove: () => void } | undefined
@@ -222,6 +352,11 @@ export default function CompleteSetupPage() {
       const checkoutData = await response.json()
 
       if (response.ok && checkoutData.url) {
+        // Set pending operation so app resume can reconcile subscription status
+        const { setPendingStripeOperation } = await import('@/lib/external-return-handler')
+        await setPendingStripeOperation('checkout', business.id)
+        console.log('[CompleteSetup] Pending checkout operation set for business:', business.id)
+
         await openStripeCheckout(checkoutData.url)
       } else {
         console.error('[CompleteSetup] Failed to create checkout session:', checkoutData)
@@ -289,8 +424,12 @@ export default function CompleteSetupPage() {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4 text-center">
         <div className="w-14 h-14 border-4 border-blue-600/30 border-t-blue-600 border-solid rounded-full animate-spin mb-6"></div>
-        <h1 className="text-xl font-semibold text-white mb-2">Finalizing your account...</h1>
-        <p className="text-sm text-slate-400">Setting up ReplyFlow. This should only take a moment.</p>
+        <h1 className="text-xl font-semibold text-white mb-2">
+          {isInitialMount ? 'Finalizing your account...' : 'Verifying your subscription...'}
+        </h1>
+        <p className="text-sm text-slate-400">
+          {isInitialMount ? 'Setting up ReplyFlow. This should only take a moment.' : 'Please wait while we confirm your subscription status.'}
+        </p>
       </div>
     )
   }

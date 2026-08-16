@@ -1264,6 +1264,11 @@ export default function SettingsContent() {
         showToast('Stripe already connected', 'success')
         refreshBusiness()
       } else if (data.url) {
+        // Set pending operation so app resume can reconcile Stripe Connect status
+        const { setPendingStripeOperation } = await import('@/lib/external-return-handler')
+        await setPendingStripeOperation('connect_onboarding', business.id)
+        console.log('[STRIPE CONNECT] Pending connect_onboarding operation set for business:', business.id)
+
         // Hide loading modal when native session presents
         setStripeConnectLoading(false)
         // Use native plugin for iOS, fallback to window.location.href for others
@@ -1382,7 +1387,21 @@ export default function SettingsContent() {
           console.error('[STRIPE CONNECT INVARIANT] persisted_status=', persistedStatus)
         }
 
-        showToast('Stripe Connect status updated', 'success')
+        // Only show success toast on actual status transition to connected
+        // This prevents toast from firing on routine refreshes/resumes when already connected
+        const previousStatus = localStripeStatus || business?.stripe_connect_status
+        const newStatus = data.canonicalStatus
+        const shouldShowSuccess = (
+          (previousStatus === 'not_connected' ||
+           previousStatus === 'pending_verification' ||
+           previousStatus === 'setup_incomplete' ||
+           previousStatus === null) &&
+          newStatus === 'connected'
+        )
+
+        if (shouldShowSuccess) {
+          showToast('Stripe connected successfully', 'success')
+        }
 
         // If status is pending_verification, perform bounded recheck
         if (data.canonicalStatus === 'pending_verification' || data.canonicalStatus === 'setup_incomplete') {
@@ -1434,10 +1453,21 @@ export default function SettingsContent() {
     const searchParams = new URLSearchParams(window.location.search)
     const stripeOnboardingComplete = searchParams.get('stripe_onboarding') === 'complete'
 
-    if (stripeOnboardingComplete && business?.id) {
+    // Also check session storage for cross-navigation state
+    const sessionStorageReturn = typeof window !== 'undefined' && window.sessionStorage
+      ? sessionStorage.getItem('external_return_flow') === 'STRIPE_CONNECT'
+      : false
+
+    if ((stripeOnboardingComplete || sessionStorageReturn) && business?.id) {
       console.log('[STRIPE CONNECT RETURN] Detected Stripe Connect return, triggering immediate reconciliation')
 
-      // Show verifying state
+      // Clear session storage
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        sessionStorage.removeItem('external_return_flow')
+        sessionStorage.removeItem('external_return_timestamp')
+      }
+
+      // Show verifying state immediately
       setStripeStatusChecking(true)
 
       // Trigger immediate reconciliation
@@ -3109,6 +3139,29 @@ export default function SettingsContent() {
                               )
                             }
 
+                            // STRIPE_DISCONNECTED - show "Requires Stripe" instead of "Checking..."
+                            if (!stripeChargesEnabled) {
+                              return (
+                                <>
+                                  <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
+                                    Requires Stripe
+                                  </span>
+                                </>
+                              )
+                            }
+
+                            // LOADING/UNKNOWN - show "Checking..." only if Stripe is connected
+                            if (tapToPayAwareness.state.isLoading || status === 'unknown') {
+                              return (
+                                <>
+                                  <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
+                                    Checking...
+                                  </span>
+                                </>
+                              )
+                            }
+
+                            // FALLBACK - should not reach here with proper state machine
                             return (
                               <>
                                 <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
@@ -3350,8 +3403,8 @@ export default function SettingsContent() {
                         const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
                         const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
 
-                        // Show guide for supported iOS devices with Stripe connected
-                        if (isIOS() && status === 'supported' && business?.stripe_charges_enabled) {
+                        // Show guide for supported iOS devices with Stripe connected but not yet linked
+                        if (isIOS() && status === 'supported' && business?.stripe_charges_enabled && appleAccountLinkageState.status !== 'linked') {
                           return (
                             <button
                               onClick={handleNativeEducationGuide}
