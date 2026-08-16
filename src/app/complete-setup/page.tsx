@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -11,6 +11,8 @@ import BrandIcon from '@/components/BrandIcon'
 import PasswordInput from '@/components/PasswordInput'
 import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
 import AppBackButton from '@/components/AppBackButton'
+import { Capacitor } from '@capacitor/core'
+import { App } from '@capacitor/app'
 
 const supabase = createBrowserClient()
 
@@ -26,6 +28,8 @@ export default function CompleteSetupPage() {
   const [isInitialMount, setIsInitialMount] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [appResumeTrigger, setAppResumeTrigger] = useState(0) // Increment on app resume to trigger retry loop
+  const pollingStartedRef = useRef(false)
 
   const checkoutCancelled = searchParams?.get('checkout') === 'cancelled'
 
@@ -42,15 +46,31 @@ export default function CompleteSetupPage() {
     }
   }, [authLoading, user, router])
 
-  // If business has active subscription, redirect to dashboard
+  // If business has active subscription AND provisioning is complete, redirect to dashboard
   useEffect(() => {
     if (!businessLoading && business) {
       const subscriptionActive = business.subscription_status === 'trialing' || business.subscription_status === 'active'
-      const provisioningPending = business.provisioning_status === 'pending' || business.provisioning_status === 'provisioning'
-      const destination = provisioningPending ? '/dashboard?setup=1' : '/dashboard'
+      const provisioningComplete = business.provisioning_status === 'completed'
+      const onboardingComplete = business.onboarding_status === 'completed'
 
-      if (subscriptionActive) {
-        router.replace(destination)
+      console.log('[COMPLETE_SETUP_RUNTIME] Navigation effect check:', {
+        business_id: business.id?.substring(0, 8),
+        subscription_status: business.subscription_status,
+        provisioning_status: business.provisioning_status,
+        onboarding_status: business.onboarding_status,
+        subscriptionActive,
+        provisioningComplete,
+        onboardingComplete
+      })
+
+      // Only navigate if BOTH subscription is active AND provisioning is complete
+      if (subscriptionActive && provisioningComplete && onboardingComplete) {
+        console.log('[COMPLETE_SETUP_RUNTIME] → NAVIGATING to dashboard (completion detected in BusinessContext)')
+        router.replace('/dashboard')
+      } else {
+        console.log('[COMPLETE_SETUP_RUNTIME] → SKIP navigation: not complete yet', {
+          reason: !subscriptionActive ? 'subscription_not_active' : !provisioningComplete ? 'provisioning_not_complete' : 'onboarding_not_complete'
+        })
       }
     }
   }, [businessLoading, business, router])
@@ -65,7 +85,183 @@ export default function CompleteSetupPage() {
 
   useEffect(() => {
     setIsInitialMount(false)
+    console.log('[COMPLETE_SETUP_RUNTIME] Component MOUNTED')
+    return () => {
+      console.log('[COMPLETE_SETUP_RUNTIME] Component UNMOUNTED')
+    }
   }, [])
+
+  // Handle Stripe return via custom event (primary signal) and app resume (fallback)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      return
+    }
+
+    console.log('[ACCOUNT_CREATION_RESUME] Setting up Stripe return listeners')
+
+    const handleStripeReturn = async (event: Event) => {
+      const customEvent = event as CustomEvent<{ flow: string; url: string; timestamp: number }>
+      console.log('[ACCOUNT_CREATION_BRIDGE] JS Stripe return event received:', customEvent.detail)
+
+      if (customEvent.detail.flow === 'STRIPE_CHECKOUT' && user) {
+        console.log('[ACCOUNT_CREATION_BRIDGE] Stripe Checkout return detected, triggering reconciliation')
+        await triggerReconciliation()
+      }
+    }
+
+    const handleAppResume = async () => {
+      console.log('[ACCOUNT_CREATION_RESUME] appStateChange active=true')
+
+      try {
+        const { getPendingStripeOperation } = await import('@/lib/external-return-handler')
+        const pending = await getPendingStripeOperation()
+
+        console.log('[ACCOUNT_CREATION_RESUME] Pending operation check:', {
+          operation: pending.operation,
+          businessId: pending.businessId?.substring(0, 8),
+          userId: pending.userId?.substring(0, 8)
+        })
+
+        if (pending.operation === 'checkout' && user) {
+          console.log('[ACCOUNT_CREATION_RESUME] Pending checkout detected on resume, triggering reconciliation')
+          await triggerReconciliation()
+        }
+      } catch (error) {
+        console.error('[ACCOUNT_CREATION_RESUME] Error checking pending operation on resume:', error)
+      }
+    }
+
+    const triggerReconciliation = async () => {
+      console.log('[ACCOUNT_CREATION_RECONCILE] starting')
+
+      try {
+        // Increment trigger to force retry loop effect to re-run
+        setAppResumeTrigger(prev => prev + 1)
+        pollingStartedRef.current = true
+
+        // Also refresh business to ensure fresh state
+        await refreshBusiness(true)
+
+        console.log('[ACCOUNT_CREATION_RECONCILE] reconciliation triggered via state update')
+      } catch (error) {
+        console.error('[ACCOUNT_CREATION_RECONCILE] error:', error)
+      }
+    }
+
+    // Listen for custom Stripe return event (primary signal)
+    window.addEventListener('stripeReturn', handleStripeReturn)
+    console.log('[ACCOUNT_CREATION_RESUME] stripeReturn event listener attached')
+
+    // Also listen to appStateChange as fallback (secondary signal)
+    const appStateListener = App.addListener('appStateChange', async ({ isActive }) => {
+      if (isActive) {
+        await handleAppResume()
+      }
+    })
+
+    return () => {
+      window.removeEventListener('stripeReturn', handleStripeReturn)
+      console.log('[ACCOUNT_CREATION_RESUME] stripeReturn event listener removed')
+      appStateListener.then(handle => handle.remove())
+    }
+  }, [user, refreshBusiness])
+
+  // Check for pending checkout operation on mount and reconcile using checkout-status API
+  // This handles the case where user returns from Stripe Checkout without URL params
+  // (e.g., Android app resume where Stripe redirects to billing/success but user stays on complete-setup)
+  useEffect(() => {
+    const reconcilePendingCheckout = async () => {
+      console.log('[ACCOUNT_CREATION_RECONCILE] starting', {
+        user_present: !!user,
+        user_id: user?.id?.substring(0, 8),
+        business_present: !!business,
+        business_id: business?.id?.substring(0, 8)
+      })
+
+      if (!user || !business) {
+        console.log('[ACCOUNT_CREATION_RECONCILE] → SKIP: no user or business')
+        return
+      }
+
+      // Check sessionStorage flag from native bridge as fallback
+      try {
+        const stripeReturnType = sessionStorage.getItem('stripe_return_type')
+        const stripeReturnTimestamp = sessionStorage.getItem('stripe_return_timestamp')
+        
+        if (stripeReturnType === 'STRIPE_CHECKOUT') {
+          console.log('[ACCOUNT_CREATION_BRIDGE] sessionStorage flag detected:', stripeReturnType)
+          // Clear the flag to prevent duplicate reconciliation
+          sessionStorage.removeItem('stripe_return_type')
+          sessionStorage.removeItem('stripe_return_timestamp')
+          // Trigger reconciliation
+          await triggerReconciliation()
+          return
+        }
+      } catch (e) {
+        console.error('[ACCOUNT_CREATION_BRIDGE] sessionStorage check error:', e)
+      }
+
+      try {
+        const { getPendingStripeOperation, setPendingStripeOperation } = await import('@/lib/external-return-handler')
+        const pending = await getPendingStripeOperation()
+
+        console.log('[ACCOUNT_CREATION_RECONCILE] pending operation:', {
+          operation: pending?.operation,
+          business_id_match: pending?.businessId === business.id,
+          user_id_match: pending?.userId === user.id
+        })
+
+        if (pending.operation === 'checkout' && pending.businessId === business.id && pending.userId === user.id) {
+          console.log('[ACCOUNT_CREATION_RECONCILE] Pending checkout found, reconciling')
+
+          // Reconcile using checkout-status API (not connect/refresh which is for Stripe Connect)
+          const response = await fetch('/api/billing/checkout-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ business_id: business.id })
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            console.log('[ACCOUNT_CREATION_RECONCILE] Checkout status API result:', {
+              subscriptionStatus: data.subscriptionStatus,
+              provisioningStatus: data.provisioningStatus,
+              onboardingStatus: data.onboardingStatus
+            })
+
+            const subscriptionActive = data.subscriptionStatus === 'trialing' || data.subscriptionStatus === 'active'
+            const provisioningComplete = data.provisioningStatus === 'completed'
+
+            if (subscriptionActive) {
+              console.log('[ACCOUNT_CREATION_RECONCILE] Subscription active, refreshing business')
+              await refreshBusiness(true)
+
+              // Only clear pending operation if BOTH subscription is active AND provisioning is complete
+              if (provisioningComplete) {
+                console.log('[ACCOUNT_CREATION_RECONCILE] ✓ Subscription active AND provisioning complete, clearing pending operation')
+                await setPendingStripeOperation(null)
+                // The existing subscription check useEffect will handle navigation
+              } else {
+                console.log('[ACCOUNT_CREATION_RECONCILE] Subscription active but provisioning pending, KEEPING pending operation to continue polling')
+                // Keep pending operation so retry loop continues to poll for provisioning completion
+              }
+            } else {
+              // Subscription not yet active, keep retrying
+              console.log('[ACCOUNT_CREATION_RECONCILE] Subscription not yet active, will retry')
+            }
+          } else {
+            console.error('[ACCOUNT_CREATION_RECONCILE] Checkout status reconciliation failed:', response.status)
+          }
+        } else {
+          console.log('[ACCOUNT_CREATION_RECONCILE] No pending checkout operation matching this user/business')
+        }
+      } catch (error) {
+        console.error('[ACCOUNT_CREATION_RECONCILE] Error reconciling pending checkout:', error)
+      }
+    }
+
+    reconcilePendingCheckout()
+  }, [user, business, refreshBusiness])
 
   useEffect(() => {
     const routeFromFreshBusinessState = async () => {
@@ -116,8 +312,9 @@ export default function CompleteSetupPage() {
       }
 
       const subscriptionActive = freshBusiness.subscription_status === 'trialing' || freshBusiness.subscription_status === 'active'
+      const provisioningComplete = freshBusiness.provisioning_status === 'completed'
 
-      if (subscriptionActive) {
+      if (subscriptionActive && provisioningComplete) {
         await refreshBusiness(true)
 
         // Track onboarding completion
@@ -131,8 +328,7 @@ export default function CompleteSetupPage() {
           })
         }
 
-        const provisioningPending = freshBusiness.provisioning_status === 'pending' || freshBusiness.provisioning_status === 'provisioning'
-        router.replace(provisioningPending ? '/dashboard?setup=1' : '/dashboard')
+        router.replace('/dashboard')
         return
       }
 
@@ -145,24 +341,54 @@ export default function CompleteSetupPage() {
   // Bounded retry for subscription verification after Stripe return
   // This handles the case where user returns from Stripe but webhook hasn't processed yet
   useEffect(() => {
-    if (!user || isInitialMount) return // Only retry on resume, not initial mount
-
-    const isMounted = { current: true }
-    const timeoutIds: number[] = []
+    let isMounted = { current: true }
+    let timeoutIds: number[] = []
 
     const checkSubscriptionWithRetry = async () => {
+      // Check for pending operation to determine if we should retry on initial mount
+      let hasPendingOperation = false
+      if (user) {
+        try {
+          const { getPendingStripeOperation } = await import('@/lib/external-return-handler')
+          const pending = await getPendingStripeOperation()
+          hasPendingOperation = pending.operation === 'checkout' && pending.userId === user.id
+          console.log('[COMPLETE_SETUP_RUNTIME] Pending operation check for retry:', hasPendingOperation)
+        } catch (error) {
+          console.error('[COMPLETE_SETUP_RUNTIME] Error checking pending operation:', error)
+        }
+      }
+
+      // Skip if no user or no pending operation on initial mount
+      // BUT allow retry if triggered by app resume (appResumeTrigger > 0)
+      if (!user || (!hasPendingOperation && isInitialMount && appResumeTrigger === 0)) {
+        console.log('[COMPLETE_SETUP_RUNTIME] → SKIP retry:', {
+          reason: !user ? 'no_user' : 'no_pending_operation_on_initial_mount',
+          hasPendingOperation,
+          isInitialMount,
+          appResumeTrigger
+        })
+        return
+      }
+
+      console.log('[COMPLETE_SETUP_RUNTIME] → Starting retry loop', {
+        hasPendingOperation,
+        isInitialMount,
+        appResumeTrigger,
+        pollingStarted: pollingStartedRef.current
+      })
+
       let retryCount = 0
       const maxRetries = 10 // 10 retries * 3 seconds = 30 seconds total
       const retryInterval = 3000 // 3 seconds
 
       const checkSubscription = async () => {
         if (!isMounted.current) {
-          console.log('[CompleteSetup] Subscription check cancelled (component unmounted)')
+          console.log('[COMPLETE_SETUP_RUNTIME] Subscription check cancelled (component unmounted)')
           return
         }
 
         if (retryCount >= maxRetries) {
-          console.log('[CompleteSetup] Subscription check timeout after', maxRetries * retryInterval / 1000, 'seconds')
+          console.log('[COMPLETE_SETUP_RUNTIME] Subscription check timeout after', maxRetries * retryInterval / 1000, 'seconds')
           if (isMounted.current) {
             setIsResolvingCheckoutState(false)
           }
@@ -170,36 +396,73 @@ export default function CompleteSetupPage() {
         }
 
         retryCount++
-        console.log(`[CompleteSetup] Subscription check ${retryCount}/${maxRetries}`)
+        console.log(`[ACCOUNT_CREATION_RECONCILE] Poll attempt ${retryCount}/${maxRetries}`)
 
         try {
+          // CRITICAL: Use direct Supabase query, NOT BusinessContext
+          // BusinessContext updates are asynchronous and may not reflect the latest state
           const { data: freshBusiness } = await supabase
             .from('businesses')
-            .select('subscription_status')
+            .select('subscription_status, provisioning_status, onboarding_status, twilio_phone_number')
             .eq('user_id', user.id)
             .single()
 
           if (!isMounted.current) {
-            console.log('[CompleteSetup] Subscription check result ignored (component unmounted)')
+            console.log('[ACCOUNT_CREATION_RECONCILE] Subscription check result ignored (component unmounted)')
             return
           }
 
-          const subscriptionActive = freshBusiness?.subscription_status === 'trialing' || freshBusiness?.subscription_status === 'active'
+          console.log('[ACCOUNT_CREATION_RECONCILE] fetched business:', {
+            attempt: retryCount,
+            user_id: user.id.substring(0, 8),
+            business_id: freshBusiness?.id?.substring(0, 8),
+            subscription_status: freshBusiness?.subscription_status,
+            provisioning_status: freshBusiness?.provisioning_status,
+            onboarding_status: freshBusiness?.onboarding_status,
+            has_twilio_phone: !!freshBusiness?.twilio_phone_number
+          })
 
-          if (subscriptionActive) {
-            console.log('[CompleteSetup] Subscription now active, redirecting to dashboard')
+          const subscriptionActive = freshBusiness?.subscription_status === 'trialing' || freshBusiness?.subscription_status === 'active'
+          const provisioningComplete = freshBusiness?.provisioning_status === 'completed'
+          const onboardingComplete = freshBusiness?.onboarding_status === 'completed'
+
+          const completionCondition = subscriptionActive && provisioningComplete && onboardingComplete
+
+          console.log('[ACCOUNT_CREATION_RECONCILE] completion evaluation:', {
+            subscriptionActive,
+            provisioningComplete,
+            onboardingComplete,
+            completionCondition
+          })
+
+          if (completionCondition) {
+            console.log('[ACCOUNT_CREATION_RECONCILE] ✓ COMPLETION DETECTED - navigating to dashboard')
+            // Refresh context for other components, but navigate immediately
             await refreshBusiness(true)
-            const provisioningPending = freshBusiness?.provisioning_status === 'pending' || freshBusiness?.provisioning_status === 'provisioning'
-            if (isMounted.current) {
-              router.replace(provisioningPending ? '/dashboard?setup=1' : '/dashboard')
+            // Clear pending operation
+            try {
+              const { setPendingStripeOperation } = await import('@/lib/external-return-handler')
+              await setPendingStripeOperation(null)
+              console.log('[COMPLETE_SETUP_RUNTIME] ✓ Pending operation cleared')
+            } catch (error) {
+              console.error('[COMPLETE_SETUP_RUNTIME] Error clearing pending operation:', error)
             }
+            if (isMounted.current) {
+              router.replace('/dashboard')
+            }
+          } else if (subscriptionActive && !provisioningComplete) {
+            console.log('[COMPLETE_SETUP_RUNTIME] → Subscription active but provisioning pending, continuing to poll')
+            // Continue polling until provisioning completes
+            const timeoutId = setTimeout(checkSubscription, retryInterval) as unknown as number
+            timeoutIds.push(timeoutId)
           } else {
+            console.log('[COMPLETE_SETUP_RUNTIME] → Subscription not yet active, continuing to poll')
             // Not yet active, retry
             const timeoutId = setTimeout(checkSubscription, retryInterval) as unknown as number
             timeoutIds.push(timeoutId)
           }
         } catch (error) {
-          console.error('[CompleteSetup] Subscription check error:', error)
+          console.error('[COMPLETE_SETUP_RUNTIME] Subscription check error:', error)
           // On error, still retry to handle transient failures
           if (isMounted.current) {
             const timeoutId = setTimeout(checkSubscription, retryInterval) as unknown as number
@@ -208,25 +471,40 @@ export default function CompleteSetupPage() {
         }
       }
 
-      // Start bounded check only if subscription is not yet active
+      // Start bounded check only if subscription is not yet active OR provisioning is not yet complete
       const { data: initialBusiness } = await supabase
         .from('businesses')
-        .select('subscription_status')
+        .select('subscription_status, provisioning_status, onboarding_status')
         .eq('user_id', user.id)
         .single()
 
       if (!isMounted.current) {
-        console.log('[CompleteSetup] Initial business check ignored (component unmounted)')
+        console.log('[COMPLETE_SETUP_RUNTIME] Initial business check ignored (component unmounted)')
         return
       }
 
-      const initiallyActive = initialBusiness?.subscription_status === 'trialing' || initialBusiness?.subscription_status === 'active'
+      console.log('[COMPLETE_SETUP_RUNTIME] Initial business state:', {
+        user_id: user.id.substring(0, 8),
+        business_id: initialBusiness?.id?.substring(0, 8),
+        subscription_status: initialBusiness?.subscription_status,
+        provisioning_status: initialBusiness?.provisioning_status,
+        onboarding_status: initialBusiness?.onboarding_status
+      })
 
-      if (!initiallyActive) {
-        console.log('[CompleteSetup] Subscription not yet active, starting bounded retry')
+      const initiallyActive = initialBusiness?.subscription_status === 'trialing' || initialBusiness?.subscription_status === 'active'
+      const initiallyProvisioned = initialBusiness?.provisioning_status === 'completed'
+      const initiallyOnboarded = initialBusiness?.onboarding_status === 'completed'
+
+      if (!initiallyActive || !initiallyProvisioned || !initiallyOnboarded) {
+        console.log('[COMPLETE_SETUP_RUNTIME] → Starting bounded retry', {
+          reason: !initiallyActive ? 'subscription_not_active' : !initiallyProvisioned ? 'provisioning_not_complete' : 'onboarding_not_complete',
+          initiallyActive,
+          initiallyProvisioned,
+          initiallyOnboarded
+        })
         checkSubscription()
       } else {
-        console.log('[CompleteSetup] Subscription already active, no retry needed')
+        console.log('[COMPLETE_SETUP_RUNTIME] → Already complete, no retry needed')
         if (isMounted.current) {
           setIsResolvingCheckoutState(false)
         }
@@ -264,36 +542,7 @@ export default function CompleteSetupPage() {
       isMounted.current = false
       timeoutIds.forEach(id => clearTimeout(id))
     }
-  }, [isInitialMount, user])
-
-  // Handle app resume to refresh business state after returning from Stripe
-  useEffect(() => {
-    const handleResume = async () => {
-      console.log('[CompleteSetup] App resumed, forcing cache invalidation and refreshing business state')
-      await invalidateBusinessCache()
-      await refreshBusiness(true)
-    }
-
-    let capListener: { remove: () => void } | undefined
-    ;(async () => {
-      try {
-        const mod = await import('@capacitor/app')
-        const { App } = mod as any
-        capListener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
-          if (isActive) {
-            handleResume()
-          }
-        })
-      } catch (error) {
-        // Not in Capacitor environment
-        console.log('[CompleteSetup] Not in Capacitor environment, skipping app resume listener')
-      }
-    })()
-
-    return () => {
-      capListener?.remove?.()
-    }
-  }, [refreshBusiness])
+  }, [isInitialMount, user, refreshBusiness, appResumeTrigger])
 
   // If business exists but profile is incomplete, redirect to onboarding
   useEffect(() => {

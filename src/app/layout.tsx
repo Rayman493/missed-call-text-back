@@ -104,6 +104,16 @@ export default function RootLayout({
               // This must be registered before the user leaves for Stripe and remain available while app is backgrounded
               window.__onStripeReturn = function(type) {
                 console.log('[ACCOUNT_CREATION_BRIDGE] web event received:', type);
+                
+                // Set sessionStorage flag as fallback for React component detection
+                try {
+                  sessionStorage.setItem('stripe_return_type', type);
+                  sessionStorage.setItem('stripe_return_timestamp', Date.now().toString());
+                  console.log('[ACCOUNT_CREATION_BRIDGE] sessionStorage flag set:', type);
+                } catch(e) {
+                  console.error('[ACCOUNT_CREATION_BRIDGE] sessionStorage error:', e);
+                }
+                
                 // Dispatch custom event for React components to listen to
                 var event = new CustomEvent('stripeReturn', {
                   detail: {
@@ -113,6 +123,18 @@ export default function RootLayout({
                 });
                 window.dispatchEvent(event);
                 console.log('[ACCOUNT_CREATION_BRIDGE] JS Stripe return event dispatched to React');
+
+                // Retry dispatch after short delay to ensure React listeners are attached
+                setTimeout(function() {
+                  var retryEvent = new CustomEvent('stripeReturn', {
+                    detail: {
+                      flow: type,
+                      timestamp: Date.now()
+                    }
+                  });
+                  window.dispatchEvent(retryEvent);
+                  console.log('[ACCOUNT_CREATION_BRIDGE] JS Stripe return event dispatched (retry)');
+                }, 500);
               };
               console.log('[ACCOUNT_CREATION_BRIDGE] global JS receiver registered in layout script tag');
             `,
