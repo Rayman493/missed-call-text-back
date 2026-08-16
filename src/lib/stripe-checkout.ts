@@ -4,7 +4,8 @@
  * Opens Stripe Checkout using the appropriate mechanism for the current platform.
  *
  * Native iOS: Uses ASWebAuthenticationSession for automatic return-to-app behavior.
- * Desktop/web/Android: Uses window.location.href for normal browser navigation.
+ * Native Android: Uses Browser.open() to open Stripe in Chrome Custom Tab, preserving WebView state.
+ * Desktop/web: Uses window.location.href for normal browser navigation.
  *
  * IMPORTANT: Native checkout does NOT indicate payment success. Payment/subscription
  * state must be verified through server-side checkout-status or Stripe webhook.
@@ -19,6 +20,13 @@ import ReplyflowWebCheckoutPlugin from '@/lib/web-checkout'
  */
 export function isNativeIOS(): boolean {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
+}
+
+/**
+ * Check if current platform is native Android
+ */
+export function isNativeAndroid(): boolean {
+  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
 }
 
 export async function openStripeCheckout(url: string): Promise<void> {
@@ -76,8 +84,19 @@ export async function openStripeCheckout(url: string): Promise<void> {
         window.location.href = url
       }
     }
+  } else if (isNativeAndroid()) {
+    console.log('[StripeCheckout] Opening Stripe in Chrome Custom Tab (Android)')
+    try {
+      await Browser.open({ url })
+      console.log('[StripeCheckout] Browser.open() succeeded')
+    } catch (error) {
+      console.error('[StripeCheckout] Browser.open() failed:', error)
+      // Fallback to window.location.href if Browser.open fails
+      console.log('[StripeCheckout] Falling back to window.location.href')
+      window.location.href = url
+    }
   } else {
-    console.log('[StripeCheckout] Opening Stripe in browser (desktop/web/Android)')
+    console.log('[StripeCheckout] Opening Stripe in browser (desktop/web)')
     window.location.href = url
   }
 }
