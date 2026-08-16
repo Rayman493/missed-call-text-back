@@ -1983,7 +1983,7 @@ export default function SettingsContent() {
           <AppHeader title="Settings" sticky={false} />
 
             {/* Main Content */}
-            <div className="flex-1 px-4 pb-20 bg-background dark:bg-background">
+            <div className="flex-1 px-4 bg-background dark:bg-background mobile-bottom-nav-safe-content">
               <div className="max-w-[1200px] mx-auto">
 
             {/* Page Header - normal flow */}

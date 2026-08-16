@@ -764,7 +764,7 @@ export default function LeadsPage() {
             <AppHeader title="Customers" />
 
           {/* Main Content */}
-          <main className="flex-1 pt-6 sm:pt-8 lg:pt-10 px-4 sm:px-5 lg:px-7 pb-6 md:pb-10 relative z-10 overflow-y-auto" style={{ paddingBottom: 'var(--bottom-nav-height, 80px)' }}>
+          <main className="flex-1 pt-6 sm:pt-8 lg:pt-10 px-4 sm:px-5 lg:px-7 pb-6 md:pb-10 relative z-10 overflow-y-auto mobile-bottom-nav-safe-content">
             <div className="max-w-[1400px] mx-auto space-y-6">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />

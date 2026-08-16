@@ -8,7 +8,7 @@ import { Briefcase } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe } from '@/lib/analytics-timeframe'
 
 interface JobStatusData {
@@ -156,7 +156,7 @@ export default function JobsStatusGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <div className="h-full w-full select-none">
+            <ChartTouchWrapper>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data} layout="vertical" margin={{ top: 8, right: 12, bottom: 8, left: 4 }}>
                   <CartesianGrid
@@ -201,7 +201,7 @@ export default function JobsStatusGraph() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            </ChartTouchWrapper>
           </div>
         )}
       </div>

@@ -8,7 +8,7 @@ import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, ChartTouchWrapper } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe } from '@/lib/analytics-timeframe'
 
 interface LeadSourceData {
@@ -256,7 +256,7 @@ export default function LeadsSourceGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <div className="h-full w-full select-none relative">
+            <ChartTouchWrapper>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -289,7 +289,7 @@ export default function LeadsSourceGraph() {
                 <span className="text-2xl font-semibold text-foreground">{formatInteger(trueTotal)}</span>
                 <span className="text-[10px] text-muted-foreground">Leads</span>
               </div>
-            </div>
+            </ChartTouchWrapper>
           </div>
         )}
       </div>

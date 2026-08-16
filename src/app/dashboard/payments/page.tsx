@@ -590,11 +590,16 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         throw new Error(error.error || 'Failed to update payment label')
       }
 
+      // Optimistic update: update local state immediately to avoid layout shift
+      setPaymentRequests(prev => prev.map(p =>
+        p.id === paymentToRename.id ? { ...p, display_name: renameLabel } : p
+      ))
+
       setSuccessMessage('Payment label updated successfully')
       handleCloseRenameModal()
 
-      // Refresh payments to show the updated label
-      await fetchPayments()
+      // Background refresh to ensure consistency with server
+      fetchPayments().catch(err => console.error('Background refresh failed:', err))
     } catch (err) {
       console.error('Error updating payment label:', err)
       setRenameError(err instanceof Error ? err.message : 'Failed to update payment label')
@@ -648,8 +653,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
     <DashboardShell
       title="Payments"
       maxWidthClassName="max-w-7xl mx-auto"
-      contentClassName="flex-1 px-4 sm:px-5 lg:px-7 py-6 sm:py-8 lg:py-10 pb-20 md:pb-10 relative z-10"
-      contentStyle={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}
+      contentClassName="flex-1 px-4 sm:px-5 lg:px-7 py-6 sm:py-8 lg:py-10 relative z-10"
       innerClassName="space-y-6"
     >
         <PageHeader

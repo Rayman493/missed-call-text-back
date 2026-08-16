@@ -8,7 +8,7 @@ import { Funnel } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { getCustomerStatusStyle, getAllCustomerStatuses } from '@/lib/customer-status'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper } from '@/lib/chart-utils'
 
 interface PipelineData {
   status: string
@@ -129,7 +129,7 @@ export default function CustomerPipelineGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <div className="h-full w-full select-none">
+            <ChartTouchWrapper>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data} layout="vertical" margin={{ top: 8, right: 12, bottom: 8, left: 4 }}>
                   <CartesianGrid
@@ -174,7 +174,7 @@ export default function CustomerPipelineGraph() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            </ChartTouchWrapper>
           </div>
         )}
       </div>

@@ -8,7 +8,7 @@ import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe, getDaysInTimeframe } from '@/lib/analytics-timeframe'
 
 interface NewCustomersData {
@@ -125,7 +125,7 @@ export default function NewCustomersGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <div className="h-full w-full select-none" style={{ touchAction: 'manipulation' }}>
+            <ChartTouchWrapper>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data} margin={CHART_STYLES.margin} barGap={CHART_STYLES.barGap} barCategoryGap={CHART_STYLES.categoryGap}>
                   <CartesianGrid
@@ -164,7 +164,7 @@ export default function NewCustomersGraph() {
                   />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            </ChartTouchWrapper>
           </div>
         )}
       </div>

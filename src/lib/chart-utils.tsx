@@ -6,6 +6,7 @@
  * - Integer tick helpers for count-based metrics
  * - Premium tooltip component
  * - Common chart styling constants
+ * - Mobile touch scroll protection wrapper
  */
 
 /**
@@ -182,4 +183,30 @@ export const CHART_STYLES = {
   // Legend
   legendFontSize: 11,
   legendIconSize: 10,
+}
+
+/**
+ * ChartTouchWrapper - Mobile touch scroll protection for Recharts
+ *
+ * On mobile devices, Recharts can intercept touch events for tooltips,
+ * preventing vertical page scrolling. This wrapper uses touch-action: pan-y
+ * to allow vertical page scrolling while preserving chart tap interactions.
+ *
+ * Behavior:
+ * - Mobile (touch): Vertical swipe → page scroll, Tap → tooltip still works
+ * - Desktop (hover): Unchanged - hover interactions work normally
+ *
+ * Usage:
+ *   <ChartTouchWrapper>
+ *     <ResponsiveContainer>
+ *       <BarChart>...</BarChart>
+ *     </ResponsiveContainer>
+ *   </ChartTouchWrapper>
+ */
+export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="w-full h-full select-none" style={{ touchAction: 'pan-y' }}>
+      {children}
+    </div>
+  )
 }

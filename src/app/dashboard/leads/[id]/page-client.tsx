@@ -3743,7 +3743,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                   </div>
                 ) : messagesArray.length === 0 ? (
-                  <div className="flex items-center justify-center h-full py-16 animate-fadeIn">
+                  <div className="flex items-center justify-center py-16 animate-fadeIn">
                     <div className="text-center max-w-md px-6">
                       <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
                         <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -4006,7 +4006,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                 </div>
               ) : messagesArray.length === 0 ? (
-                <div className="flex items-center justify-center h-full py-12 animate-fadeIn">
+                <div className="flex items-center justify-center py-12 animate-fadeIn">
                   <div className="text-center max-w-sm px-6">
                     <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
                       <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -5282,7 +5282,7 @@ If you have questions, reply to this message.`
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                 </div>
               ) : messagesArray.length === 0 ? (
-                <div className="flex items-center justify-center h-full py-12 animate-fadeIn">
+                <div className="flex items-center justify-center py-12 animate-fadeIn">
                   <div className="text-center max-w-sm px-6">
                     <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
                       <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

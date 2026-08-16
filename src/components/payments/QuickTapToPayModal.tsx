@@ -1689,7 +1689,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                       )}
                     </>
                   ) : paymentState === 'success' ? (
-                    <div className="flex gap-3 items-stretch">
+                    <div className="flex gap-3 items-stretch w-fit mx-auto">
                       <button
                         onClick={handleSendReceipt}
                         className="flex-1 px-4 py-3 h-11 text-sm font-medium bg-white dark:bg-gray-800 text-foreground border border-border rounded-lg hover:bg-muted dark:hover:bg-gray-700 transition-colors active:scale-95 inline-flex items-center justify-center"

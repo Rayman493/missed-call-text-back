@@ -5,6 +5,10 @@
 /* Prevent flash of unstyled content */
 :root {
   color-scheme: dark;
+  /* Bottom nav height: 64px (h-16 nav) + 8px (wrapper padding) = 72px base
+   * Safe-area is added separately by BottomNavigation component
+   * The measured value includes both base height AND safe-area inset */
+  --bottom-nav-height: 72px; /* Base height before measurement (safe-area added by component) */
 }
 
 html {
@@ -519,4 +523,25 @@ html.light select:-moz-autofill:focus {
   display: none; /* Chrome, Safari, Android WebView */
   width: 0;
   height: 0;
+}
+
+/* Mobile bottom-nav-safe content padding
+ * Applies padding to account for fixed bottom navigation on mobile only
+ *
+ * Safe-area semantics:
+ * - --bottom-nav-height: 72px base (64px nav h-16 + 8px wrapper padding)
+ * - Safe-area inset is added by BottomNavigation component itself
+ * - The measured value includes BOTH base height AND safe-area inset
+ * - Pages should use this CSS variable without adding additional safe-area
+ *
+ * Desktop (lg breakpoint and above): No extra padding (no bottom nav)
+ */
+.mobile-bottom-nav-safe-content {
+  padding-bottom: var(--bottom-nav-height, 72px);
+}
+
+@media (min-width: 1024px) {
+  .mobile-bottom-nav-safe-content {
+    padding-bottom: 0;
+  }
 }

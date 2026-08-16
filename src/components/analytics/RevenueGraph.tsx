@@ -8,7 +8,7 @@ import { DollarSign } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis, ChartTouchWrapper } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe } from '@/lib/analytics-timeframe'
 
 interface RevenueData {
@@ -134,7 +134,7 @@ export default function RevenueGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <div className="h-full w-full select-none">
+            <ChartTouchWrapper>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={CHART_STYLES.margin}>
                   <CartesianGrid
@@ -175,7 +175,7 @@ export default function RevenueGraph() {
                   />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
+            </ChartTouchWrapper>
           </div>
         )}
       </div>
