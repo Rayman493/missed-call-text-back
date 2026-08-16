@@ -137,6 +137,34 @@ export default function CompleteSetupPage() {
     routeFromFreshBusinessState()
   }, [authLoading, user, router, refreshBusiness, businessLoading, business])
 
+  // Handle app resume to refresh business state after returning from Stripe
+  useEffect(() => {
+    const handleResume = () => {
+      console.log('[CompleteSetup] App resumed, refreshing business state')
+      refreshBusiness(true)
+    }
+
+    let capListener: { remove: () => void } | undefined
+    ;(async () => {
+      try {
+        const mod = await import('@capacitor/app')
+        const { App } = mod as any
+        capListener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
+          if (isActive) {
+            handleResume()
+          }
+        })
+      } catch (error) {
+        // Not in Capacitor environment
+        console.log('[CompleteSetup] Not in Capacitor environment, skipping app resume listener')
+      }
+    })()
+
+    return () => {
+      capListener?.remove?.()
+    }
+  }, [refreshBusiness])
+
   // If business exists but profile is incomplete, redirect to onboarding
   useEffect(() => {
     if (!businessLoading && business && user) {

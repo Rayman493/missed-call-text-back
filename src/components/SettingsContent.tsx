@@ -1429,6 +1429,66 @@ export default function SettingsContent() {
     business?.stripe_details_submitted,
   ])
 
+  // Handle Stripe Connect return - immediate reconciliation on return
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search)
+    const stripeOnboardingComplete = searchParams.get('stripe_onboarding') === 'complete'
+
+    if (stripeOnboardingComplete && business?.id) {
+      console.log('[STRIPE CONNECT RETURN] Detected Stripe Connect return, triggering immediate reconciliation')
+
+      // Show verifying state
+      setStripeStatusChecking(true)
+
+      // Trigger immediate reconciliation
+      const reconcile = async () => {
+        try {
+          const response = await fetch('/api/stripe/connect/refresh', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ business_id: business.id })
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            console.log('[STRIPE CONNECT RETURN] Reconciliation result:', data.canonicalStatus)
+
+            // Update local state immediately
+            setLocalStripeStatus(data.canonicalStatus)
+            setLocalStripeChargesEnabled(data.charges_enabled)
+            setLocalStripeDetailsSubmitted(data.details_submitted)
+
+            // Invalidate cache and sync global business object
+            invalidateBusinessCache()
+            await refreshBusiness(true)
+
+            // Clean up URL parameter
+            const cleanUrl = window.location.pathname
+            window.history.replaceState({}, '', cleanUrl)
+
+            // Start bounded recheck if status is still transitional
+            if (data.canonicalStatus === 'pending_verification' || data.canonicalStatus === 'setup_incomplete') {
+              console.log('[STRIPE CONNECT RETURN] Status still transitional, starting bounded recheck')
+              performBoundedRecheck()
+            }
+          } else {
+            console.error('[STRIPE CONNECT RETURN] Reconciliation failed:', response.status)
+            showToast('Failed to verify Stripe setup', 'error')
+          }
+        } catch (error) {
+          console.error('[STRIPE CONNECT RETURN] Reconciliation error:', error)
+          showToast('Failed to verify Stripe setup', 'error')
+        } finally {
+          setStripeStatusChecking(false)
+        }
+      }
+
+      reconcile()
+    }
+  }, [business?.id])
+
   // Bounded recheck for transitional Stripe Connect statuses
   const performBoundedRecheck = () => {
     let recheckCount = 0

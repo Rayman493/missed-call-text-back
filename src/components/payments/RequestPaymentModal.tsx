@@ -52,6 +52,8 @@ export default function RequestPaymentModal({
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
   const [error, setError] = useState('')
   const [leads, setLeads] = useState<Lead[]>([])
+  const [isLoadingLeads, setIsLoadingLeads] = useState(false)
+  const [leadsError, setLeadsError] = useState<string | null>(null)
   useBodyScrollLock(isOpen)
 
   // Close on Android back and browser back while open
@@ -137,20 +139,43 @@ export default function RequestPaymentModal({
   }, [isOpen, prefillLeadId, prefillDescription])
 
   const fetchLeads = async () => {
+    setIsLoadingLeads(true)
+    setLeadsError(null)
     try {
       const supabase = createBrowserClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      const headers: HeadersInit = { 'Content-Type': 'application/json' }
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`
+
+      // Use direct Supabase query (same approach as Customers page)
+      // This is more reliable than /api/leads with manual auth
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, business_id, caller_phone, status, created_at, raw_metadata')
+        .eq('business_id', business.id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(100)
+
+      if (error) {
+        console.error('[RequestPaymentModal] Error fetching leads:', error)
+        setLeadsError('Could not load customers. Please try again.')
+        return
       }
 
-      const response = await fetch('/api/leads', { headers })
-      if (!response.ok) return
-      const data = await response.json()
-      setLeads(data.leads || [])
+      const leads = (data || []).map((lead: any) => ({
+        id: lead.id,
+        caller_phone: lead.caller_phone,
+        name: lead.raw_metadata?.customerName ||
+               lead.raw_metadata?.callerName ||
+               lead.raw_metadata?.name ||
+               lead.caller_phone,
+        raw_metadata: lead.raw_metadata
+      }))
+
+      setLeads(leads)
     } catch (err) {
-      console.error('Error fetching leads:', err)
+      console.error('[RequestPaymentModal] Error fetching leads:', err)
+      setLeadsError('Could not load customers. Please try again.')
+    } finally {
+      setIsLoadingLeads(false)
     }
   }
 
@@ -396,28 +421,48 @@ export default function RequestPaymentModal({
             </div>
 
             {recipientType === 'lead' ? (
-              <div className="relative">
-                <select
-                  value={selectedLeadId}
-                  onChange={(e) => setSelectedLeadId(e.target.value)}
-                  disabled={isCreatingPayment}
-                  className="w-full px-3 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground disabled:opacity-60 disabled:cursor-not-allowed appearance-none cursor-pointer"
-                >
-                  <option value="">Select a customer</option>
-                  {leads.map((lead) => {
-                    const displayName = (lead.name && lead.name !== 'Not collected') ? lead.name : 'Customer'
-                    return (
-                      <option key={lead.id} value={lead.id}>
-                        {formatPhoneNumber(lead.caller_phone)} - {displayName}
-                      </option>
-                    )
-                  })}
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+              <div>
+                <div className="relative">
+                  <select
+                    value={selectedLeadId}
+                    onChange={(e) => setSelectedLeadId(e.target.value)}
+                    disabled={isCreatingPayment || isLoadingLeads}
+                    className="w-full px-3 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground disabled:opacity-60 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                  >
+                    <option value="">
+                      {isLoadingLeads ? 'Loading customers...' : 'Select a customer'}
+                    </option>
+                    {leads.map((lead) => {
+                      const displayName = (lead.name && lead.name !== 'Not collected') ? lead.name : 'Customer'
+                      return (
+                        <option key={lead.id} value={lead.id}>
+                          {formatPhoneNumber(lead.caller_phone)} - {displayName}
+                        </option>
+                      )
+                    })}
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                    {isLoadingLeads ? (
+                      <div className="w-4 h-4 border-2 border-blue-600/30 border-t-blue-600 border-solid rounded-full animate-spin" />
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    )}
+                  </div>
                 </div>
+                {leadsError && (
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-xs text-red-600 dark:text-red-400">{leadsError}</p>
+                    <button
+                      onClick={fetchLeads}
+                      disabled={isLoadingLeads}
+                      className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-2">

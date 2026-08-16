@@ -2016,14 +2016,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         (payload: any) => {
           setLeadData((prev: any) => {
             if (!prev) return prev
-            
+
             const paymentRequests = prev.paymentRequests || []
             if (payload.eventType === 'INSERT') {
+              // Deduplicate: only add if this payment request ID doesn't already exist
+              const alreadyExists = paymentRequests.some((pr: any) => pr.id === payload.new.id)
+              if (alreadyExists) {
+                console.log('[REALTIME PAYMENT INSERT] Payment request already exists, skipping')
+                return prev
+              }
               return { ...prev, paymentRequests: [...paymentRequests, payload.new] }
             } else if (payload.eventType === 'UPDATE') {
-              return { 
-                ...prev, 
-                paymentRequests: paymentRequests.map((pr: any) => 
+              return {
+                ...prev,
+                paymentRequests: paymentRequests.map((pr: any) =>
                   pr.id === payload.new.id ? { ...pr, ...payload.new } : pr
                 )
               }
@@ -4888,10 +4894,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       amount_cents: newPaymentRequest.amount_cents
                     })
 
-                    setLeadData((prev: any) => ({
-                      ...prev,
-                      paymentRequests: [...(prev?.paymentRequests || []), newPaymentRequest]
-                    }))
+                    setLeadData((prev: any) => {
+                      const existingRequests = prev?.paymentRequests || []
+                      // Deduplicate: only add if this payment request ID doesn't already exist
+                      const alreadyExists = existingRequests.some((pr: any) => pr.id === newPaymentRequest.id)
+                      if (alreadyExists) {
+                        console.log('[PAYMENT OPTIMISTIC] Payment request already exists, skipping optimistic insertion')
+                        return prev
+                      }
+                      return {
+                        ...prev,
+                        paymentRequests: [...existingRequests, newPaymentRequest]
+                      }
+                    })
                   }
 
                   // Handle based on effective sending source
