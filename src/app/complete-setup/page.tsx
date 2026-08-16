@@ -165,6 +165,21 @@ export default function CompleteSetupPage() {
       }
     }
 
+    // Check sessionStorage immediately when listener attaches (in case event already fired)
+    ;(async () => {
+      try {
+        const stripeReturnType = sessionStorage.getItem('stripe_return_type')
+        if (stripeReturnType === 'STRIPE_CHECKOUT' && user) {
+          console.log('[ACCOUNT_CREATION_BRIDGE] sessionStorage flag detected on listener attach:', stripeReturnType)
+          sessionStorage.removeItem('stripe_return_type')
+          sessionStorage.removeItem('stripe_return_timestamp')
+          await triggerReconciliation()
+        }
+      } catch (e) {
+        console.error('[ACCOUNT_CREATION_BRIDGE] sessionStorage check error on attach:', e)
+      }
+    })()
+
     // Listen for custom Stripe return event (primary signal)
     window.addEventListener('stripeReturn', handleStripeReturn)
     console.log('[ACCOUNT_CREATION_RESUME] stripeReturn event listener attached')
