@@ -582,6 +582,15 @@ public class MainActivity extends BridgeActivity {
                             @Override
                             public void onReceiveValue(String url) {
                                 Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] " + lifecycleEvent + " url=" + url);
+
+                                // Query click trace
+                                String clickTraceQuery = "JSON.stringify(window.__accountCreationClickTrace || null)";
+                                webView.evaluateJavascript(clickTraceQuery, new ValueCallback<String>() {
+                                    @Override
+                                    public void onReceiveValue(String clickTrace) {
+                                        Log.d(TAG, "[ACCOUNT_CREATION_CLICK_NATIVE_TRACE] " + lifecycleEvent + " clickTrace=" + clickTrace);
+                                    }
+                                });
                             }
                         });
                     }
@@ -615,6 +624,7 @@ public class MainActivity extends BridgeActivity {
         String urlQuery = "window.location.href";
         String buildQuery = "window.__replyflowWebBuild";
         String traceQuery = "JSON.stringify(window.__accountCreationStartupTrace || null)";
+        String clickTraceQuery = "JSON.stringify(window.__accountCreationClickTrace || null)";
 
         webView.evaluateJavascript(urlQuery, new ValueCallback<String>() {
             @Override
@@ -634,6 +644,13 @@ public class MainActivity extends BridgeActivity {
             @Override
             public void onReceiveValue(String trace) {
                 Log.d(TAG, "[ACCOUNT_CREATION_AUTH_NATIVE_TRACE] sample_" + delay + "ms trace=" + trace);
+            }
+        });
+
+        webView.evaluateJavascript(clickTraceQuery, new ValueCallback<String>() {
+            @Override
+            public void onReceiveValue(String clickTrace) {
+                Log.d(TAG, "[ACCOUNT_CREATION_CLICK_NATIVE_TRACE] sample_" + delay + "ms clickTrace=" + clickTrace);
             }
         });
     }

@@ -108,12 +108,26 @@ export default function RootLayout({
                 version: 'auth-bootstrap-native-v1',
                 events: []
               };
+              window.__accountCreationClickTrace = {
+                version: 'click-boundary-v1',
+                events: []
+              };
               window.__recordStartupEvent = function(event, data) {
                 if (!window.__accountCreationStartupTrace) return;
                 window.__accountCreationStartupTrace.events.push({
                   timestamp: Date.now(),
                   event: event,
                   pathname: window.location.pathname,
+                  ...data
+                });
+              };
+              window.__recordClickEvent = function(event, data) {
+                if (!window.__accountCreationClickTrace) return;
+                window.__accountCreationClickTrace.events.push({
+                  timestamp: Date.now(),
+                  event: event,
+                  pathname: window.location.pathname,
+                  href: window.location.href,
                   ...data
                 });
               };

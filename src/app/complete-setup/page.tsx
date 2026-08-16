@@ -602,6 +602,14 @@ export default function CompleteSetupPage() {
   }, [businessLoading, business, user, router])
 
   const handleContinueToStripe = async () => {
+    if (typeof window !== 'undefined' && (window as any).__recordClickEvent) {
+      (window as any).__recordClickEvent('create_account_click_start', {
+        userPresent: !!user,
+        businessPresent: !!business,
+        authLoading
+      })
+    }
+
     setIsRedirectingToStripe(true)
     setError(null)
 
@@ -626,6 +634,12 @@ export default function CompleteSetupPage() {
     }
 
     try {
+      if (typeof window !== 'undefined' && (window as any).__recordClickEvent) {
+        (window as any).__recordClickEvent('checkout_fetch_start', {
+          userPresent: !!user
+        })
+      }
+
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -640,11 +654,34 @@ export default function CompleteSetupPage() {
 
       const checkoutData = await response.json()
 
+      if (typeof window !== 'undefined' && (window as any).__recordClickEvent) {
+        (window as any).__recordClickEvent('checkout_fetch_complete', {
+          responseOk: response.ok,
+          responseStatus: response.status,
+          userPresent: !!user
+        })
+      }
+
       if (response.ok && checkoutData.url) {
         // Set pending operation so app resume can reconcile subscription status
         const { setPendingStripeOperation } = await import('@/lib/external-return-handler')
+
+        if (typeof window !== 'undefined' && (window as any).__recordClickEvent) {
+          (window as any).__recordClickEvent('pending_operation_start', {})
+        }
+
         await setPendingStripeOperation('checkout', business.id, user?.id)
         console.log('[CompleteSetup] Pending checkout operation set for business:', business.id, 'user:', user?.id)
+
+        if (typeof window !== 'undefined' && (window as any).__recordClickEvent) {
+          (window as any).__recordClickEvent('pending_operation_complete', {})
+        }
+
+        if (typeof window !== 'undefined' && (window as any).__recordClickEvent) {
+          (window as any).__recordClickEvent('open_stripe_checkout_start', {
+            userPresent: !!user
+          })
+        }
 
         await openStripeCheckout(checkoutData.url)
       } else {
@@ -654,6 +691,12 @@ export default function CompleteSetupPage() {
       }
     } catch (err) {
       console.error('[CompleteSetup] Error creating checkout session:', err)
+      if (typeof window !== 'undefined' && (window as any).__recordClickEvent) {
+        (window as any).__recordClickEvent('create_account_error', {
+          errorName: err instanceof Error ? err.name : 'unknown',
+          errorMessage: err instanceof Error ? err.message : String(err)
+        })
+      }
       setError('Could not create checkout session. Please try again.')
       setIsRedirectingToStripe(false)
     }

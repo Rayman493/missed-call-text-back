@@ -34,6 +34,12 @@ export async function openStripeCheckout(url: string): Promise<void> {
   const receiverType = typeof (window as any).__onStripeReturn
   console.log('[ACCOUNT_CREATION_BRIDGE] before Stripe launch receiver type=' + receiverType)
 
+  if (typeof window !== 'undefined' && (window as any).__recordClickEvent) {
+    (window as any).__recordClickEvent('browser_open_start', {
+      platform: Capacitor.getPlatform()
+    })
+  }
+
   if (isNativeIOS()) {
     console.log('[StripeCheckout] Opening Stripe in native web session (iOS)')
     try {
@@ -89,6 +95,9 @@ export async function openStripeCheckout(url: string): Promise<void> {
     try {
       await Browser.open({ url })
       console.log('[StripeCheckout] Browser.open() succeeded')
+      if (typeof window !== 'undefined' && (window as any).__recordClickEvent) {
+        (window as any).__recordClickEvent('browser_open_resolved', {})
+      }
     } catch (error) {
       console.error('[StripeCheckout] Browser.open() failed:', error)
       // Fallback to window.location.href if Browser.open fails
