@@ -47,10 +47,15 @@ export default function NativeLandingWrapper({ children }: { children: React.Rea
       return
     }
 
+    // Log decision before redirect
+    console.log('[ACCOUNT_CREATION_STARTUP_TRACE] native_landing_decision authLoading=' + authLoading + ' userPresent=' + !!user + ' route=' + pathname)
+
     // Redirect based on authentication state
     if (user) {
+      console.log('[ACCOUNT_CREATION_STARTUP_TRACE] redirect_to_dashboard source=NativeLandingWrapper reason=user_present route=/')
       router.replace('/dashboard')
     } else {
+      console.log('[ACCOUNT_CREATION_STARTUP_TRACE] redirect_to_auth source=NativeLandingWrapper reason=user_null_after_restore authLoading=' + authLoading + ' route=' + pathname)
       router.replace('/auth?mode=signin')
     }
   }, [pathname, user, authLoading, router])

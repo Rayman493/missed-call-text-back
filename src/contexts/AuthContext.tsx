@@ -55,9 +55,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Restore session on app load
     const restoreSession = async () => {
+      console.log('[ACCOUNT_CREATION_STARTUP_TRACE] auth_restore_start pathname=' + pathname)
+
+      // Check for Supabase keys in localStorage
+      if (typeof window !== 'undefined') {
+        const supabaseKeys: string[] = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && key.startsWith('sb-')) {
+            supabaseKeys.push(key)
+          }
+        }
+        console.log('[ACCOUNT_CREATION_STARTUP_TRACE] localStorage_supabase_keys count=' + supabaseKeys.length + ' keys=' + supabaseKeys.join(','))
+      }
+
       try {
+        console.log('[ACCOUNT_CREATION_STARTUP_TRACE] getSession_call_start')
         const { data: { session }, error } = await supabase.auth.getSession()
-        
+
+        console.log('[ACCOUNT_CREATION_STARTUP_TRACE] getSession_result sessionPresent=' + !!session + ' userPresent=' + !!(session?.user) + ' error=' + (error?.name || 'none') + ' error_message=' + (error?.message || 'none'))
+
         if (error) {
           console.error('[Auth] Session restore error:', error)
           console.log('[ACCOUNT_CREATION_LIFECYCLE] session_restore_error', {
@@ -68,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           })
           // Check for refresh_token_not_found error and clear stale auth state
           if (error?.message?.includes('refresh_token_not_found') || error?.message?.includes('Refresh Token Not Found')) {
+            console.log('[ACCOUNT_CREATION_STARTUP_TRACE] refresh_token_not_found_error clearing_keys')
             console.log('[ACCOUNT_CREATION_LIFECYCLE] refresh_token_not_found clearing_supabase_keys', {
               pathname,
               timestamp: Date.now()
@@ -82,11 +100,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
               }
               keysToRemove.forEach(key => localStorage.removeItem(key))
+              console.log('[ACCOUNT_CREATION_STARTUP_TRACE] cleared_keys count=' + keysToRemove.length)
             }
           }
         }
         
         if (session) {
+          console.log('[ACCOUNT_CREATION_STARTUP_TRACE] auth_setting_user userId=' + session.user.id?.substring(0, 8) + ' pathname=' + pathname)
           setSession(session)
           setUser(session.user)
           setAccessToken(session.access_token)
@@ -104,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
         } else {
+          console.log('[ACCOUNT_CREATION_STARTUP_TRACE] auth_session_null_not_setting_user pathname=' + pathname)
           // Clear cache if no session
           if (typeof window !== 'undefined') {
             sessionStorage.removeItem('replyflow_auth_cache')
@@ -112,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('[Auth] Session restore failed:', error)
       } finally {
+        console.log('[ACCOUNT_CREATION_STARTUP_TRACE] auth_hydrated_complete loading=false authHydrated=true userPresent=' + !!user + ' userId=' + (user?.id?.substring(0, 8) || null) + ' pathname=' + pathname)
         setLoading(false)
         setAuthHydrated(true)
         initialLoadRef.current = false
@@ -141,6 +163,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!authSubscriptionRef.current && supabase) {
       authSubscriptionRef.current = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
         
+        console.log('[ACCOUNT_CREATION_STARTUP_TRACE] onAuthStateChange event=' + event + ' sessionPresent=' + !!session + ' userPresent=' + !!(session?.user) + ' pathname=' + pathname)
+
         console.log('[ACCOUNT_CREATION_LIFECYCLE] auth_state_change', {
           event,
           sessionPresent: !!session,
