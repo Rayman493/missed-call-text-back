@@ -458,6 +458,14 @@ public class MainActivity extends BridgeActivity {
                                                 @Override
                                                 public void onReceiveValue(String pollerMounted) {
                                                     Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] __stripeReturnPollerMounted: " + pollerMounted);
+
+                                                    String handleAppResumeQuery = "typeof window.__handleAppResume";
+                                                    webView.evaluateJavascript(handleAppResumeQuery, new ValueCallback<String>() {
+                                                        @Override
+                                                        public void onReceiveValue(String handleAppResume) {
+                                                            Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] __handleAppResume: " + handleAppResume);
+                                                        }
+                                                    });
                                                 }
                                             });
                                         }

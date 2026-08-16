@@ -124,6 +124,14 @@ export default function RootLayout({
                 window.dispatchEvent(event);
                 console.log('[ACCOUNT_CREATION_BRIDGE] JS Stripe return event dispatched to React');
 
+                // Trigger app-level reconciliation directly (reliable signal, doesn't depend on appStateChange)
+                if (window.__handleAppResume) {
+                  console.log('[ACCOUNT_CREATION_BRIDGE] calling __handleAppResume directly');
+                  window.__handleAppResume();
+                } else {
+                  console.error('[ACCOUNT_CREATION_BRIDGE] __handleAppResume not available');
+                }
+
                 // Retry dispatch after short delay to ensure React listeners are attached
                 setTimeout(function() {
                   var retryEvent = new CustomEvent('stripeReturn', {

@@ -84,6 +84,16 @@ export async function initializeCapacitor() {
   // Validate production configuration before initializing plugins
   validateProductionConfiguration();
 
+  // Expose handleAppResume globally for direct invocation from __onStripeReturn
+  // This ensures reconciliation triggers even if appStateChange doesn't fire
+  if (typeof window !== 'undefined') {
+    (window as any).__handleAppResume = async () => {
+      console.log('[ACCOUNT_CREATION_BRIDGE] __handleAppResume called directly from native bridge');
+      await handleAppResume();
+    };
+    console.log('[ACCOUNT_CREATION_BRIDGE] __handleAppResume exposed globally');
+  }
+
   try {
     // Initialize Status Bar
     const platform = Capacitor.getPlatform();
@@ -107,9 +117,12 @@ export async function initializeCapacitor() {
 
       // Handle external return reconciliation on app resume
       if (isActive) {
+        console.log('[ACCOUNT_CREATION_BRIDGE] appStateChange triggering handleAppResume');
         await handleAppResume();
         // Warm up Tap to Pay when app returns to foreground
         warmUpTapToPay();
+      } else {
+        console.log('[ACCOUNT_CREATION_BRIDGE] appStateChange inactive - not triggering handleAppResume');
       }
     });
 
