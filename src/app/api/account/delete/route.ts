@@ -972,9 +972,75 @@ If forwarding does not stop immediately, restart your phone or contact your carr
         summary.offboardingSmsSkippedReason = 'dry_run'
       }
 
-      // Step 18: Recycle Twilio numbers back to warm inventory (instead of releasing from Twilio)
-      console.log('[delete-account] Step 18: recycle assigned Twilio numbers back to warm inventory')
-      // NOTE: Preflight validation was already completed before destructive operations, so we can proceed directly
+      // Step 18: Delete jobs linked to businesses (must be before leads due to RESTRICT constraint)
+      console.log('[delete-account] Step 18: delete jobs')
+
+      const { error: jobsDeleteError, count: jobsCount } = await supabaseAdmin
+        .from('jobs')
+        .delete()
+        .in('business_id', businessIds)
+        .select()
+
+      if (jobsDeleteError) {
+        console.error('[delete-account] Step 18 failed:', jobsDeleteError)
+        return NextResponse.json(
+          { ok: false, step: 'delete_jobs', error: 'Failed to delete account data. Please try again or contact support.', details: jobsDeleteError.message },
+          { status: 500 }
+        )
+      }
+      summary.tablesDeleted.jobs = jobsCount || 0
+      console.log('[delete-account] Step 18 completed: deleted jobs:', jobsCount)
+
+      // Step 19: Delete leads linked to businesses
+      console.log('[delete-account] Step 19: delete leads')
+
+      const { error: leadsDeleteError, count: leadsCount } = await supabaseAdmin
+        .from('leads')
+        .delete()
+        .in('business_id', businessIds)
+        .select()
+
+      if (leadsDeleteError) {
+        console.error('[delete-account] Step 19 failed:', leadsDeleteError)
+        return NextResponse.json(
+          { ok: false, step: 'delete_leads', error: 'Failed to delete account data. Please try again or contact support.', details: leadsDeleteError.message },
+          { status: 500 }
+        )
+      }
+      summary.tablesDeleted.leads = leadsCount || 0
+      console.log('[delete-account] Step 19 completed: deleted leads:', leadsCount)
+
+      // Step 20: Hard-delete businesses
+      console.log('[delete-account] Step 20: hard-delete businesses')
+
+      for (const business of businesses as any[]) {
+        // Note: trial_history table insert removed as the table doesn't exist in production schema
+        // Trial history recording is no longer required for account deletion
+
+        // Hard-delete the business row
+        if (!dryRun) {
+          const { error: businessesDeleteError } = await supabaseAdmin
+            .from('businesses')
+            .delete()
+            .eq('id', business.id)
+
+          if (businessesDeleteError) {
+            console.error('[delete-account] Step 20 hard-delete failed:', businessesDeleteError)
+            return NextResponse.json(
+              { ok: false, step: 'delete_businesses', error: 'Failed to delete account data. Please try again or contact support.', details: businessesDeleteError.message },
+              { status: 500 }
+            )
+          }
+        }
+      }
+      summary.tablesDeleted.businesses = businesses.length
+      console.log('[delete-account] Step 20 completed: hard-deleted businesses')
+
+      // Step 21: Recycle Twilio numbers back to warm inventory (AFTER business deletion for safety)
+      // This ensures the invariant: a number never becomes assignable to another business
+      // while its original business remains an active/surviving account due to partial deletion failure
+      console.log('[delete-account] Step 21: recycle assigned Twilio numbers back to warm inventory (post-deletion)')
+      // NOTE: Business rows are now deleted, so we skip business table updates in recycling
 
       for (const business of businesses as any[]) {
         if (business.twilio_phone_number_sid) {
@@ -985,7 +1051,7 @@ If forwarding does not stop immediately, restart your phone or contact your carr
             continue
           }
 
-          console.log('[RECYCLE] Recycling assigned Twilio number back to warm inventory', {
+          console.log('[RECYCLE] Recycling assigned Twilio number back to warm inventory (post-deletion)', {
             businessId: business.id,
             phoneNumber: business.twilio_phone_number,
             sid: business.twilio_phone_number_sid,
@@ -994,11 +1060,11 @@ If forwarding does not stop immediately, restart your phone or contact your carr
           if (!dryRun) {
             try {
               // Import the recycle function
-              const { recycleTwilioNumberToInventory } = await import('@/lib/warm-number-manager')
-              
-              // Recycle the number back to warm inventory
-              console.log('[RECYCLE] Recycling number to warm inventory')
-              const recycleResult = await recycleTwilioNumberToInventory(
+              const { recycleTwilioNumberToInventoryPostDeletion } = await import('@/lib/warm-number-manager')
+
+              // Recycle the number back to warm inventory (business already deleted)
+              console.log('[RECYCLE] Recycling number to warm inventory (post-deletion mode)')
+              const recycleResult = await recycleTwilioNumberToInventoryPostDeletion(
                 business.twilio_phone_number,
                 business.twilio_phone_number_sid,
                 business.id
@@ -1009,17 +1075,17 @@ If forwarding does not stop immediately, restart your phone or contact your carr
                 summary.twilioNumberRecycled = business.twilio_phone_number
                 summary.tablesDeleted.twilio_numbers_recycled = (summary.tablesDeleted.twilio_numbers_recycled || 0) + 1
               } else {
-                console.error('[RECYCLE] Failed to recycle number to warm inventory (continuing with deletion):', recycleResult.error)
+                console.error('[RECYCLE] Failed to recycle number to warm inventory (continuing):', recycleResult.error)
                 summary.twilioRecycleFailed = true
                 summary.twilioRecycleError = recycleResult.error
               }
             } catch (recycleError: any) {
-              console.error('[RECYCLE] Exception recycling number to warm inventory (continuing with deletion):', recycleError)
+              console.error('[RECYCLE] Exception recycling number to warm inventory (continuing):', recycleError)
               summary.twilioRecycleFailed = true
               summary.twilioRecycleError = recycleError?.message || String(recycleError)
             }
           } else {
-            console.log('[delete-account] DRY RUN: Would recycle number to warm inventory')
+            console.log('[delete-account] DRY RUN: Would recycle number to warm inventory (post-deletion)')
             summary.twilioNumberRecycled = business.twilio_phone_number
             summary.tablesDeleted.twilio_numbers_recycled = (summary.tablesDeleted.twilio_numbers_recycled || 0) + 1
           }
@@ -1028,13 +1094,13 @@ If forwarding does not stop immediately, restart your phone or contact your carr
       const recycledCount = summary.tablesDeleted.twilio_numbers_recycled || 0
       const failedCount = summary.twilioRecycleFailed ? 1 : 0
       if (recycledCount > 0 && failedCount === 0) {
-        console.log(`[delete-account] Step 18 completed: successfully recycled ${recycledCount} assigned Twilio number(s) to warm inventory`)
+        console.log(`[delete-account] Step 21 completed: successfully recycled ${recycledCount} assigned Twilio number(s) to warm inventory`)
       } else if (recycledCount > 0 && failedCount > 0) {
-        console.log(`[delete-account] Step 18 completed: recycled ${recycledCount} number(s) to warm inventory with ${failedCount} failure(s)`)
+        console.log(`[delete-account] Step 21 completed: recycled ${recycledCount} number(s) to warm inventory with ${failedCount} failure(s)`)
       } else if (failedCount > 0) {
-        console.error(`[delete-account] Step 18 completed: failed to recycle Twilio number to warm inventory`)
+        console.error(`[delete-account] Step 21 completed: failed to recycle Twilio number to warm inventory`)
       } else {
-        console.log('[delete-account] Step 18 completed: no Twilio numbers to recycle')
+        console.log('[delete-account] Step 21 completed: no Twilio numbers to recycle')
       }
 
       // Trigger cleanup of excess inventory after recycling
@@ -1072,73 +1138,9 @@ If forwarding does not stop immediately, restart your phone or contact your carr
         .catch((cleanupError) => {
           console.error('[delete-account] Excess inventory cleanup failed (non-blocking):', cleanupError)
         })
-
-      // Step 18: Delete jobs linked to businesses (must be before leads due to RESTRICT constraint)
-      console.log('[delete-account] Step 18: delete jobs')
-      
-      const { error: jobsDeleteError, count: jobsCount } = await supabaseAdmin
-        .from('jobs')
-        .delete()
-        .in('business_id', businessIds)
-        .select()
-
-      if (jobsDeleteError) {
-        console.error('[delete-account] Step 18 failed:', jobsDeleteError)
-        return NextResponse.json(
-          { ok: false, step: 'delete_jobs', error: 'Failed to delete account data. Please try again or contact support.', details: jobsDeleteError.message },
-          { status: 500 }
-        )
-      }
-      summary.tablesDeleted.jobs = jobsCount || 0
-      console.log('[delete-account] Step 18 completed: deleted jobs:', jobsCount)
-
-      // Step 19: Delete leads linked to businesses
-      console.log('[delete-account] Step 19: delete leads')
-      
-      const { error: leadsDeleteError, count: leadsCount } = await supabaseAdmin
-        .from('leads')
-        .delete()
-        .in('business_id', businessIds)
-        .select()
-
-      if (leadsDeleteError) {
-        console.error('[delete-account] Step 19 failed:', leadsDeleteError)
-        return NextResponse.json(
-          { ok: false, step: 'delete_leads', error: 'Failed to delete account data. Please try again or contact support.', details: leadsDeleteError.message },
-          { status: 500 }
-        )
-      }
-      summary.tablesDeleted.leads = leadsCount || 0
-      console.log('[delete-account] Step 19 completed: deleted leads:', leadsCount)
-
-      // Step 20: Hard-delete businesses
-      console.log('[delete-account] Step 20: hard-delete businesses')
-      
-      for (const business of businesses as any[]) {
-        // Note: trial_history table insert removed as the table doesn't exist in production schema
-        // Trial history recording is no longer required for account deletion
-        
-        // Hard-delete the business row
-        if (!dryRun) {
-          const { error: businessesDeleteError } = await supabaseAdmin
-            .from('businesses')
-            .delete()
-            .eq('id', business.id)
-
-          if (businessesDeleteError) {
-            console.error('[delete-account] Step 20 hard-delete failed:', businessesDeleteError)
-            return NextResponse.json(
-              { ok: false, step: 'delete_businesses', error: 'Failed to delete account data. Please try again or contact support.', details: businessesDeleteError.message },
-              { status: 500 }
-            )
-          }
-        }
-      }
-      summary.tablesDeleted.businesses = businesses.length
-      console.log('[delete-account] Step 20 completed: hard-deleted businesses')
     }
 
-    // Step 21: Delete the Supabase Auth user last
+    // Step 22: Delete the Supabase Auth user last
     console.log('[delete-account] Step 21: delete auth user', { userId: user.id })
 
     if (!dryRun) {

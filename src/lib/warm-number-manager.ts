@@ -1248,6 +1248,182 @@ export async function recycleTwilioNumberToInventory(
 }
 
 /**
+ * Recycle a Twilio number back to warm inventory AFTER business deletion
+ *
+ * This is a safer variant of recycleTwilioNumberToInventory used during account deletion.
+ * The business row has already been deleted, so we skip the business table update step.
+ *
+ * This ensures the critical invariant:
+ * A Twilio number must NEVER become assignable to another business while its original
+ * business remains an active/surviving account due to a partial deletion failure.
+ *
+ * By recycling AFTER business deletion succeeds, we guarantee:
+ * - If business deletion fails, the number remains assigned to the surviving business
+ * - If business deletion succeeds, the number is safely recycled
+ * - No partial-deletion state where number is 'available' but business still exists
+ *
+ * @param phoneNumber The phone number to recycle
+ * @param phoneNumberSid The Twilio SID of the number
+ * @param businessId The ID of the deleted business (for logging/validation)
+ */
+export async function recycleTwilioNumberToInventoryPostDeletion(
+  phoneNumber: string,
+  phoneNumberSid: string,
+  businessId: string
+): Promise<{ success: boolean; error?: string }> {
+  console.log('[RECYCLE POST-DELETION] ========== START NUMBER RECYCLING ==========');
+  console.log(`[RECYCLE POST-DELETION] Recycling number: ${phoneNumber}`);
+  console.log(`[RECYCLE POST-DELETION] Phone SID: ${phoneNumberSid}`);
+  console.log(`[RECYCLE POST-DELETION] From deleted business: ${businessId}`);
+
+  // PROTECT: Block recycling of ReplyFlow system number
+  if (isSystemPhoneNumber(phoneNumber)) {
+    console.log('[RECYCLE POST-DELETION] Refusing to recycle protected ReplyFlow system number:', phoneNumber);
+    return {
+      success: false,
+      error: 'Protected ReplyFlow system number cannot be recycled'
+    };
+  }
+
+  if (!supabase) {
+    console.error('[RECYCLE POST-DELETION] ERROR: Supabase client not configured');
+    return { success: false, error: 'Supabase client not configured' };
+  }
+
+  try {
+    // STEP 1: Verify Twilio-side configuration before marking as ready
+    console.log('[RECYCLE POST-DELETION] STEP 1: Verifying Twilio-side configuration before recycling...');
+
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+
+    let isGenuinelyReady = false;
+
+    if (accountSid && authToken) {
+      const client = Twilio(accountSid, authToken);
+
+      try {
+        // Verify Twilio still owns the number
+        console.log('[RECYCLE POST-DELETION] Verifying Twilio ownership...');
+        await client.incomingPhoneNumbers(phoneNumberSid).fetch();
+
+        // Check current provisioning status from database
+        console.log('[RECYCLE POST-DELETION] Checking current provisioning status...');
+        const { data: currentNumber, error: fetchError } = await supabase
+          .from('twilio_numbers')
+          .select('provisioning_status, sms_status')
+          .eq('twilio_sid', phoneNumberSid)
+          .single();
+
+        if (!fetchError && currentNumber) {
+          console.log('[RECYCLE POST-DELETION] Current provisioning status:', currentNumber.provisioning_status);
+          console.log('[RECYCLE POST-DELETION] Current sms_status:', currentNumber.sms_status);
+
+          // Determine readiness based on canonical logic
+          const provisioningReady = currentNumber.provisioning_status === 'ready';
+          isGenuinelyReady = provisioningReady;
+
+          console.log('[RECYCLE POST-DELETION] Readiness determination:', {
+            provisioningReady,
+            isGenuinelyReady
+          });
+        } else {
+          console.error('[RECYCLE POST-DELETION] Failed to fetch current number status:', fetchError);
+        }
+
+      } catch (verifyError: any) {
+        console.error('[RECYCLE POST-DELETION] Verification failed:', verifyError);
+        isGenuinelyReady = false;
+      }
+    } else {
+      console.error('[RECYCLE POST-DELETION] Missing Twilio credentials for verification');
+      isGenuinelyReady = false;
+    }
+
+    console.log('[RECYCLE POST-DELETION] Final readiness determination:', isGenuinelyReady ? 'ready' : 'pending');
+
+    // STEP 2: Fetch current state for compare-and-swap validation
+    console.log('[RECYCLE POST-DELETION] STEP 2: Fetching current state for compare-and-swap validation...');
+    const { data: currentNumber, error: fetchError } = await supabase
+      .from('twilio_numbers')
+      .select('id, phone_number, twilio_sid, business_id, status, sms_status, assigned_at, detached_at, detached_reason')
+      .eq('twilio_sid', phoneNumberSid)
+      .single();
+
+    if (fetchError || !currentNumber) {
+      console.error('[RECYCLE POST-DELETION] ERROR: Failed to fetch current number state:', fetchError);
+      return { success: false, error: 'Failed to fetch current number state for validation' };
+    }
+
+    // B4: NUMBER OWNERSHIP VALIDATION
+    // Verify the number was assigned to the deleted business
+    if (currentNumber.business_id !== businessId) {
+      console.error('[RECYCLE POST-DELETION] ERROR: Business ID mismatch - number belongs to different business', {
+        expected: businessId,
+        actual: currentNumber.business_id
+      });
+      return { success: false, error: 'Number belongs to different business - safe to skip' };
+    }
+
+    if (currentNumber.twilio_sid !== phoneNumberSid) {
+      console.error('[RECYCLE POST-DELETION] ERROR: Twilio SID mismatch', {
+        expected: phoneNumberSid,
+        actual: currentNumber.twilio_sid
+      });
+      return { success: false, error: 'Twilio SID mismatch' };
+    }
+
+    // STEP 3: Detach from business in twilio_numbers table with compare-and-swap
+    // NOTE: Business row is already deleted, so we skip business table update
+    console.log('[RECYCLE POST-DELETION] STEP 3: Detaching number from business (business already deleted)...');
+    const { error: detachError, count: detachCount } = await supabase
+      .from('twilio_numbers')
+      .update({
+        business_id: null,
+        status: 'available',
+        sms_status: isGenuinelyReady ? 'ready' : 'pending',
+        assigned_at: null,
+        detached_at: new Date().toISOString(),
+        detached_reason: 'account_deletion',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', currentNumber.id)
+      .eq('twilio_sid', phoneNumberSid)
+      .eq('business_id', businessId) // Verify it still belongs to the deleted business
+      .in('status', ['assigned', 'active']);
+
+    if (detachError) {
+      console.error('[RECYCLE POST-DELETION] ERROR: Failed to detach number from business:', detachError);
+      console.error('[RECYCLE POST-DELETION] ERROR Details:', JSON.stringify(detachError, null, 2));
+      return { success: false, error: 'Failed to detach number from business' };
+    }
+
+    if (detachCount === 0) {
+      console.error('[RECYCLE POST-DELETION] ERROR: Compare-and-swap failed - zero rows updated');
+      // This is not critical - the number may have been recycled by another process
+      // or the business_id may have changed. Log and continue.
+      console.log('[RECYCLE POST-DELETION] Compare-and-swap failed - number may have been already recycled or reassigned');
+      return { success: true }; // Treat as success since this is post-deletion cleanup
+    }
+
+    console.log('[RECYCLE POST-DELETION] SUCCESS: Number detached from business');
+
+    // NOTE: Skip business table update since business row is already deleted
+
+    console.log(`[RECYCLE POST-DELETION] Number recycled to warm inventory: ${phoneNumber}`);
+    console.log('[RECYCLE POST-DELETION] ========== END NUMBER RECYCLING (SUCCESS) ==========');
+    return { success: true };
+
+  } catch (error: any) {
+    console.error('[RECYCLE POST-DELETION] EXCEPTION: Exception recycling number');
+    console.error('[RECYCLE POST-DELETION] EXCEPTION Details:', JSON.stringify(error, null, 2));
+    console.error('[RECYCLE POST-DELETION] ========== END NUMBER RECYCLING (EXCEPTION) ==========');
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Check if an error is transient and should be retried
  */
 function isTransientError(error: any): boolean {

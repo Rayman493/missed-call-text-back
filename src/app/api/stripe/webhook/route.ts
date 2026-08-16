@@ -260,6 +260,254 @@ async function markEventFailed(
 }
 
 /**
+ * Reconstruct a missing payment_request record from Stripe metadata
+ *
+ * This handles the rare edge case where Stripe Checkout Session was created
+ * successfully but the local DB insert failed. The webhook can reconstruct
+ * the missing record using trustworthy Stripe metadata.
+ *
+ * Security:
+ * - Metadata business_id, lead_id, conversation_id come from server-side
+ *   authenticated queries (not client input), making them trustworthy
+ * - Tenant validation ensures no cross-tenant reconstruction
+ * - Stripe remains authoritative for amount, currency, and payment state
+ * - UNIQUE constraint on stripe_checkout_session_id provides idempotency
+ */
+async function reconstructPaymentRequestFromStripe(
+  supabase: any,
+  sessionId: string,
+  paymentIntentId: string,
+  metadata: any,
+  session: any,
+  stripe: Stripe
+): Promise<{
+  success: boolean;
+  paymentRequest?: any;
+  paymentRequestId?: string;
+  error?: string;
+  reason?: string;
+}> {
+  console.log('[PAYMENT RECONSTRUCTION] ========== START RECONSTRUCTION ==========')
+  console.log('[PAYMENT RECONSTRUCTION] Session ID:', sessionId)
+  console.log('[PAYMENT RECONSTRUCTION] Payment Intent ID:', paymentIntentId)
+  console.log('[PAYMENT RECONSTRUCTION] Metadata:', JSON.stringify(metadata))
+
+  // Extract metadata fields
+  const businessId = metadata.business_id
+  const leadId = metadata.lead_id
+  const conversationId = metadata.conversation_id
+
+  // Validate required metadata
+  if (!businessId || !leadId) {
+    console.error('[PAYMENT RECONSTRUCTION] Missing required metadata', { businessId, leadId })
+    return {
+      success: false,
+      error: 'Missing required metadata',
+      reason: 'business_id and lead_id are required in Stripe metadata'
+    }
+  }
+
+  // A3: TENANT VALIDATION
+  // Verify business exists
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id, name')
+    .eq('id', businessId)
+    .single()
+
+  if (businessError || !business) {
+    console.error('[PAYMENT RECONSTRUCTION] Business not found or invalid', { businessId, businessError })
+    return {
+      success: false,
+      error: 'Business not found',
+      reason: `business_id ${businessId} does not exist or is inaccessible`
+    }
+  }
+
+  // Verify lead exists and belongs to business
+  const { data: lead, error: leadError } = await supabase
+    .from('leads')
+    .select('id, business_id')
+    .eq('id', leadId)
+    .single()
+
+  if (leadError || !lead) {
+    console.error('[PAYMENT RECONSTRUCTION] Lead not found or invalid', { leadId, leadError })
+    return {
+      success: false,
+      error: 'Lead not found',
+      reason: `lead_id ${leadId} does not exist or is inaccessible`
+    }
+  }
+
+  if (lead.business_id !== businessId) {
+    console.error('[PAYMENT RECONSTRUCTION] Lead/business mismatch', {
+      leadId,
+      leadBusinessId: lead.business_id,
+      expectedBusinessId: businessId
+    })
+    return {
+      success: false,
+      error: 'Lead/business mismatch',
+      reason: `lead ${leadId} belongs to business ${lead.business_id}, not ${businessId}`
+    }
+  }
+
+  // Verify conversation belongs to same business/lead (if provided)
+  if (conversationId) {
+    const { data: conversation, error: conversationError } = await supabase
+      .from('conversations')
+      .select('id, business_id, lead_id')
+      .eq('id', conversationId)
+      .single()
+
+    if (conversationError || !conversation) {
+      console.error('[PAYMENT RECONSTRUCTION] Conversation not found or invalid', { conversationId, conversationError })
+      return {
+        success: false,
+        error: 'Conversation not found',
+        reason: `conversation_id ${conversationId} does not exist or is inaccessible`
+      }
+    }
+
+    if (conversation.business_id !== businessId || conversation.lead_id !== leadId) {
+      console.error('[PAYMENT RECONSTRUCTION] Conversation/business/lead mismatch', {
+        conversationId,
+        conversationBusinessId: conversation.business_id,
+        conversationLeadId: conversation.lead_id,
+        expectedBusinessId: businessId,
+        expectedLeadId: leadId
+      })
+      return {
+        success: false,
+        error: 'Conversation/business/lead mismatch',
+        reason: `conversation ${conversationId} belongs to different business or lead`
+      }
+    }
+  }
+
+  // A5: VERIFY STRIPE STATE
+  // Fetch PaymentIntent to get authoritative amount and currency
+  let paymentIntent: Stripe.PaymentIntent | null = null
+  try {
+    paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+    console.log('[PAYMENT RECONSTRUCTION] PaymentIntent retrieved:', {
+      id: paymentIntent.id,
+      status: paymentIntent.status,
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency
+    })
+  } catch (piError: any) {
+    console.error('[PAYMENT RECONSTRUCTION] Failed to retrieve PaymentIntent:', piError)
+    return {
+      success: false,
+      error: 'PaymentIntent retrieval failed',
+      reason: `Could not retrieve PaymentIntent ${paymentIntentId}: ${piError?.message}`
+    }
+  }
+
+  // Verify payment status indicates success
+  if (paymentIntent.status !== 'succeeded') {
+    console.error('[PAYMENT RECONSTRUCTION] PaymentIntent not in succeeded state', { status: paymentIntent.status })
+    return {
+      success: false,
+      error: 'Payment not succeeded',
+      reason: `PaymentIntent status is ${paymentIntent.status}, not succeeded`
+    }
+  }
+
+  // A6: RECONSTRUCT MINIMUM CANONICAL RECORD
+  // Use authoritative values from Stripe
+  const amountCents = paymentIntent.amount // Stripe uses smallest currency unit (cents)
+  const currency = paymentIntent.currency.toLowerCase()
+
+  // Calculate expires_at (24 hours from session creation)
+  const sessionCreated = session.created ? new Date(session.created * 1000) : new Date()
+  const expiresAt = new Date(sessionCreated.getTime() + 24 * 60 * 60 * 1000).toISOString()
+
+  const insertPayload: any = {
+    business_id: businessId,
+    lead_id: leadId,
+    conversation_id: conversationId || null,
+    amount_cents: amountCents,
+    currency: currency,
+    description: null, // Cannot safely reconstruct - leave NULL
+    status: 'pending', // Initial state, webhook will update to 'paid'
+    payment_provider: 'stripe',
+    stripe_checkout_session_id: sessionId,
+    stripe_payment_intent_id: paymentIntentId,
+    stripe_connect_account_id: session.metadata?.stripe_connect_account_id || null,
+    checkout_url: session.url || null,
+    requested_by: null, // Cannot reconstruct - acceptable for recovered records (column is nullable per migration)
+    expires_at: expiresAt,
+    // Do NOT set: display_name, token, attempt_id (not available in Stripe)
+  }
+
+  console.log('[PAYMENT RECONSTRUCTION] Insert payload prepared:', {
+    business_id: businessId,
+    lead_id: leadId,
+    amount_cents: amountCents,
+    currency: currency,
+    stripe_checkout_session_id: sessionId
+  })
+
+  // A4: IDEMPOTENT RECONSTRUCTION
+  // UNIQUE constraint on stripe_checkout_session_id prevents duplicates
+  let paymentRequest: any = null
+  let insertError: any = null
+
+  try {
+    const result = await supabase
+      .from('payment_requests')
+      .insert(insertPayload)
+      .select()
+      .single()
+    paymentRequest = result.data
+    insertError = result.error
+  } catch (exception: any) {
+    insertError = exception
+  }
+
+  // Handle UNIQUE constraint violation (race condition - another worker already reconstructed)
+  if (insertError?.code === '23505') {
+    console.log('[PAYMENT RECONSTRUCTION] UNIQUE constraint violation - another worker already reconstructed')
+    // Fetch the existing record
+    const { data: existingRequest } = await supabase
+      .from('payment_requests')
+      .select('id, lead_id, business_id, status, amount_cents')
+      .eq('stripe_checkout_session_id', sessionId)
+      .single()
+
+    if (existingRequest) {
+      console.log('[PAYMENT RECONSTRUCTION] Found existing reconstructed record:', existingRequest.id)
+      return {
+        success: true,
+        paymentRequest: existingRequest,
+        paymentRequestId: existingRequest.id
+      }
+    }
+  }
+
+  if (insertError || !paymentRequest) {
+    console.error('[PAYMENT RECONSTRUCTION] Failed to insert reconstructed record:', insertError)
+    return {
+      success: false,
+      error: 'Insert failed',
+      reason: `Database insert failed: ${insertError?.message || 'Unknown error'}`
+    }
+  }
+
+  console.log('[PAYMENT RECONSTRUCTION] Successfully reconstructed payment request:', paymentRequest.id)
+  console.log('[PAYMENT RECONSTRUCTION] ========== RECONSTRUCTION COMPLETE ==========')
+
+  return {
+    success: true,
+    paymentRequest: paymentRequest,
+    paymentRequestId: paymentRequest.id
+  }
+}
+
+/**
  * Find a business by Stripe subscription ID, falling back to customer ID.
  * Optionally repairs the missing stripe_subscription_id on the matched business.
  */
@@ -1521,17 +1769,58 @@ export async function POST(request: Request) {
 
         // Update payment_request record
         console.log('[PAYMENT WEBHOOK] Looking up payment request by stripe_checkout_session_id:', sessionId)
-        const { data: paymentRequest, error: paymentRequestError } = await supabase
+        let { data: paymentRequest, error: paymentRequestError } = await supabase
           .from('payment_requests')
           .select('id, lead_id, business_id, status, amount_cents')
           .eq('stripe_checkout_session_id', sessionId)
           .single()
 
         if (paymentRequestError || !paymentRequest) {
-          console.error('[PAYMENT WEBHOOK] Payment request not found:', paymentRequestError)
-          console.error('[PAYMENT WEBHOOK] Error code:', paymentRequestError?.code)
-          console.error('[PAYMENT WEBHOOK] Error message:', paymentRequestError?.message)
-          break
+          // Distinguish between true "not found" vs database error
+          // Only attempt reconstruction if it's a true not-found (PGRST116), not a transient error
+          const isTrueNotFound = paymentRequestError?.code === 'PGRST116'
+
+          if (!isTrueNotFound) {
+            console.error('[PAYMENT WEBHOOK] Database error looking up payment request (not attempting reconstruction):', paymentRequestError)
+            console.error('[PAYMENT WEBHOOK] Error code:', paymentRequestError?.code)
+            console.error('[PAYMENT WEBHOOK] Error message:', paymentRequestError?.message)
+            // Do not mark as processed - allow retry
+            return NextResponse.json({ received: true, warning: 'Database error, will retry' }, { status: 200 })
+          }
+
+          console.log('[PAYMENT RECONSTRUCTION] Payment request not found, attempting reconstruction from Stripe metadata')
+          console.log('[PAYMENT RECONSTRUCTION] Session ID:', sessionId)
+          console.log('[PAYMENT RECONSTRUCTION] Payment Intent ID:', paymentIntentId)
+
+          // Attempt reconstruction from Stripe metadata
+          const reconstructionResult = await reconstructPaymentRequestFromStripe(
+            supabase,
+            sessionId,
+            paymentIntentId,
+            metadata,
+            session,
+            stripe
+          )
+
+          if (!reconstructionResult.success) {
+            console.error('[PAYMENT RECONSTRUCTION] Reconstruction failed:', reconstructionResult.error)
+            console.error('[PAYMENT RECONSTRUCTION] Reason:', reconstructionResult.reason)
+            // Do not mark as processed - allow manual recovery
+            return NextResponse.json({
+              received: true,
+              warning: 'Payment request reconstruction failed, manual recovery required',
+              reconstructionError: reconstructionResult.reason
+            }, { status: 200 })
+          }
+
+          console.log('[PAYMENT RECONSTRUCTION] Successfully reconstructed payment request:', reconstructionResult.paymentRequestId)
+          paymentRequest = reconstructionResult.paymentRequest
+        }
+
+        // Verify we have a payment request before continuing
+        if (!paymentRequest) {
+          console.error('[PAYMENT WEBHOOK] Payment request is null after lookup/reconstruction')
+          return NextResponse.json({ received: true, warning: 'Payment request unavailable' }, { status: 200 })
         }
 
         console.log('[PAYMENT WEBHOOK] Found payment request:', paymentRequest.id)
