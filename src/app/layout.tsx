@@ -97,6 +97,27 @@ export default function RootLayout({
             `,
           }}
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Register global native-to-WebView bridge receiver
+              // This must be registered before the user leaves for Stripe and remain available while app is backgrounded
+              window.__onStripeReturn = function(type) {
+                console.log('[ACCOUNT_CREATION_BRIDGE] web event received:', type);
+                // Dispatch custom event for React components to listen to
+                var event = new CustomEvent('stripeReturn', {
+                  detail: {
+                    flow: type,
+                    timestamp: Date.now()
+                  }
+                });
+                window.dispatchEvent(event);
+                console.log('[ACCOUNT_CREATION_BRIDGE] JS Stripe return event dispatched to React');
+              };
+              console.log('[ACCOUNT_CREATION_BRIDGE] global JS receiver registered in layout script tag');
+            `,
+          }}
+        />
       </head>
       <body className={`${inter.className} antialiased`}>
         <CapacitorInitializer />

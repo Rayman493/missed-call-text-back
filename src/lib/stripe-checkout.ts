@@ -22,6 +22,10 @@ export function isNativeIOS(): boolean {
 }
 
 export async function openStripeCheckout(url: string): Promise<void> {
+  // Verify global receiver exists before opening Stripe
+  const receiverType = typeof (window as any).__onStripeReturn
+  console.log('[ACCOUNT_CREATION_BRIDGE] before Stripe launch receiver type=' + receiverType)
+
   if (isNativeIOS()) {
     console.log('[StripeCheckout] Opening Stripe in native web session (iOS)')
     try {
