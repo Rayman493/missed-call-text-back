@@ -60,8 +60,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (error) {
           console.error('[Auth] Session restore error:', error)
+          console.log('[ACCOUNT_CREATION_LIFECYCLE] session_restore_error', {
+            errorMessage: error?.message,
+            errorName: error?.name,
+            pathname,
+            timestamp: Date.now()
+          })
           // Check for refresh_token_not_found error and clear stale auth state
           if (error?.message?.includes('refresh_token_not_found') || error?.message?.includes('Refresh Token Not Found')) {
+            console.log('[ACCOUNT_CREATION_LIFECYCLE] refresh_token_not_found clearing_supabase_keys', {
+              pathname,
+              timestamp: Date.now()
+            })
             // Clear all Supabase keys from localStorage
             if (typeof window !== 'undefined') {
               const keysToRemove: string[] = []
@@ -131,6 +141,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!authSubscriptionRef.current && supabase) {
       authSubscriptionRef.current = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
         
+        console.log('[ACCOUNT_CREATION_LIFECYCLE] auth_state_change', {
+          event,
+          sessionPresent: !!session,
+          userId: session?.user?.id?.substring(0, 8) || null,
+          pathname: pathname,
+          timestamp: Date.now()
+        })
+
         if (event === 'SIGNED_IN' && session) {
           // Track sign-in time to prevent race condition with delayed stale SIGNED_OUT events
           lastSignInTimeRef.current = Date.now()
@@ -141,8 +159,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_OUT' && !session) {
           const timeSinceSignIn = Date.now() - lastSignInTimeRef.current
           if (timeSinceSignIn < 2000) {
+            console.log('[ACCOUNT_CREATION_LIFECYCLE] signed_out ignored (within 2s of sign-in)', {
+              timeSinceSignIn,
+              pathname,
+              timestamp: Date.now()
+            })
             return // Don't clear the fresh session
           }
+          console.log('[ACCOUNT_CREATION_LIFECYCLE] signed_out processing', {
+            timeSinceSignIn,
+            pathname,
+            timestamp: Date.now()
+          })
         }
         
         if (session) {
@@ -163,6 +191,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
         } else {
+          console.log('[ACCOUNT_CREATION_LIFECYCLE] auth_state_change clearing_user_session', {
+            event,
+            pathname,
+            timestamp: Date.now()
+          })
           setSession(null)
           setUser(null)
           setAccessToken(null)
