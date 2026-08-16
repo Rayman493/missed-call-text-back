@@ -287,7 +287,7 @@ export async function reconcileStripeStatus(businessId?: string): Promise<{ succ
  * @returns true if the URL was handled and navigation should be skipped, false otherwise
  */
 export async function handleExternalReturn(url: string): Promise<boolean> {
-  console.log('[NAV_SOURCE] source=EXTERNAL_RETURN_HANDLER_ENTER url=' + url)
+  console.log('[ACCOUNT_CREATION_BRIDGE] native Stripe return received, URL:', url)
 
   const urlObj = new URL(url)
 
@@ -302,6 +302,20 @@ export async function handleExternalReturn(url: string): Promise<boolean> {
           sessionStorage.setItem('external_return_flow', flow.name)
           sessionStorage.setItem('external_return_timestamp', Date.now().toString())
           console.log('[EXTERNAL RETURN] Set session storage for flow:', flow.name)
+        }
+
+        // Dispatch custom event for React components to listen to
+        // This is the primary signal for complete-setup to start reconciliation
+        if (typeof window !== 'undefined') {
+          const event = new CustomEvent('stripeReturn', {
+            detail: {
+              flow: flow.name,
+              url: url,
+              timestamp: Date.now()
+            }
+          })
+          window.dispatchEvent(event)
+          console.log('[ACCOUNT_CREATION_BRIDGE] JS Stripe return event dispatched to React')
         }
 
         // Trigger authoritative reconciliation
@@ -395,6 +409,33 @@ export async function getPendingGoogleOperation(): Promise<{ operation: PendingG
  */
 export async function handleAppResume(): Promise<void> {
   console.log('[EXTERNAL RETURN] App resumed, checking for pending operations')
+
+  // Check sessionStorage flag from native bridge (fallback for route navigation away from complete-setup)
+  if (typeof window !== 'undefined') {
+    try {
+      const stripeReturnType = sessionStorage.getItem('stripe_return_type')
+      const stripeReturnTimestamp = sessionStorage.getItem('stripe_return_timestamp')
+
+      if (stripeReturnType === 'STRIPE_CHECKOUT') {
+        console.log('[ACCOUNT_CREATION_BRIDGE] sessionStorage flag detected on app resume:', stripeReturnType)
+        // Clear the flag to prevent duplicate reconciliation
+        sessionStorage.removeItem('stripe_return_type')
+        sessionStorage.removeItem('stripe_return_timestamp')
+
+        // Get pending operation to get business ID for reconciliation
+        const pendingStripe = await getPendingStripeOperation()
+        if (pendingStripe.businessId) {
+          console.log('[ACCOUNT_CREATION_BRIDGE] Triggering reconciliation via sessionStorage flag, businessId:', pendingStripe.businessId)
+          const result = await reconcileStripeStatus(pendingStripe.businessId)
+          console.log('[ACCOUNT_CREATION_BRIDGE] SessionStorage reconciliation result:', result)
+        } else {
+          console.warn('[ACCOUNT_CREATION_BRIDGE] SessionStorage flag set but no pending operation found')
+        }
+      }
+    } catch (e) {
+      console.error('[ACCOUNT_CREATION_BRIDGE] sessionStorage check error on app resume:', e)
+    }
+  }
 
   const pendingStripe = await getPendingStripeOperation()
   if (pendingStripe.operation) {
