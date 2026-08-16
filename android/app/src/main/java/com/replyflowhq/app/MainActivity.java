@@ -18,6 +18,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.ValueCallback;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -38,6 +39,7 @@ public class MainActivity extends BridgeActivity {
     private boolean hasLoadedSuccessfully = false;
     private boolean launchedInOfflineState = false;
     private boolean isRecreating = false;
+    private String externalReturnType = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -84,6 +86,9 @@ public class MainActivity extends BridgeActivity {
                     // IMPORTANT: Do NOT preserve intent data - Capacitor will load it into WebView
                     // Capacitor will still deliver the URL to JS via appUrlOpen from internal storage
                     setIntent(new Intent());
+
+                    // Store external return type for WebView notification after super.onCreate()
+                    this.externalReturnType = externalReturnType;
                 } else {
                     Log.d(TAG, "[GENERIC_DEEPLINK_STARTED] not an external return, allowing normal WebView navigation");
                 }
@@ -102,6 +107,17 @@ public class MainActivity extends BridgeActivity {
         Log.d(TAG, "[PLUGIN] SmsLauncherPlugin registered successfully");
 
         super.onCreate(savedInstanceState);
+
+        // Notify WebView of external return if one was detected
+        if (externalReturnType != null) {
+            // Schedule WebView notification after a short delay to ensure WebView is ready
+            webView.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    notifyWebViewOfExternalReturn(externalReturnType);
+                }
+            }, 500); // 500ms delay to ensure WebView is ready
+        }
 
         // Create notification channel for Android O+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -362,6 +378,8 @@ public class MainActivity extends BridgeActivity {
 
                 if (isExternalReturn) {
                     Log.d(TAG, "[EXTERNAL_RETURN_CLASSIFIED] type=" + externalReturnType + ", preventing WebView navigation");
+                    // Notify WebView of the external return immediately
+                    notifyWebViewOfExternalReturn(externalReturnType);
                     // Clear the intent BEFORE calling super to prevent WebView from loading the callback URL
                     // IMPORTANT: Do NOT preserve intent data - Capacitor will load it into WebView
                     // Capacitor will still deliver the URL to JS via appUrlOpen from internal storage
@@ -378,6 +396,78 @@ public class MainActivity extends BridgeActivity {
         } else {
             // No URI in intent - process normally
             super.onNewIntent(intent);
+        }
+    }
+
+    /**
+     * Notify WebView of external return via JavaScript bridge
+     * Called from both onCreate (cold start) and onNewIntent (warm return)
+     */
+    private void notifyWebViewOfExternalReturn(final String externalReturnType) {
+        Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] native dispatch to WebView: " + externalReturnType);
+
+        // For warm return, WebView should already exist - dispatch immediately
+        // For cold return, WebView is being initialized - use delay
+        if (webView != null) {
+            webView.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (webView != null) {
+                        // First check if the function exists
+                        String checkCode = "typeof window.__onStripeReturn";
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                            webView.evaluateJavascript(checkCode, new ValueCallback<String>() {
+                                @Override
+                                public void onReceiveValue(String value) {
+                                    Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] window.__onStripeReturn exists: " + value);
+                                    // Then call the function if it exists
+                                    String jsCode = "if (window.__onStripeReturn) { window.__onStripeReturn('" + externalReturnType + "'); }";
+                                    Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] executing JS: " + jsCode);
+                                    webView.evaluateJavascript(jsCode, new ValueCallback<String>() {
+                                        @Override
+                                        public void onReceiveValue(String result) {
+                                            Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] JS execution result: " + result);
+
+                                            // Query WebView state to diagnose what happened
+                                            String locationQuery = "window.location.href";
+                                            webView.evaluateJavascript(locationQuery, new ValueCallback<String>() {
+                                                @Override
+                                                public void onReceiveValue(String location) {
+                                                    Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] location.href: " + location);
+                                                }
+                                            });
+
+                                            String sessionStorageTypeQuery = "sessionStorage.getItem('stripe_return_type')";
+                                            webView.evaluateJavascript(sessionStorageTypeQuery, new ValueCallback<String>() {
+                                                @Override
+                                                public void onReceiveValue(String type) {
+                                                    Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] sessionStorage.stripe_return_type: " + type);
+                                                }
+                                            });
+
+                                            String sessionStorageTimestampQuery = "sessionStorage.getItem('stripe_return_timestamp')";
+                                            webView.evaluateJavascript(sessionStorageTimestampQuery, new ValueCallback<String>() {
+                                                @Override
+                                                public void onReceiveValue(String timestamp) {
+                                                    Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] sessionStorage.stripe_return_timestamp: " + timestamp);
+                                                }
+                                            });
+
+                                            String pollerMountedQuery = "typeof window.__stripeReturnPollerMounted";
+                                            webView.evaluateJavascript(pollerMountedQuery, new ValueCallback<String>() {
+                                                @Override
+                                                public void onReceiveValue(String pollerMounted) {
+                                                    Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] __stripeReturnPollerMounted: " + pollerMounted);
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    }
+                }
+            });
         }
     }
 

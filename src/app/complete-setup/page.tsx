@@ -180,6 +180,9 @@ export default function CompleteSetupPage() {
       }
     }, 1000) // Check every second
 
+    // Expose global diagnostic for native to query
+    ;(window as any).__stripeReturnPollerMounted = true
+
     // Listen for custom Stripe return event (primary signal)
     window.addEventListener('stripeReturn', handleStripeReturn)
     console.log('[ACCOUNT_CREATION_RESUME] stripeReturn event listener attached')
@@ -193,6 +196,7 @@ export default function CompleteSetupPage() {
 
     return () => {
       clearInterval(sessionStoragePollInterval)
+      ;(window as any).__stripeReturnPollerMounted = false
       window.removeEventListener('stripeReturn', handleStripeReturn)
       console.log('[ACCOUNT_CREATION_RESUME] stripeReturn event listener removed')
       appStateListener.then(handle => handle.remove())
