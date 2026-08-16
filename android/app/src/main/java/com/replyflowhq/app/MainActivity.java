@@ -145,6 +145,7 @@ public class MainActivity extends BridgeActivity {
                 @Override
                 public void run() {
                     queryWebBuildAndUrl("onCreate");
+                    startStartupSampling();
                 }
             }, 1000); // 1s delay to ensure WebView is fully loaded
         } else {
@@ -585,6 +586,54 @@ public class MainActivity extends BridgeActivity {
                         });
                     }
                 });
+            }
+        });
+    }
+
+    private void startStartupSampling() {
+        if (webView == null) {
+            return;
+        }
+
+        final int[] sampleTimes = {0, 100, 250, 500, 750, 1000, 1500, 2000, 3000};
+        for (int i = 0; i < sampleTimes.length; i++) {
+            final int delay = sampleTimes[i];
+            final int sampleIndex = i;
+            webView.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (webView == null) {
+                        return;
+                    }
+                    sampleStartupTrace(delay, sampleIndex);
+                }
+            }, delay);
+        }
+    }
+
+    private void sampleStartupTrace(final int delay, final int sampleIndex) {
+        String urlQuery = "window.location.href";
+        String buildQuery = "window.__replyflowWebBuild";
+        String traceQuery = "JSON.stringify(window.__accountCreationStartupTrace || null)";
+
+        webView.evaluateJavascript(urlQuery, new ValueCallback<String>() {
+            @Override
+            public void onReceiveValue(String url) {
+                Log.d(TAG, "[ACCOUNT_CREATION_AUTH_NATIVE_TRACE] sample_" + delay + "ms url=" + url);
+            }
+        });
+
+        webView.evaluateJavascript(buildQuery, new ValueCallback<String>() {
+            @Override
+            public void onReceiveValue(String build) {
+                Log.d(TAG, "[ACCOUNT_CREATION_AUTH_NATIVE_TRACE] sample_" + delay + "ms build=" + build);
+            }
+        });
+
+        webView.evaluateJavascript(traceQuery, new ValueCallback<String>() {
+            @Override
+            public void onReceiveValue(String trace) {
+                Log.d(TAG, "[ACCOUNT_CREATION_AUTH_NATIVE_TRACE] sample_" + delay + "ms trace=" + trace);
             }
         });
     }

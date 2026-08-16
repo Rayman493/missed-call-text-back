@@ -35,6 +35,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setIsClient(true)
+    if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
+      (window as any).__recordStartupEvent('auth_context_initialized', { pathname })
+    }
   }, [])
 
   useEffect(() => {
@@ -55,6 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Restore session on app load
     const restoreSession = async () => {
+      if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
+        (window as any).__recordStartupEvent('restore_session_start', { pathname })
+      }
       console.log('[ACCOUNT_CREATION_STARTUP_TRACE] auth_restore_start pathname=' + pathname)
 
       // Check for Supabase keys in localStorage
@@ -67,13 +73,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
         console.log('[ACCOUNT_CREATION_STARTUP_TRACE] localStorage_supabase_keys count=' + supabaseKeys.length + ' keys=' + supabaseKeys.join(','))
+        if ((window as any).__recordStartupEvent) {
+          (window as any).__recordStartupEvent('supabase_localstorage_keys', { count: supabaseKeys.length, keys: supabaseKeys })
+        }
       }
 
       try {
         console.log('[ACCOUNT_CREATION_STARTUP_TRACE] getSession_call_start')
+        if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
+          (window as any).__recordStartupEvent('get_session_start', { pathname })
+        }
         const { data: { session }, error } = await supabase.auth.getSession()
 
         console.log('[ACCOUNT_CREATION_STARTUP_TRACE] getSession_result sessionPresent=' + !!session + ' userPresent=' + !!(session?.user) + ' error=' + (error?.name || 'none') + ' error_message=' + (error?.message || 'none'))
+        if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
+          (window as any).__recordStartupEvent('get_session_complete', {
+            sessionPresent: !!session,
+            userPresent: !!(session?.user),
+            errorName: error?.name || null,
+            errorMessage: error?.message || null
+          })
+        }
 
         if (error) {
           console.error('[Auth] Session restore error:', error)
@@ -86,6 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Check for refresh_token_not_found error and clear stale auth state
           if (error?.message?.includes('refresh_token_not_found') || error?.message?.includes('Refresh Token Not Found')) {
             console.log('[ACCOUNT_CREATION_STARTUP_TRACE] refresh_token_not_found_error clearing_keys')
+            if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
+              (window as any).__recordStartupEvent('refresh_token_cleanup_start', { errorName: error?.name })
+            }
             console.log('[ACCOUNT_CREATION_LIFECYCLE] refresh_token_not_found clearing_supabase_keys', {
               pathname,
               timestamp: Date.now()
@@ -101,13 +124,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
               keysToRemove.forEach(key => localStorage.removeItem(key))
               console.log('[ACCOUNT_CREATION_STARTUP_TRACE] cleared_keys count=' + keysToRemove.length)
+              if ((window as any).__recordStartupEvent) {
+                (window as any).__recordStartupEvent('refresh_token_cleanup_complete', { keysCleared: keysToRemove.length })
+              }
             }
           }
         }
         
         if (session) {
           console.log('[ACCOUNT_CREATION_STARTUP_TRACE] auth_setting_user userId=' + session.user.id?.substring(0, 8) + ' pathname=' + pathname)
+          if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
+            (window as any).__recordStartupEvent('set_session_present', { pathname })
+          }
           setSession(session)
+          if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
+            (window as any).__recordStartupEvent('set_user_present', { pathname })
+          }
           setUser(session.user)
           setAccessToken(session.access_token)
           // Cache authenticated state
@@ -125,6 +157,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } else {
           console.log('[ACCOUNT_CREATION_STARTUP_TRACE] auth_session_null_not_setting_user pathname=' + pathname)
+          if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
+            (window as any).__recordStartupEvent('set_session_null', { pathname })
+          }
           // Clear cache if no session
           if (typeof window !== 'undefined') {
             sessionStorage.removeItem('replyflow_auth_cache')
@@ -134,9 +169,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('[Auth] Session restore failed:', error)
       } finally {
         console.log('[ACCOUNT_CREATION_STARTUP_TRACE] auth_hydrated_complete loading=false authHydrated=true userPresent=' + !!user + ' userId=' + (user?.id?.substring(0, 8) || null) + ' pathname=' + pathname)
+        if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
+          (window as any).__recordStartupEvent('loading_false', { pathname })
+        }
+        if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
+          (window as any).__recordStartupEvent('auth_hydrated_true', { pathname })
+        }
         setLoading(false)
         setAuthHydrated(true)
         initialLoadRef.current = false
+
+        if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
+          (window as any).__recordStartupEvent('restore_session_complete', { pathname, userPresent: !!user })
+        }
 
         // Process any pending return URL that arrived before auth hydration
         // This handles cold return from external providers
@@ -164,6 +209,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authSubscriptionRef.current = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
         
         console.log('[ACCOUNT_CREATION_STARTUP_TRACE] onAuthStateChange event=' + event + ' sessionPresent=' + !!session + ' userPresent=' + !!(session?.user) + ' pathname=' + pathname)
+        if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
+          (window as any).__recordStartupEvent('auth_state_change', {
+            event,
+            sessionPresent: !!session,
+            userPresent: !!(session?.user),
+            pathname
+          })
+        }
 
         console.log('[ACCOUNT_CREATION_LIFECYCLE] auth_state_change', {
           event,
@@ -215,6 +268,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
         } else {
+          console.log('[ACCOUNT_CREATION_STARTUP_TRACE] auth_state_change_clearing_user_session event=' + event + ' pathname=' + pathname)
+          if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
+            (window as any).__recordStartupEvent('auth_state_change_clearing_user_session', {
+              event,
+              pathname
+            })
+          }
           console.log('[ACCOUNT_CREATION_LIFECYCLE] auth_state_change clearing_user_session', {
             event,
             pathname,

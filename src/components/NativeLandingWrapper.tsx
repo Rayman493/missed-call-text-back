@@ -48,6 +48,13 @@ export default function NativeLandingWrapper({ children }: { children: React.Rea
     }
 
     // Log decision before redirect
+    if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
+      (window as any).__recordStartupEvent('native_landing_decision', {
+        authLoading,
+        userPresent: !!user,
+        pathname
+      })
+    }
     console.log('[ACCOUNT_CREATION_STARTUP_TRACE] native_landing_decision authLoading=' + authLoading + ' userPresent=' + !!user + ' route=' + pathname)
 
     // Redirect based on authentication state
@@ -55,6 +62,12 @@ export default function NativeLandingWrapper({ children }: { children: React.Rea
       console.log('[ACCOUNT_CREATION_STARTUP_TRACE] redirect_to_dashboard source=NativeLandingWrapper reason=user_present route=/')
       router.replace('/dashboard')
     } else {
+      if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
+        (window as any).__recordStartupEvent('native_landing_redirect_to_signin', {
+          authLoading,
+          pathname
+        })
+      }
       console.log('[ACCOUNT_CREATION_STARTUP_TRACE] redirect_to_auth source=NativeLandingWrapper reason=user_null_after_restore authLoading=' + authLoading + ' route=' + pathname)
       router.replace('/auth?mode=signin')
     }
