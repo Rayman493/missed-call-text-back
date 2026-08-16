@@ -40,9 +40,14 @@ public class MainActivity extends BridgeActivity {
     private boolean launchedInOfflineState = false;
     private boolean isRecreating = false;
     private String externalReturnType = null;
+    private String activityInstanceId = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Generate unique instance ID for lifecycle tracking
+        activityInstanceId = Integer.toHexString(System.identityHashCode(this));
+        Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] onCreate instance=" + activityInstanceId);
+
         // Check intent for external return BEFORE super.onCreate()
         // This prevents WebView from loading callback URLs on cold start
         Intent launchIntent = getIntent();
@@ -118,6 +123,14 @@ public class MainActivity extends BridgeActivity {
                 }
             }, 500); // 500ms delay to ensure WebView is ready
         }
+
+        // Query web build marker and URL after WebView is ready
+        webView.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                queryWebBuildAndUrl("onCreate");
+            }
+        }, 1000); // 1s delay to ensure WebView is fully loaded
 
         // Create notification channel for Android O+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -378,6 +391,8 @@ public class MainActivity extends BridgeActivity {
 
                 if (isExternalReturn) {
                     Log.d(TAG, "[EXTERNAL_RETURN_CLASSIFIED] type=" + externalReturnType + ", preventing WebView navigation");
+                    // Query web build and URL before notification
+                    queryWebBuildAndUrl("onNewIntent_before_notification");
                     // Notify WebView of the external return immediately
                     notifyWebViewOfExternalReturn(externalReturnType);
                     // Clear the intent BEFORE calling super to prevent WebView from loading the callback URL
@@ -427,6 +442,7 @@ public class MainActivity extends BridgeActivity {
                                     String sessionStorageTimestampQuery = "sessionStorage.getItem('stripe_return_timestamp')";
                                     String handleAppResumeQuery = "typeof window.__handleAppResume";
                                     String receiverVersionQuery = "window.__stripeReturnReceiverVersion";
+                                    String webBuildQuery = "window.__replyflowWebBuild";
 
                                     webView.evaluateJavascript(locationQuery, new ValueCallback<String>() {
                                         @Override
@@ -453,34 +469,55 @@ public class MainActivity extends BridgeActivity {
                                                                         public void onReceiveValue(String version) {
                                                                             Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] BEFORE receiver version: " + version);
 
-                                                                            // Then call the function if it exists
-                                                                            String jsCode = "if (window.__onStripeReturn) { window.__onStripeReturn('" + externalReturnType + "'); }";
-                                                                            Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] executing JS: " + jsCode);
-                                                                            webView.evaluateJavascript(jsCode, new ValueCallback<String>() {
+                                                                            webView.evaluateJavascript(webBuildQuery, new ValueCallback<String>() {
                                                                                 @Override
-                                                                                public void onReceiveValue(String result) {
-                                                                                    Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] JS execution result: " + result);
+                                                                                public void onReceiveValue(String build) {
+                                                                                    Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] BEFORE web build: " + build);
 
-                                                                                    // Capture state AFTER calling __onStripeReturn
-                                                                                    webView.evaluateJavascript(locationQuery, new ValueCallback<String>() {
+                                                                                    // Then call the function if it exists
+                                                                                    String jsCode = "if (window.__onStripeReturn) { window.__onStripeReturn('" + externalReturnType + "'); }";
+                                                                                    Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] executing JS: " + jsCode);
+                                                                                    webView.evaluateJavascript(jsCode, new ValueCallback<String>() {
                                                                                         @Override
-                                                                                        public void onReceiveValue(String locationAfter) {
-                                                                                            Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] AFTER location.href: " + locationAfter);
+                                                                                        public void onReceiveValue(String result) {
+                                                                                            Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] JS execution result: " + result);
 
-                                                                                            webView.evaluateJavascript(sessionStorageTypeQuery, new ValueCallback<String>() {
+                                                                                            // Capture state AFTER calling __onStripeReturn
+                                                                                            webView.evaluateJavascript(locationQuery, new ValueCallback<String>() {
                                                                                                 @Override
-                                                                                                public void onReceiveValue(String typeAfter) {
-                                                                                                    Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] AFTER sessionStorage.stripe_return_type: " + typeAfter);
+                                                                                                public void onReceiveValue(String locationAfter) {
+                                                                                                    Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] AFTER location.href: " + locationAfter);
 
-                                                                                                    webView.evaluateJavascript(sessionStorageTimestampQuery, new ValueCallback<String>() {
+                                                                                                    webView.evaluateJavascript(sessionStorageTypeQuery, new ValueCallback<String>() {
                                                                                                         @Override
-                                                                                                        public void onReceiveValue(String timestampAfter) {
-                                                                                                            Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] AFTER sessionStorage.stripe_return_timestamp: " + timestampAfter);
+                                                                                                        public void onReceiveValue(String typeAfter) {
+                                                                                                            Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] AFTER sessionStorage.stripe_return_type: " + typeAfter);
 
-                                                                                                            webView.evaluateJavascript(handleAppResumeQuery, new ValueCallback<String>() {
+                                                                                                            webView.evaluateJavascript(sessionStorageTimestampQuery, new ValueCallback<String>() {
                                                                                                                 @Override
-                                                                                                                public void onReceiveValue(String handleAppResumeAfter) {
-                                                                                                                    Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] AFTER __handleAppResume: " + handleAppResumeAfter);
+                                                                                                                public void onReceiveValue(String timestampAfter) {
+                                                                                                                    Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] AFTER sessionStorage.stripe_return_timestamp: " + timestampAfter);
+
+                                                                                                                    webView.evaluateJavascript(handleAppResumeQuery, new ValueCallback<String>() {
+                                                                                                                        @Override
+                                                                                                                        public void onReceiveValue(String handleAppResumeAfter) {
+                                                                                                                            Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] AFTER __handleAppResume: " + handleAppResumeAfter);
+
+                                                                                                                            webView.evaluateJavascript(receiverVersionQuery, new ValueCallback<String>() {
+                                                                                                                                @Override
+                                                                                                                                public void onReceiveValue(String versionAfter) {
+                                                                                                                                    Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] AFTER receiver version: " + versionAfter);
+
+                                                                                                                                    webView.evaluateJavascript(webBuildQuery, new ValueCallback<String>() {
+                                                                                                                                        @Override
+                                                                                                                                        public void onReceiveValue(String buildAfter) {
+                                                                                                                                            Log.d(TAG, "[ACCOUNT_CREATION_BRIDGE] AFTER web build: " + buildAfter);
+                                                                                                                                        }
+                                                                                                                                    });
+                                                                                                                                }
+                                                                                                                            });
+                                                                                                                        }
+                                                                                                                    });
                                                                                                                 }
                                                                                                             });
                                                                                                         }
@@ -508,6 +545,72 @@ public class MainActivity extends BridgeActivity {
                 }
             });
         }
+    }
+
+    /**
+     * Query web build marker and WebView URL at lifecycle boundaries
+     * This provides deterministic native evidence of what the WebView is running
+     */
+    private void queryWebBuildAndUrl(final String lifecycleEvent) {
+        if (webView == null) {
+            Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] " + lifecycleEvent + " webView=null");
+            return;
+        }
+
+        webView.post(new Runnable() {
+            @Override
+            public void run() {
+                if (webView == null) {
+                    return;
+                }
+
+                // Query web build marker
+                String buildQuery = "window.__replyflowWebBuild";
+                webView.evaluateJavascript(buildQuery, new ValueCallback<String>() {
+                    @Override
+                    public void onReceiveValue(String build) {
+                        Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] " + lifecycleEvent + " build=" + build);
+
+                        // Query WebView URL
+                        String urlQuery = "window.location.href";
+                        webView.evaluateJavascript(urlQuery, new ValueCallback<String>() {
+                            @Override
+                            public void onReceiveValue(String url) {
+                                Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] " + lifecycleEvent + " url=" + url);
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] onStart instance=" + activityInstanceId);
+        queryWebBuildAndUrl("onStart");
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] onResume instance=" + activityInstanceId);
+        queryWebBuildAndUrl("onResume");
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] onPause instance=" + activityInstanceId);
+        queryWebBuildAndUrl("onPause");
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] onStop instance=" + activityInstanceId);
+        queryWebBuildAndUrl("onStop");
     }
 
     @Override

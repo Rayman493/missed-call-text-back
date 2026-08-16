@@ -102,6 +102,7 @@ export default function RootLayout({
             __html: `
               // Register global native-to-WebView bridge receiver
               // This must be registered before the user leaves for Stripe and remain available while app is backgrounded
+              window.__replyflowWebBuild = 'ed9092e5-browser-open-fix-v1';
               window.__stripeReturnReceiverVersion = '51df63ff-direct-resume-v1';
               window.__onStripeReturn = function(type) {
                 console.log('[ACCOUNT_CREATION_BRIDGE] web event received:', type);
