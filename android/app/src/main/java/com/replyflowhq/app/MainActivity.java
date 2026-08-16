@@ -124,14 +124,6 @@ public class MainActivity extends BridgeActivity {
             }, 500); // 500ms delay to ensure WebView is ready
         }
 
-        // Query web build marker and URL after WebView is ready
-        webView.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                queryWebBuildAndUrl("onCreate");
-            }
-        }, 1000); // 1s delay to ensure WebView is fully loaded
-
         // Create notification channel for Android O+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
@@ -146,6 +138,18 @@ public class MainActivity extends BridgeActivity {
 
         // Get the Capacitor WebView (used for offline overlay parent)
         webView = getBridge().getWebView();
+
+        // Query web build marker and URL after WebView is ready
+        if (webView != null) {
+            webView.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    queryWebBuildAndUrl("onCreate");
+                }
+            }, 1000); // 1s delay to ensure WebView is fully loaded
+        } else {
+            Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] onCreate webView=null, skipping build/url query");
+        }
 
         // Start hidden so the default WebView error page is never visible.
         // We decide below whether to show the WebView or the offline overlay.
