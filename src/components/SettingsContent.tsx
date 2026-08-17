@@ -172,8 +172,8 @@ export default function SettingsContent() {
     try {
       await tapToPayAwareness.acknowledgeAwareness()
       setShowAwarenessModal(false)
-      // Refresh business context to ensure tap_to_pay_awareness_acknowledged_at is present
-      await refreshBusiness()
+      // Force refresh business context to ensure tap_to_pay_awareness_acknowledged_at is present
+      await refreshBusiness(true)
       // Scroll to Tap to Pay card to continue setup
       const tapToPayCard = document.getElementById('tap-to-pay-card')
       if (tapToPayCard) {
@@ -189,8 +189,8 @@ export default function SettingsContent() {
     try {
       await tapToPayAwareness.acknowledgeAwareness()
       setShowAwarenessModal(false)
-      // Refresh business context to ensure tap_to_pay_awareness_acknowledged_at is present
-      await refreshBusiness()
+      // Force refresh business context to ensure tap_to_pay_awareness_acknowledged_at is present
+      await refreshBusiness(true)
     } catch (error) {
       console.error('[SettingsContent] Error dismissing awareness:', error)
       // Even if API fails, close modal to avoid blocking user
