@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -1261,8 +1261,10 @@ export default function SettingsContent() {
       const data = await response.json()
 
       if (data.connected) {
-        showToast('Stripe already connected', 'success')
-        refreshBusiness()
+        // Already connected - refresh status and show positive confirmation
+        console.log('[STRIPE CONNECT STATUS] already_connected_detected=true refreshing_status')
+        await refreshStripeStatus()
+        showToast('Stripe is connected', 'success')
       } else if (data.url) {
         // Set pending operation so app resume can reconcile Stripe Connect status
         const { setPendingStripeOperation } = await import('@/lib/external-return-handler')
@@ -1335,7 +1337,7 @@ export default function SettingsContent() {
   }
 
   // Refresh Stripe Connect status after onboarding return
-  const refreshStripeStatus = async () => {
+  const refreshStripeStatus = useCallback(async () => {
     if (!business?.id) {
       console.log('[STRIPE CONNECT] No business ID, skipping refresh')
       return
@@ -1429,7 +1431,7 @@ export default function SettingsContent() {
     } finally {
       setStripeStatusChecking(false)
     }
-  }
+  }, [business?.id, invalidateBusinessCache, refreshBusiness])
 
   // Track BusinessContext Stripe state changes to distinguish stale closure from actual state
   useEffect(() => {
@@ -1459,7 +1461,7 @@ export default function SettingsContent() {
       : false
 
     if ((stripeOnboardingComplete || sessionStorageReturn) && business?.id) {
-      console.log('[STRIPE CONNECT RETURN] Detected Stripe Connect return, triggering immediate reconciliation')
+      console.log('[STRIPE_CONNECT_STATUS] return_received=true')
 
       // Clear session storage
       if (typeof window !== 'undefined' && window.sessionStorage) {
@@ -1467,8 +1469,11 @@ export default function SettingsContent() {
         sessionStorage.removeItem('external_return_timestamp')
       }
 
-      // Show verifying state immediately
+      // Show verifying state immediately - set local status to "verifying"
+      // This ensures the UI shows "Verifying..." instead of stale "Not Connected"
+      setLocalStripeStatus('verifying')
       setStripeStatusChecking(true)
+      console.log('[STRIPE_CONNECT_STATUS] verification_started=true local_status=verifying')
 
       // Trigger immediate reconciliation
       const reconcile = async () => {
@@ -1483,12 +1488,13 @@ export default function SettingsContent() {
 
           if (response.ok) {
             const data = await response.json()
-            console.log('[STRIPE CONNECT RETURN] Reconciliation result:', data.canonicalStatus)
+            console.log('[STRIPE_CONNECT_STATUS] status_fetch_result=', data.canonicalStatus)
 
             // Update local state immediately
             setLocalStripeStatus(data.canonicalStatus)
             setLocalStripeChargesEnabled(data.charges_enabled)
             setLocalStripeDetailsSubmitted(data.details_submitted)
+            console.log('[STRIPE_CONNECT_STATUS] local_status_after=', data.canonicalStatus)
 
             // Invalidate cache and sync global business object
             invalidateBusinessCache()
@@ -1500,15 +1506,17 @@ export default function SettingsContent() {
 
             // Start bounded recheck if status is still transitional
             if (data.canonicalStatus === 'pending_verification' || data.canonicalStatus === 'setup_incomplete') {
-              console.log('[STRIPE CONNECT RETURN] Status still transitional, starting bounded recheck')
+              console.log('[STRIPE_CONNECT_STATUS] retry=1 status_still_transitional=', data.canonicalStatus)
               performBoundedRecheck()
+            } else if (data.canonicalStatus === 'connected') {
+              console.log('[STRIPE_CONNECT_STATUS] connected=true')
             }
           } else {
-            console.error('[STRIPE CONNECT RETURN] Reconciliation failed:', response.status)
+            console.error('[STRIPE_CONNECT_STATUS] verification_failed status=', response.status)
             showToast('Failed to verify Stripe setup', 'error')
           }
         } catch (error) {
-          console.error('[STRIPE CONNECT RETURN] Reconciliation error:', error)
+          console.error('[STRIPE_CONNECT_STATUS] verification_failed', error)
           showToast('Failed to verify Stripe setup', 'error')
         } finally {
           setStripeStatusChecking(false)
@@ -1527,12 +1535,12 @@ export default function SettingsContent() {
 
     const recheck = async () => {
       if (recheckCount >= maxRechecks) {
-        console.log('[STRIPE CONNECT] Bounded recheck completed, max attempts reached')
+        console.log('[STRIPE_CONNECT_STATUS] retry=max_reached giving_up=true')
         return
       }
 
       recheckCount++
-      console.log(`[STRIPE CONNECT] Bounded recheck attempt ${recheckCount}/${maxRechecks}`)
+      console.log(`[STRIPE_CONNECT_STATUS] retry=${recheckCount}/${maxRechecks}`)
 
       try {
         const response = await fetch('/api/stripe/connect/refresh', {
@@ -1545,23 +1553,29 @@ export default function SettingsContent() {
 
         if (response.ok) {
           const data = await response.json()
-          console.log('[STRIPE CONNECT] Recheck result:', data.canonicalStatus)
+          console.log('[STRIPE_CONNECT_STATUS] status_fetch_result=', data.canonicalStatus, 'retry=', recheckCount)
 
           await refreshBusiness()
 
           // Stop recheck if status stabilizes to connected
           if (data.canonicalStatus === 'connected') {
-            console.log('[STRIPE CONNECT] Status stabilized to connected, stopping recheck')
+            console.log('[STRIPE_CONNECT_STATUS] connected=true stopping_recheck')
+            return
+          }
+
+          // Stop recheck if needs action
+          if (data.canonicalStatus === 'setup_incomplete') {
+            console.log('[STRIPE_CONNECT_STATUS] needs_action=true stopping_recheck')
             return
           }
 
           // Continue recheck if still transitional
-          if (data.canonicalStatus === 'pending_verification' || data.canonicalStatus === 'setup_incomplete') {
+          if (data.canonicalStatus === 'pending_verification') {
             setTimeout(recheck, recheckInterval)
           }
         }
       } catch (error) {
-        console.error('[STRIPE CONNECT] Recheck error:', error)
+        console.error('[STRIPE_CONNECT_STATUS] recheck_error', error)
       }
     }
 
@@ -1788,12 +1802,11 @@ export default function SettingsContent() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && business?.stripe_connect_account_id) {
-        // Only refresh if we're on the payments section and have a Connect account
         const urlParams = new URLSearchParams(window.location.search)
         const isPaymentsSection = urlParams.get('stripe_connect_return') !== '1' // Don't double-refresh on return
 
         if (isPaymentsSection && !stripeStatusChecking) {
-          console.log('[STRIPE CONNECT] App resume detected, checking status')
+          console.log('[STRIPE_CONNECT_STATUS] visibility_changed refreshing_status')
           // Debounce to avoid multiple refreshes
           setTimeout(() => {
             refreshStripeStatus()
@@ -1806,7 +1819,15 @@ export default function SettingsContent() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [business, stripeStatusChecking])
+  }, [business?.stripe_connect_account_id, stripeStatusChecking])
+
+  // Refresh Stripe Connect status when Payments section becomes active
+  useEffect(() => {
+    if (activeSection === 'payments' && business?.stripe_connect_account_id && !stripeStatusChecking) {
+      console.log('[STRIPE_CONNECT_STATUS] section_active=payments refreshing_status')
+      refreshStripeStatus()
+    }
+  }, [activeSection])
 
   useEffect(() => {
     const activeTab = sectionTabRefs.current[activeSection]
@@ -3434,6 +3455,11 @@ export default function SettingsContent() {
                               <span className="w-1 h-1 bg-green-500 rounded-full" />
                               Connected
                             </span>
+                          ) : stripeStatus === 'verifying' ? (
+                            <span className="text-xs px-2.5 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium flex items-center gap-2">
+                              <span className="w-1 h-1 bg-blue-500 rounded-full animate-pulse" />
+                              Verifying...
+                            </span>
                           ) : stripeStatusChecking ? (
                             <span className="text-xs px-2.5 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium flex items-center gap-2">
                               <span className="w-1 h-1 bg-blue-500 rounded-full animate-pulse" />
@@ -3456,7 +3482,9 @@ export default function SettingsContent() {
                           )}
                         </div>
                         <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                          {stripeStatus === 'connected'
+                          {stripeStatus === 'verifying'
+                            ? 'Verifying your Stripe connection...'
+                            : stripeStatus === 'connected'
                             ? 'Accept card payments and enable Tap to Pay.'
                             : stripeStatus === 'pending_verification'
                               ? 'Stripe is reviewing your account (usually 1-2 business days).'
@@ -3465,32 +3493,36 @@ export default function SettingsContent() {
                                 : 'Connect Stripe to accept card payments and enable Tap to Pay.'}
                         </p>
                       </div>
-                      {isConnectingStripe ? (
+                      {isConnectingStripe || stripeStatus === 'verifying' ? (
                         <div className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
                           <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-slate-400"></div>
-                          Connecting...
+                          {stripeStatus === 'verifying' ? 'Verifying...' : 'Connecting...'}
                         </div>
                       ) : (
                         <button
                           onClick={handleConnectStripe}
-                          disabled={isConnectingStripe || isStripeConnectUnavailable}
+                          disabled={isConnectingStripe || stripeStatus === 'verifying' || isStripeConnectUnavailable}
                           className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border ${
                             stripeStatus === 'connected'
                               ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-sm'
-                              : isStripeConnectUnavailable
-                                ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
-                                : 'bg-blue-600 border-blue-600 hover:bg-blue-700 hover:border-blue-700 text-white shadow-sm shadow-blue-500/20'
+                              : stripeStatus === 'verifying'
+                                ? 'bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-500/20'
+                                : isStripeConnectUnavailable
+                                  ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
+                                  : 'bg-blue-600 border-blue-600 hover:bg-blue-700 hover:border-blue-700 text-white shadow-sm shadow-blue-500/20'
                           }`}
                         >
                           {stripeStatus === 'connected'
                             ? 'Manage Stripe'
-                            : stripeStatus === 'pending_verification'
-                              ? 'Review in Stripe'
-                              : stripeStatus === 'setup_incomplete'
-                                ? 'Continue Setup'
-                                : isStripeConnectUnavailable
-                                  ? 'Unavailable'
-                                  : 'Connect'}
+                            : stripeStatus === 'verifying'
+                              ? 'Verifying...'
+                              : stripeStatus === 'pending_verification'
+                                ? 'Review in Stripe'
+                                : stripeStatus === 'setup_incomplete'
+                                  ? 'Continue Setup'
+                                  : isStripeConnectUnavailable
+                                    ? 'Unavailable'
+                                    : 'Connect'}
                         </button>
                       )}
                     </div>
