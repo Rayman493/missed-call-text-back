@@ -67,7 +67,7 @@ export async function openStripeCheckout(url: string): Promise<void> {
       }
 
       if (result.canceled) {
-        console.log('[StripeCheckout] User canceled checkout')
+        console.log('[StripeCheckout] User canceled checkout, result:', result)
         // Return to calling page - user can retry
         return
       }
@@ -117,7 +117,7 @@ export async function openStripeCheckout(url: string): Promise<void> {
       }
 
       if (result.canceled) {
-        console.log('[StripeCheckout] User canceled checkout')
+        console.log('[StripeCheckout] User canceled checkout, result:', result)
         // Return to calling page - user can retry
         return
       }

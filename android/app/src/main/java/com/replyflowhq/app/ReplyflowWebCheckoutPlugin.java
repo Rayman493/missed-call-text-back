@@ -206,6 +206,8 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
      * Handle user cancellation (back button, close Custom Tab)
      */
     public void handleCancellation() {
+        Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] handleCancellation_entered=true");
+        Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] activeCall_not_null=" + (activeCall != null));
         Log.d(TAG, "[NATIVE_CHECKOUT] user_cancellation=true");
         clearPendingState();
         JSObject result = new JSObject();
@@ -215,12 +217,16 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
         result.put("callbackMatched", false);
 
         if (activeCall != null) {
+            Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] resolving_active_call=true");
             activeCall.resolve(result);
             activeCall = null;
+            Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] resolved_active_call_success=true");
         } else {
+            Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] storing_recovered_completion=true");
             storeRecoveredCompletion(result);
         }
         completionCalled = true;
+        Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] handleCancellation_complete=true");
     }
 
     /**
@@ -230,16 +236,26 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
      * to avoid race conditions where onNewIntent with valid callback fires after onResume.
      */
     public void checkForCancellation() {
+        Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] cancellation_check_entered=true");
+        Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] activeCheckout=" + hasActiveCheckout());
+        Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] completionCalled=" + completionCalled);
+
         if (!hasActiveCheckout() || completionCalled) {
+            Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] early_return_no_active_or_completed=true");
             return;
         }
 
         long elapsed = System.currentTimeMillis() - launchTimestamp;
+        Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] elapsedMs=" + elapsed);
+
         // Only cancel if > 2 seconds have elapsed (avoid launch noise)
         // No upper bound - even if user spent 90 seconds in Stripe, Back should cancel
         if (elapsed >= 2000) {
+            Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] cancellation_resolving=true");
             Log.d(TAG, "[NATIVE_CHECKOUT] resume_cancellation_detected_elapsed_ms=" + elapsed);
             handleCancellation();
+        } else {
+            Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] too_early_elapsedMs=" + elapsed);
         }
     }
 

@@ -716,6 +716,7 @@ public class MainActivity extends BridgeActivity {
         super.onStart();
         Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] onStart instance=" + activityInstanceId);
         queryWebBuildAndUrl("onStart");
+        Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] onStart_fired=true");
     }
 
     @Override
@@ -727,15 +728,11 @@ public class MainActivity extends BridgeActivity {
         // Check for checkout cancellation on resume (fallback if onNewIntent not called)
         // This handles the case where user presses Back without any App Link callback
         if (checkoutPlugin != null) {
+            Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] onResume_checkout_plugin_not_null=true");
             checkoutPlugin.checkForCancellation();
+        } else {
+            Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] onResume_checkout_plugin_null=true");
         }
-    }
-
-    /**
-     * Check if a URI is a ReplyFlow App Link
-     */
-    private boolean isReplyFlowAppLink(String scheme, String host) {
-        return "https".equals(scheme) && "www.replyflowhq.com".equals(host);
     }
 
     @Override
@@ -743,6 +740,7 @@ public class MainActivity extends BridgeActivity {
         super.onPause();
         Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] onPause instance=" + activityInstanceId);
         queryWebBuildAndUrl("onPause");
+        Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] onPause_fired=true");
     }
 
     @Override
@@ -750,6 +748,14 @@ public class MainActivity extends BridgeActivity {
         super.onStop();
         Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] onStop instance=" + activityInstanceId);
         queryWebBuildAndUrl("onStop");
+        Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] onStop_fired=true");
+    }
+
+    /**
+     * Check if a URI is a ReplyFlow App Link
+     */
+    private boolean isReplyFlowAppLink(String scheme, String host) {
+        return "https".equals(scheme) && "www.replyflowhq.com".equals(host);
     }
 
     @Override
