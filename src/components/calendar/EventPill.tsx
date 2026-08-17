@@ -81,10 +81,10 @@ export default function EventPill({ title, time, endTime, onClick, isHoliday = f
       `} />
       <div className="flex-1 min-w-0">
         <div className={`
-          text-[9px] sm:text-[10px] md:text-[12px] font-medium truncate leading-tight
+          text-[10px] sm:text-[11px] md:text-[12px] font-medium truncate leading-tight
           ${colors.text}
         `}>
-          {title.length > 6 ? `${title.slice(0, 6)}...` : title}
+          {title}
         </div>
         {source && source !== 'primary' && (
           <div className={`

@@ -5,6 +5,7 @@ import { Calendar, Briefcase, CheckCircle2, Clock, Plus, AlertCircle, Pencil } f
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import type { Job } from '@/components/jobs/JobComposer'
+import { formatTime12Hour } from '@/lib/calendar-date-utils'
 
 interface Task {
   id: string
@@ -224,16 +225,6 @@ export default function TodayCommandCenter({
     .sort((a, b) => (a.scheduled_date || '').localeCompare(b.scheduled_date || ''))
     .slice(0, 5)
 
-  const formatTime = (timeStr: string | null) => {
-    if (!timeStr) return ''
-    // Handle time strings with or without seconds (e.g., "15:30:00" or "15:30")
-    const [hours, minutes] = timeStr.split(':').slice(0, 2)
-    const hour = parseInt(hours, 10)
-    const ampm = hour >= 12 ? 'PM' : 'AM'
-    const hour12 = hour % 12 || 12
-    return `${hour12}:${minutes} ${ampm}`
-  }
-
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return ''
     // Parse YYYY-MM-DD as local date to avoid timezone shifts
@@ -269,7 +260,7 @@ export default function TodayCommandCenter({
         id: task.id,
         title: task.title,
         customer: null,
-        time: task.due_time ? formatTime(task.due_time) : null,
+        time: task.due_time ? formatTime12Hour(task.due_time) : null,
         date: task.due_date,
         icon: <AlertCircle className="w-4 h-4 text-red-500" />,
         status: 'Overdue',
@@ -307,7 +298,7 @@ export default function TodayCommandCenter({
         id: job.id,
         title: job.title,
         customer: job.customer_name,
-        time: job.scheduled_time ? formatTime(job.scheduled_time) : null,
+        time: job.scheduled_time ? formatTime12Hour(job.scheduled_time) : null,
         date: job.scheduled_date,
         icon: <Briefcase className="w-4 h-4 text-slate-500" />,
         status: job.status.replace('_', ' '),
@@ -327,7 +318,7 @@ export default function TodayCommandCenter({
         id: task.id,
         title: task.title,
         customer: null,
-        time: task.due_time ? formatTime(task.due_time) : null,
+        time: task.due_time ? formatTime12Hour(task.due_time) : null,
         date: task.due_date,
         icon: <CheckCircle2 className="w-4 h-4 text-slate-400" />,
         status: task.completed ? 'Completed' : 'Pending',
@@ -620,7 +611,7 @@ export default function TodayCommandCenter({
                         )}
                         {task.due_time && (
                           <p className="text-xs text-muted-foreground">
-                            {formatTime(task.due_time)}
+                            {formatTime12Hour(task.due_time)}
                           </p>
                         )}
                       </div>
@@ -722,7 +713,7 @@ export default function TodayCommandCenter({
                         )}
                         {job.scheduled_time && (
                           <p className="text-xs text-muted-foreground">
-                            {formatTime(job.scheduled_time)}
+                            {formatTime12Hour(job.scheduled_time)}
                           </p>
                         )}
                       </div>

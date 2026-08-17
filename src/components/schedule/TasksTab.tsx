@@ -7,6 +7,7 @@ import NewTaskModal from './NewTaskModal'
 import Toast from '@/components/Toast'
 import { useRouter } from 'next/navigation'
 import { getLeadDisplayName, formatPhoneNumber } from '@/lib/utils'
+import { formatTime12Hour } from '@/lib/calendar-date-utils'
 
 interface Task {
   id: string
@@ -222,15 +223,6 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
     }
   })
 
-  const formatTime = (timeStr: string | null) => {
-    if (!timeStr) return ''
-    const [hours, minutes] = timeStr.split(':')
-    const hour = parseInt(hours, 10)
-    const ampm = hour >= 12 ? 'PM' : 'AM'
-    const hour12 = hour % 12 || 12
-    return `${hour12}:${minutes} ${ampm}`
-  }
-
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return ''
     // Parse YYYY-MM-DD as local date to avoid timezone shifts
@@ -435,7 +427,7 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         <span>{formatDate(task.due_date)}</span>
-                        {task.due_time && <span>· {formatTime(task.due_time)}</span>}
+                        {task.due_time && <span>· {formatTime12Hour(task.due_time)}</span>}
                       </div>
                     )}
                     {task.lead_id && (

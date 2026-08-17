@@ -14,7 +14,7 @@ import EventPill from '@/components/calendar/EventPill'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
-import { filterEventsByMonth } from '@/lib/calendar-date-utils'
+import { filterEventsByMonth, getLocalDateKey, getTodayLocalDateKey } from '@/lib/calendar-date-utils'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import JobComposer from '@/components/jobs/JobComposer'
 import JobPill from '@/components/jobs/JobPill'
@@ -96,7 +96,7 @@ function MeetingsTab({
     .filter(ev => toDate(ev) >= new Date().setHours(0,0,0,0))
     .sort((a,b) => toDate(a) - toDate(b))
 
-  const todayKey = new Date().toISOString().split('T')[0]
+  const todayKey = getTodayLocalDateKey()
   const isToday = (ev: CalendarEvent) => (ev.start.dateTime || ev.start.date || '').startsWith(todayKey)
 
   const labelType = (ev: CalendarEvent) => {
@@ -574,14 +574,8 @@ export default function SchedulePage() {
     setSelectedDay(clickedDate)
   }
 
-  const getTodayKey = () => {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  }
-
-  const getDateKey = (date: Date) => {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-  }
+  const getTodayKey = getTodayLocalDateKey
+  const getDateKey = getLocalDateKey
 
   const getTodayCounts = () => {
     const now = new Date()
@@ -659,7 +653,7 @@ export default function SchedulePage() {
   }
 
   const getEventsForDay = (date: Date) => {
-    const dayKey = date.toISOString().split('T')[0]
+    const dayKey = getDateKey(date)
     return events.filter(event => {
       const eventDateRaw = event.start?.dateTime || event.start?.date
       if (!eventDateRaw) return false
@@ -852,7 +846,7 @@ export default function SchedulePage() {
   }
 
   const getJobsForDay = (date: Date): Job[] => {
-    const dayKey = date.toISOString().split('T')[0]
+    const dayKey = getDateKey(date)
     return jobs.filter(j => j.scheduled_date === dayKey)
   }
 
@@ -1845,7 +1839,17 @@ export default function SchedulePage() {
                       setIsNewTaskModalOpen(false)
                       setTaskToEdit(null)
                     }}
-                    onTaskCreated={(isNew) => {
+                    onTaskCreated={(isNew, task) => {
+                      if (isNew && task) {
+                        // Optimistic update: add task immediately with real ID from API
+                        setTasks(prev => {
+                          // Deduplicate by ID - if task already exists, don't add duplicate
+                          if (prev.some(t => t.id === task.id)) {
+                            return prev
+                          }
+                          return [...prev, task]
+                        })
+                      }
                       setTaskRefreshTrigger(prev => prev + 1)
                     }}
                     taskToEdit={taskToEdit}

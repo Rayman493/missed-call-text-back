@@ -264,7 +264,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md max-h-[calc(90vh-env(safe-area-inset-bottom))] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md max-h-[calc(90vh-env(safe-area-inset-bottom)-80px)] overflow-y-auto mb-safe-bottom sm:mb-0">
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
             {taskToEdit ? 'Edit Task' : 'New Task'}
