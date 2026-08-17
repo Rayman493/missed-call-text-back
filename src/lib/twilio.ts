@@ -1474,7 +1474,13 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
     console.log(`[Warm Inventory] Warm number manager imported successfully correlation_id=${correlationId}`);
 
     console.log(`[Warm Inventory] Calling getAndAssignWarmNumber... correlation_id=${correlationId}`);
-    const warmNumberResult = await getAndAssignWarmNumber(businessId)
+    const warmNumberResult = await getAndAssignWarmNumber(businessId) as {
+      success: boolean;
+      phoneNumber?: string;
+      phoneNumberSid?: string;
+      error?: string;
+      errorType?: 'NO_INVENTORY' | 'ASSIGNMENT_CONFLICT' | 'INTEGRITY_ERROR' | 'OTHER';
+    }
     console.log(`[Warm Inventory] getAndAssignWarmNumber returned correlation_id=${correlationId}`);
     console.log(`[Warm Inventory] Result success: ${warmNumberResult.success} correlation_id=${correlationId}`);
     console.log(`[Warm Inventory] Result phoneNumber: ${warmNumberResult.phoneNumber} correlation_id=${correlationId}`);
@@ -1532,8 +1538,20 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
       }
     } else {
       console.log(`[Warm Inventory] ========== NO WARM NUMBER AVAILABLE ========== correlation_id=${correlationId}`);
-      console.log(`[Warm Inventory] No warm numbers available, falling back to live provisioning correlation_id=${correlationId}`);
-      console.log(`[Warm Inventory] Reason: ${warmNumberResult.error} correlation_id=${correlationId}`);
+      console.log(`[Warm Inventory] Warm inventory result: success=${warmNumberResult.success} error=${warmNumberResult.error} errorType=${warmNumberResult.errorType} correlation_id=${correlationId}`);
+
+      // CRITICAL: Explicit positive authorization - only NO_INVENTORY may proceed to live purchase
+      // All other non-success outcomes fail closed to prevent unintended purchases
+      if (warmNumberResult.errorType === 'NO_INVENTORY') {
+        console.log(`[Warm Inventory] NO_INVENTORY confirmed - allowing fallback to live provisioning correlation_id=${correlationId}`);
+      } else {
+        console.error(`[Warm Inventory] ========== WARM INVENTORY BLOCKING LIVE PURCHASE ========== correlation_id=${correlationId}`);
+        console.error(`[Warm Inventory] Reason: ${warmNumberResult.error} correlation_id=${correlationId}`);
+        console.error(`[Warm Inventory] errorType: ${warmNumberResult.errorType} correlation_id=${correlationId}`);
+        console.error(`[Warm Inventory] Only errorType='NO_INVENTORY' may authorize live purchase - blocking to prevent unintended purchase`);
+        console.log(`[Warm Inventory] ========== ABORTING PROVISIONING ========== correlation_id=${correlationId}`);
+        return null;
+      }
     }
   } catch (error) {
     console.error(`[Warm Inventory] ========== WARM INVENTORY CHECK FAILED ========== correlation_id=${correlationId}`);

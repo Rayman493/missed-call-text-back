@@ -383,7 +383,46 @@ export async function POST(request: Request) {
               message: insertError.message,
               details: insertError.details,
               hint: insertError.hint
-            })
+          })
+
+          // CRITICAL COMPENSATION: Twilio number was already purchased and attached
+            // We must release it to prevent orphaned paid resources
+            console.error('[PROVISIONING FLOW] ========== COMPENSATION: Releasing purchased Twilio number due to DB insert failure ==========');
+            try {
+              const accountSid = process.env.TWILIO_ACCOUNT_SID;
+              const authToken = process.env.TWILIO_AUTH_TOKEN;
+              const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+              if (accountSid && authToken && provisioningResult.phoneNumberSid) {
+                const client = require('twilio')(accountSid, authToken);
+
+                // Detach from Messaging Service if attached
+                if (provisioningResult.messagingServiceAttached && messagingServiceSid) {
+                  console.log('[PROVISIONING FLOW] Detaching from Messaging Service...');
+                  try {
+                    await client.messaging.v1.services(messagingServiceSid)
+                      .phoneNumbers(provisioningResult.phoneNumberSid)
+                      .remove();
+                    console.log('[PROVISIONING FLOW] ✓ Detached from Messaging Service');
+                  } catch (detachError) {
+                    console.error('[PROVISIONING FLOW] ✗ Failed to detach from Messaging Service:', detachError);
+                  }
+                }
+
+                // Release the number
+                console.log('[PROVISIONING FLOW] Releasing Twilio number...');
+                await client.incomingPhoneNumbers(provisioningResult.phoneNumberSid).remove();
+                console.log('[PROVISIONING FLOW] ✓ Released Twilio number');
+              }
+            } catch (compensationError) {
+              console.error('[PROVISIONING FLOW] ✗ Compensation failed:', compensationError);
+              console.error('[PROVISIONING FLOW] MANUAL INTERVENTION REQUIRED: Orphaned Twilio number may exist', {
+                phoneNumber: provisioningResult.phoneNumber,
+                phoneNumberSid: provisioningResult.phoneNumberSid,
+                businessId: business.id,
+                reason: 'TWILIO_NUMBERS_INSERT_FAILURE_COMPENSATION_FAILED'
+              });
+            }
+
             twilioNumberError = insertError;
           } else if (insertedTwilioNumber) {
             console.log('[PROVISIONING FLOW] ✓ twilio_numbers row created with ID:', insertedTwilioNumber.id)
@@ -417,6 +456,65 @@ export async function POST(request: Request) {
             hint: saveError.hint
           })
           
+          // CRITICAL COMPENSATION: twilio_numbers row was created but businesses UPDATE failed
+          // We must clean up to prevent split-brain state
+          console.error('[PROVISIONING FLOW] ========== COMPENSATION: Cleaning up twilio_numbers row due to businesses UPDATE failure ==========');
+          if (twilioNumber?.id) {
+            try {
+              // Remove the twilio_numbers row
+              const { error: deleteError } = await supabaseAdmin
+                .from('twilio_numbers')
+                .delete()
+                .eq('id', twilioNumber.id);
+
+              if (deleteError) {
+                console.error('[PROVISIONING FLOW] ✗ Failed to delete twilio_numbers row:', deleteError);
+              } else {
+                console.log('[PROVISIONING FLOW] ✓ Deleted twilio_numbers row');
+              }
+            } catch (cleanupError) {
+              console.error('[PROVISIONING FLOW] ✗ Exception cleaning up twilio_numbers row:', cleanupError);
+            }
+          }
+
+          // Release the Twilio number
+          console.error('[PROVISIONING FLOW] ========== COMPENSATION: Releasing purchased Twilio number due to businesses UPDATE failure ==========');
+          try {
+            const accountSid = process.env.TWILIO_ACCOUNT_SID;
+            const authToken = process.env.TWILIO_AUTH_TOKEN;
+            const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+            if (accountSid && authToken && provisioningResult.phoneNumberSid) {
+              const client = require('twilio')(accountSid, authToken);
+
+              // Detach from Messaging Service if attached
+              if (provisioningResult.messagingServiceAttached && messagingServiceSid) {
+                console.log('[PROVISIONING FLOW] Detaching from Messaging Service...');
+                try {
+                  await client.messaging.v1.services(messagingServiceSid)
+                    .phoneNumbers(provisioningResult.phoneNumberSid)
+                    .remove();
+                  console.log('[PROVISIONING FLOW] ✓ Detached from Messaging Service');
+                } catch (detachError) {
+                  console.error('[PROVISIONING FLOW] ✗ Failed to detach from Messaging Service:', detachError);
+                }
+              }
+
+              // Release the number
+              console.log('[PROVISIONING FLOW] Releasing Twilio number...');
+              await client.incomingPhoneNumbers(provisioningResult.phoneNumberSid).remove();
+              console.log('[PROVISIONING FLOW] ✓ Released Twilio number');
+            }
+          } catch (compensationError) {
+            console.error('[PROVISIONING FLOW] ✗ Compensation failed:', compensationError);
+            console.error('[PROVISIONING FLOW] MANUAL INTERVENTION REQUIRED: Orphaned resources may exist', {
+              twilioNumberId: twilioNumber?.id,
+              phoneNumber: provisioningResult.phoneNumber,
+              phoneNumberSid: provisioningResult.phoneNumberSid,
+              businessId: business.id,
+              reason: 'BUSINESSES_UPDATE_FAILURE_COMPENSATION_FAILED'
+            });
+          }
+
           // Mark as failed due to database error with ownership check
           const { error: failError } = await supabaseAdmin
             .from('businesses')

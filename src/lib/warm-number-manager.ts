@@ -7,6 +7,7 @@
 import Twilio from 'twilio';
 import { createClient } from '@supabase/supabase-js';
 import { isSystemPhoneNumber } from './twilio-assignment';
+import { getExistingAssignment } from './twilio-assignment-helper';
 
 const MIN_AVAILABLE_WARM_NUMBERS = parseInt(process.env.WARM_INVENTORY_TARGET || '3', 10); // Warm buffer target
 
@@ -56,6 +57,14 @@ interface InventoryMetrics {
   desiredTotal: number;
   desiredAvailableBuffer: number;
   purchaseNeeded: number;
+}
+
+export interface WarmNumberResult {
+  success: boolean;
+  phoneNumber?: string;
+  phoneNumberSid?: string;
+  error?: string;
+  errorType?: 'NO_INVENTORY' | 'ASSIGNMENT_CONFLICT' | 'INTEGRITY_ERROR' | 'OTHER';
 }
 
 export interface CleanupResult {
@@ -600,7 +609,7 @@ export async function triggerBackgroundReplenishment(): Promise<void> {
  * Get and assign the oldest available warm number to a business
  * Returns the assigned number or null if no warm numbers available
  */
-export async function getAndAssignWarmNumber(businessId: string): Promise<{ success: boolean; phoneNumber?: string; phoneNumberSid?: string; error?: string }> {
+export async function getAndAssignWarmNumber(businessId: string): Promise<WarmNumberResult> {
   console.log(`[Warm Inventory] ========== START WARM INVENTORY ASSIGNMENT ==========`);
   console.log(`[Warm Inventory] Attempting to assign warm number to business ${businessId}...`);
 
@@ -611,13 +620,9 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
 
   try {
     // STEP 0: Idempotency check - Check if business already has an assigned number
+    // Uses shared helper to ensure exact match with unique index predicate
     console.log(`[Warm Inventory] STEP 0: Checking for existing assignment for business ${businessId}...`);
-    const { data: existingAssignment } = await supabase
-      .from('twilio_numbers')
-      .select('id, phone_number, twilio_sid, status, sms_status, provisioning_status')
-      .eq('business_id', businessId)
-      .in('status', ['assigned', 'active'])
-      .single();
+    const existingAssignment = await getExistingAssignment(supabase, businessId);
 
     if (existingAssignment) {
       console.log(`[PROVISION_EXISTING_ASSIGNMENT_FOUND] business_id=${businessId} twilio_number_id=${existingAssignment.id} phone_number=${existingAssignment.phone_number}`);
@@ -632,6 +637,25 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
     }
 
     console.log(`[Warm Inventory] No existing assignment found, proceeding with warm number assignment`);
+
+    // Check if there are any available warm numbers
+    const { data: availableNumbers } = await supabase
+      .from('twilio_numbers')
+      .select('id')
+      .is('business_id', null)
+      .eq('status', 'available')
+      .eq('sms_status', 'ready')
+      .eq('provisioning_status', 'ready')
+      .limit(1);
+
+    if (!availableNumbers || availableNumbers.length === 0) {
+      console.log(`[Warm Inventory] No available warm numbers in inventory`);
+      return {
+        success: false,
+        error: 'No warm numbers available',
+        errorType: 'NO_INVENTORY'
+      };
+    }
 
     // STEP 1: Atomic claim - UPDATE with WHERE conditions to prevent race condition
     // This ensures only one request can claim a specific number
@@ -668,33 +692,45 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
       console.error('[Warm Inventory] ERROR Details:', JSON.stringify(claimError, null, 2));
 
       // Check if this is a unique constraint violation due to existing assignment
-      if (claimError.message && claimError.message.includes('unique constraint') || claimError.code === '23505') {
-        console.log(`[Warm Inventory] Unique constraint violation detected - business likely already has assigned number`);
+      // CRITICAL: 23505 on idx_twilio_numbers_business_active_unique means business already has active/assigned number
+      // This MUST NOT fall through to live purchase - we must reconcile the existing assignment
+      if (claimError.code === '23505' || (claimError.message && claimError.message.includes('unique constraint') && claimError.message.includes('business_id'))) {
+        console.log(`[Warm Inventory] ========== 23505 BUSINESS ACTIVE UNIQUE VIOLATION ==========`);
+        console.log(`[Warm Inventory] Business ${businessId} already has an active/assigned number per database unique index`);
+        console.log(`[Warm Inventory] This is a safety violation - MUST reconcile existing assignment, NOT purchase new number`);
 
-        // Re-check for existing assignment and reconcile
-        const { data: retryExistingAssignment } = await supabase
-          .from('twilio_numbers')
-          .select('id, phone_number, twilio_sid, status, sms_status, provisioning_status')
-          .eq('business_id', businessId)
-          .in('status', ['assigned', 'active'])
-          .single();
+        // Re-check for existing assignment using authoritative query matching the unique index
+        const retryExistingAssignment = await getExistingAssignment(supabase, businessId);
 
         if (retryExistingAssignment) {
-          console.log(`[PROVISION_WARM_CONFLICT_RECONCILED] Found existing assignment after constraint violation, reconciling`);
+          console.log(`[Warm Inventory] ========== 23505 RECONCILIATION SUCCESS ==========`);
+          console.log(`[Warm Inventory] Found existing assignment: id=${retryExistingAssignment.id} phone=${retryExistingAssignment.phone_number} status=${retryExistingAssignment.status}`);
+          console.log(`[Warm Inventory] Returning existing assignment to prevent duplicate purchase`);
           return {
             success: true,
             phoneNumber: retryExistingAssignment.phone_number,
             phoneNumberSid: retryExistingAssignment.twilio_sid
           };
         }
+
+        // If we still can't find the row but unique index says it exists, this is a data integrity issue
+        // Fail closed and do NOT proceed to live purchase
+        console.error(`[Warm Inventory] ========== 23505 DATA INTEGRITY ERROR ==========`);
+        console.error(`[Warm Inventory] Unique index says business ${businessId} has active assignment but query returned no rows`);
+        console.error(`[Warm Inventory] This is a critical data integrity issue - failing closed to prevent duplicate purchase`);
+        return {
+          success: false,
+          error: 'Data integrity error: unique constraint violation but no existing assignment found. This requires manual reconciliation.',
+          errorType: 'INTEGRITY_ERROR'
+        };
       }
 
-      return { success: false, error: 'Failed to claim warm number' };
+      return { success: false, error: 'Failed to claim warm number', errorType: 'OTHER' };
     }
 
     if (!updatedNumbers || updatedNumbers.length === 0) {
       console.log('[Warm Inventory] No warm numbers available (atomic claim returned 0 rows)');
-      return { success: false, error: 'No warm numbers available' };
+      return { success: false, error: 'No warm numbers available', errorType: 'NO_INVENTORY' };
     }
 
     const warmNumber = updatedNumbers[0];
