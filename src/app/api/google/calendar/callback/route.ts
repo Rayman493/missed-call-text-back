@@ -25,11 +25,15 @@ export async function GET(request: NextRequest) {
     // Detect native app context
     const userAgent = request.headers.get('user-agent') || ''
     const isNativeApp = userAgent.includes('Capacitor') || userAgent.includes('ReplyFlow')
+    const isIOS = userAgent.includes('iPhone') || userAgent.includes('iPad') || userAgent.includes('iOS')
 
     // Distinguish user cancellation (access_denied) from other errors
     if (error === 'access_denied') {
       console.log('[GOOGLE OAUTH] User denied access')
-      if (isNativeApp) {
+      if (isNativeApp && isIOS) {
+        // iOS with ASWebAuthenticationSession: Redirect to HTTPS
+        return NextResponse.redirect(new URL('/dashboard/calendar?calendar=cancelled', request.url))
+      } else if (isNativeApp) {
         const appLink = `replyflow://calendar?status=cancelled`
         return NextResponse.redirect(new URL(appLink))
       }
@@ -37,7 +41,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Other OAuth errors
-    if (isNativeApp) {
+    if (isNativeApp && isIOS) {
+      // iOS with ASWebAuthenticationSession: Redirect to HTTPS
+      return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
+    } else if (isNativeApp) {
       const appLink = `replyflow://calendar?status=error`
       return NextResponse.redirect(new URL(appLink))
     }
@@ -217,13 +224,21 @@ export async function GET(request: NextRequest) {
     // Detect native app context and redirect accordingly
     const userAgent = request.headers.get('user-agent') || ''
     const isNativeApp = userAgent.includes('Capacitor') || userAgent.includes('ReplyFlow')
+    const isIOS = userAgent.includes('iPhone') || userAgent.includes('iPad') || userAgent.includes('iOS')
 
-    if (isNativeApp) {
-      console.log('[GOOGLE OAUTH] native return redirect')
-      // Use app link to return to native app
+    if (isNativeApp && isIOS) {
+      // iOS with ASWebAuthenticationSession: Redirect to HTTPS URL
+      // ASWebAuthenticationSession will intercept this and return to the app
+      // The appUrlOpen handler will then navigate to the calendar page
+      console.log('[GOOGLE OAUTH] iOS ASWebAuthenticationSession return redirect')
+      return NextResponse.redirect(new URL('/dashboard/calendar?calendar=connected', request.url))
+    } else if (isNativeApp) {
+      // Android or other native: Use deep link return
+      console.log('[GOOGLE OAUTH] native deep link return')
       const appLink = `replyflow://calendar?status=connected&business_id=${business.id}`
       return NextResponse.redirect(new URL(appLink))
     } else {
+      // Web: Return to calendar page
       console.log('[GOOGLE OAUTH] web return redirect')
       return NextResponse.redirect(new URL('/dashboard/calendar?calendar=connected', request.url))
     }

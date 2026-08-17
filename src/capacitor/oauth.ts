@@ -2,39 +2,84 @@
  * Capacitor OAuth Helper
  *
  * This file provides Capacitor-specific OAuth handling for external browser flows.
- * For native environments, uses Capacitor Browser plugin to open OAuth in system browser.
- * For web environments, uses standard browser navigation.
+ * For iOS native: Uses ASWebAuthenticationSession (via web checkout plugin) for automatic return-to-app
+ * For Android native: Uses Capacitor Browser plugin to open OAuth in system browser
+ * For web: Uses standard browser navigation
  */
 
-import { isCapacitorNative } from './init';
+import { isCapacitorNative, getCapacitorPlatform } from './init';
+import ReplyflowWebCheckoutPlugin from '@/lib/web-checkout';
 
 /**
  * Open OAuth URL in external browser
  *
  * For web: Opens in same window/tab
- * For Capacitor: Opens in system browser using Capacitor Browser plugin
+ * For iOS native: Uses ASWebAuthenticationSession for automatic return-to-app
+ * For Android native: Opens in system browser using Capacitor Browser plugin
  *
  * @param url - The OAuth URL to open
  * @param callbackUrl - The URL to redirect back to after OAuth completion (for deep-link return)
  */
 export async function openOAuthFlow(url: string, callbackUrl: string): Promise<void> {
-  console.log('[OAuth] Opening OAuth flow:', { url, callbackUrl, isNative: isCapacitorNative() });
+  console.log('[OAuth] Opening OAuth flow:', { url, callbackUrl, isNative: isCapacitorNative(), platform: getCapacitorPlatform() });
 
   if (isCapacitorNative()) {
-    // Native environment: Use Capacitor Browser plugin to open in system browser
-    try {
-      const { Browser } = await import('@capacitor/browser');
-      console.log('[OAuth] Opening in system browser using Capacitor Browser plugin');
-      
-      // Open OAuth URL in system browser
-      await Browser.open({ url });
-      
-      console.log('[OAuth] System browser opened successfully');
-    } catch (error) {
-      console.error('[OAuth] Failed to open system browser:', error);
-      console.log('[OAuth] Falling back to window.open');
-      // Fallback to window.open if Browser plugin fails
-      window.open(url, '_blank');
+    const platform = getCapacitorPlatform();
+
+    if (platform === 'ios') {
+      // iOS: Use ASWebAuthenticationSession for automatic return-to-app
+      try {
+        console.log('[OAuth] Opening in ASWebAuthenticationSession on iOS');
+
+        // Parse callback URL to extract host and path for ASWebAuthenticationSession
+        const callbackUrlObj = new URL(callbackUrl);
+        const callbackHost = callbackUrlObj.hostname;
+        const callbackPath = callbackUrlObj.pathname + callbackUrlObj.search;
+
+        console.log('[OAuth] iOS callback config:', { callbackHost, callbackPath });
+
+        // Use web checkout plugin which uses ASWebAuthenticationSession on iOS
+        const result = await ReplyflowWebCheckoutPlugin.openCheckoutSession({
+          url,
+          callbackHost,
+          callbackPath,
+        });
+
+        console.log('[OAuth] ASWebAuthenticationSession result:', result);
+
+        if (result.canceled) {
+          console.log('[OAuth] OAuth flow canceled by user');
+        } else if (!result.completed || !result.callbackMatched) {
+          console.warn('[OAuth] OAuth flow did not complete successfully:', result);
+        }
+      } catch (error) {
+        console.error('[OAuth] Failed to open ASWebAuthenticationSession:', error);
+        console.log('[OAuth] Falling back to Capacitor Browser');
+        // Fallback to Capacitor Browser if ASWebAuthenticationSession fails
+        try {
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.open({ url });
+        } catch (browserError) {
+          console.error('[OAuth] Capacitor Browser fallback also failed:', browserError);
+          window.open(url, '_blank');
+        }
+      }
+    } else {
+      // Android: Use Capacitor Browser plugin to open in system browser
+      try {
+        const { Browser } = await import('@capacitor/browser');
+        console.log('[OAuth] Opening in system browser using Capacitor Browser plugin (Android)');
+
+        // Open OAuth URL in system browser
+        await Browser.open({ url });
+
+        console.log('[OAuth] System browser opened successfully');
+      } catch (error) {
+        console.error('[OAuth] Failed to open system browser:', error);
+        console.log('[OAuth] Falling back to window.open');
+        // Fallback to window.open if Browser plugin fails
+        window.open(url, '_blank');
+      }
     }
   } else {
     // Web: Open in same window
