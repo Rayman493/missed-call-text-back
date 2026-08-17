@@ -25,6 +25,30 @@ export async function GET(request: NextRequest) {
 
     const business = authResult.business;
 
+    // Get query parameters early for security check
+    const { searchParams } = new URL(request.url)
+    const leadId = searchParams.get('lead_id')
+    const timeMin = searchParams.get('timeMin')
+    const timeMax = searchParams.get('timeMax')
+
+    // Security: If lead_id is provided, verify it belongs to this business
+    if (leadId) {
+      const { data: lead, error: leadError } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('id', leadId)
+        .eq('business_id', business.id)
+        .single()
+
+      if (leadError || !lead) {
+        console.error('[CALENDAR] Lead does not belong to business:', leadError)
+        return NextResponse.json(
+          { error: 'Lead not found' },
+          { status: 404 }
+        )
+      }
+    }
+
     // Get the calendar integration
     const { data: integration, error: integrationError } = await supabase
       .from('calendar_integrations')
@@ -97,11 +121,6 @@ export async function GET(request: NextRequest) {
         // Continue anyway, we have the new token
       }
     }
-
-    // Get timeMin and timeMax from query parameters
-    const { searchParams } = new URL(request.url)
-    const timeMin = searchParams.get('timeMin')
-    const timeMax = searchParams.get('timeMax')
 
     // Build Google Calendar API URL with date range (include conferenceDataVersion for conference info)
     let apiUrl = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?'
@@ -204,6 +223,13 @@ export async function GET(request: NextRequest) {
     // Normalize primary events, filtering out cancelled events
     const primaryEvents = (eventsData.items || [])
       .filter((event: any) => event.status !== 'cancelled')
+      .filter((event: any) => {
+        // Filter by lead_id if provided
+        if (leadId) {
+          return event.extendedProperties?.private?.replyflow_lead_id === leadId
+        }
+        return true
+      })
       .map((event: any) => {
         const normalizedEvent = {
           id: event.id,
@@ -236,6 +262,7 @@ export async function GET(request: NextRequest) {
     }))
 
     // Merge events with deduplication by summary and date
+    // When filtering by lead_id, skip holidays since they are not customer appointments
     const allEvents = [...primaryEvents]
     const seenKeys = new Set<string>()
     
@@ -245,7 +272,9 @@ export async function GET(request: NextRequest) {
       seenKeys.add(key)
     })
     
-    normalizedHolidays.forEach((holiday: any) => {
+    // Only merge holidays if not filtering by lead_id
+    if (!leadId) {
+      normalizedHolidays.forEach((holiday: any) => {
       const dateKey = holiday.start?.date || holiday.start?.dateTime?.split('T')[0]
       const key = `${holiday.summary}-${dateKey}`
       if (!seenKeys.has(key)) {
@@ -253,6 +282,7 @@ export async function GET(request: NextRequest) {
         seenKeys.add(key)
       }
     })
+    }
 
     console.log('[Google Calendar Events] Total events after merge:', allEvents.length)
 

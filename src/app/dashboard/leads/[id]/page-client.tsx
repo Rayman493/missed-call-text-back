@@ -390,6 +390,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         aiIntake: false, // Default to expanded - show current request immediately
         schedule: true, // Default to collapsed for conversation-first
         payments: true, // Default to collapsed
+        appointments: true, // Default to collapsed
       }
     }
 
@@ -402,6 +403,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       aiIntake: false,
       schedule: true,
       payments: true,
+      appointments: true,
     }
   })
 
@@ -1327,6 +1329,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [confirmationError, setConfirmationError] = useState<string | null>(null)
   const [leadJobs, setLeadJobs] = useState<any[]>([])
   const [leadTasks, setLeadTasks] = useState<any[]>([])
+  const [appointments, setAppointments] = useState<any[]>([])
+  const [loadingAppointments, setLoadingAppointments] = useState(false)
   const [appointmentDate, setAppointmentDate] = useState('')
   const [appointmentTime, setAppointmentTime] = useState('')
   const [showAppointmentSuccessModal, setShowAppointmentSuccessModal] = useState(false)
@@ -1416,10 +1420,52 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
+  const fetchAppointments = async () => {
+    if (!leadData?.id || !business) return
+
+    try {
+      setLoadingAppointments(true)
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) return
+
+      // Use bounded date range: 30 days past to 90 days future
+      const timeMin = new Date()
+      timeMin.setDate(timeMin.getDate() - 30)
+      const timeMax = new Date()
+      timeMax.setDate(timeMax.getDate() + 90)
+
+      const response = await fetch(
+        `/api/google/calendar/events?lead_id=${leadData.id}&timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      )
+
+      if (response.ok) {
+        const data = await response.json()
+        setAppointments(data.events || [])
+      } else {
+        // Non-blocking failure - Customer Details remains usable
+        console.warn('Failed to fetch appointments, continuing without them')
+        setAppointments([])
+      }
+    } catch (error) {
+      console.error('Error fetching appointments:', error)
+      setAppointments([])
+    } finally {
+      setLoadingAppointments(false)
+    }
+  }
+
   // Fetch jobs for lead to check for scheduled appointments
   useEffect(() => {
     fetchLeadJobs()
     fetchLeadTasks()
+    fetchAppointments()
   }, [leadData?.id, business])
 
   // Get future scheduled appointments for this lead
@@ -3948,6 +3994,74 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         )}
                       </SidebarSection>
 
+                      {/* Appointments */}
+                      <SidebarSection
+                        title="Appointments"
+                        className="mb-3"
+                      >
+                        {loadingAppointments ? (
+                          <div className="flex items-center justify-center py-4">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                          </div>
+                        ) : appointments.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No appointments</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {(() => {
+                              const now = new Date()
+                              const sorted = [...appointments].sort((a: any, b: any) => {
+                                const dateA = new Date(a.start?.dateTime || a.start?.date)
+                                const dateB = new Date(b.start?.dateTime || b.start?.date)
+                                const isAPast = dateA < now
+                                const isBPast = dateB < now
+
+                                // Upcoming events always before past events
+                                if (isAPast && !isBPast) return 1
+                                if (!isAPast && isBPast) return -1
+
+                                // Within same group, sort by date
+                                // For upcoming: earliest first
+                                // For past: newest first
+                                if (isAPast && isBPast) {
+                                  return dateB.getTime() - dateA.getTime() // newest past first
+                                }
+                                return dateA.getTime() - dateB.getTime() // earliest upcoming first
+                              })
+                              return sorted.slice(0, 5).map((event: any) => {
+                                const startDate = new Date(event.start?.dateTime || event.start?.date)
+                                const isPast = startDate < now
+                                const isAllDay = !!(event.start?.date && !event.start?.dateTime)
+                                let timeStr = ''
+                                if (isAllDay) {
+                                  timeStr = 'All day'
+                                } else if (event.start?.dateTime) {
+                                  timeStr = new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                                }
+                                const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                                return (
+                                  <div key={event.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg transition-all duration-200">
+                                    <div className="flex-shrink-0 w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center">
+                                      <CalendarDays className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-sm font-medium text-foreground truncate">{event.summary}</p>
+                                      <p className="text-xs text-muted-foreground/80">
+                                        {dateStr} • {timeStr}
+                                      </p>
+                                    </div>
+                                    {isPast && (
+                                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap border border-border/30">
+                                        Past
+                                      </span>
+                                    )}
+                                  </div>
+                                )
+                              })
+                            })()}
+                          </div>
+                        )}
+                      </SidebarSection>
+
                       {/* Internal Notes */}
                       <SidebarSection
                         title="Internal Notes"
@@ -4303,6 +4417,86 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             )}
           </div>
+
+        <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
+          <button
+            onClick={() => setCollapsedSections((prev: any) => ({ ...prev, appointments: !prev.appointments }))}
+            className="flex items-center justify-between w-full"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 flex items-center justify-center">
+                <CalendarDays className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Appointments</span>
+              {appointments.length > 0 && (
+                <span className="text-xs text-muted-foreground">{appointments.length}</span>
+              )}
+            </div>
+            <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.appointments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {!collapsedSections.appointments && (
+            <div className="mt-2">
+              {loadingAppointments ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                </div>
+              ) : appointments.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-2">No appointments</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {(() => {
+                    const now = new Date()
+                    const sorted = [...appointments].sort((a: any, b: any) => {
+                      const dateA = new Date(a.start?.dateTime || a.start?.date)
+                      const dateB = new Date(b.start?.dateTime || b.start?.date)
+                      const isAPast = dateA < now
+                      const isBPast = dateB < now
+
+                      // Upcoming events always before past events
+                      if (isAPast && !isBPast) return 1
+                      if (!isAPast && isBPast) return -1
+
+                      // Within same group, sort by date
+                      // For upcoming: earliest first
+                      // For past: newest first
+                      if (isAPast && isBPast) {
+                        return dateB.getTime() - dateA.getTime() // newest past first
+                      }
+                      return dateA.getTime() - dateB.getTime() // earliest upcoming first
+                    })
+                    return sorted.slice(0, 3).map((event: any) => {
+                      const startDate = new Date(event.start?.dateTime || event.start?.date)
+                      const isPast = startDate < now
+                      const isAllDay = !!(event.start?.date && !event.start?.dateTime)
+                      let timeStr = ''
+                      if (isAllDay) {
+                        timeStr = 'All day'
+                      } else if (event.start?.dateTime) {
+                        timeStr = new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                      }
+                      const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      return (
+                        <div key={event.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium text-foreground truncate">{event.summary}</p>
+                            <p className="text-[10px] text-muted-foreground">{dateStr} {timeStr ? '• ' + timeStr : ''}</p>
+                          </div>
+                          {isPast && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2">
+                              Past
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })
+                  })()}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         </div>
         )}
 
@@ -5036,7 +5230,7 @@ If you have questions, reply to this message.`
       isOpen={isNewAppointmentOpen}
       onClose={() => setIsNewAppointmentOpen(false)}
       onRefresh={async () => {
-        // No special reload needed here; calendar/meetings will fetch on their own
+        await fetchAppointments()
       }}
       context="customer"
       preselectedLeadId={params.id}
