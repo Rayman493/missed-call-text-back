@@ -211,7 +211,9 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
         clearPendingState();
 
         // Emit cancellation event to JS
+        Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] checkout_canceled_event_emitting=true");
         notifyListeners("checkoutCanceled", new JSObject());
+        Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] checkout_canceled_event_emitted=true");
 
         JSObject result = new JSObject();
         result.put("androidVersion", Build.VERSION.RELEASE);

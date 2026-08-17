@@ -13,6 +13,8 @@ import { mapAuthError, type AuthErrorDisplay } from '@/lib/auth-error-mapper'
 import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import { openStripeCheckout } from '@/lib/stripe-checkout'
 import { isNativeIOS as checkNativeIOS } from '@/lib/stripe-checkout'
+import { Capacitor } from '@capacitor/core'
+import ReplyflowWebCheckoutPlugin from '@/lib/web-checkout'
 
 // Footer with theme support for auth pages
 function AuthFooter() {
@@ -150,7 +152,42 @@ function AuthContent() {
     prevSignupStepRef.current = signupStep
   }, [signupStep, isSignIn])
 
-  
+  // Register native cancellation listener for Stripe checkout
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      return
+    }
+
+    let listenerHandle: any
+
+    const setupListener = async () => {
+      try {
+        listenerHandle = await ReplyflowWebCheckoutPlugin.addListener('checkoutCanceled', () => {
+          console.log('[Auth] checkoutCanceled event received, resetting submission state')
+          console.log('[ACCOUNT_CREATION_CANCEL] checkout_canceled_event_received=true')
+          console.log('[ACCOUNT_CREATION_CANCEL] loading_reset=true')
+          setIsSubmitting(false)
+          isSubmittingRef.current = false
+          setIsCreatingCheckout(false)
+          isCreatingCheckoutRef.current = false
+          setLoading(false)
+        })
+        console.log('[Auth] checkoutCanceled listener registered')
+      } catch (error) {
+        console.error('[Auth] Failed to register checkoutCanceled listener:', error)
+      }
+    }
+
+    setupListener()
+
+    return () => {
+      if (listenerHandle) {
+        listenerHandle.remove()
+        console.log('[Auth] checkoutCanceled listener removed')
+      }
+    }
+  }, [])
+
   // Show setup error if env vars are missing
   if (!supabase) {
     return <SetupError />
