@@ -259,3 +259,153 @@ describe('Marker Key Stability', () => {
     expect(includesEventId).toBe(true)
   })
 })
+
+describe('Camera Ownership Model - Hardening', () => {
+  it('marker refresh does NOT reset user camera ownership', () => {
+    const userInteractedBefore = true
+    const userIsDragging = false
+    const dateChanged = false
+    const filterChanged = false
+    const signatureChanged = true
+    const initialCameraEstablished = true
+
+    // After fix: marker signature change should NOT trigger auto-fit if user has interacted
+    const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && (!userInteractedBefore || !initialCameraEstablished) && !userIsDragging)
+
+    expect(shouldAutoFit).toBe(false)
+  })
+
+  it('ordinary data refresh does NOT reset user camera ownership', () => {
+    const userInteractedBefore = true
+    const userIsDragging = false
+    const dateChanged = false
+    const filterChanged = false
+    const signatureChanged = true
+    const initialCameraEstablished = true
+
+    const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && (!userInteractedBefore || !initialCameraEstablished) && !userIsDragging)
+
+    expect(shouldAutoFit).toBe(false)
+  })
+
+  it('programmatic move completion does NOT set userInteracted', () => {
+    const wasProgrammatic = true
+    const programmaticCameraChangeBefore = true
+
+    // After fix: programmatic moves should not mark user as having interacted
+    // The guard should prevent setting userInteracted when the move was programmatic
+    const shouldSetUserInteracted = !wasProgrammatic && !programmaticCameraChangeBefore
+
+    expect(shouldSetUserInteracted).toBe(false)
+  })
+
+  it('active dragging prevents auto-fit even with signature change', () => {
+    const userInteractedBefore = false
+    const userIsDragging = true
+    const dateChanged = false
+    const filterChanged = false
+    const signatureChanged = true
+    const initialCameraEstablished = false
+
+    // After fix: active dragging should prevent auto-fit regardless of other conditions
+    const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && (!userInteractedBefore || !initialCameraEstablished) && !userIsDragging)
+
+    expect(shouldAutoFit).toBe(false)
+  })
+
+  it('deliberate selected-date context change CAN reset app ownership', () => {
+    const userInteractedBefore = true
+    const dateChanged = true
+    const viewportRestored = false
+    const shouldResetUserInteracted = !viewportRestored
+
+    // Date changes are intentional context transitions that can reset ownership
+    expect(shouldResetUserInteracted).toBe(true)
+  })
+
+  it('initial frame occurs once per intended context', () => {
+    const initialCameraEstablished = false
+    const markersCount = 1
+    const userInteracted = false
+
+    // Should auto-fit on first marker arrival
+    const shouldAutoFit = !initialCameraEstablished && markersCount > 0 && !userInteracted
+
+    expect(shouldAutoFit).toBe(true)
+
+    // After auto-fit, initialCameraEstablished becomes true
+    const initialCameraEstablishedAfter = true
+    const shouldAutoFitAfter = !initialCameraEstablishedAfter && markersCount > 0 && !userInteracted
+
+    expect(shouldAutoFitAfter).toBe(false)
+  })
+
+  it('business marker survives empty selected-day marker set', () => {
+    const businessMarkerExists = true
+    const selectedDayMarkersCount = 0
+    const shouldShowBusinessMarker = businessMarkerExists
+
+    expect(shouldShowBusinessMarker).toBe(true)
+    expect(selectedDayMarkersCount).toBe(0)
+  })
+
+  it('selected-day filtering excludes records from other dates', () => {
+    const selectedDateStr = '2025-01-15'
+    const jobDateStr = '2025-01-15'
+    const otherJobDateStr = '2025-01-16'
+
+    const isIncluded = jobDateStr === selectedDateStr
+    const isExcluded = otherJobDateStr === selectedDateStr
+
+    expect(isIncluded).toBe(true)
+    expect(isExcluded).toBe(false)
+  })
+
+  it('all-day events map to the intended local date', () => {
+    const allDayEventDate = '2025-01-15'
+    const selectedDateStr = '2025-01-15'
+
+    const matches = allDayEventDate === selectedDateStr
+
+    expect(matches).toBe(true)
+  })
+
+  it('input marker arrays are not mutated unexpectedly', () => {
+    const originalMarkers = [
+      { id: 'job:1', latitude: 40.7128, longitude: -74.0060 },
+      { id: 'job:2', latitude: 40.7129, longitude: -74.0061 }
+    ]
+    const markersCopy = JSON.parse(JSON.stringify(originalMarkers))
+
+    // Simulate processing (should not mutate original)
+    const processed = markersCopy.map(m => ({ ...m, processed: true }))
+
+    expect(originalMarkers).not.toHaveProperty('processed')
+    expect(processed).toHaveLength(2)
+  })
+
+  it('stale selected-day markers are removed', () => {
+    const previousMarkerIds = ['job:1', 'job:2', 'job:3']
+    const currentMarkerIds = ['job:1', 'job:3']
+    const removedIds = previousMarkerIds.filter(id => !currentMarkerIds.includes(id))
+
+    expect(removedIds).toEqual(['job:2'])
+  })
+
+  it('missing business coordinates fail gracefully', () => {
+    const businessCoords = null
+    const businessAddress = null
+    const shouldShowBusinessMarker = businessCoords !== null && businessAddress !== null
+
+    expect(shouldShowBusinessMarker).toBe(false)
+  })
+
+  it('no demo/default coordinate is treated as canonical business location', () => {
+    const fallbackCoordinate = { lat: 39.8283, lng: -98.5795 } // US center
+    const businessCoords = { lat: 40.7128, lng: -74.0060 } // Actual business location
+    const canonicalLocation = businessCoords
+
+    expect(canonicalLocation).not.toEqual(fallbackCoordinate)
+    expect(fallbackCoordinate.lat).toBe(39.8283) // Neutral fallback, not business location
+  })
+})

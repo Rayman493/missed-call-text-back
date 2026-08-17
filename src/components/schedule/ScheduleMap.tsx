@@ -181,6 +181,7 @@ function ScheduleMapComponent({
   const pendingProgrammaticMoveRef = useRef(false) // Track if a programmatic move is in progress
   const mapPreparationIdRef = useRef(0) // Monotonically increasing ID to prevent stale async results
   const viewportRestoredRef = useRef(false) // Track if viewport was restored from saved state
+  const userIsDraggingRef = useRef(false) // Track if user is currently dragging (stronger guard than userInteracted)
   // Constants for viewport behavior
 const HOME_BASE_ONLY_ZOOM = 13 // Local zoom for single marker (shows ~5-10 miles)
 const SINGLE_STOP_ZOOM = 13 // Local zoom for single service stop
@@ -1188,10 +1189,16 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       // Track user interaction with the map (only genuine user input, not programmatic changes)
       map.addListener('dragstart', () => {
         logCameraState('dragstart', 'user_drag_start')
+        userIsDraggingRef.current = true
         if (!programmaticCameraChangeRef.current) {
           userInteractedRef.current = true
           setLastAutoFitDateKey(null)
         }
+      })
+
+      map.addListener('dragend', () => {
+        logCameraState('dragend', 'user_drag_end')
+        userIsDraggingRef.current = false
       })
 
       // High-frequency diagnostic listeners - only register if diagnostics enabled
@@ -1219,14 +1226,32 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
       // idle fires after any movement settles (user or programmatic)
       // Event-driven guard: consume pending programmatic move on idle
+      // CRITICAL FIX: Only set userInteracted for genuine user gestures, not programmatic moves
+      // The programmaticCameraChangeRef guard must be checked BEFORE it's consumed
       map.addListener('idle', () => {
         logCameraState('idle', 'movement_settled')
-        if (pendingProgrammaticMoveRef.current) {
+
+        // First, consume the pending programmatic move flag
+        const wasProgrammatic = pendingProgrammaticMoveRef.current
+        if (wasProgrammatic) {
           pendingProgrammaticMoveRef.current = false
           programmaticCameraChangeRef.current = false
+          // Do NOT set userInteracted for programmatic moves - this was the bug
+          console.log('[SCHEDULE_MAP_CAMERA_OWNERSHIP]', {
+            event: 'programmatic_move_completed',
+            userInteracted: userInteractedRef.current,
+            mapInstance: mapInstanceIdRef.current
+          })
         } else if (!programmaticCameraChangeRef.current) {
+          // Only set userInteracted if this was NOT a programmatic move
+          // This check must use the value BEFORE any potential reset
           userInteractedRef.current = true
           setLastAutoFitDateKey(null)
+          console.log('[SCHEDULE_MAP_CAMERA_OWNERSHIP]', {
+            event: 'user_interaction_confirmed',
+            userInteracted: true,
+            mapInstance: mapInstanceIdRef.current
+          })
         }
       })
 
@@ -1587,6 +1612,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       markersCount: markersRef.current.size,
       showAllMode,
       userInteracted: userInteractedRef.current,
+      userIsDragging: userIsDraggingRef.current,
       dateChanged,
       signatureChanged,
       initialCameraEstablished: initialCameraEstablishedRef.current,
@@ -1612,7 +1638,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       // Signature changes (marker set changes) trigger if:
       //   - User hasn't interacted yet, OR
       //   - This is the first marker set (initialCameraEstablished is false)
-      const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && (!userInteractedRef.current || !initialCameraEstablishedRef.current))
+      // CRITICAL FIX: Also check if user is currently dragging - prevent auto-fit during active gestures
+      const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && (!userInteractedRef.current || !initialCameraEstablishedRef.current) && !userIsDraggingRef.current)
 
       console.log('[SCHEDULE_MAP_EFFECT]', {
         effect: 'auto_fit_decision',
@@ -1620,6 +1647,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         dateChanged,
         filterChanged,
         signatureChanged,
+        userInteracted: userInteractedRef.current,
+        userIsDragging: userIsDraggingRef.current,
         initialCameraEstablished: initialCameraEstablishedRef.current,
         lastAutoFitDateKey,
         currentDateKey
