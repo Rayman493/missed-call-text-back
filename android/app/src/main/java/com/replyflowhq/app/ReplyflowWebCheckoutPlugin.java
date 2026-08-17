@@ -79,8 +79,6 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
 
     @PluginMethod
     public void openCheckoutSession(PluginCall call) {
-        Log.d(TAG, "[NATIVE_CHECKOUT] method_invoked=true");
-        Log.d(TAG, "[NATIVE_CHECKOUT] call_id=" + call.getCallbackId());
         // Check for recovered completion from process death
         if (hasRecoveredCompletion()) {
             Log.d(TAG, "[NATIVE_CHECKOUT] recovered_completion_found=true");
@@ -194,7 +192,6 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
 
         // Resolve the active call
         if (activeCall != null) {
-            Log.d(TAG, "[NATIVE_CHECKOUT] plugin_call_resolving=true");
             activeCall.resolve(result);
             activeCall = null;
         } else {
@@ -212,14 +209,18 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
         Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] activeCall_not_null=" + (activeCall != null));
         Log.d(TAG, "[NATIVE_CHECKOUT] user_cancellation=true");
         clearPendingState();
+
+        // Emit cancellation event to JS
+        notifyListeners("checkoutCanceled", new JSObject());
+
         JSObject result = new JSObject();
         result.put("androidVersion", Build.VERSION.RELEASE);
         result.put("completed", false);
         result.put("canceled", true);
         result.put("callbackMatched", false);
 
+        // Resolve the active call
         if (activeCall != null) {
-            Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] resolving_active_call=true");
             activeCall.resolve(result);
             activeCall = null;
             Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] resolved_active_call_success=true");

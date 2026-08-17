@@ -27,6 +27,8 @@ export interface WebCheckoutPlugin {
     errorCode?: string
     errorMessage?: string
   }>
+  addListener(eventName: 'checkoutCanceled', listenerFunc: (data: { canceled: true }) => void): Promise<void>
+  removeAllListeners(): Promise<void>
 }
 
 const ReplyflowWebCheckoutPlugin = registerPlugin<WebCheckoutPlugin>('ReplyflowWebCheckoutPlugin')

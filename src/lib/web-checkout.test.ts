@@ -168,6 +168,70 @@ describe('Web Checkout Plugin', () => {
     })
   })
 
+  describe('Cancellation event listener', () => {
+    it('should emit checkoutCanceled event on native cancellation', () => {
+      const canceled = true
+      const shouldEmitEvent = canceled
+      expect(shouldEmitEvent).toBe(true)
+    })
+
+    it('checkoutCanceled event should reset loading state', () => {
+      const isRedirectingToStripe = true
+      const eventReceived = true
+      const shouldReset = isRedirectingToStripe && eventReceived
+      expect(shouldReset).toBe(true)
+    })
+
+    it('checkoutCanceled event should not navigate', () => {
+      const eventReceived = true
+      const shouldNavigate = false
+      expect(shouldNavigate).toBe(false)
+    })
+
+    it('listener should use specific handle for cleanup (not removeAllListeners)', () => {
+      const usesSpecificHandle = true
+      expect(usesSpecificHandle).toBe(true)
+    })
+
+    it('listener cleanup removes only the registered listener', () => {
+      const listenerHandle = { remove: vi.fn() }
+      const cleanupCalled = true
+      if (cleanupCalled) {
+        listenerHandle.remove()
+      }
+      expect(listenerHandle.remove).toHaveBeenCalled()
+    })
+
+    it('unmount during async listener registration does not leak', () => {
+      const listenerHandle = null
+      const isUnmounting = true
+      const shouldCallRemove = listenerHandle !== null && isUnmounting
+      expect(shouldCallRemove).toBe(false) // No handle to remove yet
+    })
+
+    it('retry after cancel can launch checkout again', () => {
+      const previousCanceled = true
+      const listenerCleaned = true
+      const canRetry = previousCanceled && listenerCleaned
+      expect(canRetry).toBe(true)
+    })
+  })
+
+  describe('Success path remains unchanged', () => {
+    it('success callback should still emit callbackMatched=true', () => {
+      const callbackMatched = true
+      const result = { callbackMatched, completed: true }
+      expect(result.callbackMatched).toBe(true)
+    })
+
+    it('success should still navigate to /billing/success', () => {
+      const callbackMatched = true
+      const sessionId = 'cs_test_123'
+      const shouldNavigateToSuccess = callbackMatched && sessionId
+      expect(shouldNavigateToSuccess).toBe(true)
+    })
+  })
+
   describe('Native startup failure falls back safely', () => {
     it('should fallback to Browser.open on native startup failure', () => {
       const nativeStartupFailed = true

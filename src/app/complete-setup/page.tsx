@@ -13,6 +13,7 @@ import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
 import AppBackButton from '@/components/AppBackButton'
 import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
+import ReplyflowWebCheckoutPlugin from '@/lib/web-checkout'
 
 const supabase = createBrowserClient()
 
@@ -84,6 +85,36 @@ export default function CompleteSetupPage() {
       refreshBusiness(true)
     }
   }, [checkoutCancelled, refreshBusiness])
+
+  // Register native cancellation listener
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      return
+    }
+
+    let listenerHandle: any
+
+    const setupListener = async () => {
+      try {
+        listenerHandle = await ReplyflowWebCheckoutPlugin.addListener('checkoutCanceled', () => {
+          console.log('[CompleteSetup] checkoutCanceled event received, resetting loading state')
+          setIsRedirectingToStripe(false)
+        })
+        console.log('[CompleteSetup] checkoutCanceled listener registered')
+      } catch (error) {
+        console.error('[CompleteSetup] Failed to register checkoutCanceled listener:', error)
+      }
+    }
+
+    setupListener()
+
+    return () => {
+      if (listenerHandle) {
+        listenerHandle.remove()
+        console.log('[CompleteSetup] checkoutCanceled listener removed')
+      }
+    }
+  }, [])
 
   // If user is not authenticated, redirect to signin
   useEffect(() => {
