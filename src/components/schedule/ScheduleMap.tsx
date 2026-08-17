@@ -1163,7 +1163,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         : (window as any).google.maps.MapTypeId.ROADMAP
 
       const map = new (window as any).google.maps.Map(container, {
-        center: { lat: 39.8283, lng: -98.5795 }, // Default to US center
+        center: { lat: 39.8283, lng: -98.5795 }, // Default to US center (fallback, will be overridden by markers)
         zoom: 4,
         mapTypeId: initialMapTypeId,
         disableDefaultUI: false,
@@ -1593,9 +1593,12 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       lastAutoFitDateKey
     })
 
+    // If no markers, keep camera at fallback but mark as not established
+    // This allows auto-fit when first marker arrives
     if (markersRef.current.size === 0) {
       markerSetSignatureRef.current = signature
       setLastAutoFitDateKey(null)
+      initialCameraEstablishedRef.current = false
     } else if (selectedMapItemId && !userInteractedRef.current) {
       const selectedMarker = markersRef.current.get(selectedMapItemId)
       if (selectedMarker) {
@@ -1915,7 +1918,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       </div>
 
       {/* Filter and Show All Controls - Compact on mobile */}
-      <div className="flex items-center justify-between mb-2 md:mb-4 px-1 z-10">
+      <div className="flex items-center justify-between mb-3 md:mb-4 px-1 z-10">
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-slate-500" />
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 md:p-1">
@@ -2194,8 +2197,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         </div>
       )}
 
-      {/* Map Container - Use dvh on mobile to account for fixed bottom navigation */}
-      <div className="flex-1 min-h-[calc(100dvh-var(--bottom-nav-height,80px)-180px)] md:min-h-0 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+      {/* Map Container - Use fixed height on mobile to prevent extending behind bottom nav */}
+      <div className="flex-1 h-[calc(100dvh-var(--bottom-nav-height,80px)-140px)] md:h-auto md:min-h-0 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
         <div ref={mapRef} className="w-full h-full" />
         
         {/* Map Controls Stack */}
