@@ -180,6 +180,7 @@ function ScheduleMapComponent({
   const programmaticCameraChangeRef = useRef(false) // Guard to distinguish user vs programmatic movement
   const pendingProgrammaticMoveRef = useRef(false) // Track if a programmatic move is in progress
   const mapPreparationIdRef = useRef(0) // Monotonically increasing ID to prevent stale async results
+  const viewportRestoredRef = useRef(false) // Track if viewport was restored from saved state
   // Constants for viewport behavior
 const HOME_BASE_ONLY_ZOOM = 13 // Local zoom for single marker (shows ~5-10 miles)
 const SINGLE_STOP_ZOOM = 13 // Local zoom for single service stop
@@ -662,16 +663,12 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     panToMarker(selectedItem.latitude, selectedItem.longitude, 15, true, 'navigate_to_stop')
   }, [selectedMapItemId, mapItems, getFilteredMapItems, getSortedMappedItems, panToMarker])
 
-  // Select a specific map item
-  const selectMapItem = useCallback((itemId: string) => {
-    const filteredItems = getFilteredMapItems(mapItems)
-    const item = filteredItems.find(i => i.id === itemId)
-    if (!item) return
-    
+  // Select a specific map item (pass item data directly to avoid dependency on mapItems)
+  const selectMapItem = useCallback((itemId: string, latitude: number, longitude: number) => {
     setSelectedMapItemId(itemId)
     setShowAllMode(false)
-    panToMarker(item.latitude, item.longitude, 15, true, 'select_map_item')
-  }, [mapItems, getFilteredMapItems, panToMarker])
+    panToMarker(latitude, longitude, 15, true, 'select_map_item')
+  }, [panToMarker])
 
   // Helper function to extract customer address from lead metadata
   const getCustomerAddressFromLead = (job: Job): string | null => {
@@ -1381,6 +1378,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           pendingProgrammaticMoveRef.current = true
           googleMapRef.current.setCenter(savedState.center)
           googleMapRef.current.setZoom(savedState.zoom)
+          viewportRestoredRef.current = true
         }
       }
     } else {
@@ -1499,7 +1497,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
         marker.addListener('click', () => {
           if (markerInfo.items.length === 1) {
-            selectMapItem(markerInfo.items[0].id)
+            selectMapItem(markerInfo.items[0].id, markerInfo.items[0].latitude, markerInfo.items[0].longitude)
           } else {
             setSelectedMarker(markerInfo)
           }
@@ -1557,6 +1555,9 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     // Get responsive padding for multi-marker views
     const padding = getResponsivePadding()
 
+    // Reset viewport restoration flag at start of effect
+    viewportRestoredRef.current = false
+
     // Get current date key for auto-fit logic (use local timezone)
     const currentDateKey = selectedDate.toLocaleDateString('en-CA')
     const dateChanged = previousDateKey !== null && previousDateKey !== currentDateKey
@@ -1564,8 +1565,11 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     // Reset initial camera flag on date change to allow new fit for new date
     if (dateChanged) {
       initialCameraEstablishedRef.current = false
-      // Also reset user interaction flag on date change - date changes should always auto-fit
-      userInteractedRef.current = false
+      // Only reset user interaction flag if viewport was NOT restored
+      // This prevents overriding user's saved viewport when navigating back to a date
+      if (!viewportRestoredRef.current) {
+        userInteractedRef.current = false
+      }
     }
 
     // Reset initial camera flag on filter change to allow new fit for new filter
@@ -1659,7 +1663,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       markersRef.current.forEach(marker => marker.setMap(null))
       markersRef.current.clear()
     }
-  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectMapItem, selectedMapItemId, previousDateKey, lastAutoFitDateKey, mapFilter, getResponsivePadding])
+  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectedMapItemId, previousDateKey, lastAutoFitDateKey, mapFilter, getResponsivePadding])
 
   // Update marker icons when selection changes (without triggering camera changes)
   useEffect(() => {
@@ -1981,16 +1985,16 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
                 const handleItemClick = () => {
                   setSelectedListItem(item)
-                  if (isMappable) {
+                  if (isMappable && item.latitude !== null && item.longitude !== null) {
                     // Determine the map item ID based on type
                     const mapItemId = item.type === 'job' && item.jobId
                       ? item.jobId
                       : item.type === 'appointment' && item.eventId
-                      ? `appointment:${item.eventId}`
-                      : null
+                        ? `appointment:${item.eventId}`
+                        : null
 
                     if (mapItemId) {
-                      selectMapItem(mapItemId)
+                      selectMapItem(mapItemId, item.latitude, item.longitude)
                     }
                   }
                 }
@@ -2141,7 +2145,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                     }, 100)
                   }
                 } : null}
-                onClick={() => selectMapItem(item.id)}
+                onClick={() => selectMapItem(item.id, item.latitude, item.longitude)}
                 className={`flex-shrink-0 px-3 py-2 rounded-lg border transition-colors ${
                   selectedMapItemId === item.id
                     ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 ring-2 ring-green-300 dark:ring-green-700'
@@ -2190,9 +2194,9 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         </div>
       )}
 
-      {/* Map Container - Increased height on mobile with bottom padding for nav */}
-      <div className="flex-1 min-h-[50vh] md:min-h-0 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
-        <div ref={mapRef} className="w-full h-full" style={{ paddingBottom: 'var(--bottom-nav-height, 80px)' }} />
+      {/* Map Container - Use dvh on mobile to account for fixed bottom navigation */}
+      <div className="flex-1 min-h-[calc(100dvh-var(--bottom-nav-height,80px)-180px)] md:min-h-0 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+        <div ref={mapRef} className="w-full h-full" />
         
         {/* Map Controls Stack */}
         <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
@@ -2333,7 +2337,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
               {selectedMarker.items.map((item, index) => (
                 <button
                   key={`${item.type}-${item.id}-${index}`}
-                  onClick={() => selectMapItem(item.id)}
+                  onClick={() => selectMapItem(item.id, item.latitude, item.longitude)}
                   className="w-full p-2 bg-slate-50 dark:bg-slate-900 rounded-lg text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <div className="flex items-center gap-2">
