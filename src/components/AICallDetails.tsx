@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils'
 import { MessageCircle, ChevronDown, ChevronUp, X, Check, Loader2, User, Pencil, MapPin, Calendar, Phone, Sparkles, RefreshCw, Clock, Info } from 'lucide-react'
 import { normalizeExtractedInfo, getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus } from '@/lib/ai-field-mapping'
 import { normalizeAITranscript } from '@/lib/transcript-normalization'
-import { normalizeAICallRecord, getHistoryCardTitle, getOutcomeColor as getRecordOutcomeColor, getIntakeBadgeLabel, type NormalizedIntake } from '@/lib/ai-call-record-normalizer'
+import { normalizeAICallRecord, getHistoryCardTitle, getOutcomeColor as getRecordOutcomeColor, getIntakeBadgeLabel, sortAndDeduplicateRecords, type NormalizedIntake } from '@/lib/ai-call-record-normalizer'
 import { normalizeCustomerName, normalizeServiceReason, normalizeAdditionalDetails, normalizeAddress, normalizeTiming, generateCanonicalRequestTitle } from '@/lib/ai-intake-formatter'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { getProvenanceLabel } from '@/lib/customer-source'
@@ -369,7 +369,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 placeholder="Service address"
               />
             ) : (
-              <p className="text-sm font-medium leading-relaxed text-foreground pl-6">
+              <p className="text-sm font-medium leading-relaxed text-foreground pl-6 break-words">
                 {correctedFields?.address || extractedInfo?.addressOrLocation || <span className="text-muted-foreground italic">Not provided</span>}
               </p>
             )}
@@ -487,8 +487,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   // Get the currently selected AI call record (latest by default)
   const aiCallRecord = aiCallRecords.find(r => r.id === selectedRecordId) || aiCallRecords[0] || null
   
-  // Normalize all records for consistent display
-  const normalizedRecords = aiCallRecords.map(normalizeAICallRecord)
+  // Normalize all records for consistent display, sorted by received_at DESC (latest first), with duplicate removal
+  const normalizedRecords = useMemo(() => {
+    const normalized = aiCallRecords.map(normalizeAICallRecord)
+    return sortAndDeduplicateRecords(normalized)
+  }, [aiCallRecords])
   const selectedRecord = normalizedRecords.find(r => r.id === selectedRecordId) || normalizedRecords[0] || null
   const isLatest = selectedRecord?.id === normalizedRecords[0]?.id
 

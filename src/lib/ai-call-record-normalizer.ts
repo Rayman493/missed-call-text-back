@@ -98,3 +98,37 @@ export function getIntakeBadgeLabel(record: NormalizedIntake, isLatest: boolean)
   }
   return 'Previous Request'
 }
+
+/**
+ * Sorts and deduplicates AI call records for consistent display
+ * - Newest records first (by receivedAt)
+ * - Removes duplicate records by ID
+ * - Preserves records without valid IDs
+ * - Handles missing/invalid timestamps gracefully
+ */
+export function sortAndDeduplicateRecords(records: NormalizedIntake[]): NormalizedIntake[] {
+  const seen = new Set<string>()
+  return [...records]
+    .filter(record => {
+      // Only deduplicate records with valid IDs
+      if (!record.id || record.id.trim() === '') {
+        // Preserve records without stable IDs
+        return true
+      }
+      // Remove duplicate records by ID
+      if (seen.has(record.id)) {
+        return false
+      }
+      seen.add(record.id)
+      return true
+    })
+    .sort((a, b) => {
+      const aTime = a.receivedAt ? new Date(a.receivedAt).getTime() : 0
+      const bTime = b.receivedAt ? new Date(b.receivedAt).getTime() : 0
+      // Newest first, invalid/missing timestamps fall to the end
+      if (aTime === 0 && bTime === 0) return 0
+      if (aTime === 0) return 1
+      if (bTime === 0) return -1
+      return bTime - aTime
+    })
+}

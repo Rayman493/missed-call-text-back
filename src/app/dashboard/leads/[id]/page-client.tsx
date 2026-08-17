@@ -1716,9 +1716,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     automationStatus = 'Follow-ups completed'
   }
 
-  // Fetch lead data on mount
+  // Fetch lead data on mount with race condition protection
+  const latestFetchRequestRef = useRef<number>(0)
+
   useEffect(() => {
+    const requestId = ++latestFetchRequestRef.current
+
     getLeadDetails(params.id).then(result => {
+      // Check if this is the latest request (ignore stale fetches)
+      if (requestId !== latestFetchRequestRef.current) {
+        console.log('[LeadDetails] Ignoring stale fetch result')
+        return
+      }
+
       if (!result) {
         setLeadData(null)
         setLoading(false)
@@ -1739,7 +1749,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           conversation: result.conversation || result.lead.conversation
         }
 
-        
         setLeadData(leadWithMergedData)
         setLoading(false)
         return
@@ -1749,6 +1758,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setLeadData(null)
       setLoading(false)
     }).catch(error => {
+      // Check if this is the latest request (ignore stale errors)
+      if (requestId !== latestFetchRequestRef.current) {
+        console.log('[LeadDetails] Ignoring stale fetch error')
+        return
+      }
+
       setError('Failed to fetch lead details')
       setLeadData(null)
       setLoading(false)
