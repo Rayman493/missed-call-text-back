@@ -398,9 +398,6 @@ export default function TapToPayModal({
       if (error.code === 'terminal-init-failed') {
         return 'Tap to Pay couldn\'t start. Restart the app and try again.'
       }
-      if (error.code === 'terminal-init-in-progress') {
-        return 'Tap to Pay is starting. Please wait...'
-      }
       if (error.code === 'client-secret-required') {
         return 'Payment setup could not be completed. Please try again.'
       }
@@ -750,6 +747,16 @@ export default function TapToPayModal({
             setJsError(null)
             setError('')
             setPaymentState('canceled')
+            return
+          }
+
+          // Check for initialization in progress - treat as informational state, not error
+          // This is a normal state during Tap to Pay setup, not a failure
+          if (structuredData.code === 'terminal-init-in-progress') {
+            setStructuredError(null)
+            setJsError(null)
+            setError('')
+            setPaymentState('preparing')
             return
           }
 
