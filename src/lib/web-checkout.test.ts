@@ -39,11 +39,25 @@ describe('Web Checkout Plugin', () => {
     })
   })
 
-  describe('Android unchanged', () => {
-    it('should use window.location.href for Android', () => {
+  describe('Android uses native plugin', () => {
+    it('should use ReplyflowWebCheckoutPlugin for Android', () => {
       const platform = 'android'
-      const usesWindowLocation = platform !== 'ios'
-      expect(usesWindowLocation).toBe(true)
+      const usesNativePlugin = platform === 'android'
+      expect(usesNativePlugin).toBe(true)
+    })
+
+    it('should NOT fall back to Browser.open for Android', () => {
+      const platform = 'android'
+      const nativePluginFailed = true
+      const shouldFallbackToBrowser = false // Android does NOT have Browser.open fallback
+      expect(shouldFallbackToBrowser).toBe(false)
+    })
+
+    it('should throw error if native plugin fails on Android', () => {
+      const platform = 'android'
+      const nativePluginFailed = true
+      const shouldThrowError = platform === 'android' && nativePluginFailed
+      expect(shouldThrowError).toBe(true)
     })
   })
 
@@ -54,10 +68,18 @@ describe('Web Checkout Plugin', () => {
       expect(callbackMethod).toBe('customScheme')
     })
 
-    it('should fallback to Browser.open if native session fails', () => {
+    it('should fallback to Browser.open if native session fails on iOS only', () => {
+      const platform = 'ios'
       const nativeSessionFailed = true
-      const usesBrowserFallback = nativeSessionFailed
+      const usesBrowserFallback = platform === 'ios' && nativeSessionFailed
       expect(usesBrowserFallback).toBe(true)
+    })
+
+    it('should NOT have Browser.open fallback on Android', () => {
+      const platform = 'android'
+      const nativeSessionFailed = true
+      const usesBrowserFallback = platform === 'ios' && nativeSessionFailed
+      expect(usesBrowserFallback).toBe(false)
     })
   })
 

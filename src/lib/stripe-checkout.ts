@@ -4,7 +4,7 @@
  * Opens Stripe Checkout using the appropriate mechanism for the current platform.
  *
  * Native iOS: Uses ASWebAuthenticationSession for automatic return-to-app behavior.
- * Native Android: Uses Browser.open() to open Stripe in Chrome Custom Tab, preserving WebView state.
+ * Native Android: Uses native ReplyflowWebCheckoutPlugin with Chrome Custom Tabs for automatic return-to-app behavior.
  * Desktop/web: Uses window.location.href for normal browser navigation.
  *
  * IMPORTANT: Native checkout does NOT indicate payment success. Payment/subscription
@@ -91,18 +91,44 @@ export async function openStripeCheckout(url: string): Promise<void> {
       }
     }
   } else if (isNativeAndroid()) {
-    console.log('[StripeCheckout] Opening Stripe in Chrome Custom Tab (Android)')
+    console.log('[StripeCheckout] Opening Stripe in native plugin (Android)')
     try {
-      await Browser.open({ url })
-      console.log('[StripeCheckout] Browser.open() succeeded')
-      if (typeof window !== 'undefined' && (window as any).__recordClickEvent) {
-        (window as any).__recordClickEvent('browser_open_resolved', {})
+      const result = await ReplyflowWebCheckoutPlugin.openCheckoutSession({
+        url,
+        callbackHost: 'www.replyflowhq.com',
+        callbackPath: '/billing/success'
+      })
+      console.log('[StripeCheckout] Native checkout session completed:', result)
+
+      // Handle the callback result (same as iOS)
+      if (result.callbackMatched && result.callbackUrl) {
+        console.log('[StripeCheckout] Callback received, extracting session_id')
+        const callbackUrl = new URL(result.callbackUrl)
+        const sessionId = callbackUrl.searchParams.get('session_id')
+
+        if (sessionId) {
+          console.log('[StripeCheckout] Navigating to billing/success with session_id')
+          // Navigate to billing/success with native_callback marker
+          window.location.href = `/billing/success?session_id=${sessionId}&native_callback=1&return_to_app=1`
+          return
+        } else {
+          console.error('[StripeCheckout] No session_id in callback URL')
+        }
+      }
+
+      if (result.canceled) {
+        console.log('[StripeCheckout] User canceled checkout')
+        // Return to calling page - user can retry
+        return
+      }
+
+      if (!result.callbackMatched) {
+        console.error('[StripeCheckout] Callback did not match')
+        throw new Error('Callback did not match expected URL')
       }
     } catch (error) {
-      console.error('[StripeCheckout] Browser.open() failed:', error)
-      // Fallback to window.location.href if Browser.open fails
-      console.log('[StripeCheckout] Falling back to window.location.href')
-      window.location.href = url
+      console.error('[StripeCheckout] Native checkout session failed:', error)
+      throw error // Re-throw error - do NOT fall back to Browser.open()
     }
   } else {
     console.log('[StripeCheckout] Opening Stripe in browser (desktop/web)')

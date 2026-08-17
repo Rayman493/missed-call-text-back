@@ -29,6 +29,7 @@ import android.app.NotificationManager;
 import android.content.Intent;
 import com.replyflowhq.terminal.ReplyflowStripeTerminalPlugin;
 import com.replyflowhq.app.SmsLauncherPlugin;
+import com.replyflowhq.app.ReplyflowWebCheckoutPlugin;
 
 public class MainActivity extends BridgeActivity {
     private static final String TAG = "ReplyFlowOffline";
@@ -41,6 +42,7 @@ public class MainActivity extends BridgeActivity {
     private boolean isRecreating = false;
     private String externalReturnType = null;
     private String activityInstanceId = null;
+    private ReplyflowWebCheckoutPlugin checkoutPlugin;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -106,12 +108,41 @@ public class MainActivity extends BridgeActivity {
         Log.d(TAG, "[PLUGIN] Registering ReplyflowStripeTerminalPlugin...");
         registerPlugin(ReplyflowStripeTerminalPlugin.class);
         Log.d(TAG, "[PLUGIN] ReplyflowStripeTerminalPlugin registered successfully");
-        
+
         Log.d(TAG, "[PLUGIN] Registering SmsLauncherPlugin...");
         registerPlugin(SmsLauncherPlugin.class);
         Log.d(TAG, "[PLUGIN] SmsLauncherPlugin registered successfully");
 
+        Log.d(TAG, "[PLUGIN] Registering ReplyflowWebCheckoutPlugin...");
+        registerPlugin(ReplyflowWebCheckoutPlugin.class);
+        Log.d(TAG, "[PLUGIN] ReplyflowWebCheckoutPlugin registered successfully");
+
         super.onCreate(savedInstanceState);
+
+        // Get reference to checkout plugin for callback forwarding
+        try {
+            checkoutPlugin = (ReplyflowWebCheckoutPlugin) getBridge().getPlugin("ReplyflowWebCheckoutPlugin").getInstance();
+        } catch (Exception e) {
+            Log.d(TAG, "[PLUGIN] Failed to get ReplyflowWebCheckoutPlugin instance: " + e.getMessage());
+        }
+
+        // Check for process-death recovery: if there's a pending checkout and we received a callback
+        if (checkoutPlugin != null && intentUri != null) {
+            String scheme = intentUri.getScheme();
+            String host = intentUri.getHost();
+            String path = intentUri.getPath();
+
+            if ("https".equals(scheme) && "www.replyflowhq.com".equals(host) && "/billing/success".equals(path)) {
+                if (checkoutPlugin.hasPendingCheckout()) {
+                    Log.d(TAG, "[NATIVE_CHECKOUT] process_death_recovery_forwarding=true");
+                    checkoutPlugin.forwardCallback(intentUri);
+                    // Clear the intent to prevent WebView navigation
+                    setIntent(new Intent());
+                    // Don't set externalReturnType - plugin handles it
+                    externalReturnType = null;
+                }
+            }
+        }
 
         // Notify WebView of external return if one was detected
         if (externalReturnType != null) {
@@ -367,6 +398,31 @@ public class MainActivity extends BridgeActivity {
             String path = intentUri.getPath();
             String queryString = intentUri.getQuery();
             Log.d(TAG, "[NATIVE_INTENT_RECEIVED] scheme=" + scheme + ", host=" + host + ", path=" + path + ", query=" + queryString);
+
+            // Check if the checkout plugin has an active checkout and handle callback
+            if (checkoutPlugin != null && checkoutPlugin.hasActiveCheckout()) {
+                Log.d(TAG, "[NATIVE_CHECKOUT] forwarding_callback_to_plugin=true");
+                boolean consumed = checkoutPlugin.forwardCallback(intentUri);
+
+                if (consumed) {
+                    // Callback was consumed by plugin - clear intent to prevent WebView navigation
+                    Log.d(TAG, "[NATIVE_CHECKOUT] callback_consumed_clearing_intent=true");
+                    setIntent(new Intent());
+                    super.onNewIntent(new Intent());
+                    return; // Early return - Capacitor routing never sees original URI
+                } else {
+                    // Callback was NOT consumed - check if this is a return without valid checkout callback
+                    // Only treat as cancellation if this is NOT a valid ReplyFlow App Link
+                    // (unrelated ReplyFlow links should fall through to normal processing)
+                    if (!isReplyFlowAppLink(scheme, host)) {
+                        Log.d(TAG, "[NATIVE_CHECKOUT] callback_not_consumed_non_replyflow_link_checking_cancellation=true");
+                        checkoutPlugin.handleReturnWithoutCallback();
+                    } else {
+                        Log.d(TAG, "[NATIVE_CHECKOUT] callback_not_consumed_replyflow_link_falling_through=true");
+                    }
+                    // Fall through to normal processing for the unrelated App Link
+                }
+            }
 
             // Check if this is a recognized external return that should NOT be loaded into WebView
             if ("https".equals(scheme) && "www.replyflowhq.com".equals(host)) {
@@ -667,6 +723,19 @@ public class MainActivity extends BridgeActivity {
         super.onResume();
         Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] onResume instance=" + activityInstanceId);
         queryWebBuildAndUrl("onResume");
+
+        // Check for checkout cancellation on resume (fallback if onNewIntent not called)
+        // This handles the case where user presses Back without any App Link callback
+        if (checkoutPlugin != null) {
+            checkoutPlugin.checkForCancellation();
+        }
+    }
+
+    /**
+     * Check if a URI is a ReplyFlow App Link
+     */
+    private boolean isReplyFlowAppLink(String scheme, String host) {
+        return "https".equals(scheme) && "www.replyflowhq.com".equals(host);
     }
 
     @Override
