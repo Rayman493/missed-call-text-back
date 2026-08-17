@@ -1176,12 +1176,14 @@ export async function POST(request: Request) {
                         if (provisioningResult.messagingServiceAttached) {
                           // Use saveProvisionedNumberToBusiness helper to ensure correct number is saved
                           const { saveProvisionedNumberToBusiness } = await import('@/lib/twilio')
-                          
+
                           const saveResult = await saveProvisionedNumberToBusiness({
                             businessId: businessDetails.id,
                             phoneNumber: provisioningResult.phoneNumber,
                             phoneNumberSid: provisioningResult.phoneNumberSid,
-                            messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID || null
+                            messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+                            messagingServiceAttached: provisioningResult.messagingServiceAttached,
+                            fromWarmInventory: provisioningResult.fromWarmInventory || false
                           })
                           
                           if (!saveResult.success) {

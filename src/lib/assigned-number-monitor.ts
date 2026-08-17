@@ -33,6 +33,8 @@ export interface TwilioNumberRow {
   twilio_sid: string
   status: string | null
   business_id: string | null
+  error?: string
+  multiple?: boolean
 }
 
 export type IntegrityFinding =
@@ -77,6 +79,12 @@ export async function checkAssignedNumberIntegrityWith(deps: MonitorDeps): Promi
       findings.push({ type: 'integrity_error', businessId: b.id, summary: 'No twilio_numbers row for assigned SID' })
       await deps.recordIncident({ businessId: b.id, businessName: b.name, phone: phone, sid, timestamp: new Date().toISOString(), reason: 'assigned_number_integrity_error', summary: 'No twilio_numbers row for SID' })
       // continue to Twilio existence check; absence in DB does not prove Twilio absence
+    } else if (tn.error) {
+      findings.push({ type: 'ambiguous_failure', businessId: b.id, error: `Database error: ${tn.error}` })
+      await deps.recordIncident({ businessId: b.id, businessName: b.name, phone: phone, sid, timestamp: new Date().toISOString(), reason: 'assigned_number_integrity_error', summary: `Database error: ${tn.error}` })
+    } else if (tn.multiple) {
+      findings.push({ type: 'integrity_error', businessId: b.id, summary: 'Multiple twilio_numbers rows for assigned SID' })
+      await deps.recordIncident({ businessId: b.id, businessName: b.name, phone: phone, sid, timestamp: new Date().toISOString(), reason: 'assigned_number_integrity_error', summary: 'Multiple twilio_numbers rows for SID' })
     } else {
       if (tn.business_id !== b.id) {
         findings.push({ type: 'integrity_error', businessId: b.id, summary: 'twilio_numbers assigned to a different business' })
@@ -180,9 +188,21 @@ export async function runAssignedNumberIntegrityCheck(): Promise<{ findings: Int
         .from('twilio_numbers')
         .select('id, phone_number, twilio_sid, status, business_id')
         .eq('twilio_sid', sid)
-        .maybeSingle()
-      if (error) return null
-      return (data || null) as any
+      if (error) {
+        // Distinguish between actual error and multiple rows (PGRST116)
+        if (error.code === 'PGRST116') {
+          // Multiple rows found - return special marker
+          return { multiple: true } as any
+        }
+        return { error: error.message } as any
+      }
+      if (!data || data.length === 0) {
+        return null // Zero rows
+      }
+      if (data.length > 1) {
+        return { multiple: true } as any
+      }
+      return data[0] as any // Exactly one row
     },
     fetchTwilioIncomingPN: async (sid: string) => {
       if (!client) return { error: 'twilio_not_configured' }

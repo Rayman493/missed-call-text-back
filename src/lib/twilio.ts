@@ -1962,15 +1962,19 @@ export async function saveProvisionedNumberToBusiness({
   businessId,
   phoneNumber,
   phoneNumberSid,
-  messagingServiceSid
+  messagingServiceSid,
+  messagingServiceAttached = false,
+  fromWarmInventory = false
 }: {
   businessId: string
   phoneNumber: string
   phoneNumberSid: string
   messagingServiceSid: string | null
+  messagingServiceAttached?: boolean
+  fromWarmInventory?: boolean
 }): Promise<{ success: boolean; dbNumber: string | null; dbNumberSid: string | null }> {
   console.log('[Provision Path] ========== saveProvisionedNumberToBusiness HIT ==========');
-  console.log(`[Provision Path] businessId=${businessId} phoneNumber=${phoneNumber}`);
+  console.log(`[Provision Path] businessId=${businessId} phoneNumber=${phoneNumber} fromWarmInventory=${fromWarmInventory}`);
 
   const correlationId = `SAVE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
@@ -1979,10 +1983,53 @@ export async function saveProvisionedNumberToBusiness({
   console.log(`[saveProvisionedNumber] INPUT phoneNumber=${phoneNumber} correlation_id=${correlationId}`)
   console.log(`[saveProvisionedNumber] INPUT phoneNumberSid=${phoneNumberSid} correlation_id=${correlationId}`)
   console.log(`[saveProvisionedNumber] INPUT messagingServiceSid=${messagingServiceSid} correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] INPUT fromWarmInventory=${fromWarmInventory} correlation_id=${correlationId}`)
+
+  // CRITICAL: For live purchases, insert into twilio_numbers first to maintain canonical invariant
+  // Warm inventory path already manages twilio_numbers via getAndAssignWarmNumber
+  let insertedTwilioNumber: { id: string } | null = null
+  if (!fromWarmInventory) {
+    console.log(`[saveProvisionedNumber] Live purchase detected - inserting into twilio_numbers first correlation_id=${correlationId}`)
+
+    const { data: newTwilioNumber, error: insertError } = await supabase
+      .from('twilio_numbers')
+      .insert({
+        phone_number: phoneNumber,
+        twilio_sid: phoneNumberSid,
+        business_id: businessId,
+        number_type: 'both',
+        status: 'assigned',
+        sms_status: 'pending',
+        provisioning_status: 'ready',
+        assigned_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single()
+
+    if (insertError) {
+      console.error(`[saveProvisionedNumber] FAILED to insert twilio_numbers row correlation_id=${correlationId}`, insertError)
+      console.error(`[saveProvisionedNumber] PostgreSQL error details:`, {
+        code: insertError.code,
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint
+      })
+      console.error(`[saveProvisionedNumber] ========== END FAILED ========== correlation_id=${correlationId}`)
+      return { success: false, dbNumber: null, dbNumberSid: null }
+    }
+
+    insertedTwilioNumber = newTwilioNumber
+    console.log(`[saveProvisionedNumber] ✓ twilio_numbers row inserted with id=${newTwilioNumber.id} correlation_id=${correlationId}`)
+  } else {
+    console.log(`[saveProvisionedNumber] Warm inventory detected - skipping twilio_numbers insert (managed by getAndAssignWarmNumber) correlation_id=${correlationId}`)
+  }
 
   const updatePayload = {
     twilio_phone_number: phoneNumber,
     twilio_phone_number_sid: phoneNumberSid,
+    assigned_twilio_number_id: insertedTwilioNumber?.id || null,
     sms_type: 'a2p_local',
     a2p_status: 'active',
     messaging_status: 'active',
@@ -1994,21 +2041,74 @@ export async function saveProvisionedNumberToBusiness({
 
   console.log(`[saveProvisionedNumber] DB UPDATE PAYLOAD twilio_phone_number=${updatePayload.twilio_phone_number} correlation_id=${correlationId}`)
   console.log(`[saveProvisionedNumber] DB UPDATE PAYLOAD twilio_phone_number_sid=${updatePayload.twilio_phone_number_sid} correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] DB UPDATE PAYLOAD assigned_twilio_number_id=${updatePayload.assigned_twilio_number_id} correlation_id=${correlationId}`)
 
   const { data, error } = await supabase
     .from('businesses')
     .update(updatePayload)
     .eq('id', businessId)
-    .select('twilio_phone_number, twilio_phone_number_sid')
+    .select('twilio_phone_number, twilio_phone_number_sid, assigned_twilio_number_id')
     .single()
 
   if (error) {
     console.error(`[saveProvisionedNumber] DB UPDATE FAILED correlation_id=${correlationId}`, error)
+    console.error(`[saveProvisionedNumber] COMPENSATION: Rolling back twilio_numbers insert and releasing Twilio number correlation_id=${correlationId}`)
+
+    // CRITICAL COMPENSATION: For live purchases, release Twilio number and roll back DB
+    if (insertedTwilioNumber && !fromWarmInventory) {
+      try {
+        const accountSid = process.env.TWILIO_ACCOUNT_SID
+        const authToken = process.env.TWILIO_AUTH_TOKEN
+        if (accountSid && authToken) {
+          const client = Twilio(accountSid, authToken)
+
+          // Detach from Messaging Service if attached
+          if (messagingServiceAttached && messagingServiceSid) {
+            console.log(`[saveProvisionedNumber] Detaching from Messaging Service correlation_id=${correlationId}`)
+            try {
+              await client.messaging.v1.services(messagingServiceSid)
+                .phoneNumbers(phoneNumberSid)
+                .remove()
+              console.log(`[saveProvisionedNumber] ✓ Detached from Messaging Service correlation_id=${correlationId}`)
+            } catch (detachError: any) {
+              console.error(`[saveProvisionedNumber] ✗ Failed to detach from Messaging Service correlation_id=${correlationId}`, detachError)
+            }
+          }
+
+          // Release the Twilio number
+          console.log(`[saveProvisionedNumber] Releasing Twilio number correlation_id=${correlationId}`)
+          await client.incomingPhoneNumbers(phoneNumberSid).remove()
+          console.log(`[saveProvisionedNumber] ✓ Released Twilio number correlation_id=${correlationId}`)
+        }
+      } catch (twilioCompensationError: any) {
+        console.error(`[saveProvisionedNumber] ✗ Twilio compensation failed correlation_id=${correlationId}`, twilioCompensationError)
+        console.error(`[saveProvisionedNumber] MANUAL INTERVENTION REQUIRED: Orphaned Twilio number may exist correlation_id=${correlationId}`, {
+          phoneNumber,
+          phoneNumberSid,
+          businessId,
+          reason: 'BUSINESSES_UPDATE_FAILURE_COMPENSATION_FAILED'
+        })
+      }
+
+      // Rollback twilio_numbers insert
+      const { error: rollbackError } = await supabase
+        .from('twilio_numbers')
+        .delete()
+        .eq('id', insertedTwilioNumber.id)
+
+      if (rollbackError) {
+        console.error(`[saveProvisionedNumber] CRITICAL: Rollback failed - twilio_numbers row orphaned correlation_id=${correlationId}`, rollbackError)
+      } else {
+        console.log(`[saveProvisionedNumber] ✓ Rollback successful - twilio_numbers row deleted correlation_id=${correlationId}`)
+      }
+    }
+
     console.error(`[saveProvisionedNumber] ========== END FAILED ========== correlation_id=${correlationId}`)
     return { success: false, dbNumber: null, dbNumberSid: null }
   }
 
   console.log(`[saveProvisionedNumber] DB UPDATE SUCCEEDED correlation_id=${correlationId}`)
+  console.log(`[saveProvisionedNumber] assigned_twilio_number_id=${data.assigned_twilio_number_id} correlation_id=${correlationId}`)
   console.log(`[saveProvisionedNumber] DB RETURNED twilio_phone_number=${data.twilio_phone_number} correlation_id=${correlationId}`)
   console.log(`[saveProvisionedNumber] DB RETURNED twilio_phone_number_sid=${data.twilio_phone_number_sid} correlation_id=${correlationId}`)
 
