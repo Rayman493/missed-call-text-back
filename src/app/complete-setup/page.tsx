@@ -684,8 +684,16 @@ export default function CompleteSetupPage() {
         }
 
         await openStripeCheckout(checkoutData.url)
-        // Reset loading state after Stripe returns (whether success, cancel, or error)
-        setIsRedirectingToStripe(false)
+        .then(() => {
+          console.log('[CompleteSetup] openStripeCheckout resolved successfully')
+        })
+        .catch((error) => {
+          console.log('[CompleteSetup] openStripeCheckout rejected:', error)
+        })
+        .finally(() => {
+          console.log('[CompleteSetup] openStripeCheckout finally - resetting loading state')
+          setIsRedirectingToStripe(false)
+        })
       } else {
         console.error('[CompleteSetup] Failed to create checkout session:', checkoutData)
         setError('Could not create checkout session. Please try again.')

@@ -68,6 +68,7 @@ export async function openStripeCheckout(url: string): Promise<void> {
 
       if (result.canceled) {
         console.log('[StripeCheckout] User canceled checkout, result:', result)
+        console.log('[StripeCheckout] Cancellation - returning to caller')
         // Return to calling page - user can retry
         return
       }
@@ -93,6 +94,7 @@ export async function openStripeCheckout(url: string): Promise<void> {
   } else if (isNativeAndroid()) {
     console.log('[StripeCheckout] Opening Stripe in native plugin (Android)')
     try {
+      console.log('[StripeCheckout] Calling openCheckoutSession...')
       const result = await ReplyflowWebCheckoutPlugin.openCheckoutSession({
         url,
         callbackHost: 'www.replyflowhq.com',
@@ -118,6 +120,7 @@ export async function openStripeCheckout(url: string): Promise<void> {
 
       if (result.canceled) {
         console.log('[StripeCheckout] User canceled checkout, result:', result)
+        console.log('[StripeCheckout] Cancellation - returning to caller')
         // Return to calling page - user can retry
         return
       }

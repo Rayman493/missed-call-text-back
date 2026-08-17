@@ -79,6 +79,8 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
 
     @PluginMethod
     public void openCheckoutSession(PluginCall call) {
+        Log.d(TAG, "[NATIVE_CHECKOUT] method_invoked=true");
+        Log.d(TAG, "[NATIVE_CHECKOUT] call_id=" + call.getCallbackId());
         // Check for recovered completion from process death
         if (hasRecoveredCompletion()) {
             Log.d(TAG, "[NATIVE_CHECKOUT] recovered_completion_found=true");
