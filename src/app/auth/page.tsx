@@ -339,8 +339,9 @@ function AuthContent() {
     }
 
     // Hard submit lock - prevent duplicate submissions
-    if (isSubmitting || isSubmittingRef.current || accountCreatedRef.current) {
-      console.log('[Auth] Submission in progress or account already created, ignoring')
+    // Allow retry if account was already created (for Stripe checkout retry)
+    if (isSubmitting || isSubmittingRef.current) {
+      console.log('[Auth] Submission in progress, ignoring')
       return
     }
     setIsSubmitting(true)
@@ -350,6 +351,55 @@ function AuthContent() {
     setExistingAccount(false)
 
     try {
+      // If account was already created, skip account creation and go straight to checkout retry
+      if (accountCreatedRef.current) {
+        console.log('[Auth] Account already created, proceeding to checkout retry')
+
+        try {
+          // Determine if checkout originated from native iOS app for proper return handling
+          const isNativeIOS = isCapacitorNative() && getCapacitorPlatform() === 'ios'
+
+          const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              checkout_mode: 'trial',
+              checkout_source: 'auth-signup',
+              return_to_app: checkNativeIOS,
+            }),
+          })
+
+          const checkoutData = await checkoutResponse.json()
+          console.log('[Auth] Checkout session response (retry):', checkoutData)
+
+          if (!checkoutResponse.ok || !checkoutData.url) {
+            console.error('[Auth] Failed to create checkout session on retry:', checkoutData)
+            setError('Failed to create checkout session. Please try again or contact support.')
+            setLoading(false)
+            setIsSubmitting(false)
+            isSubmittingRef.current = false
+            return
+          }
+
+          // Redirect to Stripe Checkout
+          console.log('[Auth] Redirecting to Stripe Checkout (retry)...')
+          setLoading(false)
+          setIsSubmitting(false)
+          isSubmittingRef.current = false
+
+          await openStripeCheckout(checkoutData.url)
+          return
+        } catch (checkoutError: any) {
+          console.error('[Auth] Error retrying checkout session:', checkoutError)
+          setError('Failed to create checkout session. Please try again or contact support.')
+          setLoading(false)
+          setIsSubmitting(false)
+          isSubmittingRef.current = false
+          return
+        }
+      }
       // Normalize phone number
       const normalizedPhone = businessPhone.replace(/\D/g, '')
       if (normalizedPhone.length < 10) {
@@ -1166,7 +1216,7 @@ function AuthContent() {
 
             <button
               type="submit"
-              disabled={loading || isSubmitting || redirecting || accountCreatedRef.current}
+              disabled={loading || isSubmitting || redirecting}
               className="w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold flex items-center justify-center gap-2"
             >
               {redirecting ? (
