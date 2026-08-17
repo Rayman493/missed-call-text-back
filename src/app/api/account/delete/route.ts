@@ -1321,7 +1321,7 @@ If forwarding does not stop immediately, restart your phone or contact your carr
       userId: summary.userId,
       businessId: summary.businessId,
       stripeResult: summary.stripeResult,
-      twilioNumberReleased: summary.twilioNumberReleased,
+      twilioLifecycleResult: summary.twilioLifecycleResult,
       tablesDeleted: summary.tablesDeleted,
       authDeletionResult: summary.authDeletionResult,
     })
@@ -1342,7 +1342,7 @@ If forwarding does not stop immediately, restart your phone or contact your carr
           deletion_status: dryRun ? 'dry_run' : 'completed',
           tables_deleted: summary.tablesDeleted,
           stripe_cancellation: summary.stripeResult?.cancellationSucceeded,
-          twilio_number_released: summary.twilioNumberReleased,
+          twilio_lifecycle_result: summary.twilioLifecycleResult,
           auth_deletion_result: summary.authDeletionResult,
           analytics,
         },
