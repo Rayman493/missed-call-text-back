@@ -55,7 +55,7 @@ export default function DailyBrief({ business }: DailyBriefProps) {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-2xl p-5 shadow-sm">
+      <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-2xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <div className="w-5 h-5 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
           <div className="h-6 w-32 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
@@ -75,7 +75,7 @@ export default function DailyBrief({ business }: DailyBriefProps) {
   // All-clear state: no meaningful sections
   if (brief.sections.length === 0) {
     return (
-      <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-2xl p-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-2xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
             <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -96,7 +96,7 @@ export default function DailyBrief({ business }: DailyBriefProps) {
   return (
     <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-2xl shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/50">
+      <div className="px-4 sm:px-5 py-3 border-b border-slate-200/70 dark:border-slate-700/50">
         <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">
           Daily Brief
         </h2>

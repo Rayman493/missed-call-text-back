@@ -57,7 +57,7 @@ export default function CustomerPipelineGraph() {
             count: statusCounts[status] || 0,
             color: style.color
           }
-        }).filter((item) => item.count > 0)
+        })
 
         // Add unknown bucket if there are legacy/uncleanable statuses
         if (statusCounts['unknown'] > 0) {
@@ -97,7 +97,7 @@ export default function CustomerPipelineGraph() {
           <h3 className="text-sm font-semibold text-foreground">Customer Workflow</h3>
         </div>
 
-        {!isEmpty && (
+        {!isEmpty && totalCustomers > 0 && (
           <div className="mb-4">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-semibold text-foreground">{totalCustomers.toLocaleString()}</span>
@@ -154,7 +154,7 @@ export default function CustomerPipelineGraph() {
                     dataKey="status"
                     className="text-[10px] text-muted-foreground/60 pointer-events-none"
                     tick={{ fontSize: CHART_STYLES.tickFontSize }}
-                    width={100}
+                    width={80}
                     axisLine={CHART_STYLES.axisLine}
                     tickLine={CHART_STYLES.tickLine}
                   />

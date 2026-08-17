@@ -44,7 +44,7 @@ export default function MetricCard({
       onPointerMove={pressGuard.onPointerMove}
       onPointerUp={pressGuard.onPointerUp}
       onPointerCancel={pressGuard.onPointerCancel}
-      className={`text-left p-3 rounded-lg border border-border/30 hover:border-border/60 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-all duration-200 ${href ? 'cursor-pointer' : ''} ${pressGuard.isPressed ? 'bg-slate-100 dark:bg-slate-700/50 scale-[0.98]' : ''}`}
+      className={`text-left p-3 sm:p-4 rounded-xl border border-border/30 hover:border-border/60 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-all duration-200 ${href ? 'cursor-pointer' : ''} ${pressGuard.isPressed ? 'bg-slate-100 dark:bg-slate-700/50 scale-[0.98]' : ''}`}
       style={{ touchAction: 'pan-y' }}
     >
       <div className={`w-10 h-10 ${bgColor} rounded-lg flex items-center justify-center mb-2`}>

@@ -50,7 +50,7 @@ export default function RecentWins({ business }: RecentWinsProps) {
   return (
     <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-2xl shadow-sm">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-slate-200/70 dark:border-slate-700/50">
+      <div className="px-4 sm:px-5 py-3 border-b border-slate-200/70 dark:border-slate-700/50">
         <div className="flex items-center gap-2">
           <Trophy className="w-5 h-5 text-amber-600 dark:text-amber-400" />
           <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">

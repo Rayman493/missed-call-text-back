@@ -54,7 +54,7 @@ export default function RevenueOpportunities({ business }: RevenueOpportunitiesP
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-2xl p-5 shadow-sm">
+      <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-2xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <div className="w-5 h-5 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
           <div className="h-6 w-48 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
@@ -75,7 +75,7 @@ export default function RevenueOpportunities({ business }: RevenueOpportunitiesP
   return (
     <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-2xl shadow-sm">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-slate-200/70 dark:border-slate-700/50">
+      <div className="px-4 sm:px-5 py-3 border-b border-slate-200/70 dark:border-slate-700/50">
         <div className="flex items-center gap-2">
           <DollarSign className="w-5 h-5 text-slate-600 dark:text-slate-400" />
           <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
