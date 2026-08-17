@@ -815,6 +815,12 @@ export default function TapToPayModal({
 
     // Re-check location permission on retry
     checkLocationPermission()
+
+    // Explicitly start new payment attempt after reset
+    // Guard against concurrent retries to prevent duplicate attempts
+    if (!isPaymentInProgress) {
+      handleStartPayment()
+    }
   }
 
   const handleGrantLocationPermission = async () => {
