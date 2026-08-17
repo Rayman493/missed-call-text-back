@@ -26,6 +26,7 @@ export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSum
     importantDetails: '',
     addressOrLocation: '',
     preferredCallbackTime: '',
+    desiredCompletionTime: ''
   })
   const [manualFields, setManualFields] = useState<Set<string>>(new Set(
     Array.isArray(leadData?.raw_metadata?.manualFields) ? leadData.raw_metadata.manualFields : []
@@ -49,6 +50,7 @@ export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSum
       importantDetails: extractedInfo?.importantDetails || '',
       addressOrLocation: extractedInfo?.addressOrLocation || '',
       preferredCallbackTime: extractedInfo?.preferredCallbackTime || '',
+      desiredCompletionTime: extractedInfo?.desiredCompletionTime || ''
     })
     setIsEditMode(true)
   }
@@ -67,6 +69,7 @@ export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSum
       if (editValues.importantDetails !== (extractedInfo?.importantDetails || '')) updatedManualFields.add('importantDetails')
       if (editValues.addressOrLocation !== (extractedInfo?.addressOrLocation || '')) updatedManualFields.add('addressOrLocation')
       if (editValues.preferredCallbackTime !== (extractedInfo?.preferredCallbackTime || '')) updatedManualFields.add('preferredCallbackTime')
+      if (editValues.desiredCompletionTime !== (extractedInfo?.desiredCompletionTime || '')) updatedManualFields.add('desiredCompletionTime')
 
       const { error } = await supabase
         .from('leads')
@@ -80,6 +83,7 @@ export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSum
               importantDetails: editValues.importantDetails,
               addressOrLocation: editValues.addressOrLocation,
               preferredCallbackTime: editValues.preferredCallbackTime,
+              desiredCompletionTime: editValues.desiredCompletionTime
             },
             manualFields: Array.from(updatedManualFields)
           }
@@ -178,12 +182,16 @@ export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSum
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">Customer Details</h3>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">
-            {sourceText}
-          </span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-sm font-semibold text-foreground">Customer Details</h3>
+            <span className="text-[9px] text-muted-foreground/60 font-medium">
+              • {sourceText}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           {!isEditMode && (
             <button
               onClick={() => setIsEditMode(true)}
@@ -194,19 +202,20 @@ export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSum
             </button>
           )}
           {isEditMode ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <button
                 onClick={handleCancel}
                 disabled={isSaving}
-                className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50"
+                className="text-[10px] text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50 px-2 py-1"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50"
+                className="text-[10px] text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed font-medium flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors"
               >
+                {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                 Save
               </button>
             </div>
@@ -277,7 +286,7 @@ export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSum
 
         {/* Details Card */}
         {isEditMode || extractedInfo?.importantDetails ? (
-          <div className="bg-card rounded-xl p-4 border border-border/30">
+          <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Pencil className="w-4 h-4" aria-hidden="true" />

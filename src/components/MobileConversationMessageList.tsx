@@ -136,10 +136,6 @@ export default function MobileConversationMessageList({
                   ${(payment.amount_cents / 100).toFixed(2)} • {payment.description}
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
-                  <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded-full">
-                    Business #
-                  </span>
-                  <span>•</span>
                   <span>{formatRelativeTime(payment.timestamp)}</span>
                 </div>
               </div>

@@ -77,21 +77,27 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   const [aiSummaryExpanded, setAiSummaryExpanded] = useState(false)
   const supabase = createBrowserClient()
 
-  // Trigger edit mode when prop changes
+  // Trigger edit mode when prop changes - initialize from canonical intake source
   useEffect(() => {
-    if (triggerEdit) {
+    if (triggerEdit && !loading) {
       setSummaryExpanded(true)
       setIsEditMode(true)
+
+      // Get canonical intake data for initialization
+      const intake = getLeadAIIntake(leadData || {})
+      const aiCallRecord = aiCallRecords.find(r => r.id === selectedRecordId) || aiCallRecords[0] || null
+      const selectedNormalized = aiCallRecord ? normalizeAICallRecord(aiCallRecord) : null
+
       setEditValues({
-        callerName: extractedInfo?.callerName || '',
-        reasonForCalling: extractedInfo?.reasonForCalling || '',
-        importantDetails: extractedInfo?.importantDetails || '',
-        addressOrLocation: extractedInfo?.addressOrLocation || '',
-        preferredCallbackTime: extractedInfo?.preferredCallbackTime || '',
-        desiredCompletionTime: extractedInfo?.desiredCompletionTime || ''
+        callerName: intake.customerName || selectedNormalized?.customerName || '',
+        reasonForCalling: intake.serviceRequested || selectedNormalized?.serviceRequested || '',
+        importantDetails: intake.additionalDetails || selectedNormalized?.additionalDetails || '',
+        addressOrLocation: intake.serviceAddress || selectedNormalized?.serviceAddress || '',
+        preferredCallbackTime: intake.callbackTime || selectedNormalized?.callbackTime || '',
+        desiredCompletionTime: intake.desiredCompletion || selectedNormalized?.desiredCompletion || ''
       })
     }
-  }, [triggerEdit])
+  }, [triggerEdit, leadData, aiCallRecords, selectedRecordId, loading])
 
   // Get provenance label using canonical helper
   const provenanceLabel = getProvenanceLabel(leadData)
@@ -115,14 +121,19 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       setIsSaving(true)
       setSaveError(null)
 
+      // Get canonical intake for comparison
+      const intake = getLeadAIIntake(leadData || {})
+      const aiCallRecord = aiCallRecords.find(r => r.id === selectedRecordId) || aiCallRecords[0] || null
+      const selectedNormalized = aiCallRecord ? normalizeAICallRecord(aiCallRecord) : null
+
       // Track which fields were manually changed
       const updatedManualFields = new Set<string>(manualFields)
-      if (editValues.callerName !== (extractedInfo?.callerName ?? '')) updatedManualFields.add('callerName')
-      if (editValues.reasonForCalling !== (extractedInfo?.reasonForCalling ?? '')) updatedManualFields.add('reasonForCalling')
-      if (editValues.importantDetails !== (extractedInfo?.importantDetails ?? '')) updatedManualFields.add('importantDetails')
-      if (editValues.addressOrLocation !== (extractedInfo?.addressOrLocation ?? '')) updatedManualFields.add('addressOrLocation')
-      if (editValues.preferredCallbackTime !== (extractedInfo?.preferredCallbackTime ?? '')) updatedManualFields.add('preferredCallbackTime')
-      if (editValues.desiredCompletionTime !== (extractedInfo?.desiredCompletionTime ?? '')) updatedManualFields.add('desiredCompletionTime')
+      if (editValues.callerName !== (intake.customerName || selectedNormalized?.customerName || '')) updatedManualFields.add('callerName')
+      if (editValues.reasonForCalling !== (intake.serviceRequested || selectedNormalized?.serviceRequested || '')) updatedManualFields.add('reasonForCalling')
+      if (editValues.importantDetails !== (intake.additionalDetails || selectedNormalized?.additionalDetails || '')) updatedManualFields.add('importantDetails')
+      if (editValues.addressOrLocation !== (intake.serviceAddress || selectedNormalized?.serviceAddress || '')) updatedManualFields.add('addressOrLocation')
+      if (editValues.preferredCallbackTime !== (intake.callbackTime || selectedNormalized?.callbackTime || '')) updatedManualFields.add('preferredCallbackTime')
+      if (editValues.desiredCompletionTime !== (intake.desiredCompletion || selectedNormalized?.desiredCompletion || '')) updatedManualFields.add('desiredCompletionTime')
 
       // Write edits to corrected_fields — the canonical key read by getLeadAIIntake.
       // Preserve untouched source metadata (transcript, ai extracted_info, voicemail data).
@@ -193,13 +204,19 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   const handleCancel = () => {
     setIsEditMode(false)
     setSaveError(null)
+
+    // Reset to canonical intake values
+    const intake = getLeadAIIntake(leadData || {})
+    const aiCallRecord = aiCallRecords.find(r => r.id === selectedRecordId) || aiCallRecords[0] || null
+    const selectedNormalized = aiCallRecord ? normalizeAICallRecord(aiCallRecord) : null
+
     setEditValues({
-      callerName: extractedInfo?.callerName || '',
-      reasonForCalling: extractedInfo?.reasonForCalling || '',
-      importantDetails: extractedInfo?.importantDetails || '',
-      addressOrLocation: extractedInfo?.addressOrLocation || '',
-      preferredCallbackTime: extractedInfo?.preferredCallbackTime || '',
-      desiredCompletionTime: extractedInfo?.desiredCompletionTime || ''
+      callerName: intake.customerName || selectedNormalized?.customerName || '',
+      reasonForCalling: intake.serviceRequested || selectedNormalized?.serviceRequested || '',
+      importantDetails: intake.additionalDetails || selectedNormalized?.additionalDetails || '',
+      addressOrLocation: intake.serviceAddress || selectedNormalized?.serviceAddress || '',
+      preferredCallbackTime: intake.callbackTime || selectedNormalized?.callbackTime || '',
+      desiredCompletionTime: intake.desiredCompletion || selectedNormalized?.desiredCompletion || ''
     })
   }
 
@@ -578,43 +595,28 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         <div className="border border-border/30 rounded-lg overflow-hidden relative">
           {/* Header Region */}
           <div className="px-3 py-2.5">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-start gap-2 flex-1 min-w-0">
-                {/* Title and key info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-xs font-semibold text-foreground/90 leading-tight">
-                      Customer Details
+            <div className="flex items-center justify-between gap-2">
+              {/* Title and metadata */}
+              <div className="flex flex-col min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-foreground/90 leading-tight">
+                    Customer Details
+                  </span>
+                  {summaryExpanded && provenanceLabel && (
+                    <span className="text-[9px] text-muted-foreground/60 font-normal leading-tight">
+                      • {provenanceLabel}
                     </span>
-                  </div>
-                  {summaryExpanded ? (
-                    provenanceLabel ? (
-                      <span className="text-[10px] text-muted-foreground/70 font-normal leading-tight">
-                        {provenanceLabel}
-                      </span>
-                    ) : null
-                  ) : (
-                    <div className="space-y-0.5">
-                      {conciseTitle && (
-                        <p className="text-xs font-medium text-foreground leading-tight truncate">
-                          {conciseTitle}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70">
-                        {(extractedInfo?.desiredCompletionTime || extractedInfo?.preferredCallbackTime) && (
-                          <>
-                            <span>{extractedInfo?.desiredCompletionTime || extractedInfo?.preferredCallbackTime}</span>
-                            <span>•</span>
-                          </>
-                        )}
-                        <span>{formatRelativeTime(aiCallRecord.created_at)}</span>
-                      </div>
-                    </div>
                   )}
                 </div>
+                {!summaryExpanded && conciseTitle && (
+                  <p className="text-[10px] font-medium text-foreground/80 leading-tight truncate">
+                    {conciseTitle}
+                  </p>
+                )}
               </div>
 
-              <div className="flex items-center gap-1 flex-shrink-0">
+              {/* Action buttons */}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 {!isEditMode && (
                   <button
                     onClick={() => setIsEditMode(true)}
@@ -624,25 +626,25 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
                 )}
-                {isEditMode ? (
+                {isEditMode && (
                   <div className="flex items-center gap-1">
                     <button
                       onClick={handleCancel}
                       disabled={isSaving}
-                      className="text-[10px] text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50 px-1.5 py-0.5"
+                      className="text-[10px] text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50 px-2 py-1"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
-                      className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50 flex items-center gap-0.5 px-1.5 py-0.5"
+                      className="text-[10px] text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed font-medium flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors"
                     >
-                      {isSaving ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Check className="w-2.5 h-2.5" />}
+                      {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                       Save
                     </button>
                   </div>
-                ) : null}
+                )}
                 <button
                   onClick={() => setSummaryExpanded(!summaryExpanded)}
                   className="p-1.5 text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
@@ -722,20 +724,20 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               </div>
 
               {/* Edit Controls */}
-              <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 {isEditMode ? (
                   <div className="flex items-center gap-1">
                     <button
                       onClick={handleCancel}
                       disabled={isSaving}
-                      className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50 px-2 py-1"
+                      className="text-[10px] text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50 px-2 py-1"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50 flex items-center gap-1 px-2 py-1"
+                      className="text-[10px] text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed font-medium flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors"
                     >
                       {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                       Save
