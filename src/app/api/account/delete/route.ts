@@ -24,6 +24,12 @@ interface DeleteResult {
     twilioNumberRecycled?: string
     twilioRecycleFailed?: boolean
     twilioRecycleError?: string
+    twilioLifecycleResult?: {
+      success: boolean
+      phoneNumber?: string
+      status: 'recycled' | 'already_recycled' | 'no_number' | 'failed' | 'blocked'
+      error?: string
+    }
     authDeletionResult?: string
     stripeResult?: {
       customerId: string | null
@@ -1010,8 +1016,122 @@ If forwarding does not stop immediately, restart your phone or contact your carr
       summary.tablesDeleted.leads = leadsCount || 0
       console.log('[delete-account] Step 19 completed: deleted leads:', leadsCount)
 
-      // Step 20: Hard-delete businesses
-      console.log('[delete-account] Step 20: hard-delete businesses')
+      // Step 20: Recycle Twilio numbers back to warm inventory BEFORE business deletion
+      // This ensures the business still exists for ownership validation
+      // The FK ON DELETE SET NULL would null business_id before we can validate ownership
+      console.log('[delete-account] Step 20: recycle assigned Twilio numbers back to warm inventory (pre-deletion)')
+
+      for (const business of businesses as any[]) {
+        if (business.twilio_phone_number_sid) {
+          // Protect against recycling the dedicated system phone
+          if (isSystemPhoneNumber(business.twilio_phone_number)) {
+            console.log('[PROTECTED] Skipping protected system phone:', business.twilio_phone_number)
+            console.log('[PROTECTED] System phone will not be recycled during account deletion')
+            continue
+          }
+
+          console.log('[RECYCLE] Recycling assigned Twilio number back to warm inventory (pre-deletion)', {
+            businessId: business.id,
+            phoneNumber: business.twilio_phone_number,
+            sid: business.twilio_phone_number_sid,
+          })
+
+          if (!dryRun) {
+            try {
+              // Import the regular recycle function (not post-deletion variant)
+              // The business still exists, so we can use the full compare-and-swap validation
+              const { recycleTwilioNumberToInventory } = await import('@/lib/warm-number-manager')
+
+              console.log('[RECYCLE] Recycling number to warm inventory (pre-deletion mode)')
+              const recycleResult = await recycleTwilioNumberToInventory(
+                business.twilio_phone_number,
+                business.twilio_phone_number_sid,
+                business.id
+              )
+
+              if (recycleResult.success) {
+                console.log('[RECYCLE] Number recycled successfully to warm inventory')
+                summary.twilioNumberRecycled = business.twilio_phone_number
+                summary.tablesDeleted.twilio_numbers_recycled = (summary.tablesDeleted.twilio_numbers_recycled || 0) + 1
+                summary.twilioLifecycleResult = {
+                  success: true,
+                  phoneNumber: business.twilio_phone_number,
+                  status: 'recycled'
+                }
+              } else {
+                console.error('[RECYCLE] Failed to recycle number to warm inventory:', recycleResult.error)
+                console.error('[RECYCLE] Recycling failed - ABORTING deletion to prevent orphaned number')
+                summary.twilioRecycleFailed = true
+                summary.twilioRecycleError = recycleResult.error
+                summary.twilioLifecycleResult = {
+                  success: false,
+                  status: 'failed',
+                  error: recycleResult.error
+                }
+
+                // FAIL CLOSED: Abort deletion if recycle fails
+                // This prevents: account gone + number lifecycle incomplete
+                return NextResponse.json(
+                  {
+                    ok: false,
+                    step: 'recycle_twilio_numbers',
+                    error: 'Failed to recycle Twilio number. Your account was not deleted. Please try again or contact support.',
+                    details: recycleResult.error,
+                    twilioLifecycleResult: summary.twilioLifecycleResult
+                  },
+                  { status: 503 }
+                )
+              }
+            } catch (recycleError: any) {
+              console.error('[RECYCLE] Exception recycling number to warm inventory:', recycleError)
+              console.error('[RECYCLE] Recycling failed - ABORTING deletion to prevent orphaned number')
+              summary.twilioRecycleFailed = true
+              summary.twilioRecycleError = recycleError?.message || String(recycleError)
+              summary.twilioLifecycleResult = {
+                success: false,
+                status: 'failed',
+                error: recycleError?.message || String(recycleError)
+              }
+
+              // FAIL CLOSED: Abort deletion if recycle throws
+              return NextResponse.json(
+                {
+                  ok: false,
+                  step: 'recycle_twilio_numbers',
+                  error: 'Failed to recycle Twilio number. Your account was not deleted. Please try again or contact support.',
+                  details: recycleError?.message || String(recycleError),
+                  twilioLifecycleResult: summary.twilioLifecycleResult
+                },
+                { status: 503 }
+              )
+            }
+          } else {
+            console.log('[delete-account] DRY RUN: Would recycle number to warm inventory (pre-deletion)')
+            summary.twilioNumberRecycled = business.twilio_phone_number
+            summary.tablesDeleted.twilio_numbers_recycled = (summary.tablesDeleted.twilio_numbers_recycled || 0) + 1
+            summary.twilioLifecycleResult = {
+              success: true,
+              phoneNumber: business.twilio_phone_number,
+              status: 'recycled'
+            }
+          }
+        }
+      }
+
+      const recycledCount = summary.tablesDeleted.twilio_numbers_recycled || 0
+      const failedCount = summary.twilioRecycleFailed ? 1 : 0
+      if (recycledCount > 0 && failedCount === 0) {
+        console.log(`[delete-account] Step 20 completed: successfully recycled ${recycledCount} assigned Twilio number(s) to warm inventory`)
+      } else if (recycledCount > 0 && failedCount > 0) {
+        console.log(`[delete-account] Step 20 completed: recycled ${recycledCount} number(s) to warm inventory with ${failedCount} failure(s)`)
+      } else if (failedCount > 0) {
+        console.error(`[delete-account] Step 20 completed: failed to recycle Twilio number to warm inventory`)
+      } else {
+        console.log('[delete-account] Step 20 completed: no Twilio numbers to recycle')
+      }
+
+      // Step 21: Hard-delete businesses (AFTER successful recycle)
+      console.log('[delete-account] Step 21: hard-delete businesses')
 
       for (const business of businesses as any[]) {
         // Note: trial_history table insert removed as the table doesn't exist in production schema
@@ -1034,74 +1154,7 @@ If forwarding does not stop immediately, restart your phone or contact your carr
         }
       }
       summary.tablesDeleted.businesses = businesses.length
-      console.log('[delete-account] Step 20 completed: hard-deleted businesses')
-
-      // Step 21: Recycle Twilio numbers back to warm inventory (AFTER business deletion for safety)
-      // This ensures the invariant: a number never becomes assignable to another business
-      // while its original business remains an active/surviving account due to partial deletion failure
-      console.log('[delete-account] Step 21: recycle assigned Twilio numbers back to warm inventory (post-deletion)')
-      // NOTE: Business rows are now deleted, so we skip business table updates in recycling
-
-      for (const business of businesses as any[]) {
-        if (business.twilio_phone_number_sid) {
-          // Protect against recycling the dedicated system phone
-          if (isSystemPhoneNumber(business.twilio_phone_number)) {
-            console.log('[PROTECTED] Skipping protected system phone:', business.twilio_phone_number)
-            console.log('[PROTECTED] System phone will not be recycled during account deletion')
-            continue
-          }
-
-          console.log('[RECYCLE] Recycling assigned Twilio number back to warm inventory (post-deletion)', {
-            businessId: business.id,
-            phoneNumber: business.twilio_phone_number,
-            sid: business.twilio_phone_number_sid,
-          })
-
-          if (!dryRun) {
-            try {
-              // Import the recycle function
-              const { recycleTwilioNumberToInventoryPostDeletion } = await import('@/lib/warm-number-manager')
-
-              // Recycle the number back to warm inventory (business already deleted)
-              console.log('[RECYCLE] Recycling number to warm inventory (post-deletion mode)')
-              const recycleResult = await recycleTwilioNumberToInventoryPostDeletion(
-                business.twilio_phone_number,
-                business.twilio_phone_number_sid,
-                business.id
-              )
-
-              if (recycleResult.success) {
-                console.log('[RECYCLE] Number recycled successfully to warm inventory')
-                summary.twilioNumberRecycled = business.twilio_phone_number
-                summary.tablesDeleted.twilio_numbers_recycled = (summary.tablesDeleted.twilio_numbers_recycled || 0) + 1
-              } else {
-                console.error('[RECYCLE] Failed to recycle number to warm inventory (continuing):', recycleResult.error)
-                summary.twilioRecycleFailed = true
-                summary.twilioRecycleError = recycleResult.error
-              }
-            } catch (recycleError: any) {
-              console.error('[RECYCLE] Exception recycling number to warm inventory (continuing):', recycleError)
-              summary.twilioRecycleFailed = true
-              summary.twilioRecycleError = recycleError?.message || String(recycleError)
-            }
-          } else {
-            console.log('[delete-account] DRY RUN: Would recycle number to warm inventory (post-deletion)')
-            summary.twilioNumberRecycled = business.twilio_phone_number
-            summary.tablesDeleted.twilio_numbers_recycled = (summary.tablesDeleted.twilio_numbers_recycled || 0) + 1
-          }
-        }
-      }
-      const recycledCount = summary.tablesDeleted.twilio_numbers_recycled || 0
-      const failedCount = summary.twilioRecycleFailed ? 1 : 0
-      if (recycledCount > 0 && failedCount === 0) {
-        console.log(`[delete-account] Step 21 completed: successfully recycled ${recycledCount} assigned Twilio number(s) to warm inventory`)
-      } else if (recycledCount > 0 && failedCount > 0) {
-        console.log(`[delete-account] Step 21 completed: recycled ${recycledCount} number(s) to warm inventory with ${failedCount} failure(s)`)
-      } else if (failedCount > 0) {
-        console.error(`[delete-account] Step 21 completed: failed to recycle Twilio number to warm inventory`)
-      } else {
-        console.log('[delete-account] Step 21 completed: no Twilio numbers to recycle')
-      }
+      console.log('[delete-account] Step 21 completed: hard-deleted businesses')
 
       // Trigger cleanup of excess inventory after recycling
       // This handles the case where recycling numbers back to inventory
