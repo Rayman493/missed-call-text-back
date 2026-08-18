@@ -8,7 +8,7 @@ import { Briefcase } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe } from '@/lib/analytics-timeframe'
 
 interface JobStatusData {
@@ -36,6 +36,7 @@ export default function JobsStatusGraph() {
   const [data, setData] = useState<JobStatusData[]>([])
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('90d')
+  const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
     let isMounted = true
@@ -185,10 +186,12 @@ export default function JobsStatusGraph() {
                     axisLine={CHART_STYLES.axisLine}
                     tickLine={CHART_STYLES.tickLine}
                   />
-                  <Tooltip
-                    content={<PremiumTooltip />}
-                    cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
-                  />
+                  {!isTouchDevice && (
+                    <Tooltip
+                      content={<PremiumTooltip />}
+                      cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                    />
+                  )}
                   <Bar
                     dataKey="count"
                     radius={[0, 3, 3, 0]}

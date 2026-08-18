@@ -8,7 +8,7 @@ import { Funnel } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { getCustomerStatusStyle, getAllCustomerStatuses } from '@/lib/customer-status'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
 
 interface PipelineData {
   status: string
@@ -20,6 +20,7 @@ export default function CustomerPipelineGraph() {
   const { business } = useBusiness()
   const [data, setData] = useState<PipelineData[]>([])
   const [loading, setLoading] = useState(true)
+  const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
     let isMounted = true
@@ -50,14 +51,17 @@ export default function CustomerPipelineGraph() {
           statusCounts[normalizedStatus] = (statusCounts[normalizedStatus] || 0) + 1
         })
 
-        const pipelineData = allStatuses.map((status: string) => {
-          const style = getCustomerStatusStyle(status)
-          return {
-            status: style.label,
-            count: statusCounts[status] || 0,
-            color: style.color
-          }
-        })
+        // Filter to only include statuses with data > 0
+        const pipelineData = allStatuses
+          .filter((status: string) => (statusCounts[status] || 0) > 0)
+          .map((status: string) => {
+            const style = getCustomerStatusStyle(status)
+            return {
+              status: style.label,
+              count: statusCounts[status],
+              color: style.color
+            }
+          })
 
         // Add unknown bucket if there are legacy/uncleanable statuses
         if (statusCounts['unknown'] > 0) {
@@ -81,6 +85,7 @@ export default function CustomerPipelineGraph() {
   }, [business?.id])
 
   const isEmpty = data.length === 0
+  const hasNoData = data.length === 0 || data.every(d => d.count === 0)
 
   // Calculate summary KPIs
   const totalCustomers = data.reduce((sum, item) => sum + item.count, 0)
@@ -121,7 +126,7 @@ export default function CustomerPipelineGraph() {
           <div className="h-[260px] flex items-center justify-center">
             <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
           </div>
-        ) : isEmpty ? (
+        ) : hasNoData ? (
           <PremiumEmptyState
             icon={Funnel}
             title="No customers yet"
@@ -158,10 +163,12 @@ export default function CustomerPipelineGraph() {
                     axisLine={CHART_STYLES.axisLine}
                     tickLine={CHART_STYLES.tickLine}
                   />
-                  <Tooltip
-                    content={<PremiumTooltip />}
-                    cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
-                  />
+                  {!isTouchDevice && (
+                    <Tooltip
+                      content={<PremiumTooltip />}
+                      cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                    />
+                  )}
                   <Bar
                     dataKey="count"
                     radius={[0, 3, 3, 0]}

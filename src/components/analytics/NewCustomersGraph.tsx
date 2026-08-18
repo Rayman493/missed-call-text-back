@@ -8,7 +8,7 @@ import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe, getDaysInTimeframe } from '@/lib/analytics-timeframe'
 
 interface NewCustomersData {
@@ -21,6 +21,7 @@ export default function NewCustomersGraph() {
   const [data, setData] = useState<NewCustomersData[]>([])
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
+  const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -150,10 +151,12 @@ export default function NewCustomersGraph() {
                     ticks={yTicks}
                     tickFormatter={formatInteger}
                   />
-                  <Tooltip
-                    content={<PremiumTooltip />}
-                    cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
-                  />
+                  {!isTouchDevice && (
+                    <Tooltip
+                      content={<PremiumTooltip />}
+                      cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                    />
+                  )}
                   <Bar
                     dataKey="customers"
                     fill="hsl(var(--primary))"

@@ -3,12 +3,12 @@
 import React, { useEffect, useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, Label } from 'recharts'
 import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, ChartTouchWrapper } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe } from '@/lib/analytics-timeframe'
 
 interface LeadSourceData {
@@ -37,6 +37,7 @@ export default function LeadsSourceGraph() {
   const [loading, setLoading] = useState(true)
   const [unclassifiedCount, setUnclassifiedCount] = useState(0)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('90d')
+  const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
     let isMounted = true
@@ -273,9 +274,30 @@ export default function LeadsSourceGraph() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    content={<PremiumTooltip />}
+                  <Label
+                    content={({ viewBox }: any) => {
+                      if (!viewBox) return null
+                      const { x, y, width, height } = viewBox
+                      const cx = x + width / 2
+                      const cy = y + height / 2
+                      return (
+                        <g>
+                          <text x={cx} y={cy - 5} textAnchor="middle" dominantBaseline="middle" className="fill-foreground" style={{ fontSize: '20px', fontWeight: '600' }}>
+                            {formatInteger(trueTotal)}
+                          </text>
+                          <text x={cx} y={cy + 10} textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground" style={{ fontSize: '10px' }}>
+                            Leads
+                          </text>
+                        </g>
+                      )
+                    }}
+                    position="center"
                   />
+                  {!isTouchDevice && (
+                    <Tooltip
+                      content={<PremiumTooltip />}
+                    />
+                  )}
                   <Legend
                     verticalAlign="bottom"
                     height={36}
@@ -285,11 +307,6 @@ export default function LeadsSourceGraph() {
                   />
                 </PieChart>
               </ResponsiveContainer>
-              {/* Center KPI - properly centered in donut hole */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ transform: 'translateY(-2px)' }}>
-                <span className="text-2xl font-semibold text-foreground">{formatInteger(trueTotal)}</span>
-                <span className="text-[10px] text-muted-foreground">Leads</span>
-              </div>
             </ChartTouchWrapper>
           </div>
         )}

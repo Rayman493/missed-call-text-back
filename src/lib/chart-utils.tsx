@@ -242,3 +242,5 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
     </div>
   )
 }
+
+export { useTouchDevice } from './use-touch-device'

@@ -8,7 +8,7 @@ import { CreditCard } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, ChartTouchWrapper } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe } from '@/lib/analytics-timeframe'
 
 interface PaymentStatusData {
@@ -40,6 +40,7 @@ export default function PaymentCollectionGraph() {
   const [data, setData] = useState<PaymentStatusData[]>([])
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('90d')
+  const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
     let isMounted = true
@@ -168,10 +169,10 @@ export default function PaymentCollectionGraph() {
                       const cy = y + height / 2
                       return (
                         <g>
-                          <text x={cx} y={cy - 8} textAnchor="middle" dominantBaseline="middle" className="fill-foreground" style={{ fontSize: '20px', fontWeight: '600' }}>
+                          <text x={cx} y={cy - 5} textAnchor="middle" dominantBaseline="middle" className="fill-foreground" style={{ fontSize: '20px', fontWeight: '600' }}>
                             {collectionRate}%
                           </text>
-                          <text x={cx} y={cy + 12} textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground" style={{ fontSize: '10px' }}>
+                          <text x={cx} y={cy + 10} textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground" style={{ fontSize: '10px' }}>
                             Collected
                           </text>
                         </g>
@@ -179,9 +180,11 @@ export default function PaymentCollectionGraph() {
                     }}
                     position="center"
                   />
-                  <Tooltip
-                    content={<PremiumTooltip />}
-                  />
+                  {!isTouchDevice && (
+                    <Tooltip
+                      content={<PremiumTooltip />}
+                    />
+                  )}
                   <Legend
                     verticalAlign="bottom"
                     height={36}

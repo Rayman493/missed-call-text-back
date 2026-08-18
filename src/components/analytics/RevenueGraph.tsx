@@ -8,7 +8,7 @@ import { DollarSign } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis, ChartTouchWrapper } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe } from '@/lib/analytics-timeframe'
 
 interface RevenueData {
@@ -21,6 +21,7 @@ export default function RevenueGraph() {
   const [data, setData] = useState<RevenueData[]>([])
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
+  const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -158,9 +159,11 @@ export default function RevenueGraph() {
                     tickLine={CHART_STYLES.tickLine}
                     tickFormatter={formatCurrencyAxis}
                   />
-                  <Tooltip
-                    content={<PremiumTooltip />}
-                  />
+                  {!isTouchDevice && (
+                    <Tooltip
+                      content={<PremiumTooltip />}
+                    />
+                  )}
                   <Line
                     type="monotone"
                     dataKey="revenue"

@@ -8,7 +8,7 @@ import { Activity } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe } from '@/lib/analytics-timeframe'
 
 const SERIES_LABELS: Record<string, string> = {
@@ -31,6 +31,7 @@ export default function BusinessActivityGraph() {
   const [data, setData] = useState<ActivityData[]>([])
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
+  const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -209,33 +210,35 @@ export default function BusinessActivityGraph() {
                     ticks={yTicks}
                     tickFormatter={formatInteger}
                   />
-                  <Tooltip
-                    content={({ active, payload, label }: any) => {
-                      if (!active || !payload || payload.length === 0) return null
+                  {!isTouchDevice && (
+                    <Tooltip
+                      content={({ active, payload, label }: any) => {
+                        if (!active || !payload || payload.length === 0) return null
 
-                      return (
-                        <div className="bg-card border border-border/50 rounded-lg shadow-lg px-3 py-2.5 min-w-[160px]">
-                          <p className="text-[11px] font-semibold text-foreground mb-1.5">{label}</p>
-                          {payload.map((entry: any, index: number) => {
-                            const key = entry.dataKey as string
-                            const label = SERIES_LABELS[key] || entry.dataKey
-                            return (
-                              <div key={index} className="flex items-center justify-between gap-3 text-[11px]">
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-2 h-2 rounded-full shrink-0"
-                                    style={{ backgroundColor: entry.color }}
-                                  />
-                                  <span className="text-muted-foreground">{label}</span>
+                        return (
+                          <div className="bg-card border border-border/50 rounded-lg shadow-lg px-3 py-2.5 min-w-[160px]">
+                            <p className="text-[11px] font-semibold text-foreground mb-1.5">{label}</p>
+                            {payload.map((entry: any, index: number) => {
+                              const key = entry.dataKey as string
+                              const label = SERIES_LABELS[key] || entry.dataKey
+                              return (
+                                <div key={index} className="flex items-center justify-between gap-3 text-[11px]">
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-2 h-2 rounded-full shrink-0"
+                                      style={{ backgroundColor: entry.color }}
+                                    />
+                                    <span className="text-muted-foreground">{label}</span>
+                                  </div>
+                                  <span className="font-medium text-foreground tabular-nums">{entry.value}</span>
                                 </div>
-                                <span className="font-medium text-foreground tabular-nums">{entry.value}</span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )
-                    }}
-                  />
+                              )
+                            })}
+                          </div>
+                        )
+                      }}
+                    />
+                  )}
                   <Legend
                     content={({ payload }: any) => (
                       <div className="flex flex-wrap gap-3 justify-center pt-2">
