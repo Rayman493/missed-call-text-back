@@ -736,6 +736,15 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<WarmNu
       .limit(1)
       .single();
 
+    if (!candidateBefore) {
+      console.log('[Warm Inventory] Candidate disappeared between availability check and claim');
+      return {
+        success: false,
+        error: 'Candidate disappeared',
+        errorType: 'OTHER'
+      };
+    }
+
     console.log('[ATOMIC CLAIM TARGET]', {
       candidateId: candidateBefore?.id,
       candidatePhoneNumber: candidateBefore?.phone_number,
@@ -762,12 +771,11 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<WarmNu
         provisioning_error: null,
         updated_at: new Date().toISOString(),
       })
+      .eq('id', candidateBefore.id)  // CRITICAL: Constrain to the specific candidate row
       .is('business_id', null)
       .eq('status', 'available')
       .eq('sms_status', 'ready')
       .eq('provisioning_status', 'ready')
-      .order('created_at', { ascending: true })
-      .limit(1)
       .select();
 
     console.log('[ATOMIC CLAIM RESULT]', {
