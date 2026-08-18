@@ -653,7 +653,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
     <DashboardShell
       title="Payments"
       maxWidthClassName="max-w-7xl mx-auto"
-      contentClassName="flex-1 px-4 sm:px-5 lg:px-7 py-6 sm:py-8 lg:py-10 relative z-10"
+      contentClassName="flex-1 px-4 sm:px-5 lg:px-7 py-6 sm:py-8 lg:py-10 relative z-10 mobile-bottom-nav-safe-content"
       innerClassName="space-y-6"
     >
         <PageHeader

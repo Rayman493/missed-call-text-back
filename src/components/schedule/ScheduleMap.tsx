@@ -199,7 +199,7 @@ const getResponsivePadding = useCallback(() => {
   if (isMobile) {
     // Mobile: account for top header, Today's Schedule panel, bottom nav, map controls
     return {
-      top: 180, // Today's Schedule panel + header
+      top: 100, // Header + reasonable cushion (reduced from 180 to prevent excessive zoom-out)
       right: 20, // Right edge cushion for map controls
       bottom: bottomNavHeight + 40, // Bottom nav + breathing room
       left: 20 // Left edge cushion
@@ -217,7 +217,6 @@ const getResponsivePadding = useCallback(() => {
 
 const markerSetSignatureRef = useRef<string>('') // Signature of current marker set to prevent repeated fitBounds
   const newlyMappableEventIdRef = useRef<string | null>(null) // Track newly mappable event for one-time camera adjustment
-  const initialCameraEstablishedRef = useRef(false) // Track if initial camera positioning has been done
   const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter to detect changes
   const resizeLastSizeRef = useRef<{ width: number; height: number } | null>(null) // Move ref to top level
   const [businessGeocodeTrigger, setBusinessGeocodeTrigger] = useState(0) // Counter to trigger map items refresh when business geocoding completes
@@ -1587,22 +1586,16 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     const currentDateKey = selectedDate.toLocaleDateString('en-CA')
     const dateChanged = previousDateKey !== null && previousDateKey !== currentDateKey
 
-    // Reset initial camera flag on date change to allow new fit for new date
-    if (dateChanged) {
-      initialCameraEstablishedRef.current = false
-      // Only reset user interaction flag if viewport was NOT restored
-      // This prevents overriding user's saved viewport when navigating back to a date
-      if (!viewportRestoredRef.current) {
-        userInteractedRef.current = false
-      }
+    // Reset user interaction flag on date change to allow new fit for new date
+    // This prevents overriding user's saved viewport when navigating back to a date
+    if (dateChanged && !viewportRestoredRef.current) {
+      userInteractedRef.current = false
     }
 
-    // Reset initial camera flag on filter change to allow new fit for new filter
+    // Reset user interaction flag on filter change - filter changes should always auto-fit
     const filterChanged = previousMapFilterRef.current !== mapFilter
     if (filterChanged) {
-      initialCameraEstablishedRef.current = false
       previousMapFilterRef.current = mapFilter
-      // Reset user interaction flag on filter change - filter changes should always auto-fit
       userInteractedRef.current = false
     }
 
@@ -1615,16 +1608,14 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       userIsDragging: userIsDraggingRef.current,
       dateChanged,
       signatureChanged,
-      initialCameraEstablished: initialCameraEstablishedRef.current,
       lastAutoFitDateKey
     })
 
-    // If no markers, keep camera at fallback but mark as not established
+    // If no markers, keep camera at fallback
     // This allows auto-fit when first marker arrives
     if (markersRef.current.size === 0) {
       markerSetSignatureRef.current = signature
       setLastAutoFitDateKey(null)
-      initialCameraEstablishedRef.current = false
     } else if (selectedMapItemId && !userInteractedRef.current) {
       const selectedMarker = markersRef.current.get(selectedMapItemId)
       if (selectedMarker) {
@@ -1635,11 +1626,11 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     } else if (showAllMode && (dateChanged || signatureChanged)) {
       // Auto-fit should happen when: date changes, filter changes, OR marker set meaningfully changes
       // Date and filter changes always trigger auto-fit regardless of user interaction
-      // Signature changes (marker set changes) trigger if:
-      //   - User hasn't interacted yet, OR
-      //   - This is the first marker set (initialCameraEstablished is false)
-      // CRITICAL FIX: Also check if user is currently dragging - prevent auto-fit during active gestures
-      const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && (!userInteractedRef.current || !initialCameraEstablishedRef.current) && !userIsDraggingRef.current)
+      // Signature changes (marker set changes) trigger when location data changes
+      // CRITICAL: Allow signature changes to trigger auto-fit even after user interaction
+      // because signature represents actual location data changes (add/move/remove)
+      // Only prevent auto-fit during active user dragging gesture
+      const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && !userIsDraggingRef.current)
 
       console.log('[SCHEDULE_MAP_EFFECT]', {
         effect: 'auto_fit_decision',
@@ -1649,7 +1640,6 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         signatureChanged,
         userInteracted: userInteractedRef.current,
         userIsDragging: userIsDraggingRef.current,
-        initialCameraEstablished: initialCameraEstablishedRef.current,
         lastAutoFitDateKey,
         currentDateKey
       })
@@ -1657,13 +1647,23 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       if (shouldAutoFit) {
         markerSetSignatureRef.current = signature
         setLastAutoFitDateKey(currentDateKey)
-        initialCameraEstablishedRef.current = true
 
         // Explicit viewport policy based on marker count
-        if (markersRef.current.size === 1) {
-          // State 1: Single marker (Home Base only or single service stop)
+        // Count non-business markers for viewport decisions
+        const nonBusinessMarkers = Array.from(markersRef.current.entries())
+          .filter(([key]) => !key.startsWith('business:'))
+
+        if (nonBusinessMarkers.length === 0) {
+          // Only business marker exists - center on it
+          const businessMarker = markersRef.current.get('business:home')
+          if (businessMarker) {
+            const pos = businessMarker.getPosition()
+            panToMarker(pos.lat(), pos.lng(), HOME_BASE_ONLY_ZOOM, false, 'business_only_marker_auto_fit')
+          }
+        } else if (nonBusinessMarkers.length === 1) {
+          // State 1: Single service/appointment marker (exclude business from viewport decision)
           // Center on it with local zoom
-          const singleMarker = markersRef.current.values().next().value
+          const [, singleMarker] = nonBusinessMarkers[0]
           if (singleMarker) {
             const pos = singleMarker.getPosition()
             panToMarker(pos.lat(), pos.lng(), HOME_BASE_ONLY_ZOOM, false, 'single_marker_auto_fit')
@@ -1671,9 +1671,14 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         } else {
           // State 3 & 4: Multiple markers (Home Base + service stops, or multiple service stops)
           // Fit bounds to show all markers with responsive padding
+          // IMPORTANT: Exclude business marker from bounds to prevent excessive zoom-out
+          // Business marker should be visible but shouldn't drive viewport for day's appointments
           const bounds = new (window as any).google.maps.LatLngBounds()
-          markersRef.current.forEach(marker => {
-            bounds.extend(marker.getPosition()!)
+          markersRef.current.forEach((marker, key) => {
+            // Skip business marker when auto-fitting to day's markers
+            if (!key.startsWith('business:')) {
+              bounds.extend(marker.getPosition()!)
+            }
           })
           fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'multi_marker_auto_fit')
         }

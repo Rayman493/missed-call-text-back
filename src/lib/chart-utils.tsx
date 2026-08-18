@@ -190,10 +190,11 @@ export const CHART_STYLES = {
  *
  * On mobile devices, Recharts can intercept touch events for tooltips,
  * preventing vertical page scrolling. This wrapper uses touch-action: pan-y
- * to allow vertical page scrolling while preserving chart tap interactions.
+ * and pointer-events management to allow vertical page scrolling while
+ * preserving chart tap interactions.
  *
  * Behavior:
- * - Mobile (touch): Vertical swipe → page scroll, Tap → tooltip still works
+ * - Mobile (touch): Vertical swipe → page scroll, tooltips disabled during scroll
  * - Desktop (hover): Unchanged - hover interactions work normally
  *
  * Usage:
@@ -203,9 +204,40 @@ export const CHART_STYLES = {
  *     </ResponsiveContainer>
  *   </ChartTouchWrapper>
  */
+import { useState, useRef } from 'react'
+
 export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
+  const [isScrolling, setIsScrolling] = useState(false)
+  const touchStartRef = useRef(0)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartRef.current = e.touches[0].clientY
+    setIsScrolling(false)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const touchY = e.touches[0].clientY
+    const deltaY = Math.abs(touchY - touchStartRef.current)
+
+    // If vertical movement exceeds threshold, consider it a scroll
+    if (deltaY > 10) {
+      setIsScrolling(true)
+    }
+  }
+
+  const handleTouchEnd = () => {
+    setTimeout(() => setIsScrolling(false), 100)
+  }
+
   return (
-    <div className="w-full h-full select-none" style={{ touchAction: 'pan-y' }}>
+    <div
+      className="w-full h-full select-none"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      // Disable chart pointer events during scroll to prevent tooltip triggering
+      style={{ touchAction: 'pan-y', pointerEvents: isScrolling ? 'none' : 'auto' }}
+    >
       {children}
     </div>
   )

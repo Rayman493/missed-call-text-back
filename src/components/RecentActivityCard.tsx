@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime } from '@/lib/utils'
@@ -25,12 +26,12 @@ interface ActivityEvent {
   customerName?: string
   customerPhone?: string
   conciseRequestTitle?: string
+  jobId?: string
   jobTitle?: string
   jobScheduledDate?: string
 }
 
 export default function RecentActivityCard({ business }: RecentActivityCardProps) {
-  const router = useRouter()
   const [activities, setActivities] = useState<ActivityEvent[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -108,10 +109,10 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           .order('created_at', { ascending: false })
           .limit(5)
 
-        // Fetch recent voicemails through leads
+        // Add voicemails through leads
         const { data: voicemailLeads } = await supabase
           .from('leads')
-          .select('id, voicemail_recordings (id, recording_url, recording_duration, recording_status, created_at)')
+          .select('id, voicemail_recordings (id, recording_url, recording_duration, recording_status, created_at), caller_phone, name')
           .eq('business_id', business.id)
           .gte('created_at', sevenDaysAgo)
           .order('created_at', { ascending: false })
@@ -166,6 +167,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                   iconTextColor: 'text-teal-400',
                   customerId: lead.id,
                   customerName: displayName,
+                  jobId: job.id,
                   jobTitle,
                   jobScheduledDate: job.scheduled_date,
                 })
@@ -182,6 +184,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                   iconTextColor: 'text-emerald-400',
                   customerId: lead.id,
                   customerName: displayName,
+                  jobId: job.id,
                   jobTitle,
                 })
               }
@@ -276,6 +279,9 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                   iconTextColor: 'text-violet-400',
                   customerId: lead.id,
                   customerName: displayName,
+                  jobId: job.id,
+                  jobTitle: job.title,
+                  jobScheduledDate: job.scheduled_date,
                 })
               }
             })
@@ -313,16 +319,23 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
 
         // Add voicemails
         voicemails?.forEach((voicemail: any) => {
-          events.push({
-            id: `voicemail-${voicemail.id}`,
-            type: 'voicemail_received',
-            title: 'Voicemail Received',
-            description: 'Left a voicemail',
-            timestamp: voicemail.created_at,
-            icon: <Mic className="w-4 h-4" />,
-            iconBgColor: 'bg-purple-500/20',
-            iconTextColor: 'text-purple-400',
-          })
+          const lead = voicemailLeads?.find((l: any) => l.voicemail_recordings?.some((v: any) => v.id === voicemail.id))
+          if (lead) {
+            const customerName = lead.name || 'Unknown'
+            const displayName = getDisplayName(customerName, lead.caller_phone)
+            events.push({
+              id: `voicemail-${voicemail.id}`,
+              type: 'voicemail_received',
+              title: 'Voicemail Received',
+              description: 'Left a voicemail',
+              timestamp: voicemail.created_at,
+              icon: <Mic className="w-4 h-4" />,
+              iconBgColor: 'bg-purple-500/20',
+              iconTextColor: 'text-purple-400',
+              customerId: lead.id,
+              customerName: displayName,
+            })
+          }
         })
 
         // Add terminal payments (Tap to Pay)
@@ -375,12 +388,6 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
     fetchRecentActivity()
   }, [business])
 
-  const handleActivityClick = (activity: ActivityEvent) => {
-    if (activity.customerId) {
-      router.push(`/dashboard/leads/${activity.customerId}`)
-    }
-  }
-
   if (loading) {
     return (
       <div className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl p-2.5 sm:p-3">
@@ -415,31 +422,59 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         </div>
       ) : (
         <div className="space-y-0">
-          {activities.slice(0, 5).map((activity, index) => (
-            <div
-              key={activity.id}
-              onClick={() => handleActivityClick(activity)}
-              className={`flex items-start gap-3 py-2 px-2 ${activity.customerId ? 'cursor-pointer hover:bg-muted/20 -mx-2 px-2 rounded-lg transition-colors' : ''} ${index < activities.slice(0, 5).length - 1 ? 'border-b border-border/30' : ''}`}
-            >
-              <div className="flex-shrink-0">
-                <div className={`w-9 h-9 rounded-lg ${activity.iconBgColor} ${activity.iconTextColor} flex items-center justify-center`}>
-                  {activity.icon}
+          {activities.slice(0, 5).map((activity, index) => {
+            const baseClasses = `flex items-start gap-3 py-2 px-2 ${index < activities.slice(0, 5).length - 1 ? 'border-b border-border/30' : ''}`
+
+            if (activity.customerId) {
+              return (
+                <Link
+                  key={activity.id}
+                  href={`/dashboard/leads/${activity.customerId}`}
+                  className={`${baseClasses} cursor-pointer hover:bg-muted/20 -mx-2 px-2 rounded-lg transition-colors`}
+                >
+                  <div className="flex-shrink-0">
+                    <div className={`w-9 h-9 rounded-lg ${activity.iconBgColor} ${activity.iconTextColor} flex items-center justify-center`}>
+                      {activity.icon}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground mb-0.5">{activity.title}</p>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      {activity.customerName && (
+                        <p className="text-xs font-medium text-foreground truncate">{activity.customerName}</p>
+                      )}
+                      <p className="text-[10px] text-muted-foreground/60">{formatRelativeTime(activity.timestamp)}</p>
+                    </div>
+                    {activity.description && (
+                      <p className="text-xs text-muted-foreground/70 truncate">{activity.description}</p>
+                    )}
+                  </div>
+                </Link>
+              )
+            }
+
+            return (
+              <div key={activity.id} className={baseClasses}>
+                <div className="flex-shrink-0">
+                  <div className={`w-9 h-9 rounded-lg ${activity.iconBgColor} ${activity.iconTextColor} flex items-center justify-center`}>
+                    {activity.icon}
+                  </div>
                 </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground mb-0.5">{activity.title}</p>
-                <div className="flex items-center gap-2 mb-0.5">
-                  {activity.customerName && (
-                    <p className="text-xs font-medium text-foreground truncate">{activity.customerName}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground mb-0.5">{activity.title}</p>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    {activity.customerName && (
+                      <p className="text-xs font-medium text-foreground truncate">{activity.customerName}</p>
+                    )}
+                    <p className="text-[10px] text-muted-foreground/60">{formatRelativeTime(activity.timestamp)}</p>
+                  </div>
+                  {activity.description && (
+                    <p className="text-xs text-muted-foreground/70 truncate">{activity.description}</p>
                   )}
-                  <p className="text-[10px] text-muted-foreground/60">{formatRelativeTime(activity.timestamp)}</p>
                 </div>
-                {activity.description && (
-                  <p className="text-xs text-muted-foreground/70 truncate">{activity.description}</p>
-                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

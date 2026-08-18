@@ -76,6 +76,23 @@ export function NotificationsPreferences() {
     }
   }, [checkNotificationPermission])
 
+  // Refresh permission status when app regains visibility (e.g., after returning from system settings)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Small delay to ensure system has updated permission state
+        setTimeout(() => {
+          checkNotificationPermission(true)
+        }, 500)
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [checkNotificationPermission])
+
   const handleDeviceNotificationToggle = async (enabled: boolean) => {
     if (!Capacitor.isNativePlatform()) {
       return

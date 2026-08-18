@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
+import { sendSms } from '@/lib/twilio'
+import { sanitizeMessageContent } from '@/lib/security'
 
 // Retry function for Google Calendar API calls with exponential backoff
 async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
@@ -105,7 +107,7 @@ export async function POST(request: NextRequest) {
     // Get the user's business using the same pattern as working routes
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id, business_hours_timezone')
+      .select('id, name, business_hours_timezone')
       .eq('user_id', user.id)
       .single()
 
@@ -495,6 +497,117 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Send automatic customer confirmation SMS for Google Meet appointments
+    // Only if: meeting_type is google_meet, meetingUrl exists, and lead_id is provided
+    let customerConfirmationSent = false
+    let customerConfirmationError = null
+    if (meeting_type === 'google_meet' && meetingUrl && lead_id) {
+      try {
+        console.log('[Calendar Create] Sending customer confirmation for Google Meet appointment')
+
+        // Fetch lead details (phone, conversation_id, name) with explicit business ownership check
+        const { data: leadDetails, error: leadDetailsError } = await supabase
+          .from('leads')
+          .select('id, caller_phone, conversation_id, raw_metadata')
+          .eq('id', lead_id)
+          .eq('business_id', business.id)
+          .single()
+
+        if (leadDetailsError || !leadDetails) {
+          console.error('[Calendar Create] Failed to fetch lead details for confirmation:', leadDetailsError)
+          customerConfirmationError = 'Could not retrieve customer details'
+        } else if (!leadDetails.caller_phone) {
+          console.warn('[Calendar Create] Lead has no phone number, skipping confirmation')
+          customerConfirmationError = 'Customer has no phone number'
+        } else {
+          // Format appointment date/time for message using business timezone
+          const formatAppointmentDateTime = () => {
+            const startDateTime = createdEvent.start?.dateTime || createdEvent.start?.date
+            if (!startDateTime) return ''
+
+            // Use business timezone for formatting (same timezone used for appointment creation)
+            const timezone = business.business_hours_timezone || 'America/New_York'
+
+            const date = new Date(startDateTime)
+            const formattedDate = date.toLocaleDateString('en-US', {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+              timeZone: timezone
+            })
+
+            // Check if it's an all-day event
+            if (createdEvent.start?.date) {
+              // All-day event - don't show time
+              return formattedDate
+            }
+
+            // Timed event - include time
+            const formattedTime = date.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+              timeZone: timezone
+            })
+            return `${formattedDate} at ${formattedTime}`
+          }
+
+          // Extract customer name
+          const customerName = leadDetails.raw_metadata?.customerName ||
+                            leadDetails.raw_metadata?.callerName ||
+                            leadDetails.raw_metadata?.name ||
+                            'there'
+
+          // Build confirmation message
+          const dateTimeStr = formatAppointmentDateTime()
+          const messageLines: string[] = []
+
+          if (dateTimeStr) {
+            messageLines.push(`Hi ${customerName}, your appointment with ${business.name} is scheduled for ${dateTimeStr}.`)
+          } else {
+            messageLines.push(`Hi ${customerName}, your appointment with ${business.name} has been scheduled.`)
+          }
+
+          messageLines.push('')
+          messageLines.push('Join the Google Meet here:')
+          messageLines.push(meetingUrl)
+
+          const message = messageLines.join('\n')
+          const sanitizedMessage = sanitizeMessageContent(message)
+
+          if (!sanitizedMessage) {
+            console.error('[Calendar Create] Message sanitization failed')
+            customerConfirmationError = 'Message validation failed'
+          } else {
+            // Send SMS using existing infrastructure
+            const smsResult = await sendSms(business, leadDetails.caller_phone, sanitizedMessage, {
+              lead_id: leadDetails.id,
+              conversation_id: leadDetails.conversation_id || undefined,
+              isManual: false, // Automated message
+              source: 'google_meet_appointment_confirmation', // For idempotency
+              skipBusinessAvailabilityAppend: true, // Don't append availability notes
+            })
+
+            if (smsResult?.sid) {
+              console.log('[Calendar Create] Customer confirmation SMS sent successfully:', {
+                leadId: leadDetails.id,
+                messageSid: smsResult.sid,
+                phone: leadDetails.caller_phone
+              })
+              customerConfirmationSent = true
+            } else {
+              console.error('[Calendar Create] Failed to send customer confirmation SMS')
+              customerConfirmationError = 'SMS delivery failed'
+            }
+          }
+        }
+      } catch (confirmationError) {
+        console.error('[Calendar Create] Exception during customer confirmation (non-critical):', confirmationError)
+        customerConfirmationError = confirmationError instanceof Error ? confirmationError.message : 'Unknown error'
+        // Don't fail the request - appointment is already created
+      }
+    }
+
     return NextResponse.json({
       event: {
         id: createdEvent.id,
@@ -507,6 +620,10 @@ export async function POST(request: NextRequest) {
         meetingUrl: meetingUrl || null,
         extendedProperties: createdEvent.extendedProperties || extendedProperties || null,
       },
+      customerConfirmation: {
+        sent: customerConfirmationSent,
+        error: customerConfirmationError
+      }
     })
 
   } catch (error) {

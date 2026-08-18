@@ -118,7 +118,7 @@ export default function SettingsActionBar({
     return null
   }
 
-  const mobileBottomOffset = keyboardOffset > 0 ? keyboardOffset + 8 : 72
+  const mobileBottomOffset = keyboardOffset > 0 ? keyboardOffset + 8 : 16
   // Use CSS variable for actual bottom nav height, fallback to 0 if not set
   const bottomNavHeight = bottomNavVisible ? `var(--bottom-nav-height, 0px)` : '0px'
   const bottomOffset = bottomNavVisible ? `calc(${mobileBottomOffset}px + ${bottomNavHeight} + 8px)` : `${mobileBottomOffset}px`

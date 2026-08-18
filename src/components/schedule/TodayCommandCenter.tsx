@@ -385,7 +385,7 @@ export default function TodayCommandCenter({
         ) : sortedWorkItems.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-              No work scheduled for today
+              Nothing needs done today
             </p>
             <div className="flex flex-wrap items-center justify-center gap-2">
               {onAddTask && (

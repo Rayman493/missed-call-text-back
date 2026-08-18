@@ -15,7 +15,8 @@ const supabase = createBrowserClient()
 interface NewAppointmentModalProps {
   isOpen: boolean
   onClose: () => void
-  onRefresh?: (created?: { meetingUrl?: string | null; summary?: string | null }) => void
+  onRefresh?: (created?: { meetingUrl?: string | null; summary?: string | null; customerConfirmation?: { sent: boolean; error?: string | null } }) => void
+  onSuccess?: () => void
   defaultDate?: Date
   context?: 'calendar' | 'customer' | 'meetings'
   preselectedLeadId?: string | null
@@ -25,7 +26,7 @@ interface NewAppointmentModalProps {
   lockCustomer?: boolean
 }
 
-export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaultDate, context = 'calendar', preselectedLeadId = null, preselectedLeadDisplay = null, allowAddCustomer, requireCustomer, lockCustomer }: NewAppointmentModalProps) {
+export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSuccess, defaultDate, context = 'calendar', preselectedLeadId = null, preselectedLeadDisplay = null, allowAddCustomer, requireCustomer, lockCustomer }: NewAppointmentModalProps) {
   const router = useRouter()
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -218,13 +219,18 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
       }
 
       // Success
-      let createdEvent: { meetingUrl?: string | null; summary?: string | null } | undefined
+      let createdEvent: { meetingUrl?: string | null; summary?: string | null; customerConfirmation?: { sent: boolean; error?: string | null } } | undefined
       try {
         const data = await response.json()
-        createdEvent = { meetingUrl: data?.event?.meetingUrl || null, summary: data?.event?.summary || null }
+        createdEvent = {
+          meetingUrl: data?.event?.meetingUrl || null,
+          summary: data?.event?.summary || null,
+          customerConfirmation: data?.customerConfirmation
+        }
       } catch {}
       setIsCreating(false)
       onRefresh?.(createdEvent)
+      onSuccess?.()
       onClose()
       
       // Reset form
@@ -269,7 +275,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
   return (
     <>
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex sm:items-center sm:justify-center justify-end bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
       style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, calc(16px + env(safe-area-inset-bottom)))' }}
       role="dialog"
       aria-modal="true"
@@ -280,7 +286,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
         }
       }}
     >
-      <div className="bg-card rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[calc(100vh-2*max(16px,env(safe-area-inset-top))-2*max(16px,calc(16px+env(safe-area-inset-bottom)))-80px)] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 mx-auto">
+      <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[calc(100dvh-32px-2*env(safe-area-inset-bottom))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 sm:px-4 sm:py-3 border-b border-border/30 shrink-0">
           <div className="flex items-center gap-2.5">

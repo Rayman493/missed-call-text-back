@@ -56,6 +56,7 @@ export default function LeadsSourceGraph() {
           .select('raw_metadata')
           .eq('business_id', business.id)
           .is('deleted_at', null)
+          .neq('status', 'ignored')
           .gte('created_at', startDateIso)
 
         if (!isMounted) return

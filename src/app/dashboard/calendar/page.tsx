@@ -1866,8 +1866,12 @@ export default function SchedulePage() {
                     onRefresh={async (created) => {
                       // Refresh events from Google Calendar
                       await fetchEvents()
-                      // Show success message
-                      if (created?.meetingUrl) {
+                      // Show success message based on customer confirmation status
+                      if (created?.customerConfirmation?.sent) {
+                        showToast('Appointment added to calendar and confirmation sent to customer', 'success')
+                      } else if (created?.customerConfirmation?.error) {
+                        showToast('Appointment added to calendar but confirmation could not be sent', 'warning')
+                      } else if (created?.meetingUrl) {
                         showToast('Appointment added to calendar with Google Meet link', 'success')
                       } else {
                         showToast('Appointment added to calendar', 'success')

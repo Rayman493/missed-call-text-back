@@ -543,6 +543,30 @@ export default function SettingsContent() {
   const newPasswordRef = useRef<HTMLInputElement>(null)
   const confirmPasswordRef = useRef<HTMLInputElement>(null)
   const sectionTabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const stripeConnectReturnProcessedRef = useRef(false) // Track if Stripe Connect return has been processed
+  const [appVisibilityTrigger, setAppVisibilityTrigger] = useState(0) // Trigger for visibility changes
+
+  // Listen for visibility change and focus events to trigger Stripe Connect return check
+  // This ensures the effect runs when user returns from external browser on Android
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setAppVisibilityTrigger(prev => prev + 1)
+      }
+    }
+
+    const handleFocus = () => {
+      setAppVisibilityTrigger(prev => prev + 1)
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [])
   
   // Dynamic scroll offset based on actual sticky navigation height
   const [scrollOffset, setScrollOffset] = useState(64)
@@ -1462,8 +1486,11 @@ export default function SettingsContent() {
       ? sessionStorage.getItem('external_return_flow') === 'STRIPE_CONNECT'
       : false
 
-    if ((stripeOnboardingComplete || sessionStorageReturn) && business?.id) {
+    if ((stripeOnboardingComplete || sessionStorageReturn) && business?.id && !stripeConnectReturnProcessedRef.current) {
       console.log('[STRIPE_CONNECT_STATUS] return_received=true')
+
+      // Mark as processed to prevent duplicate handling
+      stripeConnectReturnProcessedRef.current = true
 
       // Clear session storage
       if (typeof window !== 'undefined' && window.sessionStorage) {
@@ -1506,6 +1533,9 @@ export default function SettingsContent() {
             const cleanUrl = window.location.pathname
             window.history.replaceState({}, '', cleanUrl)
 
+            // Reset processed flag after cleanup
+            stripeConnectReturnProcessedRef.current = false
+
             // Start bounded recheck if status is still transitional
             if (data.canonicalStatus === 'pending_verification' || data.canonicalStatus === 'setup_incomplete') {
               console.log('[STRIPE_CONNECT_STATUS] retry=1 status_still_transitional=', data.canonicalStatus)
@@ -1516,10 +1546,12 @@ export default function SettingsContent() {
           } else {
             console.error('[STRIPE_CONNECT_STATUS] verification_failed status=', response.status)
             showToast('Failed to verify Stripe setup', 'error')
+            stripeConnectReturnProcessedRef.current = false
           }
         } catch (error) {
           console.error('[STRIPE_CONNECT_STATUS] verification_failed', error)
           showToast('Failed to verify Stripe setup', 'error')
+          stripeConnectReturnProcessedRef.current = false
         } finally {
           setStripeStatusChecking(false)
         }
@@ -1527,7 +1559,7 @@ export default function SettingsContent() {
 
       reconcile()
     }
-  }, [business?.id])
+  }, [business?.id, appVisibilityTrigger])
 
   // Bounded recheck for transitional Stripe Connect statuses
   const performBoundedRecheck = () => {
@@ -2830,7 +2862,7 @@ export default function SettingsContent() {
                           onClick={() => setOutOfOfficeExpanded(true)}
                           className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                         >
-                          {formBusiness.out_of_office_enabled ? 'Edit' : 'Configure'}
+                          Edit
                         </button>
                       </div>
 
@@ -2955,7 +2987,7 @@ export default function SettingsContent() {
                         onClick={() => setShowFollowUpSettings(true)}
                         className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                       >
-                        Configure
+                        Edit
                       </button>
                     </div>
                   </div>
@@ -3011,7 +3043,7 @@ export default function SettingsContent() {
                             disabled={isConnectingCalendar || isDisconnectingCalendar}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap ${
                               calendarConnected
-                                ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+                                ? 'border border-red-200 dark:border-red-800/60 bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
                                 : 'bg-blue-600 hover:bg-blue-700 text-white'
                             }`}
                           >

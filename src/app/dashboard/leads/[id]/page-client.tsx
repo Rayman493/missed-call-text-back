@@ -28,7 +28,7 @@ import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName } from '@/lib/utils'
 import { getCustomerSourceInfo } from '@/lib/customer-source'
-import { PhoneIncoming, UserPlus } from 'lucide-react'
+import { PhoneIncoming, UserPlus, RefreshCw } from 'lucide-react'
 import { getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus, getAIIntakeStatusLabel, getAIIntakeStatusColor } from '@/lib/ai-field-mapping'
 import { deriveJobSchedulingPrefill } from '@/lib/job-scheduling-prefill'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
@@ -666,8 +666,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         .update({ notes: internalNotes })
         .eq('id', lead.id)
       if (error) throw error
+
+      // Refresh lead data to get the updated notes
+      const updatedData = await getLeadDetails(params.id)
+      if (updatedData?.ok && updatedData.lead) {
+        setLeadData(updatedData.lead)
+        setInternalNotes(updatedData.lead.notes || '')
+      }
+
+      setSuccessMessage('Notes saved successfully.')
     } catch (error) {
       console.error('Failed to save notes:', error)
+      setError('Failed to save notes. Please try again.')
     } finally {
       setIsSavingNotes(false)
     }
@@ -2752,7 +2762,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     return (
       <div className="space-y-4">
         {/* Jobs & Appointments - Collapsible - Compact on mobile */}
-        <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
+        <div className="bg-background dark:bg-background rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
           <div className="flex items-center justify-between mb-2 sm:mb-3">
             <button
               onClick={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: !prev.schedule }))}
@@ -2820,7 +2830,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
 
         {/* Payment Requests - Collapsible - Compact on mobile */}
-        <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
+        <div className="bg-background dark:bg-background rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
           <div className="flex items-center justify-between mb-2 sm:mb-3">
             <button
               onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
@@ -2884,7 +2894,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
 
         {/* Internal Notes - Standalone Section */}
-        <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
+        <div className="bg-background dark:bg-background rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
@@ -3420,7 +3430,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
               
               {/* Actions */}
-              <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}
@@ -3789,10 +3799,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   ref={fullScreenToggleBtnRef}
                   type="button"
                   onClick={() => setIsFullScreen(true)}
-                  className="p-1.5 rounded-md hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="p-1.5 rounded-md hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
                   aria-label="Open conversation in full screen"
+                  title="Open in full screen"
                 >
-                  <Maximize2 className="w-4 h-4 text-muted-foreground" />
+                  <Maximize2 className="w-4 h-4 text-foreground/70 hover:text-foreground" />
                 </button>
               </div>
               
@@ -4099,9 +4110,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Mobile Layout - Only render when mobile view */}
         {isMobileView && (
-          <div className="space-y-4 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-          {/* Conversation Workspace Card - Natural scrolling for mobile */}
-          <div className="bg-background rounded-2xl border border-border/40 shadow-sm overflow-hidden flex flex-col">
+          <div className="px-4 sm:px-5 space-y-4 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+          {/* Conversation Workspace Card - Fixed height with internal scrolling */}
+          <div className="bg-background rounded-2xl border border-border/40 shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(100vh-12rem-4rem)]">
             {/* Conversation Header - Distinct header */}
             <div className="px-4 py-3 border-b border-border/30 bg-muted/50 flex-shrink-0">
               <div className="flex items-center justify-between">
@@ -4129,7 +4140,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {/* Message Area - Scrollable viewport with flex-1 */}
             <div className="flex-1 overflow-y-auto scroll-smooth overscroll-contain bg-muted/20 min-h-0" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
             {/* Mobile Message Thread */}
-            <div ref={mobileConversationContainerRef} className="px-3 py-2 flex flex-col justify-end">
+            <div ref={mobileConversationContainerRef} className="px-3 py-2 flex flex-col justify-end min-h-0">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -4601,9 +4612,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   onClick={handleRefresh}
                   disabled={refreshing}
-                  className="flex-1 px-4 py-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {refreshing ? 'Refreshing...' : 'Refresh'}
+                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  <span>Refresh</span>
                 </button>
               </div>
             </div>
@@ -4710,9 +4722,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {refreshing ? 'Refreshing...' : 'Refresh'}
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
               </button>
             </div>
           </div>
@@ -5231,6 +5244,9 @@ If you have questions, reply to this message.`
       onClose={() => setIsNewAppointmentOpen(false)}
       onRefresh={async () => {
         await fetchAppointments()
+      }}
+      onSuccess={() => {
+        setSuccessMessage('Appointment created successfully.')
       }}
       context="customer"
       preselectedLeadId={params.id}

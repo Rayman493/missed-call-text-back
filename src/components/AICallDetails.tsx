@@ -137,24 +137,51 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
       // Write edits to corrected_fields — the canonical key read by getLeadAIIntake.
       // Preserve untouched source metadata (transcript, ai extracted_info, voicemail data).
+      // Only include fields that were manually changed.
+      // Explicitly cleared optional fields are saved as empty strings.
+      // Required fields (callerName) are validated before saving.
       const existingRawMetadata = leadData?.raw_metadata || {}
+      const correctedFields: Record<string, any> = {}
+
+      // callerName is required - validate it has a value if changed
+      if (updatedManualFields.has('callerName')) {
+        if (!editValues.callerName || !editValues.callerName.trim()) {
+          setSaveError('Customer name is required')
+          setIsSaving(false)
+          return
+        }
+        correctedFields.name = editValues.callerName.trim()
+        correctedFields.callerName = editValues.callerName.trim()
+      }
+
+      // Optional fields - save even if empty if explicitly changed
+      if (updatedManualFields.has('reasonForCalling')) {
+        correctedFields.serviceRequested = editValues.reasonForCalling || ''
+        correctedFields.reasonForCalling = editValues.reasonForCalling || ''
+      }
+      if (updatedManualFields.has('importantDetails')) {
+        correctedFields.importantDetails = editValues.importantDetails || ''
+        correctedFields.details = editValues.importantDetails || ''
+      }
+      if (updatedManualFields.has('addressOrLocation')) {
+        correctedFields.address = editValues.addressOrLocation || ''
+        correctedFields.addressOrLocation = editValues.addressOrLocation || ''
+        correctedFields.serviceAddress = editValues.addressOrLocation || ''
+      }
+      if (updatedManualFields.has('preferredCallbackTime')) {
+        correctedFields.preferredCallbackTime = editValues.preferredCallbackTime || ''
+        correctedFields.callbackTime = editValues.preferredCallbackTime || ''
+      }
+      if (updatedManualFields.has('desiredCompletionTime')) {
+        correctedFields.desiredCompletion = editValues.desiredCompletionTime || ''
+        correctedFields.desiredCompletionTime = editValues.desiredCompletionTime || ''
+      }
+
       const updatedRawMetadata = {
         ...existingRawMetadata,
         corrected_fields: {
           ...(existingRawMetadata.corrected_fields || {}),
-          name: editValues.callerName || undefined,
-          callerName: editValues.callerName || undefined,
-          serviceRequested: editValues.reasonForCalling || undefined,
-          reasonForCalling: editValues.reasonForCalling || undefined,
-          importantDetails: editValues.importantDetails || undefined,
-          details: editValues.importantDetails || undefined,
-          address: editValues.addressOrLocation || undefined,
-          addressOrLocation: editValues.addressOrLocation || undefined,
-          serviceAddress: editValues.addressOrLocation || undefined,
-          preferredCallbackTime: editValues.preferredCallbackTime || undefined,
-          callbackTime: editValues.preferredCallbackTime || undefined,
-          desiredCompletion: editValues.desiredCompletionTime || undefined,
-          desiredCompletionTime: editValues.desiredCompletionTime || undefined,
+          ...correctedFields
         },
         manualFields: Array.from(updatedManualFields),
       }
@@ -162,7 +189,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       const updatePayload: Record<string, any> = { raw_metadata: updatedRawMetadata }
 
       // Also update leads.name so the page header reflects the change immediately
-      if (editValues.callerName && editValues.callerName.trim()) {
+      // Only update if the field was manually changed and has a value
+      if (updatedManualFields.has('callerName') && editValues.callerName && editValues.callerName.trim()) {
         updatePayload.name = editValues.callerName.trim()
       }
 
