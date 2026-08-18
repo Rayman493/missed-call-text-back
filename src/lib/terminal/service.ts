@@ -1206,14 +1206,14 @@ export class TerminalBridgeService {
     // PaymentIntent timings
     this.timings.tPiStart = Date.now()
     const piAttemptId = this.currentAttemptId
-    const { paymentIntentId, clientSecret } = await this.createTerminalPayment({
+    const { paymentIntentId, clientSecret, localPaymentId } = await this.createTerminalPayment({
       ...options,
       terminalAttemptId,
     })
     if (piAttemptId !== this.currentAttemptId) {
       this.staleIgnoredCount++
       try { await logTapToPayEvent('STALE_CALLBACK_IGNORED', { phase: 'payment_intent', sessionId: this.sessionId, attemptId: this.currentAttemptId, paymentIntentId: undefined, readerId: this.lastReaderId, meta: { incomingAttemptId: piAttemptId, currentAttemptId: this.currentAttemptId, eventType: 'payment_intent_create_completed' } }) } catch {}
-      return { status: 'canceled' as const, error: { code: 'stale', message: 'Attempt superseded' } }
+      return { status: 'canceled' as const, error: { code: 'stale', message: 'Attempt superseded' }, localPaymentId: null }
     }
     this.currentPaymentIntentId = paymentIntentId
     this.attemptFlags.paymentIntentCreated = true
@@ -1420,7 +1420,7 @@ export class TerminalBridgeService {
         }
       }).catch(() => {})
     } catch {}
-    return result
+    return { ...result, localPaymentId }
   }
 
   async collectPayment(options: CollectPaymentOptions) {
@@ -1555,6 +1555,18 @@ export class TerminalBridgeService {
     } catch (error) {
       console.error('[TAP_ATTEMPT] failed to clear attempt ID:', error)
     }
+  }
+
+  // Terminalize a failed attempt (called from orchestration when definitive decline is thrown)
+  // This ensures thrown errors that are known declines are properly marked as terminal
+  terminalizeFailedAttempt() {
+    console.log('[TAP_ATTEMPT] stage=terminalize_failed_attempt')
+    this.clearUnresolvedAttempt()
+    this.persistAttemptOutcome('failed')
+    this.currentAttemptId = null
+    this.attemptStartMs = null
+    this.currentPhase = undefined
+    // Note: We do NOT clear currentPaymentIntentId to preserve it for receipt context
   }
 
   // Persist last attempt outcome to distinguish terminal failures from genuine ambiguity

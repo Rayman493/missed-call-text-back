@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
+import { isDefinitiveCardDecline } from '@/lib/terminal/error-mapper'
 
 describe('Terminal Progress Mapping', () => {
   describe('Native Progress to UI Percentage Mapping', () => {
@@ -281,6 +282,54 @@ describe('Terminal Progress Mapping', () => {
 
       expect(statesThatClearIsLoading.length).toBe(8)
       expect(statesThatClearIsLoading).toContain('eligibility_true')
+    })
+  })
+
+  describe('Definitive Decline Classification', () => {
+    it('should classify card decline as definitive decline', () => {
+      // This test documents the fix for thrown decline path:
+      // Physical iPhone logs show "Your card has insufficient funds."
+      // which was not being classified as a terminal decline.
+      //
+      // Root cause: The orchestration catch block did not check if the thrown
+      // error was a definitive card decline vs an ambiguous error (network loss, etc).
+      //
+      // Without this classification, thrown declines were not terminalized,
+      // leaving the unresolved marker set, which caused "Payment Status Uncertain"
+      // on Try Again.
+      //
+      // Fix: Added isDefinitiveCardDecline() classifier that checks for
+      // decline indicators in error message/code while excluding ambiguous
+      // indicators (timeout, network, connection, etc).
+      //
+      // Decline indicators:
+      // - "declined"
+      // - "insufficient funds"
+      // - "do not honor"
+      // - "expired card"
+      // - "invalid card"
+      // - "card not supported"
+      // - "transaction not allowed"
+      //
+      // Ambiguous indicators (excluded from decline classification):
+      // - "timeout"
+      // - "network"
+      // - "connection"
+      // - "reader disconnected"
+      // - "bluetooth"
+
+      // Definitive declines should return true
+      expect(isDefinitiveCardDecline({ message: 'Your card has insufficient funds.' })).toBe(true)
+      expect(isDefinitiveCardDecline({ message: 'Card declined' })).toBe(true)
+      expect(isDefinitiveCardDecline({ message: 'Do not honor' })).toBe(true)
+      expect(isDefinitiveCardDecline({ code: 'card_declined' })).toBe(true)
+
+      // Ambiguous errors should return false
+      expect(isDefinitiveCardDecline({ message: 'Network error' })).toBe(false)
+      expect(isDefinitiveCardDecline({ message: 'Connection lost' })).toBe(false)
+      expect(isDefinitiveCardDecline({ message: 'Payment timed out' })).toBe(false)
+      expect(isDefinitiveCardDecline({ message: 'Reader disconnected' })).toBe(false)
+      expect(isDefinitiveCardDecline({ code: 'timeout' })).toBe(false)
     })
   })
 })

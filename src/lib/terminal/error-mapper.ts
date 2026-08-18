@@ -13,6 +13,84 @@ export interface MappedTapToPayError {
   technicalMessage?: string
 }
 
+/**
+ * Classify an error as a definitive card decline vs ambiguous/unknown payment
+ *
+ * Returns true if the error represents a known, terminal card decline that
+ * can be safely classified as failed (not ambiguous).
+ *
+ * Returns false if the error is ambiguous (network loss, timeout, etc.) and
+ * should preserve the unresolved state for reconciliation.
+ */
+export function isDefinitiveCardDecline(
+  error: {
+    code?: string
+    message?: string
+    nativeCode?: string
+    stage?: string
+  } | string | null | undefined
+): boolean {
+  if (!error) {
+    return false
+  }
+
+  const errorObj = typeof error === 'string' ? { message: error } : error
+  const code = errorObj.code || errorObj.nativeCode || ''
+  const message = errorObj.message || ''
+  const stage = errorObj.stage || ''
+
+  const lowerCode = code.toLowerCase()
+  const lowerMessage = message.toLowerCase()
+
+  // Card decline indicators
+  const declineIndicators = [
+    'declined',
+    'card declined',
+    'insufficient funds',
+    'do not honor',
+    'expired card',
+    'invalid card',
+    'card not supported',
+    'transaction not allowed',
+    'pickup card',
+    'lost card',
+    'stolen card',
+  ]
+
+  // Check if message contains any decline indicator
+  const hasDeclineIndicator = declineIndicators.some(indicator =>
+    lowerMessage.includes(indicator)
+  )
+
+  // Check if code is a known decline code
+  const isDeclineCode = lowerCode.includes('declined')
+
+  // Ambiguous indicators that should NOT be classified as definitive decline
+  const ambiguousIndicators = [
+    'timeout',
+    'timed out',
+    'network',
+    'connection',
+    'internet',
+    'offline',
+    'reader disconnected',
+    'reader unavailable',
+    'bluetooth',
+  ]
+
+  const hasAmbiguousIndicator = ambiguousIndicators.some(indicator =>
+    lowerMessage.includes(indicator) || lowerCode.includes(indicator)
+  )
+
+  // If it has ambiguous indicators, it's not a definitive decline
+  if (hasAmbiguousIndicator) {
+    return false
+  }
+
+  // If it has decline indicators in message or code, it's a definitive decline
+  return hasDeclineIndicator || isDeclineCode
+}
+
 // Stripe Terminal error codes that may appear
 // See: https://stripe.dev/stripe-terminal-android/com/stripe/stripeterminal/external/models/TerminalException.ErrorCode.html
 enum TerminalErrorCode {
@@ -273,12 +351,20 @@ export function mapTapToPayError(
     lowerMessage.includes('card declined') ||
     lowerCode.includes('declined')
   ) {
+    // Extract safe decline reason if available (e.g., "Insufficient funds")
+    let declineReason: string | undefined
+    if (lowerMessage.includes('insufficient funds')) {
+      declineReason = 'Insufficient funds'
+    } else if (lowerMessage.includes('expired')) {
+      declineReason = 'Expired card'
+    }
+
     return {
-      title: 'Card Declined',
-      message: 'The card was declined. Please ask the customer to try a different card or payment method.',
+      title: 'Payment declined',
+      message: 'The card was declined. Try another card or try again.',
       action: 'retry',
       technicalCode: code,
-      technicalMessage: message,
+      technicalMessage: declineReason ? `${declineReason}. ${message}` : message,
     }
   }
 

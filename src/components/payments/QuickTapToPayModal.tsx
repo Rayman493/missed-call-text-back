@@ -391,7 +391,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     // Failure - check if it's a decline vs other error
     if (paymentState === 'failure') {
       // If the mapped error indicates a decline, show declined phase
-      if (mappedError?.title === 'Card Declined') {
+      if (mappedError?.title === 'Payment declined') {
         return 'declined'
       }
       // If it's ambiguous outcome, show uncertain

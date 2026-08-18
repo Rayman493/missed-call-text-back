@@ -14,7 +14,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import ReplyflowStripeTerminal from '@/lib/terminal'
 import { Capacitor } from '@capacitor/core'
 import type { TerminalError } from '@/lib/terminal'
-import { mapTapToPayError } from '@/lib/terminal/error-mapper'
+import { mapTapToPayError, isDefinitiveCardDecline } from '@/lib/terminal/error-mapper'
 import { permissionLock } from '@/lib/permission-lock'
 import { nativePermissionsStore } from '@/lib/native-permissions/native-permissions-store'
 import { isNativeCapacitor } from '@/lib/terminal'
@@ -2041,6 +2041,14 @@ export function useTapToPayOrchestration({
           attemptId: terminalService.getCurrentAttemptId(),
           sessionId: terminalService.getSessionId()
         })
+
+        // Capture paymentRequestId (localPaymentId) immediately when PaymentIntent is created
+        // This ensures declined payments have receipt context even before reconciliation
+        if (paymentResult.localPaymentId) {
+          setPaymentRequestId(paymentResult.localPaymentId)
+          console.log('[TTP Hook] PAYMENT_REQUEST_ID_CAPTURED', { paymentRequestId: paymentResult.localPaymentId })
+        }
+
         dispatchTTPEvent('COLLECT_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
         dispatchTTPEvent('PAYMENT_COLLECTION_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
 
@@ -2344,7 +2352,23 @@ export function useTapToPayOrchestration({
       stack: err.stack,
       lastSuccessfulStage
     })
-    
+
+    // Check if this is a definitive card decline vs ambiguous error
+    const isDefinitiveDecline = isDefinitiveCardDecline(err)
+    console.log('[TTP Hook] ERROR_CLASSIFICATION', {
+      isDefinitiveDecline,
+      errorMessage: err.message,
+      errorCode: err.code
+    })
+
+    // If it's a definitive decline, terminalize the attempt to prevent it from being recovered as unresolved
+    if (isDefinitiveDecline) {
+      console.log('[TTP Hook] DEFINITIVE_DECLINE_TERMINALIZING')
+      terminalService.terminalizeFailedAttempt()
+    } else {
+      console.log('[TTP Hook] AMBIGUOUS_ERROR_PRESERVING_UNRESOLVED')
+    }
+
     // Map the error to user-friendly message
     const mapped = mapTapToPayError({
       code: err.code || err.nativeCode,
@@ -2367,7 +2391,8 @@ export function useTapToPayOrchestration({
     console.log('[TTP Hook] LAST_COMPLETED_ATTEMPT_STORED', {
       outcome,
       attemptId: terminalService.getCurrentAttemptId(),
-      paymentRequestId
+      paymentRequestId,
+      isDefinitiveDecline
     })
 
     updatePaymentStateRef(isCancellation ? 'canceled' : 'failure', isCancellation ? 'user_canceled' : 'error_thrown')

@@ -4,6 +4,7 @@ import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
 import { sendSms } from '@/lib/twilio'
 import { sanitizeMessageContent } from '@/lib/security'
 import { normalizeToE164 } from '@/utils/phone-formatting'
+import getStripe from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
 
@@ -102,8 +103,81 @@ export async function POST(request: NextRequest) {
     }
 
     if (status === 'failed' && paymentRequest.status !== 'failed') {
-      console.error('[RECEIPT API] Payment not failed:', paymentRequest.status)
-      return NextResponse.json({ error: 'Payment was not declined' }, { status: 400 })
+      // If DB status is not 'failed' but client requests declined receipt,
+      // query Stripe directly to get authoritative status and fix race condition
+      console.log('[RECEIPT API] DB status not failed, querying Stripe for authoritative status', {
+        dbStatus: paymentRequest.status,
+        paymentRequestId
+      })
+
+      // Get Stripe PaymentIntent ID from payment request
+      const { data: paymentRequestWithIntent } = await supabaseAdmin
+        .from('payment_requests')
+        .select('stripe_payment_intent_id, business_id')
+        .eq('id', paymentRequestId)
+        .single()
+
+      if (!paymentRequestWithIntent?.stripe_payment_intent_id) {
+        console.error('[RECEIPT API] No PaymentIntent ID for declined receipt verification')
+        return NextResponse.json({ error: 'Payment was not declined' }, { status: 400 })
+      }
+
+      // Query Stripe PaymentIntent directly
+      const stripe = getStripe()
+      if (!stripe) {
+        console.error('[RECEIPT API] Stripe not configured')
+        return NextResponse.json({ error: 'Payment service unavailable' }, { status: 503 })
+      }
+
+      // Get connected account ID for Stripe query
+      const { data: business } = await supabaseAdmin
+        .from('businesses')
+        .select('stripe_connect_account_id')
+        .eq('id', paymentRequestWithIntent.business_id)
+        .single()
+
+      if (!business?.stripe_connect_account_id) {
+        console.error('[RECEIPT API] No connected account')
+        return NextResponse.json({ error: 'Payment was not declined' }, { status: 400 })
+      }
+
+      console.log('[RECEIPT API] Querying Stripe PaymentIntent', {
+        paymentIntentId: paymentRequestWithIntent.stripe_payment_intent_id
+      })
+
+      const paymentIntent = await stripe.paymentIntents.retrieve(
+        paymentRequestWithIntent.stripe_payment_intent_id,
+        {},
+        { stripeAccount: business.stripe_connect_account_id }
+      )
+
+      console.log('[RECEIPT API] Stripe PaymentIntent status', {
+        stripeStatus: paymentIntent.status
+      })
+
+      // Update DB based on Stripe's authoritative status
+      if (paymentIntent.status === 'requires_payment_method' || paymentIntent.status === 'canceled') {
+        // Stripe confirms payment failed - update DB
+        console.log('[RECEIPT API] Stripe confirms failed, updating DB')
+        await supabaseAdmin
+          .from('payment_requests')
+          .update({ status: 'failed' })
+          .eq('id', paymentRequestId)
+
+        // Continue to send declined receipt
+      } else if (paymentIntent.status === 'processing' || paymentIntent.status === 'requires_capture') {
+        // Stripe status is genuinely uncertain - do not send declined receipt
+        console.log('[RECEIPT API] Stripe status uncertain, rejecting declined receipt')
+        return NextResponse.json({ error: 'Payment status uncertain. Please try again later.' }, { status: 400 })
+      } else if (paymentIntent.status === 'succeeded') {
+        // Stripe says succeeded but client requested declined receipt - reject
+        console.log('[RECEIPT API] Stripe says succeeded but client requested declined receipt')
+        return NextResponse.json({ error: 'Payment was not declined' }, { status: 400 })
+      } else {
+        // Unknown Stripe status - reject for safety
+        console.log('[RECEIPT API] Unknown Stripe status, rejecting declined receipt')
+        return NextResponse.json({ error: 'Payment was not declined' }, { status: 400 })
+      }
     }
 
     // Verify user owns this payment request by checking business ownership
