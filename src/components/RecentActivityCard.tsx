@@ -99,11 +99,14 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           .order('created_at', { ascending: false })
           .limit(5)
 
-        // Fetch recent messages (messages has no business_id; filter by business phone)
+        // Fetch recent messages with lead information
         const businessPhone = business.twilio_phone_number || ''
         const { data: messages } = await supabase
           .from('messages')
-          .select('*')
+          .select(`
+            *,
+            leads(id, name, caller_phone)
+          `)
           .or(`from_phone.eq.${businessPhone},to_phone.eq.${businessPhone}`)
           .gte('created_at', sevenDaysAgo)
           .order('created_at', { ascending: false })
@@ -290,29 +293,39 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
 
         // Add messages
         messages?.forEach((message: any) => {
+          const lead = message.leads
+          const customerName = lead?.name || 'Unknown'
+          const displayName = getDisplayName(customerName, lead?.caller_phone)
           const displayPhone = message.direction === 'outbound' ? message.to_phone : message.from_phone
           const formattedPhone = formatPhoneNumber(displayPhone)
+
           if (message.direction === 'outbound') {
             events.push({
               id: `message-out-${message.id}`,
               type: 'text_sent',
-              title: 'Message Sent',
+              title: displayName !== 'Customer' ? `Message sent to ${displayName}` : 'Message Sent',
               description: formattedPhone ? `To ${formattedPhone}` : 'Message sent',
               timestamp: message.created_at,
               icon: <Send className="w-4 h-4" />,
               iconBgColor: 'bg-amber-500/20',
               iconTextColor: 'text-amber-400',
+              customerId: lead?.id,
+              customerName: displayName,
+              customerPhone: lead?.caller_phone,
             })
           } else {
             events.push({
               id: `message-in-${message.id}`,
               type: 'customer_replied',
-              title: 'Customer Replied',
+              title: displayName !== 'Customer' ? `${displayName} replied` : 'Customer Replied',
               description: formattedPhone ? `From ${formattedPhone}` : 'Message received',
               timestamp: message.created_at,
               icon: <MessageSquare className="w-4 h-4" />,
               iconBgColor: 'bg-green-500/20',
               iconTextColor: 'text-green-400',
+              customerId: lead?.id,
+              customerName: displayName,
+              customerPhone: lead?.caller_phone,
             })
           }
         })
