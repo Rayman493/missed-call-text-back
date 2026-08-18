@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, Label } from 'recharts'
 import { CreditCard } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
@@ -160,6 +160,25 @@ export default function PaymentCollectionGraph() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
+                  <Label
+                    content={({ viewBox }: any) => {
+                      if (!viewBox) return null
+                      const { x, y, width, height } = viewBox
+                      const cx = x + width / 2
+                      const cy = y + height / 2
+                      return (
+                        <g>
+                          <text x={cx} y={cy - 8} textAnchor="middle" dominantBaseline="middle" className="fill-foreground" style={{ fontSize: '20px', fontWeight: '600' }}>
+                            {collectionRate}%
+                          </text>
+                          <text x={cx} y={cy + 12} textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground" style={{ fontSize: '10px' }}>
+                            Collected
+                          </text>
+                        </g>
+                      )
+                    }}
+                    position="center"
+                  />
                   <Tooltip
                     content={<PremiumTooltip />}
                   />
@@ -172,11 +191,6 @@ export default function PaymentCollectionGraph() {
                   />
                 </PieChart>
               </ResponsiveContainer>
-              {/* Center KPI - properly centered in donut hole */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ transform: 'translateY(-2px)' }}>
-                <span className="text-2xl font-semibold text-foreground">{collectionRate}%</span>
-                <span className="text-[10px] text-muted-foreground">Collected</span>
-              </div>
             </ChartTouchWrapper>
           </div>
         )}
