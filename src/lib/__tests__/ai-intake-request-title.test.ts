@@ -217,32 +217,32 @@ describe('generateCanonicalRequestTitle', () => {
     expect(generateCanonicalRequestTitle('I was looking to get a Brazilian wax')).toBe('Brazilian Wax')
   })
 
-  it('converts "I need someone to mow my lawn" to "Lawn Service"', () => {
-    expect(generateCanonicalRequestTitle('I need someone to mow my lawn')).toBe('Lawn Service')
+  it('converts "I need someone to mow my lawn" to "Lawn Mowing"', () => {
+    expect(generateCanonicalRequestTitle('I need someone to mow my lawn')).toBe('Lawn Mowing')
   })
 
-  it('converts "My AC is not cooling" to "Ac Repair"', () => {
-    expect(generateCanonicalRequestTitle('My AC is not cooling')).toBe('Ac Repair')
+  it('converts "My AC is not cooling" to "HVAC Repair"', () => {
+    expect(generateCanonicalRequestTitle('My AC is not cooling')).toBe('HVAC Repair')
   })
 
-  it('converts "Can you clean my gutters?" to "Clean Gutters"', () => {
-    expect(generateCanonicalRequestTitle('Can you clean my gutters?')).toBe('Clean Gutters')
+  it('converts "Can you clean my gutters?" to "Gutters Cleaning"', () => {
+    expect(generateCanonicalRequestTitle('Can you clean my gutters?')).toBe('Gutters Cleaning')
   })
 
   it('converts "I would like piano lessons" to "Piano Lessons"', () => {
     expect(generateCanonicalRequestTitle('I would like piano lessons')).toBe('Piano Lessons')
   })
 
-  it('converts "I need a water heater installed" to "Heater Repair"', () => {
-    expect(generateCanonicalRequestTitle('I need a water heater installed')).toBe('Heater Repair')
+  it('converts "I need a water heater installed" to "Water Heater Installation"', () => {
+    expect(generateCanonicalRequestTitle('I need a water heater installed')).toBe('Water Heater Installation')
   })
 
-  it('converts "Can someone give me a quote to paint my house?" to "Paint Service"', () => {
-    expect(generateCanonicalRequestTitle('Can someone give me a quote to paint my house?')).toBe('Paint Service')
+  it('converts "Can someone give me a quote to paint my house?" to "House Painting"', () => {
+    expect(generateCanonicalRequestTitle('Can someone give me a quote to paint my house?')).toBe('House Painting')
   })
 
-  it('converts "My sink is leaking" to "Sink Repair"', () => {
-    expect(generateCanonicalRequestTitle('My sink is leaking')).toBe('Sink Repair')
+  it('converts "My sink is leaking" to "Plumbing Repair"', () => {
+    expect(generateCanonicalRequestTitle('My sink is leaking')).toBe('Plumbing Repair')
   })
 
   it('converts "I need my driveway pressure washed" to "Pressure Washing"', () => {
@@ -258,8 +258,8 @@ describe('generateCanonicalRequestTitle', () => {
     expect(generateCanonicalRequestTitle('I need beginner piano lessons')).toBe('Piano Lessons')
   })
 
-  it('converts "My AC is blowing warm air upstairs" to "Ac Air"', () => {
-    expect(generateCanonicalRequestTitle('My AC is blowing warm air upstairs')).toBe('Ac Air')
+  it('converts "My AC is blowing warm air upstairs" to "HVAC Repair"', () => {
+    expect(generateCanonicalRequestTitle('My AC is blowing warm air upstairs')).toBe('HVAC Repair')
   })
 
   it('converts "Need a new fence installed" to "Fence Installation"', () => {
@@ -270,8 +270,8 @@ describe('generateCanonicalRequestTitle', () => {
     expect(generateCanonicalRequestTitle('Need my driveway pressure washed')).toBe('Pressure Washing')
   })
 
-  it('converts "Kitchen sink is leaking" to "Kitchen Sink"', () => {
-    expect(generateCanonicalRequestTitle('Kitchen sink is leaking')).toBe('Kitchen Sink')
+  it('converts "Kitchen sink is leaking" to "Plumbing Repair"', () => {
+    expect(generateCanonicalRequestTitle('Kitchen sink is leaking')).toBe('Plumbing Repair')
   })
 
   // Test edge cases
@@ -295,13 +295,13 @@ describe('generateCanonicalRequestTitle', () => {
   // Test removal of timing and scheduling info
   it('removes timing information', () => {
     expect(generateCanonicalRequestTitle('I need lawn mowing tomorrow')).toBe('Lawn Mowing')
-    expect(generateCanonicalRequestTitle('Can you fix my AC this afternoon')).toBe('Ac Repair')
+    expect(generateCanonicalRequestTitle('Can you fix my AC this afternoon')).toBe('HVAC Repair')
   })
 
   // Test removal of property descriptions
   it('removes property size descriptions', () => {
     expect(generateCanonicalRequestTitle('I need lawn mowing for a quarter acre')).toBe('Lawn Mowing')
-    expect(generateCanonicalRequestTitle('Clean my two-story house with 3 bathrooms')).toBe('Clean Two-story House')
+    expect(generateCanonicalRequestTitle('Clean my two-story house with 3 bathrooms')).toBe('House Cleaning')
   })
 
   // Regression tests for the "Not Collected" issue
@@ -335,7 +335,7 @@ describe('generateCanonicalRequestTitle', () => {
   })
 
   it('new house with leak is repair, not new-construction', () => {
-    expect(generateCanonicalRequestTitle('My new house has a leaking pipe')).toBe('Pipe Repair')
+    expect(generateCanonicalRequestTitle('My new house has a leaking pipe')).toBe('Plumbing Repair')
   })
 
   it('construction context with burst pipe retains burst priority', () => {

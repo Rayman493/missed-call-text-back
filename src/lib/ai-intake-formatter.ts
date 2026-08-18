@@ -302,6 +302,115 @@ export const validateRequestTitle = (title: string | null | undefined): string |
  * - "Need my driveway pressure washed." → "Driveway Pressure Washing"
  * - "Kitchen sink is leaking." → "Kitchen Leak Repair"
  */
+/**
+ * Normalize semantic verb+object service pairs into professional titles
+ */
+function normalizeSemanticService(servicePair: string): string | null {
+  const [verb, object] = servicePair.split(' ').map(w => w.toLowerCase());
+
+  // Lawn/yard services
+  if (['cut', 'mow', 'trim'].includes(verb) && ['lawn', 'yard', 'grass'].includes(object)) {
+    return 'Lawn Mowing';
+  }
+  if (verb === 'maintain' && ['lawn', 'yard', 'grass'].includes(object)) {
+    return 'Lawn Maintenance';
+  }
+  if (['trim', 'maintain'].includes(verb) && ['tree', 'shrub', 'hedge'].includes(object)) {
+    return 'Tree Trimming';
+  }
+
+  // Fence/deck services
+  if (['install', 'set', 'setup', 'put'].includes(verb) && object === 'fence') {
+    return 'Fence Installation';
+  }
+  if (['repair', 'fix'].includes(verb) && object === 'fence') {
+    return 'Fence Repair';
+  }
+
+  // Roofing services
+  if (['repair', 'fix'].includes(verb) && object === 'roof') {
+    return 'Roof Repair';
+  }
+  if (['replace'].includes(verb) && object === 'roof') {
+    return 'Roof Replacement';
+  }
+  // "is roof" pattern
+  if (['is', 'are', 'was', 'were'].includes(verb) && object === 'roof') {
+    return 'Roof Repair';
+  }
+
+  // Plumbing services (including leak/drip patterns)
+  if (['repair', 'fix', 'unclog', 'clear', 'leak', 'leaking', 'drip', 'dripping', 'clog', 'clogged'].includes(verb) &&
+      ['drain', 'pipe', 'sink', 'toilet', 'faucet', 'kitchen'].includes(object)) {
+    return 'Plumbing Repair';
+  }
+  if (['install', 'set', 'setup'].includes(verb) && ['pipe', 'sink', 'toilet', 'faucet'].includes(object)) {
+    return 'Plumbing Installation';
+  }
+  // "is [plumbing object]" pattern
+  if (['is', 'are', 'was', 'were'].includes(verb) && ['drain', 'pipe', 'sink', 'toilet', 'faucet'].includes(object)) {
+    return 'Plumbing Repair';
+  }
+
+  // HVAC services
+  if (['repair', 'fix'].includes(verb) && ['ac', 'air', 'conditioner', 'heater', 'furnace', 'hvac'].includes(object)) {
+    return 'HVAC Repair';
+  }
+  if (['install', 'set', 'setup'].includes(verb) && ['ac', 'air', 'conditioner', 'heater', 'furnace', 'hvac'].includes(object)) {
+    return 'HVAC Installation';
+  }
+  // "is [hvac object]" pattern
+  if (['is', 'are', 'was', 'were'].includes(verb) && ['ac', 'air', 'conditioner', 'heater', 'furnace', 'hvac'].includes(object)) {
+    return 'HVAC Repair';
+  }
+
+  // Cleaning services
+  if (['clean', 'wash', 'pressure'].includes(verb) && ['driveway', 'sidewalk', 'deck', 'patio'].includes(object)) {
+    return 'Pressure Washing';
+  }
+  if (['clean', 'wash'].includes(verb) && ['carpet', 'floor', 'window'].includes(object)) {
+    return `${object.charAt(0).toUpperCase() + object.slice(1)} Cleaning`;
+  }
+
+  // Painting services
+  if (['paint', 'painting', 'stain'].includes(verb) && ['deck', 'fence', 'interior', 'exterior'].includes(object)) {
+    return 'Painting';
+  }
+
+  // Automotive services
+  if (['repair', 'fix'].includes(verb) && ['car', 'truck', 'vehicle', 'brake', 'tire'].includes(object)) {
+    return 'Auto Repair';
+  }
+
+  // Lessons
+  if (['lesson', 'learn', 'teach', 'train', 'tutor'].includes(verb) && ['piano', 'guitar', 'violin', 'drums'].includes(object)) {
+    return `${object.charAt(0).toUpperCase() + object.slice(1)} Lessons`;
+  }
+
+  // Locksmith
+  if (['lock', 'unlock', 'key'].includes(verb) && ['lock', 'key', 'door'].includes(object)) {
+    return 'Locksmith Service';
+  }
+
+  // Generic fallback for other verb+object pairs
+  if (['repair', 'fix', 'leak', 'leaking', 'drip', 'dripping', 'clog', 'clogged'].includes(verb)) {
+    return `${object.charAt(0).toUpperCase() + object.slice(1)} Repair`;
+  }
+  if (['install', 'set', 'setup', 'put'].includes(verb)) {
+    return `${object.charAt(0).toUpperCase() + object.slice(1)} Installation`;
+  }
+  if (['clean', 'wash'].includes(verb)) {
+    return `${object.charAt(0).toUpperCase() + object.slice(1)} Cleaning`;
+  }
+  // "is [object]" pattern for other objects
+  if (['is', 'are', 'was', 'were'].includes(verb)) {
+    return `${object.charAt(0).toUpperCase() + object.slice(1)} Repair`;
+  }
+
+  // If we can't normalize it, return null to trigger the safe fallback
+  return null;
+}
+
 export const generateCanonicalRequestTitle = (text: string | null | undefined): string => {
   if (!text || text.trim() === '') return 'General Service';
 
@@ -403,7 +512,12 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     'Pressure Washing': [/\bpressure\s*(?:wash|wash|clean)/i, /\bdriveway\s*(?:wash|clean)/i],
     'Piano Lessons': [/\bpiano\s*(?:lesson|learn|teach|class|instruction)/i],
     'AC Repair': [/\b(?:air\s*conditioner|ac|a\/c|hvac)\s*(?:repair|fix|not working|broken|leaking|stopped)/i, /\bair\s*(?:conditioning|conditioner)\s*(?:problem|issue|trouble)/i],
-    'Furnace Installation': [/\bfurnace\s*(?:install|installation|new|replace)/i],
+    'Water Heater Installation': [/\bwater\s*heater\s*(?:install|installation|new|replace)/i],
+    'Water Heater Repair': [/\bwater\s*heater\s*(?:repair|fix|not working|broken|leaking)/i],
+    'Heater Repair': [/\b(?:water\s*)?heater\s*(?:repair|fix|not working|broken)/i],
+    'House Painting': [/\bpaint\s*(?:house|home)/i, /\b(?:interior|exterior)\s*paint/i],
+    'Brazilian Wax': [/\bbrazilian\s*wax/i],
+    'Waxing Service': [/\bwax(?:ing)?\s*(?:service|brazilian|hair)/i],
     'Fence Installation': [/\bfence\s*(?:install|installation|new|replace|put in|set up)/i],
     'Kitchen Leak Repair': [/\bkitchen\s*(?:sink|faucet|pipe)\s*(?:leak|drip|leaking|dripping)/i, /\bkitchen\s*(?:plumbing|repair|fix)/i],
     // Context-aware plumbing mappings
@@ -482,6 +596,7 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     'Moving Service': [/\b(?:move|moving)\s*(?:service|help|company)/i],
     'Tree Service': [/\btree\s*(?:trim|prune|remove|removal|cut|service)/i],
     'Landscaping': [/\blandscape\s*(?:design|install|maintenance|service)/i, /\bgarden\s*(?:service|maintenance|design)/i],
+    'Gutter Cleaning': [/\bgutter\s*(?:clean|cleaning|clear|remove)/i],
     'Handyman Service': [/\bhandyman\s*(?:service|work|repair)/i],
     'General Contractor': [/\bgeneral\s*contractor/i, /\b(?:remodel|renovation|renovate|construction)/i],
     'Appliance Repair': [/\b(?:appliance|refrigerator|dryer|washer|dishwasher|stove|oven)\s*(?:repair|fix|not working|broken)/i],
@@ -555,78 +670,268 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
 
   if (matchedTitle) return matchedTitle;
 
-  // Fallback: Extract key service nouns (2-5 words max)
-  const priorityNouns = [
-    'piano', 'guitar', 'violin', 'drums', 'lesson', 'class', 'training',
-    'kitchen', 'bathroom', 'bedroom', 'sink', 'toilet', 'faucet', 'pipe', 'drain',
-    'ac', 'air', 'conditioner', 'heater', 'furnace', 'boiler', 'hvac',
-    'lawn', 'yard', 'grass', 'tree', 'fence', 'roof', 'gutter',
-    'car', 'truck', 'vehicle', 'brake', 'tire', 'oil',
-    'carpet', 'floor', 'window', 'paint', 'pool',
-    'lock', 'key', 'camera', 'alarm',
-    'solar', 'panel', 'photograph', 'consult',
-    'wax', 'brazilian', 'hair', 'nail', 'facial', 'massage', 'spa',
+  // Semantic fallback: Look for service action verbs + object pairs
+  // This prevents noun-compression like "Grass Fence" from conversational context
+  // Instead identifies the actual work being requested
+  //
+  // HARDENING: Prioritize current intent, handle negation, de-prioritize historical context
+
+  // Current intent markers (highest priority)
+  const currentIntentMarkers = [
+    'i need', 'i want', 'i\'d like', 'i would like',
+    'can you', 'could you', 'could someone',
+    'i\'m calling about', 'i am calling about', 'i\'m calling for', 'i am calling for',
+    'i\'m looking for', 'i am looking for',
+    'i need someone to',
+    'what i actually need', 'now i need', 'this time i need',
+    'i\'d actually like', 'i would actually like',
+    'right now i need', 'currently i need',
   ];
 
-  const extractedWords: string[] = [];
-  const usedIndices = new Set<number>();
+  // Historical context markers (de-prioritize)
+  const historicalMarkers = [
+    'last year', 'previously', 'before', 'you used to', 'you already', 'we had',
+    'you did', 'normally', 'usually', 'in the past', 'earlier',
+    'previously', 'back then', 'used to',
+  ];
 
-  // Extract priority nouns
-  words.forEach((word, index) => {
-    if (priorityNouns.includes(word) && !usedIndices.has(index) && extractedWords.length < 5) {
-      extractedWords.push(word);
-      usedIndices.add(index);
+  // Negation markers (skip these pairs)
+  const negationMarkers = [
+    "don't need", 'do not need', 'not need',
+    "i don't", 'i do not', 'i never',
+    'no longer need', 'no longer want',
+    'never mind', 'nevermind',
+    'actually not', "actually don't",
+    'but not', 'except not',
+    'skip', 'skip the', 'avoid',
+  ];
+
+  // Correction/superseded markers (boost pairs after these)
+  const correctionMarkers = [
+    'but actually', 'but actually i', 'but actually the',
+    'never mind', 'nevermind',
+    'instead', 'instead i', 'instead of',
+    'actually i need', 'actually i want',
+    'this time', 'this time i',
+    'now i need', 'right now i',
+    'what i actually need',
+    'but now', 'but now i',
+  ];
+
+  const serviceVerbs = [
+    'cut', 'mow', 'trim', 'maintain', 'care', 'service',
+    'install', 'installation', 'set', 'setup', 'put', 'replace', 'repair', 'fix',
+    'clean', 'wash', 'scrub', 'pressure', 'sweep',
+    'paint', 'painting', 'stain',
+    'plumb', 'plumbing', 'unclog', 'clear', 'drain',
+    'inspect', 'check', 'look', 'assess', 'evaluate',
+    'remove', 'removal', 'haul', 'demolition', 'teardown',
+    'build', 'construct', 'construct', 'frame', 'erect',
+    'lesson', 'learn', 'teach', 'train', 'tutor',
+    'move', 'moving', 'pack', 'unpack',
+    'lock', 'unlock', 'key', 'secure',
+    'tow', 'transport', 'deliver',
+    'photograph', 'photo', 'video', 'film',
+    'consult', 'advice', 'advise',
+    // Nouns that imply action
+    'leak', 'leaking', 'drip', 'dripping', 'clog', 'clogged', 'block', 'blocked',
+    // Helper verb for "is [adjective]" patterns
+    'is', 'are', 'was', 'were',
+  ];
+
+  const serviceObjects = [
+    'lawn', 'yard', 'grass', 'landscape', 'garden', 'tree', 'shrub', 'hedge',
+    'fence', 'gate', 'deck', 'patio', 'driveway', 'sidewalk', 'walkway',
+    'roof', 'gutter', 'gutters', 'siding', 'window', 'door',
+    'kitchen', 'bathroom', 'bedroom', 'basement', 'attic', 'garage', 'house',
+    'sink', 'toilet', 'faucet', 'pipe', 'drain', 'shower', 'tub',
+    'ac', 'air', 'conditioner', 'heater', 'furnace', 'boiler', 'hvac', 'duct',
+    'car', 'truck', 'vehicle', 'brake', 'tire', 'oil', 'engine', 'transmission',
+    'carpet', 'floor', 'tile', 'hardwood', 'laminate',
+    'pool', 'spa', 'hot', 'tub',
+    'lock', 'key', 'camera', 'alarm', 'security',
+    'solar', 'panel',
+    'piano', 'guitar', 'violin', 'drums',
+    'hair', 'nail', 'facial', 'massage', 'wax',
+  ];
+
+  // Find positions of all correction markers
+  const correctionPositions: number[] = [];
+  for (const marker of correctionMarkers) {
+    const regex = new RegExp(marker, 'gi');
+    let match;
+    while ((match = regex.exec(processed)) !== null) {
+      correctionPositions.push(match.index);
     }
-  });
+  }
 
-  // If no priority nouns found, take first 2-3 meaningful words
-  if (extractedWords.length === 0) {
-    for (let i = 0; i < Math.min(words.length, 3); i++) {
-      if (words[i].length > 2) {
-        extractedWords.push(words[i]);
+  // Find verb+object pairs with their positions and context scores
+  const serviceCandidates: Array<{
+    verb: string,
+    object: string,
+    verbIndex: number,
+    objectIndex: number,
+    score: number,
+    hasCurrentIntent: boolean,
+    hasHistoricalMarker: boolean,
+    hasNegation: boolean,
+    isAfterCorrection: boolean,
+  }> = [];
+
+  const maxDistance = 4; // Look for object within 4 words of verb
+
+  // Scan for verb+object pairs
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i].toLowerCase();
+    if (serviceVerbs.includes(word)) {
+      // Check if this verb is negated (look backward for negation markers)
+      let hasNegation = false;
+      for (let j = Math.max(0, i - 4); j < i; j++) {
+        const checkPhrase = words.slice(j, i + 1).join(' ').toLowerCase();
+        if (negationMarkers.some(marker => checkPhrase.includes(marker))) {
+          hasNegation = true;
+          break;
+        }
+      }
+
+      if (hasNegation) continue; // Skip negated verbs
+
+      // Look for a service object nearby (forward)
+      for (let j = i + 1; j < Math.min(i + maxDistance + 1, words.length); j++) {
+        const nextWord = words[j].toLowerCase();
+        if (serviceObjects.includes(nextWord)) {
+          // Check for negation between verb and object
+          let pairNegated = false;
+          for (let k = i + 1; k < j; k++) {
+            const checkPhrase = words.slice(i, k + 1).join(' ').toLowerCase();
+            if (negationMarkers.some(marker => checkPhrase.includes(marker))) {
+              pairNegated = true;
+              break;
+            }
+          }
+          if (pairNegated) continue;
+
+          // Check context around this pair
+          const contextStart = Math.max(0, i - 3);
+          const contextEnd = Math.min(words.length, j + 4);
+          const contextText = words.slice(contextStart, contextEnd).join(' ').toLowerCase();
+
+          const hasCurrentIntent = currentIntentMarkers.some(marker => contextText.includes(marker));
+          const hasHistoricalMarker = historicalMarkers.some(marker => contextText.includes(marker));
+
+          // Check if this pair appears after any correction marker
+          const pairText = words.slice(i, j + 1).join(' ');
+          const pairStartIndex = processed.toLowerCase().indexOf(pairText);
+          const isAfterCorrection = correctionPositions.some(pos => pairStartIndex > pos);
+
+          serviceCandidates.push({
+            verb: word,
+            object: nextWord,
+            verbIndex: i,
+            objectIndex: j,
+            score: 0,
+            hasCurrentIntent,
+            hasHistoricalMarker,
+            hasNegation,
+            isAfterCorrection,
+          });
+        }
       }
     }
   }
 
-  if (extractedWords.length === 0) return 'General Service';
+  // If no candidates found, try object before verb pattern
+  if (serviceCandidates.length === 0) {
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i].toLowerCase();
+      if (serviceObjects.includes(word)) {
+        // Check if this object is negated (look backward)
+        let hasNegation = false;
+        for (let j = Math.max(0, i - 4); j < i; j++) {
+          const checkPhrase = words.slice(j, i + 1).join(' ').toLowerCase();
+          if (negationMarkers.some(marker => checkPhrase.includes(marker))) {
+            hasNegation = true;
+            break;
+          }
+        }
 
-  // Ensure 2-5 words
-  const finalWords = extractedWords.slice(0, 5);
+        if (hasNegation) continue;
 
-  // If only 1 word, add generic suffix
-  if (finalWords.length === 1) {
-    const word = finalWords[0].toLowerCase();
-    if (['piano', 'guitar', 'violin', 'drums'].includes(word)) {
-      return `${word.charAt(0).toUpperCase() + word.slice(1)} Lessons`;
-    } else if (['lawn', 'yard', 'grass', 'tree'].includes(word)) {
-      return `${word.charAt(0).toUpperCase() + word.slice(1)} Service`;
-    } else if (['sink', 'toilet', 'faucet', 'pipe', 'drain'].includes(word)) {
-      return `${word.charAt(0).toUpperCase() + word.slice(1)} Repair`;
-    } else if (['ac', 'air', 'conditioner', 'heater', 'furnace'].includes(word)) {
-      return `${word.charAt(0).toUpperCase() + word.slice(1)} Repair`;
-    } else {
-      return `${word.charAt(0).toUpperCase() + word.slice(1)} Service`;
+        // Look for a service verb nearby (forward)
+        for (let j = i + 1; j < Math.min(i + maxDistance + 1, words.length); j++) {
+          const nextWord = words[j].toLowerCase();
+          if (serviceVerbs.includes(nextWord)) {
+            // Check for negation between object and verb
+            let pairNegated = false;
+            for (let k = i + 1; k < j; k++) {
+              const checkPhrase = words.slice(i, k + 1).join(' ').toLowerCase();
+              if (negationMarkers.some(marker => checkPhrase.includes(marker))) {
+                pairNegated = true;
+                break;
+              }
+            }
+            if (pairNegated) continue;
+
+            // Check context
+            const contextStart = Math.max(0, i - 3);
+            const contextEnd = Math.min(words.length, j + 4);
+            const contextText = words.slice(contextStart, contextEnd).join(' ').toLowerCase();
+
+            const hasCurrentIntent = currentIntentMarkers.some(marker => contextText.includes(marker));
+            const hasHistoricalMarker = historicalMarkers.some(marker => contextText.includes(marker));
+
+            // Check if this pair appears after any correction marker
+            const pairText = words.slice(i, j + 1).join(' ');
+            const pairStartIndex = processed.toLowerCase().indexOf(pairText);
+            const isAfterCorrection = correctionPositions.some(pos => pairStartIndex > pos);
+
+            serviceCandidates.push({
+              verb: nextWord,
+              object: word,
+              verbIndex: j,
+              objectIndex: i,
+              score: 0,
+              hasCurrentIntent,
+              hasHistoricalMarker,
+              hasNegation,
+              isAfterCorrection,
+            });
+          }
+        }
+      }
     }
   }
 
-  // Convert to Title Case
-  const titleCased = finalWords.map(word =>
-    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-  ).join(' ');
+  // Score candidates based on context
+  serviceCandidates.forEach(candidate => {
+    // Prefer current intent
+    if (candidate.hasCurrentIntent) candidate.score += 10;
 
-  // Enforce maximum length (80 characters)
-  const MAX_LENGTH = 80;
-  if (titleCased.length > MAX_LENGTH) {
-    // Truncate at word boundary
-    const truncated = titleCased.substring(0, MAX_LENGTH);
-    const lastSpace = truncated.lastIndexOf(' ');
-    if (lastSpace > 0) {
-      return truncated.substring(0, lastSpace);
+    // Penalize historical context
+    if (candidate.hasHistoricalMarker) candidate.score -= 8;
+
+    // Strongly prefer pairs after correction markers
+    if (candidate.isAfterCorrection) candidate.score += 15;
+
+    // Prefer later occurrences (current request likely comes later)
+    candidate.score += (candidate.verbIndex * 0.1);
+  });
+
+  // Sort by score descending
+  serviceCandidates.sort((a, b) => b.score - a.score);
+
+  // If we found semantic services, try to normalize the best one
+  if (serviceCandidates.length > 0) {
+    const bestCandidate = serviceCandidates[0];
+    const normalizedService = normalizeSemanticService(`${bestCandidate.verb} ${bestCandidate.object}`);
+    if (normalizedService) {
+      return normalizedService;
     }
-    return truncated;
   }
 
-  return titleCased || 'General Service';
+  // If no clear service action found, return safe neutral label
+  // DO NOT fabricate a title from unrelated nouns
+  return 'Service Request';
 };
 
 /**
