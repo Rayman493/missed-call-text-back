@@ -521,22 +521,74 @@ export const db = {
   },
 
   async getBusinessByTwilioNumber(phone: string): Promise<{ business: Business | null; source: string } | null> {
-    console.log('[getBusinessByTwilioNumber] Looking up business for phone:', phone)
+    const rawInput = phone
+    const normalizedPhone = normalizePhoneNumberForStorage(phone)
+
+    console.log('[getBusinessByTwilioNumber] INPUT', {
+      raw: rawInput,
+      normalized: normalizedPhone,
+      rawEqualsNormalized: rawInput === normalizedPhone,
+      rawLength: rawInput?.length || 0,
+      normalizedLength: normalizedPhone?.length || 0
+    })
+
+    // Log Supabase project hostname (safe diagnostic)
+    try {
+      const supabaseHostname = new URL(supabaseUrl).hostname
+      console.log('[getBusinessByTwilioNumber] CLIENT', {
+        clientSource: 'supabaseAdmin singleton',
+        supabaseProject: supabaseHostname
+      })
+    } catch (e) {
+      console.log('[getBusinessByTwilioNumber] CLIENT', {
+        clientSource: 'supabaseAdmin singleton',
+        supabaseProject: 'hostname_parse_error'
+      })
+    }
 
     // CRITICAL: Primary lookup via twilio_numbers table (dedicated number architecture)
     // Look up by phone_number + non-null business_id (not status, to handle inconsistent data)
+    console.log('[getBusinessByTwilioNumber] QUERY', {
+      stage: 'twilio_numbers',
+      phone: normalizedPhone
+    })
+
     const { data: twilioNumber, error: twilioError } = await supabaseAdmin
       .from('twilio_numbers')
       .select('id, business_id, phone_number, status')
-      .eq('phone_number', phone)
+      .eq('phone_number', normalizedPhone)
       .not('business_id', 'is', null)
       .maybeSingle()
 
+    console.log('[getBusinessByTwilioNumber] TWILIO_NUMBERS RESULT', {
+      dataFound: !!twilioNumber,
+      rowId: twilioNumber?.id || null,
+      businessId: twilioNumber?.business_id || null,
+      status: twilioNumber?.status || null,
+      errorPresent: !!twilioError,
+      errorCode: twilioError?.code || null,
+      errorMessage: twilioError?.message || null,
+      errorDetails: twilioError?.details || null,
+      errorHint: twilioError?.hint || null
+    })
+
     if (twilioError) {
-      console.error('[getBusinessByTwilioNumber] Error fetching twilio_number:', twilioError)
+      console.error('[getBusinessByTwilioNumber] Error fetching twilio_number:', {
+        code: twilioError.code,
+        message: twilioError.message,
+        details: twilioError.details,
+        hint: twilioError.hint
+      })
       if (twilioError.code === 'PGRST116') {
-        console.log('[getBusinessByTwilioNumber] No valid twilio_number found for phone:', phone)
+        console.log('[getBusinessByTwilioNumber] No valid twilio_number found for phone:', normalizedPhone)
       }
+      return null
+    }
+
+    if (!twilioNumber) {
+      console.log('[getBusinessByTwilioNumber] No twilio_number row found (zero rows) for phone:', normalizedPhone)
+    } else if (!twilioNumber.business_id) {
+      console.log('[getBusinessByTwilioNumber] twilio_number found but business_id is NULL for phone:', normalizedPhone)
     }
 
     if (twilioNumber && twilioNumber.business_id) {
@@ -582,21 +634,42 @@ export const db = {
     }
 
     // FALLBACK: Look up by businesses.twilio_phone_number (self-healing for provisioning mismatch)
-    console.log('[getBusinessByTwilioNumber] twilio_numbers lookup failed, trying businesses table as fallback')
+    console.log('[getBusinessByTwilioNumber] QUERY', {
+      stage: 'businesses_fallback',
+      phone: normalizedPhone
+    })
+
     const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
       .select('*')
-      .eq('twilio_phone_number', phone)
+      .eq('twilio_phone_number', normalizedPhone)
       .maybeSingle()
 
+    console.log('[getBusinessByTwilioNumber] BUSINESSES FALLBACK RESULT', {
+      dataFound: !!business,
+      businessId: business?.id || null,
+      businessName: business?.name || null,
+      storedTwilioPhone: business?.twilio_phone_number || null,
+      errorPresent: !!businessError,
+      errorCode: businessError?.code || null,
+      errorMessage: businessError?.message || null,
+      errorDetails: businessError?.details || null,
+      errorHint: businessError?.hint || null
+    })
+
     if (businessError) {
-      console.error('[getBusinessByTwilioNumber] Error fetching business from businesses table:', businessError)
+      console.error('[getBusinessByTwilioNumber] Error fetching business from businesses table:', {
+        code: businessError.code,
+        message: businessError.message,
+        details: businessError.details,
+        hint: businessError.hint
+      })
       console.log('[getBusinessByTwilioNumber] Case: number not found in either table')
       return null
     }
 
     if (!business) {
-      console.log('[getBusinessByTwilioNumber] No business found in businesses table for phone:', phone)
+      console.log('[getBusinessByTwilioNumber] No business found in businesses table for phone:', normalizedPhone)
       console.log('[getBusinessByTwilioNumber] Case: number not found')
       return null
     }

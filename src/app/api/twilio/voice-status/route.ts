@@ -190,6 +190,20 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
+  // Log Supabase project hostname (safe diagnostic)
+  try {
+    const supabaseHostname = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname
+    console.log('[voice-status] CLIENT', {
+      clientSource: 'inline service-role client',
+      supabaseProject: supabaseHostname
+    })
+  } catch (e) {
+    console.log('[voice-status] CLIENT', {
+      clientSource: 'inline service-role client',
+      supabaseProject: 'hostname_parse_error'
+    })
+  }
+
   console.log('[VOICE STATUS CALL STATUS] =========================================');
   console.log('[VOICE STATUS CALL STATUS] CallSid:', CallSid);
   console.log('[VOICE STATUS CALL STATUS] CallStatus:', CallStatus);
