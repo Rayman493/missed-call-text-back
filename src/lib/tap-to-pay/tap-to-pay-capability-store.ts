@@ -61,6 +61,8 @@ class TapToPayCapabilityStore {
 
   subscribe(listener: TapToPayCapabilityListener): () => void {
     this.listeners.add(listener)
+    // Immediately emit current state to new subscribers
+    listener(this.getState())
     return () => {
       this.listeners.delete(listener)
     }

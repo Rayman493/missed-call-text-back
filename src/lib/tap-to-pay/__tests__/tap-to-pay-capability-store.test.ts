@@ -252,8 +252,9 @@ describe('TapToPayCapabilityStore', () => {
         listener2Results.push(state)
       })
 
-      // Listener2 should receive current state immediately
+      // Listener2 should receive current state immediately (subscribe now emits snapshot)
       expect(listener2Results.length).toBe(1)
+      expect(listener2Results[0].status?.status).toBe('supported')
 
       unsubscribe1()
       unsubscribe2()
@@ -281,6 +282,34 @@ describe('TapToPayCapabilityStore', () => {
       expect(state.status?.status).toBe('supported')
       expect(state.lastChecked).not.toBeNull()
 
+      unsubscribe2()
+    })
+
+    it('should emit current state immediately to new subscribers', async () => {
+      vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true)
+      vi.mocked(Capacitor.getPlatform).mockReturnValue('ios')
+      mockReplyflowStripeTerminal.getTapToPaySupportStatus.mockResolvedValue({
+        status: 'supported',
+        supported: true,
+        platform: 'ios',
+      })
+
+      // First subscriber and check capability
+      const unsubscribe1 = tapToPayCapabilityStore.subscribe(() => {})
+      await tapToPayCapabilityStore.checkCapability()
+
+      // Second subscriber should receive current state immediately
+      const listener2Results: any[] = []
+      const unsubscribe2 = tapToPayCapabilityStore.subscribe((state) => {
+        listener2Results.push(state)
+      })
+
+      // Should receive current state immediately upon subscription
+      expect(listener2Results.length).toBe(1)
+      expect(listener2Results[0].status?.status).toBe('supported')
+      expect(listener2Results[0].status?.supported).toBe(true)
+
+      unsubscribe1()
       unsubscribe2()
     })
   })
