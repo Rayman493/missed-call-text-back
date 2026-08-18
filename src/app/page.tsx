@@ -120,6 +120,8 @@ export default async function Home() {
         <PageBackground>
           <SSRSafeNavbar forceDark={true} />
 
+          {/* Force dark theme for homepage content - does not mutate user's theme preference */}
+          <div className="dark">
       {/* Hero Section - SAFE VERSION WITHOUT FRAMER-MOTION */}
       <HomepageErrorBoundary>
         <ScrollAnimation>
@@ -787,6 +789,7 @@ export default async function Home() {
         </section>
         </ScrollAnimation>
       </HomepageErrorBoundary>
+          </div>
       <Footer />
       </PageBackground>
       </NativeLandingWrapper>
