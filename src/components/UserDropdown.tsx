@@ -9,7 +9,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { handleBillingAction } from '@/lib/billing'
 // import ThemeSelector from '@/components/ThemeSelector' // Temporarily disabled for mobile crash fix
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, ReceiptText, Settings, User, Home, X } from 'lucide-react'
+import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, ReceiptText, Settings, User, Home, X, Bell } from 'lucide-react'
 import { accountMenuItems } from '@/lib/navigation-config'
 import { isAdmin } from '@/lib/admin'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
@@ -301,6 +301,15 @@ export default function UserDropdown() {
 
             {/* Menu items */}
             <div className="px-1.5 py-1">
+              <Link
+                href="/dashboard/settings#notifications-divider"
+                role="menuitem"
+                onClick={() => setIsOpen(false)}
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+              >
+                <Bell className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                Notifications
+              </Link>
               <Link
                 href="/dashboard/settings"
                 role="menuitem"

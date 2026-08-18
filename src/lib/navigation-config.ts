@@ -1,4 +1,4 @@
-import { Home, Users, Calendar, CreditCard, Settings, ExternalLink, LogOut, CreditCard as BillingIcon, Voicemail, Activity } from 'lucide-react'
+import { Home, Users, Calendar, CreditCard, Settings, ExternalLink, LogOut, CreditCard as BillingIcon, Voicemail, Activity, Bell } from 'lucide-react'
 import { LucideIcon } from 'lucide-react'
 
 export interface NavItem {
@@ -52,6 +52,11 @@ export const primaryNavItems: NavItem[] = [
 ]
 
 export const accountMenuItems: AccountMenuItem[] = [
+  {
+    label: 'Notifications',
+    icon: Bell,
+    href: '/dashboard/settings#notifications-divider',
+  },
   {
     label: 'Settings',
     icon: Settings,
