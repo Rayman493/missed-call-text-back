@@ -1722,7 +1722,7 @@ export default function SchedulePage() {
 
                   {/* Map Tab */}
                   {scheduleTab === 'map' && (
-                    <div className="h-[calc(100dvh-160px-var(--bottom-nav-height,80px))] min-h-[500px]">
+                    <div className="h-[calc(100dvh-160px-var(--bottom-nav-height,80px))] md:h-[calc(100dvh-192px-var(--bottom-nav-height,80px))] min-h-[500px]">
                       <ScheduleMap
                         jobs={jobs}
                         calendarEvents={events}
