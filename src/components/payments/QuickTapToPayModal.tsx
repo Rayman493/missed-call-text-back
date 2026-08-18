@@ -147,19 +147,26 @@ const handleSendReceiptSubmit = async () => {
       throw new Error('Enter a valid phone number')
     }
 
+    // Determine receipt status based on payment state
+    // Declined payments should send 'failed' status receipts
+    const isDeclined = paymentState === 'failure' || visiblePhase === 'declined'
+    const receiptStatus = isDeclined ? 'failed' : 'paid'
+
     console.log('[QuickTapToPayModal] Sending receipt:', {
       paymentRequestId,
       normalizedPhone,
-      originalPhone: receiptPhoneNumber
+      originalPhone: receiptPhoneNumber,
+      receiptStatus
     })
 
-    // Call receipt endpoint
+    // Call receipt endpoint with status
     const response = await fetch('/api/payments/send-receipt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         paymentRequestId,
         phoneNumber: normalizedPhone,
+        status: receiptStatus,
       }),
     })
 
@@ -318,6 +325,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
   const {
     state: readerState,
     resetState: resetReaderState,
+    resetProgressOnly,
     setPreparing: setReaderPreparing,
   } = useTapToPayReaderPresentation(isOpen && hookIsNativeSupported)
 
@@ -509,6 +517,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
       prevPaymentStateRef.current = paymentState
       // Reset reader presentation state when modal closes
       resetReaderState()
+      resetProgressOnly()
       return
     }
 
@@ -809,6 +818,13 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
         })
       } catch {}
     })()
+
+    // Reset progress when transitioning from preparing to waiting_for_card
+    useEffect(() => {
+      if (visiblePhase === 'waiting_for_card') {
+        resetProgressOnly()
+      }
+    }, [visiblePhase, resetProgressOnly])
 
     return () => {
       window.removeEventListener('popstate', onPopState)
@@ -1411,8 +1427,25 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                         <p className="text-sm font-medium text-foreground">Preparing Tap to Pay</p>
                         <p className="text-xs text-muted-foreground">{formatCurrency(amountCents / 100)}</p>
                       </div>
+
+                      {/* Real configuration progress bar */}
+                      {readerState.softwareUpdateProgress !== null && (
+                        <div className="w-full max-w-[200px] space-y-2">
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Configuring</span>
+                            <span>{Math.round(readerState.softwareUpdateProgress * 100)}%</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-green-600 dark:bg-green-500 transition-all duration-300 ease-out"
+                              style={{ width: `${readerState.softwareUpdateProgress * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
                       {/* Indeterminate preparation message for Apple configuration */}
-                      {readerState.preparing && (
+                      {readerState.preparing && readerState.softwareUpdateProgress === null && (
                         <p className="text-xs text-muted-foreground mt-2">
                           This may take a moment the first time.
                         </p>
@@ -1570,7 +1603,6 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                     disabled={amountCents <= 0 || !isAmountValid || !isNativeSupported || isPaymentInProgress || showLocationPermissionCard || showLocationServicesCard || showLocationBlockedCard}
                     className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-600 flex items-center justify-center gap-2 active:scale-95"
                   >
-                    <Smartphone className="w-4 h-4" />
                     {showLocationPermissionCard || showLocationServicesCard || showLocationBlockedCard ? 'Complete Location Setup' : isAmountBelowMinimum ? 'Minimum $0.50 Required' : 'Start Tap to Pay'}
                   </button>
                 </>
@@ -1663,8 +1695,16 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                             disabled={isPaymentInProgress}
                             className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
                           >
-                            <Loader2 className={`w-4 h-4 ${isPaymentInProgress ? 'animate-spin' : ''}`} />
+                            {isPaymentInProgress ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                             Try Again
+                          </button>
+                          <button
+                            onClick={handleSendReceipt}
+                            disabled={isPaymentInProgress}
+                            className="flex-1 px-4 py-3 text-sm font-medium bg-white dark:bg-gray-800 text-foreground border border-border rounded-lg hover:bg-muted dark:hover:bg-gray-700 transition-colors active:scale-95"
+                            aria-label="Send declined payment receipt to customer"
+                          >
+                            Send Receipt
                           </button>
                         </>
                       )}

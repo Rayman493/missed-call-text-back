@@ -10,17 +10,18 @@ export const dynamic = 'force-dynamic'
 interface SendReceiptRequest {
   paymentRequestId: string
   phoneNumber: string
+  status?: 'paid' | 'failed'  // Optional: defaults to 'paid' for backward compatibility
 }
 
 /**
  * POST /api/payments/send-receipt
  *
- * Sends an SMS receipt for a successful Tap to Pay payment.
+ * Sends an SMS receipt for a Tap to Pay payment (successful or declined).
  *
  * Security:
  * - Requires valid Supabase session
  * - User must own the payment request
- * - Payment must be in 'paid' status
+ * - Payment must be in 'paid' or 'failed' status
  * - Phone number is normalized to E.164
  * - Uses canonical Twilio sendSms helper
  *
@@ -28,6 +29,7 @@ interface SendReceiptRequest {
  * {
  *   paymentRequestId: string
  *   phoneNumber: string
+ *   status?: 'paid' | 'failed'  // Optional, defaults to 'paid'
  * }
  *
  * Output:
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json() as SendReceiptRequest
-    const { paymentRequestId, phoneNumber } = body
+    const { paymentRequestId, phoneNumber, status = 'paid' } = body
 
     if (!paymentRequestId || typeof paymentRequestId !== 'string') {
       console.error('[RECEIPT API] Missing paymentRequestId')
@@ -91,10 +93,17 @@ export async function POST(request: NextRequest) {
       amountCents: paymentRequest.amount_cents
     })
 
-    // Verify payment status is paid
-    if (paymentRequest.status !== 'paid') {
+    // Verify payment status matches requested receipt status
+    // For declined receipts, payment must be 'failed'
+    // For successful receipts, payment must be 'paid'
+    if (status === 'paid' && paymentRequest.status !== 'paid') {
       console.error('[RECEIPT API] Payment not paid:', paymentRequest.status)
       return NextResponse.json({ error: 'Payment is not complete' }, { status: 400 })
+    }
+
+    if (status === 'failed' && paymentRequest.status !== 'failed') {
+      console.error('[RECEIPT API] Payment not failed:', paymentRequest.status)
+      return NextResponse.json({ error: 'Payment was not declined' }, { status: 400 })
     }
 
     // Verify user owns this payment request by checking business ownership
@@ -115,9 +124,17 @@ export async function POST(request: NextRequest) {
       businessName: business.name
     })
 
-    // Generate receipt copy
+    // Generate receipt copy based on payment status
     const amount = (paymentRequest.amount_cents / 100).toFixed(2)
-    const receiptMessage = `Payment of $${amount} received successfully. Thank you for your business! - ${business.name}`
+    let receiptMessage: string
+
+    if (status === 'failed') {
+      // Declined payment receipt - clearly indicates payment was NOT completed
+      receiptMessage = `Payment attempt: $${amount}\nStatus: Declined\nThis payment was not completed.\n- ${business.name}`
+    } else {
+      // Successful payment receipt
+      receiptMessage = `Payment of $${amount} received successfully. Thank you for your business! - ${business.name}`
+    }
 
     // Sanitize message
     const sanitizedMessage = sanitizeMessageContent(receiptMessage)
@@ -128,7 +145,8 @@ export async function POST(request: NextRequest) {
 
     console.log('[RECEIPT API] Sending receipt SMS:', {
       to: normalizedPhone,
-      messageLength: sanitizedMessage.length
+      messageLength: sanitizedMessage.length,
+      receiptType: status === 'failed' ? 'declined' : 'successful'
     })
 
     // Send SMS using canonical Twilio helper

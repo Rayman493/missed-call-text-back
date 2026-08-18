@@ -50,6 +50,8 @@ import BottomNavigation from '@/components/BottomNavigation'
 import SetupProgress from '@/components/setup/SetupProgress'
 import OffboardingBanner from '@/components/OffboardingBanner'
 import { NotificationPermissionEducation } from '@/components/notifications/NotificationPermissionEducation'
+import { TapToPayAwarenessModal } from '@/components/TapToPayAwarenessModal'
+import { useTapToPayAwareness } from '@/hooks/useTapToPayAwareness'
 import ProvisioningSuccessBanner from '@/components/ProvisioningSuccessBanner'
 import SetupStatusCard from '@/components/SetupStatusCard'
 import PaymentIssueBanner from '@/components/PaymentIssueBanner'
@@ -258,6 +260,7 @@ export default function DashboardContent() {
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const { checkoutMode, isLoading: eligibilityLoading, eligibility } = useTrialEligibility()
+  const tapToPayAwareness = useTapToPayAwareness(business)
   const [isOpeningBilling, setIsOpeningBilling] = useState(false)
   const [webhookConfirming, setWebhookConfirming] = useState(false)
   const [testSmsLoading, setTestSmsLoading] = useState(false)
@@ -1051,6 +1054,18 @@ export default function DashboardContent() {
       <AuthGuard>
         <BusinessGuard>
           <NotificationPermissionEducation />
+          <TapToPayAwarenessModal
+            isOpen={tapToPayAwareness.state.isEligible && !tapToPayAwareness.isAcknowledged}
+            onSetup={async () => {
+              await tapToPayAwareness.acknowledgeAwareness()
+              await refreshBusiness(true)
+              router.push('/dashboard?section=payments')
+            }}
+            onDismiss={async () => {
+              await tapToPayAwareness.acknowledgeAwareness()
+              await refreshBusiness(true)
+            }}
+          />
           <div className="min-h-screen bg-background page-gradient flex flex-col relative overflow-x-hidden">
             {/* App Header */}
             <AppHeader showNavigation={true} />

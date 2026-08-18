@@ -5,12 +5,14 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 
 // Storage schema version - increment when storage format changes
-const STORAGE_SCHEMA_VERSION = 'v1'
+const STORAGE_SCHEMA_VERSION = 'v2'
 const STORAGE_SCHEMA_KEY = 'terminal_storage_schema_version'
 const WEB_BUILD_MARKER = 'TTP_2026_08_03_ORCHESTRATION_FIX'
 
 // First-ever connection marker key for Capacitor Preferences
 const FIRST_CONNECTION_COMPLETED_KEY = 'ttp_first_connection_completed'
+// Last attempt outcome key to distinguish terminal failures from genuine ambiguity
+const LAST_ATTEMPT_OUTCOME_KEY = 'terminal_last_attempt_outcome'
 
 interface TokenRequest {
   requestId: string
@@ -56,6 +58,8 @@ export class TerminalBridgeService {
   private isFirstConnectionOnDevice: boolean = true
   private firstConnectionMarkerLoaded: boolean = false
   private connectionAttemptCount: number = 0
+  // Safe cache for account linkage status (only caches "linked" state since it's permanent)
+  private cachedAccountLinked: boolean | null = null
   // Attempt-scoped flags/timings and app state
   private attemptSummaryEmitted = false
   private attemptFlags = {
@@ -96,6 +100,8 @@ export class TerminalBridgeService {
     } catch {}
     // Clear unresolved attempt id if present to avoid reuse
     this.clearUnresolvedAttempt()
+    // Clear attempt outcome to allow fresh payment
+    this.clearAttemptOutcome()
     // Invalidate active attempt and PI so callbacks are treated as stale and UI doesn't mis-read readiness
     this.currentAttemptId = null
     this.attemptStartMs = null
@@ -165,6 +171,13 @@ export class TerminalBridgeService {
         if (unresolvedAttemptId) {
           console.log('[TERMINAL_STORAGE] Clearing stale unresolved attempt:', unresolvedAttemptId)
           localStorage.removeItem('terminal_unresolved_attempt_id')
+        }
+      } else if (currentVersion === 'v1') {
+        // Migrate from v1 to v2 - clear stale attempt outcomes
+        const lastOutcome = localStorage.getItem(LAST_ATTEMPT_OUTCOME_KEY)
+        if (lastOutcome) {
+          console.log('[TERMINAL_STORAGE] Clearing stale attempt outcome:', lastOutcome)
+          localStorage.removeItem(LAST_ATTEMPT_OUTCOME_KEY)
         }
       }
 
@@ -1137,15 +1150,31 @@ export class TerminalBridgeService {
 
     // CRITICAL: Check for unresolved attempt BEFORE generating new ID
     // This prevents creating a new attempt when one is already in progress
+    // CRITICAL FIX: Only reuse unresolved attempt if it was genuinely ambiguous (needs recovery)
+    // Do NOT reuse if the last attempt was definitively failed/canceled/succeeded
     const unresolvedAttemptId = this.getUnresolvedAttempt()
-    if (unresolvedAttemptId && !options.terminalAttemptId) {
-      console.log('[TAP_ATTEMPT] attempt_id=' + unresolvedAttemptId + ' stage=start_payment_reusing_unresolved')
+    const lastOutcome = this.getLastAttemptOutcome()
+    const shouldReuseUnresolved = unresolvedAttemptId && !options.terminalAttemptId && lastOutcome === 'ambiguous'
+
+    if (shouldReuseUnresolved) {
+      console.log('[TAP_ATTEMPT] attempt_id=' + unresolvedAttemptId + ' stage=start_payment_reusing_unresolved reason=genuinely_ambiguous')
       // Use the existing unresolved attempt ID instead of generating a new one
       options.terminalAttemptId = unresolvedAttemptId
+      try { logTapToPayEvent('unresolved_attempt_recovered', { phase: 'payment_intent', sessionId: this.sessionId, attemptId: unresolvedAttemptId, meta: { reason: 'genuinely_ambiguous' } }).catch(() => {}) } catch {}
+    } else if (unresolvedAttemptId && !options.terminalAttemptId && lastOutcome && lastOutcome !== 'ambiguous') {
+      // Previous attempt was terminal (failed/canceled/succeeded) - do not reuse
+      console.log('[TAP_ATTEMPT] attempt_id=' + unresolvedAttemptId + ' stage=start_payment_fresh_attempt reason=previous_outcome_terminal lastOutcome=' + lastOutcome)
+      // Clear the stale unresolved marker and start fresh
+      this.clearUnresolvedAttempt()
+      this.clearAttemptOutcome()
+      // Generate new attempt ID (will be done below)
     } else if (unresolvedAttemptId && options.terminalAttemptId && options.terminalAttemptId !== unresolvedAttemptId) {
       // Replacement scenario
       try { logTapToPayEvent('active_attempt_replaced', { phase: 'payment_intent', sessionId: this.sessionId, attemptId: options.terminalAttemptId, meta: { oldAttemptId: unresolvedAttemptId, reason: 'new_attempt_parameter' } }).catch(() => {}) } catch {}
     }
+
+    // Clear last attempt outcome when starting fresh payment
+    this.clearAttemptOutcome()
 
     // Generate or use provided terminalAttemptId for durable attempt identity
     const terminalAttemptId = options.terminalAttemptId || crypto.randomUUID()
@@ -1279,6 +1308,7 @@ export class TerminalBridgeService {
         // Clear unresolved attempt ID on success
         try { logTapToPayEvent('active_attempt_reset', { phase: 'reconcile', sessionId: this.sessionId, attemptId: terminalAttemptId, meta: { reason: 'reconciled_success' } }).catch(() => {}) } catch {}
         this.clearUnresolvedAttempt()
+        this.persistAttemptOutcome('succeeded')
         this.currentAttemptId = null
         this.attemptStartMs = null
         this.currentPhase = undefined
@@ -1287,12 +1317,14 @@ export class TerminalBridgeService {
         try { await logTapToPayEvent('reconcile_failed', { phase: 'reconcile', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, message: reconcileError instanceof Error ? reconcileError.message : 'Unknown' }) } catch {}
         // Don't fail the payment if reconciliation fails - webhook will handle it
         // Keep unresolved attempt ID for recovery
+        this.persistAttemptOutcome('ambiguous')
       }
     } else if (result.status === 'failed' || result.status === 'canceled') {
       // Clear unresolved attempt ID on terminal failure/cancellation
       console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=payment_terminal status=' + result.status)
       try { logTapToPayEvent('active_attempt_reset', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, meta: { reason: result.status } }).catch(() => {}) } catch {}
       this.clearUnresolvedAttempt()
+      this.persistAttemptOutcome(result.status === 'failed' ? 'failed' : 'canceled')
       this.currentAttemptId = null
       this.attemptStartMs = null
       this.currentPhase = undefined
@@ -1301,6 +1333,7 @@ export class TerminalBridgeService {
       // Unexpected status - treat as ambiguous
       console.warn('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=unexpected_status status=' + result.status + ' treating_as_ambiguous')
       // Keep unresolved attempt ID for recovery
+      this.persistAttemptOutcome('ambiguous')
       try { await logTapToPayEvent('payment_ambiguous', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, code: result.status }) } catch {}
     }
 
@@ -1414,13 +1447,28 @@ export class TerminalBridgeService {
 
   async isTapToPayAccountLinked(options?: { onBehalfOf?: string }): Promise<{ isLinked: boolean }> {
     if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
+
+    // Safe optimization: if we've cached "linked" status, return it immediately
+    // Once linked, Apple account linkage is permanent - no need to recheck
+    if (this.cachedAccountLinked === true) {
+      console.log('[TTP Service] Using cached account-linked status: true')
+      return { isLinked: true }
+    }
+
     try {
       const result = await this.plugin.isTapToPayAccountLinked(options)
+
+      // Cache the result if linked (safe because linkage is permanent)
+      if (result.isLinked) {
+        this.cachedAccountLinked = true
+        console.log('[TTP Service] Cached account-linked status: true')
+      }
+
       try {
         await logTapToPayEvent('account_linkage_checked', {
           phase: 'connect_reader',
           sessionId: this.sessionId,
-          meta: { isLinked: result.isLinked, onBehalfOf: options?.onBehalfOf }
+          meta: { isLinked: result.isLinked, onBehalfOf: options?.onBehalfOf, cached: this.cachedAccountLinked === true }
         })
       } catch {}
       return result
@@ -1428,6 +1476,12 @@ export class TerminalBridgeService {
       console.error('[TTP Service] Failed to check account linkage:', error)
       throw error
     }
+  }
+
+  // Clear the cached account linkage status (call after T&C enablement in Settings)
+  clearAccountLinkedCache() {
+    this.cachedAccountLinked = null
+    console.log('[TTP Service] Cleared account-linked cache')
   }
 
   async teardown() {
@@ -1492,6 +1546,37 @@ export class TerminalBridgeService {
       console.log('[TAP_ATTEMPT] stage=unresolved_attempt_cleared')
     } catch (error) {
       console.error('[TAP_ATTEMPT] failed to clear attempt ID:', error)
+    }
+  }
+
+  // Persist last attempt outcome to distinguish terminal failures from genuine ambiguity
+  private persistAttemptOutcome(outcome: 'succeeded' | 'failed' | 'canceled' | 'ambiguous') {
+    try {
+      localStorage.setItem(LAST_ATTEMPT_OUTCOME_KEY, outcome)
+      console.log('[TAP_ATTEMPT] stage=attempt_outcome_persisted outcome=' + outcome)
+    } catch (error) {
+      console.error('[TAP_ATTEMPT] failed to persist attempt outcome:', error)
+    }
+  }
+
+  // Get last attempt outcome
+  private getLastAttemptOutcome(): 'succeeded' | 'failed' | 'canceled' | 'ambiguous' | null {
+    try {
+      const outcome = localStorage.getItem(LAST_ATTEMPT_OUTCOME_KEY) as 'succeeded' | 'failed' | 'canceled' | 'ambiguous' | null
+      return outcome
+    } catch (error) {
+      console.error('[TAP_ATTEMPT] failed to get attempt outcome:', error)
+      return null
+    }
+  }
+
+  // Clear last attempt outcome when starting fresh payment
+  private clearAttemptOutcome() {
+    try {
+      localStorage.removeItem(LAST_ATTEMPT_OUTCOME_KEY)
+      console.log('[TAP_ATTEMPT] stage=attempt_outcome_cleared')
+    } catch (error) {
+      console.error('[TAP_ATTEMPT] failed to clear attempt outcome:', error)
     }
   }
 

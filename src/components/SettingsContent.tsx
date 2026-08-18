@@ -308,6 +308,8 @@ export default function SettingsContent() {
 
       // Step 4: Re-check Apple account linkage after connection
       console.log('[SettingsContent] Re-checking Apple account linkage after connection')
+      // Clear cache to get fresh status after T&C enablement
+      terminalService.clearAccountLinkedCache()
       const finalCheck = await terminalService.isTapToPayAccountLinked()
       console.log('[SettingsContent] Final linkage check result:', finalCheck.isLinked)
 
@@ -3424,8 +3426,9 @@ export default function SettingsContent() {
                         const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
                         const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
 
-                        // Show guide for supported iOS devices with Stripe connected but not yet linked
-                        if (isIOS() && status === 'supported' && business?.stripe_charges_enabled && appleAccountLinkageState.status !== 'linked') {
+                        // Show guide for supported iOS devices with Stripe connected
+                        // Available both before and after account linkage for Apple compliance
+                        if (isIOS() && status === 'supported' && business?.stripe_charges_enabled) {
                           return (
                             <button
                               onClick={handleNativeEducationGuide}

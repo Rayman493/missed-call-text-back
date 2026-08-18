@@ -26,6 +26,7 @@ export interface ReaderPresentationState {
   // Software update active state
   softwareUpdateActive: boolean
   // Software update progress (0.0 - 1.0, real percentage from Stripe)
+  // Also used for initial reader configuration progress on iOS
   softwareUpdateProgress: number | null
   // Software update error message
   softwareUpdateError: string | null
@@ -63,6 +64,13 @@ export function useTapToPayReaderPresentation(isEnabled: boolean) {
       softwareUpdateProgress: null,
       softwareUpdateError: null,
     })
+  }, [])
+
+  const resetProgressOnly = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      softwareUpdateProgress: null,
+    }))
   }, [])
 
   const setPreparing = useCallback((preparing: boolean) => {
@@ -116,12 +124,15 @@ export function useTapToPayReaderPresentation(isEnabled: boolean) {
         listenersRef.current.updateStarted = updateStarted
 
         // readerUpdateProgress - real software update progress (0.0 - 1.0)
+        // Also used for initial reader configuration progress on iOS
         const updateProgress = await Terminal.addListener('readerUpdateProgress', (data: any) => {
           if (!mounted) return
+          const progress = data?.progress ?? null
           setState(prev => ({
             ...prev,
+            preparing: true, // Also set preparing to true during configuration progress
             softwareUpdateActive: true,
-            softwareUpdateProgress: data?.progress ?? null,
+            softwareUpdateProgress: progress,
           }))
         })
         listenersRef.current.updateProgress = updateProgress
@@ -169,6 +180,7 @@ export function useTapToPayReaderPresentation(isEnabled: boolean) {
   return {
     state,
     resetState,
+    resetProgressOnly,
     setPreparing,
   }
 }

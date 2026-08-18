@@ -61,12 +61,20 @@ export default function TapToPayModal({
   const [locationServicesEnabled, setLocationServicesEnabled] = useState<boolean | null>(null)
   const [showLocationPermissionDialog, setShowLocationPermissionDialog] = useState(false)
 
+  // Receipt state
+  const [showReceiptModal, setShowReceiptModal] = useState(false)
+  const [receiptPhoneNumber, setReceiptPhoneNumber] = useState('')
+  const [isSendingReceipt, setIsSendingReceipt] = useState(false)
+  const [receiptSent, setReceiptSent] = useState(false)
+  const [receiptError, setReceiptError] = useState('')
+
   useBodyScrollLock(isOpen)
 
   // Use shared reader presentation hook
   const {
     state: readerState,
     resetState: resetReaderState,
+    resetProgressOnly,
   } = useTapToPayReaderPresentation(isOpen && isNativeSupported)
 
   // Track current UI state in a ref to guard against stale callbacks
@@ -196,6 +204,7 @@ export default function TapToPayModal({
       waitingForConfirmationEmitted.current = null
       // Reset reader presentation state when modal closes
       resetReaderState()
+      resetProgressOnly()
     }
   }, [isOpen, resetReaderState])
 
@@ -348,7 +357,9 @@ export default function TapToPayModal({
               waitingForConfirmationEmitted.current = attemptId
               logTapToPayEvent('WAITING_FOR_CONFIRMATION', { phase: 'confirm_payment', sessionId: terminalService.getSessionId(), attemptId, paymentIntentId: terminalService.getPaymentIntentId() }).catch(() => {})
               // Explicitly surface Processing state in UI without delaying success
-              if (paymentStateRef.current === 'waiting_for_card') {
+              // Transition to processing if we're in a collecting state (waiting_for_card or any transient state)
+              const currentState = paymentStateRef.current
+              if (currentState === 'waiting_for_card' || currentState === 'ready' || currentState === 'preparing') {
                 setPaymentState('processing')
               }
             }
@@ -700,6 +711,7 @@ export default function TapToPayModal({
         if (terminalService.getPaymentIntentId()) {
           setPaymentState('waiting_for_card')
           setLastSuccessfulStage('payment_intent_created')
+          resetProgressOnly() // Clear progress when preparation completes
         }
       } catch {}
 
@@ -820,6 +832,70 @@ export default function TapToPayModal({
     // Guard against concurrent retries to prevent duplicate attempts
     if (!isPaymentInProgress) {
       handleStartPayment()
+    }
+  }
+
+  const handleSendReceipt = () => {
+    const paymentRequestId = terminalService.getPaymentIntentId()
+    if (!paymentRequestId) {
+      setReceiptError('Payment information not available. Please close and try again.')
+      return
+    }
+    setShowReceiptModal(true)
+    setReceiptSent(false)
+    setReceiptError('')
+  }
+
+  const handleSendReceiptSubmit = async () => {
+    setIsSendingReceipt(true)
+    setReceiptError('')
+
+    try {
+      const paymentRequestId = terminalService.getPaymentIntentId()
+      if (!paymentRequestId) {
+        throw new Error('Payment information not available. Please close and try again.')
+      }
+
+      // Normalize phone to E.164 format
+      const normalizedPhone = receiptPhoneNumber.startsWith('+') ? receiptPhoneNumber : `+1${receiptPhoneNumber.replace(/\D/g, '')}`
+      if (!normalizedPhone || normalizedPhone.length < 12) {
+        throw new Error('Enter a valid phone number')
+      }
+
+      // Determine receipt status based on payment state
+      const isDeclined = paymentState === 'failure'
+      const receiptStatus = isDeclined ? 'failed' : 'paid'
+
+      console.log('[TapToPayModal] Sending receipt:', {
+        paymentRequestId,
+        normalizedPhone,
+        receiptStatus
+      })
+
+      const response = await fetch('/api/payments/send-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentRequestId,
+          phoneNumber: normalizedPhone,
+          status: receiptStatus,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to send receipt')
+      }
+
+      const result = await response.json()
+      console.log('[TapToPayModal] Receipt sent successfully:', result)
+
+      setReceiptSent(true)
+    } catch (error) {
+      console.error('[TapToPayModal] Failed to send receipt:', error)
+      setReceiptError(error instanceof Error ? error.message : 'Failed to send receipt')
+    } finally {
+      setIsSendingReceipt(false)
     }
   }
 
@@ -1012,8 +1088,25 @@ export default function TapToPayModal({
             </div>
             <p className="text-lg font-medium">Preparing Tap to Pay</p>
             <p className="text-sm text-muted-foreground">Getting the secure reader ready</p>
+
+            {/* Real configuration progress bar */}
+            {readerState.softwareUpdateProgress !== null && (
+              <div className="w-full max-w-[240px] space-y-2">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Configuring</span>
+                  <span>{Math.round(readerState.softwareUpdateProgress * 100)}%</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-300 ease-out"
+                    style={{ width: `${readerState.softwareUpdateProgress * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Indeterminate preparation message for Apple configuration */}
-            {readerState.preparing && (
+            {readerState.preparing && readerState.softwareUpdateProgress === null && (
               <p className="text-xs text-muted-foreground mt-2 text-center">
                 Preparing Tap to Pay on iPhone… This can take a moment the first time.
               </p>
@@ -1262,6 +1355,13 @@ export default function TapToPayModal({
               >
                 Try Again
               </button>
+              <button
+                onClick={handleSendReceipt}
+                className="px-4 py-2 text-sm font-medium bg-white dark:bg-gray-800 text-foreground border border-border rounded-lg hover:bg-muted dark:hover:bg-gray-700 transition-colors"
+                aria-label="Send declined payment receipt to customer"
+              >
+                Send Receipt
+              </button>
             </div>
           </div>
         )
@@ -1345,4 +1445,79 @@ export default function TapToPayModal({
       </div>
     </div>, document.body) : null
   )
+
+  // Receipt Modal
+  if (showReceiptModal && typeof document !== 'undefined') {
+    return createPortal(
+      <div className="fixed inset-x-0 top-0 h-[100dvh] z-[80] flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-sm max-h-[calc(100dvh-32px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200">
+          <div className="px-4 py-3 sm:px-5 sm:py-4 border-b border-border/50">
+            <h3 className="text-lg font-semibold text-foreground">Send Receipt</h3>
+          </div>
+
+          <div className="px-4 py-3 sm:px-5 sm:py-4 space-y-4">
+            {!receiptSent ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Customer Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={receiptPhoneNumber}
+                    onChange={(e) => setReceiptPhoneNumber(e.target.value)}
+                    placeholder="(412) 555-3010"
+                    className="w-full px-4 py-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={isSendingReceipt}
+                    aria-label="Customer phone number for receipt"
+                  />
+                </div>
+
+                {receiptError && (
+                  <p className="text-sm text-red-600 dark:text-red-400">{receiptError}</p>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setShowReceiptModal(false)}
+                    disabled={isSendingReceipt}
+                    className="flex-1 px-4 py-3 rounded-lg border border-border text-foreground font-medium hover:bg-muted transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSendReceiptSubmit}
+                    disabled={isSendingReceipt || !receiptPhoneNumber}
+                    className="flex-1 px-4 py-3 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isSendingReceipt ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Sending...</span>
+                      </>
+                    ) : (
+                      'Send Receipt'
+                    )}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-4 space-y-4">
+                <CheckCircle2 className="w-12 h-12 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                <p className="text-sm font-medium text-foreground">Receipt sent to customer</p>
+                <button
+                  onClick={() => setShowReceiptModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>, document.body
+    )
+  }
+
+  return null
 }
