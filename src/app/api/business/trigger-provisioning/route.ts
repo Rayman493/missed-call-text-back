@@ -693,7 +693,7 @@ export async function POST(request: Request) {
         message: twilioError instanceof Error ? twilioError.message : 'Unknown error',
         stack: twilioError instanceof Error ? twilioError.stack : 'No stack trace'
       })
-      
+
       // Clear lock and mark as failed with ownership check
       const { error: failError } = await supabaseAdmin
         .from('businesses')
@@ -715,20 +715,6 @@ export async function POST(request: Request) {
         provisioning_error: twilioError instanceof Error ? twilioError.message : 'Unknown error'
       }, { status: 500 })
     }
-
-    console.log('[ProvisioningTrigger] ========== TRIGGER PROVISIONING END ==========')
-
-    // DIAGNOSTIC: Add response headers to identify callee deployment
-    const responseHeaders: Record<string, string> = {
-      'x-replyflow-vercel-env': process.env.VERCEL_ENV || 'not_set',
-      'x-replyflow-git-sha': process.env.VERCEL_GIT_COMMIT_SHA || 'not_set',
-      'x-replyflow-supabase-host': supabaseHostname
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Provisioning completed successfully'
-    }, { headers: responseHeaders })
 
   } catch (error) {
     console.error('[ProvisioningTrigger] UNEXPECTED ERROR:', error)
