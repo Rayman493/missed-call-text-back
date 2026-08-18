@@ -698,6 +698,57 @@ export const normalizeAddressForDisplay = (text: string | null | undefined): str
   return trimmed.replace(/\.+$/, '');
 };
 
+/**
+ * Truncate text for SMS display while preserving meaning
+ * Adds ellipsis only when truncation occurs
+ * Avoids breaking Unicode/surrogate pairs
+ */
+export const truncateForSms = (text: string | null | undefined, maxLength: number = 200): string => {
+  if (!text) return '';
+  const trimmed = text.trim();
+  if (trimmed.length <= maxLength) return trimmed;
+
+  // Truncate at maxLength, but avoid breaking Unicode surrogate pairs
+  let truncated = trimmed.slice(0, maxLength);
+  // Check if we cut a surrogate pair and adjust
+  if (truncated.charCodeAt(truncated.length - 1) >= 0xD800 && truncated.charCodeAt(truncated.length - 1) <= 0xDBFF) {
+    truncated = truncated.slice(0, -1);
+  }
+
+  return truncated + '...';
+};
+
+/**
+ * Normalize structured field values by removing incidental trailing sentence punctuation.
+ * This is for structured scalar fields where terminal punctuation is clearly formatting noise.
+ * Does NOT strip punctuation from free-text fields like details, notes, or descriptions.
+ *
+ * Behavior:
+ * - Trim leading/trailing whitespace
+ * - Remove one trailing sentence punctuation mark when safe: ".", ",", ";", ":"
+ * - Preserve internal punctuation
+ * - Preserve unit/apartment markers
+ * - Preserve abbreviations where punctuation is semantically meaningful
+ *
+ * Examples:
+ * - "1632 Southpine Drive." → "1632 Southpine Drive"
+ * - "1632 Southpine Drive" → "1632 Southpine Drive" (unchanged)
+ * - "1632 Southpine Dr., Apt. 2B" → "1632 Southpine Dr., Apt. 2B" (internal punctuation preserved)
+ * - "123 St. James St." → "123 St. James St." (internal periods preserved)
+ * - "  1632 Southpine Drive.  " → "1632 Southpine Drive" (whitespace trimmed)
+ * - null → ""
+ * - "" → ""
+ */
+export const normalizeStructuredFieldValue = (text: string | null | undefined): string => {
+  if (!text) return '';
+  const trimmed = text.trim();
+  if (trimmed === '') return '';
+
+  // Remove trailing sentence punctuation: .,;: (only one occurrence at the end)
+  // This preserves internal punctuation like "St." or "Apt."
+  return trimmed.replace(/[.,;:]$/, '');
+};
+
 // Field-specific normalization for addresses
 // Removes location-specific conversational prefixes
 export const normalizeAddress = (text: string | null | undefined): string => {
@@ -1253,6 +1304,10 @@ export const formatAdaptiveIntakeSms = (
     intakeData?.serviceRequested ?? intakeData?.reasonForCalling
   );
 
+  // Extract details field
+  const detailsValue = intakeData?.requestDetails ?? intakeData?.additionalDetails ?? intakeData?.importantDetails ?? '';
+  const hasDetails = detailsValue && detailsValue !== 'Not collected' && detailsValue.trim() !== '';
+
   // Use canonical title for SMS Service field (concise, professional summary)
   // Priority: intakeData.request (canonical) → serviceRequested (canonicalized) → fallback
   const serviceRequested = intakeData?.request
@@ -1378,6 +1433,11 @@ export const formatAdaptiveIntakeSms = (
       body += `• Service: ${serviceRequested}`;
     }
 
+    // Details (if available)
+    if (hasDetails) {
+      body += `\n\n• Details: ${truncateForSms(detailsValue, 200)}`;
+    }
+
     // Location (without emoji to avoid UCS-2 encoding)
     if (shouldShowLocation && hasAddress) {
       body += `\n\n• Address: ${serviceAddress}`;
@@ -1406,6 +1466,11 @@ export const formatAdaptiveIntakeSms = (
 
   if (hasRequest) {
     body += `• Service: ${serviceRequested}`;
+  }
+
+  // Details (if available)
+  if (hasDetails) {
+    body += `\n\n• Details: ${truncateForSms(detailsValue, 200)}`;
   }
 
   // Location (without emoji to avoid UCS-2 encoding)

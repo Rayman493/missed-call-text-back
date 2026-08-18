@@ -6,7 +6,7 @@
  */
 
 import { getLeadAIIntake } from './ai-field-mapping'
-import { normalizeAddressForDisplay } from './ai-intake-formatter'
+import { normalizeAddressForDisplay, normalizeStructuredFieldValue } from './ai-intake-formatter'
 
 export interface SummaryContext {
   customer: {
@@ -82,18 +82,25 @@ export function buildSummaryContext(lead: any): SummaryContext {
     )
   }
   if (corrected.serviceRequested || corrected.reasonForCalling || corrected.reason) {
-    corrections.service = corrected.serviceRequested || corrected.reasonForCalling || corrected.reason
+    corrections.service = normalizeStructuredFieldValue(
+      corrected.serviceRequested || corrected.reasonForCalling || corrected.reason
+    )
   }
   if (corrected.desiredCompletion || corrected.desiredCompletionTime || corrected.timing) {
-    corrections.timing = corrected.desiredCompletion || corrected.desiredCompletionTime || corrected.timing
+    corrections.timing = normalizeStructuredFieldValue(
+      corrected.desiredCompletion || corrected.desiredCompletionTime || corrected.timing
+    )
   }
   if (corrected.callbackTime || corrected.preferredCallbackTime || corrected.preferredTiming) {
-    corrections.callback = corrected.callbackTime || corrected.preferredCallbackTime || corrected.preferredTiming
+    corrections.callback = normalizeStructuredFieldValue(
+      corrected.callbackTime || corrected.preferredCallbackTime || corrected.preferredTiming
+    )
   }
   if (corrected.communication || corrected.contactPreference) {
     corrections.communication = corrected.communication || corrected.contactPreference
   }
   if (corrected.additionalDetails || corrected.details || corrected.importantDetails) {
+    // Details is free-text - do NOT normalize punctuation
     corrections.details = corrected.additionalDetails || corrected.details || corrected.importantDetails
   }
 
