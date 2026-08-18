@@ -63,18 +63,21 @@ export function useTapToPayAwareness(business: Business | null): UseTapToPayAwar
         const isIOS = platform === 'ios'
         
         if (!isNative || !isIOS) {
+          console.log('[useTapToPayAwareness] Platform check failed, setting isLoading=false, isEligible=false')
           setState(prev => ({ ...prev, isLoading: false, isEligible: false }))
           return
         }
 
         // 2. Check business exists
         if (!business) {
+          console.log('[useTapToPayAwareness] Business check failed, setting isLoading=false, isEligible=false')
           setState(prev => ({ ...prev, isLoading: false, isEligible: false }))
           return
         }
 
         // 3. Check if already acknowledged
         if (business.tap_to_pay_awareness_acknowledged_at) {
+          console.log('[useTapToPayAwareness] Already acknowledged, setting isLoading=false, isEligible=false')
           setIsAcknowledged(true)
           setState(prev => ({ ...prev, isLoading: false, isEligible: false }))
           return
@@ -83,6 +86,7 @@ export function useTapToPayAwareness(business: Business | null): UseTapToPayAwar
         // 4. Check Stripe Connect is connected
         const isStripeConnected = business.stripe_connect_status === 'connected'
         if (!isStripeConnected) {
+          console.log('[useTapToPayAwareness] Stripe not connected, setting isLoading=false, isEligible=false')
           setState(prev => ({ ...prev, isLoading: false, isEligible: false }))
           return
         }
@@ -90,6 +94,7 @@ export function useTapToPayAwareness(business: Business | null): UseTapToPayAwar
         // 5. Check charges are enabled
         const areChargesEnabled = business.stripe_charges_enabled === true
         if (!areChargesEnabled) {
+          console.log('[useTapToPayAwareness] Charges not enabled, setting isLoading=false, isEligible=false')
           setState(prev => ({ ...prev, isLoading: false, isEligible: false }))
           return
         }
@@ -99,6 +104,7 @@ export function useTapToPayAwareness(business: Business | null): UseTapToPayAwar
 
         // 7. Check if device supports Tap to Pay
         if (!supportStatus || !supportStatus.supported) {
+          console.log('[useTapToPayAwareness] Device not supported, setting isEligible=false', { supportStatus })
           setState(prev => ({
             ...prev,
             isEligible: false,
@@ -107,9 +113,11 @@ export function useTapToPayAwareness(business: Business | null): UseTapToPayAwar
         }
 
         // All checks passed - eligible
+        console.log('[useTapToPayAwareness] Eligibility check passed, setting eligible=true, isLoading=false')
         setState(prev => ({
           ...prev,
           isEligible: true,
+          isLoading: false,
         }))
 
       } catch (error) {

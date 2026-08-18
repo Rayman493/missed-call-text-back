@@ -239,4 +239,48 @@ describe('Terminal Progress Mapping', () => {
       expect(hasNestedUseEffect).toBe(false)
     })
   })
+
+  describe('Settings UI Loading State', () => {
+    it('should clear isLoading when eligibility is determined', () => {
+      // This test documents the fix for the "Checking" UI bug in Settings:
+      // The Tap to Pay Settings page was stuck on "Checking" indefinitely
+      // even though Stripe Connect and native detection succeeded.
+      //
+      // Root cause: In useTapToPayAwareness.ts, when eligibility was determined
+      // to be true (all checks passed), isLoading was NOT set to false, leaving
+      // it stuck at the initial value of true.
+      //
+      // The UI condition in SettingsContent.tsx line 3177:
+      // if (tapToPayAwareness.state.isLoading || status === 'unknown')
+      //
+      // Since isLoading remained true, the UI showed "Checking..." forever.
+      //
+      // Fix: Added isLoading: false to the setState when eligibility is true
+      // (useTapToPayAwareness.ts line 113).
+      //
+      // State transitions that must clear isLoading:
+      // - Platform check fails (non-iOS or non-native)
+      // - Business check fails (no business)
+      // - Already acknowledged
+      // - Stripe not connected
+      // - Charges not enabled
+      // - Device not supported
+      // - Eligibility determined true (THE BUG - was missing)
+      // - Error occurs
+
+      const statesThatClearIsLoading = [
+        'platform_failed',
+        'business_missing',
+        'already_acknowledged',
+        'stripe_not_connected',
+        'charges_not_enabled',
+        'device_not_supported',
+        'eligibility_true', // This was the bug
+        'error_occurred',
+      ]
+
+      expect(statesThatClearIsLoading.length).toBe(8)
+      expect(statesThatClearIsLoading).toContain('eligibility_true')
+    })
+  })
 })

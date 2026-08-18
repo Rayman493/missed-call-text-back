@@ -137,7 +137,9 @@ const handleSendReceiptSubmit = async () => {
 
   try {
     // Validate paymentRequestId is available
-    if (!paymentRequestId) {
+    // Use lastCompletedAttempt.paymentRequestId as fallback for declined payments
+    const receiptPaymentRequestId = paymentRequestId || lastCompletedAttempt.paymentRequestId
+    if (!receiptPaymentRequestId) {
       throw new Error('Payment information not available. Please close and try again.')
     }
 
@@ -153,7 +155,7 @@ const handleSendReceiptSubmit = async () => {
     const receiptStatus = isDeclined ? 'failed' : 'paid'
 
     console.log('[QuickTapToPayModal] Sending receipt:', {
-      paymentRequestId,
+      paymentRequestId: receiptPaymentRequestId,
       normalizedPhone,
       originalPhone: receiptPhoneNumber,
       receiptStatus
@@ -164,7 +166,7 @@ const handleSendReceiptSubmit = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        paymentRequestId,
+        paymentRequestId: receiptPaymentRequestId,
         phoneNumber: normalizedPhone,
         status: receiptStatus,
       }),

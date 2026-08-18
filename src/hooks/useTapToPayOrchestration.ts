@@ -839,8 +839,8 @@ export function useTapToPayOrchestration({
         console.log('[TTP Hook] Checking for unresolved attempts')
         dispatchTTPEvent('RECOVERY_PROMISE_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId())
         
-        // Get the unresolved attempt ID from localStorage
-        const unresolvedAttemptId = typeof window !== 'undefined' ? localStorage.getItem('terminal_unresolved_attempt_id') : null
+        // Get the unresolved attempt ID from service (uses correct key)
+        const unresolvedAttemptId = terminalService.getUnresolvedAttempt()
         
         if (!unresolvedAttemptId) {
           console.log('[TTP Hook] No unresolved attempt ID found in localStorage')

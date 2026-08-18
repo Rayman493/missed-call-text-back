@@ -164,7 +164,15 @@ export class TerminalBridgeService {
 
       console.log('[TERMINAL_STORAGE] Migrating from version', currentVersion, 'to', STORAGE_SCHEMA_VERSION)
 
-      // Clear stale data from old versions
+      // Always clear stale old key to prevent key-mismatch bugs
+      const oldKey = 'terminal_unresolved_attempt_id'
+      const staleUnresolvedAttemptId = localStorage.getItem(oldKey)
+      if (staleUnresolvedAttemptId) {
+        console.log('[TERMINAL_STORAGE] Clearing stale old-key unresolved attempt:', staleUnresolvedAttemptId)
+        localStorage.removeItem(oldKey)
+      }
+
+      // Clear stale data from old versions (legacy)
       if (!currentVersion) {
         // First time or old version - clear all stale data
         const unresolvedAttemptId = localStorage.getItem('terminal_unresolved_attempt_id')
