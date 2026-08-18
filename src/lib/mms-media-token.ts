@@ -1,5 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose'
 
+const DEBUG = process.env.NODE_ENV === 'development'
+
 /**
  * Centralized secret selection for MMS media tokens
  * Uses MMS_MEDIA_SECRET if available, falls back to TWILIO_AUTH_TOKEN
@@ -10,7 +12,7 @@ function getMmsMediaSecret(): Uint8Array {
     throw new Error('MMS media secret not configured: neither MMS_MEDIA_SECRET nor TWILIO_AUTH_TOKEN is set')
   }
   const secretSource = process.env.MMS_MEDIA_SECRET ? 'MMS_MEDIA_SECRET' : 'TWILIO_AUTH_TOKEN'
-  console.log('[MMS Media Token] Using secret source:', secretSource)
+  if (DEBUG) console.log('[MMS Media Token] Using secret source:', secretSource)
   return new TextEncoder().encode(secret)
 }
 
@@ -53,7 +55,7 @@ export async function generateMmsMediaToken(filePath: string): Promise<string> {
     throw new Error('Generated MMS media token is invalid')
   }
 
-  console.log('[MMS Media Token] Token generated successfully:', {
+  if (DEBUG) console.log('[MMS Media Token] Token generated successfully:', {
     tokenLength: token.length,
     tokenSegmentCount: segments.length,
     tokenDotCount: segments.length - 1,
@@ -69,7 +71,7 @@ export async function generateMmsMediaToken(filePath: string): Promise<string> {
  * Returns the payload if valid, null otherwise
  */
 export async function verifyMmsMediaToken(token: string, expectedPath: string): Promise<MmsMediaTokenPayload | null> {
-  console.log('[MMS Media Token] Verification attempt:', {
+  if (DEBUG) console.log('[MMS Media Token] Verification attempt:', {
     tokenPresent: !!token,
     tokenLength: token?.length,
     tokenSegmentCount: token ? token.split('.').length : 0,
@@ -96,17 +98,30 @@ export async function verifyMmsMediaToken(token: string, expectedPath: string): 
     if (typedPayload.path !== expectedPath) {
       console.error('[MMS Media Token] Path mismatch', {
         expected: expectedPath.substring(0, 50),
-        received: typedPayload.path.substring(0, 50)
+        received: typedPayload.path.substring(0, 50),
+        pathsEqual: typedPayload.path === expectedPath
       })
       return null
     }
 
-    console.log('[MMS Media Token] Verification successful')
+    // Check expiration
+    const now = Math.floor(Date.now() / 1000)
+    if (typedPayload.exp && typedPayload.exp < now) {
+      console.error('[MMS Media Token] Token expired', {
+        exp: typedPayload.exp,
+        now,
+        expiredSeconds: now - typedPayload.exp
+      })
+      return null
+    }
+
+    if (DEBUG) console.log('[MMS Media Token] Verification successful')
     return typedPayload
   } catch (error) {
     console.error('[MMS Media Token] Verification failed:', {
       code: (error as any)?.code,
-      message: (error as any)?.message
+      message: (error as any)?.message,
+      name: (error as any)?.name
     })
     return null
   }

@@ -1,8 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { MessageMedia } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
+
+const DEBUG = process.env.NODE_ENV === 'development'
 
 interface MessageMediaRendererProps {
   media: MessageMedia[]
@@ -14,7 +16,7 @@ interface MessageMediaRendererProps {
 function getMediaUrl(originalUrl: string): string | null {
   // Guard against empty or invalid URLs
   if (!originalUrl || typeof originalUrl !== 'string' || originalUrl.trim() === '') {
-    console.error('[MessageMediaRenderer] getMediaUrl called with empty URL')
+    if (DEBUG) console.error('[MessageMediaRenderer] getMediaUrl called with empty URL')
     return null
   }
 
@@ -31,23 +33,38 @@ function getMediaUrl(originalUrl: string): string | null {
   if (originalUrl.includes('/api/twilio/media')) {
     return originalUrl
   }
+  // If it's an MMS media URL, return as-is (will be fetched as blob)
+  if (originalUrl.includes('/api/mms-media/serve')) {
+    return originalUrl
+  }
   // Otherwise, proxy through our API for Twilio URLs
   return `/api/twilio/media?url=${encodeURIComponent(originalUrl)}`
 }
 
-// Helper function to fetch authenticated media for Twilio URLs with one-time recovery
-async function fetchAuthenticatedMedia(mediaUrl: string, mediaId: string, recoveryState: 'idle' | 'refreshing' | 'recovered' | 'failed', setRecoveryState: (state: 'idle' | 'refreshing' | 'recovered' | 'failed') => void): Promise<string | null> {
+// Helper function to fetch authenticated media
+async function fetchAuthenticatedMedia(
+  mediaUrl: string,
+  mediaId: string,
+  blobUrlsRef: React.MutableRefObject<Set<string>>,
+  fetchingRef: React.MutableRefObject<Set<string>>
+): Promise<string | null> {
   const correlationId = `media_${mediaId}_${Date.now()}`
 
-  // If it's a blob: URL (local preview), return as-is - no auth or recovery needed
+  // Prevent duplicate fetches
+  if (fetchingRef.current.has(mediaId)) {
+    if (DEBUG) console.log(`[MessageMediaRenderer] ${correlationId} Skipping duplicate fetch for ${mediaId}`)
+    return null
+  }
+
+  // If it's a blob: URL (local preview), return as-is - no auth needed
   if (mediaUrl.startsWith('blob:')) {
-    console.log(`[MessageMediaRenderer] ${correlationId} Using local blob URL, no auth needed`)
+    if (DEBUG) console.log(`[MessageMediaRenderer] ${correlationId} Using local blob URL, no auth needed`)
     return mediaUrl
   }
 
   // If it's a Supabase URL, return as-is
   if (mediaUrl.includes('supabase.co') || mediaUrl.includes('/storage/v1')) {
-    console.log(`[MessageMediaRenderer] ${correlationId} Using direct Supabase URL, no auth needed`)
+    if (DEBUG) console.log(`[MessageMediaRenderer] ${correlationId} Using direct Supabase URL, no auth needed`)
     return mediaUrl
   }
 
@@ -57,91 +74,41 @@ async function fetchAuthenticatedMedia(mediaUrl: string, mediaId: string, recove
     return null
   }
 
-  // If it's a ReplyFlow MMS media URL, try to recover it once if expired
-  if (mediaUrl.includes('/api/mms-media/serve')) {
-    // Only attempt recovery if we haven't tried yet
-    if (recoveryState === 'idle') {
-      console.log(`[MessageMediaRenderer] ${correlationId} recovery_started: Attempting to recover expired URL`)
-      setRecoveryState('refreshing')
-      try {
-        const recoveryResponse = await fetch(`/api/mms-media/recover-url?url=${encodeURIComponent(mediaUrl)}`)
-        
-        if (!recoveryResponse.ok) {
-          console.error(`[MessageMediaRenderer] ${correlationId} recovery_failed: Recovery endpoint returned ${recoveryResponse.status}`)
-          setRecoveryState('failed')
-          return null
-        }
-
-        const recoveryData = await recoveryResponse.json()
-        
-        if (!recoveryData.validUrl) {
-          console.error(`[MessageMediaRenderer] ${correlationId} recovery_failed: No validUrl in response`)
-          setRecoveryState('failed')
-          return null
-        }
-
-        // Validate the recovered URL structure
-        const tokenMatch = recoveryData.validUrl.match(/token=([^&]+)/)
-        if (!tokenMatch) {
-          console.error(`[MessageMediaRenderer] ${correlationId} recovery_failed: No token in recovered URL`)
-          setRecoveryState('failed')
-          return null
-        }
-
-        const token = tokenMatch[1]
-        const dotCount = (token.match(/\./g) || []).length
-        if (dotCount !== 2) {
-          console.error(`[MessageMediaRenderer] ${correlationId} recovery_failed: Invalid token shape (${dotCount} dots)`)
-          setRecoveryState('failed')
-          return null
-        }
-
-        console.log(`[MessageMediaRenderer] ${correlationId} fresh_url_received: Token has ${dotCount} segments, length ${token.length}`)
-        
-        // Preload the fresh URL to verify it works before marking as recovered
-        console.log(`[MessageMediaRenderer] ${correlationId} image_preload_started: Preloading fresh URL`)
-        const preloadResponse = await fetch(recoveryData.validUrl)
-        
-        if (!preloadResponse.ok) {
-          console.error(`[MessageMediaRenderer] ${correlationId} recovery_failed: Preload failed with ${preloadResponse.status}`)
-          setRecoveryState('failed')
-          return null
-        }
-
-        const contentType = preloadResponse.headers.get('content-type')
-        if (!contentType || !contentType.startsWith('image/')) {
-          console.error(`[MessageMediaRenderer] ${correlationId} recovery_failed: Invalid content-type: ${contentType}`)
-          setRecoveryState('failed')
-          return null
-        }
-
-        console.log(`[MessageMediaRenderer] ${correlationId} image_preload_passed: Content-Type ${contentType}`)
-        console.log(`[MessageMediaRenderer] ${correlationId} recovery_completed: URL successfully recovered and validated`)
-        setRecoveryState('recovered')
-        return recoveryData.validUrl
-      } catch (error) {
-        console.error(`[MessageMediaRenderer] ${correlationId} recovery_failed: ${error}`)
-        setRecoveryState('failed')
-        return null
-      }
-    } else if (recoveryState === 'failed') {
-      // Already failed to recover, don't try again
-      console.log(`[MessageMediaRenderer] ${correlationId} recovery_skipped: Already failed to recover, not retrying`)
-      return null
-    }
-  }
-
   const supabase = createBrowserClient()
   if (!supabase) {
     return null
   }
 
   try {
+    fetchingRef.current.add(mediaId)
+
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.access_token) {
+      console.error(`[MessageMediaRenderer] ${correlationId} No session access token available`)
       return null
     }
 
+    // For MMS media URLs, fetch with session auth
+    if (mediaUrl.includes('/api/mms-media/serve')) {
+      if (DEBUG) console.log(`[MessageMediaRenderer] ${correlationId} Fetching MMS media with session auth`)
+      const response = await fetch(mediaUrl, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+
+      if (!response.ok) {
+        console.error(`[MessageMediaRenderer] ${correlationId} MMS media fetch failed with ${response.status}`)
+        return null
+      }
+
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      blobUrlsRef.current.add(blobUrl)
+      return blobUrl
+    }
+
+    // For other URLs (Twilio), use the proxy with session auth
     const proxyUrl = getMediaUrl(mediaUrl)
     if (!proxyUrl) {
       console.error(`[MessageMediaRenderer] ${correlationId} Error: getMediaUrl returned null for:`, mediaUrl)
@@ -155,14 +122,19 @@ async function fetchAuthenticatedMedia(mediaUrl: string, mediaId: string, recove
     })
 
     if (!response.ok) {
+      console.error(`[MessageMediaRenderer] ${correlationId} Proxy fetch failed with ${response.status}`)
       return null
     }
 
     const blob = await response.blob()
-    return URL.createObjectURL(blob)
+    const blobUrl = URL.createObjectURL(blob)
+    blobUrlsRef.current.add(blobUrl)
+    return blobUrl
   } catch (error) {
     console.error(`[MessageMediaRenderer] ${correlationId} Error fetching authenticated media:`, error)
     return null
+  } finally {
+    fetchingRef.current.delete(mediaId)
   }
 }
 
@@ -172,55 +144,42 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
   const [failedMedia, setFailedMedia] = useState<Set<string>>(new Set())
   const [hasLoadedFirstImage, setHasLoadedFirstImage] = useState(false)
   const [authenticatedUrls, setAuthenticatedUrls] = useState<Record<string, string>>({})
-  const [mediaRecoveryState, setMediaRecoveryState] = useState<Record<string, 'idle' | 'refreshing' | 'recovered' | 'failed'>>({})
-  // Track fresh recovered URLs separately to prevent stale parent state from overwriting them
-  const [freshRecoveredUrls, setFreshRecoveredUrls] = useState<Set<string>>(new Set())
 
-  // MMS UI attachments loaded
+  // Track blob URLs with a ref to ensure proper cleanup
+  const blobUrlsRef = useRef<Set<string>>(new Set())
 
-  // Fetch authenticated URLs for Twilio media on mount
+  // Track in-flight fetches to prevent duplicates
+  const fetchingRef = useRef<Set<string>>(new Set())
+
+  // Fetch authenticated URLs for media on mount
   useEffect(() => {
     const fetchUrls = async () => {
       const urlMap: Record<string, string> = {}
-      
+
       for (const mediaItem of media || []) {
-        // Priority 1: Use fresh recovered URL if available (prevents stale parent state overwrites)
-        if (freshRecoveredUrls.has(mediaItem.id)) {
-          console.log(`[MessageMediaRenderer] media_${mediaItem.id} Using fresh recovered URL from state`)
-          urlMap[mediaItem.id] = authenticatedUrls[mediaItem.id]
-          continue
-        }
-        
-        // Priority 2: Use local preview URLs directly (no auth needed) - keep them until server URL is confirmed loaded
+        // Use local preview URLs directly (no auth needed)
         if (mediaItem.isLocalPreview) {
           urlMap[mediaItem.id] = mediaItem.media_url
           continue
         }
-        
-        // Priority 3: Only fetch authenticated URLs for Twilio URLs
+
+        // Only fetch authenticated URLs for non-Supabase URLs
         if (!mediaItem.media_url.includes('supabase.co') && !mediaItem.media_url.includes('/storage/v1')) {
-          const recoveryState = mediaRecoveryState[mediaItem.id] || 'idle'
           const blobUrl = await fetchAuthenticatedMedia(
             mediaItem.media_url,
             mediaItem.id,
-            recoveryState,
-            (state) => {
-              setMediaRecoveryState(prev => ({ ...prev, [mediaItem.id]: state }))
-              // Mark as fresh recovered when state changes to 'recovered'
-              if (state === 'recovered') {
-                setFreshRecoveredUrls(prev => new Set(prev).add(mediaItem.id))
-              }
-            }
+            blobUrlsRef,
+            fetchingRef
           )
           if (blobUrl) {
             urlMap[mediaItem.id] = blobUrl
           }
         } else {
-          // Priority 4: Direct URLs (Supabase) can be used immediately
+          // Direct URLs (Supabase) can be used immediately
           urlMap[mediaItem.id] = mediaItem.media_url
         }
       }
-      
+
       setAuthenticatedUrls(urlMap)
     }
 
@@ -230,13 +189,14 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
   // Cleanup blob URLs on unmount
   useEffect(() => {
     return () => {
-      Object.values(authenticatedUrls).forEach(url => {
+      blobUrlsRef.current.forEach(url => {
         if (url.startsWith('blob:')) {
           URL.revokeObjectURL(url)
         }
       })
+      blobUrlsRef.current.clear()
     }
-  }, [authenticatedUrls])
+  }, [])
 
   if (!media || media.length === 0) {
     return null
@@ -294,7 +254,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
 
           // Skip rendering if URL is invalid
           if (!mediaUrl) {
-            console.error('[MessageMediaRenderer] Invalid media URL for item:', {
+            if (DEBUG) console.error('[MessageMediaRenderer] Invalid media URL for item:', {
               mediaId: mediaItem.id,
               mediaUrl: mediaItem.media_url
             })
