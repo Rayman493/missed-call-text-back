@@ -67,6 +67,28 @@ export default function PersonalVoicemailPage() {
 
   useEffect(() => {
     fetchVoicemails()
+
+    // Bounded polling for live voicemail updates
+    // Poll every 30 seconds for up to 2 minutes, then stop
+    // This provides live updates without constant polling
+    let pollCount = 0
+    const maxPolls = 4 // 4 polls × 30 seconds = 2 minutes total
+    const pollInterval = 30000 // 30 seconds
+
+    const pollTimer = setInterval(() => {
+      pollCount++
+      if (pollCount <= maxPolls) {
+        console.log('[Personal Voicemail] Polling for new voicemails', { pollCount, maxPolls })
+        fetchVoicemails()
+      } else {
+        console.log('[Personal Voicemail] Stopping polling after max polls', { pollCount, maxPolls })
+        clearInterval(pollTimer)
+      }
+    }, pollInterval)
+
+    return () => {
+      clearInterval(pollTimer)
+    }
   }, [])
 
   const handleMarkListened = async (voicemail: PersonalVoicemail) => {

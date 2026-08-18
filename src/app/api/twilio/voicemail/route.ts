@@ -512,6 +512,19 @@ export async function POST(request: NextRequest) {
       businessId: voicemail.business_id
     });
 
+    // Update lead's updated_at timestamp to trigger realtime subscription
+    // This causes the conversation page to refetch lead data (including voicemailRecordings)
+    try {
+      await supabaseAdmin
+        .from('leads')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', lead.id);
+      console.log('[VOICEMAIL RECORDING] Updated lead timestamp for realtime refresh', { leadId: lead.id });
+    } catch (leadUpdateError) {
+      console.error('[VOICEMAIL RECORDING] Failed to update lead timestamp:', leadUpdateError);
+      // Non-fatal - voicemail is still saved, just won't trigger realtime refresh
+    }
+
     console.log('[VOICEMAIL NOTIFICATION CREATED]', { voicemailId: voicemail.id, leadId: lead.id, businessId: business.id });
     console.log('[VOICEMAIL INGEST COMPLETE]', { leadId: lead.id, conversationId: conversation.id, voicemailId: voicemail.id, businessId: business.id });
     console.log('[VOICEMAIL] Recording saved:', voicemail.id);

@@ -2074,6 +2074,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             })
             return merged
           })
+          // Trigger full refetch to get updated voicemailRecordings
+          // This is necessary when a voicemail is inserted and lead updated_at is changed
+          console.log('[REALTIME LEAD UPDATE] Triggering full refetch for voicemailRecordings')
+          handleRefresh()
         }
       )
       .on(
