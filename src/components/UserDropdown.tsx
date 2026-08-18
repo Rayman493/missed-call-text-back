@@ -7,13 +7,64 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { handleBillingAction } from '@/lib/billing'
-// import ThemeSelector from '@/components/ThemeSelector' // Temporarily disabled for mobile crash fix
+import { useTheme } from 'next-themes'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, ReceiptText, Settings, User, Home, X, Bell } from 'lucide-react'
+import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, ReceiptText, Settings, User, Home, X, Bell, Monitor, Sun, Moon } from 'lucide-react'
 import { accountMenuItems } from '@/lib/navigation-config'
 import { isAdmin } from '@/lib/admin'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 import AssistantMobileShell from '@/components/AssistantMobileShell'
+
+// Compact theme switcher for dropdown
+function QuickThemeSwitcher() {
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="flex gap-1">
+        <div className="w-8 h-6 rounded bg-muted animate-pulse"></div>
+        <div className="w-8 h-6 rounded bg-muted animate-pulse"></div>
+        <div className="w-8 h-6 rounded bg-muted animate-pulse"></div>
+      </div>
+    )
+  }
+
+  const themes = [
+    { value: 'system', label: 'System', icon: Monitor },
+    { value: 'light', label: 'Light', icon: Sun },
+    { value: 'dark', label: 'Dark', icon: Moon },
+  ]
+
+  return (
+    <div className="flex gap-1">
+      {themes.map(({ value, label, icon: Icon }) => (
+        <button
+          key={value}
+          onClick={(e) => {
+            e.stopPropagation()
+            setTheme(value)
+          }}
+          className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+            theme === value
+              ? 'bg-secondary text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          }`}
+          title={`Switch to ${label} theme`}
+          aria-label={`${label} theme${theme === value ? ', currently selected' : ''}`}
+          aria-pressed={theme === value}
+          type="button"
+        >
+          <Icon className="h-3.5 w-3.5" />
+        </button>
+      ))}
+    </div>
+  )
+}
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false)
@@ -297,6 +348,11 @@ export default function UserDropdown() {
               </div>
             </div>
 
+            {/* Quick theme switcher */}
+            <div className="px-4 py-2">
+              <QuickThemeSwitcher />
+            </div>
+
             <div className="h-px bg-border/50" />
 
             {/* Menu items */}
@@ -381,6 +437,11 @@ export default function UserDropdown() {
               <p className="text-sm text-muted-foreground truncate mt-0.5">
                 {user?.email || 'No email'}
               </p>
+            </div>
+
+            {/* Quick theme switcher */}
+            <div className="px-3 py-2">
+              <QuickThemeSwitcher />
             </div>
 
             {/* Navigation Items */}
