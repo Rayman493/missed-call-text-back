@@ -185,7 +185,7 @@ function ScheduleMapComponent({
   // Constants for viewport behavior
 const HOME_BASE_ONLY_ZOOM = 13 // Local zoom for single marker (shows ~5-10 miles)
 const SINGLE_STOP_ZOOM = 13 // Local zoom for single service stop
-const MULTI_MARKER_MAX_ZOOM = 15 // Max zoom for multi-marker fit bounds
+const MULTI_MARKER_MAX_ZOOM = 14 // Max zoom for multi-marker fit bounds (reduced from 15 to prevent excessive zoom-in when points are close)
 
 // Responsive padding for fitBounds (accounts for UI elements on different screen sizes)
 const getResponsivePadding = useCallback(() => {
@@ -198,10 +198,11 @@ const getResponsivePadding = useCallback(() => {
 
   if (isMobile) {
     // Mobile: account for top header, Today's Schedule panel, bottom nav, map controls
+    // Use balanced padding to avoid excessive zoom-out while keeping UI visible
     return {
-      top: 100, // Header + reasonable cushion (reduced from 180 to prevent excessive zoom-out)
+      top: 80, // Header + reasonable cushion
       right: 20, // Right edge cushion for map controls
-      bottom: bottomNavHeight + 40, // Bottom nav + breathing room
+      bottom: bottomNavHeight + 30, // Bottom nav + breathing room
       left: 20 // Left edge cushion
     }
   } else {
@@ -1648,37 +1649,32 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         markerSetSignatureRef.current = signature
         setLastAutoFitDateKey(currentDateKey)
 
-        // Explicit viewport policy based on marker count
-        // Count non-business markers for viewport decisions
-        const nonBusinessMarkers = Array.from(markersRef.current.entries())
-          .filter(([key]) => !key.startsWith('business:'))
+        // Build viewport marker set: business + valid scheduled markers for selected day
+        // This ensures the business location is always shown as a reference point
+        const viewportMarkers = Array.from(markersRef.current.entries())
+          .filter(([key, marker]) => {
+            // Include business marker
+            if (key.startsWith('business:')) return true
+            // Include all non-business markers (already filtered by date in mapItems)
+            return true
+          })
 
-        if (nonBusinessMarkers.length === 0) {
-          // Only business marker exists - center on it
-          const businessMarker = markersRef.current.get('business:home')
-          if (businessMarker) {
-            const pos = businessMarker.getPosition()
-            panToMarker(pos.lat(), pos.lng(), HOME_BASE_ONLY_ZOOM, false, 'business_only_marker_auto_fit')
-          }
-        } else if (nonBusinessMarkers.length === 1) {
-          // State 1: Single service/appointment marker (exclude business from viewport decision)
-          // Center on it with local zoom
-          const [, singleMarker] = nonBusinessMarkers[0]
+        if (viewportMarkers.length === 0) {
+          // No markers at all - use fallback
+          console.log('[SCHEDULE_MAP_EFFECT] No markers available for auto-fit')
+        } else if (viewportMarkers.length === 1) {
+          // Single marker (could be business only, or single job with no business)
+          const [, singleMarker] = viewportMarkers[0]
           if (singleMarker) {
             const pos = singleMarker.getPosition()
             panToMarker(pos.lat(), pos.lng(), HOME_BASE_ONLY_ZOOM, false, 'single_marker_auto_fit')
           }
         } else {
-          // State 3 & 4: Multiple markers (Home Base + service stops, or multiple service stops)
-          // Fit bounds to show all markers with responsive padding
-          // IMPORTANT: Exclude business marker from bounds to prevent excessive zoom-out
-          // Business marker should be visible but shouldn't drive viewport for day's appointments
+          // Multiple markers - fit all including business
+          // Business is important reference point and should always be visible
           const bounds = new (window as any).google.maps.LatLngBounds()
-          markersRef.current.forEach((marker, key) => {
-            // Skip business marker when auto-fitting to day's markers
-            if (!key.startsWith('business:')) {
-              bounds.extend(marker.getPosition()!)
-            }
+          viewportMarkers.forEach(([, marker]) => {
+            bounds.extend(marker.getPosition()!)
           })
           fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'multi_marker_auto_fit')
         }
