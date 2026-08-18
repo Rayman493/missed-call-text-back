@@ -85,7 +85,7 @@ export async function POST(request: Request) {
     // Verify business exists
     const { data: business, error: fetchError } = await serviceSupabase
       .from('businesses')
-      .select('id, subscription_status')
+      .select('id, subscription_status, provisioning_status')
       .eq('id', business_id)
       .single()
 
@@ -96,6 +96,16 @@ export async function POST(request: Request) {
 
     console.log('[Admin Twilio Retry] Business found:', business_id);
 
+    // Check if provisioning is already in progress
+    if (business.provisioning_status === 'provisioning') {
+      console.error('[Admin Twilio Retry] Provisioning already in progress:', business_id);
+      return NextResponse.json({
+        success: false,
+        error: 'Provisioning already in progress',
+        provisioning_status: business.provisioning_status
+      }, { status: 409 });
+    }
+
     // Verify subscription is active
     if (business.subscription_status !== 'active') {
       console.error('[Admin Twilio Retry] Business subscription not active:', business.subscription_status);
@@ -103,14 +113,50 @@ export async function POST(request: Request) {
     }
 
     console.log('[Admin Twilio Retry] Provisioning started for business:', business_id);
-    console.log('[Admin Twilio Retry] Manual retry triggered - correlation ID will be generated in provisionTwilioNumber');
 
-    // Call provisionTwilioNumber
-    const provisioned = await provisionTwilioNumber(business_id)
+    // Generate correlation ID for lock acquisition
+    const correlationId = `ADMIN_RETRY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    console.log('[Admin Twilio Retry] correlation_id:', correlationId);
+
+    // Acquire lock atomically using RPC function
+    const { data: lockResult, error: lockError } = await serviceSupabase.rpc('acquire_provisioning_lock', {
+      p_business_id: business_id,
+      p_lock_id: correlationId
+    });
+
+    if (lockError || !lockResult) {
+      console.error('[Admin Twilio Retry] Failed to acquire lock - provisioning already in progress:', {
+        business_id,
+        lockError
+      });
+      return NextResponse.json({
+        success: false,
+        error: 'Provisioning already in progress'
+      }, { status: 409 });
+    }
+
+    console.log('[Admin Twilio Retry] ✓ Acquired lock atomically');
+
+    // Call provisionTwilioNumber with correlation ID
+    const provisioned = await provisionTwilioNumber(business_id, correlationId)
 
     if (provisioned) {
       console.log('[Admin Twilio Retry] Provisioning complete:', provisioned.phoneNumber);
       console.log('[Admin Twilio Retry] Provisioned number SID:', provisioned.phoneNumberSid);
+
+      // Release lock on success with ownership check
+      const { error: releaseError } = await serviceSupabase
+        .from('businesses')
+        .update({
+          provisioning_status: 'ready',
+          provisioning_lock_id: null
+        })
+        .eq('id', business_id)
+        .eq('provisioning_lock_id', correlationId);
+
+      if (releaseError) {
+        console.warn('[Admin Twilio Retry] lock_release_skipped_not_owner - stale request cannot release newer request lock')
+      }
 
       // Audit logging (non-blocking)
       logAdminAction({
@@ -135,7 +181,22 @@ export async function POST(request: Request) {
       })
     } else {
       console.error('[Admin Twilio Retry] Failed to provision number for business:', business_id);
-      
+
+      // Release lock on failure with ownership check
+      const { error: releaseError } = await serviceSupabase
+        .from('businesses')
+        .update({
+          provisioning_status: 'failed',
+          provisioning_lock_id: null,
+          provisioning_error: 'Admin retry failed'
+        })
+        .eq('id', business_id)
+        .eq('provisioning_lock_id', correlationId);
+
+      if (releaseError) {
+        console.warn('[Admin Twilio Retry] lock_release_skipped_not_owner - stale request cannot mark newer request failed')
+      }
+
       // Audit logging for failed attempt (non-blocking)
       logAdminAction({
         actingAdminUserId: user.id,
