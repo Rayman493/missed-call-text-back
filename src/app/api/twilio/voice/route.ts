@@ -1737,7 +1737,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         business_id: business.id,
         caller_phone: normalizedCallerPhone,
         status: 'new',
-        source: 'voice',
+        source: 'ai_voice',
         raw_metadata: { callSid: CallSid },
       }, CallSid);
       

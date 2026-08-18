@@ -258,7 +258,7 @@ export async function POST(request: NextRequest) {
           business_id: business.id!,
           caller_phone: normalizedPhone,
           status: 'new',
-          source: 'manual_payment_request',
+          source: 'manual',
           raw_metadata: name ? {
             customerName: name,
             callerName: name,

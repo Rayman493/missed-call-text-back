@@ -716,8 +716,8 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
           caller_phone: normalizedPhone,
           status: leadStatus,
           name: leadName,
-          raw_metadata: { 
-            source: 'ai_intake', 
+          source: 'ai_voice',
+          raw_metadata: {
             callSid: CallSid,
             ai_call_record_id: aiCallRecord.id,
             ai_outcome: aiCallRecord.outcome,
