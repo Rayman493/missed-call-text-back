@@ -35,13 +35,22 @@ if (typeof window !== 'undefined') {
       filename: event.filename,
       lineno: event.lineno,
       colno: event.colno,
-      error: event.error
+      error: event.error instanceof Error ? {
+        name: event.error.name,
+        message: event.error.message,
+        stack: event.error.stack,
+      } : event.error,
     })
   })
 
   window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason
     console.error('[GLOBAL UNHANDLED REJECTION]', {
-      reason: event.reason,
+      reason: reason instanceof Error ? {
+        name: reason.name,
+        message: reason.message,
+        stack: reason.stack,
+      } : reason,
       promise: event.promise
     })
   })
@@ -61,9 +70,16 @@ export default class DashboardErrorBoundary extends Component<Props, State> {
     const debug = isDebugMode()
     const { pathname, hasSession, businessFetchComplete, hasBusiness, subscription_status, renderBranch, lastRenderedSection } = this.props.debugInfo || {}
 
-    console.error('[DashboardErrorBoundary] Dashboard crashed:', error)
+    // Improved error logging to capture actual exception details
+    console.error('[DashboardErrorBoundary] Dashboard crashed:', {
+      isError: error instanceof Error,
+      name: error instanceof Error ? error.name : undefined,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      componentStack: errorInfo?.componentStack,
+    })
     console.error('[DashboardErrorBoundary] Error info:', errorInfo)
-    
+
     // Log to Sentry in production
     if (process.env.NODE_ENV === 'production') {
       Sentry.captureException(error, {
@@ -83,7 +99,7 @@ export default class DashboardErrorBoundary extends Component<Props, State> {
         }
       })
     }
-    
+
     if (debug) {
       console.error('[DEBUG] Error details:', {
         message: error.message,

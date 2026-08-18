@@ -821,18 +821,18 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
       } catch {}
     })()
 
-    // Reset progress when transitioning from preparing to waiting_for_card
-    useEffect(() => {
-      if (visiblePhase === 'waiting_for_card') {
-        resetProgressOnly()
-      }
-    }, [visiblePhase, resetProgressOnly])
-
     return () => {
       window.removeEventListener('popstate', onPopState)
       capListener?.remove?.()
     }
   }, [isOpen, onClose, visiblePhase, cancelPayment])
+
+  // Reset progress when transitioning from preparing to waiting_for_card
+  useEffect(() => {
+    if (visiblePhase === 'waiting_for_card') {
+      resetProgressOnly()
+    }
+  }, [visiblePhase, resetProgressOnly])
 
   // Timer for connecting state to show elapsed time reassurance
   // REMOVED: We now use a stable "Preparing Tap to Pay" phase instead of time-based messages

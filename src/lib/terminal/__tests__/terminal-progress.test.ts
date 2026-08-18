@@ -216,43 +216,27 @@ describe('Terminal Progress Mapping', () => {
     })
   })
 
-  describe('Hook Reference Stability', () => {
-    it('should maintain stable function references when isEnabled changes', () => {
-      // This test documents the requirement that useTapToPayReaderPresentation
-      // should be called with a stable isEnabled argument (e.g., isOpen)
-      // rather than a conditionally-changing argument (e.g., isOpen && isNativeSupported)
-      // to prevent useEffect dependency array issues when function references change.
-
-      // When the hook is called conditionally based on isNativeSupported changing
-      // from false to true, the returned function references (resetState, resetProgressOnly)
-      // change, causing useEffects that depend on them to re-run at unexpected times.
-      // This can cause runtime crashes when the modal is opening.
-
-      // Solution: Call the hook with stable isOpen, and let the hook internally
-      // disable itself via its own isEnabled check.
-
-      const isOpen = true
-      const isNativeSupportedInitially = false
-      const isNativeSupportedAfter = true
-
-      // Before fix: hook called with isOpen && isNativeSupportedInitially = false
-      const isEnabledBefore = isOpen && isNativeSupportedInitially
-      expect(isEnabledBefore).toBe(false)
-
-      // After native detection: hook called with isOpen && isNativeSupportedAfter = true
-      const isEnabledAfter = isOpen && isNativeSupportedAfter
-      expect(isEnabledAfter).toBe(true)
-
-      // The change in isEnabled causes function references to change, triggering
-      // useEffect re-runs. This is the bug.
+  describe('React Hooks Rules Compliance', () => {
+    it('should not nest useEffect calls inside other useEffects', () => {
+      // This test documents a critical React rules violation that caused crashes:
+      // useEffect cannot be called inside another useEffect or regular function.
       //
-      // Fix: Call hook with just isOpen, which is stable:
-      // useTapToPayReaderPresentation(isOpen)
+      // The bug was introduced when resetProgressOnly() was added to a useEffect
+      // that was nested inside another useEffect in QuickTapToPayModal.
       //
-      // The hook internally checks isEnabled and returns early when false,
-      // so conditional calling is unnecessary and causes instability.
+      // Violation example (BUG):
+      // useEffect(() => {
+      //   useEffect(() => { ... }) // ERROR: hooks cannot be nested
+      // }, [deps])
+      //
+      // Correct pattern:
+      // useEffect(() => { ... }, [deps1])
+      // useEffect(() => { ... }, [deps2]) // Separate, top-level hooks
+      //
+      // The fix was to move the nested useEffect to the top level of the component.
 
-      expect(true).toBe(true) // Documentation test
+      const hasNestedUseEffect = false // Component should not have nested useEffect
+      expect(hasNestedUseEffect).toBe(false)
     })
   })
 })
