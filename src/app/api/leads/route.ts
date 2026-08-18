@@ -50,10 +50,11 @@ export async function GET(request: NextRequest) {
     console.log('[API LEADS GET] Query params - statusFilter:', statusFilter, 'includeDeleted:', includeDeleted, 'deletedOnly:', deletedOnly)
 
     // Fetch leads for this business (only select columns that exist in the schema)
+    // Note: email and name columns do not exist in production schema - use raw_metadata instead
     console.log('[API LEADS GET] Fetching leads for business:', business.id!)
     let query = supabase
       .from('leads')
-      .select('id, business_id, caller_phone, status, created_at, raw_metadata, deleted_at, email, name')
+      .select('id, business_id, caller_phone, status, created_at, raw_metadata, deleted_at')
       .eq('business_id', business.id!)
 
     // Apply deleted filter
