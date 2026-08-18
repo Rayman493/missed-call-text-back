@@ -4828,7 +4828,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       setShowInternalNotesModal(false)
                       setInternalNotesValue('')
                       // Refresh lead data
-                      const updatedData = await getLeadDetails(lead?.id)
+                      const updatedData = await getLeadDetails(params.id)
                       if (updatedData?.ok && updatedData.lead) {
                         setLeadData({ ...updatedData.lead, messages: updatedData.lead.messages || updatedData.messages || [] })
                       }
@@ -5212,7 +5212,7 @@ If you have questions, reply to this message.`
                   }
 
                   // Refresh lead data
-                  const updatedData = await getLeadDetails(lead?.id)
+                  const updatedData = await getLeadDetails(params.id)
                   if (updatedData) {
                     setLeadData(updatedData)
                   }
