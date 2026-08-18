@@ -48,6 +48,11 @@ export function useTapToPayAwareness(business: Business | null): UseTapToPayAwar
     // Check if already acknowledged in this session
     if (hasAcknowledgedRef.current) {
       setState(prev => ({ ...prev, isLoading: false, isEligible: false, business }))
+      console.log('[useTapToPayAwareness] Already acknowledged in session, skipping eligibility check but still checking capability for Settings')
+      // Still check capability so Settings can show device support status
+      tapToPayCapabilityStore.checkCapability().catch(error => {
+        console.error('[useTapToPayAwareness] Capability check error (non-blocking):', error)
+      })
       return
     }
 
@@ -77,9 +82,14 @@ export function useTapToPayAwareness(business: Business | null): UseTapToPayAwar
 
         // 3. Check if already acknowledged
         if (business.tap_to_pay_awareness_acknowledged_at) {
-          console.log('[useTapToPayAwareness] Already acknowledged, setting isLoading=false, isEligible=false')
+          console.log('[useTapToPayAwareness] Already acknowledged in DB, setting isLoading=false, isEligible=false')
           setIsAcknowledged(true)
           setState(prev => ({ ...prev, isLoading: false, isEligible: false }))
+          console.log('[useTapToPayAwareness] Already acknowledged in DB, skipping eligibility check but still checking capability for Settings')
+          // Still check capability so Settings can show device support status
+          tapToPayCapabilityStore.checkCapability().catch(error => {
+            console.error('[useTapToPayAwareness] Capability check error (non-blocking):', error)
+          })
           return
         }
 

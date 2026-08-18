@@ -118,6 +118,9 @@ const handleSendReceipt = () => {
     const lead = leads.find(l => l.id === paymentAssociation.leadId)
     if (lead?.phone) {
       setReceiptPhoneNumber(lead.phone)
+    } else {
+      // Clear phone number if no lead to pre-fill
+      setReceiptPhoneNumber('')
     }
   }
   setShowReceiptModal(true)
@@ -183,6 +186,8 @@ const handleSendReceiptSubmit = async () => {
 
     // Show success state
     setReceiptSent(true)
+    // Clear phone number after successful send
+    setReceiptPhoneNumber('')
   } catch (error) {
     console.error('[QuickTapToPayModal] Failed to send receipt:', {
       errorName: error instanceof Error ? error.name : 'Unknown',
@@ -842,6 +847,15 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
       resetProgressOnly()
     }
   }, [visiblePhase, resetProgressOnly])
+
+  // Clear receipt state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setReceiptPhoneNumber('')
+      setReceiptSent(false)
+      setReceiptError('')
+    }
+  }, [isOpen])
 
   // Timer for connecting state to show elapsed time reassurance
   // REMOVED: We now use a stable "Preparing Tap to Pay" phase instead of time-based messages

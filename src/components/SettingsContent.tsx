@@ -3078,6 +3078,29 @@ export default function SettingsContent() {
                   const isIPad = deviceType === 'ipad'
                   const showTapToPayCard = isIOSPlatform && !isIPad
 
+                  // Log Tap to Pay status for Settings diagnostics
+                  useEffect(() => {
+                    const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
+                    const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
+                    const awarenessLoading = tapToPayAwareness.state.isLoading
+                    const awarenessEligible = tapToPayAwareness.state.isEligible
+                    console.log('[TTP SETTINGS STATUS]', {
+                      status,
+                      platform,
+                      awarenessLoading,
+                      awarenessEligible,
+                      isIOSPlatform,
+                      showTapToPayCard,
+                    })
+                  }, [
+                    tapToPayAwareness.state.tapToPaySupportStatus?.status,
+                    tapToPayAwareness.state.tapToPaySupportStatus?.platform,
+                    tapToPayAwareness.state.isLoading,
+                    tapToPayAwareness.state.isEligible,
+                    isIOSPlatform,
+                    showTapToPayCard,
+                  ])
+
                   return (
                     <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${showTapToPayCard ? 'xl:grid-cols-4' : 'lg:grid-cols-3'}`}>
                   {/* Tap to Pay - Only render on supported iPhone (not iPad, iPod, or unsupported devices) */}
