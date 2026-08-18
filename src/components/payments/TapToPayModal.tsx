@@ -71,11 +71,13 @@ export default function TapToPayModal({
   useBodyScrollLock(isOpen)
 
   // Use shared reader presentation hook
+  // Note: Hook is called with isOpen (not isOpen && isNativeSupported) to keep the reference stable
+  // The hook internally disables itself when !isEnabled, so conditional calling is unnecessary
   const {
     state: readerState,
     resetState: resetReaderState,
     resetProgressOnly,
-  } = useTapToPayReaderPresentation(isOpen && isNativeSupported)
+  } = useTapToPayReaderPresentation(isOpen)
 
   // Track current UI state in a ref to guard against stale callbacks
   const paymentStateRef = useRef<PaymentState>(paymentState)

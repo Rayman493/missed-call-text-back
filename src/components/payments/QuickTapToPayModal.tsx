@@ -322,12 +322,14 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
   })
 
   // Use shared reader presentation hook
+  // Note: Hook is called with isOpen (not isOpen && hookIsNativeSupported) to keep the reference stable
+  // The hook internally disables itself when !isEnabled, so conditional calling is unnecessary
   const {
     state: readerState,
     resetState: resetReaderState,
     resetProgressOnly,
     setPreparing: setReaderPreparing,
-  } = useTapToPayReaderPresentation(isOpen && hookIsNativeSupported)
+  } = useTapToPayReaderPresentation(isOpen)
 
   // ===== PRESENTATION PHASE DERIVATION =====
   // This is a pure presentation layer that maps authoritative paymentState
