@@ -3742,27 +3742,49 @@ export default function SettingsContent() {
                           className="flex items-center justify-between gap-3 p-3 sm:p-4 bg-muted/30 rounded-lg border border-border/40 hover:bg-muted/50 transition-colors duration-150"
                         >
                           <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center gap-2 mb-1">
-                              <span className="text-sm font-medium text-foreground">
-                                {formatPhoneNumber(contact.phone_number)}
-                              </span>
-                              {contact.label && (
-                                <span className="text-[11px] px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full font-medium">
-                                  {contact.label}
+                            {/* Name is primary, phone is secondary */}
+                            {contact.label ? (
+                              <>
+                                <div className="mb-1">
+                                  <span className="text-sm font-medium text-foreground">
+                                    {contact.label}
+                                  </span>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatPhoneNumber(contact.phone_number)}
+                                  </span>
+                                  {contact.type && (
+                                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                                      contact.type === 'spam' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' :
+                                      contact.type === 'personal' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
+                                      contact.type === 'employee' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
+                                      contact.type === 'vendor' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' :
+                                      'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                    }`}>
+                                      {contact.type === 'existing_customer' ? 'Customer' : contact.type}
+                                    </span>
+                                  )}
+                                </div>
+                              </>
+                            ) : (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-sm font-medium text-foreground">
+                                  {formatPhoneNumber(contact.phone_number)}
                                 </span>
-                              )}
-                              {contact.type && (
-                                <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
-                                  contact.type === 'spam' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' :
-                                  contact.type === 'personal' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
-                                  contact.type === 'employee' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
-                                  contact.type === 'vendor' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' :
-                                  'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                                }`}>
-                                  {contact.type === 'existing_customer' ? 'Customer' : contact.type}
-                                </span>
-                              )}
-                            </div>
+                                {contact.type && (
+                                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                                    contact.type === 'spam' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' :
+                                    contact.type === 'personal' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
+                                    contact.type === 'employee' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
+                                    contact.type === 'vendor' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' :
+                                    'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                  }`}>
+                                    {contact.type === 'existing_customer' ? 'Customer' : contact.type}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <button
                             onClick={() => removeIgnoredContact(contact.id)}
