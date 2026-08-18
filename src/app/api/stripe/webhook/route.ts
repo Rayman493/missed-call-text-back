@@ -924,6 +924,22 @@ export async function POST(request: Request) {
 
               try {
                 console.log('[PROVISIONING FLOW] Making request to provisioning endpoint...')
+
+                // DIAGNOSTIC: Log caller deployment identity before internal HTTP request
+                const appUrlHostname = process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : 'not_set'
+                const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : 'not_set'
+                const deploymentUrl = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_APP_URL || 'not_set'
+
+                console.log('[PROVISIONING CALLER IDENTITY]', {
+                  marker: 'PROVISIONING_CALLER_IDENTITY',
+                  businessId,
+                  appUrlHostname,
+                  supabaseHostname,
+                  deploymentUrl,
+                  vercelEnv: process.env.VERCEL_ENV || 'not_set',
+                  gitCommitSha: process.env.VERCEL_GIT_COMMIT_SHA || 'not_set'
+                })
+
                 const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/business/trigger-provisioning`, {
                   method: 'POST',
                   headers: {
@@ -936,7 +952,18 @@ export async function POST(request: Request) {
                 })
                 
                 console.log('[PROVISIONING FLOW] Provisioning endpoint response status:', response.status)
-                
+
+                // DIAGNOSTIC: Log callee deployment identity from response headers
+                const replyflowVercelEnv = response.headers.get('x-replyflow-vercel-env')
+                const replyflowGitSha = response.headers.get('x-replyflow-git-sha')
+                const replyflowSupabaseHost = response.headers.get('x-replyflow-supabase-host')
+
+                console.log('[PROVISIONING CALLER IDENTITY] Response headers from callee:', {
+                  x_replyflow_vercel_env: replyflowVercelEnv || 'not_set',
+                  x_replyflow_git_sha: replyflowGitSha || 'not_set',
+                  x_replyflow_supabase_host: replyflowSupabaseHost || 'not_set'
+                })
+
                 if (response.ok) {
                   console.log('[PROVISIONING FLOW] ✓ Provisioning triggered successfully from webhook')
                   console.log('[PROVISIONING FLOW] ✓ Twilio purchase should start now...')
@@ -1690,6 +1717,21 @@ export async function POST(request: Request) {
               console.log('[STRIPE PAYMENT RECOVERY] Triggering provisioning for recovered subscription')
               
               try {
+                // DIAGNOSTIC: Log caller deployment identity before internal HTTP request
+                const appUrlHostname = process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : 'not_set'
+                const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : 'not_set'
+                const deploymentUrl = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_APP_URL || 'not_set'
+
+                console.log('[PROVISIONING CALLER IDENTITY]', {
+                  marker: 'PROVISIONING_CALLER_IDENTITY',
+                  businessId: business.id,
+                  appUrlHostname,
+                  supabaseHostname,
+                  deploymentUrl,
+                  vercelEnv: process.env.VERCEL_ENV || 'not_set',
+                  gitCommitSha: process.env.VERCEL_GIT_COMMIT_SHA || 'not_set'
+                })
+
                 const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/business/trigger-provisioning`, {
                   method: 'POST',
                   headers: {
@@ -1700,7 +1742,18 @@ export async function POST(request: Request) {
                     business_id: business.id
                   })
                 })
-                
+
+                // DIAGNOSTIC: Log callee deployment identity from response headers
+                const replyflowVercelEnv = response.headers.get('x-replyflow-vercel-env')
+                const replyflowGitSha = response.headers.get('x-replyflow-git-sha')
+                const replyflowSupabaseHost = response.headers.get('x-replyflow-supabase-host')
+
+                console.log('[PROVISIONING CALLER IDENTITY] Response headers from callee:', {
+                  x_replyflow_vercel_env: replyflowVercelEnv || 'not_set',
+                  x_replyflow_git_sha: replyflowGitSha || 'not_set',
+                  x_replyflow_supabase_host: replyflowSupabaseHost || 'not_set'
+                })
+
                 if (response.ok) {
                   console.log('[STRIPE PAYMENT RECOVERY] Provisioning triggered successfully')
                 } else {

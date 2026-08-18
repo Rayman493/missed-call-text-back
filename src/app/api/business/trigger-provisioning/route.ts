@@ -84,6 +84,24 @@ export async function POST(request: Request) {
 
     console.log('[PROVISIONING AUTH] ✓ Authentication validation result: SUCCESS')
 
+    // DIAGNOSTIC: Log callee deployment identity at endpoint start
+    const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : 'not_set'
+    const deploymentUrl = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_APP_URL || 'not_set'
+    const businessIdTrimmed = business_id.trim()
+    const validUuid = businessIdTrimmed.length === 36 && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(businessIdTrimmed)
+
+    console.log('[PROVISIONING CALLEE IDENTITY]', {
+      marker: 'PROVISIONING_CALLEE_IDENTITY',
+      businessIdRaw: business_id,
+      businessIdTrimmed: businessIdTrimmed,
+      businessIdLength: business_id.length,
+      validUuid: validUuid,
+      supabaseHostname,
+      deploymentUrl,
+      vercelEnv: process.env.VERCEL_ENV || 'not_set',
+      gitCommitSha: process.env.VERCEL_GIT_COMMIT_SHA || 'not_set'
+    })
+
     // Rate limiting check
     const now = Date.now()
     const attempts = provisioningAttempts.get(business_id) || []
@@ -117,15 +135,42 @@ export async function POST(request: Request) {
     while (businessLookupRetries <= MAX_BUSINESS_NOT_FOUND_RETRIES) {
       console.log(`[ProvisioningTrigger] Business lookup attempt ${businessLookupRetries + 1}/${MAX_BUSINESS_NOT_FOUND_RETRIES + 1}`)
 
+      // DIAGNOSTIC: ID-only control query using same client
+      const { data: idOnlyData, error: idOnlyError } = await supabaseAdmin
+        .from('businesses')
+        .select('id')
+        .eq('id', businessIdTrimmed)
+        .maybeSingle()
+
+      console.log('[PROVISIONING ID-ONLY LOOKUP]', {
+        marker: 'PROVISIONING_ID_ONLY_LOOKUP',
+        businessId: businessIdTrimmed,
+        dataFound: !!idOnlyData,
+        returnedId: idOnlyData?.id || null,
+        errorCode: idOnlyError?.code || null,
+        errorMessage: idOnlyError?.message || null
+      })
+
       // BETA PROVISIONING: Use server-side admin client to bypass RLS
       const result = await supabaseAdmin
         .from('businesses')
         .select('id, user_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, provisioning_status, provisioning_error, provisioning_lock_id, last_provisioning_attempt_at, provisioned_at')
-        .eq('id', business_id)
+        .eq('id', businessId)
         .single()
 
       business = result.data
       businessError = result.error
+
+      // DIAGNOSTIC: Existing lookup result
+      console.log('[PROVISIONING EXISTING LOOKUP]', {
+        marker: 'PROVISIONING_EXISTING_LOOKUP',
+        businessId: businessIdTrimmed,
+        dataFound: !!business,
+        returnedId: business?.id || null,
+        errorCode: businessError?.code || null,
+        errorMessage: businessError?.message || null,
+        errorDetails: businessError?.details || null
+      })
 
       if (business) {
         console.log('[ProvisioningTrigger] Business found successfully')
@@ -180,11 +225,21 @@ export async function POST(request: Request) {
         }
       }
 
+      // DIAGNOSTIC: Add response headers to identify callee deployment
+      const responseHeaders: Record<string, string> = {
+        'x-replyflow-vercel-env': process.env.VERCEL_ENV || 'not_set',
+        'x-replyflow-git-sha': process.env.VERCEL_GIT_COMMIT_SHA || 'not_set',
+        'x-replyflow-supabase-host': supabaseHostname
+      }
+
       return NextResponse.json({
         error: 'Business not found',
         postgres_error: businessError as any,
         retries: businessLookupRetries
-      }, { status: 404 })
+      }, {
+        status: 404,
+        headers: responseHeaders
+      })
     }
 
     // BETA PROVISIONING: Validate ownership (skip for webhook authentication)
@@ -662,10 +717,18 @@ export async function POST(request: Request) {
     }
 
     console.log('[ProvisioningTrigger] ========== TRIGGER PROVISIONING END ==========')
+
+    // DIAGNOSTIC: Add response headers to identify callee deployment
+    const responseHeaders: Record<string, string> = {
+      'x-replyflow-vercel-env': process.env.VERCEL_ENV || 'not_set',
+      'x-replyflow-git-sha': process.env.VERCEL_GIT_COMMIT_SHA || 'not_set',
+      'x-replyflow-supabase-host': supabaseHostname
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Provisioning completed successfully'
-    })
+    }, { headers: responseHeaders })
 
   } catch (error) {
     console.error('[ProvisioningTrigger] UNEXPECTED ERROR:', error)
