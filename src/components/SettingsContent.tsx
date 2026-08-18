@@ -53,6 +53,7 @@ import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skelet
 import EmptyState from '@/components/ui/EmptyState'
 import Input from '@/components/ui/Input'
 import { NotificationsPreferences } from '@/components/NotificationsPreferences'
+import ThemeSelector from '@/components/ThemeSelector'
 
 // Check if running in native mobile app
 const isNativeMobile = () => {
@@ -2358,6 +2359,24 @@ export default function SettingsContent() {
                   </div>
                 </>
               )}
+
+              {/* Group: Appearance */}
+              <div id="appearance-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
+                <div className="h-px flex-1 bg-border/30"></div>
+                <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'appearance')?.label}</h3>
+                <div className="h-px flex-1 bg-border/30"></div>
+              </div>
+
+              {/* Appearance Section */}
+              <div id="appearance" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
+                <div className="mb-5">
+                  <h2 className="text-base font-semibold text-foreground mb-1">Theme</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Choose your preferred appearance. System follows your device settings.
+                  </p>
+                </div>
+                <ThemeSelector />
+              </div>
 
               {/* Group: Business Address */}
               <div id="business-address-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">

@@ -2,28 +2,18 @@
 
 import { useTheme } from 'next-themes'
 import { Moon, Sun, Monitor } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function ThemeSelector() {
+  const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  let theme: string = 'system'
-  let setTheme: (theme: string) => void = () => {}
-  
-  try {
-    const themeHook = useTheme()
-    theme = themeHook?.theme || 'system'
-    setTheme = themeHook?.setTheme || (() => {})
-  } catch (error) {
-    console.warn('[ThemeSelector] Theme hook not available, using fallback')
-  }
 
+  // useEffect only runs on client, preventing hydration mismatch
   useEffect(() => {
-    // Additional safety check for mobile
-    if (typeof window !== 'undefined') {
-      setMounted(true)
-    }
+    setMounted(true)
   }, [])
 
+  // Prevent hydration mismatch by not rendering until mounted
   if (!mounted) {
     return (
       <div className="grid grid-cols-3 gap-1">
