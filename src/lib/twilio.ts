@@ -5,6 +5,7 @@ import { isNumberReadyForUse } from './twilio-provisioning-service';
 import { markForwardingVerified } from './forwarding-verification';
 import { appendBusinessAvailabilityNote } from './business-availability-sms';
 import { assertValidOutboundMmsMediaUrls } from './mms-url-validator';
+import { getExistingAssignment, getAllBusinessAssignments } from './twilio-assignment-helper';
 
 // Log Twilio environment status on module import
 logTwilioEnvStatus();
@@ -1373,6 +1374,47 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
 
   // STEP 0: Idempotency check - Check if business already has an assigned number in twilio_numbers
   console.log(`[PROVISION_IDEMPOTENCY] ========== CHECKING FOR EXISTING ASSIGNMENT ========== correlation_id=${correlationId}`)
+
+  // DIAGNOSTIC: Snapshot before idempotency check
+  console.log('[PROVISION_IDEMPOTENCY] DIAGNOSTIC SNAPSHOT', {
+    correlationId,
+    businessId,
+    stage: 'BEFORE_IDEMPOTENCY_CHECK'
+  });
+
+  const allRows = await getAllBusinessAssignments(supabase, businessId);
+  console.log('[PROVISION_IDEMPOTENCY] ALL ROWS FOR BUSINESS', {
+    correlationId,
+    businessId,
+    rowCount: allRows?.length || 0,
+    rows: allRows?.map(r => ({
+      id: r.id,
+      business_id: r.business_id,
+      phone_number: r.phone_number,
+      twilio_sid: r.twilio_sid,
+      status: r.status,
+      sms_status: r.sms_status,
+      provisioning_status: r.provisioning_status,
+      released_at: r.released_at,
+      detached_at: r.detached_at,
+      retired_at: r.retired_at,
+      reserved_for_business_id: r.reserved_for_business_id,
+      assigned_at: r.assigned_at,
+      updated_at: r.updated_at
+    }))
+  });
+
+  // Log Supabase identity
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  if (supabaseUrl) {
+    try {
+      const hostname = new URL(supabaseUrl).hostname;
+      console.log('[PROVISION_IDEMPOTENCY] SUPABASE IDENTITY', { source: 'twilio.ts service-role client', hostname });
+    } catch (e) {
+      console.log('[PROVISION_IDEMPOTENCY] SUPABASE IDENTITY', { source: 'twilio.ts service-role client', error: 'invalid URL' });
+    }
+  }
+
   const { data: existingTwilioNumber } = await supabase
     .from('twilio_numbers')
     .select('id, phone_number, twilio_sid, status, sms_status, provisioning_status')
@@ -1566,6 +1608,30 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
 
   // STEP 2.5: FINAL PRE-PURCHASE CHECK - Prevent duplicate purchases
   console.log(`[PROVISION_PRE_PURCHASE_CHECK] ========== FINAL AUTHORITY CHECK ========== correlation_id=${correlationId}`);
+
+  // DIAGNOSTIC: Snapshot before pre-purchase check
+  const prePurchaseAllRows = await getAllBusinessAssignments(supabase, businessId);
+  console.log('[PROVISION_PRE_PURCHASE_CHECK] ALL ROWS FOR BUSINESS', {
+    correlationId,
+    businessId,
+    rowCount: prePurchaseAllRows?.length || 0,
+    rows: prePurchaseAllRows?.map(r => ({
+      id: r.id,
+      business_id: r.business_id,
+      phone_number: r.phone_number,
+      twilio_sid: r.twilio_sid,
+      status: r.status,
+      sms_status: r.sms_status,
+      provisioning_status: r.provisioning_status,
+      released_at: r.released_at,
+      detached_at: r.detached_at,
+      retired_at: r.retired_at,
+      reserved_for_business_id: r.reserved_for_business_id,
+      assigned_at: r.assigned_at,
+      updated_at: r.updated_at
+    }))
+  });
+
   const { data: prePurchaseCheck } = await supabase
     .from('twilio_numbers')
     .select('id, phone_number, twilio_sid, status')

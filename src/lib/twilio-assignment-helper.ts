@@ -5,7 +5,7 @@
  *
  * Unique index predicate:
  * WHERE business_id IS NOT NULL
- *   AND (status = 'active' OR status = 'assigned')
+   AND (status = 'active' OR status = 'assigned')
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -17,6 +17,54 @@ export interface ExistingAssignment {
   status: string;
   sms_status?: string;
   provisioning_status?: string;
+}
+
+export interface DiagnosticAssignmentSnapshot {
+  id: string;
+  business_id: string;
+  phone_number: string;
+  twilio_sid: string;
+  status: string;
+  sms_status: string | null;
+  provisioning_status: string | null;
+  released_at: string | null;
+  detached_at: string | null;
+  retired_at: string | null;
+  reserved_for_business_id: string | null;
+  reserved_at: string | null;
+  assigned_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Diagnostic helper: Get ALL twilio_numbers rows for a business without status filtering
+ * This helps diagnose why the unique index sees a row that the active lookup doesn't
+ *
+ * @param supabase - Supabase client
+ * @param businessId - Business ID to check
+ * @returns All rows for the business, or null if error
+ */
+export async function getAllBusinessAssignments(
+  supabase: SupabaseClient,
+  businessId: string
+): Promise<DiagnosticAssignmentSnapshot[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from('twilio_numbers')
+      .select('id, business_id, phone_number, twilio_sid, status, sms_status, provisioning_status, released_at, detached_at, retired_at, reserved_for_business_id, reserved_at, assigned_at, created_at, updated_at')
+      .eq('business_id', businessId);
+
+    if (error) {
+      console.error('[AssignmentHelper] Diagnostic query failed:', error);
+      return null;
+    }
+
+    return data as DiagnosticAssignmentSnapshot[];
+  } catch (error: any) {
+    console.error('[AssignmentHelper] Diagnostic query exception:', error);
+    return null;
+  }
 }
 
 /**
@@ -44,6 +92,19 @@ export async function getExistingAssignment(
     .eq('business_id', businessId)
     .in('status', ['assigned', 'active'])
     .maybeSingle();
+
+  // Diagnostic logging for active query result
+  console.log('[AssignmentHelper] ACTIVE QUERY RESULT', {
+    businessId,
+    dataFound: !!data,
+    errorPresent: !!error,
+    errorCode: error?.code,
+    errorMessage: error?.message,
+    rowId: data?.id,
+    status: data?.status,
+    phoneNumberPresent: !!data?.phone_number,
+    twilioSidPresent: !!data?.twilio_sid
+  });
 
   if (error) {
     // PGRST116 is "no rows returned" - not an error for our use case

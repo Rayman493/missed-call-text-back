@@ -7,12 +7,64 @@
 import Twilio from 'twilio';
 import { createClient } from '@supabase/supabase-js';
 import { isSystemPhoneNumber } from './twilio-assignment';
-import { getExistingAssignment } from './twilio-assignment-helper';
+import { getExistingAssignment, getAllBusinessAssignments } from './twilio-assignment-helper';
 
 const MIN_AVAILABLE_WARM_NUMBERS = parseInt(process.env.WARM_INVENTORY_TARGET || '3', 10); // Warm buffer target
 
 // Duplicate purchase protection flag
 let isReplenishing = false;
+
+/**
+ * Log diagnostic snapshot of all assignments for a business
+ */
+async function logDiagnosticSnapshot(
+  supabase: any,
+  businessId: string,
+  stage: string,
+  correlationId?: string
+) {
+  const timestamp = Date.now();
+  const allRows = await getAllBusinessAssignments(supabase, businessId);
+
+  console.log('[DIAGNOSTIC SNAPSHOT]', {
+    timestamp,
+    correlationId,
+    businessId,
+    stage,
+    rowCount: allRows?.length || 0,
+    rows: allRows?.map(r => ({
+      id: r.id,
+      business_id: r.business_id,
+      phone_number: r.phone_number,
+      twilio_sid: r.twilio_sid,
+      status: r.status,
+      sms_status: r.sms_status,
+      provisioning_status: r.provisioning_status,
+      released_at: r.released_at,
+      detached_at: r.detached_at,
+      retired_at: r.retired_at,
+      reserved_for_business_id: r.reserved_for_business_id,
+      reserved_at: r.reserved_at,
+      assigned_at: r.assigned_at,
+      updated_at: r.updated_at
+    }))
+  });
+}
+
+/**
+ * Log Supabase project identity for diagnostic purposes
+ */
+function logSupabaseIdentity(source: string) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  if (supabaseUrl) {
+    try {
+      const hostname = new URL(supabaseUrl).hostname;
+      console.log('[SUPABASE IDENTITY]', { source, hostname });
+    } catch (e) {
+      console.log('[SUPABASE IDENTITY]', { source, url: supabaseUrl, error: 'invalid URL' });
+    }
+  }
+}
 
 // Use service role key for database operations
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -622,6 +674,11 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<WarmNu
     // STEP 0: Idempotency check - Check if business already has an assigned number
     // Uses shared helper to ensure exact match with unique index predicate
     console.log(`[Warm Inventory] STEP 0: Checking for existing assignment for business ${businessId}...`);
+
+    // DIAGNOSTIC POINT A: Snapshot before precheck
+    await logDiagnosticSnapshot(supabase, businessId, 'BEFORE_PRECHECK');
+    logSupabaseIdentity('warm-number-manager service-role client');
+
     const existingAssignment = await getExistingAssignment(supabase, businessId);
 
     if (existingAssignment) {
@@ -661,8 +718,34 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<WarmNu
     // This ensures only one request can claim a specific number
     console.log(`[Warm Inventory] STEP 1: Atomically claiming warm number for business ${businessId}...`);
 
+    // DIAGNOSTIC POINT B: Snapshot before atomic claim
+    await logDiagnosticSnapshot(supabase, businessId, 'BEFORE_ATOMIC_CLAIM');
+
     const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
     const senderPoolAttachedAt = new Date().toISOString();
+
+    // DIAGNOSTIC: Log candidate row before UPDATE
+    const { data: candidateBefore } = await supabase
+      .from('twilio_numbers')
+      .select('id, phone_number, business_id, status, sms_status, provisioning_status')
+      .is('business_id', null)
+      .eq('status', 'available')
+      .eq('sms_status', 'ready')
+      .eq('provisioning_status', 'ready')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .single();
+
+    console.log('[ATOMIC CLAIM TARGET]', {
+      candidateId: candidateBefore?.id,
+      candidatePhoneNumber: candidateBefore?.phone_number,
+      candidateBusinessId: candidateBefore?.business_id,
+      candidateStatus: candidateBefore?.status,
+      candidateSmsStatus: candidateBefore?.sms_status,
+      candidateProvisioningStatus: candidateBefore?.provisioning_status,
+      targetBusinessId: businessId,
+      timestamp: Date.now()
+    });
 
     const { data: updatedNumbers, error: claimError } = await supabase
       .from('twilio_numbers')
@@ -687,6 +770,16 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<WarmNu
       .limit(1)
       .select();
 
+    console.log('[ATOMIC CLAIM RESULT]', {
+      success: !claimError,
+      postgresCode: claimError?.code,
+      constraintName: claimError?.message?.includes('idx_twilio_numbers_business_active_unique') ? 'idx_twilio_numbers_business_active_unique' : claimError?.message,
+      details: claimError?.details,
+      returnedRowId: updatedNumbers?.[0]?.id,
+      returnedRowCount: updatedNumbers?.length || 0,
+      timestamp: Date.now()
+    });
+
     if (claimError) {
       console.error('[Warm Inventory] ERROR: Atomic claim failed:', claimError);
       console.error('[Warm Inventory] ERROR Details:', JSON.stringify(claimError, null, 2));
@@ -698,6 +791,12 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<WarmNu
         console.log(`[Warm Inventory] ========== 23505 BUSINESS ACTIVE UNIQUE VIOLATION ==========`);
         console.log(`[Warm Inventory] Business ${businessId} already has an active/assigned number per database unique index`);
         console.log(`[Warm Inventory] This is a safety violation - MUST reconcile existing assignment, NOT purchase new number`);
+
+        // DIAGNOSTIC POINT C: Snapshot after 23505 failure
+        await logDiagnosticSnapshot(supabase, businessId, 'AFTER_23505_FAILURE');
+
+        // DIAGNOSTIC POINT D: Snapshot before reconciliation
+        await logDiagnosticSnapshot(supabase, businessId, 'BEFORE_RECONCILIATION');
 
         // Re-check for existing assignment using authoritative query matching the unique index
         const retryExistingAssignment = await getExistingAssignment(supabase, businessId);
