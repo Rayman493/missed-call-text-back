@@ -44,6 +44,7 @@ export class TerminalBridgeService {
   private paymentStatus?: string
   private lastReaderId?: string
   private currentPaymentIntentId?: string
+  private currentLocalPaymentId?: string
   private listenerCounts: Record<string, number> = {}
   private totalActiveListeners = 0
   private listenerIdsByType: Record<string, Set<string>> = {}
@@ -107,6 +108,7 @@ export class TerminalBridgeService {
     this.attemptStartMs = null
     this.currentPhase = undefined
     this.currentPaymentIntentId = undefined
+    this.currentLocalPaymentId = undefined
     // Do not disconnect; keep reader and initialized SDK
   }
 
@@ -205,6 +207,7 @@ export class TerminalBridgeService {
   getPaymentStatus(): string | undefined { return this.paymentStatus }
   getReaderId(): string | undefined { return this.lastReaderId }
   getPaymentIntentId(): string | undefined { return this.currentPaymentIntentId }
+  getLocalPaymentId(): string | undefined { return this.currentLocalPaymentId }
   getListenerStats(): { counts: Record<string, number>; total: number } { return { counts: { ...this.listenerCounts }, total: this.totalActiveListeners } }
   getAppActive(): boolean | undefined { return this.lastAppIsActive }
   getAttemptFlags() { return { ...this.attemptFlags } }
@@ -1216,6 +1219,7 @@ export class TerminalBridgeService {
       return { status: 'canceled' as const, error: { code: 'stale', message: 'Attempt superseded' }, localPaymentId: null }
     }
     this.currentPaymentIntentId = paymentIntentId
+    this.currentLocalPaymentId = localPaymentId
     this.attemptFlags.paymentIntentCreated = true
     this.timings.tPiEnd = Date.now()
 
@@ -1566,7 +1570,7 @@ export class TerminalBridgeService {
     this.currentAttemptId = null
     this.attemptStartMs = null
     this.currentPhase = undefined
-    // Note: We do NOT clear currentPaymentIntentId to preserve it for receipt context
+    // Note: We do NOT clear currentPaymentIntentId or currentLocalPaymentId to preserve them for receipt context
   }
 
   // Persist last attempt outcome to distinguish terminal failures from genuine ambiguity

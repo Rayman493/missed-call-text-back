@@ -2382,16 +2382,19 @@ export function useTapToPayOrchestration({
     const outcome: 'success' | 'failure' | 'canceled' = isCancellation ? 'canceled' : 'failure'
 
     // Store last completed attempt for diagnostics
+    // Use service.getLocalPaymentId() to capture paymentRequestId even for thrown errors
+    // This is set when PaymentIntent is created, before collection can throw
+    const servicePaymentRequestId = terminalService.getLocalPaymentId() || paymentRequestId || null
     setLastCompletedAttempt({
       attemptId: terminalService.getCurrentAttemptId(),
       outcome,
       completedAt: new Date().toISOString(),
-      paymentRequestId: paymentRequestId || null,
+      paymentRequestId: servicePaymentRequestId,
     })
     console.log('[TTP Hook] LAST_COMPLETED_ATTEMPT_STORED', {
       outcome,
       attemptId: terminalService.getCurrentAttemptId(),
-      paymentRequestId,
+      paymentRequestId: servicePaymentRequestId,
       isDefinitiveDecline
     })
 

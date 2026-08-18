@@ -135,10 +135,16 @@ const handleSendReceiptSubmit = async () => {
   setIsSendingReceipt(true)
   setReceiptError('')
 
+  // Validate paymentRequestId is available
+  // Use lastCompletedAttempt.paymentRequestId as fallback for declined payments
+  const receiptPaymentRequestId = paymentRequestId || lastCompletedAttempt.paymentRequestId
+
+  // Determine receipt status based on payment state
+  // Declined payments should send 'failed' status receipts
+  const isDeclined = paymentState === 'failure' || visiblePhase === 'declined'
+  const receiptStatus = isDeclined ? 'failed' : 'paid'
+
   try {
-    // Validate paymentRequestId is available
-    // Use lastCompletedAttempt.paymentRequestId as fallback for declined payments
-    const receiptPaymentRequestId = paymentRequestId || lastCompletedAttempt.paymentRequestId
     if (!receiptPaymentRequestId) {
       throw new Error('Payment information not available. Please close and try again.')
     }
@@ -148,11 +154,6 @@ const handleSendReceiptSubmit = async () => {
     if (!normalizedPhone) {
       throw new Error('Enter a valid phone number')
     }
-
-    // Determine receipt status based on payment state
-    // Declined payments should send 'failed' status receipts
-    const isDeclined = paymentState === 'failure' || visiblePhase === 'declined'
-    const receiptStatus = isDeclined ? 'failed' : 'paid'
 
     console.log('[QuickTapToPayModal] Sending receipt:', {
       paymentRequestId: receiptPaymentRequestId,
@@ -183,7 +184,13 @@ const handleSendReceiptSubmit = async () => {
     // Show success state
     setReceiptSent(true)
   } catch (error) {
-    console.error('[QuickTapToPayModal] Failed to send receipt:', error)
+    console.error('[QuickTapToPayModal] Failed to send receipt:', {
+      errorName: error instanceof Error ? error.name : 'Unknown',
+      errorMessage: error instanceof Error ? error.message : String(error),
+      paymentRequestId: receiptPaymentRequestId,
+      receiptStatus,
+      httpStatus: error instanceof Error && 'cause' in error ? (error as any).cause?.status : undefined,
+    })
     setReceiptError(error instanceof Error ? error.message : 'Failed to send receipt')
   } finally {
     setIsSendingReceipt(false)

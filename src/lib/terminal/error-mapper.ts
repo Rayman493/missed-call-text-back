@@ -349,7 +349,13 @@ export function mapTapToPayError(
   if (
     lowerMessage.includes('declined') ||
     lowerMessage.includes('card declined') ||
-    lowerCode.includes('declined')
+    lowerCode.includes('declined') ||
+    lowerMessage.includes('insufficient funds') ||
+    lowerMessage.includes('do not honor') ||
+    lowerMessage.includes('expired card') ||
+    lowerMessage.includes('invalid card') ||
+    lowerMessage.includes('card not supported') ||
+    lowerMessage.includes('transaction not allowed')
   ) {
     // Extract safe decline reason if available (e.g., "Insufficient funds")
     let declineReason: string | undefined
