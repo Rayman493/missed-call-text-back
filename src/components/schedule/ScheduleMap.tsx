@@ -536,22 +536,27 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     }
   }, [mapFilter, mapItems, selectedMapItemId, getFilteredMapItems])
 
+  // Assign stop numbers to customer destinations only (Home Base/business does not consume a stop number)
+  const assignStopNumbers = useCallback((items: MapItem[]): MapItem[] => {
+    let customerStopIndex = 0
+    return items.map(item => {
+      if (item.type === 'business') {
+        return { ...item, stopNumber: undefined }
+      }
+      customerStopIndex += 1
+      return { ...item, stopNumber: customerStopIndex }
+    })
+  }, [])
+
   // Get sorted mapped items for navigation with stop numbering
   const getSortedMappedItems = useCallback((items: MapItem[]): MapItem[] => {
-    return [...items]
-      .sort((a, b) => {
-        const timeA = a.scheduledTime || '00:00'
-        const timeB = b.scheduledTime || '00:00'
-        return timeA.localeCompare(timeB)
-      })
-      .map((item, index) => {
-        // Business markers don't get stop numbers
-        if (item.type === 'business') {
-          return { ...item, stopNumber: undefined }
-        }
-        return { ...item, stopNumber: index + 1 }
-      })
-  }, [])
+    const sorted = [...items].sort((a, b) => {
+      const timeA = a.scheduledTime || '00:00'
+      const timeB = b.scheduledTime || '00:00'
+      return timeA.localeCompare(timeB)
+    })
+    return assignStopNumbers(sorted)
+  }, [assignStopNumbers])
 
   // Fit bounds with max zoom constraint and responsive padding
   const fitBoundsWithMaxZoom = useCallback((bounds: any, maxZoom: number = 15, padding?: { top: number; right: number; bottom: number; left: number }, reason: string = 'unknown') => {
@@ -1468,16 +1473,10 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         // Stable tie-breaker: use item ID for identical times
         return a.id.localeCompare(b.id)
       })
-      .map((item, index) => {
-        // Business markers don't get stop numbers
-        if (item.type === 'business') {
-          return { ...item, stopNumber: undefined }
-        }
-        return { ...item, stopNumber: index + 1 }
-      })
+    const sortedWithCorrectStopNumbers = assignStopNumbers(sortedWithStopNumbers)
 
     const stopNumberLookup = new Map<string, number>()
-    sortedWithStopNumbers.forEach(item => {
+    sortedWithCorrectStopNumbers.forEach(item => {
       if (item.stopNumber !== undefined) {
         stopNumberLookup.set(item.id, item.stopNumber)
       }
@@ -1696,7 +1695,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       markersRef.current.forEach(marker => marker.setMap(null))
       markersRef.current.clear()
     }
-  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectedMapItemId, previousDateKey, lastAutoFitDateKey, mapFilter, getResponsivePadding])
+  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectedMapItemId, previousDateKey, lastAutoFitDateKey, mapFilter, getResponsivePadding, assignStopNumbers])
 
   // Update marker icons when selection changes (without triggering camera changes)
   useEffect(() => {
@@ -1712,16 +1711,10 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         if (timeCompare !== 0) return timeCompare
         return a.id.localeCompare(b.id)
       })
-      .map((item, index) => {
-        // Business markers don't get stop numbers
-        if (item.type === 'business') {
-          return { ...item, stopNumber: undefined }
-        }
-        return { ...item, stopNumber: index + 1 }
-      })
+    const sortedWithCorrectStopNumbers = assignStopNumbers(sortedWithStopNumbers)
 
     const stopNumberLookup = new Map<string, number>()
-    sortedWithStopNumbers.forEach(item => {
+    sortedWithCorrectStopNumbers.forEach(item => {
       if (item.stopNumber !== undefined) {
         stopNumberLookup.set(item.id, item.stopNumber)
       }
@@ -1749,7 +1742,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         marker.setZIndex(isSelected ? 1000 : 1)
       }
     })
-  }, [selectedMapItemId, mapReady, getFilteredMapItems, mapItems])
+  }, [selectedMapItemId, mapReady, getFilteredMapItems, mapItems, assignStopNumbers])
 
   // Log map instance destruction on unmount
   useEffect(() => {
@@ -1897,11 +1890,12 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   const filteredItems = getFilteredMapItems(mapItems)
   const sortedItems = getSortedMappedItems(filteredItems)
   const selectedItem = selectedMapItemId ? sortedItems.find(i => i.id === selectedMapItemId) : null
-  
-  // Calculate route summary
-  const mappedStopsCount = sortedItems.length
-  const firstStop = sortedItems[0]
-  const lastStop = sortedItems[sortedItems.length - 1]
+
+  // Calculate route summary (count only customer destinations, not Home Base)
+  const customerDestinations = sortedItems.filter(item => item.type !== 'business')
+  const mappedStopsCount = customerDestinations.length
+  const firstStop = customerDestinations[0]
+  const lastStop = customerDestinations[customerDestinations.length - 1]
   const routeSummary = mappedStopsCount > 0
     ? `${mappedStopsCount} stop${mappedStopsCount > 1 ? 's' : ''}${firstStop?.scheduledTime && lastStop?.scheduledTime ? ` · ${formatTime(firstStop.scheduledTime)} – ${formatTime(lastStop.scheduledTime)}` : ''}`
     : 'No mapped stops'
