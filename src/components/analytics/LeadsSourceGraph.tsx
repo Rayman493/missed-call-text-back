@@ -286,7 +286,7 @@ export default function LeadsSourceGraph() {
                 </PieChart>
               </ResponsiveContainer>
               {/* Center KPI - properly centered in donut hole */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ transform: 'translateY(-2px)' }}>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-2xl font-semibold text-foreground">{formatInteger(trueTotal)}</span>
                 <span className="text-[10px] text-muted-foreground">Leads</span>
               </div>
