@@ -42,7 +42,7 @@ async function createSecureAudioUrl(recordingSid: string): Promise<string> {
 
   // Get current session
   const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-  
+
   if (sessionError || !session?.access_token) {
     throw new Error('Authentication required')
   }
@@ -51,9 +51,25 @@ async function createSecureAudioUrl(recordingSid: string): Promise<string> {
   return `/api/voicemail/${recordingSid}`
 }
 
-export default function VoicemailMessage({ 
-  recording, 
-  isInbound = true, 
+// Helper function to normalize duration to a safe number
+// Valid duration must be: finite, numeric, and strictly greater than 0
+function normalizeDuration(duration: number | string | null | undefined): number {
+  if (duration === null || duration === undefined) return 0
+  if (typeof duration === 'string') {
+    const parsed = parseFloat(duration)
+    if (isNaN(parsed) || !isFinite(parsed) || parsed <= 0) return 0
+    return parsed
+  }
+  if (typeof duration === 'number') {
+    if (isNaN(duration) || !isFinite(duration) || duration <= 0) return 0
+    return duration
+  }
+  return 0
+}
+
+export default function VoicemailMessage({
+  recording,
+  isInbound = true,
   showAvatar = true 
 }: VoicemailMessageProps) {
   const [isPlaying, setIsPlaying] = useState(false)
@@ -125,20 +141,34 @@ export default function VoicemailMessage({
     }
   }, [blobUrl, recording.id])
 
+  // Initialize duration from stored backend duration when component mounts
+  // This ensures duration is displayed correctly even before audio metadata loads
+  useEffect(() => {
+    const storedDuration = normalizeDuration(recording.recording_duration)
+    if (storedDuration > 0) {
+      setDuration(recording.id, storedDuration)
+    }
+  }, [recording.id, recording.recording_duration, setDuration])
+
   // Audio event handlers
   const handleLoadedMetadata = () => {
     const audio = audioRef.current
     if (!audio) return
-    
-    const audioDuration = audio.duration || recording.recording_duration || 0
+
+    // Use audio.duration for accurate playback duration
+    // Fall back to stored duration only if audio.duration is invalid (NaN, Infinity, or 0)
+    const audioDuration = (audio.duration && audio.duration > 0 && isFinite(audio.duration))
+      ? audio.duration
+      : normalizeDuration(recording.recording_duration)
+
     if (isNaN(audioDuration) || !isFinite(audioDuration)) {
       setDuration(recording.id, 0)
       return
     }
-    
+
     setDuration(recording.id, audioDuration)
     setCanSeek(true)
-    
+
     // Apply saved volume to audio element when metadata loads
     const normalizedVolume = isMuted ? 0 : Math.min(1, Math.max(0, volume))
     audio.volume = normalizedVolume
@@ -158,8 +188,13 @@ export default function VoicemailMessage({
   const handleDurationChange = () => {
     const audio = audioRef.current
     if (!audio) return
-    
-    const audioDuration = audio.duration || recording.recording_duration || 0
+
+    // Use audio.duration for accurate playback duration
+    // Fall back to stored duration only if audio.duration is invalid (NaN, Infinity, or 0)
+    const audioDuration = (audio.duration && audio.duration > 0 && isFinite(audio.duration))
+      ? audio.duration
+      : normalizeDuration(recording.recording_duration)
+
     if (isNaN(audioDuration) || !isFinite(audioDuration)) return
     setDuration(recording.id, audioDuration)
   }
