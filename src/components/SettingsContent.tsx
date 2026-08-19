@@ -2681,27 +2681,48 @@ export default function SettingsContent() {
                             <p className="text-sm text-muted-foreground leading-relaxed mb-1.5">
                               Send different replies inside and outside business hours.
                             </p>
+                            <button
+                              onClick={() => {
+                                // If enabling, validate configuration is complete
+                                if (!formBusiness.business_hours_enabled) {
+                                  const hasValidConfig =
+                                    formBusiness.business_hours_timezone &&
+                                    formBusiness.business_hours_start &&
+                                    formBusiness.business_hours_end &&
+                                    formBusiness.after_hours_message
+
+                                  if (!hasValidConfig) {
+                                    showToast('Please configure timezone, hours, and after-hours message before enabling Business Hours', 'error')
+                                    return
+                                  }
+                                }
+
+                                const nextBusiness = {
+                                  ...formBusiness,
+                                  business_hours_enabled: !formBusiness.business_hours_enabled
+                                }
+                                updateBusiness(nextBusiness)
+                              }}
+                              className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                                formBusiness.business_hours_enabled
+                                  ? 'bg-blue-600'
+                                  : 'bg-slate-300 dark:bg-slate-600'
+                              }`}
+                              type="button"
+                            >
+                              <span
+                                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${
+                                  formBusiness.business_hours_enabled ? 'translate-x-5' : 'translate-x-0.5'
+                                }`}
+                              />
+                            </button>
                           </div>
                           <button
                             onClick={async () => {
-                              // Auto-enable/disable business hours based on configuration
-                              const hasValidConfig =
-                                formBusiness.business_hours_timezone &&
-                                formBusiness.business_hours_start &&
-                                formBusiness.business_hours_end &&
-                                formBusiness.after_hours_message
-
-                              // Construct the complete next state to avoid stale React state
-                              const nextBusiness = {
-                                ...formBusiness,
-                                business_hours_enabled: hasValidConfig ? true : false
-                              }
-
-                              // Update local state and persist in one operation
-                              // Pass nextBusiness directly to saveChanges to avoid stale closure bug
+                              // Save the current state without auto-enabling/disabling
+                              const nextBusiness = { ...formBusiness }
                               updateBusiness(nextBusiness)
                               await saveChanges(nextBusiness)
-
                               setBusinessHoursExpanded(false)
                             }}
                             className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
@@ -3526,7 +3547,7 @@ export default function SettingsContent() {
                     <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <img src="/brands/stripe.svg" alt="Stripe" className="h-5 w-auto object-contain sm:h-6 flex-shrink-0" />
+                          <img src="/brands/stripe.svg" alt="Stripe" className="h-5 w-auto object-contain sm:h-6 flex-shrink-0 dark:invert-0 invert" />
                           {stripeStatus === 'connected' ? (
                             <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
                               <span className="w-1 h-1 bg-green-500 rounded-full" />
@@ -3625,7 +3646,7 @@ export default function SettingsContent() {
                     <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <img src="/brands/venmo.png" alt="Venmo" className="h-5 w-auto object-contain sm:h-6 max-w-20 flex-shrink-0" />
+                          <img src="/brands/venmo.png" alt="Venmo" className="h-5 w-auto object-contain sm:h-6 max-w-20 flex-shrink-0 dark:invert-0 invert" />
                         {formBusiness.venmo_username ? (
                           <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                             <span className="w-1 h-1 bg-green-500 rounded-full" />
@@ -3648,7 +3669,7 @@ export default function SettingsContent() {
                       value={formBusiness.venmo_username || ''}
                       onChange={(e) => updateBusiness({ venmo_username: e.target.value })}
                       placeholder="joesplumbing"
-                      className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                      className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                     />
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       With or without @
@@ -3683,7 +3704,7 @@ export default function SettingsContent() {
                         value={formBusiness.paypal_payment_link || ''}
                         onChange={(e) => updateBusiness({ paypal_payment_link: e.target.value })}
                         placeholder="https://paypal.me/yourbusiness"
-                        className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                        className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                       />
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         Example: https://paypal.me/joesplumbing
@@ -4235,7 +4256,7 @@ export default function SettingsContent() {
                       onChange={(e) => setDeleteConfirmText(e.target.value)}
                       placeholder="Type DELETE"
                       disabled={isDeleting}
-                      className="w-full px-4 py-3 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 disabled:opacity-50"
+                      className="w-full px-4 py-3 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground disabled:opacity-50"
                     />
                   </div>
 
@@ -4263,7 +4284,7 @@ export default function SettingsContent() {
                         required={false}
                         autoComplete="current-password"
                         disabled={isDeleting}
-                        className={`h-12 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all ${
+                        className={`h-12 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all ${
                           deletePasswordError
                             ? 'border-red-500 focus:ring-red-500'
                             : 'border-slate-200/70 dark:border-slate-700/50 focus:ring-red-500/40 focus:border-red-500/80'
@@ -4337,7 +4358,7 @@ export default function SettingsContent() {
                       type="tel"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground"
+                      className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-slate-900 dark:text-foreground placeholder:text-muted-foreground"
                       placeholder="+1 (555) 123-4567"
                     />
                   </div>
@@ -4349,7 +4370,7 @@ export default function SettingsContent() {
                       type="text"
                       value={label}
                       onChange={(e) => setLabel(e.target.value)}
-                      className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground"
+                      className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-slate-900 dark:text-foreground placeholder:text-muted-foreground"
                       placeholder="e.g., John Doe"
                     />
                   </div>
@@ -4423,7 +4444,7 @@ export default function SettingsContent() {
                         autoComplete="current-password"
                         placeholder="Enter current password"
                         disabled={isChangingPassword}
-                        className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
+                        className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground text-sm"
                       />
                     </div>
                   </div>
@@ -4444,7 +4465,7 @@ export default function SettingsContent() {
                         autoComplete="new-password"
                         placeholder="Enter new password"
                         disabled={isChangingPassword}
-                        className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
+                        className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground text-sm"
                       />
                     </div>
                     
@@ -4517,7 +4538,7 @@ export default function SettingsContent() {
                         autoComplete="new-password"
                         placeholder="Confirm new password"
                         disabled={isChangingPassword}
-                        className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
+                        className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground text-sm"
                       />
                     </div>
                   </div>
@@ -4593,7 +4614,7 @@ export default function SettingsContent() {
                       onChange={(e) => setNewEmail(e.target.value)}
                       required
                       autoComplete="email"
-                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
+                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground text-sm"
                       placeholder="Enter new email"
                       disabled={isChangingEmail}
                     />
@@ -4610,7 +4631,7 @@ export default function SettingsContent() {
                       onChange={(e) => setConfirmNewEmail(e.target.value)}
                       required
                       autoComplete="email"
-                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
+                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground text-sm"
                       placeholder="Confirm new email"
                       disabled={isChangingEmail}
                     />
@@ -4627,7 +4648,7 @@ export default function SettingsContent() {
                       onChange={(e) => setEmailPassword(e.target.value)}
                       required
                       autoComplete="current-password"
-                      className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
+                      className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground text-sm"
                       placeholder="Enter current password"
                       disabled={isChangingEmail}
                     />

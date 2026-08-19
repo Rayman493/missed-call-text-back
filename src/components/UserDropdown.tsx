@@ -66,7 +66,12 @@ function QuickThemeSwitcher() {
   )
 }
 
-export default function UserDropdown() {
+interface UserDropdownProps {
+  forceDark?: boolean
+  isPublicPage?: boolean
+}
+
+export default function UserDropdown({ forceDark = false, isPublicPage = false }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
   const [isValidSession, setIsValidSession] = useState(false)
@@ -289,10 +294,10 @@ export default function UserDropdown() {
               aria-haspopup="menu"
               aria-expanded={isOpen}
               aria-controls="mobile-account-menu"
-              className={`group flex h-10 w-10 items-center justify-center gap-2 rounded-lg text-sm font-medium motion-safe:transition-all motion-safe:duration-200 motion-reduce:transition-none motion-reduce:transform-none text-center relative sm:w-auto sm:px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 active:scale-[0.98] ${
+              className={`group flex h-10 w-10 items-center justify-center gap-2 rounded-lg text-sm font-medium motion-safe:transition-all motion-safe:duration-200 motion-reduce:transition-none motion-reduce:transform-none text-center relative sm:w-auto sm:px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] ${
                 isOpen
-                  ? 'text-white bg-slate-800'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  ? 'text-foreground bg-secondary'
+                  : 'text-foreground hover:text-foreground hover:bg-muted'
               }`}
             >
               {/* User Icon - always visible */}
@@ -326,7 +331,7 @@ export default function UserDropdown() {
             ref={dropdownContentRef}
             role="menu"
             tabIndex={-1}
-            className="fixed z-[1000] overflow-hidden rounded-2xl border border-border/50 bg-card shadow-2xl shadow-black/10 dark:shadow-black/30 sm:hidden animate-in fade-in slide-in-from-top-2 duration-200"
+            className={`fixed z-[1000] overflow-hidden rounded-2xl border border-border/50 bg-card shadow-2xl shadow-black/10 dark:shadow-black/30 sm:hidden animate-in fade-in slide-in-from-top-2 duration-200 ${forceDark ? 'dark' : ''}`}
             style={dropdownPosition ? {
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
@@ -335,7 +340,7 @@ export default function UserDropdown() {
           >
             {/* Identity section */}
             <div className="flex items-center gap-3 px-4 py-3">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-slate-800 text-white">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-foreground">
                 <User className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
@@ -349,9 +354,11 @@ export default function UserDropdown() {
             </div>
 
             {/* Quick theme switcher */}
-            <div className="px-4 py-2">
-              <QuickThemeSwitcher />
-            </div>
+            {!isPublicPage && (
+              <div className="px-4 py-2">
+                <QuickThemeSwitcher />
+              </div>
+            )}
 
             <div className="h-px bg-border/50" />
 
@@ -361,27 +368,27 @@ export default function UserDropdown() {
                 href="/dashboard/settings#notifications-divider"
                 role="menuitem"
                 onClick={() => setIsOpen(false)}
-                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
-                <Bell className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                <Bell className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 Notifications
               </Link>
               <Link
                 href="/dashboard/settings"
                 role="menuitem"
                 onClick={() => setIsOpen(false)}
-                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
-                <Settings className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                <Settings className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 Account
               </Link>
               <button
                 type="button"
                 role="menuitem"
                 onClick={handleManageBilling}
-                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
-                <ReceiptText className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                <ReceiptText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 Billing
               </button>
               <button
@@ -391,23 +398,23 @@ export default function UserDropdown() {
                   setIsOpen(false)
                   setIsAssistantOpen(true)
                 }}
-                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
-                <MessageCircle className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                <MessageCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 ReplyFlow Assistant
               </button>
               <Link
                 href={isHomepage ? '/dashboard' : '/'}
                 role="menuitem"
                 onClick={() => setIsOpen(false)}
-                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
-                <Home className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                <Home className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 {isHomepage ? 'Go to Dashboard' : 'View Homepage'}
               </Link>
             </div>
 
-            <div className="h-px bg-slate-700 mx-2" />
+            <div className="h-px bg-border mx-2" />
 
             {/* Danger section */}
             <div className="px-1.5 py-1">
@@ -424,7 +431,7 @@ export default function UserDropdown() {
           </div>
 
           {/* Desktop dropdown - portal rendered */}
-          <div ref={desktopDropdownContentRef} className="hidden sm:block fixed z-[1000] bg-card rounded-xl shadow-xl shadow-black/10 dark:shadow-black/30 border border-border/50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-200" style={dropdownPosition ? {
+          <div ref={desktopDropdownContentRef} className={`hidden sm:block fixed z-[1000] bg-card rounded-xl shadow-xl shadow-black/10 dark:shadow-black/30 border border-border/50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-200 ${forceDark ? 'dark' : ''}`} style={dropdownPosition ? {
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
             width: `${dropdownPosition.width}px`
@@ -440,9 +447,11 @@ export default function UserDropdown() {
             </div>
 
             {/* Quick theme switcher */}
-            <div className="px-3 py-2">
-              <QuickThemeSwitcher />
-            </div>
+            {!isPublicPage && (
+              <div className="px-3 py-2">
+                <QuickThemeSwitcher />
+              </div>
+            )}
 
             {/* Navigation Items */}
             <div className="py-1 px-1">
@@ -465,9 +474,9 @@ export default function UserDropdown() {
                     key={item.label}
                     href={item.href}
                     onClick={() => setIsOpen(false)}
-                    className="w-full px-2.5 py-2 text-left text-sm text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-2.5 rounded-md"
+                    className="w-full px-2.5 py-2 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2.5 rounded-md"
                   >
-                    <Icon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                     {item.label}
                   </Link>
                 ) : (
@@ -476,11 +485,11 @@ export default function UserDropdown() {
                     onClick={handleClick}
                     className={`w-full px-2.5 py-2 text-left text-sm transition-colors flex items-center gap-2.5 rounded-md ${
                       isDanger
-                        ? 'text-red-400 hover:text-red-300 hover:bg-slate-800'
-                        : 'text-slate-200 hover:bg-slate-800'
+                        ? 'text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'
+                        : 'text-foreground hover:bg-muted'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 flex-shrink-0 ${isDanger ? '' : 'text-slate-400'}`} />
+                    <Icon className={`w-4 h-4 flex-shrink-0 ${isDanger ? '' : 'text-muted-foreground'}`} />
                     {item.label}
                   </button>
                 )
@@ -488,7 +497,7 @@ export default function UserDropdown() {
                 if (!isBilling) {
                   if (isDanger) {
                     return (
-                      <div key={item.label} className="mt-1 border-t border-slate-700 pt-1">
+                      <div key={item.label} className="mt-1 border-t border-border pt-1">
                         {menuItem}
                       </div>
                     )
@@ -504,9 +513,9 @@ export default function UserDropdown() {
                         setIsOpen(false)
                         setIsAssistantOpen(true)
                       }}
-                      className="w-full px-2.5 py-2 text-left text-sm text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-2.5 rounded-md"
+                      className="w-full px-2.5 py-2 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2.5 rounded-md"
                     >
-                      <MessageCircle className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <MessageCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       ReplyFlow Assistant
                     </button>
                   </div>

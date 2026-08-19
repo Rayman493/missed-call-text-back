@@ -196,7 +196,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
               )}
               
               {/* Account Dropdown */}
-              <UserDropdown />
+              <UserDropdown forceDark={forceDark} isPublicPage={isPublicPage} />
             </>
           ) : (
             // Logged-out navigation
