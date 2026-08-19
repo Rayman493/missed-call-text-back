@@ -789,8 +789,8 @@ export default async function Home() {
         </section>
         </ScrollAnimation>
       </HomepageErrorBoundary>
-          </div>
       <Footer />
+          </div>
       </PageBackground>
       </NativeLandingWrapper>
     </>
