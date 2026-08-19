@@ -786,58 +786,58 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           <>
             {/* Overview Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-              <div className="rounded-xl p-3.5 sm:p-4 border border-slate-700/70 bg-[#1e293b] shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
+              <div className="rounded-xl p-3.5 sm:p-4 border border-border/70 bg-card shadow-sm dark:shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
                 <div className="flex items-start justify-between mb-1.5">
-                  <span className="text-gray-400 text-xs font-medium">Pending Amount</span>
-                  <div className="h-8 w-8 rounded-lg bg-slate-800/60 ring-1 ring-inset ring-slate-600/40 flex items-center justify-center">
-                    <CreditCard className="h-4 w-4 text-blue-400" />
+                  <span className="text-muted-foreground text-xs font-medium">Pending Amount</span>
+                  <div className="h-8 w-8 rounded-lg bg-muted/60 ring-1 ring-inset ring-border/40 flex items-center justify-center">
+                    <CreditCard className="h-4 w-4 text-blue-500" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-white leading-tight">
+                <div className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
                   {formatCurrency(stats.pendingAmount / 100)}
                 </div>
                 {stats.pendingAmount === 0 ? (
-                  <div className="mt-1.5 text-[11px] text-gray-400">No outstanding payments</div>
+                  <div className="mt-1.5 text-[11px] text-muted-foreground">No outstanding payments</div>
                 ) : null}
               </div>
 
-              <div className="rounded-xl p-3.5 sm:p-4 border border-slate-700/70 bg-[#1e293b] shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
+              <div className="rounded-xl p-3.5 sm:p-4 border border-border/70 bg-card shadow-sm dark:shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
                 <div className="flex items-start justify-between mb-1.5">
-                  <span className="text-gray-400 text-xs font-medium">Paid This Month</span>
-                  <div className="h-8 w-8 rounded-lg bg-slate-800/60 ring-1 ring-inset ring-slate-600/40 flex items-center justify-center">
-                    <CreditCard className="h-4 w-4 text-green-400" />
+                  <span className="text-muted-foreground text-xs font-medium">Paid This Month</span>
+                  <div className="h-8 w-8 rounded-lg bg-muted/60 ring-1 ring-inset ring-border/40 flex items-center justify-center">
+                    <CreditCard className="h-4 w-4 text-green-500" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-white leading-tight">
+                <div className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
                   {formatCurrency(stats.paidThisMonth / 100)}
                 </div>
               </div>
 
-              <div className="rounded-xl p-3.5 sm:p-4 border border-slate-700/70 bg-[#1e293b] shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
+              <div className="rounded-xl p-3.5 sm:p-4 border border-border/70 bg-card shadow-sm dark:shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
                 <div className="flex items-start justify-between mb-1.5">
-                  <span className="text-gray-400 text-xs font-medium">Pending Requests</span>
-                  <div className="h-8 w-8 rounded-lg bg-slate-800/60 ring-1 ring-inset ring-slate-600/40 flex items-center justify-center">
-                    <CreditCard className="h-4 w-4 text-yellow-400" />
+                  <span className="text-muted-foreground text-xs font-medium">Pending Requests</span>
+                  <div className="h-8 w-8 rounded-lg bg-muted/60 ring-1 ring-inset ring-border/40 flex items-center justify-center">
+                    <CreditCard className="h-4 w-4 text-yellow-500" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-white leading-tight">
+                <div className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
                   {stats.pendingRequests}
                 </div>
                 {stats.pendingRequests > 0 ? (
-                  <div className="mt-1.5 text-[11px] text-gray-400">{stats.pendingRequests} pending</div>
+                  <div className="mt-1.5 text-[11px] text-muted-foreground">{stats.pendingRequests} pending</div>
                 ) : (
-                  <div className="mt-1.5 text-[11px] text-gray-400">No pending</div>
+                  <div className="mt-1.5 text-[11px] text-muted-foreground">No pending</div>
                 )}
               </div>
 
-              <div className="rounded-xl p-3.5 sm:p-4 border border-slate-700/70 bg-[#1e293b] shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
+              <div className="rounded-xl p-3.5 sm:p-4 border border-border/70 bg-card shadow-sm dark:shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
                 <div className="flex items-start justify-between mb-1.5">
-                  <span className="text-gray-400 text-xs font-medium">Payment Success Rate</span>
-                  <div className="h-8 w-8 rounded-lg bg-slate-800/60 ring-1 ring-inset ring-slate-600/40 flex items-center justify-center">
-                    <CreditCard className="h-4 w-4 text-purple-400" />
+                  <span className="text-muted-foreground text-xs font-medium">Payment Success Rate</span>
+                  <div className="h-8 w-8 rounded-lg bg-muted/60 ring-1 ring-inset ring-border/40 flex items-center justify-center">
+                    <CreditCard className="h-4 w-4 text-purple-500" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-white leading-tight">
+                <div className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
                   {stats.collectionRate}%
                 </div>
               </div>
@@ -858,7 +858,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             </div>
 
             {/* Payment Requests Table - Mobile cards, Desktop table */}
-            <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-2xl border border-slate-700/80 overflow-hidden shadow-[0_6px_18px_rgba(0,0,0,0.20)]">
+            <div className="bg-card dark:bg-[#1e293b] rounded-2xl border border-border/80 dark:border-slate-700/80 overflow-hidden shadow-sm dark:shadow-[0_6px_18px_rgba(0,0,0,0.20)]">
               {/* Mobile card view */}
               <div className="md:hidden space-y-2.5 p-3">
                 {paymentRequests.length === 0 ? (
@@ -877,11 +877,11 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                 ) : (
                   <>
                     {visiblePayments.map((payment) => (
-                      <div key={payment.id} className="bg-[#0f172a] dark:bg-[#0f172a] rounded-lg p-3 border border-slate-700">
+                      <div key={payment.id} className="bg-muted/50 dark:bg-[#0f172a] rounded-lg p-3 border border-border dark:border-slate-700">
                         <div className="flex items-start justify-between gap-3 mb-2.5">
                           <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-gray-400" />
-                            <span className="text-white font-medium text-sm">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-foreground font-medium text-sm">
                               {getCustomerName(payment)}
                             </span>
                           </div>
@@ -895,28 +895,28 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                         <div className="space-y-1.5 text-xs">
                           {payment.leads && (
                             <div className="flex justify-between">
-                              <span className="text-gray-400">Phone</span>
-                              <span className="text-gray-300">{formatPhoneNumber(payment.leads.caller_phone)}</span>
+                              <span className="text-muted-foreground">Phone</span>
+                              <span className="text-foreground">{formatPhoneNumber(payment.leads.caller_phone)}</span>
                             </div>
                           )}
                           <div className="flex justify-between">
-                            <span className="text-gray-400">Amount</span>
-                            <span className="text-white font-semibold">{formatCurrency(payment.amount_cents / 100)}</span>
+                            <span className="text-muted-foreground">Amount</span>
+                            <span className="text-foreground font-semibold">{formatCurrency(payment.amount_cents / 100)}</span>
                           </div>
                           {getPaymentDescription(payment) && (
                             <div className="flex justify-between">
-                              <span className="text-gray-400">Description</span>
-                              <span className="text-gray-300 truncate max-w-[150px]">{getPaymentDescription(payment)}</span>
+                              <span className="text-muted-foreground">Description</span>
+                              <span className="text-foreground truncate max-w-[150px]">{getPaymentDescription(payment)}</span>
                             </div>
                           )}
                           <div className="flex justify-between">
-                            <span className="text-gray-400">Requested</span>
-                            <span className="text-gray-300">{new Date(payment.created_at).toLocaleDateString()}</span>
+                            <span className="text-muted-foreground">Requested</span>
+                            <span className="text-foreground">{new Date(payment.created_at).toLocaleDateString()}</span>
                           </div>
                           {payment.paid_at && (
                             <div className="flex justify-between">
-                              <span className="text-gray-400">Paid</span>
-                              <span className="text-gray-300">{new Date(payment.paid_at).toLocaleDateString()}</span>
+                              <span className="text-muted-foreground">Paid</span>
+                              <span className="text-foreground">{new Date(payment.paid_at).toLocaleDateString()}</span>
                             </div>
                           )}
                         </div>
@@ -933,7 +933,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                             {(payment.status === 'paid' || payment.status === 'pending') && (
                               <button
                                 onClick={() => handleOpenRenameModal(payment)}
-                                className="p-1.5 text-gray-400 hover:text-white"
+                                className="p-1.5 text-muted-foreground hover:text-foreground"
                                 title="Rename payment"
                               >
                                 <Edit className="h-4 w-4" />
@@ -1008,11 +1008,11 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                           aria-expanded={showOlderPayments}
                           aria-label={showOlderPayments ? `Hide ${olderPayments.length} older payments` : `Show ${olderPayments.length} older payments`}
                         >
-                          <span className="text-sm font-medium text-gray-300">
+                          <span className="text-sm font-medium text-foreground">
                             {showOlderPayments ? `Hide older payments (${olderPayments.length})` : `Show older payments (${olderPayments.length})`}
                           </span>
                           <ChevronDown
-                            className={`h-5 w-5 text-gray-400 transition-transform duration-200 ${
+                            className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${
                               showOlderPayments ? 'rotate-180' : ''
                             }`}
                           />
@@ -1021,11 +1021,11 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                         {showOlderPayments && (
                           <div className="space-y-2.5">
                             {olderPayments.map((payment) => (
-                              <div key={payment.id} className="bg-[#0f172a] dark:bg-[#0f172a] rounded-lg p-3 border border-slate-700">
+                              <div key={payment.id} className="bg-muted/50 dark:bg-[#0f172a] rounded-lg p-3 border border-border dark:border-slate-700">
                                 <div className="flex items-start justify-between gap-3 mb-2.5">
                                   <div className="flex items-center gap-2">
-                                    <User className="h-4 w-4 text-gray-400" />
-                                    <span className="text-white font-medium text-sm">
+                                    <User className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-foreground font-medium text-sm">
                                       {getCustomerName(payment)}
                                     </span>
                                   </div>
@@ -1039,28 +1039,28 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                 <div className="space-y-1.5 text-xs">
                                   {payment.leads && (
                                     <div className="flex justify-between">
-                                      <span className="text-gray-400">Phone</span>
-                                      <span className="text-gray-300">{formatPhoneNumber(payment.leads.caller_phone)}</span>
+                                      <span className="text-muted-foreground">Phone</span>
+                                      <span className="text-foreground">{formatPhoneNumber(payment.leads.caller_phone)}</span>
                                     </div>
                                   )}
                                   <div className="flex justify-between">
-                                    <span className="text-gray-400">Amount</span>
-                                    <span className="text-white font-semibold">{formatCurrency(payment.amount_cents / 100)}</span>
+                                    <span className="text-muted-foreground">Amount</span>
+                                    <span className="text-foreground font-semibold">{formatCurrency(payment.amount_cents / 100)}</span>
                                   </div>
                                   {getPaymentDescription(payment) && (
                                     <div className="flex justify-between">
-                                      <span className="text-gray-400">Description</span>
-                                      <span className="text-gray-300 truncate max-w-[150px]">{getPaymentDescription(payment)}</span>
+                                      <span className="text-muted-foreground">Description</span>
+                                      <span className="text-foreground truncate max-w-[150px]">{getPaymentDescription(payment)}</span>
                                     </div>
                                   )}
                                   <div className="flex justify-between">
-                                    <span className="text-gray-400">Requested</span>
-                                    <span className="text-gray-300">{new Date(payment.created_at).toLocaleDateString()}</span>
+                                    <span className="text-muted-foreground">Requested</span>
+                                    <span className="text-foreground">{new Date(payment.created_at).toLocaleDateString()}</span>
                                   </div>
                                   {payment.paid_at && (
                                     <div className="flex justify-between">
-                                      <span className="text-gray-400">Paid</span>
-                                      <span className="text-gray-300">{new Date(payment.paid_at).toLocaleDateString()}</span>
+                                      <span className="text-muted-foreground">Paid</span>
+                                      <span className="text-foreground">{new Date(payment.paid_at).toLocaleDateString()}</span>
                                     </div>
                                   )}
                                 </div>
@@ -1077,7 +1077,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                     {payment.status === 'paid' && (
                                       <button
                                         onClick={() => handleOpenRenameModal(payment)}
-                                        className="p-1.5 text-gray-400 hover:text-white"
+                                        className="p-1.5 text-muted-foreground hover:text-foreground"
                                         title="Rename payment"
                                       >
                                         <Edit className="h-4 w-4" />
@@ -1164,38 +1164,38 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               {/* Desktop table view */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-[#0f172a] dark:bg-[#0f172a]">
+                  <thead className="bg-muted/30 dark:bg-[#0f172a]">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Customer
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Description
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Phone Number
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Amount
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Payment Method
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Requested
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Paid
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-700 [&_tr:nth-child(even)]:bg-slate-800/20">
+                  <tbody className="divide-y divide-border [&_tr:nth-child(even)]:bg-muted/20 dark:[&_tr:nth-child(even)]:bg-slate-800/20">
                     {paymentRequests.length === 0 ? (
                       <tr>
                         <td colSpan={9} className="px-4 py-12">
