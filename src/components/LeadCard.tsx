@@ -168,7 +168,7 @@ export default function LeadCard({
                 </span>
               )}
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-600 dark:text-muted-foreground">
+            <p className="text-[11px] sm:text-xs text-slate-700 dark:text-muted-foreground">
               {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
             </p>
           </div>
@@ -207,13 +207,13 @@ export default function LeadCard({
             <p className={`text-[11px] sm:text-xs font-medium ${
               aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
                 ? 'text-red-500 dark:text-red-400'
-                : 'text-slate-500 dark:text-muted-foreground'
+                : 'text-slate-700 dark:text-muted-foreground'
             }`}>
               {sentenceCase(aiData.urgency)}
             </p>
           )}
           {!aiData.reason && !aiData.urgency && (
-            <p className="line-clamp-1 sm:line-clamp-2 text-[11px] sm:text-xs text-slate-500 dark:text-muted-foreground leading-relaxed">
+            <p className="line-clamp-1 sm:line-clamp-2 text-[11px] sm:text-xs text-slate-700 dark:text-muted-foreground leading-relaxed">
               {getCompactSummary(lead)}
             </p>
           )}
@@ -235,7 +235,7 @@ export default function LeadCard({
 
         {/* Metadata */}
         <div className="flex items-center justify-between mb-1 sm:mb-2">
-          <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-muted-foreground">
+          <span className="text-[10px] sm:text-[11px] text-slate-600 dark:text-muted-foreground">
             {formatRelativeTime(lead.created_at)}
           </span>
         </div>

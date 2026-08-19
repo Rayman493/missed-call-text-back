@@ -428,7 +428,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                         {displayName}
                       </p>
                       {(isPhoneOnly ? true : !!requestTitle) && (
-                        <p className="text-xs text-slate-600 dark:text-slate-400 truncate mb-0.5">
+                        <p className="text-xs text-slate-700 dark:text-slate-400 truncate mb-0.5">
                           {isPhoneOnly ? 'Not Collected' : requestTitle}
                         </p>
                       )}
@@ -436,7 +436,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                         <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${statusDisplay.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : statusDisplay.color === 'green' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : statusDisplay.color === 'amber' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
                           {statusDisplay.text}
                         </span>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-500 flex-shrink-0">
+                        <span className="text-[10px] text-slate-600 dark:text-slate-500 flex-shrink-0">
                           {formatRelativeTime(lead.created_at)}
                         </span>
                         {currentJob && (
