@@ -49,7 +49,7 @@ export interface CustomerStatusStyle {
 export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle> = {
   new: {
     label: 'New',
-    cardClass: 'border-blue-500/60 bg-gradient-to-br from-blue-50/80 via-blue-50/70 to-card dark:from-blue-500/25 dark:via-blue-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(59,130,246,0.10)]',
+    cardClass: 'border-blue-500/50 bg-gradient-to-br from-blue-50/90 via-blue-50/85 to-blue-100/70 dark:from-blue-500/25 dark:via-blue-500/12 dark:to-slate-900/95 shadow-sm shadow-blue-500/5 dark:shadow-[0_0_20px_rgba(59,130,246,0.10)]',
     accentStripClass: 'bg-blue-500',
     badgeClass: 'border-blue-500/40 bg-blue-500/12 text-blue-400',
     iconClass: 'bg-blue-500/15 text-blue-400 dark:text-blue-400',
@@ -59,7 +59,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   },
   needs_reply: {
     label: 'Needs Reply',
-    cardClass: 'border-cyan-500/60 bg-gradient-to-br from-cyan-50/80 via-cyan-50/70 to-card dark:from-cyan-500/25 dark:via-cyan-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(6,182,212,0.10)]',
+    cardClass: 'border-cyan-500/50 bg-gradient-to-br from-cyan-50/90 via-cyan-50/85 to-cyan-100/70 dark:from-cyan-500/25 dark:via-cyan-500/12 dark:to-slate-900/95 shadow-sm shadow-cyan-500/5 dark:shadow-[0_0_20px_rgba(6,182,212,0.10)]',
     accentStripClass: 'bg-cyan-500',
     badgeClass: 'border-cyan-500/40 bg-cyan-500/12 text-cyan-400',
     iconClass: 'bg-cyan-500/15 text-cyan-400 dark:text-cyan-400',
@@ -69,7 +69,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   },
   active: {
     label: 'Active',
-    cardClass: 'border-green-500/60 bg-gradient-to-br from-green-50/80 via-green-50/70 to-card dark:from-green-500/25 dark:via-green-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(34,197,94,0.10)]',
+    cardClass: 'border-green-500/50 bg-gradient-to-br from-green-50/90 via-green-50/85 to-green-100/70 dark:from-green-500/25 dark:via-green-500/12 dark:to-slate-900/95 shadow-sm shadow-green-500/5 dark:shadow-[0_0_20px_rgba(34,197,94,0.10)]',
     accentStripClass: 'bg-green-500',
     badgeClass: 'border-green-500/40 bg-green-500/12 text-green-400',
     iconClass: 'bg-green-500/15 text-green-400 dark:text-green-400',
@@ -79,7 +79,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   },
   scheduled: {
     label: 'Scheduled',
-    cardClass: 'border-purple-500/60 bg-gradient-to-br from-purple-50/80 via-purple-50/70 to-card dark:from-purple-500/25 dark:via-purple-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(168,85,247,0.10)]',
+    cardClass: 'border-purple-500/50 bg-gradient-to-br from-purple-50/90 via-purple-50/85 to-purple-100/70 dark:from-purple-500/25 dark:via-purple-500/12 dark:to-slate-900/95 shadow-sm shadow-purple-500/5 dark:shadow-[0_0_20px_rgba(168,85,247,0.10)]',
     accentStripClass: 'bg-purple-500',
     badgeClass: 'border-purple-500/40 bg-purple-500/12 text-purple-400',
     iconClass: 'bg-purple-500/15 text-purple-400 dark:text-purple-400',
@@ -89,7 +89,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   },
   payment_requested: {
     label: 'Payment Requested',
-    cardClass: 'border-amber-500/60 bg-gradient-to-br from-amber-50/80 via-amber-50/70 to-card dark:from-amber-500/25 dark:via-amber-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(245,158,11,0.10)]',
+    cardClass: 'border-amber-500/50 bg-gradient-to-br from-amber-50/90 via-amber-50/85 to-amber-100/70 dark:from-amber-500/25 dark:via-amber-500/12 dark:to-slate-900/95 shadow-sm shadow-amber-500/5 dark:shadow-[0_0_20px_rgba(245,158,11,0.10)]',
     accentStripClass: 'bg-amber-500',
     badgeClass: 'border-amber-500/40 bg-amber-500/12 text-amber-400',
     iconClass: 'bg-amber-500/15 text-amber-400 dark:text-amber-400',
@@ -99,7 +99,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   },
   paid: {
     label: 'Paid',
-    cardClass: 'border-emerald-500/60 bg-gradient-to-br from-emerald-50/80 via-emerald-50/70 to-card dark:from-emerald-500/25 dark:via-emerald-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(16,185,129,0.10)]',
+    cardClass: 'border-emerald-500/50 bg-gradient-to-br from-emerald-50/90 via-emerald-50/85 to-emerald-100/70 dark:from-emerald-500/25 dark:via-emerald-500/12 dark:to-slate-900/95 shadow-sm shadow-emerald-500/5 dark:shadow-[0_0_20px_rgba(16,185,129,0.10)]',
     accentStripClass: 'bg-emerald-500',
     badgeClass: 'border-emerald-500/40 bg-emerald-500/12 text-emerald-400',
     iconClass: 'bg-emerald-500/15 text-emerald-400 dark:text-emerald-400',
@@ -109,7 +109,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   },
   completed: {
     label: 'Completed',
-    cardClass: 'border-slate-400/60 bg-gradient-to-br from-slate-100/80 via-slate-100/70 to-card dark:from-slate-400/25 dark:via-slate-400/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(148,163,184,0.10)]',
+    cardClass: 'border-slate-400/50 bg-gradient-to-br from-slate-100/90 via-slate-100/85 to-slate-200/70 dark:from-slate-400/25 dark:via-slate-400/12 dark:to-slate-900/95 shadow-sm shadow-slate-400/5 dark:shadow-[0_0_20px_rgba(148,163,184,0.10)]',
     accentStripClass: 'bg-slate-400',
     badgeClass: 'border-slate-400/40 bg-slate-400/12 text-slate-400',
     iconClass: 'bg-slate-400/15 text-slate-400 dark:text-slate-400',
@@ -119,7 +119,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   },
   ignored: {
     label: 'Ignored',
-    cardClass: 'border-orange-500/60 bg-gradient-to-br from-orange-50/80 via-orange-50/70 to-card dark:from-orange-500/25 dark:via-orange-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(249,115,22,0.10)]',
+    cardClass: 'border-orange-500/50 bg-gradient-to-br from-orange-50/90 via-orange-50/85 to-orange-100/70 dark:from-orange-500/25 dark:via-orange-500/12 dark:to-slate-900/95 shadow-sm shadow-orange-500/5 dark:shadow-[0_0_20px_rgba(249,115,22,0.10)]',
     accentStripClass: 'bg-orange-500',
     badgeClass: 'border-orange-500/40 bg-orange-500/12 text-orange-400',
     iconClass: 'bg-orange-500/15 text-orange-400 dark:text-orange-400',
@@ -129,7 +129,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   },
   lost: {
     label: 'Lost',
-    cardClass: 'border-red-500/60 bg-gradient-to-br from-red-50/80 via-red-50/70 to-card dark:from-red-500/25 dark:via-red-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(239,68,68,0.10)]',
+    cardClass: 'border-red-500/50 bg-gradient-to-br from-red-50/90 via-red-50/85 to-red-100/70 dark:from-red-500/25 dark:via-red-500/12 dark:to-slate-900/95 shadow-sm shadow-red-500/5 dark:shadow-[0_0_20px_rgba(239,68,68,0.10)]',
     accentStripClass: 'bg-red-500',
     badgeClass: 'border-red-500/40 bg-red-500/12 text-red-400',
     iconClass: 'bg-red-500/15 text-red-400 dark:text-red-400',

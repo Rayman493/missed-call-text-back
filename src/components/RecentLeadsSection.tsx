@@ -9,7 +9,7 @@ import DashboardErrorBoundary from './DashboardErrorBoundary'
 import Link from 'next/link'
 import LeadTimeline from '@/components/LeadTimeline'
 import { getLeadLifecycleStatus } from '@/lib/lead-lifecycle'
-import { getCardAccentClasses, getCardGradientClasses, getCardBorderClasses, getStatusBadgeClasses } from '@/lib/lead-status-colors'
+import { getCustomerStatusStyle, normalizeCustomerStatus } from '@/lib/customer-status'
 import { formatLeadStatus } from '@/lib/status-formatter'
 import { ChevronRight, User, Phone as PhoneIcon } from 'lucide-react'
 import { useBusiness } from '@/contexts/BusinessContext'
@@ -411,9 +411,15 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               const currentJob = getCurrentJob(lead)
               const nextFollowUp = getNextFollowUp(lead)
 
+              // Get canonical status style for card surface
+              const normalizedStatus = normalizeCustomerStatus(lead.status)
+              const statusStyle = getCustomerStatusStyle(normalizedStatus)
+
               return (
                 <Link key={lead.id} href={`/dashboard/leads/${lead.id}`}>
-                  <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group">
+                  <div className={`flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group relative overflow-hidden ${statusStyle.cardClass}`}>
+                    {/* Status accent strip */}
+                    <div className="absolute left-0 top-2 bottom-2 w-0.5 rounded-r-full" style={{ backgroundColor: statusStyle.color }}></div>
                     <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
                       {showInitials ? (
                         <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{initialsToShow}</span>
