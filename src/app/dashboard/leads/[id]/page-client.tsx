@@ -3372,7 +3372,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <AppHeader />
 
       {/* Customer Identity Header - Distinct from global navigation */}
-      <div className="flex-shrink-0 border-y border-slate-700/35 bg-slate-900/60">
+      <div className="flex-shrink-0 border-y border-border/35 bg-muted/60 dark:border-slate-700/35 dark:bg-slate-900/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           {/* Mobile Layout: Compact Information Header */}
           <div className="md:hidden">
@@ -3563,7 +3563,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Layout: Premium Profile Header */}
           <div className="hidden md:block flex-shrink-0">
             {/* Workspace Header Surface */}
-            <div className="border-y border-slate-800/20 bg-slate-900/20">
+            <div className="border-y border-border/20 bg-muted/20 dark:border-slate-800/20 dark:bg-slate-900/20">
               <div className="max-w-7xl mx-auto px-6 lg:px-8 py-3">
                 {/* Back Link Row */}
                 <div className="mb-1">
@@ -3622,12 +3622,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         })()}
                       </div>
                       <div className="flex items-center gap-3 mb-1">
-                        <p className="text-sm text-slate-400 leading-tight truncate">
+                        <p className="text-sm text-muted-foreground leading-tight truncate">
                           {getLeadRequestTitle(leadData || lead) || getLeadAIIntake(leadData || lead).serviceRequested || 'No request'}
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <p className="text-sm text-slate-500 leading-tight">
+                        <p className="text-sm text-muted-foreground/80 leading-tight">
                           {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                         </p>
                       </div>
