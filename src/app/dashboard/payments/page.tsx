@@ -678,18 +678,18 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                 <button
                   onClick={() => setShowQuickTapToPay(true)}
                   className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995]
-                  bg-gradient-to-br from-green-900/35 to-green-800/25 border-green-700/40 hover:border-green-600/50 shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+                  bg-gradient-to-br from-green-50 dark:from-green-900/35 to-green-100/80 dark:to-green-800/25 border-green-200/60 dark:border-green-700/40 hover:border-green-300/70 dark:hover:border-green-600/50 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
                 >
                   <div className="flex items-center gap-3.5 mb-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-green-500/15 ring-1 ring-inset ring-green-600/30 shadow-[0_0_20px_rgba(34,197,94,0.18)] flex items-center justify-center">
-                      <Smartphone className="w-5 h-5 text-green-400" />
+                    <div className="w-10 h-10 rounded-xl bg-green-500/15 dark:bg-green-500/15 ring-1 ring-inset ring-green-600/30 dark:ring-green-600/30 shadow-[0_0_20px_rgba(34,197,94,0.18)] dark:shadow-[0_0_20px_rgba(34,197,94,0.18)] flex items-center justify-center">
+                      <Smartphone className="w-5 h-5 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
-                      <h3 className="text-white font-semibold text-base sm:text-lg leading-tight">Tap to Pay</h3>
-                      <p className="text-green-300/80 text-xs">Collect in-person</p>
+                      <h3 className="text-foreground dark:text-white font-semibold text-base sm:text-lg leading-tight">Tap to Pay</h3>
+                      <p className="text-green-700/80 dark:text-green-300/80 text-xs">Collect in-person</p>
                     </div>
                   </div>
-                  <p className="text-green-200/75 text-xs sm:text-sm">Accept contactless payments now with your phone</p>
+                  <p className="text-green-800/75 dark:text-green-200/75 text-xs sm:text-sm">Accept contactless payments now with your phone</p>
                 </button>
               )
             }
@@ -697,17 +697,17 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             // State 3: Stripe ready + device unsupported (web)
             if (!isNativeSupported && isStripeReady) {
               return (
-                <div className="rounded-2xl p-4 sm:p-5 border border-slate-700/50 bg-slate-800/50 shadow-[0_6px_18px_rgba(0,0,0,0.18)]">
+                <div className="rounded-2xl p-4 sm:p-5 border border-slate-200/60 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/50 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.18)]">
                   <div className="flex items-center gap-3.5 mb-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-slate-700/60 ring-1 ring-inset ring-slate-600/40 flex items-center justify-center">
-                      <Smartphone className="w-5 h-5 text-slate-400" />
+                    <div className="w-10 h-10 rounded-xl bg-slate-200/60 dark:bg-slate-700/60 ring-1 ring-inset ring-slate-300/40 dark:ring-slate-600/40 flex items-center justify-center">
+                      <Smartphone className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                     </div>
                     <div>
-                      <h3 className="text-slate-200 font-semibold text-sm sm:text-base leading-tight">Tap to Pay</h3>
-                      <p className="text-slate-400 text-xs">Mobile app required</p>
+                      <h3 className="text-foreground dark:text-slate-200 font-semibold text-sm sm:text-base leading-tight">Tap to Pay</h3>
+                      <p className="text-muted-foreground dark:text-slate-400 text-xs">Mobile app required</p>
                     </div>
                   </div>
-                  <p className="text-slate-300/85 text-xs sm:text-sm">Accept contactless payments from the ReplyFlow mobile app</p>
+                  <p className="text-muted-foreground/80 dark:text-slate-300/85 text-xs sm:text-sm">Accept contactless payments from the ReplyFlow mobile app</p>
                 </div>
               )
             }
@@ -718,18 +718,18 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                 <button
                   onClick={() => setShowTapToPaySetup(true)}
                   className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995]
-                  bg-gradient-to-br from-amber-900/35 to-amber-800/25 border-amber-700/40 hover:border-amber-600/50 shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+                  bg-gradient-to-br from-amber-50 dark:from-amber-900/35 to-amber-100/80 dark:to-amber-800/25 border-amber-200/60 dark:border-amber-700/40 hover:border-amber-300/70 dark:hover:border-amber-600/50 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
                 >
                   <div className="flex items-center gap-3.5 mb-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/15 ring-1 ring-inset ring-amber-600/30 flex items-center justify-center">
-                      <AlertCircle className="w-5 h-5 text-amber-400" />
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/15 dark:bg-amber-500/15 ring-1 ring-inset ring-amber-600/30 dark:ring-amber-600/30 flex items-center justify-center">
+                      <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div>
-                      <h3 className="text-white font-semibold text-sm sm:text-base leading-tight">Tap to Pay</h3>
-                      <p className="text-amber-300/85 text-xs">Finish setup</p>
+                      <h3 className="text-foreground dark:text-white font-semibold text-sm sm:text-base leading-tight">Tap to Pay</h3>
+                      <p className="text-amber-700/85 dark:text-amber-300/85 text-xs">Finish setup</p>
                     </div>
                   </div>
-                  <p className="text-amber-200/80 text-xs sm:text-sm">Complete Stripe setup to accept contactless payments</p>
+                  <p className="text-amber-800/80 dark:text-amber-200/80 text-xs sm:text-sm">Complete Stripe setup to accept contactless payments</p>
                 </button>
               )
             }
@@ -739,18 +739,18 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               <button
                 onClick={() => setShowTapToPaySetup(true)}
                 className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995]
-                bg-gradient-to-br from-green-900/35 to-green-800/25 border-green-700/40 hover:border-green-600/50 shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+                bg-gradient-to-br from-green-50 dark:from-green-900/35 to-green-100/80 dark:to-green-800/25 border-green-200/60 dark:border-green-700/40 hover:border-green-300/70 dark:hover:border-green-600/50 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
               >
                 <div className="flex items-center gap-3.5 mb-2.5">
-                  <div className="w-10 h-10 rounded-xl bg-green-500/15 ring-1 ring-inset ring-green-600/30 flex items-center justify-center">
-                    <Smartphone className="w-5 h-5 text-green-400" />
+                  <div className="w-10 h-10 rounded-xl bg-green-500/15 dark:bg-green-500/15 ring-1 ring-inset ring-green-600/30 dark:ring-green-600/30 flex items-center justify-center">
+                    <Smartphone className="w-5 h-5 text-green-600 dark:text-green-400" />
                   </div>
                   <div>
-                    <h3 className="text-white font-semibold text-sm sm:text-base leading-tight">Tap to Pay</h3>
-                    <p className="text-green-300/85 text-xs">Setup required</p>
+                    <h3 className="text-foreground dark:text-white font-semibold text-sm sm:text-base leading-tight">Tap to Pay</h3>
+                    <p className="text-green-700/85 dark:text-green-300/85 text-xs">Setup required</p>
                   </div>
                 </div>
-                <p className="text-green-200/80 text-xs sm:text-sm">Accept contactless payments directly from your phone</p>
+                <p className="text-green-800/80 dark:text-green-200/80 text-xs sm:text-sm">Accept contactless payments directly from your phone</p>
               </button>
             )
           })()}
@@ -759,18 +759,18 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           <button
             onClick={handleStartPaymentRequest}
             className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.995]
-            bg-gradient-to-br from-blue-900/35 to-blue-800/25 border-blue-700/40 hover:border-blue-600/50 shadow-[0_6px_18px_rgba(0,0,0,0.22)]"
+            bg-gradient-to-br from-blue-50 dark:from-blue-900/35 to-blue-100/80 dark:to-blue-800/25 border-blue-200/60 dark:border-blue-700/40 hover:border-blue-300/70 dark:hover:border-blue-600/50 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.22)]"
           >
             <div className="flex items-center gap-3.5 mb-2.5">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/15 ring-1 ring-inset ring-blue-600/30 flex items-center justify-center">
-                <CreditCard className="w-5 h-5 text-blue-400" />
+              <div className="w-10 h-10 rounded-xl bg-blue-500/15 dark:bg-blue-500/15 ring-1 ring-inset ring-blue-600/30 dark:ring-blue-600/30 flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h3 className="text-white font-semibold text-sm sm:text-base leading-tight">Request Payment</h3>
-                <p className="text-blue-300/85 text-xs">Send payment link</p>
+                <h3 className="text-foreground dark:text-white font-semibold text-sm sm:text-base leading-tight">Request Payment</h3>
+                <p className="text-blue-700/85 dark:text-blue-300/85 text-xs">Send payment link</p>
               </div>
             </div>
-            <p className="text-blue-200/80 text-xs sm:text-sm">Send a payment request via SMS to your customer</p>
+            <p className="text-blue-800/80 dark:text-blue-200/80 text-xs sm:text-sm">Send a payment request via SMS to your customer</p>
           </button>
         </div>
 
