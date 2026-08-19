@@ -273,41 +273,41 @@ export default function NavbarNotifications() {
   const getNotificationColor = (type: string) => {
     switch (type) {
       case 'new_lead':
-        return 'bg-blue-500/20 text-blue-400'
+        return 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
       case 'customer_reply':
-        return 'bg-green-500/20 text-green-400'
+        return 'bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400'
       case 'followup_completed':
-        return 'bg-emerald-500/20 text-emerald-400'
+        return 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
       case 'forwarding_disconnected':
-        return 'bg-red-500/20 text-red-400'
+        return 'bg-red-500/10 text-red-600 dark:bg-red-500/20 dark:text-red-400'
       case 'sms_failed':
-        return 'bg-red-500/20 text-red-400'
+        return 'bg-red-500/10 text-red-600 dark:bg-red-500/20 dark:text-red-400'
       case 'trial_ending':
-        return 'bg-amber-500/20 text-amber-400'
+        return 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400'
       case 'subscription_issue':
-        return 'bg-amber-500/20 text-amber-400'
+        return 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400'
       case 'voicemail_received':
-        return 'bg-purple-500/20 text-purple-400'
+        return 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400'
       case 'ai_intake_completed':
-        return 'bg-cyan-500/20 text-cyan-400'
+        return 'bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400'
       case 'payment_requested':
-        return 'bg-green-500/20 text-green-400'
+        return 'bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400'
       case 'payment_created':
-        return 'bg-green-500/20 text-green-400'
+        return 'bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400'
       case 'payment_completed':
-        return 'bg-emerald-500/20 text-emerald-400'
+        return 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
       case 'calendar_connected':
-        return 'bg-purple-500/20 text-purple-400'
+        return 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400'
       case 'calendar_disconnected':
-        return 'bg-red-500/20 text-red-400'
+        return 'bg-red-500/10 text-red-600 dark:bg-red-500/20 dark:text-red-400'
       case 'appointment_created':
-        return 'bg-purple-500/20 text-purple-400'
+        return 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400'
       case 'appointment_deleted':
-        return 'bg-slate-500/20 text-slate-400'
+        return 'bg-slate-500/10 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400'
       case 'personal_voicemail':
-        return 'bg-purple-500/20 text-purple-400'
+        return 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400'
       default:
-        return 'bg-slate-500/20 text-slate-400'
+        return 'bg-slate-500/10 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400'
     }
   }
 
@@ -496,7 +496,7 @@ export default function NavbarNotifications() {
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed z-50 w-[min(400px,calc(100vw-2rem))] sm:w-96 bg-slate-900/95 backdrop-blur-xl border border-border elevated-surface-border rounded-2xl shadow-2xl ring-1 ring-white/5 overflow-hidden"
+            className="fixed z-50 w-[min(400px,calc(100vw-2rem))] sm:w-96 bg-card backdrop-blur-xl border border-border rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden"
             style={{
               top: `${buttonPosition?.top || 0}px`,
               right: `${buttonPosition?.right || 0}px`,
@@ -504,18 +504,18 @@ export default function NavbarNotifications() {
             }}
           >
             {/* Header */}
-            <div className="px-4 py-3.5 border-b border-slate-700/50 bg-gradient-to-b from-slate-800/50 to-transparent">
+            <div className="px-4 py-3.5 border-b border-border bg-muted/30 dark:from-slate-800/50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="relative">
-                    <Bell className="w-4 h-4 text-slate-300" />
+                    <Bell className="w-4 h-4 text-foreground" />
                     {displayedUnreadCount > 0 && (
                       <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
                     )}
                   </div>
-                  <h3 className="text-sm font-semibold text-white tracking-tight">Notification Center</h3>
+                  <h3 className="text-sm font-semibold text-foreground tracking-tight">Notification Center</h3>
                   {displayedUnreadCount > 0 && (
-                    <span className="px-2 py-0.5 bg-blue-500/15 text-blue-400 text-[11px] font-semibold tracking-wide rounded-full border border-blue-500/20">
+                    <span className="px-2 py-0.5 bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[11px] font-semibold tracking-wide rounded-full border border-blue-500/20">
                       {displayedUnreadCount}
                     </span>
                   )}
@@ -523,7 +523,7 @@ export default function NavbarNotifications() {
                 {displayedUnreadCount > 0 && (
                   <button
                     onClick={handleMarkAllAsRead}
-                    className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all duration-200"
+                    className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200"
                   >
                     Mark all read
                   </button>
@@ -544,7 +544,7 @@ export default function NavbarNotifications() {
                     
                     return (
                       <div key={groupName} className="mb-3 last:mb-0">
-                        <div className="px-3 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                        <div className="px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                           {groupName}
                         </div>
                         <div className="space-y-1">
@@ -562,34 +562,34 @@ export default function NavbarNotifications() {
                                 onMouseDown={handleMouseDown}
                                 onMouseMove={handleMouseMove}
                                 onMouseUp={() => handleMouseUp(notification)}
-                                className={`flex items-start gap-3 py-3 px-3 sm:px-4 rounded-xl transition-all duration-200 cursor-pointer group relative ${!notification.read ? 'bg-blue-500/5 hover:bg-blue-500/10' : 'hover:bg-slate-800/30'} ${isLast ? '' : 'mb-1'}`}
+                                className={`flex items-start gap-3 py-3 px-3 sm:px-4 rounded-xl transition-all duration-200 cursor-pointer group relative ${!notification.read ? 'bg-blue-500/5 dark:bg-blue-500/10 hover:bg-blue-500/10 dark:hover:bg-blue-500/15' : 'hover:bg-muted'} ${isLast ? '' : 'mb-1'}`}
                               >
                                 {/* Icon */}
-                                <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${getNotificationColor(notification.type)} flex items-center justify-center ring-1 ring-white/5 group-hover:ring-white/10 transition-all`}>
+                                <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${getNotificationColor(notification.type)} flex items-center justify-center ring-1 ring-black/5 dark:ring-white/5 group-hover:ring-black/10 dark:group-hover:ring-white/10 transition-all`}>
                                   {getNotificationIcon(notification.type)}
                                 </div>
 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0 pt-0.5">
                                   {/* Title */}
-                                  <p className="text-sm font-semibold text-white mb-1 leading-tight tracking-tight">
+                                  <p className="text-sm font-semibold text-foreground mb-1 leading-tight tracking-tight">
                                     {notification.title || 'Notification'}
                                   </p>
 
                                   {/* Customer name or phone number (masked for SMS failures) */}
                                   {displayName && (
-                                    <p className="text-xs font-medium text-slate-300 mb-1">
+                                    <p className="text-xs font-medium text-muted-foreground mb-1">
                                       {displayName}
                                     </p>
                                   )}
 
                                   {/* Message preview - canonical title for AI intake */}
-                                  <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
+                                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
                                     {displayMessage}
                                   </p>
 
                                   {/* Timestamp */}
-                                  <p className="text-[10px] text-slate-500 mt-1.5 font-medium tracking-wide uppercase">
+                                  <p className="text-[10px] text-muted-foreground mt-1.5 font-medium tracking-wide uppercase">
                                     {formatNotificationTime(notification.created_at)}
                                   </p>
                                 </div>
@@ -597,7 +597,7 @@ export default function NavbarNotifications() {
                                 {/* Unread indicator */}
                                 {!notification.read && (
                                   <div className="flex-shrink-0 mt-1">
-                                    <div className={`w-2 h-2 rounded-full ${getNotificationDotColor(notification.type)} ring-2 ring-slate-900`}></div>
+                                    <div className={`w-2 h-2 rounded-full ${getNotificationDotColor(notification.type)} ring-2 ring-background dark:ring-slate-900`}></div>
                                   </div>
                                 )}
                               </div>
@@ -610,15 +610,15 @@ export default function NavbarNotifications() {
                 })()
               ) : loading ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-700 border-t-blue-500"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-muted border-t-blue-500"></div>
                 </div>
               ) : error ? (
                 <div className="text-center py-12 px-4">
                   <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-3 ring-1 ring-red-500/20">
                     <AlertTriangle className="w-7 h-7 text-red-400" />
                   </div>
-                  <p className="text-sm font-semibold text-white mb-1">Failed to load notifications</p>
-                  <p className="text-xs text-slate-400 mb-4">Please try again</p>
+                  <p className="text-sm font-semibold text-foreground mb-1">Failed to load notifications</p>
+                  <p className="text-xs text-muted-foreground mb-4">Please try again</p>
                   <button
                     onClick={refreshNotifications}
                     className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-all duration-200"
@@ -628,22 +628,22 @@ export default function NavbarNotifications() {
                 </div>
               ) : (
                 <div className="text-center py-12 px-4">
-                  <div className="w-14 h-14 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-3 ring-1 ring-slate-700">
-                    <Bell className="w-7 h-7 text-slate-400" />
+                  <div className="w-14 h-14 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-3 ring-1 ring-border">
+                    <Bell className="w-7 h-7 text-muted-foreground" />
                   </div>
-                  <p className="text-sm font-semibold text-white mb-1">You're all caught up</p>
-                  <p className="text-xs text-slate-400">Notifications will appear here as your business becomes active.</p>
+                  <p className="text-sm font-semibold text-foreground mb-1">You're all caught up</p>
+                  <p className="text-xs text-muted-foreground">Notifications will appear here as your business becomes active.</p>
                 </div>
               )}
             </div>
 
             {/* Footer */}
             {notifications.length > 0 && (
-              <div className="px-4 py-3 border-t border-slate-700/50 bg-gradient-to-t from-slate-800/30 to-transparent">
+              <div className="px-4 py-3 border-t border-border bg-muted/30 dark:from-slate-800/30">
                 <Link
                   href="/dashboard/notifications"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-semibold text-slate-300 hover:text-white bg-slate-800/50 hover:bg-slate-700/50 rounded-xl transition-all duration-200 border border-slate-700/50 hover:border-slate-600/50"
+                  className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-semibold text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-xl transition-all duration-200 border border-border hover:border-border/80"
                 >
                   <span>View all notifications</span>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

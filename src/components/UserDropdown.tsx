@@ -294,10 +294,10 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
               aria-haspopup="menu"
               aria-expanded={isOpen}
               aria-controls="mobile-account-menu"
-              className={`group flex h-10 w-10 items-center justify-center gap-2 rounded-lg text-sm font-medium motion-safe:transition-all motion-safe:duration-200 motion-reduce:transition-none motion-reduce:transform-none text-center relative sm:w-auto sm:px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] ${
+              className={`group flex h-10 w-10 items-center justify-center gap-2 rounded-lg text-sm font-medium motion-safe:transition-all motion-safe:duration-200 motion-reduce:transition-none motion-reduce:transform-none text-center relative sm:w-auto sm:px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 active:scale-[0.98] ${
                 isOpen
-                  ? 'text-foreground bg-secondary'
-                  : 'text-foreground hover:text-foreground hover:bg-muted'
+                  ? 'text-white bg-slate-800'
+                  : 'text-gray-300 hover:text-white hover:bg-slate-800'
               }`}
             >
               {/* User Icon - always visible */}
