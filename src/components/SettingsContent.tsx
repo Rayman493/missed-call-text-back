@@ -3035,14 +3035,6 @@ export default function SettingsContent() {
                 </div>
               </div>
 
-              {/* Group: Permissions */}
-              {/* Group: Notifications */}
-              <div id="notifications-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
-                <div className="h-px flex-1 bg-border/30"></div>
-                <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'notifications')?.label}</h3>
-                <div className="h-px flex-1 bg-border/30"></div>
-              </div>
-
               {/* Group: Integrations */}
               <div id="integrations-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-border/30"></div>
