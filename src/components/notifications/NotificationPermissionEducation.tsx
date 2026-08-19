@@ -1,17 +1,16 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Bell, Settings } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { permissionLock } from '@/lib/permission-lock'
 import { useNativePermissions } from '@/hooks/useNativePermissions'
+import { openAppSettings } from '@/lib/native-settings'
 import {
   shouldShowNotificationEducation,
   markSessionChecked,
   recordModalShown,
-  recordModalDismissed,
-  recordPermissionGranted,
-  recordPermissionDenied
+  recordModalDismissed
 } from '@/lib/notification-education-eligibility'
 
 interface NotificationPermissionEducationProps {
@@ -21,9 +20,8 @@ interface NotificationPermissionEducationProps {
 let isCheckingEligibility = false // Single-flight guard for the entire app
 
 export function NotificationPermissionEducation({ onComplete }: NotificationPermissionEducationProps) {
-  const { notifications, checkNotificationPermission, requestNotificationPermission } = useNativePermissions()
+  const { notifications, checkNotificationPermission } = useNativePermissions()
   const [show, setShow] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const hasShownRef = useRef(false)
   const modalRef = useRef<HTMLDivElement>(null)
   const firstButtonRef = useRef<HTMLButtonElement>(null)
@@ -46,7 +44,13 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
 
   const checkEligibility = async () => {
     console.log('[NOTIFICATION_EDUCATION] ===== STARTING ELIGIBILITY CHECK =====')
-    
+
+    // Do not show on web platform
+    if (!Capacitor.isNativePlatform()) {
+      console.log('[NOTIFICATION_EDUCATION_BLOCKED] not native platform')
+      return
+    }
+
     // Single-flight guard - prevent multiple checks across app
     if (isCheckingEligibility) {
       console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=already_checking_app_wide')
@@ -95,43 +99,16 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
     }
   }
 
-  const handleEnable = async () => {
-    if (!Capacitor.isNativePlatform()) {
-      return
-    }
+  const handleOpenSettings = async () => {
+    console.log('[NOTIFICATION_EDUCATION] User clicked Open Settings')
+    await handleDismiss()
 
-    // Request permission lock
-    if (!permissionLock.requestPermission('notification')) {
-      console.log('[NOTIFICATION_EDUCATION] Permission request blocked by lock')
-      return
-    }
+    // Open native app settings
+    const result = await openAppSettings()
+    console.log('[NOTIFICATION_EDUCATION] Settings open result:', result)
 
-    // Immediately dismiss the modal before triggering native prompt
-    setShow(false)
-    setIsLoading(true)
-    console.log('[NOTIFICATION_EDUCATION] User clicked Enable Notifications - modal dismissed')
-
-    try {
-      await requestNotificationPermission()
-      console.log('[NOTIFICATION_EDUCATION] Permission requested')
-      
-      // Check status after request
-      await checkNotificationPermission(true)
-      console.log('[NOTIFICATION_EDUCATION] Current status after request:', notifications.status)
-
-      if (notifications.status === 'granted') {
-        console.log('[NOTIFICATION_EDUCATION] Permission granted')
-        await recordPermissionGranted()
-        onComplete?.()
-      } else {
-        console.log('[NOTIFICATION_EDUCATION] Permission denied or blocked')
-        await recordPermissionDenied(notifications.status)
-      }
-    } catch (error) {
-      console.error('[NOTIFICATION_EDUCATION] Failed to request permission:', error)
-    } finally {
-      setIsLoading(false)
-      permissionLock.releasePermission('notification')
+    if (!result.success) {
+      console.error('[NOTIFICATION_EDUCATION] Failed to open settings:', result)
     }
   }
 
@@ -142,18 +119,9 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
     onComplete?.()
   }
 
-  const handleOpenSettings = async () => {
-    console.log('[NOTIFICATION_EDUCATION] User clicked Open Settings')
-    await handleDismiss()
-    // Note: Opening device settings is platform-specific and may require additional implementation
-    // For now, just dismiss the modal
-  }
-
   if (!show) {
     return null
   }
-
-  const isDenied = notifications.status === 'denied' || notifications.status === 'blocked'
 
   return (
     <div 
@@ -174,52 +142,35 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20">
             <Bell className="w-5 h-5 text-white" />
           </div>
-          <h2 
+          <h2
             id="notification-modal-title"
-            className="text-lg font-semibold text-gray-900 dark:text-white"
+            className="text-lg font-semibold text-foreground"
           >
-            {isDenied ? 'Notifications are turned off' : 'Stay on top of new customers'}
+            Notifications are turned off
           </h2>
         </div>
 
-        <p 
+        <p
           id="notification-modal-description"
-          className="text-sm text-gray-600 dark:text-gray-300 mb-6 leading-relaxed"
+          className="text-sm text-muted-foreground mb-6 leading-relaxed"
         >
-          {isDenied 
-            ? 'To receive notifications about new calls, customer replies, appointments, and payments, enable notifications in your device settings.'
-            : 'Get notified about new calls, customer replies, appointments, and payments so you never miss an opportunity.'
-          }
+          To receive notifications about new calls, customer replies, appointments, and payments, enable notifications in your device settings.
         </p>
 
         <div className="flex gap-3">
-          {isDenied ? (
-            <button
-              ref={firstButtonRef}
-              onClick={handleOpenSettings}
-              className="flex-1 h-11 px-4 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800"
-            >
-              Open Settings
-            </button>
-          ) : (
-            <>
-              <button
-                ref={firstButtonRef}
-                onClick={handleDismiss}
-                disabled={isLoading}
-                className="flex-1 h-11 px-4 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Not Now
-              </button>
-              <button
-                onClick={handleEnable}
-                disabled={isLoading}
-                className="flex-1 h-11 px-4 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? 'Enabling...' : 'Enable Notifications'}
-              </button>
-            </>
-          )}
+          <button
+            ref={firstButtonRef}
+            onClick={handleDismiss}
+            className="flex-1 h-11 px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+          >
+            Not Now
+          </button>
+          <button
+            onClick={handleOpenSettings}
+            className="flex-1 h-11 px-4 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+          >
+            Open Settings
+          </button>
         </div>
       </div>
     </div>

@@ -249,7 +249,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
           {/* Bottom Navigation Bar - Mobile Only - Improved touch targets */}
           <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe lg:hidden">
         <div className="mx-auto max-w-7xl px-2 pb-2 sm:px-4" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-          <div className="flex h-16 items-center justify-around rounded-3xl border border-white/5 bg-slate-950/88 px-1 shadow-[0_1px_0_rgba(255,255,255,0.04),0_-20px_70px_rgba(2,6,23,0.62)] backdrop-blur-2xl">
+          <div className="flex h-16 items-center justify-around rounded-3xl border border-border bg-card/95 px-1 shadow-lg backdrop-blur-xl dark:shadow-[0_1px_0_rgba(255,255,255,0.04),0_-20px_70px_rgba(2,6,23,0.62)]">
             {primaryNavItems.map((item) => {
               const Icon = item.icon
               return (
@@ -258,8 +258,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   href={item.href}
                   className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
                     isActive(item.href)
-                      ? 'text-white'
-                      : 'text-slate-300 hover:text-white hover:bg-white/[0.03]'
+                      ? 'text-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                   }`}
                 >
                   {isActive(item.href) && (
@@ -282,8 +282,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
               onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
               className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
                 isMoreMenuOpen
-                  ? 'text-white'
-                  : 'text-slate-300 hover:text-white hover:bg-white/[0.03]'
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
               }`}
             >
               {isMoreMenuOpen && (
@@ -312,7 +312,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
           />
           <div
             ref={dropdownRef}
-            className="absolute z-[1001] overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl pointer-events-auto"
+            className="absolute z-[1001] overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl pointer-events-auto"
             style={dropdownPosition ? {
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
@@ -326,9 +326,9 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   e.stopPropagation()
                   setIsMoreMenuOpen(false)
                 }}
-                className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-popover-foreground transition-colors duration-150 hover:bg-accent"
               >
-                <Settings className="h-4 w-4 text-slate-400" />
+                <Settings className="h-4 w-4 text-muted-foreground" />
                 Settings
               </Link>
               <button
@@ -344,7 +344,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 }}
                 className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
               >
-                <MessageCircle className="h-4 w-4 text-slate-400" />
+                <MessageCircle className="h-4 w-4 text-muted-foreground" />
                 ReplyFlow Assistant
               </button>
               {!isNativePlatform && (
@@ -354,13 +354,13 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                     e.stopPropagation()
                     setIsMoreMenuOpen(false)
                   }}
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-popover-foreground transition-colors duration-150 hover:bg-accent"
                 >
-                  <ExternalLink className="h-4 w-4 text-slate-400" />
+                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
                   Public Home
                 </Link>
               )}
-              <div className="h-px bg-slate-700 my-1" />
+              <div className="h-px bg-border my-1" />
               <button
                 type="button"
                 onClick={(e) => {
@@ -368,7 +368,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   setIsMoreMenuOpen(false)
                   handleLogout()
                 }}
-                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-red-400 transition-colors duration-150 hover:bg-slate-800"
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-destructive transition-colors duration-150 hover:bg-accent"
               >
                 <LogOut className="h-4 w-4" />
                 Sign Out

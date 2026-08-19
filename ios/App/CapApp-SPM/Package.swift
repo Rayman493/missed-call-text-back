@@ -22,6 +22,7 @@ let package = Package(
         .package(name: "CapacitorPushNotifications", path: "..\..\..\node_modules\@capacitor\push-notifications"),
         .package(name: "CapacitorSplashScreen", path: "..\..\..\node_modules\@capacitor\splash-screen"),
         .package(name: "CapacitorStatusBar", path: "..\..\..\node_modules\@capacitor\status-bar"),
+        .package(name: "CapacitorNativeSettings", path: "..\..\..\node_modules\capacitor-native-settings"),
         .package(name: "ReplyflowStripeTerminal", path: "..\..\..\packages\replyflow-stripe-terminal")
     ],
     targets: [
@@ -40,6 +41,7 @@ let package = Package(
                 .product(name: "CapacitorPushNotifications", package: "CapacitorPushNotifications"),
                 .product(name: "CapacitorSplashScreen", package: "CapacitorSplashScreen"),
                 .product(name: "CapacitorStatusBar", package: "CapacitorStatusBar"),
+                .product(name: "CapacitorNativeSettings", package: "CapacitorNativeSettings"),
                 .product(name: "ReplyflowStripeTerminal", package: "ReplyflowStripeTerminal")
             ]
         )

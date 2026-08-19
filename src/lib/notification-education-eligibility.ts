@@ -141,24 +141,42 @@ export async function shouldShowNotificationEducation(input: EligibilityInput): 
     }
   }
 
-  // Rule 7: If permission is denied, only show after cooldown expires
+  // Rule 7: If permission is denied or blocked, show recovery modal
+  // This provides a clear "Open Settings" action for users who denied permission
   if (nativePermissionStatus === 'denied' || nativePermissionStatus === 'blocked') {
+    // If previously dismissed, respect cooldown
     if (dismissedAt) {
       const dismissedTime = parseInt(dismissedAt, 10)
+      if (isNaN(dismissedTime)) {
+        console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] Invalid dismissed_at timestamp, failing closed')
+        return { eligible: false, reason: 'invalid_timestamp', diagnostic }
+      }
       const timeSinceDismissal = now - dismissedTime
-      if (timeSinceDismissal >= COOLDOWN_DURATION) {
-        console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] ELIGIBLE: denied but cooldown expired')
-        return { eligible: true, reason: 'denied_cooldown_expired', diagnostic }
+      const cooldownRemaining = COOLDOWN_DURATION - timeSinceDismissal
+      diagnostic.cooldownRemaining = cooldownRemaining
+
+      console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] Cooldown check:', {
+        dismissedAt: new Date(dismissedTime).toISOString(),
+        timeSinceDismissal,
+        cooldownDuration: COOLDOWN_DURATION,
+        cooldownRemaining
+      })
+
+      if (timeSinceDismissal < COOLDOWN_DURATION) {
+        console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] BLOCKED: cooldown active')
+        return { eligible: false, reason: 'cooldown_active', diagnostic }
       }
     }
-    console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] BLOCKED: permission denied')
-    return { eligible: false, reason: 'permission_denied', diagnostic }
+
+    console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] ELIGIBLE: permission denied/blocked - show recovery modal')
+    return { eligible: true, reason: 'permission_denied_recovery', diagnostic }
   }
 
-  // Rule 8: If permission is prompt (not yet determined), show if not recently dismissed
+  // Rule 8: If permission is prompt (not yet determined), do NOT show
+  // Automatic permission request in AuthContext handles the first-time flow
   if (nativePermissionStatus === 'prompt' || nativePermissionStatus === 'unknown') {
-    console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] ELIGIBLE: permission not yet determined')
-    return { eligible: true, reason: 'permission_prompt', diagnostic }
+    console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] BLOCKED: automatic handling covers first-time prompt')
+    return { eligible: false, reason: 'automatic_handling_covers_prompt', diagnostic }
   }
 
   // Default: not eligible

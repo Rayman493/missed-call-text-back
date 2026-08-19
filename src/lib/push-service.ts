@@ -40,6 +40,7 @@ class PushService {
   private currentPlatform: 'android' | 'ios' | null = null
   private accessToken: string | null = null
   private registrationStatus: 'none' | 'in-flight' | 'succeeded' | 'failed' = 'none'
+  private permissionUnsubscribe: (() => void) | null = null
 
   /**
    * Check if registration should be attempted
@@ -124,6 +125,23 @@ class PushService {
         console.log('[PUSH SERVICE] Setting up listeners')
         this.setupListeners()
         this.listenersSetup = true
+      }
+
+      // Subscribe to permission state changes to re-register if permission is granted later
+      // This handles the case where user grants permission via Settings recovery
+      if (!this.permissionUnsubscribe) {
+        console.log('[PUSH SERVICE] Subscribing to permission state changes')
+        this.permissionUnsubscribe = nativePermissionsStore.subscribe((state) => {
+          console.log('[PUSH SERVICE] Permission state changed:', state.notifications.status)
+
+          // If permission becomes granted and we have access token, register for push
+          if (state.notifications.status === 'granted' && this.accessToken) {
+            console.log('[PUSH SERVICE] Permission granted, registering for push')
+            this.register().catch(error => {
+              console.error('[PUSH SERVICE] Failed to register after permission grant:', error)
+            })
+          }
+        })
       }
 
       // Check current permission state without requesting
@@ -363,6 +381,13 @@ class PushService {
     this.registrationStatus = 'none'
     this.currentToken = null
     this.accessToken = null
+
+    // Unsubscribe from permission state changes
+    if (this.permissionUnsubscribe) {
+      console.log('[PUSH SERVICE] Unsubscribing from permission state changes')
+      this.permissionUnsubscribe()
+      this.permissionUnsubscribe = null
+    }
   }
 
   /**

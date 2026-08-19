@@ -192,6 +192,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch (error) {
             console.error('[Auth] Failed to process pending return after auth:', error)
           }
+
+          // Automatically request notification permission after authentication
+          // This ensures OS prompt is shown for authenticated users without requiring UI interaction
+          if (session && user && !pushRetryRef.current) {
+            try {
+              console.log('[AUTH] Requesting notification permission after authentication')
+              const { pushService } = await import('@/lib/push-service')
+              await pushService.requestPermission()
+              pushRetryRef.current = true // Prevent repeated requests in same session
+            } catch (error) {
+              console.error('[AUTH] Failed to request notification permission:', error)
+            }
+          }
         }
       }
     }
@@ -263,6 +276,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
               const { pushService } = await import('@/lib/push-service')
               pushService.setAccessToken(session.access_token)
+
+              // Automatically request notification permission after sign-in
+              // This ensures OS prompt is shown for newly authenticated users
+              if (event === 'SIGNED_IN' && !pushRetryRef.current) {
+                console.log('[AUTH] Requesting notification permission after sign-in')
+                await pushService.requestPermission()
+                pushRetryRef.current = true // Prevent repeated requests in same session
+              }
             } catch (error) {
               console.error('[Auth] Failed to set push access token:', error)
             }
@@ -287,8 +308,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (typeof window !== 'undefined') {
             sessionStorage.removeItem('replyflow_auth_cache')
           }
-          // Reset push retry flag on sign out
+          // Reset push retry flag on sign out to allow permission request on next sign-in
           pushRetryRef.current = false
+          if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+            try {
+              const { pushService } = await import('@/lib/push-service')
+              pushService.clearRegistrationState()
+            } catch (error) {
+              console.error('[Auth] Failed to clear push registration state:', error)
+            }
+          }
         }
       })
     }

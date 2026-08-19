@@ -49,6 +49,7 @@
 		"PushNotificationsPlugin",
 		"SplashScreenPlugin",
 		"StatusBarPlugin",
+		"NativeSettingsPlugin",
 		"ReplyflowStripeTerminalPlugin"
 	]
 }
