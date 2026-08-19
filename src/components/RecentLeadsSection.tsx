@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { formatPhoneNumber, getLeadDisplayName } from '@/lib/utils'
+import { formatPhoneNumber, getLeadDisplayName, getInitialsFromName } from '@/lib/utils'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatCalendarRelativeDate, formatCalendarRelativeFutureDate } from '@/lib/utils'
@@ -394,27 +394,15 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               const businessInitials = (() => {
                 const anyBiz = business as any
                 const name = business?.name || anyBiz?.legal_name || ''
-                if (!name) return ''
-                const parts = name.trim().split(/\s+/)
-                const first = parts[0]?.[0] || ''
-                const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
-                const letters = `${first}${last}`.replace(/[^A-Za-z]/g, '')
-                return letters.slice(0, 2).toUpperCase()
+                return getInitialsFromName(name)
               })()
 
               const isPhoneOnly = !hasCustomerName && ['phone', 'caller_phone', 'phone_number'].some(f => !!lead?.[f])
               const isUnknown = !hasCustomerName && !isPhoneOnly
 
               const customerInitials = (() => {
-                if (!hasCustomerName) return ''
                 const name = (lead?.name && lead.name !== 'Not collected') ? lead.name : getLeadAIIntake(lead).customerName
-                const clean = (name || '').trim()
-                if (!clean) return ''
-                const parts = clean.split(/\s+/).filter((p: string) => /[A-Za-z]/.test(p))
-                const first = parts[0]?.[0] || ''
-                const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
-                const letters = `${first}${last}`.replace(/[^A-Za-z]/g, '')
-                return letters.slice(0, 2).toUpperCase()
+                return getInitialsFromName(name)
               })()
 
               const showInitials = !!customerInitials || (!!businessInitials && !hasCustomerName && !isPhoneOnly)

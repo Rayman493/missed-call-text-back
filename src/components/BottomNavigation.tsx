@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { Home, Users, Calendar, CreditCard, Settings, LogOut, MessageCircle, ExternalLink } from 'lucide-react'
+import { useTheme } from 'next-themes'
+import { Home, Users, Calendar, CreditCard, Settings, LogOut, MessageCircle, ExternalLink, Sun, Moon, Monitor } from 'lucide-react'
 import { primaryNavItems, accountMenuItems } from '@/lib/navigation-config'
 import { handleBillingAction } from '@/lib/billing'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
@@ -19,6 +20,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { signOut } = useAuth()
+  const { theme, setTheme } = useTheme()
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null)
@@ -331,6 +333,39 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 <Settings className="h-4 w-4 text-muted-foreground" />
                 Settings
               </Link>
+
+              {/* Appearance Selector */}
+              <div className="px-4 py-2">
+                <div className="text-xs font-medium text-muted-foreground mb-2">Appearance</div>
+                <div className="grid grid-cols-3 gap-1">
+                  {[
+                    { value: 'light', label: 'Light', icon: Sun },
+                    { value: 'dark', label: 'Dark', icon: Moon },
+                    { value: 'system', label: 'System', icon: Monitor },
+                  ].map(({ value, label, icon: Icon }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setTheme(value)
+                      }}
+                      className={`flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-md text-xs font-medium transition-colors ${
+                        theme === value
+                          ? 'bg-secondary text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
+                      title={`Switch to ${label} theme`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="h-px bg-border my-1" />
+
               <button
                 type="button"
                 onClick={(e) => {

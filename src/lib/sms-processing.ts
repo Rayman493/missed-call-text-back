@@ -106,7 +106,7 @@ export interface ProcessInboundSmsParams {
 }
 
 // Generate the complete AI intake SMS body.
-// Uses adaptive message quality based on intake completeness.
+// Uses canonical format that shows all intake fields with Captured/Still Needed sections.
 // extractedInfo uses canonical keys (callerName, reasonForCalling, etc.)
 // businessName and callerPhone must be passed by the caller.
 // prefixNotice is optional (out-of-office / after-hours message).
@@ -117,8 +117,8 @@ export function generateSummaryFromExtractedInfo(
   prefixNotice: string = '',
   options?: { serviceLocationType?: 'onsite' | 'customer_comes_to_business' | 'remote' | string | null }
 ): string {
-  console.log('[AI SMS FORMATTER VERSION] formatAdaptiveIntakeSms (adaptive quality)');
-  const body = formatAdaptiveIntakeSms(
+  console.log('[AI SMS FORMATTER VERSION] formatAiIntakeSummaryWithMode (canonical format with all fields)');
+  const body = formatAiIntakeSummaryWithMode(
     extractedInfo,
     callerPhone,
     businessName || undefined,

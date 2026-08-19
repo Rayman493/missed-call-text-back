@@ -9,7 +9,7 @@ const PLACEHOLDER_NAMES = new Set([
 // Placeholder service values that should be treated as missing
 const PLACEHOLDER_SERVICES = new Set([
   'general service', 'general', 'service', 'not specified', 'not provided',
-  'unknown', 'n/a', 'request', 'help needed'
+  'unknown', 'n/a', 'request', 'help needed', 'service request'
 ])
 
 // Question patterns that indicate the customer asked about pricing, hours, etc. instead of requesting a service
@@ -1526,9 +1526,9 @@ export const formatAiIntakeSummary = (
   const displayName = businessName || 'us';
   const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
 
-  // Check which fields have actual values (not "Not collected" or empty)
-  const hasName = customerName && customerName !== 'Not collected' && customerName.trim() !== '';
-  const hasRequest = finalRequest && finalRequest !== 'Not collected' && finalRequest.trim() !== '';
+  // Check which fields have actual values (not "Not collected" or empty or placeholders)
+  const hasName = customerName && customerName !== 'Not collected' && customerName.trim() !== '' && !isPlaceholderValue(customerName, PLACEHOLDER_NAMES);
+  const hasRequest = finalRequest && finalRequest !== 'Not collected' && finalRequest.trim() !== '' && !isPlaceholderValue(finalRequest, PLACEHOLDER_SERVICES);
   const hasAddress = serviceAddress && serviceAddress !== 'Not collected' && serviceAddress.trim() !== '';
   const hasCompletionTime = desiredCompletionTime && desiredCompletionTime !== 'Not collected' && desiredCompletionTime.trim() !== '';
   const hasCallbackTime = callbackTime && callbackTime !== 'Not collected' && callbackTime.trim() !== '';

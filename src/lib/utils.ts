@@ -235,6 +235,54 @@ export function getLeadDisplayName(lead: any): string {
 }
 
 /**
+ * Get initials from a name with proper filtering.
+ * Only generates initials from alphabetic characters.
+ * Returns empty string for phone numbers, placeholders, or invalid names.
+ *
+ * Examples:
+ * - "John Smith" -> "JS"
+ * - "John" -> "J"
+ * - "(555) 123-4567" -> "" (phone number)
+ * - "Unknown Caller" -> "" (placeholder)
+ * - "Not collected" -> "" (placeholder)
+ * - "+1 (555) 123-4567" -> "" (phone number)
+ */
+export function getInitialsFromName(name: string | null | undefined): string {
+  if (!name || typeof name !== 'string') return ''
+
+  const trimmed = name.trim()
+  if (!trimmed) return ''
+
+  // Reject phone numbers (starts with +, digits, parentheses)
+  if (/^[\d\+\(\-\s]/.test(trimmed)) return ''
+
+  // Reject placeholders
+  const lower = trimmed.toLowerCase()
+  const placeholders = new Set([
+    'unknown', 'unknown caller', 'not provided', 'not collected', 'n/a',
+    'caller', 'customer', 'unknown customer', 'not provided name',
+    'service request', 'general service'
+  ])
+  if (placeholders.has(lower)) return ''
+
+  // Split on whitespace and filter to only alphabetic parts
+  const parts = trimmed.split(/\s+/).filter((p: string) => /[A-Za-z]/.test(p))
+
+  if (parts.length === 0) return ''
+
+  // Get first letter of first word
+  const first = parts[0]?.[0] || ''
+
+  // Get first letter of last word (if more than one word)
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
+
+  // Combine and remove any non-alphabetic characters (defensive)
+  const letters = `${first}${last}`.replace(/[^A-Za-z]/g, '')
+
+  return letters.slice(0, 2).toUpperCase()
+}
+
+/**
  * Get customer reply acknowledgement message
  * Simplified workflow: always return the same standardized message
  */

@@ -26,7 +26,7 @@ import AppBackButton from '@/components/AppBackButton'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName } from '@/lib/utils'
+import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName, getInitialsFromName } from '@/lib/utils'
 import { getCustomerSourceInfo } from '@/lib/customer-source'
 import { PhoneIncoming, UserPlus, RefreshCw } from 'lucide-react'
 import { getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus, getAIIntakeStatusLabel, getAIIntakeStatusColor } from '@/lib/ai-field-mapping'
@@ -3393,12 +3393,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                     <span className="text-white font-semibold text-xs">
-                      {getLeadDisplayName(leadData || lead)
-                        .split(' ')
-                        .map(n => n[0])
-                        .join('')
-                        .toUpperCase()
-                        .slice(0, 2)}
+                      {getInitialsFromName(getLeadDisplayName(leadData || lead))}
                     </span>
                   </div>
                 )}
@@ -3585,12 +3580,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       ) : (
                         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border-2 border-border/10">
                           <span className="text-white font-semibold text-xl">
-                            {getLeadDisplayName(leadData || lead)
-                              .split(' ')
-                              .map(n => n[0])
-                              .join('')
-                              .toUpperCase()
-                              .slice(0, 2)}
+                            {getInitialsFromName(getLeadDisplayName(leadData || lead))}
                           </span>
                         </div>
                       )}
