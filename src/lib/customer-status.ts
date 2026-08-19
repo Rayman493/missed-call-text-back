@@ -52,8 +52,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     cardClass: 'border-blue-500/50 bg-card bg-gradient-to-br from-blue-500/18 via-blue-500/10 to-card dark:from-blue-500/25 dark:via-blue-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(59,130,246,0.10)]',
     accentStripClass: 'bg-blue-500',
     badgeClass: 'border-blue-500/40 bg-blue-500/12 text-blue-400',
-    iconClass: 'bg-blue-500/15 text-blue-400',
-    textClass: 'text-blue-400',
+    iconClass: 'bg-blue-500/15 text-blue-400 dark:text-blue-400',
+    textClass: 'text-blue-600 dark:text-blue-400',
     selectedClass: 'border-blue-500/40 bg-blue-500/12',
     color: '#3B82F6'
   },
@@ -62,8 +62,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     cardClass: 'border-cyan-500/50 bg-card bg-gradient-to-br from-cyan-500/18 via-cyan-500/10 to-card dark:from-cyan-500/25 dark:via-cyan-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(6,182,212,0.10)]',
     accentStripClass: 'bg-cyan-500',
     badgeClass: 'border-cyan-500/40 bg-cyan-500/12 text-cyan-400',
-    iconClass: 'bg-cyan-500/15 text-cyan-400',
-    textClass: 'text-cyan-400',
+    iconClass: 'bg-cyan-500/15 text-cyan-400 dark:text-cyan-400',
+    textClass: 'text-cyan-600 dark:text-cyan-400',
     selectedClass: 'border-cyan-500/40 bg-cyan-500/12',
     color: '#06B6D4'
   },
@@ -72,8 +72,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     cardClass: 'border-green-500/50 bg-card bg-gradient-to-br from-green-500/18 via-green-500/10 to-card dark:from-green-500/25 dark:via-green-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(34,197,94,0.10)]',
     accentStripClass: 'bg-green-500',
     badgeClass: 'border-green-500/40 bg-green-500/12 text-green-400',
-    iconClass: 'bg-green-500/15 text-green-400',
-    textClass: 'text-green-400',
+    iconClass: 'bg-green-500/15 text-green-400 dark:text-green-400',
+    textClass: 'text-green-600 dark:text-green-400',
     selectedClass: 'border-green-500/40 bg-green-500/12',
     color: '#22C55E'
   },
@@ -82,8 +82,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     cardClass: 'border-purple-500/50 bg-card bg-gradient-to-br from-purple-500/18 via-purple-500/10 to-card dark:from-purple-500/25 dark:via-purple-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(168,85,247,0.10)]',
     accentStripClass: 'bg-purple-500',
     badgeClass: 'border-purple-500/40 bg-purple-500/12 text-purple-400',
-    iconClass: 'bg-purple-500/15 text-purple-400',
-    textClass: 'text-purple-400',
+    iconClass: 'bg-purple-500/15 text-purple-400 dark:text-purple-400',
+    textClass: 'text-purple-600 dark:text-purple-400',
     selectedClass: 'border-purple-500/40 bg-purple-500/12',
     color: '#A855F7'
   },
@@ -92,8 +92,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     cardClass: 'border-amber-500/50 bg-card bg-gradient-to-br from-amber-500/18 via-amber-500/10 to-card dark:from-amber-500/25 dark:via-amber-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(245,158,11,0.10)]',
     accentStripClass: 'bg-amber-500',
     badgeClass: 'border-amber-500/40 bg-amber-500/12 text-amber-400',
-    iconClass: 'bg-amber-500/15 text-amber-400',
-    textClass: 'text-amber-400',
+    iconClass: 'bg-amber-500/15 text-amber-400 dark:text-amber-400',
+    textClass: 'text-amber-700 dark:text-amber-400',
     selectedClass: 'border-amber-500/40 bg-amber-500/12',
     color: '#F59E0B'
   },
@@ -102,8 +102,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     cardClass: 'border-emerald-500/50 bg-card bg-gradient-to-br from-emerald-500/18 via-emerald-500/10 to-card dark:from-emerald-500/25 dark:via-emerald-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(16,185,129,0.10)]',
     accentStripClass: 'bg-emerald-500',
     badgeClass: 'border-emerald-500/40 bg-emerald-500/12 text-emerald-400',
-    iconClass: 'bg-emerald-500/15 text-emerald-400',
-    textClass: 'text-emerald-400',
+    iconClass: 'bg-emerald-500/15 text-emerald-400 dark:text-emerald-400',
+    textClass: 'text-emerald-600 dark:text-emerald-400',
     selectedClass: 'border-emerald-500/40 bg-emerald-500/12',
     color: '#10B981'
   },
@@ -112,8 +112,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     cardClass: 'border-slate-400/50 bg-card bg-gradient-to-br from-slate-400/18 via-slate-400/10 to-card dark:from-slate-400/25 dark:via-slate-400/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(148,163,184,0.10)]',
     accentStripClass: 'bg-slate-400',
     badgeClass: 'border-slate-400/40 bg-slate-400/12 text-slate-400',
-    iconClass: 'bg-slate-400/15 text-slate-400',
-    textClass: 'text-slate-400',
+    iconClass: 'bg-slate-400/15 text-slate-400 dark:text-slate-400',
+    textClass: 'text-slate-600 dark:text-slate-400',
     selectedClass: 'border-slate-400/40 bg-slate-400/12',
     color: '#94A3B8'
   },
@@ -122,8 +122,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     cardClass: 'border-orange-500/50 bg-card bg-gradient-to-br from-orange-500/18 via-orange-500/10 to-card dark:from-orange-500/25 dark:via-orange-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(249,115,22,0.10)]',
     accentStripClass: 'bg-orange-500',
     badgeClass: 'border-orange-500/40 bg-orange-500/12 text-orange-400',
-    iconClass: 'bg-orange-500/15 text-orange-400',
-    textClass: 'text-orange-400',
+    iconClass: 'bg-orange-500/15 text-orange-400 dark:text-orange-400',
+    textClass: 'text-orange-600 dark:text-orange-400',
     selectedClass: 'border-orange-500/40 bg-orange-500/12',
     color: '#F97316'
   },
@@ -132,8 +132,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     cardClass: 'border-red-500/50 bg-card bg-gradient-to-br from-red-500/18 via-red-500/10 to-card dark:from-red-500/25 dark:via-red-500/12 dark:to-slate-900/95 shadow-sm dark:shadow-[0_0_20px_rgba(239,68,68,0.10)]',
     accentStripClass: 'bg-red-500',
     badgeClass: 'border-red-500/40 bg-red-500/12 text-red-400',
-    iconClass: 'bg-red-500/15 text-red-400',
-    textClass: 'text-red-400',
+    iconClass: 'bg-red-500/15 text-red-400 dark:text-red-400',
+    textClass: 'text-red-600 dark:text-red-400',
     selectedClass: 'border-red-500/40 bg-red-500/12',
     color: '#EF4444'
   }

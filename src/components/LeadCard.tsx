@@ -168,7 +168,7 @@ export default function LeadCard({
                 </span>
               )}
             </div>
-            <p className="text-[11px] sm:text-xs text-muted-foreground/90">
+            <p className="text-[11px] sm:text-xs text-muted-foreground">
               {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
             </p>
           </div>
@@ -251,7 +251,7 @@ export default function LeadCard({
             onDoubleClick={(e) => {
               e.stopPropagation()
             }}
-            className="hidden sm:inline-flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-400 hover:text-foreground hover:bg-muted/50 active:bg-muted/70 px-2 py-1.5 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-card group"
+            className="hidden sm:inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted/70 px-2 py-1.5 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-card group"
             aria-label={`Open ${getLeadDisplayName(lead)}`}
           >
             <span className="whitespace-nowrap">Open customer</span>
