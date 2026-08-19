@@ -83,6 +83,29 @@ const EXTERNAL_RETURN_FLOWS: ExternalReturnFlow[] = [
       })
       console.log('[STRIPE PORTAL RETURN] Billing status refresh result:', result.ok)
     }
+  },
+  {
+    name: 'GOOGLE_CALENDAR',
+    matcher: (url) => {
+      // Check hostname first - only handle replyflowhq.com
+      if (url.hostname !== 'www.replyflowhq.com') {
+        return false
+      }
+      const isCalendarPage = url.pathname.includes('/dashboard/calendar') && (url.searchParams.get('calendar') === 'connected' || url.searchParams.get('calendar') === 'cancelled' || url.searchParams.get('calendar') === 'error')
+      const isSettingsPage = url.pathname.includes('/dashboard/settings') && (url.searchParams.get('calendar') === 'connected' || url.searchParams.get('calendar') === 'cancelled' || url.searchParams.get('calendar') === 'error')
+      return isCalendarPage || isSettingsPage
+    },
+    internalDestination: '/dashboard/calendar',
+    reconcile: async () => {
+      // Google Calendar reconciliation - clear pending operation
+      // The calendar page will handle status refresh on mount
+      console.log('[GOOGLE CALENDAR RETURN] Navigating to calendar page for status refresh')
+      const pendingGoogle = await getPendingGoogleOperation()
+      if (pendingGoogle.operation) {
+        console.log('[GOOGLE CALENDAR RETURN] Clearing pending Google operation')
+        await setPendingGoogleOperation(null)
+      }
+    }
   }
 ]
 

@@ -38,15 +38,15 @@ export default function Toast({
   const getToastStyles = () => {
     switch (type) {
       case 'success':
-        return 'bg-slate-900/95 text-slate-100 border-emerald-500/25 shadow-lg'
+        return 'bg-popover text-popover-foreground border-emerald-500/25 shadow-lg dark:bg-slate-900/95 dark:text-slate-100'
       case 'error':
-        return 'bg-slate-900/95 text-slate-100 border-red-500/25 shadow-lg'
+        return 'bg-popover text-popover-foreground border-red-500/25 shadow-lg dark:bg-slate-900/95 dark:text-slate-100'
       case 'warning':
-        return 'bg-slate-900/95 text-slate-100 border-amber-500/25 shadow-lg'
+        return 'bg-popover text-popover-foreground border-amber-500/25 shadow-lg dark:bg-slate-900/95 dark:text-slate-100'
       case 'info':
-        return 'bg-slate-900/95 text-slate-100 border-blue-500/25 shadow-lg'
+        return 'bg-popover text-popover-foreground border-blue-500/25 shadow-lg dark:bg-slate-900/95 dark:text-slate-100'
       default:
-        return 'bg-slate-900/95 text-slate-100 border-slate-500/25 shadow-lg'
+        return 'bg-popover text-popover-foreground border-border shadow-lg dark:bg-slate-900/95 dark:text-slate-100'
     }
   }
 
@@ -94,7 +94,7 @@ export default function Toast({
         </div>
         <button
           onClick={onClose}
-          className="flex-shrink-0 p-1 text-slate-400 hover:text-slate-200 hover:bg-white/5 rounded transition-colors"
+          className="flex-shrink-0 p-1 text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors"
           aria-label="Dismiss notification"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

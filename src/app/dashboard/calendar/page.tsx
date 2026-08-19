@@ -33,7 +33,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import TasksTab from '@/components/schedule/TasksTab'
 import type { Job, JobStatus, JobPrefill } from '@/components/jobs/JobComposer'
 import { openOAuthFlow } from '@/capacitor/oauth'
-import { isCapacitorNative } from '@/capacitor/init'
+import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 
 interface CalendarEvent {
   id: string
@@ -511,9 +511,36 @@ export default function SchedulePage() {
       await setPendingGoogleOperation('calendar_connect', user?.id)
       console.log('[CALENDAR] Pending Google operation set for user:', user?.id)
 
-      // Use Capacitor OAuth helper for native environment, standard redirect for web
-      const callbackUrl = `${window.location.origin}/dashboard/calendar?calendar=connected`
-      await openOAuthFlow(data.authUrl, callbackUrl)
+      // For iOS native: Use ASWebAuthenticationSession for automatic return-to-app
+      // For Android native: Use Capacitor Browser plugin
+      // For web: Use standard redirect
+      if (isCapacitorNative()) {
+        const platform = getCapacitorPlatform()
+        const callbackUrl = `${window.location.origin}/dashboard/calendar?calendar=connected`
+        const callbackUrlObj = new URL(callbackUrl)
+        const callbackHost = callbackUrlObj.hostname
+        const callbackPath = callbackUrlObj.pathname + callbackUrlObj.search
+
+        if (platform === 'ios') {
+          // iOS: Use ASWebAuthenticationSession for automatic return-to-app
+          const ReplyflowWebCheckoutPlugin = await import('@/lib/web-checkout').then(m => m.default)
+          console.log('[CALENDAR] Opening in ASWebAuthenticationSession on iOS')
+          const result = await ReplyflowWebCheckoutPlugin.openCheckoutSession({
+            url: data.authUrl,
+            callbackHost,
+            callbackPath,
+          })
+          console.log('[CALENDAR] ASWebAuthenticationSession result:', result)
+        } else {
+          // Android: Use Capacitor Browser plugin
+          const { Browser } = await import('@capacitor/browser')
+          console.log('[CALENDAR] Opening in system browser (Android)')
+          await Browser.open({ url: data.authUrl })
+        }
+      } else {
+        // Web: Standard redirect
+        window.location.href = data.authUrl
+      }
       
       // Reset connecting state after OAuth flow is initiated
       // The connection status will be refreshed when the app resumes or when the OAuth callback is handled

@@ -18,6 +18,7 @@ import { TapToPayEducationModal } from '@/components/TapToPayEducationModal'
 import { TapToPayAwarenessModal } from '@/components/TapToPayAwarenessModal'
 import { TerminalBridgeService } from '@/lib/terminal/service'
 import { Capacitor } from '@capacitor/core'
+import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import Link from 'next/link'
 import { formatPhoneNumber } from '@/lib/utils'
 import Navigation from '@/components/Navigation'
@@ -1148,7 +1149,37 @@ export default function SettingsContent() {
         throw new Error('Failed to initiate OAuth flow')
       }
       const data = await response.json()
-      window.location.href = data.authUrl
+
+      // For iOS native: Use ASWebAuthenticationSession for automatic return-to-app
+      // For Android native: Use Capacitor Browser plugin
+      // For web: Use standard redirect
+      if (isCapacitorNative()) {
+        const platform = getCapacitorPlatform()
+        const callbackUrl = `${window.location.origin}/dashboard/settings?calendar=connected`
+        const callbackUrlObj = new URL(callbackUrl)
+        const callbackHost = callbackUrlObj.hostname
+        const callbackPath = callbackUrlObj.pathname + callbackUrlObj.search
+
+        if (platform === 'ios') {
+          // iOS: Use ASWebAuthenticationSession for automatic return-to-app
+          const ReplyflowWebCheckoutPlugin = await import('@/lib/web-checkout').then(m => m.default)
+          console.log('[Settings] Opening Google Calendar in ASWebAuthenticationSession on iOS')
+          const result = await ReplyflowWebCheckoutPlugin.openCheckoutSession({
+            url: data.authUrl,
+            callbackHost,
+            callbackPath,
+          })
+          console.log('[Settings] ASWebAuthenticationSession result:', result)
+        } else {
+          // Android: Use Capacitor Browser plugin
+          const { Browser } = await import('@capacitor/browser')
+          console.log('[Settings] Opening Google Calendar in system browser (Android)')
+          await Browser.open({ url: data.authUrl })
+        }
+      } else {
+        // Web: Standard redirect
+        window.location.href = data.authUrl
+      }
     } catch (error) {
       console.error('Error connecting calendar:', error)
       showToast('Couldn\'t connect calendar', 'error')
