@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendPushForNotification } from '@/lib/push-delivery'
 import { normalizePunctuation } from '@/lib/utils'
+import { shouldSuppressNotification } from '@/lib/notification-preferences'
 
 export interface Notification {
   id: string
@@ -229,6 +230,36 @@ export class NotificationServiceServer {
     
     if (typeof template === 'function') {
       notificationData = template(data || {})
+    }
+
+    // Check if notification should be suppressed based on business preferences
+    // Load business preferences to check if this notification type is disabled
+    let preferences = null
+    try {
+      const { data: business } = await supabaseAdmin
+        .from('businesses')
+        .select('notification_preferences')
+        .eq('id', businessId)
+        .single()
+
+      preferences = business?.notification_preferences || null
+    } catch (error) {
+      console.error('[NOTIFICATIONS PREFERENCE LOAD ERROR]', {
+        businessId,
+        type,
+        error: error instanceof Error ? error.message : String(error)
+      })
+      // On error, fail open to existing notification behavior (proceed with notification)
+      // This prevents infrastructure errors from silencing legitimate notifications
+    }
+
+    if (shouldSuppressNotification(preferences, type)) {
+      console.log('[NOTIFICATIONS PREFERENCE SUPPRESSED]', {
+        businessId,
+        type,
+        preferences
+      })
+      return true // Return true to indicate success (notification suppressed as intended)
     }
 
     // Idempotency check: prevent duplicate notifications for the same context

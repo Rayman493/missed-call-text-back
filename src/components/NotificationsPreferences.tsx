@@ -143,16 +143,57 @@ export function NotificationsPreferences() {
   }, [business])
 
   const handleToggle = async (key: string) => {
+    // Optimistic update
+    const previousPreferences = [...preferences]
     setPreferences(prev =>
       prev.map(pref =>
         pref.key === key ? { ...pref, enabled: !pref.enabled } : pref
       )
     )
 
-    // In a real implementation, this would save to the database
-    // For now, we'll just update local state
     setIsUpdating(true)
-    setTimeout(() => setIsUpdating(false), 300)
+    try {
+      if (!business) {
+        throw new Error('No business loaded')
+      }
+
+      const response = await fetch('/api/business/notification-preferences', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          businessId: business.id,
+          preferences: {
+            [key]: !preferences.find(p => p.key === key)?.enabled
+          }
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update preferences')
+      }
+
+      const result = await response.json()
+      console.log('[NOTIFICATION PREFERENCES] Updated successfully:', result)
+
+      // Update preferences from server response to ensure sync
+      if (result.preferences) {
+        setPreferences(prev =>
+          prev.map(pref => ({
+            ...pref,
+            enabled: result.preferences[pref.key] ?? pref.enabled
+          }))
+        )
+      }
+    } catch (error) {
+      console.error('[NOTIFICATION PREFERENCES] Update failed:', error)
+      // Revert optimistic update
+      setPreferences(previousPreferences)
+    } finally {
+      setIsUpdating(false)
+    }
   }
 
   return (
