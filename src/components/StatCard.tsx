@@ -108,7 +108,7 @@ export default function StatCard({
               {iconNode || icon}
             </span>
           )}
-          <h3 className="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-[0.16em] leading-tight">
+          <h3 className="text-[10px] sm:text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-[0.16em] leading-tight">
             {label}
           </h3>
         </div>
@@ -129,7 +129,7 @@ export default function StatCard({
 
       {/* Description */}
       {description && (
-        <p className="text-[10px] sm:text-xs text-slate-400/90 font-medium leading-snug">
+        <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400/90 font-medium leading-snug">
           {description}
         </p>
       )}
