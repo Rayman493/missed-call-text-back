@@ -1,17 +1,15 @@
-import { sanitizeCustomerName, sanitizeServiceRequested, sanitizeAdditionalDetails, sanitizeServiceAddress, sanitizeTiming } from './content-sanitization'
 
+import { sanitizeCustomerName, sanitizeServiceRequested, sanitizeAdditionalDetails, sanitizeServiceAddress, sanitizeTiming } from './content-sanitization'
 // Placeholder names that should be rejected
 const PLACEHOLDER_NAMES = new Set([
   'unknown', 'not provided', 'not collected', 'n/a', 'caller', 'customer',
   'unknown caller', 'unknown customer', 'not provided name'
 ])
-
 // Placeholder service values that should be treated as missing
 const PLACEHOLDER_SERVICES = new Set([
   'general service', 'general', 'service', 'not specified', 'not provided',
   'unknown', 'n/a', 'request', 'help needed', 'service request'
 ])
-
 // Question patterns that indicate the customer asked about pricing, hours, etc. instead of requesting a service
 const QUESTION_PATTERNS = [
   /^(how much|what do you charge|how much do you charge|what's the price|pricing|cost|rates)/i,
@@ -21,118 +19,87 @@ const QUESTION_PATTERNS = [
   /^(who|what|when|where|why|how)\s/i,
   /^(can i|is it possible|do you offer|do you provide)/i
 ]
-
 // Helper function to detect if a string is a placeholder value
 function isPlaceholderValue(text: string | null | undefined, placeholderSet: Set<string>): boolean {
   if (!text || text.trim() === '') return true
   const normalized = text.trim().toLowerCase()
   return placeholderSet.has(normalized)
 }
-
 // Helper function to detect if text looks like a question instead of a service request
 function looksLikeQuestion(text: string | null | undefined): boolean {
   if (!text || text.trim() === '') return false
   const normalized = text.trim()
   return QUESTION_PATTERNS.some(pattern => pattern.test(normalized))
 }
-
 // Helper function to detect if a string looks like a phone number
 function looksLikePhoneNumber(text: string): boolean {
   if (!text || typeof text !== 'string') return false;
-
   const cleaned = text.replace(/[\s\-\(\)\+]/g, '');
-
   // Phone numbers are typically 10+ digits
   if (cleaned.length < 10) return false;
-
   // Check if mostly digits (at least 80%)
   const digitCount = (cleaned.match(/\d/g) || []).length;
   const digitRatio = digitCount / cleaned.length;
-
   return digitRatio >= 0.8;
 }
-
 // Helper function to safely trim and capitalize text
 // This is a low-level helper that does NOT apply conversational filler removal
 export const safeTrimAndCapitalize = (text: string | null | undefined): string => {
   if (!text || text.trim() === '') return 'Not collected';
-
   let normalized = text.trim();
-
   // Remove duplicate punctuation
   normalized = normalized.replace(/([.!?])\1+/g, '$1');
-
   // Remove trailing punctuation for cleaner display (except for abbreviations)
   if (/^[^.!?]*[.!?]$/.test(normalized) &&
       !/\b(?:Mr|Mrs|Ms|Dr|Jr|Sr|St|Ave|Blvd|Rd|Ln|Pt|etc|e\.g|i\.e)\.$/.test(normalized)) {
     normalized = normalized.slice(0, -1);
   }
-
   // Capitalize first letter
   normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1);
-
   // Trim final whitespace
   normalized = normalized.trim();
-
   return normalized || 'Not collected';
 };
-
 // Helper function to apply sentence capitalization (first letter only)
 export const sentenceCapitalize = (text: string | null | undefined): string => {
   if (!text || text.trim() === '') return 'Not collected';
-
   let normalized = text.trim();
-
   // Remove duplicate punctuation
   normalized = normalized.replace(/([.!?])\1+/g, '$1');
-
   // Remove trailing punctuation for cleaner display (except for abbreviations)
   if (/^[^.!?]*[.!?]$/.test(normalized) &&
       !/\b(?:Mr|Mrs|Ms|Dr|Jr|Sr|St|Ave|Blvd|Rd|Ln|Pt|etc|e\.g|i\.e)\.$/.test(normalized)) {
     normalized = normalized.slice(0, -1);
   }
-
   // Capitalize first letter only (sentence case)
   normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
-
   // Trim final whitespace
   normalized = normalized.trim();
-
   return normalized || 'Not collected';
 };
-
 // Corruption guard: reject normalized result if it looks damaged
 function isNormalizationDamaged(original: string, normalized: string): boolean {
   // Reject if result is empty when original was not
   if (!normalized && original) return true;
-
   // Reject if result is only one character when original had multiple
   if (normalized.length === 1 && original.length > 1) return true;
-
   // Reject if result lost more than 50% of characters and original was a single word
   if (original.split(/\s+/).length === 1 && normalized.length < original.length * 0.5) return true;
-
   // Reject if result is only punctuation
   if (/^[^\w\s]+$/.test(normalized)) return true;
-
   return false;
 }
-
 // Field-specific normalization for customer names
 // Only removes name-specific conversational prefixes
 // Returns null for missing values instead of "Not collected" to avoid treating it as a valid name
 export const normalizeCustomerName = (text: string | null | undefined): string | null => {
   if (!text || text.trim() === '') return null;
-
   const original = text.trim();
-
   // Reject if the value looks like a phone number
   if (looksLikePhoneNumber(original)) {
     return null;
   }
-
   let normalized = original;
-
   // Name-specific conversational prefixes (strictly anchored)
   const namePrefixPatterns = [
     /^\s*yeah[\s,]+my name is[\s,:-]+/i,
@@ -146,38 +113,29 @@ export const normalizeCustomerName = (text: string | null | undefined): string |
     /^\s*the name is\s+/i,
     /^\s*i go by\s+/i,
   ];
-
   // Apply name-specific prefixes
   for (const pattern of namePrefixPatterns) {
     normalized = normalized.replace(pattern, '');
   }
-
   // Apply safe trimming and capitalization
   normalized = safeTrimAndCapitalize(normalized);
-
   // Corruption guard: if normalization damaged the value, return original trimmed
   if (isNormalizationDamaged(original, normalized)) {
     return safeTrimAndCapitalize(original);
   }
-
   // Apply content sanitization for display
   normalized = sanitizeCustomerName(normalized);
-
   return normalized || null;
 };
-
 // Field-specific normalization for service reasons
 // Removes intent-specific conversational prefixes
 export const normalizeServiceReason = (text: string | null | undefined): string => {
   if (!text || text.trim() === '') return 'Not collected';
-
   const original = text.trim();
   let normalized = original;
-
   // Remove leading conversational scaffolding like "And", "So", "Well", "Um", "Uh", "Yeah" when used as a standalone prefix
   // Keep the remainder intact for downstream intent-specific normalization
   normalized = normalized.replace(/^\s*(?:and|so|well|um|uh|yeah)[\s,\-–—]+/i, '');
-
   // First, remove specific "to"-intent prefixes so we don't leave a leading "to " fragment
   const toVariantPrefixes = [
     /^\s*i\s*(?:'d|would)\s+like\s+to\s+/i,   // I'd like to / I would like to
@@ -191,7 +149,6 @@ export const normalizeServiceReason = (text: string | null | undefined): string 
   for (const pattern of toVariantPrefixes) {
     normalized = normalized.replace(pattern, '');
   }
-
   // Service/intent-specific conversational prefixes (strictly anchored, generic variants)
   const reasonPrefixPatterns = [
     /^\s*i need\s+/i,
@@ -208,33 +165,25 @@ export const normalizeServiceReason = (text: string | null | undefined): string 
     /^\s*the reason i'?m calling is\s+/i,
     /^\s*i'?m interested in\s+/i,
   ];
-
   // Apply reason-specific prefixes
   for (const pattern of reasonPrefixPatterns) {
     normalized = normalized.replace(pattern, '');
   }
-
   // Apply safe trimming and capitalization
   normalized = safeTrimAndCapitalize(normalized);
-
   // Corruption guard: if normalization damaged the value, return original trimmed
   if (isNormalizationDamaged(original, normalized)) {
     return safeTrimAndCapitalize(original);
   }
-
   // Apply content sanitization for display
   normalized = sanitizeServiceRequested(normalized);
-
   return normalized;
 };
-
 // Validate and repair request title to reject conversational filler
 // Returns null if the title is invalid and cannot be repaired
 export const validateRequestTitle = (title: string | null | undefined): string | null => {
   if (!title || title.trim() === '') return null;
-
   const normalized = title.trim().toLowerCase();
-
   // List of bad conversational filler and placeholders to reject
   const badPatterns = [
     /^was looking$/i,
@@ -260,19 +209,16 @@ export const validateRequestTitle = (title: string | null | undefined): string |
     /^none$/i,
     /^general request$/i,
   ];
-
   // Reject if matches bad pattern
   for (const pattern of badPatterns) {
     if (pattern.test(normalized)) {
       return null;
     }
   }
-
   // Reject if contains pronouns
   if (/^(i|we|you|my|your|our)\s/i.test(normalized)) {
     return null;
   }
-
   // Reject if only 1-2 words and they're vague verbs
   const words = normalized.split(/\s+/);
   if (words.length <= 2) {
@@ -281,11 +227,9 @@ export const validateRequestTitle = (title: string | null | undefined): string |
       return null;
     }
   }
-
   // If passes validation, return the original
   return title.trim();
 };
-
 /**
  * Generate a concise professional job title using only the primary service requested.
  * Keep the title under five words. Do not include customer names, addresses,
@@ -307,7 +251,6 @@ export const validateRequestTitle = (title: string | null | undefined): string |
  */
 function normalizeSemanticService(servicePair: string): string | null {
   const [verb, object] = servicePair.split(' ').map(w => w.toLowerCase());
-
   // Lawn/yard services
   if (['cut', 'mow', 'trim'].includes(verb) && ['lawn', 'yard', 'grass'].includes(object)) {
     return 'Lawn Mowing';
@@ -318,7 +261,6 @@ function normalizeSemanticService(servicePair: string): string | null {
   if (['trim', 'maintain'].includes(verb) && ['tree', 'shrub', 'hedge'].includes(object)) {
     return 'Tree Trimming';
   }
-
   // Fence/deck services
   if (['install', 'set', 'setup', 'put'].includes(verb) && object === 'fence') {
     return 'Fence Installation';
@@ -326,7 +268,6 @@ function normalizeSemanticService(servicePair: string): string | null {
   if (['repair', 'fix'].includes(verb) && object === 'fence') {
     return 'Fence Repair';
   }
-
   // Roofing services
   if (['repair', 'fix'].includes(verb) && object === 'roof') {
     return 'Roof Repair';
@@ -338,7 +279,6 @@ function normalizeSemanticService(servicePair: string): string | null {
   if (['is', 'are', 'was', 'were'].includes(verb) && object === 'roof') {
     return 'Roof Repair';
   }
-
   // Plumbing services (including leak/drip patterns)
   if (['repair', 'fix', 'unclog', 'clear', 'leak', 'leaking', 'drip', 'dripping', 'clog', 'clogged'].includes(verb) &&
       ['drain', 'pipe', 'sink', 'toilet', 'faucet', 'kitchen'].includes(object)) {
@@ -351,7 +291,6 @@ function normalizeSemanticService(servicePair: string): string | null {
   if (['is', 'are', 'was', 'were'].includes(verb) && ['drain', 'pipe', 'sink', 'toilet', 'faucet'].includes(object)) {
     return 'Plumbing Repair';
   }
-
   // HVAC services
   if (['repair', 'fix'].includes(verb) && ['ac', 'air', 'conditioner', 'heater', 'furnace', 'hvac'].includes(object)) {
     return 'HVAC Repair';
@@ -363,7 +302,6 @@ function normalizeSemanticService(servicePair: string): string | null {
   if (['is', 'are', 'was', 'were'].includes(verb) && ['ac', 'air', 'conditioner', 'heater', 'furnace', 'hvac'].includes(object)) {
     return 'HVAC Repair';
   }
-
   // Cleaning services
   if (['clean', 'wash', 'pressure'].includes(verb) && ['driveway', 'sidewalk', 'deck', 'patio'].includes(object)) {
     return 'Pressure Washing';
@@ -371,27 +309,22 @@ function normalizeSemanticService(servicePair: string): string | null {
   if (['clean', 'wash'].includes(verb) && ['carpet', 'floor', 'window'].includes(object)) {
     return `${object.charAt(0).toUpperCase() + object.slice(1)} Cleaning`;
   }
-
   // Painting services
   if (['paint', 'painting', 'stain'].includes(verb) && ['deck', 'fence', 'interior', 'exterior'].includes(object)) {
     return 'Painting';
   }
-
   // Automotive services
   if (['repair', 'fix'].includes(verb) && ['car', 'truck', 'vehicle', 'brake', 'tire'].includes(object)) {
     return 'Auto Repair';
   }
-
   // Lessons
   if (['lesson', 'learn', 'teach', 'train', 'tutor'].includes(verb) && ['piano', 'guitar', 'violin', 'drums'].includes(object)) {
     return `${object.charAt(0).toUpperCase() + object.slice(1)} Lessons`;
   }
-
   // Locksmith
   if (['lock', 'unlock', 'key'].includes(verb) && ['lock', 'key', 'door'].includes(object)) {
     return 'Locksmith Service';
   }
-
   // Generic fallback for other verb+object pairs
   if (['repair', 'fix', 'leak', 'leaking', 'drip', 'dripping', 'clog', 'clogged'].includes(verb)) {
     return `${object.charAt(0).toUpperCase() + object.slice(1)} Repair`;
@@ -406,17 +339,13 @@ function normalizeSemanticService(servicePair: string): string | null {
   if (['is', 'are', 'was', 'were'].includes(verb)) {
     return `${object.charAt(0).toUpperCase() + object.slice(1)} Repair`;
   }
-
   // If we can't normalize it, return null to trigger the safe fallback
   return null;
 }
-
 export const generateCanonicalRequestTitle = (text: string | null | undefined): string => {
   if (!text || text.trim() === '') return 'General Service';
-
   const original = text.trim().toLowerCase();
   let processed = original;
-
   // Remove all conversational prefixes and filler
   const conversationalPrefixes = [
     /^i would like /i,
@@ -472,11 +401,9 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     /^trying /i,
     /^see /i,
   ];
-
   for (const pattern of conversationalPrefixes) {
     processed = processed.replace(pattern, '');
   }
-
   // Remove pronouns and personal references
   processed = processed.replace(/^my /i, '');
   processed = processed.replace(/^our /i, '');
@@ -486,25 +413,19 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
   processed = processed.replace(/ our /gi, ' ');
   processed = processed.replace(/ me /gi, ' ');
   processed = processed.replace(/ us /gi, ' ');
-
   // Remove trailing conversational filler
   processed = processed.replace(/[.!?,]*\s*(please|thanks|thank you|asap|as soon as possible|when possible|at your earliest convenience)?\s*$/i, '');
-
   // Remove scheduling and timing information
   processed = processed.replace(/(?:today|tomorrow|this week|next week|this month|next month|as soon as possible|asap|when possible|at your earliest convenience|as soon as you can|whenever|as soon as)\b/gi, '');
   processed = processed.replace(/(?:morning|afternoon|evening|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi, '');
   processed = processed.replace(/\d{1,2}(?::\d{2})?(?:\s*(?:am|pm|a\.m\.|p\.m\.))?/gi, '');
-
   // Remove property size and descriptions
   processed = processed.replace(/(?:quarter|half|full)\s*(?:acre|acres|sq\s*ft|square\s*foot|square\s*feet)\b/gi, '');
   processed = processed.replace(/\d+\s*(?:bedroom|bath|room|rooms|story|stories|floor|floors)\b/gi, '');
-
   // Remove common filler words
   const fillerWords = ['a', 'an', 'the', 'to', 'for', 'with', 'by', 'at', 'on', 'in', 'of', 'just', 'really', 'actually', 'basically', 'literally', 'very', 'some', 'any', 'this', 'that'];
   const words = processed.split(/\s+/).filter(w => w.length > 0 && !fillerWords.includes(w));
-
   if (words.length === 0) return 'General Service';
-
   // Define industry-specific service mappings with primary focus
   const serviceMappings: Record<string, RegExp[]> = {
     'Lawn Mowing': [/\blawn\s*(?:mow|cut|trim|maintenance|care|service)/i, /\bgrass\s*(?:cut|mow|trim)/i, /\byard\s*(?:mow|cut|trim|work)/i],
@@ -616,18 +537,15 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     'Property Management': [/\bproperty\s*(?:manage|management)/i],
     'Real Estate': [/\breal\s*estate/i],
   };
-
   // Try to match against service mappings first
   // Sort mappings by specificity (longer patterns first) to ensure context-aware patterns match before general ones
   const sortedMappings = Object.entries(serviceMappings).sort((a, b) => b[0].length - a[0].length);
-
   // Priority check: burst, frozen, repair, replacement must match before construction-related patterns
   const priorityPatterns = [
     { title: 'Burst Pipe Repair', patterns: [/\bburst\s*(?:pipe|pipes)/i, /\b(?:pipe|pipes)\s*burst/i] },
     { title: 'Frozen Pipe Repair', patterns: [/\bfrozen\s*(?:pipe|pipes)/i, /\b(?:pipe|pipes)\s*frozen/i] },
     { title: 'Pipe Replacement', patterns: [/\b(?:pipe|pipes)\s*(?:replace|replacement|swap|change)/i, /\b(?:replace|changing)\s*(?:pipe|pipes)/i] },
   ];
-
   for (const { title, patterns } of priorityPatterns) {
     for (const pattern of patterns) {
       if (pattern.test(processed)) {
@@ -635,9 +553,7 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
       }
     }
   }
-
   let matchedTitle: string | null = null;
-
   for (const [serviceTitle, patterns] of sortedMappings) {
     for (const pattern of patterns) {
       if (pattern.test(processed)) {
@@ -651,31 +567,25 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     }
     if (matchedTitle) break;
   }
-
   // Rule priority: Repair, burst, frozen, replacement intent cannot be overwritten by construction context
   const isRepairPriority = matchedTitle === 'Pipe Repair' || matchedTitle === 'Burst Pipe Repair' || matchedTitle === 'Frozen Pipe Repair' || matchedTitle === 'Pipe Replacement';
-
   if (matchedTitle && !isRepairPriority && matchedTitle === 'Pipe Installation') {
     const hasPlumbing = /\b(?:pipe|pipes|piping|plumbing)\s*(?:install|installation|new|set up)/i.test(processed);
     // Must have explicit construction context - not just "new" or "house"
     // Exclude patterns like "30-year-old house" or "existing house"
     const hasConstructionContext = /\b(?:getting\s*built|being\s*built|under\s*construction|construction\s*project|building\s*a\s*new)\b/i.test(processed);
-
     // Must have both plumbing installation language AND explicit construction context
     // "New pipes" or "new house" alone must not trigger new-construction classification
     if (hasPlumbing && hasConstructionContext) {
       matchedTitle = 'New-Construction Plumbing Installation';
     }
   }
-
   if (matchedTitle) return matchedTitle;
-
   // Semantic fallback: Look for service action verbs + object pairs
   // This prevents noun-compression like "Grass Fence" from conversational context
   // Instead identifies the actual work being requested
   //
   // HARDENING: Prioritize current intent, handle negation, de-prioritize historical context
-
   // Current intent markers (highest priority)
   const currentIntentMarkers = [
     'i need', 'i want', 'i\'d like', 'i would like',
@@ -687,14 +597,12 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     'i\'d actually like', 'i would actually like',
     'right now i need', 'currently i need',
   ];
-
   // Historical context markers (de-prioritize)
   const historicalMarkers = [
     'last year', 'previously', 'before', 'you used to', 'you already', 'we had',
     'you did', 'normally', 'usually', 'in the past', 'earlier',
     'previously', 'back then', 'used to',
   ];
-
   // Negation markers (skip these pairs)
   const negationMarkers = [
     "don't need", 'do not need', 'not need',
@@ -705,7 +613,6 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     'but not', 'except not',
     'skip', 'skip the', 'avoid',
   ];
-
   // Correction/superseded markers (boost pairs after these)
   const correctionMarkers = [
     'but actually', 'but actually i', 'but actually the',
@@ -717,7 +624,6 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     'what i actually need',
     'but now', 'but now i',
   ];
-
   const serviceVerbs = [
     'cut', 'mow', 'trim', 'maintain', 'care', 'service',
     'install', 'installation', 'set', 'setup', 'put', 'replace', 'repair', 'fix',
@@ -738,7 +644,6 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     // Helper verb for "is [adjective]" patterns
     'is', 'are', 'was', 'were',
   ];
-
   const serviceObjects = [
     'lawn', 'yard', 'grass', 'landscape', 'garden', 'tree', 'shrub', 'hedge',
     'fence', 'gate', 'deck', 'patio', 'driveway', 'sidewalk', 'walkway',
@@ -754,7 +659,6 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     'piano', 'guitar', 'violin', 'drums',
     'hair', 'nail', 'facial', 'massage', 'wax',
   ];
-
   // Find positions of all correction markers
   const correctionPositions: number[] = [];
   for (const marker of correctionMarkers) {
@@ -764,7 +668,6 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
       correctionPositions.push(match.index);
     }
   }
-
   // Find verb+object pairs with their positions and context scores
   const serviceCandidates: Array<{
     verb: string,
@@ -777,9 +680,7 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     hasNegation: boolean,
     isAfterCorrection: boolean,
   }> = [];
-
   const maxDistance = 4; // Look for object within 4 words of verb
-
   // Scan for verb+object pairs
   for (let i = 0; i < words.length; i++) {
     const word = words[i].toLowerCase();
@@ -793,9 +694,7 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
           break;
         }
       }
-
       if (hasNegation) continue; // Skip negated verbs
-
       // Look for a service object nearby (forward)
       for (let j = i + 1; j < Math.min(i + maxDistance + 1, words.length); j++) {
         const nextWord = words[j].toLowerCase();
@@ -810,20 +709,16 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
             }
           }
           if (pairNegated) continue;
-
           // Check context around this pair
           const contextStart = Math.max(0, i - 3);
           const contextEnd = Math.min(words.length, j + 4);
           const contextText = words.slice(contextStart, contextEnd).join(' ').toLowerCase();
-
           const hasCurrentIntent = currentIntentMarkers.some(marker => contextText.includes(marker));
           const hasHistoricalMarker = historicalMarkers.some(marker => contextText.includes(marker));
-
           // Check if this pair appears after any correction marker
           const pairText = words.slice(i, j + 1).join(' ');
           const pairStartIndex = processed.toLowerCase().indexOf(pairText);
           const isAfterCorrection = correctionPositions.some(pos => pairStartIndex > pos);
-
           serviceCandidates.push({
             verb: word,
             object: nextWord,
@@ -839,7 +734,6 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
       }
     }
   }
-
   // If no candidates found, try object before verb pattern
   if (serviceCandidates.length === 0) {
     for (let i = 0; i < words.length; i++) {
@@ -854,9 +748,7 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
             break;
           }
         }
-
         if (hasNegation) continue;
-
         // Look for a service verb nearby (forward)
         for (let j = i + 1; j < Math.min(i + maxDistance + 1, words.length); j++) {
           const nextWord = words[j].toLowerCase();
@@ -871,20 +763,16 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
               }
             }
             if (pairNegated) continue;
-
             // Check context
             const contextStart = Math.max(0, i - 3);
             const contextEnd = Math.min(words.length, j + 4);
             const contextText = words.slice(contextStart, contextEnd).join(' ').toLowerCase();
-
             const hasCurrentIntent = currentIntentMarkers.some(marker => contextText.includes(marker));
             const hasHistoricalMarker = historicalMarkers.some(marker => contextText.includes(marker));
-
             // Check if this pair appears after any correction marker
             const pairText = words.slice(i, j + 1).join(' ');
             const pairStartIndex = processed.toLowerCase().indexOf(pairText);
             const isAfterCorrection = correctionPositions.some(pos => pairStartIndex > pos);
-
             serviceCandidates.push({
               verb: nextWord,
               object: word,
@@ -901,25 +789,19 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
       }
     }
   }
-
   // Score candidates based on context
   serviceCandidates.forEach(candidate => {
     // Prefer current intent
     if (candidate.hasCurrentIntent) candidate.score += 10;
-
     // Penalize historical context
     if (candidate.hasHistoricalMarker) candidate.score -= 8;
-
     // Strongly prefer pairs after correction markers
     if (candidate.isAfterCorrection) candidate.score += 15;
-
     // Prefer later occurrences (current request likely comes later)
     candidate.score += (candidate.verbIndex * 0.1);
   });
-
   // Sort by score descending
   serviceCandidates.sort((a, b) => b.score - a.score);
-
   // If we found semantic services, try to normalize the best one
   if (serviceCandidates.length > 0) {
     const bestCandidate = serviceCandidates[0];
@@ -928,12 +810,10 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
       return normalizedService;
     }
   }
-
   // If no clear service action found, return safe neutral label
   // DO NOT fabricate a title from unrelated nouns
   return 'Service Request';
 };
-
 /**
  * Remove trailing periods from structured address display values only.
  * This is a display-only normalization to remove sentence-ending punctuation
@@ -953,7 +833,6 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
 // ----------------------------
 // Address normalization (storage)
 // ----------------------------
-
 /**
  * Normalize address for storage by removing trailing sentence-ending punctuation
  * Preserves internal punctuation (periods in abbreviations, commas in addresses)
@@ -975,11 +854,9 @@ export const normalizeAddressForStorage = (text: string | null | undefined): str
   // Remove trailing sentence-ending punctuation: . , ; : ! ?
   return trimmed.replace(/[.,;:!?]+$/, '');
 };
-
 // ----------------------------
 // Address normalization (display)
 // ----------------------------
-
 /**
  * Normalize address for display by removing trailing periods only
  * that was added during AI extraction. Internal periods (e.g., "W. Main St.")
@@ -1002,7 +879,6 @@ export const normalizeAddressForDisplay = (text: string | null | undefined): str
   // Remove trailing periods only, preserving internal periods
   return trimmed.replace(/\.+$/, '');
 };
-
 /**
  * Truncate text for SMS display while preserving meaning
  * Adds ellipsis only when truncation occurs
@@ -1012,17 +888,14 @@ export const truncateForSms = (text: string | null | undefined, maxLength: numbe
   if (!text) return '';
   const trimmed = text.trim();
   if (trimmed.length <= maxLength) return trimmed;
-
   // Truncate at maxLength, but avoid breaking Unicode surrogate pairs
   let truncated = trimmed.slice(0, maxLength);
   // Check if we cut a surrogate pair and adjust
   if (truncated.charCodeAt(truncated.length - 1) >= 0xD800 && truncated.charCodeAt(truncated.length - 1) <= 0xDBFF) {
     truncated = truncated.slice(0, -1);
   }
-
   return truncated + '...';
 };
-
 /**
  * Normalize structured field values by removing incidental trailing sentence punctuation.
  * This is for structured scalar fields where terminal punctuation is clearly formatting noise.
@@ -1048,32 +921,26 @@ export const normalizeStructuredFieldValue = (text: string | null | undefined): 
   if (!text) return '';
   const trimmed = text.trim();
   if (trimmed === '') return '';
-
   // Remove trailing sentence punctuation: .,;: (only one occurrence at the end)
   // This preserves internal punctuation like "St." or "Apt."
   return trimmed.replace(/[.,;:]$/, '');
 };
-
 // Field-specific normalization for addresses
 // Removes location-specific conversational prefixes
 export const normalizeAddress = (text: string | null | undefined): string => {
   if (!text || text.trim() === '') return 'Not collected';
-
   const original = text.trim();
   let normalized = original;
-
   // Attempt to convert a clearly spoken street number at the very start
   // into digits, preserving the remainder of the address as-is (aside from
   // minimal whitespace cleanup). This runs BEFORE split-digit joining.
   normalized = convertLeadingSpokenStreetNumber(normalized);
-
   // Join obvious split street numbers at the very beginning of the address.
   // Examples: "16 32 South Pines Drive" -> "1632 South Pines Drive"
   //           "1 632 South Pine Drive" -> "1632 South Pine Drive"
   // Only when the first two tokens are pure digits and are immediately followed by a street word.
   // Do NOT affect ordinals like "34th" or non-leading occurrences (e.g., "Route 16 32").
   normalized = normalized.replace(/^\s*(\d{1,5})\s+(\d{1,5})(?=\s+[A-Za-z])/, (_m, a: string, b: string) => `${a}${b}`);
-
   // Address/location-specific conversational prefixes (strictly anchored)
   const addressPrefixPatterns = [
     /^\s*my address is\s+/i,
@@ -1087,30 +954,23 @@ export const normalizeAddress = (text: string | null | undefined): string => {
     /^\s*the location is\s+/i,
     /^\s*at\s+/i,  // Only if "at" is followed by a number or street name
   ];
-
   // Apply address-specific prefixes
   for (const pattern of addressPrefixPatterns) {
     normalized = normalized.replace(pattern, '');
   }
-
   // Apply safe trimming and capitalization
   normalized = safeTrimAndCapitalize(normalized);
-
   // Corruption guard: if normalization damaged the value, return original trimmed
   if (isNormalizationDamaged(original, normalized)) {
     return safeTrimAndCapitalize(original);
   }
-
   // Apply content sanitization for display
   normalized = sanitizeServiceAddress(normalized);
-
   return normalized;
 };
-
 // ----------------------------
 // Internal helpers (address)
 // ----------------------------
-
 // Minimal set of number words for leading house numbers
 const UNITS: Record<string, number> = {
   'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9,
@@ -1120,13 +980,10 @@ const TENS: Record<string, number> = {
   'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50, 'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90,
 }
 const SCALES: Record<string, number> = { 'hundred': 100, 'thousand': 1000 }
-
 const STREET_SUFFIXES = new Set([
   'street','st','road','rd','avenue','ave','drive','dr','lane','ln','boulevard','blvd','court','ct','circle','way','parkway','pkwy','pike','highway','hwy','terrace','trl','trail','place','pl'
 ])
-
 const DIRECTIONS = new Set(['north','n','south','s','east','e','west','w','northeast','ne','northwest','nw','southeast','se','southwest','sw'])
-
 function isNumberWordToken(token: string): boolean {
   const t = token.toLowerCase()
   if (t === 'and') return true // allow filler within numeric phrases
@@ -1140,7 +997,6 @@ function isNumberWordToken(token: string): boolean {
   }
   return false
 }
-
 function parseHyphenNumber(token: string): number | null {
   const t = token.toLowerCase()
   if (!t.includes('-')) return null
@@ -1150,7 +1006,6 @@ function parseHyphenNumber(token: string): number | null {
   if (UNITS[a] !== undefined && UNITS[b] !== undefined) return UNITS[a] * 10 + UNITS[b]
   return null
 }
-
 function parseSingleNumberWord(token: string): number | null {
   const t = token.toLowerCase()
   if (UNITS[t] !== undefined) return UNITS[t]
@@ -1160,7 +1015,6 @@ function parseSingleNumberWord(token: string): number | null {
   if (hy !== null) return hy
   return null
 }
-
 // Parse standard cardinal phrase like "one thousand six hundred thirty-two" or "sixteen hundred thirty-two"
 function tryParseCardinal(tokens: string[]): number | null {
   let total = 0
@@ -1184,7 +1038,6 @@ function tryParseCardinal(tokens: string[]): number | null {
   if (value > 0) return value
   return null
 }
-
 // Parse digit-group style like "sixteen thirty-two" or sequence like "one six three two"
 function tryParseConcatenated(tokens: string[]): { value: number, consumed: number } | null {
   const parts: number[] = []
@@ -1218,7 +1071,6 @@ function tryParseConcatenated(tokens: string[]): { value: number, consumed: numb
   }
   return null
 }
-
 function looksLikeStreetRemainder(text: string): boolean {
   const rest = text.trim().replace(/^,\s*/, '')
   if (!rest) return false
@@ -1230,19 +1082,16 @@ function looksLikeStreetRemainder(text: string): boolean {
   const firstFew = tokens.slice(0, 6).map(t => t.replace(/[^a-zA-Z]/g,'').toLowerCase())
   return firstFew.some(t => STREET_SUFFIXES.has(t))
 }
-
 function convertLeadingSpokenStreetNumber(address: string): string {
   const input = address
   // Iteratively consume leading number-word tokens (allow commas/spaces after each token)
   let i = 0
   // skip leading spaces
   while (i < input.length && /\s/.test(input[i])) i++
-
   const tokens: string[] = []
   let cursor = i
   let tokenCount = 0
   const MAX_TOKENS = 7
-
   while (tokenCount < MAX_TOKENS && cursor < input.length) {
     const wordMatch = /([A-Za-z\-]+)/y
     wordMatch.lastIndex = cursor
@@ -1255,18 +1104,14 @@ function convertLeadingSpokenStreetNumber(address: string): string {
     sepMatch.lastIndex = nextPos
     const sm = sepMatch.exec(input)
     const afterSep = sm ? sepMatch.lastIndex : nextPos
-
     if (!isNumberWordToken(word)) break
     tokens.push(word)
     tokenCount++
     cursor = afterSep
   }
-
   if (tokens.length === 0) return address
-
   // Build rest from cursor onward
   const rest = input.slice(cursor)
-
   // Prefer concatenation-style parsing first (e.g., "sixteen thirty-two", "one twenty-five")
   let consumed = tokens.length
   let num: number | null = null
@@ -1277,26 +1122,21 @@ function convertLeadingSpokenStreetNumber(address: string): string {
     num = tryParseCardinal(tokens)
     consumed = tokens.length
   }
-
   if (num === null) return address
   if (num < 10) return address // plausible house number check
   if (!looksLikeStreetRemainder(rest)) return address
-
   // If there are leftover tokens (beyond consumed) prepend them to rest
   const leftoverTokens = tokens.slice(consumed)
   const adjustedRest = (leftoverTokens.length > 0 ? leftoverTokens.join(' ') + ' ' : '') + rest
   const cleanedRest = adjustedRest.trim().replace(/^,\s*/, '')
   return `${num} ${cleanedRest}`.trim()
 }
-
 // Field-specific normalization for timing preferences
 // Preserves timing values like "Wednesday", "This week", "Whenever"
 export const normalizeTiming = (text: string | null | undefined): string => {
   if (!text || text.trim() === '') return 'Not collected';
-
   const original = text.trim();
   let normalized = original;
-
   // Timing-specific conversational prefixes (strictly anchored)
   const timingPrefixPatterns = [
     /^\s*i would like it\s+/i,
@@ -1306,34 +1146,26 @@ export const normalizeTiming = (text: string | null | undefined): string => {
     /^\s*the best time is\s+/i,
     /^\s*i'?m available\s+/i,
   ];
-
   // Apply timing-specific prefixes
   for (const pattern of timingPrefixPatterns) {
     normalized = normalized.replace(pattern, '');
   }
-
   // Apply safe trimming and capitalization
   normalized = safeTrimAndCapitalize(normalized);
-
   // Corruption guard: if normalization damaged the value, return original trimmed
   if (isNormalizationDamaged(original, normalized)) {
     return safeTrimAndCapitalize(original);
   }
-
   // Apply content sanitization for display
   normalized = sanitizeTiming(normalized);
-
   return normalized;
 };
-
 // Field-specific normalization for additional details
 // More permissive for conversational text, but still conservative
 export const normalizeAdditionalDetails = (text: string | null | undefined): string => {
   if (!text || text.trim() === '') return 'Not collected';
-
   const original = text.trim();
   let normalized = original;
-
   // Details-specific conversational prefixes (strictly anchored)
   const detailsPrefixPatterns = [
     /^\s*additional details:\s*/i,
@@ -1341,71 +1173,54 @@ export const normalizeAdditionalDetails = (text: string | null | undefined): str
     /^\s*please note that\s+/i,
     /^\s*also\s+/i,
   ];
-
   // Apply details-specific prefixes
   for (const pattern of detailsPrefixPatterns) {
     normalized = normalized.replace(pattern, '');
   }
-
   // Apply safe trimming and capitalization
   normalized = safeTrimAndCapitalize(normalized);
-
   // Corruption guard: if normalization damaged the value, return original trimmed
   if (isNormalizationDamaged(original, normalized)) {
     return safeTrimAndCapitalize(original);
   }
-
   // Apply content sanitization for display
   normalized = sanitizeAdditionalDetails(normalized);
-
   return normalized;
 };
-
 // Legacy function for backward compatibility
 // Maps to field-specific functions based on context
 // DEPRECATED: Use field-specific functions instead
 export const normalizeText = (text: string | null | undefined): string => {
   return safeTrimAndCapitalize(text);
 };
-
 // Normalize business name for SMS interpolation
 // Trims whitespace and rejects placeholders
 export const normalizeBusinessNameForSms = (businessName: string | null | undefined): string | null => {
   if (!businessName || businessName.trim() === '') return null;
-
   const trimmed = businessName.trim();
-
   // Reject placeholders
   const lower = trimmed.toLowerCase();
   if (PLACEHOLDER_NAMES.has(lower)) {
     return null;
   }
-
   // Collapse multiple internal spaces to single space
   const normalized = trimmed.replace(/\s+/g, ' ').trim();
-
   return normalized || null;
 };
-
 // Normalize customer name for SMS greeting
 // Rejects placeholders and phone numbers
 export const normalizeCustomerNameForSms = (customerName: string | null | undefined): string | null => {
   const normalized = normalizeCustomerName(customerName);
-
   // Reject placeholders
   if (normalized && PLACEHOLDER_NAMES.has(normalized.toLowerCase())) {
     return null;
   }
-
   return normalized;
 };
-
 // Polish conversational timing wrappers without changing meaning
 export const polishTimingWrapper = (timing: string | null | undefined): string => {
   if (!timing || timing.trim() === '') return 'Not collected';
-
   let normalized = timing.trim();
-
   // Remove common conversational wrappers while preserving the core timing
   const wrapperPatterns = [
     { pattern: /^sometime in the (next|following)/i, replacement: '$1' },
@@ -1426,27 +1241,20 @@ export const polishTimingWrapper = (timing: string | null | undefined): string =
     { pattern: /^i need it done /i, replacement: '' },
     { pattern: /^there'?s no rush$/i, replacement: 'No rush' },
   ];
-
   for (const { pattern, replacement } of wrapperPatterns) {
     normalized = normalized.replace(pattern, replacement);
   }
-
   // Trim trailing comma, period, or space
   normalized = normalized.replace(/[.,\s]+$/, '').trim();
-
   // Sentence capitalize
   normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
-
   return normalized || 'Not collected';
 };
-
 // Normalize callback timing specifically
 // Removes conversational wrappers while preserving meaningful qualifiers
 export const normalizeCallbackTime = (callbackTime: string | null | undefined): string => {
   if (!callbackTime || callbackTime.trim() === '') return 'Not collected';
-
   let normalized = callbackTime.trim();
-
   // Remove callback-specific conversational wrappers
   const callbackPatterns = [
     { pattern: / are best for calling me$/i, replacement: '' },
@@ -1461,30 +1269,27 @@ export const normalizeCallbackTime = (callbackTime: string | null | undefined): 
     { pattern: /^sometime in (morning|afternoon|evening)$/i, replacement: '$1' },
     { pattern: / is fine$/i, replacement: '' },
   ];
-
   for (const { pattern, replacement } of callbackPatterns) {
     normalized = normalized.replace(pattern, replacement);
   }
-
   // Trim trailing comma, period, or space
   normalized = normalized.replace(/[.,\s]+$/, '').trim();
-
   // Sentence capitalize
   normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
-
   return normalized || 'Not collected';
 };
-
 // Helper function to format AI intake summary (used by SMS and dashboard)
 // Accepts both Simple Mode field names and canonical field names interchangeably.
+// Uses polished, customer-friendly presentation with clear captured/missing separation.
 export const formatAiIntakeSummary = (
   intakeData: any,
   callerPhone: string,
   businessName?: string,
-  prefixNotice?: string
+  prefixNotice?: string,
+  serviceLocationType?: 'onsite' | 'customer_comes_to_business' | 'remote' | string | null
 ): string => {
-  // Read Simple Mode field names first, fall back to canonical aliases
-  const customerName = normalizeCustomerName(
+  // Read canonical field names with backward compatibility
+  const customerName = normalizeCustomerNameForSms(
     intakeData?.customerName ?? intakeData?.callerName
   );
   const serviceAddress = normalizeAddressForDisplay(
@@ -1492,87 +1297,84 @@ export const formatAiIntakeSummary = (
       intakeData?.serviceAddress ?? intakeData?.addressOrLocation
     )
   );
-  const desiredCompletionTime = normalizeTiming(
+  const desiredCompletionTime = polishTimingWrapper(
     intakeData?.desiredCompletionTime
   );
-  const callbackTime = normalizeTiming(
+  const callbackTime = normalizeCallbackTime(
     intakeData?.callbackTime ?? intakeData?.preferredCallbackTime
   );
-
-  // Combine serviceRequested and issueDescription into single Request field
-  const serviceRequested = normalizeServiceReason(
+  // Extract details field separately from request
+  const detailsValue = intakeData?.requestDetails ?? intakeData?.additionalDetails ?? intakeData?.importantDetails ?? '';
+  const hasDetails = detailsValue && detailsValue !== 'Not collected' && detailsValue.trim() !== '';
+  // Use canonical request field for SMS (concise, professional summary)
+  const serviceRequestedRaw = normalizeServiceReason(
     intakeData?.serviceRequested ?? intakeData?.reasonForCalling
   );
-  const issueDescription = normalizeAdditionalDetails(
-    intakeData?.issueDescription ?? intakeData?.importantDetails
-  );
-
-  // Build combined Request field
-  let request = serviceRequested;
-  if (issueDescription && issueDescription !== 'Not collected' && issueDescription !== serviceRequested) {
-    request = serviceRequested === 'Not collected'
-      ? issueDescription
-      : `${serviceRequested}\n\n${issueDescription}`;
-  }
-
-  // Always generate a concise canonical title for the SMS Request line
-  // Apply sentence capitalization for natural reading in SMS
-  // Priority: intakeData.request (canonical) → serviceRequested (canonicalized) → fallback
-  const canonicalTitle = intakeData?.request
+  const serviceRequested = intakeData?.request
     ? generateCanonicalRequestTitle(intakeData.request)
-    : generateCanonicalRequestTitle(serviceRequested);
-  const finalRequest = sentenceCapitalize(canonicalTitle);
-
-  const displayName = businessName || 'us';
-  const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
-
-  // Check which fields have actual values (not "Not collected" or empty or placeholders)
-  const hasName = customerName && customerName !== 'Not collected' && customerName.trim() !== '' && !isPlaceholderValue(customerName, PLACEHOLDER_NAMES);
-  const hasRequest = finalRequest && finalRequest !== 'Not collected' && finalRequest.trim() !== '' && !isPlaceholderValue(finalRequest, PLACEHOLDER_SERVICES);
-  const hasAddress = serviceAddress && serviceAddress !== 'Not collected' && serviceAddress.trim() !== '';
+    : generateCanonicalRequestTitle(serviceRequestedRaw);
+  // Determine which fields have actual meaningful values
+  const hasName = customerName && customerName.trim() !== '' && !isPlaceholderValue(customerName, PLACEHOLDER_NAMES);
+  const hasRequest = serviceRequested &&
+                     serviceRequested.trim() !== '' &&
+                     serviceRequested !== 'General Service' &&
+                     !isPlaceholderValue(serviceRequested, PLACEHOLDER_SERVICES);
+  const hasAddress = serviceAddress && serviceAddress.trim() !== '' && serviceAddress !== 'Not collected';
   const hasCompletionTime = desiredCompletionTime && desiredCompletionTime !== 'Not collected' && desiredCompletionTime.trim() !== '';
   const hasCallbackTime = callbackTime && callbackTime !== 'Not collected' && callbackTime.trim() !== '';
-
-  // If no fields captured, return generic acknowledgment
-  if (!hasName && !hasRequest && !hasAddress && !hasCompletionTime && !hasCallbackTime) {
-    return `Thanks for calling ${displayName}. We received your call and shared it with the business. They'll follow up as soon as possible.`;
+  // Business name: normalize and reject placeholders
+  const displayName = normalizeBusinessNameForSms(businessName);
+  const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
+  // Determine if address is applicable based on service location type
+  const mode = typeof serviceLocationType === 'string' ? serviceLocationType.trim().toLowerCase() : 'onsite';
+  const normalizedMode = (mode === 'onsite' || mode === 'customer_comes_to_business' || mode === 'remote') ? mode : 'onsite';
+  const addressIsApplicable = normalizedMode === 'onsite';
+  // Build greeting
+  let greeting: string;
+  if (hasName && displayName) {
+    greeting = `Hi ${customerName}, thanks for reaching out to ${displayName}.`;
+  } else if (hasName) {
+    greeting = `Hi ${customerName}, thanks for reaching out.`;
+  } else if (displayName) {
+    greeting = `Thanks for reaching out to ${displayName}.`;
+  } else {
+    greeting = 'Thanks for reaching out.';
   }
-
-  // Build partial summary with Captured/Still Needed sections
-  let body = `Thanks for calling ${displayName}!\n\n`;
-  if (prefix) {
-    body += prefix;
+  // Determine which meaningful fields are captured (only show actual captured values, not "Not collected")
+  const capturedFields: string[] = [];
+  if (hasRequest) capturedFields.push(`• Request: ${serviceRequested}`);
+  if (hasDetails) capturedFields.push(`• Details: ${truncateForSms(detailsValue, 200)}`);
+  if (hasAddress) capturedFields.push(`• Address: ${serviceAddress}`);
+  if (hasCompletionTime) capturedFields.push(`• Desired completion: ${desiredCompletionTime}`);
+  if (hasCallbackTime) capturedFields.push(`• Preferred callback: ${callbackTime}`);
+  // Determine which fields are still needed (customer-friendly prompts)
+  const stillNeededFields: string[] = [];
+  if (!hasName) stillNeededFields.push('• Your name');
+  if (!hasRequest) stillNeededFields.push('• What you\'re looking to have done');
+  if (!hasDetails) stillNeededFields.push('• Any helpful details');
+  if (addressIsApplicable && !hasAddress) stillNeededFields.push('• Service address');
+  if (!hasCompletionTime) stillNeededFields.push('• When you\'d like it completed');
+  if (!hasCallbackTime) stillNeededFields.push('• Best time to call you');
+  // Build message
+  let body = `${prefix}${greeting}\n\n`;
+  // Case 1: Near-empty intake - ask for what's needed
+  if (capturedFields.length === 0) {
+    body += `To help the team follow up, reply with:\n${stillNeededFields.join('\n')}\n\n`;
+    body += `Send whatever you know — we'll pass it along to the team.`;
+    return body.trim();
   }
-
-  // Captured section
-  const capturedFields = [];
-  if (hasName) capturedFields.push(`✓ Customer: ${customerName}`);
-  if (hasRequest) capturedFields.push(`✓ Request: ${finalRequest}`);
-  if (hasAddress) capturedFields.push(`✓ Location: ${serviceAddress}`);
-  if (hasCompletionTime) capturedFields.push(`✓ Desired Completion: ${desiredCompletionTime}`);
-  if (hasCallbackTime) capturedFields.push(`✓ Best Callback Time: ${callbackTime}`);
-
-  if (capturedFields.length > 0) {
-    body += `Captured:\n${capturedFields.join('\n')}\n\n`;
-  }
-
-  // Still Needed section
-  const stillNeededFields = [];
-  if (!hasName) stillNeededFields.push('○ Customer');
-  if (!hasRequest) stillNeededFields.push('○ Request');
-  if (!hasAddress) stillNeededFields.push('○ Location');
-  if (!hasCompletionTime) stillNeededFields.push('○ Desired Completion');
-  if (!hasCallbackTime) stillNeededFields.push('○ Best Callback Time');
-
+  // Case 2: Partial intake - show captured and ask for missing
   if (stillNeededFields.length > 0) {
-    body += `Still Needed:\n${stillNeededFields.join('\n')}\n\n`;
+    body += `Here's what we captured:\n${capturedFields.join('\n')}\n\n`;
+    body += `Still needed:\n${stillNeededFields.join('\n')}\n\n`;
+    body += `Reply here with the missing details or anything else you'd like to add.`;
+    return body.trim();
   }
-
-  body += `We'll share this with the business. They'll follow up as soon as possible.`;
-
-  return body;
+  // Case 3: Complete intake - show captured and confirm
+  body += `Here's what we captured:\n${capturedFields.join('\n')}\n\n`;
+  body += `We've shared this with the team. Reply here if you'd like to add anything.`;
+  return body.trim();
 };
-
 /**
  * Generate adaptive SMS message based on intake completeness level
  * Uses friendly, natural copy that sounds like a business message
@@ -1608,40 +1410,33 @@ export const formatAdaptiveIntakeSms = (
   const serviceRequestedRaw = normalizeServiceReason(
     intakeData?.serviceRequested ?? intakeData?.reasonForCalling
   );
-
   // Extract details field
   const detailsValue = intakeData?.requestDetails ?? intakeData?.additionalDetails ?? intakeData?.importantDetails ?? '';
   const hasDetails = detailsValue && detailsValue !== 'Not collected' && detailsValue.trim() !== '';
-
   // Use canonical title for SMS Service field (concise, professional summary)
   // Priority: intakeData.request (canonical) → serviceRequested (canonicalized) → fallback
   const serviceRequested = intakeData?.request
     ? generateCanonicalRequestTitle(intakeData.request)
     : generateCanonicalRequestTitle(serviceRequestedRaw);
-
   // Determine which fields have actual meaningful values
   const hasName = customerName && customerName.trim() !== '' && !isPlaceholderValue(customerName, PLACEHOLDER_NAMES);
-  const hasRequest = serviceRequested && 
-                     serviceRequested.trim() !== '' && 
+  const hasRequest = serviceRequested &&
+                     serviceRequested.trim() !== '' &&
                      serviceRequested !== 'General Service' &&
                      !isPlaceholderValue(serviceRequested, PLACEHOLDER_SERVICES);
   const hasAddress = serviceAddress && serviceAddress.trim() !== '';
   const hasCompletionTime = desiredCompletionTime && desiredCompletionTime !== 'Not collected' && desiredCompletionTime.trim() !== '';
   const hasCallbackTime = callbackTime && callbackTime !== 'Not collected' && callbackTime.trim() !== '';
-
   // Detect potential quality issues
   const serviceLooksLikeQuestion = hasRequest && looksLikeQuestion(serviceRequestedRaw);
   const serviceIsQuestionOrPlaceholder = serviceLooksLikeQuestion || !hasRequest;
-
   // Business name: normalize and reject placeholders
   const displayName = normalizeBusinessNameForSms(businessName);
   const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
-
   // Determine if location should be shown (for non-onsite businesses, location may not be relevant)
   const mode = typeof serviceLocationType === 'string' ? serviceLocationType.trim().toLowerCase() : 'onsite';
   const normalizedMode = (mode === 'onsite' || mode === 'customer_comes_to_business' || mode === 'remote') ? mode : 'onsite';
   const shouldShowLocation = normalizedMode === 'onsite' && hasAddress;
-
   // Semantic completeness: prioritize useful information
   // Customer name improves personalization but doesn't make intake substantially complete
   // Phone number doesn't count since ReplyFlow already has it
@@ -1652,7 +1447,6 @@ export const formatAdaptiveIntakeSms = (
     hasCallbackTime // Callback preference
   ];
   const meaningfulFieldCount = meaningfulFields.filter(Boolean).length;
-
   // OBSERVABILITY: Log field presence for debugging and monitoring
   console.log('[AI SMS FORMATTER FIELD PRESENCE]', {
     callerPhone,
@@ -1672,12 +1466,10 @@ export const formatAdaptiveIntakeSms = (
     serviceIsQuestionOrPlaceholder,
     timestamp: new Date().toISOString()
   });
-
   // Level A: Minimal information - no useful details
   if (meaningfulFieldCount === 0) {
     const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
     const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
-
     // Build dynamic list of missing fields to request
     // Canonical intake requirements from voice flow:
     // - Always required: request, details, timing, callback
@@ -1689,7 +1481,6 @@ export const formatAdaptiveIntakeSms = (
     if (!hasAddress && shouldShowLocation) missingFields.push('Service address');
     if (!hasCompletionTime) missingFields.push('When you\'d like the work completed');
     if (!hasCallbackTime) missingFields.push('Best time to call you back');
-
     let missingFieldsText;
     if (missingFields.length === 0) {
       missingFieldsText = 'Reply here if you\'d like to add or change anything.';
@@ -1698,15 +1489,12 @@ export const formatAdaptiveIntakeSms = (
     } else {
       missingFieldsText = `To help us get everything ready, reply with:\n${missingFields.map(f => `• ${f}`).join('\n')}`;
     }
-
     return `${prefix}${greeting}${businessPart}\n\n${missingFieldsText}`;
   }
-
   // Level B: Service only - personalized acknowledgment
   if (meaningfulFieldCount === 1 && hasRequest) {
     const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
     const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
-
     // Build dynamic list of missing fields to request
     const hasDetails = intakeData?.requestDetails && intakeData.requestDetails !== 'Not collected' && intakeData.requestDetails.trim() !== '';
     const missingFields = [];
@@ -1714,7 +1502,6 @@ export const formatAdaptiveIntakeSms = (
     if (!hasAddress && shouldShowLocation) missingFields.push('Service address');
     if (!hasCompletionTime) missingFields.push('When you\'d like the work completed');
     if (!hasCallbackTime) missingFields.push('Best time to call you back');
-
     let missingFieldsText;
     if (missingFields.length === 0) {
       missingFieldsText = 'We\'ll share these details with the team, and they\'ll follow up soon. Reply here if you\'d like to add anything.';
@@ -1723,83 +1510,66 @@ export const formatAdaptiveIntakeSms = (
     } else {
       missingFieldsText = `To help us get everything ready, reply with:\n${missingFields.map(f => `• ${f}`).join('\n')}`;
     }
-
     return `${prefix}${greeting}${businessPart}\n\nWe got your request for ${serviceRequested}.\n\n${missingFieldsText}`;
   }
-
   // Level C: Partial intake - service + some context
   if (meaningfulFieldCount === 2) {
     const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
     const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
     let body = `${prefix}${greeting}${businessPart}\n\nHere's what we captured:\n`;
-
     // Service (always show if available)
     if (hasRequest) {
       body += `• Service: ${serviceRequested}`;
     }
-
     // Details (if available)
     if (hasDetails) {
       body += `\n\n• Details: ${truncateForSms(detailsValue, 200)}`;
     }
-
     // Location (without emoji to avoid UCS-2 encoding)
     if (shouldShowLocation && hasAddress) {
       body += `\n\n• Address: ${serviceAddress}`;
     }
-
     // Timing (without emoji)
     if (hasCompletionTime) {
       body += `\n\n• Preferred timing: ${desiredCompletionTime}`;
     }
-
     // Callback (without emoji)
     if (hasCallbackTime) {
       body += `\n\n• Best callback time: ${callbackTime}`;
     }
-
     // Partial intake closing
     body += `\n\nWe've shared these details with the team, and they'll follow up soon. Reply here if you'd like to add anything.`;
-
     return body.trim();
   }
-
   // Level D: Complete intake - sufficient information
   const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
   const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
   let body = `${prefix}${greeting}${businessPart}\n\nHere's what we captured:\n`;
-
   if (hasRequest) {
     body += `• Service: ${serviceRequested}`;
   }
-
   // Details (if available)
   if (hasDetails) {
     body += `\n\n• Details: ${truncateForSms(detailsValue, 200)}`;
   }
-
   // Location (without emoji to avoid UCS-2 encoding)
   if (shouldShowLocation && hasAddress) {
     body += `\n\n• Address: ${serviceAddress}`;
   }
-
   // Timing (without emoji)
   if (hasCompletionTime) {
     body += `\n\n• Preferred timing: ${desiredCompletionTime}`;
   }
-
   // Callback (without emoji)
   if (hasCallbackTime) {
     body += `\n\n• Best callback time: ${callbackTime}`;
   }
-
   // Complete intake closing
   body += `\n\nWe've shared this with the team, and they'll follow up soon. Reply here if anything changes.`;
-
   return body.trim();
 };
-
-// Wrapper that applies service-location omission logic for Location block
+// Wrapper that applies service-location omission logic for Address field
+// For non-onsite businesses, address is not applicable and should not be requested
 export const formatAiIntakeSummaryWithMode = (
   intakeData: any,
   callerPhone: string,
@@ -1807,22 +1577,11 @@ export const formatAiIntakeSummaryWithMode = (
   prefixNotice?: string,
   serviceLocationType?: 'onsite' | 'customer_comes_to_business' | 'remote' | string | null
 ): string => {
-  const mode = typeof serviceLocationType === 'string' ? serviceLocationType.trim().toLowerCase() : 'onsite';
-  const normalizedMode = (mode === 'onsite' || mode === 'customer_comes_to_business' || mode === 'remote') ? mode : 'onsite';
-  const locationProvided = Boolean(intakeData?.serviceAddress || intakeData?.addressOrLocation);
-
-  let body = formatAiIntakeSummary(intakeData, callerPhone, businessName, prefixNotice);
-
-  // For non-onsite modes, remove Location from Still Needed section if not provided
-  if ((normalizedMode === 'customer_comes_to_business' || normalizedMode === 'remote') && !locationProvided) {
-    body = body.replace(/○ Location\n/, '');
-    // Also remove empty "Still Needed:" section if Location was the only missing field
-    body = body.replace(/Still Needed:\n\n/, '');
-  }
-
+  // Pass serviceLocationType directly to the main formatter
+  // The formatter will handle address applicability logic
+  let body = formatAiIntakeSummary(intakeData, callerPhone, businessName, prefixNotice, serviceLocationType);
   return body;
 }
-
 /**
  * Generate an office-assistant style summary for the AI Intake UI
  * This is different from the SMS summary - it's designed to feel like a helpful receptionist's note
@@ -1858,38 +1617,31 @@ export const generateOfficeAssistantSummary = (
   const callbackTime = normalizeTiming(
     intakeData?.callbackTime ?? intakeData?.preferredCallbackTime
   );
-
   const hasName = customerName && customerName !== 'Not collected';
   const hasRequest = serviceRequested && serviceRequested !== 'Not collected';
   const hasCompletionTime = desiredCompletionTime && desiredCompletionTime !== 'Not collected';
   const hasCallbackTime = callbackTime && callbackTime !== 'Not collected';
-
   const name = hasName ? customerName : 'This customer';
   const isNew = isNewCustomer !== false; // Default to true if not specified
-
   // Build the summary naturally
   let sentences: string[] = [];
-
   // Sentence 1: Who they are and why they called
   if (isNew) {
     sentences.push(`${name} is a new customer`);
   } else {
     sentences.push(`${name} is a returning customer`);
   }
-
   if (hasRequest) {
     sentences[sentences.length - 1] += ` who called about ${serviceRequested.toLowerCase()}`;
   } else {
     sentences[sentences.length - 1] += ` who called`;
   }
-
   // Sentence 2: Timing information if available
   if (hasCompletionTime) {
     sentences.push(`They're looking for completion around ${desiredCompletionTime.toLowerCase()}`);
   } else if (hasCallbackTime) {
     sentences.push(`The best time to reach them is ${callbackTime.toLowerCase()}`);
   }
-
   // Sentence 3: Suggested next step based on outcome
   if (outcome === 'early_hangup' || outcome === 'no_speech') {
     sentences.push('A recovery text was sent automatically, but they haven\'t responded yet');
@@ -1898,15 +1650,12 @@ export const generateOfficeAssistantSummary = (
   } else {
     sentences.push('Consider following up to learn more about their needs');
   }
-
   // Combine sentences into a natural paragraph
   let summary = sentences.join('. ');
-
   // Ensure proper capitalization and punctuation
   summary = summary.charAt(0).toUpperCase() + summary.slice(1);
   if (!summary.endsWith('.')) {
     summary += '.';
   }
-
   return summary;
 }
