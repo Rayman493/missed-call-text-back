@@ -1115,7 +1115,7 @@ export default function SchedulePage() {
 
                   {/* Schedule Tab Toggle */}
                   <div className="hidden md:flex mb-3">
-                    <div className="inline-flex bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-0.5 w-fit border border-slate-200/50 dark:border-slate-700/50">
+                    <div className="inline-flex bg-muted/40 dark:bg-slate-800/60 rounded-xl p-0.5 w-fit border border-border/50 dark:border-slate-700/50">
                       <button
                         onClick={() => setScheduleTab('agenda')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
@@ -1154,7 +1154,7 @@ export default function SchedulePage() {
 
                   {/* Mobile tab toggle (responsive grid, no horizontal scrolling) */}
                   <div className="md:hidden mb-4 mt-2">
-                    <div className="bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-0.5 border border-slate-200/50 dark:border-slate-700/50">
+                    <div className="bg-muted/40 dark:bg-slate-800/60 rounded-xl p-0.5 border border-border/50 dark:border-slate-700/50">
                       <div className="grid grid-cols-3 gap-0.5">
                         <button
                           onClick={() => setScheduleTab('agenda')}
@@ -1301,37 +1301,37 @@ export default function SchedulePage() {
                       )}
 
                       {/* Compact Status Bar - Desktop: Simplified */}
-                      <div className="hidden md:flex items-center justify-between gap-6 mb-4 p-3 bg-slate-900/50 border border-slate-700/50 rounded-xl shadow-sm">
+                      <div className="hidden md:flex items-center justify-between gap-6 mb-4 p-3 bg-muted/50 dark:bg-slate-900/50 border border-border/50 dark:border-slate-700/50 rounded-xl shadow-sm">
                         {/* Equal-width summary columns */}
                         <div className="grid grid-cols-3 gap-4 flex-1">
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            <p className="text-sm text-slate-300">
+                            <p className="text-sm text-muted-foreground">
                               <span className="font-semibold text-foreground">{getThisMonthCounts().tasks}</span>
-                              <span className="text-slate-400 ml-1">tasks</span>
+                              <span className="text-muted-foreground/70 ml-1">tasks</span>
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                            <p className="text-sm text-slate-300">
+                            <p className="text-sm text-muted-foreground">
                               <span className="font-semibold text-foreground">{getThisMonthCounts().jobs}</span>
-                              <span className="text-slate-400 ml-1">jobs</span>
+                              <span className="text-muted-foreground/70 ml-1">jobs</span>
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                            <p className="text-sm text-slate-300">
+                            <p className="text-sm text-muted-foreground">
                               <span className="font-semibold text-foreground">{getThisMonthCounts().appointments}</span>
-                              <span className="text-slate-400 ml-1">appointments</span>
+                              <span className="text-muted-foreground/70 ml-1">appointments</span>
                             </p>
                           </div>
                         </div>
 
                         {/* Calendar Status & Actions - Simplified */}
                         <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-sm shadow-emerald-400/30"></div>
-                            <span className="text-xs font-medium text-emerald-100">Connected</span>
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-lg border border-emerald-500/20 dark:border-emerald-500/20">
+                            <div className="w-1.5 h-1.5 bg-emerald-600 dark:bg-emerald-400 rounded-full shadow-sm shadow-emerald-400/30"></div>
+                            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-100">Connected</span>
                           </div>
                           <button
                             onClick={() => handleAddEvent()}
@@ -1344,7 +1344,7 @@ export default function SchedulePage() {
                             <button
                               ref={desktopCalendarOverflowButtonRef}
                               onClick={() => setIsCalendarOverflowOpen(!isCalendarOverflowOpen)}
-                              className="inline-flex items-center justify-center p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-300 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="inline-flex items-center justify-center p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <MoreVertical className="w-4 h-4" />
                             </button>
