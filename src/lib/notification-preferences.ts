@@ -69,20 +69,17 @@ export function getEffectivePreference(
  * Check if a notification type should be suppressed based on preferences
  * Returns TRUE if notification should be suppressed (preference disabled)
  * Returns FALSE if notification should proceed (preference enabled or unmapped)
+ *
+ * NOTE: Core operational notifications are no longer suppressible via user preferences.
+ * OS-level Android/iOS notification permission remains authoritative for push display.
  */
 export function shouldSuppressNotification(
   preferences: Record<string, any> | null | undefined,
   notificationType: string
 ): boolean {
-  const preferenceKey = NOTIFICATION_TYPE_TO_PREFERENCE[notificationType]
-  
-  // If no mapping exists, notification cannot be suppressed
-  if (!preferenceKey) {
-    return false
-  }
-  
-  // Check if preference is disabled
-  return !getEffectivePreference(preferences, preferenceKey)
+  // Core operational notifications are no longer suppressible via preferences
+  // Only OS-level permission controls push notification display
+  return false
 }
 
 /**

@@ -232,34 +232,15 @@ export class NotificationServiceServer {
       notificationData = template(data || {})
     }
 
-    // Check if notification should be suppressed based on business preferences
-    // Load business preferences to check if this notification type is disabled
-    let preferences = null
-    try {
-      const { data: business } = await supabaseAdmin
-        .from('businesses')
-        .select('notification_preferences')
-        .eq('id', businessId)
-        .single()
-
-      preferences = business?.notification_preferences || null
-    } catch (error) {
-      console.error('[NOTIFICATIONS PREFERENCE LOAD ERROR]', {
+    // Note: Core operational notifications are no longer suppressible via user preferences
+    // OS-level Android/iOS notification permission remains authoritative for push display
+    // This check is retained for future extensibility but currently always returns false
+    if (shouldSuppressNotification(null, type)) {
+      console.log('[NOTIFICATIONS SUPPRESSED]', {
         businessId,
-        type,
-        error: error instanceof Error ? error.message : String(error)
+        type
       })
-      // On error, fail open to existing notification behavior (proceed with notification)
-      // This prevents infrastructure errors from silencing legitimate notifications
-    }
-
-    if (shouldSuppressNotification(preferences, type)) {
-      console.log('[NOTIFICATIONS PREFERENCE SUPPRESSED]', {
-        businessId,
-        type,
-        preferences
-      })
-      return true // Return true to indicate success (notification suppressed as intended)
+      return true
     }
 
     // Idempotency check: prevent duplicate notifications for the same context

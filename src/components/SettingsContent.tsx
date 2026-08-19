@@ -52,7 +52,6 @@ import ConfirmModal from '@/components/ui/ConfirmModal'
 import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import Input from '@/components/ui/Input'
-import { NotificationsPreferences } from '@/components/NotificationsPreferences'
 import ThemeSelector from '@/components/ThemeSelector'
 
 // Check if running in native mobile app
@@ -3043,8 +3042,6 @@ export default function SettingsContent() {
                 <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'notifications')?.label}</h3>
                 <div className="h-px flex-1 bg-border/30"></div>
               </div>
-
-              <NotificationsPreferences />
 
               {/* Group: Integrations */}
               <div id="integrations-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
