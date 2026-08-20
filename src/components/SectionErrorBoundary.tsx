@@ -38,10 +38,10 @@ export default class SectionErrorBoundary extends Component<
             <span className="text-xl">⚠️</span>
             <div>
               <p className="text-sm font-semibold text-red-100">
-                {this.props.sectionName} crashed
+                Unable to load {this.props.sectionName}
               </p>
               <p className="text-xs text-red-300 mt-1">
-                {this.state.error?.message || 'Unknown error'}
+                Please try refreshing the page
               </p>
             </div>
           </div>

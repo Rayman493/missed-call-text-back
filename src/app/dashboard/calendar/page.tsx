@@ -1582,8 +1582,13 @@ export default function SchedulePage() {
 
                               if (dayEvents.length === 0 && dayJobs.length === 0) {
                                 return (
-                                  <div className="text-center py-8">
-                                    <p className="text-sm text-muted-foreground">No appointments scheduled.</p>
+                                  <div className="py-6">
+                                    <EmptyState
+                                      variant="calendar"
+                                      title="No appointments scheduled"
+                                      description="Add an appointment to this day to see it here."
+                                      className="py-8"
+                                    />
                                   </div>
                                 )
                               }
