@@ -42,6 +42,89 @@ function looksLikePhoneNumber(text: string): boolean {
   const digitRatio = digitCount / cleaned.length;
   return digitRatio >= 0.8;
 }
+// Helper function to determine if meaningful details are present and return the details value
+// Checks canonical details fields first, then falls back to reasonForCalling if it contains contextual information
+// Canonical details fields are always authoritative - reasonForCalling is only checked as a fallback
+function hasMeaningfulDetails(intakeData: any): { hasDetails: boolean; detailsValue: string } {
+  // Check canonical details fields with full fallback chain
+  let detailsValue = intakeData?.requestDetails ?? intakeData?.additionalDetails ?? intakeData?.importantDetails ?? '';
+  if (detailsValue && detailsValue !== 'Not collected' && detailsValue.trim() !== '') {
+    return { hasDetails: true, detailsValue };
+  }
+
+  // If no dedicated details field, check if reasonForCalling contains meaningful context
+  // beyond just a simple service request (e.g., "My kitchen sink is leaking underneath the cabinet")
+  const reasonForCalling = intakeData?.reasonForCalling ?? intakeData?.serviceRequested ?? '';
+  if (!reasonForCalling || reasonForCalling.trim() === '' || reasonForCalling === 'Not collected') {
+    return { hasDetails: false, detailsValue: '' };
+  }
+
+  // Check if reasonForCalling contains semantic/context indicators that suggest detailed information
+  // Focus on cause/reason, symptom/problem state, duration/timing, severity, location/context,
+  // previous troubleshooting, observable condition, consequence/impact
+  const contextualPatterns = [
+    // Cause/reason indicators (HIGH CONFIDENCE)
+    /\bbecause\b/i,
+    /\bdue to\b/i,
+    /\bas a result\b/i,
+    /\bcaused by\b/i,
+    // Removed: "since" (can be timing), "reason" (too generic)
+
+    // Symptom/problem state indicators (HIGH CONFIDENCE)
+    /\bthe problem is\b/i,
+    /\bissue with\b/i,
+    /\bwrong with\b/i,
+    /\bnot working\b/i,
+    /\bstopped working\b/i, // More specific than "stopped" alone
+    // Removed: "stopped", "won't", "can't", "doesn't", "failed" (too broad alone)
+
+    // Physical state indicators (HIGH CONFIDENCE)
+    /\bleaking\b/i,
+    /\bbroken\b/i,
+    /\bcracked\b/i,
+    /\b damaged\b/i,
+    /\bblocked\b/i,
+    /\bclogged\b/i,
+    /\bstuck\b/i,
+    /\boverflowing\b/i,
+    /\bfreezing\b/i,
+    // Removed: "heating", "shaking" (too context-dependent)
+
+    // Severity/urgency indicators (HIGH CONFIDENCE)
+    /\bemergency\b/i,
+    /\burgent\b/i,
+    /\bcritical\b/i,
+    /\bspreading\b/i,
+    /\bgetting worse\b/i,
+    // Removed: "bad", "worse" (too broad alone)
+
+    // Duration/timing indicators (REMOVED - timing alone is not context)
+    // Removed: "since", "ago", "yesterday", "last week", "for \d+ (days|weeks|months)"
+    // Removed: "started", "began" (too generic)
+
+    // Location/context indicators (REMOVED - location alone is not context)
+    // Removed: "in the", "at the", "under", "behind", "next to", "between", "on the", "inside", "outside"
+
+    // Previous troubleshooting/attempts (REMOVED - too broad without symptom context)
+    // Removed: "already", "tried", "attempted", "replaced", "changed", "installed", "fixed"
+
+    // Consequence/impact indicators (HIGH CONFIDENCE)
+    /\bcan't use\b/i,
+    /\bunable to\b/i,
+    /\bno longer\b/i,
+    /\baffecting\b/i,
+    /\bcausing\b/i,
+  ];
+
+  const hasContextualIndicator = contextualPatterns.some(pattern => pattern.test(reasonForCalling));
+
+  if (hasContextualIndicator) {
+    return { hasDetails: true, detailsValue: reasonForCalling };
+  }
+
+  return { hasDetails: false, detailsValue: '' };
+}
+
 // Helper function to safely trim and capitalize text
 // This is a low-level helper that does NOT apply conversational filler removal
 export const safeTrimAndCapitalize = (text: string | null | undefined): string => {
@@ -1304,8 +1387,7 @@ export const formatAiIntakeSummary = (
     intakeData?.callbackTime ?? intakeData?.preferredCallbackTime
   );
   // Extract details field separately from request
-  const detailsValue = intakeData?.requestDetails ?? intakeData?.additionalDetails ?? intakeData?.importantDetails ?? '';
-  const hasDetails = detailsValue && detailsValue !== 'Not collected' && detailsValue.trim() !== '';
+  const { hasDetails, detailsValue } = hasMeaningfulDetails(intakeData);
   // Use canonical request field for SMS (concise, professional summary)
   const serviceRequestedRaw = normalizeServiceReason(
     intakeData?.serviceRequested ?? intakeData?.reasonForCalling
@@ -1411,8 +1493,7 @@ export const formatAdaptiveIntakeSms = (
     intakeData?.serviceRequested ?? intakeData?.reasonForCalling
   );
   // Extract details field
-  const detailsValue = intakeData?.requestDetails ?? intakeData?.additionalDetails ?? intakeData?.importantDetails ?? '';
-  const hasDetails = detailsValue && detailsValue !== 'Not collected' && detailsValue.trim() !== '';
+  const { hasDetails, detailsValue } = hasMeaningfulDetails(intakeData);
   // Use canonical title for SMS Service field (concise, professional summary)
   // Priority: intakeData.request (canonical) → serviceRequested (canonicalized) → fallback
   const serviceRequested = intakeData?.request
@@ -1474,7 +1555,7 @@ export const formatAdaptiveIntakeSms = (
     // Canonical intake requirements from voice flow:
     // - Always required: request, details, timing, callback
     // - Conditional (onsite only): address
-    const hasDetails = intakeData?.requestDetails && intakeData.requestDetails !== 'Not collected' && intakeData.requestDetails.trim() !== '';
+    const { hasDetails } = hasMeaningfulDetails(intakeData);
     const missingFields = [];
     if (!hasRequest) missingFields.push('What you need help with');
     if (!hasDetails) missingFields.push('Any important details');
@@ -1496,7 +1577,7 @@ export const formatAdaptiveIntakeSms = (
     const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
     const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
     // Build dynamic list of missing fields to request
-    const hasDetails = intakeData?.requestDetails && intakeData.requestDetails !== 'Not collected' && intakeData.requestDetails.trim() !== '';
+    const { hasDetails } = hasMeaningfulDetails(intakeData);
     const missingFields = [];
     if (!hasDetails) missingFields.push('Any important details');
     if (!hasAddress && shouldShowLocation) missingFields.push('Service address');

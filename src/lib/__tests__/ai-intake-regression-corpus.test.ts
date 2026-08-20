@@ -131,11 +131,12 @@ describe('AI Intake SMS Regression Corpus', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      // The prefix "I need" is normalized away, leaving "someone to come take a look"
-      // This is treated as too vague/placeholder-like, so it goes to near-empty case
+      // The reasonForCalling "I need someone to come take a look" is a generic service request
+      // and should NOT be treated as having meaningful details with the refined logic
       expect(sms).toContain('To help the team follow up, reply with:')
       expect(sms).toContain('• Your name')
       expect(sms).toContain('• What you\'re looking to have done')
+      expect(sms).toContain('• Any helpful details')
     })
   })
 
