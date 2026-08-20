@@ -35,9 +35,9 @@ export default function LeadStatusDropdown({
   const [isUpdating, setIsUpdating] = useState(false)
 
   const sizeClasses = {
-    sm: 'px-2.5 py-1.5 text-xs',
-    md: 'px-3 py-1.5 text-xs',
-    lg: 'px-3.5 py-2 text-sm'
+    sm: 'px-2.5 py-1.5 text-xs max-w-[140px]',
+    md: 'px-3 py-1.5 text-xs max-w-[160px]',
+    lg: 'px-3.5 py-2 text-sm max-w-[180px]'
   }
 
   const handleStatusSelect = async (newStatus: CustomerStatus) => {
@@ -109,15 +109,15 @@ export default function LeadStatusDropdown({
           onClick={handleClick}
           className={`${sizeClasses[size]} ${currentStyle.iconClass} border rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-80 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary/50`}
         >
-          <StatusIcon className="w-3.5 h-3.5" />
-          <span>{currentStyle.label}</span>
+          <StatusIcon className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="truncate">{currentStyle.label}</span>
           {isUpdating ? (
-            <div className="animate-spin rounded-full h-3 w-3 border-b border-current"></div>
+            <div className="animate-spin rounded-full h-3 w-3 border-b border-current flex-shrink-0"></div>
           ) : (
-            <svg 
-              className="w-3 h-3 transition-transform duration-200 data-[state=open]:rotate-180" 
-              fill="none" 
-              stroke="currentColor" 
+            <svg
+              className="w-3 h-3 transition-transform duration-200 data-[state=open]:rotate-180 flex-shrink-0"
+              fill="none"
+              stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

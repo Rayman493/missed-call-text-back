@@ -154,7 +154,7 @@ export default function LeadCard({
               </h3>
               {customerSourceInfo && (
                 <span 
-                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium border whitespace-nowrap"
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium border whitespace-nowrap flex-shrink-0"
                   title={customerSourceInfo.description}
                   style={{
                     backgroundColor: customerSourceInfo.type === 'replyflow' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(100, 116, 139, 0.1)',
@@ -173,6 +173,7 @@ export default function LeadCard({
             </p>
           </div>
           <div 
+            className="flex-shrink-0 max-w-[45%] sm:max-w-none"
             onPointerDown={(e) => e.stopPropagation()}
             onPointerMove={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}

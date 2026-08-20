@@ -5,29 +5,32 @@ describe('Customer Status Light Mode Contrast', () => {
   describe('Card surface contrast in light mode', () => {
     it('should have stronger light-mode surface opacity for new status', () => {
       const style = CUSTOMER_STATUS_STYLES.new
-      expect(style.cardClass).toContain('from-blue-50/90')
-      expect(style.cardClass).toContain('via-blue-50/85')
-      expect(style.cardClass).toContain('to-blue-100/70')
-      expect(style.cardClass).toContain('border-blue-500/50')
-      expect(style.cardClass).toContain('shadow-blue-500/5')
+      expect(style.cardClass).toContain('from-blue-50/95')
+      expect(style.cardClass).toContain('via-blue-50/90')
+      expect(style.cardClass).toContain('to-blue-100/80')
+      expect(style.cardClass).toContain('border-blue-500/70')
+      expect(style.cardClass).toContain('shadow-md')
+      expect(style.cardClass).toContain('shadow-blue-500/10')
     })
 
     it('should have stronger light-mode surface opacity for active status', () => {
       const style = CUSTOMER_STATUS_STYLES.active
-      expect(style.cardClass).toContain('from-green-50/90')
-      expect(style.cardClass).toContain('via-green-50/85')
-      expect(style.cardClass).toContain('to-green-100/70')
-      expect(style.cardClass).toContain('border-green-500/50')
-      expect(style.cardClass).toContain('shadow-green-500/5')
+      expect(style.cardClass).toContain('from-green-50/95')
+      expect(style.cardClass).toContain('via-green-50/90')
+      expect(style.cardClass).toContain('to-green-100/80')
+      expect(style.cardClass).toContain('border-green-500/70')
+      expect(style.cardClass).toContain('shadow-md')
+      expect(style.cardClass).toContain('shadow-green-500/10')
     })
 
     it('should have stronger light-mode surface opacity for completed status', () => {
       const style = CUSTOMER_STATUS_STYLES.completed
-      expect(style.cardClass).toContain('from-slate-100/90')
-      expect(style.cardClass).toContain('via-slate-100/85')
-      expect(style.cardClass).toContain('to-slate-200/70')
-      expect(style.cardClass).toContain('border-slate-400/50')
-      expect(style.cardClass).toContain('shadow-slate-400/5')
+      expect(style.cardClass).toContain('from-slate-100/95')
+      expect(style.cardClass).toContain('via-slate-100/90')
+      expect(style.cardClass).toContain('to-slate-200/80')
+      expect(style.cardClass).toContain('border-slate-400/70')
+      expect(style.cardClass).toContain('shadow-md')
+      expect(style.cardClass).toContain('shadow-slate-400/10')
     })
 
     it('should preserve dark mode classes unchanged', () => {
@@ -55,13 +58,13 @@ describe('Customer Status Light Mode Contrast', () => {
     it('should have increased light-mode opacity for all statuses', () => {
       statuses.forEach(status => {
         const style = CUSTOMER_STATUS_STYLES[status]
-        // All should have increased light-mode opacity (90/85/70 instead of 80/70/to-card)
-        expect(style.cardClass).toMatch(/\/90|\/85|\/70/)
-        // All should have border opacity /50
-        expect(style.cardClass).toMatch(/\/50/)
-        // All should have light-mode colored shadow
-        expect(style.cardClass).toContain('shadow-')
-        expect(style.cardClass).toContain('/5')
+        // All should have increased light-mode opacity (95/90/80 instead of 90/85/70)
+        expect(style.cardClass).toMatch(/\/95|\/90|\/80/)
+        // All should have border opacity /70
+        expect(style.cardClass).toMatch(/\/70/)
+        // All should have light-mode colored shadow with stronger opacity
+        expect(style.cardClass).toContain('shadow-md')
+        expect(style.cardClass).toContain('/10')
         // All should preserve dark mode
         expect(style.cardClass).toContain('dark:')
       })
