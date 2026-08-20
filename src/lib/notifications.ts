@@ -1,6 +1,57 @@
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { createClient } from '@supabase/supabase-js'
 import { Business } from '@/lib/types'
+import { normalizePunctuation } from '@/lib/utils'
+
+/**
+ * Resolve customer display name with fallback priority
+ * Priority: meaningful name > formatted phone > "Customer"
+ */
+export function resolveCustomerDisplayName(leadName?: string | null, leadPhone?: string | null): string {
+  const placeholderNames = ['Customer', 'Unknown', 'Unknown Customer', 'Caller', 'Anonymous']
+  const trimmedName = leadName?.trim()
+  const isPlaceholder = trimmedName && placeholderNames.includes(trimmedName)
+  const isMeaningfulName = trimmedName && !isPlaceholder && trimmedName.length > 0
+
+  if (isMeaningfulName) {
+    return trimmedName
+  }
+
+  if (leadPhone) {
+    const formattedPhone = formatPhoneNumber(leadPhone)
+    return formattedPhone
+  }
+
+  return 'Customer'
+}
+
+/**
+ * Format phone number to US format
+ */
+export function formatPhoneNumber(phone: string): string {
+  const cleaned = phone.replace(/\D/g, '')
+  if (cleaned.length === 10) {
+    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`
+  }
+  if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    return `(${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`
+  }
+  return phone
+}
+
+/**
+ * Truncate message while preserving word boundaries
+ */
+export function truncateMessage(message: string, maxLength: number): string {
+  if (message.length <= maxLength) {
+    return message
+  }
+  const lastSpace = message.lastIndexOf(' ', maxLength - 3) // Leave room for '...'
+  if (lastSpace > maxLength * 0.7 && lastSpace > 0) {
+    return message.substring(0, lastSpace) + '...'
+  }
+  return message.substring(0, maxLength - 3) + '...'
+}
 
 export interface Notification {
   id: string
@@ -22,48 +73,61 @@ export interface NotificationCount {
 
 // Notification templates
 export const NOTIFICATION_TEMPLATES = {
-  new_lead: (data: { leadName: string; leadPhone: string; leadId: string }) => ({
-    title: 'New Lead Captured',
-    message: `${data.leadName} (${data.leadPhone}) is waiting for your response`,
-    action_url: `/dashboard/leads/${data.leadId}`,
-    action_text: 'View Lead'
-  }),
-  
-  customer_reply: (data: { leadName: string; message: string; leadId: string; hasPhoto?: boolean }) => ({
-    title: data.hasPhoto ? 'Customer Sent Photo' : 'Customer Replied',
-    message: data.message.substring(0, 80) + (data.message.length > 80 ? '...' : ''),
-    action_url: `/dashboard/leads/${data.leadId}`,
-    action_text: 'Reply'
-  }),
-  
-  followup_completed: (data: { leadName: string; leadId: string }) => ({
-    title: 'Follow-up Sequence Completed',
-    message: `All follow-ups sent to ${data.leadName}`,
-    action_url: `/dashboard/leads/${data.leadId}`,
-    action_text: 'View Lead'
-  }),
-  
+  new_lead: (data: { leadName: string; leadPhone: string; leadId: string }) => {
+    const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
+    return {
+      title: displayName === 'Customer' ? 'New Lead' : `${displayName}`,
+      message: 'New lead captured · ReplyFlow started follow-up',
+      action_url: `/dashboard/leads/${data.leadId}`,
+      action_text: 'View Lead'
+    }
+  },
+
+  customer_reply: (data: { leadName: string; message: string; leadId: string; hasPhoto?: boolean }) => {
+    const displayName = resolveCustomerDisplayName(data.leadName, null)
+    const truncatedMessage = truncateMessage(data.message, 120)
+    return {
+      title: data.hasPhoto ? 'Photo sent' : `${displayName}`,
+      message: truncatedMessage,
+      action_url: `/dashboard/leads/${data.leadId}`,
+      action_text: 'Reply'
+    }
+  },
+
+  followup_completed: (data: { leadName: string; leadId: string }) => {
+    const displayName = resolveCustomerDisplayName(data.leadName, null)
+    return {
+      title: displayName === 'Customer' ? 'Follow-ups complete' : `${displayName}`,
+      message: 'All follow-up messages sent',
+      action_url: `/dashboard/leads/${data.leadId}`,
+      action_text: 'View Lead'
+    }
+  },
+
   forwarding_disconnected: () => ({
-    title: 'Call Forwarding Issue',
-    message: 'Call forwarding may be disconnected. Check your setup.',
+    title: 'Forwarding Issue',
+    message: 'Call forwarding may be disconnected',
     action_url: '/setup/phone-forwarding',
     action_text: 'Fix Setup'
   }),
-  
-  sms_failed: (data: { leadName: string; leadId: string }) => ({
-    title: 'SMS Delivery Failed',
-    message: `Failed to send message to ${data.leadName}`,
-    action_url: `/dashboard/leads/${data.leadId}`,
-    action_text: 'Retry'
-  }),
-  
+
+  sms_failed: (data: { leadName: string; leadId: string }) => {
+    const displayName = resolveCustomerDisplayName(data.leadName, null)
+    return {
+      title: 'SMS Failed',
+      message: `Message to ${displayName} not delivered`,
+      action_url: `/dashboard/leads/${data.leadId}`,
+      action_text: 'Retry'
+    }
+  },
+
   trial_ending: (data: { daysLeft: number }) => ({
-    title: 'Trial Ending Soon',
-    message: `Your trial ends in ${data.daysLeft} days`,
+    title: 'Trial Ending',
+    message: `${data.daysLeft} day${data.daysLeft !== 1 ? 's' : ''} remaining`,
     action_url: '/pricing',
     action_text: 'Upgrade'
   }),
-  
+
   subscription_issue: (data: { issue: string }) => ({
     title: 'Subscription Issue',
     message: data.issue,
@@ -72,85 +136,96 @@ export const NOTIFICATION_TEMPLATES = {
   }),
 
   voicemail_received: (data: { leadName: string; leadPhone: string; leadId: string }) => {
-    // Placeholder values that should be treated as missing names
-    const placeholderNames = ['Customer', 'Unknown', 'Unknown Customer', 'Caller']
-    const trimmedName = data.leadName?.trim()
-    const isPlaceholder = trimmedName && placeholderNames.includes(trimmedName)
-    const isMeaningfulName = trimmedName && !isPlaceholder && trimmedName.length > 0
-
-    // Fallback priority: meaningful name > formatted phone > "Customer"
-    const displayName = isMeaningfulName ? trimmedName : (data.leadPhone ? `Customer (${data.leadPhone})` : 'Customer')
-
+    const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
     return {
-      title: 'New Voicemail',
-      message: `${displayName} left a voicemail`,
+      title: displayName === 'Customer' ? 'New Voicemail' : `Voicemail from ${displayName}`,
+      message: 'Tap to listen and reply',
       action_url: `/dashboard/leads/${data.leadId}`,
       action_text: 'Listen'
     }
   },
 
-  ai_intake_completed: (data: { leadName: string; leadPhone: string; leadId: string; serviceRequested?: string }) => ({
-    title: 'New AI Intake Lead',
-    message: `${data.leadName || data.leadPhone || 'Customer'} requested help${data.serviceRequested ? ` with ${data.serviceRequested}` : ''}`,
-    action_url: `/dashboard/leads/${data.leadId}`,
-    action_text: 'View Lead'
-  }),
+  ai_intake_completed: (data: { leadName: string; leadPhone: string; leadId: string; serviceRequested?: string }) => {
+    const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
+    const service = data.serviceRequested ? normalizePunctuation(data.serviceRequested) : ''
+    return {
+      title: displayName === 'Customer' ? 'New AI Lead' : `${displayName}`,
+      message: service ? `AI captured: ${service}` : 'AI intake completed',
+      action_url: `/dashboard/leads/${data.leadId}`,
+      action_text: 'View Lead'
+    }
+  },
 
-  payment_requested: (data: { leadName: string; leadPhone: string; leadId: string; amountCents: number; description?: string }) => ({
-    title: 'Payment Request Sent',
-    message: `Payment request of $${(data.amountCents / 100).toFixed(2)} sent to ${data.leadName || data.leadPhone}${data.description ? ` for ${data.description}` : ''}`,
-    action_url: `/dashboard/leads/${data.leadId}`,
-    action_text: 'View Lead'
-  }),
+  payment_requested: (data: { leadName: string; leadPhone: string; leadId: string; amountCents: number; description?: string }) => {
+    const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
+    const amount = `$${(data.amountCents / 100).toFixed(2)}`
+    return {
+      title: 'Payment Requested',
+      message: `${amount} sent to ${displayName}`,
+      action_url: `/dashboard/leads/${data.leadId}`,
+      action_text: 'View Lead'
+    }
+  },
 
-  payment_created: (data: { leadName: string; leadPhone: string; leadId: string; amountCents: number; description?: string }) => ({
-    title: 'Payment Request Ready',
-    message: `Payment request of $${(data.amountCents / 100).toFixed(2)} created for ${data.leadName || data.leadPhone}${data.description ? ` for ${data.description}` : ''}`,
-    action_url: `/dashboard/leads/${data.leadId}`,
-    action_text: 'View Lead'
-  }),
+  payment_created: (data: { leadName: string; leadPhone: string; leadId: string; amountCents: number; description?: string }) => {
+    const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
+    const amount = `$${(data.amountCents / 100).toFixed(2)}`
+    return {
+      title: 'Payment Request Ready',
+      message: `${amount} for ${displayName}`,
+      action_url: `/dashboard/leads/${data.leadId}`,
+      action_text: 'View Lead'
+    }
+  },
 
-  payment_completed: (data: { leadName: string; leadPhone: string; leadId: string; amountCents: number }) => ({
-    title: 'Payment Received',
-    message: `$${(data.amountCents / 100).toFixed(2)} payment received from ${data.leadName || data.leadPhone}`,
-    action_url: `/dashboard/leads/${data.leadId}`,
-    action_text: 'View Lead'
-  }),
+  payment_completed: (data: { leadName: string; leadPhone: string; leadId: string; amountCents: number }) => {
+    const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
+    const amount = `$${(data.amountCents / 100).toFixed(2)}`
+    return {
+      title: 'Payment Received',
+      message: `${amount} from ${displayName}`,
+      action_url: `/dashboard/leads/${data.leadId}`,
+      action_text: 'View Lead'
+    }
+  },
 
   calendar_connected: (data: { calendarEmail?: string }) => ({
-    title: 'Google Calendar Connected',
-    message: data.calendarEmail ? `Connected to ${data.calendarEmail}` : 'Google Calendar connected successfully',
+    title: 'Calendar Connected',
+    message: data.calendarEmail ? `Linked to ${data.calendarEmail}` : 'Google Calendar synced',
     action_url: '/dashboard/calendar',
     action_text: 'View Calendar'
   }),
 
   calendar_disconnected: () => ({
-    title: 'Google Calendar Disconnected',
-    message: 'Google Calendar has been disconnected',
+    title: 'Calendar Disconnected',
+    message: 'Google Calendar link removed',
     action_url: '/dashboard/calendar',
     action_text: 'View Calendar'
   }),
 
   appointment_created: (data: { title: string, date: string }) => ({
-    title: 'Appointment Created',
-    message: `${data.title} scheduled for ${new Date(data.date).toLocaleDateString()}`,
+    title: 'Appointment Scheduled',
+    message: `${data.title} · ${new Date(data.date).toLocaleDateString()}`,
     action_url: '/dashboard/calendar',
     action_text: 'View Calendar'
   }),
 
   appointment_deleted: (data: { title: string }) => ({
-    title: 'Appointment Deleted',
-    message: `${data.title} has been deleted`,
+    title: 'Appointment Cancelled',
+    message: data.title,
     action_url: '/dashboard/calendar',
     action_text: 'View Calendar'
   }),
 
-  personal_voicemail: (data: { callerPhone: string; voicemailId: string }) => ({
-    title: 'New Personal Voicemail',
-    message: `Voicemail from ${data.callerPhone}`,
-    action_url: '/dashboard/personal-voicemail',
-    action_text: 'Listen'
-  })
+  personal_voicemail: (data: { callerPhone: string; voicemailId: string }) => {
+    const formattedPhone = formatPhoneNumber(data.callerPhone)
+    return {
+      title: 'Personal Voicemail',
+      message: `From ${formattedPhone}`,
+      action_url: '/dashboard/personal-voicemail',
+      action_text: 'Listen'
+    }
+  }
 }
 
 export class NotificationService {
