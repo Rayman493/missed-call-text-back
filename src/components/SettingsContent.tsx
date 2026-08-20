@@ -182,7 +182,9 @@ export default function SettingsContent() {
       }
     } catch (error) {
       console.error('[SettingsContent] Error acknowledging awareness:', error)
-      showToast('Couldn\'t set up Tap to Pay', 'error')
+      // Close modal even if API fails to prevent blocking user
+      setShowAwarenessModal(false)
+      showToast('Couldn\'t set up Tap to Pay. You can set it up later in Settings.', 'error')
     }
   }
 

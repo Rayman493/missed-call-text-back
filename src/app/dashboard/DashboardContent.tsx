@@ -1057,13 +1057,24 @@ export default function DashboardContent() {
           <TapToPayAwarenessModal
             isOpen={tapToPayAwareness.state.isEligible && !tapToPayAwareness.isAcknowledged}
             onSetup={async () => {
-              await tapToPayAwareness.acknowledgeAwareness()
-              await refreshBusiness(true)
-              router.push('/dashboard?section=payments')
+              try {
+                await tapToPayAwareness.acknowledgeAwareness()
+                await refreshBusiness(true)
+                router.push('/dashboard?section=payments')
+              } catch (error) {
+                console.error('[DashboardContent] Error acknowledging awareness:', error)
+                // Modal will auto-dismiss due to isOpen prop change when acknowledgment fails
+                // User can navigate to Settings manually
+              }
             }}
             onDismiss={async () => {
-              await tapToPayAwareness.acknowledgeAwareness()
-              await refreshBusiness(true)
+              try {
+                await tapToPayAwareness.acknowledgeAwareness()
+                await refreshBusiness(true)
+              } catch (error) {
+                console.error('[DashboardContent] Error dismissing awareness:', error)
+                // Modal will auto-dismiss due to isOpen prop change when acknowledgment fails
+              }
             }}
           />
           <div className="min-h-screen bg-background page-gradient flex flex-col relative overflow-x-hidden">
