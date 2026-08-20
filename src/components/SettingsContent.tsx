@@ -320,6 +320,14 @@ export default function SettingsContent() {
         // Success: Apple Terms were accepted
         setAppleAccountLinkageState({ status: 'linked', isLoading: false })
         showToast('Tap to Pay enabled — you can now accept contactless payments', 'success')
+
+        // Present merchant education immediately after successful Terms acceptance
+        if (!business?.tap_to_pay_education_completed_at) {
+          console.log('[SettingsContent] Terms accepted, education not completed, presenting education now')
+          await handleNativeEducationGuide()
+        } else {
+          console.log('[SettingsContent] Terms accepted, education already completed, skipping')
+        }
       } else {
         // Terms not accepted
         setAppleAccountLinkageState({ status: 'not_linked', isLoading: false })
@@ -349,6 +357,15 @@ export default function SettingsContent() {
             setAppleAccountLinkageState({ status: 'linked', isLoading: false })
             showToast('Tap to Pay enabled', 'success')
             setIsEnablingTapToPay(false)
+
+            // Present merchant education immediately after successful Terms acceptance (fallback path)
+            if (!business?.tap_to_pay_education_completed_at) {
+              console.log('[SettingsContent] Terms accepted (fallback path), education not completed, presenting education now')
+              await handleNativeEducationGuide()
+            } else {
+              console.log('[SettingsContent] Terms accepted (fallback path), education already completed, skipping')
+            }
+
             return
           }
         }
