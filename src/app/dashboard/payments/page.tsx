@@ -1270,45 +1270,15 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                             <td className="px-4 py-3 whitespace-nowrap">
                               <div className="flex items-center w-full">
                                 <div className="flex items-center gap-2 min-w-0 whitespace-nowrap">
-                                  {payment.leads && (
-                                    <button
-                                      onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
-                                      className="text-muted-foreground hover:text-foreground text-xs font-medium transition-colors"
-                                    >
-                                      View Customer
-                                    </button>
-                                  )}
                                   {(payment.status === 'paid' || payment.status === 'pending') && (
                                     <button
                                       onClick={() => handleOpenEditModal(payment)}
                                       className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                      title="Rename payment"
-                                      aria-label="Rename payment"
+                                      title="Edit payment"
+                                      aria-label="Edit payment"
                                     >
                                       <Edit className="h-3.5 w-3.5" />
                                     </button>
-                                  )}
-                                  {payment.status === 'pending' && payment.checkout_url && (
-                                    <>
-                                      <button
-                                        onClick={() => copyPaymentLink(payment.checkout_url!)}
-                                        className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                        title="Copy payment link"
-                                        aria-label="Copy payment link"
-                                      >
-                                        <Copy className="h-3.5 w-3.5" />
-                                      </button>
-                                      <a
-                                        href={payment.checkout_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                        title="Open payment link"
-                                        aria-label="Open payment link"
-                                      >
-                                        <ExternalLink className="h-3.5 w-3.5" />
-                                      </a>
-                                    </>
                                   )}
                                   {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
                                     <button
@@ -1336,7 +1306,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                     </button>
                                   )}
                                 </div>
-                                {payment.status === 'pending' && (
+                                {payment.status === 'pending' && !(payment.payment_method_type === 'card' && payment.checkout_url) && (
                                   <button
                                     onClick={() => handleCancelPayment(payment)}
                                     disabled={isCancelling}
@@ -1411,45 +1381,15 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <div className="flex items-center w-full">
                                     <div className="flex items-center gap-2 min-w-0 whitespace-nowrap">
-                                      {payment.leads && (
-                                        <button
-                                          onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
-                                          className="text-muted-foreground hover:text-foreground text-xs font-medium transition-colors"
-                                        >
-                                          View Customer
-                                        </button>
-                                      )}
-                                      {payment.status === 'paid' && (
+                                      {(payment.status === 'paid' || payment.status === 'pending') && (
                                         <button
                                           onClick={() => handleOpenEditModal(payment)}
                                           className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                          title="Rename payment"
-                                          aria-label="Rename payment"
+                                          title="Edit payment"
+                                          aria-label="Edit payment"
                                         >
                                           <Edit className="h-3.5 w-3.5" />
                                         </button>
-                                      )}
-                                      {payment.status === 'pending' && payment.checkout_url && (
-                                        <>
-                                          <button
-                                            onClick={() => copyPaymentLink(payment.checkout_url!)}
-                                            className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                            title="Copy payment link"
-                                            aria-label="Copy payment link"
-                                          >
-                                            <Copy className="h-3.5 w-3.5" />
-                                          </button>
-                                          <a
-                                            href={payment.checkout_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                            title="Open payment link"
-                                            aria-label="Open payment link"
-                                          >
-                                            <ExternalLink className="h-3.5 w-3.5" />
-                                          </a>
-                                        </>
                                       )}
                                       {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
                                         <button
@@ -1477,7 +1417,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                         </button>
                                       )}
                                   </div>
-                                  {payment.status === 'pending' && (
+                                  {payment.status === 'pending' && !(payment.payment_method_type === 'card' && payment.checkout_url) && (
                                       <button
                                         onClick={() => handleCancelPayment(payment)}
                                         disabled={isCancelling}
@@ -1800,6 +1740,10 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           isOpen={showEditModal}
           onClose={handleCloseEditModal}
           onSave={handleSaveLabel}
+          onViewCustomer={(customerId) => router.push(`/dashboard/leads/${customerId}`)}
+          onCopyLink={copyPaymentLink}
+          onCancelPayment={handleCancelPayment}
+          isCancelling={isCancelling}
           payment={paymentToEdit}
           currentLabel={editLabel}
           methodBadge={paymentToEdit ? getPaymentMethodBadge(paymentToEdit.payment_method_type, paymentToEdit.payment_provider) : null}

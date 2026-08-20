@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, User } from 'lucide-react'
+import { X, User, Copy, ExternalLink } from 'lucide-react'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getPaymentStatusStyle } from '@/lib/payment-status'
 
@@ -9,6 +9,10 @@ interface PaymentEditModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: (label: string) => Promise<void>
+  onViewCustomer?: (customerId: string) => void
+  onCopyLink?: (url: string) => void
+  onCancelPayment?: (payment: any) => void
+  isCancelling?: boolean
   payment: {
     id: string
     amount_cents: number
@@ -38,6 +42,10 @@ export default function PaymentEditModal({
   isOpen,
   onClose,
   onSave,
+  onViewCustomer,
+  onCopyLink,
+  onCancelPayment,
+  isCancelling,
   payment,
   currentLabel,
   methodBadge,
@@ -80,6 +88,28 @@ export default function PaymentEditModal({
   }
 
   const statusStyle = getPaymentStatusStyle(payment.status)
+
+  const isSmsLink = payment.payment_method_type === 'card' && payment.checkout_url
+  const isPending = payment.status === 'pending'
+  const hasCustomer = payment.leads !== null
+
+  const handleCopyLink = () => {
+    if (onCopyLink && payment.checkout_url) {
+      onCopyLink(payment.checkout_url)
+    }
+  }
+
+  const handleViewCustomer = () => {
+    if (onViewCustomer && payment.leads) {
+      onViewCustomer(payment.leads.id)
+    }
+  }
+
+  const handleCancel = () => {
+    if (onCancelPayment) {
+      onCancelPayment(payment)
+    }
+  }
 
   return (
     <>
@@ -167,6 +197,54 @@ export default function PaymentEditModal({
                   </span>
                 </div>
               </div>
+
+              {/* SMS Link Actions Section */}
+              {isSmsLink && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-slate-900 dark:text-foreground">Payment Actions</h4>
+
+                  {hasCustomer && onViewCustomer && (
+                    <button
+                      onClick={handleViewCustomer}
+                      className="w-full flex items-center justify-between px-3 py-2 text-sm text-left text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    >
+                      <span>View Customer</span>
+                      <span className="text-blue-600 dark:text-blue-400">→</span>
+                    </button>
+                  )}
+
+                  {isPending && payment.checkout_url && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={handleCopyLink}
+                        className="flex items-center justify-center gap-2 px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                      >
+                        <Copy className="h-4 w-4" />
+                        <span>Copy Link</span>
+                      </button>
+                      <a
+                        href={payment.checkout_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        <span>Open Link</span>
+                      </a>
+                    </div>
+                  )}
+
+                  {isPending && onCancelPayment && (
+                    <button
+                      onClick={handleCancel}
+                      disabled={isCancelling}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span>{isCancelling ? 'Canceling...' : 'Cancel Payment'}</span>
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Payment Name Section */}
               <div>
