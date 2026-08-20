@@ -15,7 +15,7 @@ export default function Card({
   ...props 
 }: CardProps) {
   // Base card styling - premium depth with subtle top highlight
-  const baseClasses = 'relative overflow-hidden bg-gradient-to-b from-white to-white/95 dark:from-slate-800/90 dark:to-slate-800/80 border border-border/30 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.5)_inset] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] transition-all duration-200'
+  const baseClasses = 'relative overflow-hidden bg-gradient-to-b from-white to-white/95 dark:from-slate-800/90 dark:to-slate-800/80 border border-border dark:border-border/30 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.5)_inset] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] transition-all duration-200'
   
   // Border radius variants
   const radiusClasses = variant === 'hero' ? 'rounded-2xl' : 'rounded-xl'

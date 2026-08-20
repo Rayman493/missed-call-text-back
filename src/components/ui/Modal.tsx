@@ -110,7 +110,7 @@ export default function Modal({
           onClick={(e) => e.stopPropagation()}
         >
           {title && (
-            <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-border/50 shrink-0">
+            <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-border dark:border-border/50 shrink-0">
               <h2 className="text-lg font-semibold text-foreground">{title}</h2>
               <button
                 onClick={onClose}
@@ -130,7 +130,7 @@ export default function Modal({
           </div>
 
           {footer && (
-            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border/50 px-4 sm:px-5 py-4">
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border dark:border-border/50 px-4 sm:px-5 py-4">
               {footer}
             </div>
           )}

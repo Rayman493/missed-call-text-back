@@ -98,7 +98,7 @@ export default function Dropdown({
 
       {isOpen && (
         <div
-          className="absolute z-50 w-full mt-1 rounded-xl border border-border/50 bg-card shadow-sm py-1 max-h-60 overflow-y-auto"
+          className="absolute z-50 w-full mt-1 rounded-xl border border-border dark:border-border/50 bg-card shadow-sm py-1 max-h-60 overflow-y-auto"
           role="listbox"
         >
           {options.map((option) => (

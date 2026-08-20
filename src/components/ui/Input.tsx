@@ -10,7 +10,7 @@ export default function Input({
   type = 'text',
   ...props 
 }: InputProps) {
-  const baseClasses = 'px-3 py-2.5 border border-border/50 rounded-lg bg-background text-foreground placeholder:text-muted-foreground/60 transition-all duration-200'
+  const baseClasses = 'px-3 py-2.5 border border-border dark:border-border/50 rounded-lg bg-background text-foreground placeholder:text-muted-foreground/60 transition-all duration-200'
   
   const focusClasses = 'focus:ring-2 focus:ring-blue-500/40 focus:border-transparent focus:outline-none'
   
