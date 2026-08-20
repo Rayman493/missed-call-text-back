@@ -27,9 +27,9 @@ function QuickThemeSwitcher() {
   if (!mounted) {
     return (
       <div className="flex gap-1">
-        <div className="w-8 h-6 rounded bg-muted animate-pulse"></div>
-        <div className="w-8 h-6 rounded bg-muted animate-pulse"></div>
-        <div className="w-8 h-6 rounded bg-muted animate-pulse"></div>
+        <div className="w-7 h-7 rounded bg-muted animate-pulse"></div>
+        <div className="w-7 h-7 rounded bg-muted animate-pulse"></div>
+        <div className="w-7 h-7 rounded bg-muted animate-pulse"></div>
       </div>
     )
   }
@@ -49,7 +49,7 @@ function QuickThemeSwitcher() {
             e.stopPropagation()
             setTheme(value)
           }}
-          className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+          className={`flex items-center justify-center gap-0.5 px-1.5 py-1.5 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
             theme === value
               ? 'bg-secondary text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -353,13 +353,6 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
               </div>
             </div>
 
-            {/* Quick theme switcher */}
-            {!isPublicPage && (
-              <div className="px-4 py-2">
-                <QuickThemeSwitcher />
-              </div>
-            )}
-
             <div className="h-px bg-border/50" />
 
             {/* Menu items */}
@@ -371,17 +364,8 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
                 className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <Settings className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                Account
+                Settings
               </Link>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={handleManageBilling}
-                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <ReceiptText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                Billing
-              </button>
               <button
                 type="button"
                 role="menuitem"
@@ -394,6 +378,30 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
                 <MessageCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 ReplyFlow Assistant
               </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleManageBilling}
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <ReceiptText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                Billing
+              </button>
+            </div>
+
+            <div className="h-px bg-border/50" />
+
+            {/* Appearance section - reduced visual footprint */}
+            {!isPublicPage && (
+              <div className="px-3 py-2">
+                <QuickThemeSwitcher />
+              </div>
+            )}
+
+            <div className="h-px bg-border/50" />
+
+            {/* Secondary menu items */}
+            <div className="px-1.5 py-1">
               <Link
                 href={isHomepage ? '/dashboard' : '/'}
                 role="menuitem"
