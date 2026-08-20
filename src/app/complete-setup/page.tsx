@@ -56,7 +56,7 @@ export default function CompleteSetupPage() {
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    App.addListener('appStateChange', handleAppStateChange)
+    const listenerHandle = App.addListener('appStateChange', handleAppStateChange)
 
     // Log initial state
     console.log('[ACCOUNT_CREATION_LIFECYCLE] complete_setup_mount', {
@@ -76,7 +76,9 @@ export default function CompleteSetupPage() {
         timestamp: Date.now()
       })
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      App.removeAllListeners()
+      listenerHandle.then(handle => handle.remove()).catch(error => {
+        console.error('[ACCOUNT_CREATION_LIFECYCLE] Failed to remove app state listener:', error)
+      })
     }
   }, [user, authLoading, business])
 

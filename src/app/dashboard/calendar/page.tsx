@@ -893,10 +893,11 @@ export default function SchedulePage() {
     }
 
     // Listen for app state changes
+    let listenerHandle: Promise<{ remove: () => void }> | null = null
     const setupAppStateListener = async () => {
       try {
         const { App } = await import('@capacitor/app')
-        await App.addListener('appStateChange', async ({ isActive }) => {
+        listenerHandle = App.addListener('appStateChange', async ({ isActive }) => {
           if (isActive) {
             console.log('[Calendar Page] App became active')
             await handleAppStateChange()
@@ -910,16 +911,12 @@ export default function SchedulePage() {
     setupAppStateListener()
 
     return () => {
-      // Cleanup listener on unmount
-      const removeListener = async () => {
-        try {
-          const { App } = await import('@capacitor/app')
-          await App.removeAllListeners()
-        } catch (error) {
+      // Cleanup only this listener on unmount
+      if (listenerHandle) {
+        listenerHandle.then(handle => handle.remove()).catch(error => {
           console.error('[Calendar Page] Failed to remove app state listener:', error)
-        }
+        })
       }
-      removeListener()
     }
   }, [business])
 
