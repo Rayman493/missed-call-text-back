@@ -1177,11 +1177,26 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
+        gestureHandling: 'cooperative', // Allow page scrolling on mobile
         styles: [
           {
             featureType: 'poi',
             elementType: 'labels',
             stylers: [{ visibility: 'off' }]
+          },
+          {
+            featureType: 'poi.business',
+            stylers: [{ visibility: 'off' }]
+          },
+          {
+            featureType: 'transit',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }]
+          },
+          {
+            featureType: 'administrative',
+            elementType: 'labels',
+            stylers: [{ visibility: 'simplified' }]
           }
         ]
       })
@@ -1767,9 +1782,9 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     }
 
     const isBusiness = type === 'business'
-    const color = isBusiness ? '#10B981' : type === 'job' ? '#8B5CF6' : '#3B82F6' // Green for business, purple for jobs, blue for appointments
+    const color = isBusiness ? '#059669' : type === 'job' ? '#7C3AED' : '#2563EB' // Muted green for business, muted purple for jobs, muted blue for appointments
     const size = isSelected ? 44 : 36
-    const strokeWidth = isSelected ? 4 : 2
+    const strokeWidth = isSelected ? 3 : 2
     const textColor = '#FFFFFF'
 
     // Create canvas for numbered marker
@@ -2154,15 +2169,15 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         </div>
       </div>
 
-      {/* Mobile Horizontal Stop Cards - Removed on mobile to save space, map markers provide stop navigation */}
+      {/* Today's Stops - Horizontal strip, visible on all screen sizes */}
       {sortedItems.length > 0 && (
-        <div className="hidden md:block mb-4 z-10">
+        <div className="mb-3 md:mb-4 z-10">
           <div className="flex items-center justify-between mb-2 px-1">
-            <h3 className="text-sm font-semibold text-foreground">Today's Stops</h3>
-            <span className="text-xs text-slate-500 dark:text-slate-400">{routeSummary}</span>
+            <h3 className="text-xs md:text-sm font-semibold text-foreground">Today's Stops</h3>
+            <span className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">{routeSummary}</span>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1" id="mobile-stop-cards">
-            {sortedItems.map((item) => (
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {sortedItems.map((item, index) => (
               <button
                 key={item.id}
                 ref={selectedMapItemId === item.id ? (el: any) => {
@@ -2173,7 +2188,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                   }
                 } : null}
                 onClick={() => selectMapItem(item.id, item.latitude, item.longitude)}
-                className={`flex-shrink-0 px-3 py-2 rounded-lg border transition-colors ${
+                className={`flex-shrink-0 snap-start px-2 md:px-3 py-2 rounded-lg border transition-colors min-w-[120px] md:min-w-[140px] max-w-[160px] ${
                   selectedMapItemId === item.id
                     ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 ring-2 ring-green-300 dark:ring-green-700'
                     : item.type === 'business'
@@ -2183,32 +2198,32 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
               >
                 <div className="flex items-center gap-2">
                   {item.type === 'business' ? (
-                    <div className="w-6 h-6 rounded flex items-center justify-center text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                    <div className="w-5 h-5 md:w-6 md:h-6 rounded flex items-center justify-center text-[10px] md:text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex-shrink-0">
                       🏠
                     </div>
                   ) : (
-                    <div className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs ${
+                    <div className={`w-5 h-5 md:w-6 md:h-6 rounded flex items-center justify-center font-bold text-[10px] md:text-xs flex-shrink-0 ${
                       item.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                     }`}>
                       {item.stopNumber}
                     </div>
                   )}
-                  <div className="text-left">
+                  <div className="text-left min-w-0 flex-1">
                     {item.type === 'business' ? (
                       <>
-                        <p className="text-xs font-medium text-foreground truncate max-w-[100px]">
+                        <p className="text-[10px] md:text-xs font-medium text-foreground truncate">
                           {item.title}
                         </p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[100px]">
+                        <p className="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 truncate">
                           Home Base
                         </p>
                       </>
                     ) : (
                       <>
-                        <p className="text-xs font-medium text-foreground truncate max-w-[100px]">
+                        <p className="text-[10px] md:text-xs font-medium text-foreground truncate">
                           {item.scheduledTime ? formatTime(item.scheduledTime) : 'No time'}
                         </p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[100px]">
+                        <p className="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 truncate">
                           {item.customerName || 'No customer'}
                         </p>
                       </>
@@ -2222,19 +2237,19 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       )}
 
       {/* Map Container - Use fixed height on mobile to prevent extending behind bottom nav */}
-      <div className="flex-1 h-[calc(100dvh-var(--bottom-nav-height,80px)-140px)] md:h-auto md:min-h-0 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+      <div className="flex-1 h-[calc(100dvh-var(--bottom-nav-height,80px)-140px)] md:h-auto md:min-h-0 relative rounded-xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60">
         <div ref={mapRef} className="w-full h-full" />
         
         {/* Map Controls Stack */}
-        <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
-          {/* Map Type Toggle */}
-          <div className="flex bg-white dark:bg-slate-800 rounded-lg shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="hidden md:flex absolute top-3 right-3 z-10 flex-col gap-2">
+          {/* Map Type Toggle - Desktop only */}
+          <div className="flex bg-white/95 dark:bg-slate-800/95 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700/60 overflow-hidden backdrop-blur-sm">
             <button
               onClick={() => setMapType('roadmap')}
               className={`px-3 py-2 text-xs font-medium transition-colors min-w-[60px] ${
                 mapType === 'roadmap'
-                  ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                  ? 'bg-purple-50/80 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50/80 dark:hover:bg-slate-700/50'
               }`}
             >
               Map
@@ -2243,8 +2258,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
               onClick={() => setMapType('satellite')}
               className={`px-3 py-2 text-xs font-medium transition-colors min-w-[60px] ${
                 mapType === 'satellite'
-                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                  ? 'bg-blue-50/80 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50/80 dark:hover:bg-slate-700/50'
               }`}
             >
               Satellite
