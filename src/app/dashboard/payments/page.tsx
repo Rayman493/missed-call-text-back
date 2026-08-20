@@ -62,7 +62,8 @@ function getStatusColor(status: string): string {
   return style.badgeClass
 }
 
-function getPaymentMethodBadge(methodType: string | null) {
+function getPaymentMethodBadge(methodType: string | null, provider: string | null) {
+  // Tap to Pay (Terminal)
   if (methodType === 'card_present') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
@@ -71,6 +72,25 @@ function getPaymentMethodBadge(methodType: string | null) {
       </span>
     )
   }
+  // Venmo
+  if (provider === 'venmo') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
+        <Link className="h-3 w-3" />
+        Venmo
+      </span>
+    )
+  }
+  // PayPal
+  if (provider === 'paypal') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
+        <Link className="h-3 w-3" />
+        PayPal
+      </span>
+    )
+  }
+  // SMS Link (Stripe card)
   if (methodType === 'card') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50">
@@ -79,9 +99,10 @@ function getPaymentMethodBadge(methodType: string | null) {
       </span>
     )
   }
+  // Unknown
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700/50">
-      Unknown
+      —
     </span>
   )
 }
@@ -886,7 +907,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            {getPaymentMethodBadge(payment.payment_method_type)}
+                            {getPaymentMethodBadge(payment.payment_method_type, payment.payment_provider)}
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
                               {getStatusLabel(payment.status)}
                             </span>
@@ -1004,7 +1025,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                       <>
                         <button
                           onClick={() => setShowOlderPayments(!showOlderPayments)}
-                          className="w-full bg-[#0f172a] dark:bg-[#0f172a] rounded-lg p-3 border border-slate-700 flex items-center justify-between gap-3 hover:bg-[#1a2235] transition-colors"
+                          className="w-full bg-muted/50 dark:bg-[#0f172a] rounded-lg p-3 border border-border dark:border-slate-700 flex items-center justify-between gap-3 hover:bg-muted dark:hover:bg-[#1a2235] transition-colors"
                           aria-expanded={showOlderPayments}
                           aria-label={showOlderPayments ? `Hide ${olderPayments.length} older payments` : `Show ${olderPayments.length} older payments`}
                         >
@@ -1030,7 +1051,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-1.5">
-                                    {getPaymentMethodBadge(payment.payment_method_type)}
+                                    {getPaymentMethodBadge(payment.payment_method_type, payment.payment_provider)}
                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
                                       {getStatusLabel(payment.status)}
                                     </span>
@@ -1216,36 +1237,36 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                     ) : (
                       <>
                         {visiblePayments.map((payment) => (
-                          <tr key={payment.id} className="hover:bg-[#1a2235] dark:hover:bg-[#1a2235] transition-colors">
+                          <tr key={payment.id} className="hover:bg-slate-50 dark:hover:bg-[#1a2235] transition-colors">
                             <td className="px-4 py-3 whitespace-nowrap">
                               <div className="flex items-center gap-2">
-                                <User className="h-4 w-4 text-gray-400" />
-                                <span className="text-white font-medium text-sm">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-foreground font-medium text-sm">
                                   {getCustomerName(payment)}
                                 </span>
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-gray-400 text-sm max-w-[220px] truncate">
+                            <td className="px-4 py-3 text-muted-foreground text-sm max-w-[220px] truncate">
                               {getPaymentDescription(payment)}
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
+                            <td className="px-4 py-3 whitespace-nowrap text-muted-foreground text-sm">
                               {payment.leads ? formatPhoneNumber(payment.leads.caller_phone) : '-'}
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-white font-semibold text-sm">
+                            <td className="px-4 py-3 whitespace-nowrap text-foreground font-semibold text-sm">
                               {formatCurrency(payment.amount_cents / 100)}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
-                              {getPaymentMethodBadge(payment.payment_method_type)}
+                              {getPaymentMethodBadge(payment.payment_method_type, payment.payment_provider)}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
                                 {getStatusLabel(payment.status)}
                               </span>
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
+                            <td className="px-4 py-3 whitespace-nowrap text-muted-foreground text-sm">
                               {new Date(payment.created_at).toLocaleDateString()}
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
+                            <td className="px-4 py-3 whitespace-nowrap text-muted-foreground text-sm">
                               {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : '-'}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
@@ -1254,7 +1275,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                   {payment.leads && (
                                     <button
                                       onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
-                                      className="text-gray-400 hover:text-white text-xs font-medium transition-colors"
+                                      className="text-muted-foreground hover:text-foreground text-xs font-medium transition-colors"
                                     >
                                       View Customer
                                     </button>
@@ -1262,7 +1283,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                   {(payment.status === 'paid' || payment.status === 'pending') && (
                                     <button
                                       onClick={() => handleOpenRenameModal(payment)}
-                                      className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                      className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                       title="Rename payment"
                                       aria-label="Rename payment"
                                     >
@@ -1340,15 +1361,15 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                               <td colSpan={9} className="px-4 py-0">
                                 <button
                                   onClick={() => setShowOlderPayments(!showOlderPayments)}
-                                  className="w-full bg-[#0f172a] dark:bg-[#0f172a] rounded-lg p-3 border border-slate-700 flex items-center justify-between gap-3 hover:bg-[#1a2235] transition-colors"
+                                  className="w-full bg-muted/50 dark:bg-[#0f172a] rounded-lg p-3 border border-border dark:border-slate-700 flex items-center justify-between gap-3 hover:bg-muted dark:hover:bg-[#1a2235] transition-colors"
                                   aria-expanded={showOlderPayments}
                                   aria-label={`Show ${olderPayments.length} older payments`}
                                 >
-                                  <span className="text-sm font-medium text-gray-300">
+                                  <span className="text-sm font-medium text-foreground">
                                     Older payments ({olderPayments.length})
                                   </span>
                                   <ChevronDown
-                                    className={`h-5 w-5 text-gray-400 transition-transform duration-200 ${
+                                    className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${
                                       showOlderPayments ? 'rotate-180' : ''
                                     }`}
                                   />
@@ -1357,25 +1378,25 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                             </tr>
 
                             {showOlderPayments && olderPayments.map((payment) => (
-                              <tr key={payment.id} className="hover:bg-[#1a2235] dark:hover:bg-[#1a2235] transition-colors">
+                              <tr key={payment.id} className="hover:bg-slate-50 dark:hover:bg-[#1a2235] transition-colors">
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <div className="flex items-center gap-2">
-                                    <User className="h-4 w-4 text-gray-400" />
-                                    <span className="text-white font-medium text-sm">
+                                    <User className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-foreground font-medium text-sm">
                                       {getCustomerName(payment)}
                                     </span>
                                   </div>
                                 </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
+                                <td className="px-4 py-3 text-muted-foreground text-sm">
                                   {payment.leads ? formatPhoneNumber(payment.leads.caller_phone) : '-'}
                                 </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-white font-semibold text-sm">
+                                <td className="px-4 py-3 whitespace-nowrap text-foreground font-semibold text-sm">
                                   {formatCurrency(payment.amount_cents / 100)}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
-                                  {getPaymentMethodBadge(payment.payment_method_type)}
+                                  {getPaymentMethodBadge(payment.payment_method_type, payment.payment_provider)}
                                 </td>
-                                <td className="px-4 py-3 text-gray-400 text-sm max-w-[220px] truncate">
+                                <td className="px-4 py-3 text-muted-foreground text-sm max-w-[220px] truncate">
                                   {getPaymentDescription(payment)}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
@@ -1383,10 +1404,10 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                     {getStatusLabel(payment.status)}
                                   </span>
                                 </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
+                                <td className="px-4 py-3 whitespace-nowrap text-muted-foreground text-sm">
                                   {new Date(payment.created_at).toLocaleDateString()}
                                 </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
+                                <td className="px-4 py-3 whitespace-nowrap text-muted-foreground text-sm">
                                   {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : '-'}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
@@ -1395,7 +1416,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                       {payment.leads && (
                                         <button
                                           onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
-                                          className="text-gray-400 hover:text-white text-xs font-medium transition-colors"
+                                          className="text-muted-foreground hover:text-foreground text-xs font-medium transition-colors"
                                         >
                                           View Customer
                                         </button>
@@ -1403,7 +1424,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                       {payment.status === 'paid' && (
                                         <button
                                           onClick={() => handleOpenRenameModal(payment)}
-                                          className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                          className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                           title="Rename payment"
                                           aria-label="Rename payment"
                                         >
