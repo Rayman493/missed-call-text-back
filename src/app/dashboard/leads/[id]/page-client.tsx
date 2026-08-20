@@ -388,7 +388,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         customerHealth: false,
         quickActions: true,
         aiIntake: false, // Default to expanded - show current request immediately
-        schedule: true, // Default to collapsed for conversation-first
         payments: true, // Default to collapsed
         appointments: true, // Default to collapsed
       }
@@ -401,7 +400,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       customerHealth: false,
       quickActions: true,
       aiIntake: false,
-      schedule: true,
       payments: true,
       appointments: true,
     }
@@ -2823,18 +2821,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     return (
       <div className="space-y-4">
-        {/* Jobs & Appointments - Collapsible - Compact on mobile */}
+        {/* Jobs */}
         <div className="bg-background dark:bg-background rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <button
-              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: !prev.schedule }))}
-              className="flex items-center gap-2 group"
-            >
-              <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Jobs</h3>
-              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.schedule ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+            <h3 className="text-sm font-medium text-foreground">Jobs</h3>
             <Link
               href="/dashboard/calendar"
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -2845,50 +2835,48 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </svg>
             </Link>
           </div>
-          {!collapsedSections.schedule && (
-            <div className="transition-all duration-200">
-              {leadJobs.length === 0 ? (
-                <div className="text-center py-2 sm:py-4">
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No jobs scheduled for this customer yet.</p>
-                  <button
-                    onClick={handleCreateJobClick}
-                    className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                  >
-                    <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span className="hidden sm:inline">Add Job</span>
-                    <span className="sm:hidden">Add Job</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {leadJobs.slice(0, 3).map((job: any) => (
-                    <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
-                        <p className="text-xs text-muted-foreground/80">
-                          {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
-                          {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
-                        </p>
-                      </div>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap ml-2 border border-border/40">
-                        {formatJobStatus(job.status).text}
-                      </span>
+          <div className="transition-all duration-200">
+            {leadJobs.length === 0 ? (
+              <div className="text-center py-2 sm:py-4">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No jobs scheduled for this customer yet.</p>
+                <button
+                  onClick={handleCreateJobClick}
+                  className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                >
+                  <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span className="hidden sm:inline">Add Job</span>
+                  <span className="sm:hidden">Add Job</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {leadJobs.slice(0, 3).map((job: any) => (
+                  <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
+                      <p className="text-xs text-muted-foreground/80">
+                        {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
+                        {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
+                      </p>
                     </div>
-                  ))}
-                  {leadJobs.length > 3 && (
-                    <button
-                      onClick={handleAppointmentClick}
-                      className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                    >
-                      View all {leadJobs.length} jobs
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap ml-2 border border-border/40">
+                      {formatJobStatus(job.status).text}
+                    </span>
+                  </div>
+                ))}
+                {leadJobs.length > 3 && (
+                  <button
+                    onClick={handleAppointmentClick}
+                    className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                  >
+                    View all {leadJobs.length} jobs
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Payment Requests - Collapsible - Compact on mobile */}
@@ -3982,15 +3970,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       {/* Schedule - Unified Jobs + Tasks */}
                       <SidebarSection
                         title="Schedule"
-                        collapsible={true}
-                        isCollapsed={collapsedSections.schedule}
-                        onToggleCollapse={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: !prev.schedule }))}
                         className="mb-3"
                       >
                         {leadJobs.length === 0 && leadTasks.length === 0 ? (
                           <p className="text-sm text-muted-foreground">No scheduled work</p>
                         ) : (
-                          <div className="space-y-2">
+                          <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
                             {/* Jobs */}
                             {leadJobs.map((job: any) => (
                               <div key={job.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg transition-all duration-200">
@@ -4375,12 +4360,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
 
-          {/* Jobs - Collapsible */}
+          {/* Jobs */}
           <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
-            <button
-              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: !prev.schedule }))}
-              className="flex items-center justify-between w-full"
-            >
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <div className="w-5 h-5 flex items-center justify-center">
                   <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4392,42 +4374,45 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <span className="text-xs text-muted-foreground">({leadJobs.length})</span>
                 )}
               </div>
-              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.schedule ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {!collapsedSections.schedule && (
-              <div className="mt-2">
-                {leadJobs.length === 0 ? (
-                  <button
-                    onClick={handleCreateJobClick}
-                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Create Job
-                  </button>
-                ) : (
-                  <div className="space-y-1">
-                    {leadJobs.slice(0, 3).map((job: any) => (
-                      <div key={job.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-foreground truncate">{job.title || 'Job'}</p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
-                            {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
-                          </p>
-                        </div>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2 border border-border/50">
-                          {formatJobStatus(job.status).text}
-                        </span>
+            </div>
+            <div className="mt-2">
+              {leadJobs.length === 0 ? (
+                <button
+                  onClick={handleCreateJobClick}
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Create Job
+                </button>
+              ) : (
+                <div className="space-y-1">
+                  {leadJobs.slice(0, 3).map((job: any) => (
+                    <div key={job.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-foreground truncate">{job.title || 'Job'}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
+                          {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2 border border-border/50">
+                        {formatJobStatus(job.status).text}
+                      </span>
+                    </div>
+                  ))}
+                  {leadJobs.length > 3 && (
+                    <button
+                      onClick={handleAppointmentClick}
+                      className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                    >
+                      View all {leadJobs.length} jobs
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Payments - Collapsible */}
