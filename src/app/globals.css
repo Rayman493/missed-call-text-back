@@ -326,7 +326,6 @@ html.light::-webkit-scrollbar-track {
 
 html.light::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 1);
-  border: 2px solid transparent;
   border-radius: 999px;
 }
 
@@ -350,7 +349,7 @@ html.light *::-webkit-scrollbar-track {
 
 html.light *::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 1);
-  border: 2px solid transparent;
+  border-radius: 999px;
 }
 
 html.light *::-webkit-scrollbar-thumb:hover {
