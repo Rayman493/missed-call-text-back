@@ -115,15 +115,15 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
 
       // Metric 4: Outstanding Payments
       // Definition: Payment requests with status = 'pending'
-      // Source: payment_requests table joined with leads
-      // Filter: business_id via leads, status = 'pending'
+      // Source: payment_requests table
+      // Filter: business_id, status = 'pending'
       // Edge cases: Failed, refunded, cancelled payments excluded
-      // Optimization: Use inner join via RPC or proper join query (using in() for now as payment_requests may not have direct business_id)
+      // Note: payment_requests has business_id column (confirmed from migrations)
       const { data: outstandingPayments, error: paymentsError } = await supabase
         .from('payment_requests')
-        .select('id, status, amount_cents, lead_id')
+        .select('id, status, amount_cents')
+        .eq('business_id', business.id)
         .eq('status', 'pending')
-        .in('lead_id', allLeadIds)
 
       if (paymentsError) {
         console.error('[DashboardMetrics] Error fetching payment requests:', paymentsError)
@@ -134,16 +134,16 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
 
       // Metric 5: Payments Received This Week
       // Definition: Payment requests with status = 'paid' in last 7 days
-      // Source: payment_requests table joined with leads
-      // Filter: business_id via leads, status = 'paid', paid_at >= 7 days ago
+      // Source: payment_requests table
+      // Filter: business_id, status = 'paid', paid_at >= 7 days ago
       // Edge cases: Uses paid_at (completion time), not created_at
       // Timezone: Client timezone (JavaScript Date)
       const { data: paymentsThisWeek, error: paymentsWeekError } = await supabase
         .from('payment_requests')
-        .select('id, status, paid_at, lead_id')
+        .select('id, status, paid_at, amount_cents')
+        .eq('business_id', business.id)
         .eq('status', 'paid')
         .gte('paid_at', sevenDaysAgo)
-        .in('lead_id', allLeadIds)
 
       if (paymentsWeekError) {
         console.error('[DashboardMetrics] Error fetching payments week:', paymentsWeekError)
