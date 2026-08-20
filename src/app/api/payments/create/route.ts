@@ -618,6 +618,7 @@ If you have questions, reply to this message.`
           lead_id: lead_id,
           conversation_id: conversation_id,
           source: 'payment_request',
+          skipBusinessAvailabilityAppend: true,
         })
         console.log('[PAYMENT REQUEST] SMS result:', JSON.stringify(smsResult, null, 2))
       } catch (smsError) {

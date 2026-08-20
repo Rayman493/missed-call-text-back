@@ -140,7 +140,10 @@ export async function POST(
       smsOptions.conversation_id = job.conversation_id
     }
 
-    const messageSid = await sendSms(fullBusiness, lead.caller_phone, job.message_body, smsOptions)
+    const messageSid = await sendSms(fullBusiness, lead.caller_phone, job.message_body, {
+      ...smsOptions,
+      skipBusinessAvailabilityAppend: true,
+    })
 
     if (!messageSid) {
       console.log('[SEND FOLLOWUP NOW ERROR]', { error: 'SMS send failed - no message SID returned', jobId })

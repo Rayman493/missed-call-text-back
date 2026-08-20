@@ -1512,6 +1512,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       const confirmationMessage = "You have been re-subscribed. You will receive messages again."
       const messageSid = await sendSms(business, from, confirmationMessage, {
         lead_id: lead.id,
+        skipBusinessAvailabilityAppend: true,
       })
 
       if (messageSid) {
@@ -1552,11 +1553,12 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     
     console.log(`[SMS Processing] Cancelled ${jobsCancelledCount} follow-up jobs for opted-out lead: ${lead.id}`)
     
-    // Only send confirmation reply for real Twilio messages, not dev simulations
+    // Only send reply for real Twilio messages, not dev simulations
     if (source === 'twilio') {
       const confirmationMessage = "You have been unsubscribed. You will no longer receive messages."
       const messageSid = await sendSms(business, from, confirmationMessage, {
         lead_id: lead.id,
+        skipBusinessAvailabilityAppend: true,
       })
 
       if (messageSid) {

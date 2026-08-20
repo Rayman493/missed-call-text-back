@@ -221,7 +221,8 @@ export async function POST(request: Request) {
 
       const messageSid = await sendSms(business, normalizedDemoPhone, autoReplyMessage, {
         lead_id: demoLead.id,
-        conversation_id: conversation.id
+        conversation_id: conversation.id,
+        skipBusinessAvailabilityAppend: true,
       })
 
       if (messageSid) {
