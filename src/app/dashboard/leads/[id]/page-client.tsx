@@ -3838,9 +3838,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {!isMobileView && (
           <div className="grid grid-cols-[minmax(0,3fr)_minmax(320px,380px)] gap-8 h-full min-h-0">
             {/* Desktop Conversation Section - Primary workspace */}
-            <section className="flex flex-col h-full min-h-0 bg-background rounded-xl border border-border/50 shadow-sm overflow-hidden">
+            <section className="flex flex-col h-full min-h-0 bg-background rounded-xl border border-slate-200 dark:border-border/50 shadow-sm overflow-hidden">
               {/* Desktop Conversation Header */}
-              <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b border-border/30 bg-muted/40">
+              <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b border-slate-200/70 dark:border-border/30 bg-muted/40">
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-semibold text-foreground/90">Conversation</h2>
                 </div>
@@ -3969,7 +3969,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                           {/* Customer Summary */}
                           {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
-                            <div className="bg-muted/30 rounded-xl border border-border/30 p-4">
+                            <div className="bg-muted/30 rounded-xl border border-slate-200/80 dark:border-border/30 p-4">
                               <VoicemailSummary leadData={leadData} triggerEdit={triggerEditCustomerDetails} />
                             </div>
                           )}
@@ -3987,7 +3987,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
                             {/* Jobs */}
                             {leadJobs.map((job: any) => (
-                              <div key={job.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg transition-all duration-200">
+                              <div key={job.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200">
                                 <div className="flex-shrink-0 w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center">
                                   <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -4000,14 +4000,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                     {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
                                   </p>
                                 </div>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-border/30">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-slate-200/60 dark:border-border/30">
                                   {formatJobStatus(job.status).text}
                                 </span>
                               </div>
                             ))}
                             {/* Tasks */}
                             {leadTasks.map((task: any) => (
-                              <div key={task.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg transition-all duration-200">
+                              <div key={task.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200">
                                 <div className="flex-shrink-0 w-6 h-6 rounded bg-purple-500/10 flex items-center justify-center">
                                   <svg className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -4020,7 +4020,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                     {task.due_time ? ` • ${task.due_time}` : ''}
                                   </p>
                                 </div>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-border/30">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-slate-200/60 dark:border-border/30">
                                   {task.completed ? 'Done' : 'Open'}
                                 </span>
                               </div>

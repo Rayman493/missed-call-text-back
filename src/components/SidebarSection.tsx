@@ -30,8 +30,8 @@ export function SidebarSection({
   className = ''
 }: SidebarSectionProps) {
   return (
-    <div className={`bg-muted/20 rounded-lg border border-border/40 ${className}`}>
-      <div className="px-4 py-3 border-b border-border/30">
+    <div className={`bg-muted/20 rounded-lg border border-slate-200 dark:border-border/40 ${className}`}>
+      <div className="px-4 py-3 border-b border-slate-200/70 dark:border-border/30">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             {icon && <div className="text-muted-foreground/70">{icon}</div>}
