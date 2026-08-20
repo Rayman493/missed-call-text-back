@@ -36,6 +36,7 @@
     "@upstash/ratelimit": "^2.0.8",
     "autoprefixer": "^10.5.0",
     "capacitor-native-settings": "^8.2.0",
+    "date-fns-tz": "^3.2.0",
     "dotenv": "^17.4.2",
     "firebase-admin": "^14.2.0",
     "framer-motion": "^12.38.0",

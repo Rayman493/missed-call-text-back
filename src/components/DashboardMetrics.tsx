@@ -6,6 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { useRouter } from 'next/navigation'
 import { Users, MessageSquareReply, CheckSquare, Calendar, DollarSign, CreditCard, Loader2, AlertCircle, Phone } from 'lucide-react'
 import MetricCard from '@/components/MetricCard'
+import { getBusinessDayStart, getBusinessLocalDateString, getBusinessDaysAgo, getBusinessDaysAgoRelative, getBusinessMonthStart } from '@/lib/business-date-utils'
 
 interface DashboardMetricsProps {
   business: Business | null
@@ -36,15 +37,16 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
     setError(false)
     try {
       const supabase = createBrowserClient()
-      
-      // Time windows - using client timezone
+
+      // Time windows - using business timezone for business-facing metrics
+      const businessTimezone = business.business_hours_timezone || 'UTC'
       const now = new Date()
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
-      const todayStartISO = todayStart.toISOString()
-      const todayStr = todayStart.toLocaleDateString('en-CA') // YYYY-MM-DD
-      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString()
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      const todayStartISO = getBusinessDayStart(businessTimezone, now)
+      const todayStart = new Date(todayStartISO)
+      const todayStr = getBusinessLocalDateString(businessTimezone, now) // YYYY-MM-DD for DATE columns
+      const sevenDaysAgo = getBusinessDaysAgoRelative(businessTimezone, 7, now)
+      const monthStart = getBusinessMonthStart(businessTimezone, now)
+      const thirtyDaysAgo = getBusinessDaysAgoRelative(businessTimezone, 30, now)
 
       // Fetch all business leads once for use in joins (N+1 prevention)
       const { data: allBusinessLeads, error: leadsError } = await supabase
@@ -77,7 +79,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       // Definition: Tasks with due_date = today and completed = false
       // Source: tasks table
       // Filter: business_id, due_date = today (YYYY-MM-DD), completed = false
-      // Timezone: Client timezone (toLocaleDateString 'en-CA')
+      // Timezone: Business timezone (business_hours_timezone)
       // Edge cases: Overdue tasks with due_date < today are excluded (only today's tasks)
       const { data: tasksDueToday, error: tasksError } = await supabase
         .from('tasks')
@@ -98,7 +100,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       // Source: jobs table
       // Filter: business_id, scheduled_date = today (YYYY-MM-DD)
       // Edge cases: Cancelled jobs not excluded at database level (may need review)
-      // Timezone: Client timezone (toLocaleDateString 'en-CA')
+      // Timezone: Business timezone (business_hours_timezone)
       const { data: jobsToday, error: jobsError } = await supabase
         .from('jobs')
         .select('id, scheduled_date, status')
@@ -137,7 +139,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       // Source: payment_requests table
       // Filter: business_id, status = 'paid', paid_at >= 7 days ago
       // Edge cases: Uses paid_at (completion time), not created_at
-      // Timezone: Client timezone (JavaScript Date)
+      // Timezone: Business timezone (business_hours_timezone)
       const { data: paymentsThisWeek, error: paymentsWeekError } = await supabase
         .from('payment_requests')
         .select('id, status, paid_at, amount_cents')
@@ -188,7 +190,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       // Definition: Total revenue from paid payments in current month
       // Source: payment_requests table
       // Filter: business_id, status = 'paid', paid_at >= monthStart
-      // Timezone: Client timezone
+      // Timezone: Business timezone (business_hours_timezone)
       const { data: paymentsThisMonth, error: paymentsMonthError } = await supabase
         .from('payment_requests')
         .select('id, status, paid_at, amount_cents')
@@ -208,7 +210,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       // Definition: Leads created from AI voice intake (missed calls) in last 30 days
       // Source: leads table
       // Filter: business_id, created_at >= 30 days ago, raw_metadata.source = 'voice'
-      // Timezone: Client timezone
+      // Timezone: Business timezone (business_hours_timezone)
       const voiceLeadsCount = allBusinessLeads?.filter((l: any) => {
         const createdAt = new Date(l.created_at)
         const isRecent = createdAt >= new Date(thirtyDaysAgo)
