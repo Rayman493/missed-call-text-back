@@ -1329,15 +1329,15 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                               <td colSpan={9} className="px-4 py-2 border-t border-border/50">
                                 <button
                                   onClick={() => setShowOlderPayments(!showOlderPayments)}
-                                  className="w-full flex items-center justify-between gap-3 hover:bg-muted/50 dark:hover:bg-slate-800/30 transition-colors py-2"
+                                  className="w-full flex items-center pr-4 hover:bg-muted/50 dark:hover:bg-slate-800/30 transition-colors py-2"
                                   aria-expanded={showOlderPayments}
                                   aria-label={`Show ${olderPayments.length} older payments`}
                                 >
-                                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                  <span className="flex-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Older payments ({olderPayments.length})
                                   </span>
                                   <ChevronDown
-                                    className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                                    className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ml-auto ${
                                       showOlderPayments ? 'rotate-180' : ''
                                     }`}
                                   />
