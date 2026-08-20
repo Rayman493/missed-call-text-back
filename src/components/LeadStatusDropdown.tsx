@@ -107,10 +107,10 @@ export default function LeadStatusDropdown({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onClick={handleClick}
-          className={`${sizeClasses[size]} ${currentStyle.iconClass} border rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-80 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary/50`}
+          className={`${sizeClasses[size]} bg-background dark:bg-slate-800/50 border border-border dark:border-border/50 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-80 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary/50`}
         >
-          <StatusIcon className="w-3.5 h-3.5 flex-shrink-0" />
-          <span className="truncate">{currentStyle.label}</span>
+          <StatusIcon className={`w-3.5 h-3.5 flex-shrink-0 ${currentStyle.textClass}`} />
+          <span className={`truncate ${currentStyle.textClass}`}>{currentStyle.label}</span>
           {isUpdating ? (
             <div className="animate-spin rounded-full h-3 w-3 border-b border-current flex-shrink-0"></div>
           ) : (
@@ -137,11 +137,11 @@ export default function LeadStatusDropdown({
             left: 12,
           }}
           avoidCollisions
-          className="w-[260px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-140px))] bg-popover/90 backdrop-blur-md border border-border/30 rounded-lg shadow-[0_2px_8px_rgb(0,0,0,0.06),0_1px_2px_rgb(0,0,0,0.04)] overflow-y-auto overscroll-contain z-[10000]"
+          className="w-[260px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-140px))] bg-popover border border-border rounded-lg shadow-lg shadow-black/10 overflow-y-auto overscroll-contain z-[10000]"
         >
           {/* Section Label */}
           <div className="px-2.5 py-1.5">
-            <div className="px-0.5 py-0.5 text-[9px] font-medium text-muted-foreground/50 uppercase tracking-[0.12em]">
+            <div className="px-0.5 py-0.5 text-[9px] font-medium text-muted-foreground uppercase tracking-[0.12em]">
               Status
             </div>
           </div>
@@ -159,19 +159,19 @@ export default function LeadStatusDropdown({
                   onSelect={() => handleStatusSelect(status)}
                   onPointerDown={(e) => e.stopPropagation()}
                   disabled={isUpdating}
-                  className={`w-full px-2 py-1.5 text-left hover:bg-accent/30 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-accent/30 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? statusStyle.selectedClass : ''}`}
+                  className={`w-full px-2.5 py-2 text-left transition-colors flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed outline-none cursor-pointer rounded-md min-h-[40px] group ${isSelected ? 'bg-muted/80' : 'hover:bg-muted/40'}`}
                 >
-                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusStyle.iconClass} group-hover:opacity-80 transition-opacity`}>
+                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusStyle.iconClass} group-hover:opacity-90 transition-opacity`}>
                     <Icon className="w-3.5 h-3.5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className={`text-sm font-medium ${statusStyle.textClass}`}>
+                    <div className="text-sm font-medium text-foreground">
                       {statusStyle.label}
                     </div>
                   </div>
                   {isSelected && (
                     <div className="flex-shrink-0">
-                      <Check className={`w-3.5 h-3.5 ${statusStyle.textClass}`} />
+                      <Check className="w-3.5 h-3.5 text-foreground" />
                     </div>
                   )}
                 </DropdownMenuItem>
