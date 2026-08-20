@@ -417,7 +417,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
 
               return (
                 <Link key={lead.id} href={`/dashboard/leads/${lead.id}`}>
-                  <div className={`flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group relative overflow-hidden ${statusStyle.cardClass}`}>
+                  <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group relative overflow-hidden bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30">
                     {/* Status accent strip */}
                     <div className="absolute left-0 top-2 bottom-2 w-0.5 rounded-r-full" style={{ backgroundColor: statusStyle.color }}></div>
                     <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
@@ -442,16 +442,16 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                         <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${statusDisplay.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : statusDisplay.color === 'green' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : statusDisplay.color === 'amber' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
                           {statusDisplay.text}
                         </span>
-                        <span className="text-[10px] text-slate-600 dark:text-slate-500 flex-shrink-0">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-500 flex-shrink-0">
                           {formatRelativeTime(lead.created_at)}
                         </span>
                         {currentJob && (
-                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium flex-shrink-0">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-500 flex-shrink-0">
                             • Active Job
                           </span>
                         )}
                         {nextFollowUp && !currentJob && (
-                          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium flex-shrink-0">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-500 flex-shrink-0">
                             • {formatFollowUpTime(nextFollowUp.time)}
                           </span>
                         )}
