@@ -277,7 +277,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           color: 'text-emerald-600 dark:text-emerald-400',
           bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
           href: '/dashboard/payments',
-          description: 'This week'
+          description: 'Last 7 days'
         },
         {
           id: 'revenue-month',
