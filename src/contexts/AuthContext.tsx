@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const initialLoadRef = useRef(true)
   const lastSignInTimeRef = useRef<number>(0)
+  const manualSignOutInProgressRef = useRef(false)
 
   useEffect(() => {
     setIsClient(true)
@@ -243,24 +244,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Track sign-in time to prevent race condition with delayed stale SIGNED_OUT events
           lastSignInTimeRef.current = Date.now()
         }
-        
+
         // Prevent race condition: ignore SIGNED_OUT events within 2 seconds of a sign-in
         // This handles the case where a stale refresh request fails after a fresh sign-in
+        // EXCEPTION: Always honor explicit manual sign-out, regardless of 2-second window
         if (event === 'SIGNED_OUT' && !session) {
-          const timeSinceSignIn = Date.now() - lastSignInTimeRef.current
-          if (timeSinceSignIn < 2000) {
-            console.log('[ACCOUNT_CREATION_LIFECYCLE] signed_out ignored (within 2s of sign-in)', {
+          // If this is a manual sign-out, always process it
+          if (manualSignOutInProgressRef.current) {
+            console.log('[ACCOUNT_CREATION_LIFECYCLE] signed_out processing (manual sign-out)', {
+              pathname,
+              timestamp: Date.now()
+            })
+            // Reset the flag after processing
+            manualSignOutInProgressRef.current = false
+          } else {
+            // For spontaneous/racy SIGNED_OUT events, apply 2-second protection
+            const timeSinceSignIn = Date.now() - lastSignInTimeRef.current
+            if (timeSinceSignIn < 2000) {
+              console.log('[ACCOUNT_CREATION_LIFECYCLE] signed_out ignored (within 2s of sign-in)', {
+                timeSinceSignIn,
+                pathname,
+                timestamp: Date.now()
+              })
+              return // Don't clear the fresh session
+            }
+            console.log('[ACCOUNT_CREATION_LIFECYCLE] signed_out processing', {
               timeSinceSignIn,
               pathname,
               timestamp: Date.now()
             })
-            return // Don't clear the fresh session
           }
-          console.log('[ACCOUNT_CREATION_LIFECYCLE] signed_out processing', {
-            timeSinceSignIn,
-            pathname,
-            timestamp: Date.now()
-          })
         }
         
         if (session) {
@@ -359,6 +372,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async (options?: { manual?: boolean }) => {
     const isManualLogout = options?.manual !== false // Default to true if not specified
 
+    // Mark manual sign-out intent BEFORE calling Supabase to ensure SIGNED_OUT is honored
+    if (isManualLogout) {
+      manualSignOutInProgressRef.current = true
+    }
+
     try {
       // Clear any credential-related form data from session storage
       if (typeof window !== 'undefined') {
@@ -437,6 +455,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('[LOGOUT] Sign out error:', error)
+    } finally {
+      // Always reset the manual sign-out flag to prevent it from getting stuck
+      if (isManualLogout) {
+        manualSignOutInProgressRef.current = false
+      }
     }
   }
 
