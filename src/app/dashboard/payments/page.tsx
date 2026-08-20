@@ -879,7 +879,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             </div>
 
             {/* Payment Requests Table - Mobile cards, Desktop table */}
-            <div className="bg-card dark:bg-[#1e293b] rounded-2xl border border-border/80 dark:border-slate-700/80 overflow-hidden shadow-sm dark:shadow-[0_6px_18px_rgba(0,0,0,0.20)]">
+            <div className="bg-card dark:bg-[#1e293b] rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-sm dark:shadow-[0_6px_18px_rgba(0,0,0,0.20)]">
               {/* Mobile card view */}
               <div className="md:hidden space-y-2.5 p-3">
                 {paymentRequests.length === 0 ? (
@@ -1185,7 +1185,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               {/* Desktop table view */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-muted/30 dark:bg-[#0f172a]">
+                  <thead className="bg-slate-50 dark:bg-[#0f172a]">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Customer
@@ -1354,22 +1354,22 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                           </tr>
                         ))}
 
-                        {/* Expandable older payments row */}
+                        {/* Expandable older payments section */}
                         {olderPayments.length > 0 && (
                           <>
                             <tr>
-                              <td colSpan={9} className="px-4 py-0">
+                              <td colSpan={9} className="px-4 py-2 border-t border-border/50">
                                 <button
                                   onClick={() => setShowOlderPayments(!showOlderPayments)}
-                                  className="w-full bg-muted/50 dark:bg-[#0f172a] rounded-lg p-3 border border-border dark:border-slate-700 flex items-center justify-between gap-3 hover:bg-muted dark:hover:bg-[#1a2235] transition-colors"
+                                  className="w-full flex items-center justify-between gap-3 hover:bg-muted/50 dark:hover:bg-slate-800/30 transition-colors py-2"
                                   aria-expanded={showOlderPayments}
                                   aria-label={`Show ${olderPayments.length} older payments`}
                                 >
-                                  <span className="text-sm font-medium text-foreground">
+                                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Older payments ({olderPayments.length})
                                   </span>
                                   <ChevronDown
-                                    className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${
+                                    className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
                                       showOlderPayments ? 'rotate-180' : ''
                                     }`}
                                   />
@@ -1387,7 +1387,10 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                     </span>
                                   </div>
                                 </td>
-                                <td className="px-4 py-3 text-muted-foreground text-sm">
+                                <td className="px-4 py-3 text-muted-foreground text-sm max-w-[220px] truncate">
+                                  {getPaymentDescription(payment)}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-muted-foreground text-sm">
                                   {payment.leads ? formatPhoneNumber(payment.leads.caller_phone) : '-'}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap text-foreground font-semibold text-sm">
@@ -1395,9 +1398,6 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   {getPaymentMethodBadge(payment.payment_method_type, payment.payment_provider)}
-                                </td>
-                                <td className="px-4 py-3 text-muted-foreground text-sm max-w-[220px] truncate">
-                                  {getPaymentDescription(payment)}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
@@ -1478,17 +1478,6 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                           Check Status
                                         </button>
                                       )}
-                                    {payment.status === 'pending' && payment.payment_method_type === 'card_present' && (
-                                      <button
-                                        onClick={() => handleCheckStatus(payment)}
-                                        disabled={isReconciling}
-                                        className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 text-xs font-medium transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                        aria-label="Check payment status"
-                                      >
-                                        <RefreshCw className={`h-3.5 w-3.5 ${isReconciling ? 'animate-spin' : ''}`} />
-                                        Check Status
-                                      </button>
-                                    )}
                                   </div>
                                   {payment.status === 'pending' && (
                                       <button
