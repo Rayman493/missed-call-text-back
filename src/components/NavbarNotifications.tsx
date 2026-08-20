@@ -485,7 +485,7 @@ export default function NavbarNotifications() {
 
         {/* Unread Badge - Only show when displayedUnreadCount > 0 */}
         {displayedUnreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 h-5 min-w-[1.25rem] px-1 flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600 text-white text-[10px] font-bold rounded-full shadow-lg shadow-blue-500/30 ring-2 ring-slate-900">
+          <span className="absolute -top-0.5 -right-0.5 h-5 min-w-[1.25rem] px-1 flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600 text-white text-[10px] font-bold rounded-full shadow-lg shadow-blue-500/30 ring-2 ring-blue-200/50 dark:ring-slate-700">
             {displayedUnreadCount > 99 ? '99+' : displayedUnreadCount}
           </span>
         )}

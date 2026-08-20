@@ -2144,7 +2144,7 @@ export default function SettingsContent() {
                     aria-current={activeSection === section.id ? 'location' : undefined}
                     className={`px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                       activeSection === section.id
-                        ? 'bg-foreground text-background shadow-sm'
+                        ? 'bg-blue-50 text-blue-700 dark:bg-slate-800 dark:text-white'
                         : 'text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
