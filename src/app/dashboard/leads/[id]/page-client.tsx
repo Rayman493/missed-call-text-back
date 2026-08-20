@@ -624,13 +624,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Get the correct container based on viewport size
     const isDesktop = window.innerWidth >= 1024
     const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
-    
+
     if (!container) {
       return
     }
 
-    // Only scroll if user is near bottom (within 200px) or if forced
-    const scrollThreshold = 200
+    // Use smaller threshold for mobile (40px) vs desktop (200px) for better mobile UX
+    const scrollThreshold = isDesktop ? 200 : 40
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
 
     // Force scroll on initial load regardless of scroll position
@@ -688,11 +688,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Only scroll if user is near bottom (don't force scroll if user is reading older messages)
     const isDesktop = window.innerWidth >= 1024
     const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
-    
+
     if (container) {
-      const scrollThreshold = 200
+      const scrollThreshold = isDesktop ? 200 : 40
       const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
-      
+
       if (isNearBottom) {
         scrollToBottom('auto', false)
       }
@@ -1082,36 +1082,80 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
   const latestMessageStatus = latestMessage?.status || 'No messages'
 
-  // Scroll to bottom after messages load
+  // Scroll to bottom after messages load with ResizeObserver for dynamic content
   useEffect(() => {
     if (!loading && messagesArray.length > 0 && !hasScrolledToBottomOnLoad) {
       // Set initial scroll not ready to hide message pane during scroll
       setInitialScrollReady(false)
-      
+
       // Guard against SSR
       if (typeof window === 'undefined') {
         return
       }
-      
+
       const isDesktop = window.innerWidth >= 1024
       const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
-      
+
       // Set initial auto-scrolling flag to prevent other scroll effects from interfering
       isInitialAutoScrollingRef.current = true
-      
+
       if (!container) {
         return
       }
-      
-      // Use requestAnimationFrame + setTimeout + scrollTop for deterministic scroll
+
+      let resizeObserver: ResizeObserver | null = null
+      let scrollTimeout: NodeJS.Timeout | null = null
+
+      const scrollToBottomNow = () => {
+        if (container) {
+          container.scrollTop = container.scrollHeight
+        }
+      }
+
+      // Initial scroll
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            container.scrollTop = container.scrollHeight
-            // Don't set hasScrolledToBottomOnLoad yet - wait for media fetch final scroll
-          }, 200)
-        })
+        scrollToBottomNow()
       })
+
+      // Set up ResizeObserver to detect content height changes (images, transcription, audio)
+      if (typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            // If user is still near bottom during content resize, scroll to bottom
+            const scrollThreshold = isDesktop ? 200 : 40
+            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
+
+            if (isNearBottom) {
+              scrollToBottomNow()
+            }
+          }
+        })
+
+        // Observe the container for height changes
+        resizeObserver.observe(container)
+      }
+
+      // Cleanup function
+      const cleanup = () => {
+        if (resizeObserver) {
+          resizeObserver.disconnect()
+        }
+        if (scrollTimeout) {
+          clearTimeout(scrollTimeout)
+        }
+        // Mark initial scroll complete after a reasonable delay
+        isInitialAutoScrollingRef.current = false
+        setHasScrolledToBottomOnLoad(true)
+        setInitialScrollReady(true)
+      }
+
+      // Set a timeout to complete initial scroll (fallback for text-only conversations)
+      scrollTimeout = setTimeout(() => {
+        scrollToBottomNow()
+        cleanup()
+      }, 300)
+
+      return cleanup
     }
   }, [loading, messagesArray.length, hasScrolledToBottomOnLoad])
 
@@ -1186,37 +1230,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }, [params.id])
 
-  // Final scroll after media fetch completes during initial load
-  useEffect(() => {
-    // Only run final scroll during initial auto-scrolling phase
-    if (isInitialAutoScrollingRef.current && Object.keys(messageMedia).length > 0 && !hasScrolledToBottomOnLoad) {
-      // Guard against SSR
-      if (typeof window === 'undefined') {
-        return
-      }
-      
-      const isDesktop = window.innerWidth >= 1024
-      const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
-      
-      if (!container) {
-        return
-      }
-      
-      // Use double requestAnimationFrame + 100ms timeout for final scroll
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            container.scrollTop = container.scrollHeight
-            
-            // Clear initial auto-scrolling flag and mark initial scroll complete
-            isInitialAutoScrollingRef.current = false
-            setHasScrolledToBottomOnLoad(true)
-            setInitialScrollReady(true)
-          }, 100)
-        })
-      })
-    }
-  }, [messageMedia, hasScrolledToBottomOnLoad])
+  // Final scroll after media fetch completes during initial load (removed - now handled by ResizeObserver)
 
   // Scroll to bottom when messages array changes (for MMS refresh and realtime updates)
   useEffect(() => {
@@ -1225,15 +1239,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       if (typeof window === 'undefined') {
         return
       }
-      
+
       // Only scroll if we're near bottom or if this is after a refresh
       const isDesktop = window.innerWidth >= 1024
       const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
-      
+
       if (container) {
-        const scrollThreshold = 200
+        const scrollThreshold = isDesktop ? 200 : 40
         const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
-        
+
         if (isNearBottom) {
           // Use double requestAnimationFrame to ensure React has finished rendering
           requestAnimationFrame(() => {
@@ -1252,10 +1266,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (typeof window === 'undefined') {
       return
     }
-    
+
     const isDesktop = window.innerWidth >= 1024
     const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
-    
+
     if (!container) return
 
     const handleScroll = () => {
@@ -1263,19 +1277,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       if (isInitialAutoScrollingRef.current) {
         return
       }
-      
-      const scrollThreshold = 200
+
+      const scrollThreshold = isDesktop ? 200 : 40
       const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
       setShowJumpButton(!isNearBottom && messagesArray.length > 0)
     }
 
     container.addEventListener('scroll', handleScroll)
-    
+
     // Only check initial position if not during initial auto-scrolling
     if (!isInitialAutoScrollingRef.current) {
       handleScroll()
     }
-    
+
     return () => container.removeEventListener('scroll', handleScroll)
   }, [messagesArray.length])
 
@@ -1285,16 +1299,60 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (typeof window === 'undefined') {
       return
     }
-    
+
     const checkViewport = () => {
       setIsMobileView(window.innerWidth < 1024) // lg breakpoint
     }
-    
+
     checkViewport()
     window.addEventListener('resize', checkViewport)
-    
+
     return () => window.removeEventListener('resize', checkViewport)
   }, [])
+
+  // Handle keyboard resize on mobile - maintain scroll position
+  useEffect(() => {
+    // Guard against SSR and desktop
+    if (typeof window === 'undefined' || window.innerWidth >= 1024) {
+      return
+    }
+
+    const container = mobileConversationContainerRef.current
+    if (!container) return
+
+    let previousHeight = window.visualViewport?.height || window.innerHeight
+
+    const handleResize = () => {
+      const currentHeight = window.visualViewport?.height || window.innerHeight
+      const heightDiff = Math.abs(previousHeight - currentHeight)
+
+      // Only respond to significant height changes (keyboard open/close)
+      if (heightDiff > 100) {
+        const isDesktop = window.innerWidth >= 1024
+        const scrollThreshold = isDesktop ? 200 : 40
+        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
+
+        // If user was near bottom before keyboard resize, scroll to bottom after resize
+        if (isNearBottom) {
+          requestAnimationFrame(() => {
+            container.scrollTop = container.scrollHeight
+          })
+        }
+      }
+
+      previousHeight = currentHeight
+    }
+
+    // Use visualViewport API for keyboard resize detection (more accurate on mobile)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize)
+      return () => window.visualViewport?.removeEventListener('resize', handleResize)
+    } else {
+      // Fallback to window resize
+      window.addEventListener('resize', handleResize)
+      return () => window.removeEventListener('resize', handleResize)
+    }
+  }, [messagesArray.length])
 
   const followUpJobs = leadData?.followUpJobs || []
   const hasCancelledFollowUps = followUpJobs.some((job: any) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied')
