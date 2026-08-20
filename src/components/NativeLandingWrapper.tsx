@@ -74,9 +74,10 @@ export default function NativeLandingWrapper({ children }: { children: React.Rea
   }, [pathname, user, authLoading, router])
 
   // If we haven't determined environment yet, show loading
+  // This is for the public marketing homepage - always dark
   if (isNative === null) {
     return (
-      <div className="fixed inset-0 z-50 bg-background dark:bg-slate-950 flex items-center justify-center">
+      <div className="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center">
         <div className="w-10 h-10 border-4 border-blue-600/30 border-t-blue-600 border-solid rounded-full animate-spin"></div>
       </div>
     )
