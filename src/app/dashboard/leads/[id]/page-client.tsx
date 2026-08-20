@@ -697,16 +697,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  const validateImageFile = (file: File): { valid: boolean; error?: string } => {
-    // Check file type - Twilio MMS only supports JPEG, PNG, GIF
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+  const validateAttachmentFile = (file: File): { valid: boolean; error?: string } => {
+    // Check file type - Twilio MMS supports JPEG, PNG, GIF, PDF, CSV, MP4
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf', 'text/csv', 'video/mp4']
     if (!validTypes.includes(file.type)) {
-      return { valid: false, error: 'WEBP images are not supported for MMS. Please upload a JPG or PNG.' }
+      return { valid: false, error: 'This file type isn\'t supported yet. Attach a PDF, CSV, JPG, PNG, GIF, or MP4.' }
     }
 
-    // Check file size (5MB max)
-    const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+    // Check file size based on type
+    const isDocument = file.type === 'application/pdf' || file.type === 'text/csv'
+    const isVideo = file.type === 'video/mp4'
+    const maxSize = isDocument || isVideo ? 600 * 1024 : 5 * 1024 * 1024 // 600KB for docs/videos, 5MB for images
+
     if (file.size > maxSize) {
+      if (isDocument) {
+        return { valid: false, error: 'PDF and CSV attachments must be 600 KB or smaller.' }
+      }
+      if (isVideo) {
+        return { valid: false, error: 'Videos must be 600 KB or smaller.' }
+      }
       return { valid: false, error: 'Image must be less than 5MB' }
     }
 
@@ -727,7 +736,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
 
     Array.from(files).forEach(file => {
-      const validation = validateImageFile(file)
+      const validation = validateAttachmentFile(file)
       if (validation.valid) {
         validFiles.push(file)
       } else {
@@ -4268,7 +4277,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <input
                         ref={mobileFileInputRef}
                         type="file"
-                        accept="image/jpeg,image/png,image/gif"
+                        accept="image/jpeg,image/png,image/gif,application/pdf,text/csv,video/mp4,.mp4"
                         multiple
                         onChange={handleMobileImageSelect}
                         className="hidden"

@@ -206,6 +206,7 @@ export interface MessageMedia {
   created_at: string;
   isLocalPreview?: boolean;
   filename?: string;
+  size?: number;
 }
 
 export interface CallEvent {

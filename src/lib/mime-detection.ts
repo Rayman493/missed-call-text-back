@@ -2,6 +2,10 @@
  * MIME Detection Utility
  * Detects actual MIME type from file magic bytes (file signature)
  * to prevent mislabeled files from causing issues with Twilio MMS
+ *
+ * Supported types:
+ * - Images: JPEG, PNG, GIF (5MB max)
+ * - Documents: PDF, CSV (600KB max)
  */
 
 export interface MimeTypeDetection {
@@ -27,6 +31,11 @@ const SIGNATURES: Record<string, { signature: number[]; mimeType: string; extens
     signature: [0x47, 0x49, 0x46, 0x38],
     mimeType: 'image/gif',
     extension: 'gif'
+  },
+  PDF: {
+    signature: [0x25, 0x50, 0x44, 0x46], // %PDF
+    mimeType: 'application/pdf',
+    extension: 'pdf'
   },
   WEBP: {
     signature: [0x52, 0x49, 0x46, 0x46],
@@ -82,10 +91,44 @@ export async function detectMimeType(file: File): Promise<MimeTypeDetection> {
     }
   }
   
+  // CSV validation: check if it's a text file with .csv extension
+  const extension = getExtensionFromFilename(file.name)
+  if (extension === 'csv' && (file.type === 'text/csv' || file.type === 'text/plain' || !file.type)) {
+    // Verify it's not obviously binary by checking for null bytes and excessive control characters
+    // Allow UTF-8 bytes (which can be > 127) but reject obvious binary/executable content
+    const hasNullBytes = bytes.includes(0)
+    const hasExcessiveControlChars = bytes.filter(b => b < 32 && b !== 9 && b !== 10 && b !== 13).length > 2
+
+    if (!hasNullBytes && !hasExcessiveControlChars) {
+      return {
+        detectedMimeType: 'text/csv',
+        canonicalExtension: 'csv',
+        byteSignatureValid: true,
+        signature: signatureHex
+      }
+    }
+  }
+
+  // Video validation: check extension and reported MIME type
+  // Video byte signatures are complex, so we use extension + MIME type validation
+  if (extension === 'mp4' && (file.type === 'video/mp4' || file.type === 'video/mpeg' || !file.type)) {
+    // Verify it's not obviously binary by checking for null bytes
+    const hasNullBytes = bytes.includes(0)
+
+    if (!hasNullBytes) {
+      return {
+        detectedMimeType: 'video/mp4',
+        canonicalExtension: 'mp4',
+        byteSignatureValid: true,
+        signature: signatureHex
+      }
+    }
+  }
+
   // Unknown signature - return the reported type but mark as invalid
   return {
     detectedMimeType: file.type || 'application/octet-stream',
-    canonicalExtension: getExtensionFromFilename(file.name),
+    canonicalExtension: extension,
     byteSignatureValid: false,
     signature: signatureHex
   }
@@ -101,10 +144,37 @@ function getExtensionFromFilename(filename: string): string {
 
 /**
  * Check if MIME type is supported by Twilio MMS
+ * Images: JPEG, PNG, GIF (5MB max)
+ * Documents: PDF, CSV (600KB max)
+ * Video: MP4 (600KB max - more carrier-sensitive)
  */
 export function isSupportedMimeType(mimeType: string): boolean {
-  const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+  const supportedTypes = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/gif',
+    'application/pdf',
+    'text/csv',
+    'video/mp4'
+  ]
   return supportedTypes.includes(mimeType.toLowerCase())
+}
+
+/**
+ * Check if MIME type is a document (vs image/video)
+ */
+export function isDocumentMimeType(mimeType: string): boolean {
+  const documentTypes = ['application/pdf', 'text/csv']
+  return documentTypes.includes(mimeType.toLowerCase())
+}
+
+/**
+ * Check if MIME type is a video
+ */
+export function isVideoMimeType(mimeType: string): boolean {
+  const videoTypes = ['video/mp4']
+  return videoTypes.includes(mimeType.toLowerCase())
 }
 
 /**
@@ -112,13 +182,7 @@ export function isSupportedMimeType(mimeType: string): boolean {
  * Returns error message if invalid, null if valid
  */
 export async function validateMMSFile(file: File): Promise<string | null> {
-  // Check file size (5MB max)
-  const maxSize = 5 * 1024 * 1024
-  if (file.size > maxSize) {
-    return 'Image must be less than 5MB'
-  }
-  
-  // Detect actual MIME type from bytes
+  // Detect actual MIME type from bytes first
   const detection = await detectMimeType(file)
   
   console.log('[MIME Detection] File analysis:', {
@@ -133,10 +197,26 @@ export async function validateMMSFile(file: File): Promise<string | null> {
   
   // Check if detected type is supported
   if (!isSupportedMimeType(detection.detectedMimeType)) {
+    // Special error message for WEBP since it was previously supported
     if (detection.detectedMimeType === 'image/webp') {
-      return 'WEBP images are not supported for MMS. Please upload a JPG or PNG.'
+      return 'WEBP images are not supported for MMS. Please upload a JPG, PNG, GIF, PDF, CSV, or MP4.'
     }
-    return `Unsupported image format: ${detection.detectedMimeType}. Please use JPG, PNG, or GIF.`
+    return `This file type isn't supported yet. Attach a PDF, CSV, JPG, PNG, GIF, or MP4.`
+  }
+
+  // Check file size based on type
+  const isDocument = isDocumentMimeType(detection.detectedMimeType)
+  const isVideo = isVideoMimeType(detection.detectedMimeType)
+  const maxSize = isDocument || isVideo ? 600 * 1024 : 5 * 1024 * 1024 // 600KB for docs/videos, 5MB for images
+
+  if (file.size > maxSize) {
+    if (isDocument) {
+      return 'PDF and CSV attachments must be 600 KB or smaller.'
+    }
+    if (isVideo) {
+      return 'Videos must be 600 KB or smaller.'
+    }
+    return 'Image must be less than 5MB'
   }
   
   // Check if reported type matches detected type

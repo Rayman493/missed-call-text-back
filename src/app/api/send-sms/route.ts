@@ -9,7 +9,7 @@ import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-g
 import { generateMmsMediaToken } from '@/lib/mms-media-token';
 import { assertValidOutboundMmsMediaUrls } from '@/lib/mms-url-validator';
 import { createMmsMediaAccessUrl } from '@/lib/mms-media-url-helper';
-import { detectMimeType, isSupportedMimeType } from '@/lib/mime-detection';
+import { detectMimeType, isSupportedMimeType, isDocumentMimeType, isVideoMimeType } from '@/lib/mime-detection';
 
 export const dynamic = 'force-dynamic';
 
@@ -205,13 +205,34 @@ export async function POST(request: Request) {
     let mediaUrls: string[] = []
     let mediaStoragePaths: string[] = [] // Track storage paths separately
     let mediaMimeTypes: string[] = [] // Track detected MIME types separately
+    let mediaFileAnalyses: any[] = [] // Track file analyses for later use
 
     // Upload media files to Supabase Storage if present
     if (mediaFiles.length > 0) {
       console.log('[MMS API] Starting media upload process with MIME detection')
-      
+
+      // Enforce max attachment count
+      const MAX_ATTACHMENTS = 10
+      if (mediaFiles.length > MAX_ATTACHMENTS) {
+        console.error('[MMS API] Too many attachments:', mediaFiles.length)
+        return NextResponse.json({
+          error: 'You can attach up to 10 files at a time.',
+          details: `${mediaFiles.length} files provided, max is ${MAX_ATTACHMENTS}`
+        }, { status: 400 })
+      }
+
+      // Enforce total payload size limit (5MB)
+      const MAX_TOTAL_PAYLOAD_SIZE = 5 * 1024 * 1024 // 5MB
+      const totalSize = mediaFiles.reduce((sum, file) => sum + file.size, 0)
+      if (totalSize > MAX_TOTAL_PAYLOAD_SIZE) {
+        console.error('[MMS API] Total payload too large:', totalSize)
+        return NextResponse.json({
+          error: 'Attachments must be 5 MB or smaller in total.',
+          details: `Total size is ${totalSize} bytes, max is ${MAX_TOTAL_PAYLOAD_SIZE} bytes`
+        }, { status: 400 })
+      }
+
       // Validate and detect MIME types for each file
-      const mediaFileAnalyses = []
       for (const file of mediaFiles) {
         const detection = await detectMimeType(file)
         
@@ -233,9 +254,28 @@ export async function POST(request: Request) {
             detectedType: detection.detectedMimeType,
             signature: detection.signature
           })
-          return NextResponse.json({ 
-            error: `Unsupported image format: ${detection.detectedMimeType}. Please use JPG, PNG, or GIF.`,
+          return NextResponse.json({
+            error: `This file type isn't supported yet. Attach a PDF, CSV, JPG, PNG, GIF, or MP4.`,
             details: `File "${file.name}" was detected as ${detection.detectedMimeType} but reported as ${file.type}`
+          }, { status: 400 })
+        }
+
+        // Check file size based on type
+        const isDocument = isDocumentMimeType(detection.detectedMimeType)
+        const isVideo = isVideoMimeType(detection.detectedMimeType)
+        const maxSize = isDocument || isVideo ? 600 * 1024 : 5 * 1024 * 1024 // 600KB for docs/videos, 5MB for images
+
+        if (file.size > maxSize) {
+          console.error('[MMS API] File too large:', {
+            filename: file.name,
+            fileSize: file.size,
+            maxSize,
+            isDocument,
+            isVideo
+          })
+          return NextResponse.json({
+            error: isDocument ? 'PDF and CSV attachments must be 600 KB or smaller.' : (isVideo ? 'Videos must be 600 KB or smaller.' : 'Image must be less than 5MB'),
+            details: `File "${file.name}" is ${file.size} bytes, max is ${maxSize} bytes`
           }, { status: 400 })
         }
         
@@ -445,6 +485,7 @@ export async function POST(request: Request) {
         for (const [index, mediaUrl] of mediaUrls.entries()) {
           const storagePath = mediaStoragePaths[index]
           const detectedMimeType = mediaMimeTypes[index] || 'image/jpeg' // Fallback to JPEG if not set
+          const file = mediaFileAnalyses[index].file // Get file from analysis array
           
           console.log('[MMS API] Inserting media record:', {
             messageId,
@@ -457,6 +498,8 @@ export async function POST(request: Request) {
             message_id: messageId,
             media_url: mediaUrl,
             mime_type: detectedMimeType, // Use detected MIME type
+            filename: file.name, // Store original filename for documents
+            size: file.size, // Store file size for display
             created_at: new Date().toISOString(),
           }
 

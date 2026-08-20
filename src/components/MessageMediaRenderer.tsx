@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { MessageMedia } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { FileText, FileSpreadsheet, File } from 'lucide-react'
 
 const DEBUG = process.env.NODE_ENV === 'development'
 
@@ -10,6 +11,37 @@ interface MessageMediaRendererProps {
   media: MessageMedia[]
   isInbound?: boolean
   onImageLoad?: () => void
+}
+
+// Helper function to format file size
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
+// Helper function to get file icon based on MIME type
+function getFileIcon(mimeType: string) {
+  if (mimeType === 'application/pdf') return FileText
+  if (mimeType === 'text/csv') return FileSpreadsheet
+  return File
+}
+
+// Helper function to get file type label
+function getFileTypeLabel(mimeType: string): string {
+  if (mimeType === 'application/pdf') return 'PDF'
+  if (mimeType === 'text/csv') return 'CSV'
+  return mimeType.split('/')[1]?.toUpperCase() || 'FILE'
+}
+
+// Helper function to truncate filename
+function truncateFilename(filename: string, maxLength: number = 30): string {
+  if (!filename) return 'Unknown'
+  if (filename.length <= maxLength) return filename
+  const ext = filename.split('.').pop()
+  const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'))
+  const truncatedName = nameWithoutExt.substring(0, maxLength - ext!.length - 4) + '...'
+  return truncatedName + '.' + ext
 }
 
 // Helper function to get media URL - use direct URL for Supabase, proxy for Twilio
@@ -204,6 +236,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
 
   const isImage = (mimeType: string) => mimeType.startsWith('image/')
   const isVideo = (mimeType: string) => mimeType.startsWith('video/')
+  const isDocument = (mimeType: string) => mimeType === 'application/pdf' || mimeType === 'text/csv'
 
   const handleMediaClick = (mediaUrl: string) => {
     setExpandedMedia(mediaUrl)
@@ -296,6 +329,40 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                 
                 {/* Hover affordance */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-xl pointer-events-none" />
+              </div>
+            )
+          }
+
+          if (isDocument(mediaItem.mime_type)) {
+            const FileIcon = getFileIcon(mediaItem.mime_type)
+            const filename = mediaItem.filename || mediaItem.media_url.split('/').pop() || 'Unknown'
+            const truncatedFilename = truncateFilename(filename)
+
+            return (
+              <div key={mediaItem.id} className="flex items-center gap-3 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700">
+                <FileIcon className="w-8 h-8 text-slate-600 dark:text-slate-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                    {truncatedFilename}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {getFileTypeLabel(mediaItem.mime_type)} · {formatFileSize(mediaItem.size || 0)}
+                  </p>
+                </div>
+                {mediaUrl ? (
+                  <a
+                    href={mediaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex-shrink-0"
+                  >
+                    Tap to open
+                  </a>
+                ) : (
+                  <span className="text-sm text-slate-500 dark:text-slate-400 flex-shrink-0">
+                    Unavailable
+                  </span>
+                )}
               </div>
             )
           }

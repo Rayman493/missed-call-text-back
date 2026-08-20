@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Plus, X, MessageSquare, Clock, Lightbulb } from 'lucide-react'
+import { Plus, X, MessageSquare, Clock, Lightbulb, FileText, FileSpreadsheet, File, Video } from 'lucide-react'
 import { supportsBusinessNumber } from '@/lib/platform-capabilities'
 import { focusService } from '@/lib/focus/focus-service'
 import type { FocusItem } from '@/lib/focus/focus-types'
@@ -23,10 +23,11 @@ interface ConversationComposerProps {
   customerId?: string
 }
 
-interface ImagePreview {
+interface AttachmentPreview {
   file: File
-  preview: string
+  preview: string | null
   id: string
+  fileType: 'image' | 'document' | 'video'
 }
 
 export default function ConversationComposer({
@@ -41,7 +42,7 @@ export default function ConversationComposer({
   business,
   customerId
 }: ConversationComposerProps) {
-  const [images, setImages] = useState<ImagePreview[]>([])
+  const [attachments, setAttachments] = useState<AttachmentPreview[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isAtMaxHeight, setIsAtMaxHeight] = useState(false)
   const [focusItem, setFocusItem] = useState<FocusItem | null>(null)
@@ -73,11 +74,11 @@ export default function ConversationComposer({
     }
   }, [business, customerId])
 
-  // Clear images when onClearImages is called
+  // Clear attachments when onClearImages is called
   React.useEffect(() => {
     if (onClearImages) {
       // Register the clear function with the parent
-      onClearImages(() => setImages([]))
+      onClearImages(() => setAttachments([]))
     }
   }, [onClearImages])
 
@@ -110,66 +111,95 @@ export default function ConversationComposer({
 
   const messagingHints = getMessagingHints()
 
-  const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+  const SUPPORTED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf', 'text/csv', 'video/mp4']
   const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
+  const MAX_DOCUMENT_SIZE = 600 * 1024 // 600KB
+  const MAX_VIDEO_SIZE = 600 * 1024 // 600KB
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
 
-    console.log('[MMS] Image selected:', {
+    console.log('[MMS] File selected:', {
       fileCount: files.length,
       fileNames: Array.from(files).map(f => f.name)
     })
 
-    const newImages: ImagePreview[] = []
+    const newAttachments: AttachmentPreview[] = []
     let unsupportedFile = ''
     let oversizedFile = ''
+    let totalPayloadError = ''
+
+    // Enforce max attachment count
+    const MAX_ATTACHMENTS = 10
+    if (attachments.length + files.length > MAX_ATTACHMENTS) {
+      setError('You can attach up to 10 files at a time.')
+      setTimeout(() => setError(null), 3000)
+      return
+    }
+
+    // Check total payload size
+    const MAX_TOTAL_PAYLOAD_SIZE = 5 * 1024 * 1024 // 5MB
+    const currentTotalSize = attachments.reduce((sum, att) => sum + att.file.size, 0)
+    const newFilesTotalSize = Array.from(files).reduce((sum, file) => sum + file.size, 0)
+    if (currentTotalSize + newFilesTotalSize > MAX_TOTAL_PAYLOAD_SIZE) {
+      setError('Attachments must be 5 MB or smaller in total.')
+      setTimeout(() => setError(null), 3000)
+      return
+    }
 
     Array.from(files).forEach(file => {
-      if (!file.type.startsWith('image/')) return
-
-      if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+      // Check if type is supported
+      if (!SUPPORTED_TYPES.includes(file.type)) {
         unsupportedFile = file.name
         return
       }
 
+      // Determine file type and size limit
+      const isDocument = file.type === 'application/pdf' || file.type === 'text/csv'
+      const isVideo = file.type === 'video/mp4'
+      const maxSize = isDocument ? MAX_DOCUMENT_SIZE : (isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE)
+
       // Validate file size
-      if (file.size > MAX_IMAGE_SIZE) {
+      if (file.size > maxSize) {
         oversizedFile = file.name
         return
       }
 
-      const preview = URL.createObjectURL(file)
-      newImages.push({
+      // Create preview
+      const preview = (isDocument || isVideo) ? null : URL.createObjectURL(file)
+      const fileType: 'image' | 'document' | 'video' = isDocument ? 'document' : (isVideo ? 'video' : 'image')
+
+      newAttachments.push({
         file,
         preview,
-        id: Math.random().toString(36).substr(2, 9)
+        id: Math.random().toString(36).substr(2, 9),
+        fileType
       })
     })
 
     if (unsupportedFile) {
-      setError('WEBP images are not supported for MMS. Please upload a JPG or PNG.')
+      setError('This file type isn\'t supported yet. Attach a PDF, CSV, JPG, PNG, GIF, or MP4.')
       setTimeout(() => setError(null), 3000)
     } else if (oversizedFile) {
-      setError('Images must be under 5 MB.')
+      setError('PDF, CSV, and videos must be 600 KB or smaller. Images must be under 5 MB.')
       setTimeout(() => setError(null), 3000)
     }
 
-    setImages(prev => [...prev, ...newImages])
-    console.log('[MMS] Images added to state:', {
-      totalImages: newImages.length,
-      newImageNames: newImages.map(img => img.file.name)
+    setAttachments(prev => [...prev, ...newAttachments])
+    console.log('[MMS] Attachments added to state:', {
+      totalAttachments: newAttachments.length,
+      newAttachmentNames: newAttachments.map(att => att.file.name)
     })
   }
 
-  const removeImage = (id: string) => {
-    setImages(prev => {
-      const imageToRemove = prev.find(img => img.id === id)
-      if (imageToRemove) {
-        URL.revokeObjectURL(imageToRemove.preview)
+  const removeAttachment = (id: string) => {
+    setAttachments(prev => {
+      const attachmentToRemove = prev.find(att => att.id === id)
+      if (attachmentToRemove && attachmentToRemove.preview) {
+        URL.revokeObjectURL(attachmentToRemove.preview)
       }
-      return prev.filter(img => img.id !== id)
+      return prev.filter(att => att.id !== id)
     })
   }
 
@@ -185,48 +215,74 @@ export default function ConversationComposer({
     const files = e.dataTransfer.files
     if (!files) return
 
-    const newImages: ImagePreview[] = []
+    const newAttachments: AttachmentPreview[] = []
     let unsupportedFile = ''
     let oversizedFile = ''
 
-    Array.from(files).forEach(file => {
-      if (!file.type.startsWith('image/')) return
+    // Enforce max attachment count
+    const MAX_ATTACHMENTS = 10
+    if (attachments.length + files.length > MAX_ATTACHMENTS) {
+      setError('You can attach up to 10 files at a time.')
+      setTimeout(() => setError(null), 3000)
+      return
+    }
 
-      if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+    // Check total payload size
+    const MAX_TOTAL_PAYLOAD_SIZE = 5 * 1024 * 1024 // 5MB
+    const currentTotalSize = attachments.reduce((sum, att) => sum + att.file.size, 0)
+    const newFilesTotalSize = Array.from(files).reduce((sum, file) => sum + file.size, 0)
+    if (currentTotalSize + newFilesTotalSize > MAX_TOTAL_PAYLOAD_SIZE) {
+      setError('Attachments must be 5 MB or smaller in total.')
+      setTimeout(() => setError(null), 3000)
+      return
+    }
+
+    Array.from(files).forEach(file => {
+      // Check if type is supported
+      if (!SUPPORTED_TYPES.includes(file.type)) {
         unsupportedFile = file.name
         return
       }
 
+      // Determine file type and size limit
+      const isDocument = file.type === 'application/pdf' || file.type === 'text/csv'
+      const isVideo = file.type === 'video/mp4'
+      const maxSize = isDocument ? MAX_DOCUMENT_SIZE : (isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE)
+
       // Validate file size
-      if (file.size > MAX_IMAGE_SIZE) {
+      if (file.size > maxSize) {
         oversizedFile = file.name
         return
       }
 
-      const preview = URL.createObjectURL(file)
-      newImages.push({
+      // Create preview
+      const preview = (isDocument || isVideo) ? null : URL.createObjectURL(file)
+      const fileType: 'image' | 'document' | 'video' = isDocument ? 'document' : (isVideo ? 'video' : 'image')
+
+      newAttachments.push({
         file,
         preview,
-        id: Math.random().toString(36).substr(2, 9)
+        id: Math.random().toString(36).substr(2, 9),
+        fileType
       })
     })
 
     if (unsupportedFile) {
-      setError('WEBP images are not supported for MMS. Please upload a JPG or PNG.')
+      setError('This file type isn\'t supported yet. Attach a PDF, CSV, JPG, PNG, GIF, or MP4.')
       setTimeout(() => setError(null), 3000)
     } else if (oversizedFile) {
-      setError('Images must be under 5 MB.')
+      setError('PDF, CSV, and videos must be 600 KB or smaller. Images must be under 5 MB.')
       setTimeout(() => setError(null), 3000)
     }
 
-    setImages(prev => [...prev, ...newImages])
+    setAttachments(prev => [...prev, ...newAttachments])
   }
 
   const handleSend = () => {
     if (!hasContent || sending) return
 
-    if (images.length > 0) {
-      const mediaFiles = images.map(img => img.file)
+    if (attachments.length > 0) {
+      const mediaFiles = attachments.map(att => att.file)
       handleSendMessage(mediaFiles)
     } else {
       handleSendMessage()
@@ -254,7 +310,7 @@ export default function ConversationComposer({
     setIsAtMaxHeight(textarea.scrollHeight >= 150)
   }
 
-  const hasContent = message.trim() || images.length > 0
+  const hasContent = message.trim() || attachments.length > 0
 
   return (
     <div className="p-2 bg-transparent">
@@ -283,21 +339,38 @@ export default function ConversationComposer({
           </div>
         )}
 
-        {/* Image Previews */}
-        {images.length > 0 && (
+        {/* Attachment Previews */}
+        {attachments.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {images.map(img => (
-              <div key={img.id} className="relative group">
-                <img
-                  src={img.preview}
-                  alt="Preview"
-                  className="w-24 h-24 object-cover rounded-md border border-border/20 shadow-sm"
-                />
+            {attachments.map(att => (
+              <div key={att.id} className="relative group">
+                {att.fileType === 'image' && att.preview ? (
+                  <img
+                    src={att.preview}
+                    alt="Preview"
+                    className="w-24 h-24 object-cover rounded-md border border-border/20 shadow-sm"
+                  />
+                ) : (
+                  <div className="w-24 h-24 flex flex-col items-center justify-center rounded-md border border-border/20 shadow-sm bg-muted/30">
+                    {att.file.type === 'application/pdf' ? (
+                      <FileText className="w-8 h-8 text-muted-foreground/60 mb-1" />
+                    ) : att.file.type === 'text/csv' ? (
+                      <FileSpreadsheet className="w-8 h-8 text-muted-foreground/60 mb-1" />
+                    ) : att.file.type === 'video/mp4' ? (
+                      <Video className="w-8 h-8 text-muted-foreground/60 mb-1" />
+                    ) : (
+                      <File className="w-8 h-8 text-muted-foreground/60 mb-1" />
+                    )}
+                    <span className="text-[10px] text-muted-foreground/70 text-center px-1 truncate w-full">
+                      {att.file.name.length > 15 ? att.file.name.substring(0, 12) + '...' : att.file.name}
+                    </span>
+                  </div>
+                )}
                 <button
-                  onClick={() => removeImage(img.id)}
+                  onClick={() => removeAttachment(att.id)}
                   className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
                   type="button"
-                  aria-label="Remove image"
+                  aria-label="Remove attachment"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -334,9 +407,9 @@ export default function ConversationComposer({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/gif,.pdf,.csv,video/mp4,.mp4"
             multiple
-            onChange={handleImageSelect}
+            onChange={handleFileSelect}
             className="hidden"
           />
 
