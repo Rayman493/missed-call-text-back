@@ -22,6 +22,7 @@ interface LeadPickerModalProps {
   onClose: () => void
   onSelect: (prefill: JobPrefill) => void
   onAddNew?: () => void
+  onRemove?: () => void
   title?: string
   subtitle?: string
 }
@@ -52,7 +53,7 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, title, subtitle }: LeadPickerModalProps) {
+export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, onRemove, title, subtitle }: LeadPickerModalProps) {
   const [leads, setLeads] = useState<LeadRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -165,6 +166,22 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
               />
             </div>
           </div>
+
+          {/* Remove customer option */}
+          {onRemove && (
+            <div className="px-3 sm:px-4 py-2 border-b border-border/50 flex-shrink-0">
+              <button
+                onClick={() => {
+                  onRemove()
+                  setQuery('')
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4 flex-shrink-0" />
+                <span>Remove customer</span>
+              </button>
+            </div>
+          )}
 
           {/* Lead list */}
           <div className="flex-1 overflow-y-auto overscroll-contain" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>

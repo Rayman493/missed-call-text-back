@@ -179,6 +179,71 @@ export async function PATCH(
       }
     }
 
+    // Handle customer reassignment through replyflow_lead_id
+    if (body.replyflow_lead_id !== undefined) {
+      // Validate lead belongs to business (tenant isolation)
+      const leadId = body.replyflow_lead_id
+      if (leadId !== null) {
+        const { data: lead, error: leadError } = await supabase
+          .from('leads')
+          .select('id')
+          .eq('id', leadId)
+          .eq('business_id', business.id)
+          .single()
+
+        if (leadError || !lead) {
+          console.error('[GOOGLE CALENDAR PATCH] Lead does not belong to business:', leadError)
+          return NextResponse.json(
+            { error: 'Lead not found or does not belong to your business' },
+            { status: 404 }
+          )
+        }
+      }
+
+      // Fetch existing event to preserve other extendedProperties
+      const existingEventResponse = await fetchWithRetry(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        }
+      )
+
+      if (!existingEventResponse.ok) {
+        console.error('[GOOGLE CALENDAR PATCH] Failed to fetch existing event')
+        return NextResponse.json(
+          { error: 'Failed to fetch existing event' },
+          { status: 500 }
+        )
+      }
+
+      const existingEvent = await existingEventResponse.json()
+
+      // Preserve existing private properties and update replyflow_lead_id
+      const existingPrivate = existingEvent.extendedProperties?.private || {}
+      const updatedPrivate = {
+        ...existingPrivate,
+        ...(leadId ? { replyflow_lead_id: String(leadId) } : {})
+      }
+
+      // Remove replyflow_lead_id if explicitly set to null
+      if (leadId === null && existingPrivate.replyflow_lead_id) {
+        delete updatedPrivate.replyflow_lead_id
+      }
+
+      googleEvent.extendedProperties = {
+        private: updatedPrivate
+      }
+
+      console.log('[GOOGLE CALENDAR PATCH] Updating customer assignment:', {
+        eventId,
+        replyflow_lead_id: leadId,
+        preservedPrivateProps: Object.keys(existingPrivate).filter(k => k !== 'replyflow_lead_id')
+      })
+    }
+
     // Update event in Google Calendar
     const patchResponse = await fetchWithRetry(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}`,

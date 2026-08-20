@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2, ClipboardList, MessageSquareText, CheckSquare } from 'lucide-react'
+import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2, ClipboardList, MessageSquareText, CheckSquare, ChevronDown } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import AppointmentSmsModal from '@/components/calendar/AppointmentSmsModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
+import LeadPickerModal from '@/components/jobs/LeadPickerModal'
 
 const supabase = createBrowserClient()
 
@@ -115,6 +116,11 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   const [transcriptError, setTranscriptError] = useState<string | null>(null)
   const [transcriptText, setTranscriptText] = useState<string | null>(null)
   const [isRetrying, setIsRetrying] = useState(false)
+  // Customer assignment state
+  const [isLeadPickerOpen, setIsLeadPickerOpen] = useState(false)
+  const [isSavingCustomer, setIsSavingCustomer] = useState(false)
+  const [currentLeadId, setCurrentLeadId] = useState<string | null>(lead?.id || null)
+  const [currentLeadName, setCurrentLeadName] = useState<string | null>(lead?.name || job?.customer_name || null)
   useBodyScrollLock(isOpen)
   
   // Editable form state
@@ -148,6 +154,12 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       }
     }
   }, [event])
+
+  // Update lead state when lead prop changes
+  useEffect(() => {
+    setCurrentLeadId(lead?.id || null)
+    setCurrentLeadName(lead?.name || job?.customer_name || null)
+  }, [lead, job])
 
   // Handle Escape key to close modal
   useEffect(() => {
@@ -409,6 +421,107 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       setEditedEndTime(end.toTimeString().slice(0, 5))
     }
     setError(null)
+  }
+
+  // Handle customer selection from LeadPickerModal
+  const handleCustomerSelect = async (prefill: any) => {
+    if (!event?.id) return
+
+    setIsSavingCustomer(true)
+    setError(null)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        setError('Not authenticated')
+        setIsSavingCustomer(false)
+        return
+      }
+
+      // Update customer assignment via PATCH endpoint
+      const response = await fetch(`/api/google/calendar/events/${event.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          replyflow_lead_id: prefill.lead_id
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to update customer' }))
+        setError(errorData.error || 'Failed to update customer')
+        setIsSavingCustomer(false)
+        return
+      }
+
+      // Update local state
+      setCurrentLeadId(prefill.lead_id)
+      setCurrentLeadName(prefill.customer_name || prefill.service_address || 'Customer')
+      setIsLeadPickerOpen(false)
+
+      // Refresh to update calendar/map displays
+      onRefresh?.()
+      onShowToast?.('Customer updated successfully', 'success')
+    } catch (err) {
+      setError('Failed to update customer')
+    } finally {
+      setIsSavingCustomer(false)
+    }
+  }
+
+  // Handle customer removal
+  const handleRemoveCustomer = async () => {
+    if (!event?.id) return
+
+    setIsSavingCustomer(true)
+    setError(null)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        setError('Not authenticated')
+        setIsSavingCustomer(false)
+        return
+      }
+
+      // Clear customer assignment via PATCH endpoint
+      const response = await fetch(`/api/google/calendar/events/${event.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          replyflow_lead_id: null
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to remove customer' }))
+        setError(errorData.error || 'Failed to remove customer')
+        setIsSavingCustomer(false)
+        return
+      }
+
+      // Update local state
+      setCurrentLeadId(null)
+      setCurrentLeadName(null)
+
+      // Refresh to update calendar/map displays
+      onRefresh?.()
+      onShowToast?.('Customer removed successfully', 'success')
+    } catch (err) {
+      setError('Failed to remove customer')
+    } finally {
+      setIsSavingCustomer(false)
+    }
   }
 
   const handleSaveChanges = async () => {
@@ -748,25 +861,44 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
             )}
 
             {/* Customer */}
-            {(lead?.id || job?.customer_name) && (
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Customer</label>
-                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm text-foreground font-medium truncate">{lead?.name || job?.customer_name || 'Customer'}</span>
-                  </div>
-                  {lead?.id && (
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">Customer</label>
+              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-sm text-foreground font-medium truncate">
+                    {currentLeadName || 'No customer'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {currentLeadId && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); (onViewCustomer ? onViewCustomer(lead.id) : window.location.assign(`/dashboard/leads/${lead.id}`)) }}
-                      className="text-xs px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
+                      onClick={(e) => { e.stopPropagation(); (onViewCustomer ? onViewCustomer(currentLeadId) : window.location.assign(`/dashboard/leads/${currentLeadId}`)) }}
+                      className="text-xs px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
                     >
-                      View customer
+                      View
                     </button>
                   )}
+                  <button
+                    onClick={() => setIsLeadPickerOpen(true)}
+                    disabled={isSavingCustomer}
+                    className="text-xs px-3 py-1.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                  >
+                    {isSavingCustomer ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        {currentLeadId ? 'Change' : 'Select'}
+                        <ChevronDown className="w-3 h-3" />
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Related Job */}
             {job?.id && (
@@ -1053,7 +1185,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               <div className="flex gap-2">
                 <button
                   onClick={openGoogleCalendar}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-slate-800/50 hover:bg-slate-800/70 text-slate-200 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-slate-700/50"
+                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-200 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700/50"
                 >
                   <ExternalLink className="w-4 h-4 flex-shrink-0" />
                   <span>Google Calendar</span>
@@ -1062,14 +1194,14 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                   <>
                     <button
                       onClick={handleEditClick}
-                      className="px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-slate-200 hover:bg-slate-800/50 rounded-lg transition-colors flex items-center gap-2"
+                      className="px-4 py-2.5 text-sm font-medium bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 text-blue-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/50 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center gap-2"
                     >
                       <Pencil className="w-4 h-4 flex-shrink-0" />
                       <span>Edit</span>
                     </button>
                     <button
                       onClick={handleDeleteClick}
-                      className="px-4 py-2.5 text-sm font-medium text-red-400 hover:text-red-300 border border-red-500/30 hover:bg-red-500/10 rounded-lg transition-colors flex items-center gap-2"
+                      className="px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 border border-red-200 dark:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors flex items-center gap-2"
                     >
                       <Trash2 className="w-4 h-4 flex-shrink-0" />
                       <span>Delete</span>
@@ -1103,6 +1235,16 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         cancelText="Cancel"
         isDestructive={true}
         isLoading={isDeleting}
+      />
+
+      {/* Customer Picker Modal */}
+      <LeadPickerModal
+        isOpen={isLeadPickerOpen}
+        onClose={() => setIsLeadPickerOpen(false)}
+        onSelect={handleCustomerSelect}
+        onRemove={handleRemoveCustomer}
+        title="Select Customer"
+        subtitle="Search your customers"
       />
     </div>
   )
