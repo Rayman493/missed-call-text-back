@@ -310,9 +310,38 @@ select {
 }
 
 /* Light mode scrollbar styles */
+html.light {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 1) transparent;
+}
+
+html.light::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+html.light::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html.light::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 1);
+  border: 2px solid transparent;
+  border-radius: 999px;
+}
+
+html.light::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 1);
+}
+
+html.light body::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
 html.light * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(203, 213, 225, 0.8) transparent;
+  scrollbar-color: rgba(148, 163, 184, 1) transparent;
 }
 
 html.light *::-webkit-scrollbar-track {
@@ -320,12 +349,12 @@ html.light *::-webkit-scrollbar-track {
 }
 
 html.light *::-webkit-scrollbar-thumb {
-  background: rgba(203, 213, 225, 0.8);
+  background: rgba(148, 163, 184, 1);
   border: 2px solid transparent;
 }
 
 html.light *::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.9);
+  background: rgba(100, 116, 139, 1);
 }
 
 /* Custom animations for conversation experience */
