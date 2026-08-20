@@ -564,6 +564,8 @@ export default function SettingsContent() {
   const confirmPasswordRef = useRef<HTMLInputElement>(null)
   const sectionTabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const stripeConnectReturnProcessedRef = useRef(false) // Track if Stripe Connect return has been processed
+  const programmaticScrollInProgressRef = useRef(false) // Track when programmatic scroll is in progress
+  const scrollFallbackTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Track fallback timeout for cleanup
   const [appVisibilityTrigger, setAppVisibilityTrigger] = useState(0) // Trigger for visibility changes
 
   // Listen for visibility change and focus events to trigger Stripe Connect return check
@@ -1935,6 +1937,11 @@ export default function SettingsContent() {
     let timeoutId: NodeJS.Timeout | null = null
 
     const updateActiveSection = () => {
+      // Skip scroll-spy updates during programmatic navigation to prevent race conditions
+      if (programmaticScrollInProgressRef.current) {
+        return
+      }
+
       // Get section offsets from canonical sections only
       // This ensures web and native both work correctly
       const sectionOffsets: { [key: string]: number | null } = {}
@@ -1952,42 +1959,42 @@ export default function SettingsContent() {
 
       // If no sections are available, skip update (may be loading)
       if (!hasAnySection) return
-      
+
       // Get scroll position and viewport dimensions
       const scrollY = window.scrollY
       const viewportHeight = window.innerHeight
       const documentHeight = document.documentElement.scrollHeight
-      
+
       // TOP_THRESHOLD: Force first section when at or near the top of the page
       const TOP_THRESHOLD = 120
       if (scrollY <= TOP_THRESHOLD) {
         setActiveSection(settingsSections[0].id)
         return
       }
-      
+
       // BOTTOM_THRESHOLD: Force last section when at or near the bottom of the page
       const BOTTOM_THRESHOLD = 120
       if (scrollY + viewportHeight >= documentHeight - BOTTOM_THRESHOLD) {
         setActiveSection(settingsSections[settingsSections.length - 1].id)
         return
       }
-      
+
       // Calculate offset for header and tabs using shared helper
       const offset = getScrollOffset()
-      
+
       // Determine active section by comparing scroll position to section offsets
       let computedActiveSection = settingsSections[0].id
-      
+
       for (let i = settingsSections.length - 1; i >= 0; i--) {
         const sectionId = settingsSections[i].id
         const sectionTop = sectionOffsets[sectionId]
-        
+
         if (sectionTop !== null && scrollY >= sectionTop - offset) {
           computedActiveSection = sectionId
           break
         }
       }
-      
+
       // Only update if the section actually changed
       if (computedActiveSection !== activeSection) {
         setActiveSection(computedActiveSection)
@@ -2061,14 +2068,51 @@ export default function SettingsContent() {
     if (element) {
       const offset = getScrollOffset()
       const elementPosition = element.getBoundingClientRect().top + window.scrollY - offset
-      
+
       // Respect user's reduced-motion preference
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      
+
+      // Clear any existing fallback timeout from previous scroll
+      if (scrollFallbackTimeoutRef.current) {
+        clearTimeout(scrollFallbackTimeoutRef.current)
+        scrollFallbackTimeoutRef.current = null
+      }
+
+      // Set flag to prevent scroll-spy from overriding active section during navigation
+      programmaticScrollInProgressRef.current = true
+
       window.scrollTo({
         top: elementPosition,
         behavior: prefersReducedMotion ? 'auto' : 'smooth'
       })
+
+      // Clear flag when scroll completes using scrollend event (most reliable)
+      // Fallback to timeout for browsers that don't support scrollend
+      const clearFlag = () => {
+        programmaticScrollInProgressRef.current = false
+        // Clear fallback timeout if it exists
+        if (scrollFallbackTimeoutRef.current) {
+          clearTimeout(scrollFallbackTimeoutRef.current)
+          scrollFallbackTimeoutRef.current = null
+        }
+        // Remove scrollend listener
+        window.removeEventListener('scrollend', clearFlag)
+      }
+
+      // Use scrollend event where supported (modern browsers)
+      if ('onscrollend' in window) {
+        window.addEventListener('scrollend', clearFlag, { once: true })
+      }
+
+      // Fallback timeout for older browsers or if scrollend doesn't fire
+      // 1000ms is conservative but safe for even long-distance smooth scrolls
+      const fallbackDelay = prefersReducedMotion ? 0 : 1000
+      if (fallbackDelay > 0) {
+        scrollFallbackTimeoutRef.current = setTimeout(clearFlag, fallbackDelay)
+      } else {
+        // For reduced-motion (instant scroll), clear flag immediately
+        clearFlag()
+      }
     }
   }
 
