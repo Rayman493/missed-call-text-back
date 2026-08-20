@@ -1281,10 +1281,10 @@ function AuthContent() {
 
 export default function AuthPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex flex-col">
+    <Suspense fallback={<div className="min-h-screen bg-background dark:bg-slate-950 flex flex-col">
       <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-lg shadow-lg p-6 sm:p-8">
-          <p className="text-slate-100">Loading...</p>
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-6 sm:p-8">
+          <p className="text-foreground dark:text-slate-100">Loading...</p>
         </div>
       </div>
       <AuthFooter />

@@ -191,11 +191,11 @@ export default function OnboardingPage() {
   // Show loading screen while checking if user needs onboarding
   if (checkingBusiness) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-background dark:bg-slate-950 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
-          <p className="text-slate-200 text-lg">Setting up your account...</p>
-          <p className="text-slate-400 text-sm mt-2">Please wait while we prepare your workspace</p>
+          <p className="text-foreground dark:text-slate-200 text-lg">Setting up your account...</p>
+          <p className="text-muted-foreground dark:text-slate-400 text-sm mt-2">Please wait while we prepare your workspace</p>
         </div>
       </div>
     )
@@ -204,7 +204,7 @@ export default function OnboardingPage() {
   // Show loading transition when provisioning is complete
   if (provisioningComplete) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-background dark:bg-slate-950 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-green-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
           <p className="text-slate-200 text-lg">Setting up your dedicated ReplyFlow number...</p>
