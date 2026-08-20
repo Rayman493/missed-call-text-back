@@ -132,8 +132,31 @@ export async function POST(request: Request) {
       businessPhoneNumber: business.business_phone_number,
       twilioPhoneNumber: business.twilio_phone_number,
       onboardingStatus: business.onboarding_status,
-      subscriptionStatus: business.subscription_status
+      subscriptionStatus: business.subscription_status,
+      stripeCustomerId: business.stripe_customer_id,
+      stripeSubscriptionId: business.stripe_subscription_id
     });
+
+    // Safety check: prevent duplicate subscriptions
+    // Use the same semantics as the client-side hasExistingStripeSubscription helper
+    // A business has an existing subscription if it has stripe_subscription_id
+    // and subscription_status is not null and not canceled and not beta/comped
+    const hasSubscriptionId = !!business.stripe_subscription_id
+    const hasStatus = !!business.subscription_status
+    const isCanceled = business.subscription_status === 'canceled'
+    const isBetaComped = business.subscription_status === 'beta' || business.subscription_status === 'comped'
+    const hasExistingSubscription = hasSubscriptionId && hasStatus && !isCanceled && !isBetaComped
+
+    if (hasExistingSubscription) {
+      console.error('[stripe-checkout] Business already has existing subscription:', {
+        stripeSubscriptionId: business.stripe_subscription_id,
+        subscriptionStatus: business.subscription_status
+      })
+      return NextResponse.json({
+        error: 'You already have an active subscription. Please use the Billing Portal to manage your subscription.',
+        reason: 'active_subscription_exists'
+      }, { status: 400 })
+    }
 
     const siteUrl = getAppBaseUrl()
     const origin = request.headers.get('origin') || siteUrl

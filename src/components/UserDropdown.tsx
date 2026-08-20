@@ -76,6 +76,7 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
   const [isValidSession, setIsValidSession] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null)
+  const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' }[]>([])
   const { user, signOut } = useAuth()
   const { business } = useBusiness()
   const pathname = usePathname()
@@ -96,6 +97,15 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
         ? { ...item, label: 'Go to Dashboard', href: '/dashboard', external: false, icon: LayoutDashboard }
         : item
     ))
+
+  // Simple toast function
+  const showToast = (message: string, type: 'success' | 'error') => {
+    const id = Date.now().toString()
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => {
+      setToasts(prev => prev.filter(toast => toast.id !== id))
+    }, 3000)
+  }
 
   // Validate Supabase session on mount and when user changes
   useEffect(() => {
@@ -275,10 +285,13 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
         if (typeof window !== 'undefined' && window.location) {
           window.location.href = result.url
         }
+      } else if (result.error) {
+        showToast(result.error, 'error')
       }
       setIsOpen(false)
     } catch (error) {
       console.error('Billing action error:', error)
+      showToast('Unable to open billing right now. Please try again.', 'error')
     }
   }
 
@@ -552,6 +565,25 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
             document.body
           )}
         </>
+      )}
+
+      {/* Toast notifications */}
+      {toasts.length > 0 && createPortal(
+        <div className="fixed top-4 right-4 z-[10000] flex flex-col gap-2">
+          {toasts.map(toast => (
+            <div
+              key={toast.id}
+              className={`px-4 py-3 rounded-lg shadow-lg text-sm font-medium ${
+                toast.type === 'success'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-red-500 text-white'
+              }`}
+            >
+              {toast.message}
+            </div>
+          ))}
+        </div>,
+        document.body
       )}
     </>
   )

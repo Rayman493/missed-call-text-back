@@ -192,20 +192,43 @@ export async function POST(request: Request) {
       error: error,
       errorMessage: error.message,
       errorType: error.type,
+      errorCode: error.code,
       errorStack: error.stack
     })
 
-    // Return user-friendly error based on error type
-    let userMessage = 'Failed to open billing portal. Please try again or contact support.'
-    
+    // Return specific error codes for client-side handling
+    let userMessage = 'Unable to open billing right now. Please try again.'
+    let errorCode = 'PORTAL_CREATION_FAILED'
+    let httpStatus = 500
+
     if (error.type === 'StripeInvalidRequestError') {
-      userMessage = 'Unable to open billing portal. Your billing account may need to be set up first.'
+      if (error.code === 'resource_missing') {
+        console.error('[stripe-portal] Customer does not exist in Stripe')
+        errorCode = 'CUSTOMER_NOT_FOUND'
+        userMessage = 'Billing account not found. Please start a subscription.'
+        httpStatus = 400 // Client error - bad customer ID
+      } else {
+        errorCode = 'INVALID_REQUEST'
+        userMessage = 'Unable to open billing portal. Your billing account may need to be set up first.'
+        httpStatus = 400 // Client error - invalid request
+      }
     } else if (error.type === 'StripeAPIError') {
+      errorCode = 'STRIPE_API_ERROR'
       userMessage = 'Stripe service temporarily unavailable. Please try again in a moment.'
+      httpStatus = 503 // Service unavailable
     } else if (error.type === 'StripeConnectionError') {
+      errorCode = 'CONNECTION_ERROR'
       userMessage = 'Could not connect to Stripe. Please check your internet connection and try again.'
+      httpStatus = 503 // Service unavailable
+    } else if (error.type === 'StripeAuthenticationError') {
+      errorCode = 'AUTH_ERROR'
+      userMessage = 'Stripe authentication failed. Please contact support.'
+      httpStatus = 500 // Server error - auth configuration issue
     }
 
-    return NextResponse.json({ error: userMessage }, { status: 500 })
+    return NextResponse.json({
+      error: userMessage,
+      code: errorCode
+    }, { status: httpStatus })
   }
 }
