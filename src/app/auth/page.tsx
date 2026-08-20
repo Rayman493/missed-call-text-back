@@ -1010,6 +1010,7 @@ function AuthContent() {
                   <input
                     id="businessPhone"
                     type="tel"
+                    inputMode="tel"
                     value={businessPhone}
                     onChange={(e) => setBusinessPhone(e.target.value)}
                     required

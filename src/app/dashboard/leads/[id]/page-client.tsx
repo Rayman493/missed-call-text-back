@@ -4923,6 +4923,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <input
                   ref={paymentAmountRef}
                   type="number"
+                  inputMode="decimal"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
                   placeholder="0.00"

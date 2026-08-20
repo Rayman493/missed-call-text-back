@@ -468,6 +468,7 @@ export default function RequestPaymentModal({
               <div className="space-y-2">
                 <input
                   type="tel"
+                  inputMode="tel"
                   value={manualPhone}
                   onChange={(e) => setManualPhone(formatManualPhoneInput(e.target.value))}
                   placeholder="(555) 123-4567"
@@ -494,6 +495,7 @@ export default function RequestPaymentModal({
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
               <input
                 type="number"
+                inputMode="decimal"
                 value={paymentAmount}
                 onChange={(e) => {
                   setPaymentAmount(e.target.value)

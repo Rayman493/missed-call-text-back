@@ -2191,6 +2191,7 @@ export default function SettingsContent() {
                       <div className="flex items-center gap-4">
                         <input
                           type="tel"
+                          inputMode="tel"
                           value={formBusiness.business_phone_number || ''}
                           onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
                           placeholder="(555) 123-4567"
@@ -4395,6 +4396,7 @@ export default function SettingsContent() {
                     </label>
                     <input
                       type="tel"
+                      inputMode="tel"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-slate-900 dark:text-foreground placeholder:text-muted-foreground"
