@@ -2,7 +2,7 @@
 
 export default function CheckoutRedirectLoadingScreen() {
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-background dark:bg-slate-950 flex flex-col items-center justify-center px-4">
       {/* Logo */}
       <div className="mb-8">
         <img
@@ -20,12 +20,12 @@ export default function CheckoutRedirectLoadingScreen() {
       </div>
 
       {/* Main loading text */}
-      <h1 className="text-white text-xl sm:text-2xl font-semibold mb-2 animate-pulse">
+      <h1 className="text-foreground dark:text-white text-xl sm:text-2xl font-semibold mb-2 animate-pulse">
         Redirecting you to complete your free trial setup...
       </h1>
 
       {/* Reassuring subtitle */}
-      <p className="text-slate-400 text-sm sm:text-base">
+      <p className="text-muted-foreground dark:text-slate-400 text-sm sm:text-base">
         You&apos;ll be redirected to Stripe Checkout to activate your 14-day free trial.
       </p>
     </div>

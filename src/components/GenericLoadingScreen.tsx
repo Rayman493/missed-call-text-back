@@ -12,7 +12,7 @@ export default function GenericLoadingScreen() {
 
   return (
     <div
-      className="min-h-dvh min-h-screen bg-[#020617] flex flex-col items-center justify-center px-4 relative overflow-hidden"
+      className="min-h-dvh min-h-screen bg-background dark:bg-[#020617] flex flex-col items-center justify-center px-4 relative overflow-hidden"
       role="status"
       aria-live="polite"
       aria-label="Loading ReplyFlow"
@@ -35,12 +35,12 @@ export default function GenericLoadingScreen() {
         <BrandLoader size={48} className="mb-6" />
 
         {/* Product name */}
-        <h1 className="text-xl font-semibold text-white mb-2">
+        <h1 className="text-xl font-semibold text-foreground dark:text-white mb-2">
           ReplyFlow
         </h1>
 
         {/* Status line */}
-        <p className="text-sm text-slate-400 mb-6">
+        <p className="text-sm text-muted-foreground dark:text-slate-400 mb-6">
           Preparing your workspace…
         </p>
 

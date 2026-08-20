@@ -1519,14 +1519,14 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         {/* New Payment Request Modal */}
         {showPaymentModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm md:items-center md:justify-center">
-            <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full max-h-[calc(100dvh-1rem)] md:max-h-[90vh] overflow-hidden flex flex-col border border-slate-700">
+            <div className="bg-card dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full max-h-[calc(100dvh-1rem)] md:max-h-[90vh] overflow-hidden flex flex-col border border-border dark:border-slate-700">
               {/* Header - shrink-0 */}
-              <div className="flex items-center justify-between px-4 py-3.5 md:px-5 md:py-4 border-b border-slate-700 shrink-0">
+              <div className="flex items-center justify-between px-4 py-3.5 md:px-5 md:py-4 border-b border-border dark:border-slate-700 shrink-0">
                 <div className="min-w-0 pr-3">
-                  <h3 className="text-lg font-semibold text-white leading-tight">
+                  <h3 className="text-lg font-semibold text-foreground leading-tight">
                     New Payment Request
                   </h3>
-                  <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                     Send a secure payment link by text.
                   </p>
                 </div>
@@ -1539,7 +1539,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                     setPaymentProvider('stripe')
                     setError('')
                   }}
-                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-700 transition-colors"
+                  className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted dark:hover:bg-slate-700 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1548,15 +1548,15 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               {/* Content - flex-1 overflow-y-auto */}
               <div data-scroll-lock-allow className="overflow-y-auto flex-1 overscroll-contain px-4 py-3 md:px-5 md:py-4 space-y-2.5 md:space-y-3" style={{ maxHeight: 'calc(100dvh-10rem-var(--bottom-nav-height,80px))', WebkitOverflowScrolling: 'touch', paddingBottom: 'var(--bottom-nav-height,80px)' }}>
                 {paymentPrefill && (
-                  <div className="p-3 bg-[#0f172a] border border-slate-700 rounded-lg">
+                  <div className="p-3 bg-muted/50 dark:bg-[#0f172a] border border-border dark:border-slate-700 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-gray-400">Customer</p>
-                        <p className="text-sm font-medium text-white">
+                        <p className="text-xs text-muted-foreground">Customer</p>
+                        <p className="text-sm font-medium text-foreground">
                           {paymentPrefill.customer_name || 'Customer'}
                         </p>
                         {paymentPrefill.customer_phone && (
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-muted-foreground">
                             {formatPhoneNumber(paymentPrefill.customer_phone)}
                           </p>
                         )}
@@ -1568,7 +1568,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                           setIsLeadPickerOpen(true)
                         }}
                         disabled={isCreatingPayment}
-                        className="text-sm text-blue-400 hover:text-blue-300 disabled:opacity-50"
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50"
                       >
                         Change
                       </button>
@@ -1577,11 +1577,11 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-1.5 md:mb-2">
                     Amount (USD)
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                     <input
                       type="number"
                       value={paymentAmount}
@@ -1590,13 +1590,13 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                       step="0.01"
                       min="0.01"
                       disabled={isCreatingPayment}
-                      className="w-full pl-8 pr-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="w-full pl-8 pr-3 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background dark:bg-[#0f172a] text-foreground dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-1.5 md:mb-2">
                     Payment Method
                   </label>
                   {hasAnyPaymentMethod ? (
@@ -1609,13 +1609,13 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                           paymentProvider === 'stripe' && isStripeConfigured
                             ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
                             : !isStripeConfigured
-                            ? 'bg-slate-800/60 border-slate-700 text-slate-500 cursor-not-allowed opacity-50'
-                            : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
+                            ? 'bg-muted dark:bg-slate-800/60 border-border dark:border-slate-700 text-muted-foreground dark:text-slate-500 cursor-not-allowed opacity-50'
+                            : 'bg-background dark:bg-[#0f172a] border-border dark:border-slate-600 text-foreground dark:text-gray-300 hover:bg-muted dark:hover:border-slate-500'
                         }`}
                       >
                         Stripe
                         {!isStripeConfigured && (
-                          <div className="text-[10px] md:text-xs text-slate-500 mt-0.5">Configure first</div>
+                          <div className="text-[10px] md:text-xs text-muted-foreground dark:text-slate-500 mt-0.5">Configure first</div>
                         )}
                       </button>
                       <button
@@ -1626,13 +1626,13 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                           paymentProvider === 'venmo' && isVenmoConfigured
                             ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
                             : !isVenmoConfigured
-                            ? 'bg-slate-800/60 border-slate-700 text-slate-500 cursor-not-allowed opacity-50'
-                            : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
+                            ? 'bg-muted dark:bg-slate-800/60 border-border dark:border-slate-700 text-muted-foreground dark:text-slate-500 cursor-not-allowed opacity-50'
+                            : 'bg-background dark:bg-[#0f172a] border-border dark:border-slate-600 text-foreground dark:text-gray-300 hover:bg-muted dark:hover:border-slate-500'
                         }`}
                       >
                         Venmo
                         {!isVenmoConfigured && (
-                          <div className="text-[10px] md:text-xs text-slate-500 mt-0.5">Configure first</div>
+                          <div className="text-[10px] md:text-xs text-muted-foreground dark:text-slate-500 mt-0.5">Configure first</div>
                         )}
                       </button>
                       <button
@@ -1643,22 +1643,22 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                           paymentProvider === 'paypal' && isPaypalConfigured
                             ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
                             : !isPaypalConfigured
-                            ? 'bg-slate-800/60 border-slate-700 text-slate-500 cursor-not-allowed opacity-50'
-                            : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
+                            ? 'bg-muted dark:bg-slate-800/60 border-border dark:border-slate-700 text-muted-foreground dark:text-slate-500 cursor-not-allowed opacity-50'
+                            : 'bg-background dark:bg-[#0f172a] border-border dark:border-slate-600 text-foreground dark:text-gray-300 hover:bg-muted dark:hover:border-slate-500'
                         }`}
                       >
                         PayPal
                         {!isPaypalConfigured && (
-                          <div className="text-[10px] md:text-xs text-slate-500 mt-0.5">Configure first</div>
+                          <div className="text-[10px] md:text-xs text-muted-foreground dark:text-slate-500 mt-0.5">Configure first</div>
                         )}
                       </button>
                     </div>
                   ) : (
-                    <div className="p-3 md:p-4 bg-yellow-900/20 border border-yellow-700/50 rounded-lg">
-                      <p className="text-sm text-yellow-200 mb-2 md:mb-3">
+                    <div className="p-3 md:p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 rounded-lg">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2 md:mb-3">
                         No payment methods have been configured yet.
                       </p>
-                      <p className="text-sm text-yellow-200 mb-2 md:mb-3">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2 md:mb-3">
                         Connect Stripe, Venmo, or PayPal in your account settings to start accepting payments.
                       </p>
                       <button
@@ -1675,7 +1675,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-1.5 md:mb-2">
                     Description
                   </label>
                   <textarea
@@ -1684,19 +1684,19 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                     placeholder="Service payment"
                     rows={2}
                     disabled={isCreatingPayment}
-                    className="w-full px-3 py-2 min-h-[76px] border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white resize-none disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full px-3 py-2 min-h-[76px] border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background dark:bg-[#0f172a] text-foreground dark:text-white resize-none disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
 
                 {error && (
-                  <div className="p-3 bg-red-900/30 border border-red-700 rounded-lg">
-                    <p className="text-sm text-red-200">{error}</p>
+                  <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg">
+                    <p className="text-sm text-red-700 dark:text-red-200">{error}</p>
                   </div>
                 )}
               </div>
 
               {/* Footer/Actions - shrink-0 */}
-              <div className="flex gap-2.5 justify-end px-4 py-3 md:px-5 md:py-4 border-t border-slate-700 shrink-0 pb-safe bg-[#1e293b]">
+              <div className="flex gap-2.5 justify-end px-4 py-3 md:px-5 md:py-4 border-t border-border dark:border-slate-700 shrink-0 pb-safe bg-card dark:bg-[#1e293b]">
                 <button
                   onClick={() => {
                     setShowPaymentModal(false)
@@ -1707,7 +1707,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                     setError('')
                   }}
                   disabled={isCreatingPayment}
-                  className="px-4 py-2 text-sm font-medium text-gray-300 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted dark:text-gray-300 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
@@ -1743,20 +1743,20 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         {/* Mark as Paid Confirmation Modal */}
         {showMarkPaidConfirm && paymentToMarkPaid && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowMarkPaidConfirm(false)}>
-            <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-700" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-lg font-semibold text-white mb-2">Confirm Payment Received</h3>
-              <p className="text-gray-400 text-sm mb-4">
+            <div className="bg-card dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full p-6 border border-border dark:border-slate-700" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold text-foreground mb-2">Confirm Payment Received</h3>
+              <p className="text-muted-foreground text-sm mb-4">
                 Confirm that you received this payment through {paymentToMarkPaid.payment_provider === 'paypal' ? 'PayPal' : 'Venmo'}.
               </p>
-              <div className="bg-[#0f172a] rounded-lg p-4 mb-4 border border-slate-700">
+              <div className="bg-muted/50 dark:bg-[#0f172a] rounded-lg p-4 mb-4 border border-border dark:border-slate-700">
                 <div className="flex justify-between mb-2">
-                  <span className="text-gray-400 text-sm">Amount</span>
-                  <span className="text-white font-semibold">{formatCurrency(paymentToMarkPaid.amount_cents / 100)}</span>
+                  <span className="text-muted-foreground text-sm">Amount</span>
+                  <span className="text-foreground font-semibold">{formatCurrency(paymentToMarkPaid.amount_cents / 100)}</span>
                 </div>
                 {paymentToMarkPaid.description && (
                   <div className="flex justify-between">
-                    <span className="text-gray-400 text-sm">Description</span>
-                    <span className="text-gray-300 text-sm">{paymentToMarkPaid.description}</span>
+                    <span className="text-muted-foreground text-sm">Description</span>
+                    <span className="text-foreground text-sm">{paymentToMarkPaid.description}</span>
                   </div>
                 )}
               </div>
@@ -1767,7 +1767,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                     setPaymentToMarkPaid(null)
                   }}
                   disabled={isMarkingPaid}
-                  className="px-4 py-2 text-sm font-medium text-gray-300 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted dark:text-gray-300 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -1811,20 +1811,20 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         {/* Rename Payment Modal */}
         {showRenameModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm md:items-center md:justify-center">
-            <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full max-h-[calc(100dvh-1rem)] md:max-h-[90vh] overflow-hidden flex flex-col border border-slate-700">
+            <div className="bg-card dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full max-h-[calc(100dvh-1rem)] md:max-h-[90vh] overflow-hidden flex flex-col border border-border dark:border-slate-700">
               {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3.5 md:px-5 md:py-4 border-b border-slate-700 shrink-0">
+              <div className="flex items-center justify-between px-4 py-3.5 md:px-5 md:py-4 border-b border-border dark:border-slate-700 shrink-0">
                 <div className="min-w-0 pr-3">
-                  <h3 className="text-lg font-semibold text-white leading-tight">
+                  <h3 className="text-lg font-semibold text-foreground leading-tight">
                     Rename Payment
                   </h3>
-                  <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                     Give this payment a custom name for easier organization
                   </p>
                 </div>
                 <button
                   onClick={handleCloseRenameModal}
-                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-700 transition-colors"
+                  className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted dark:hover:bg-slate-700 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1833,7 +1833,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               {/* Content */}
               <div className="overflow-y-auto flex-1 px-4 py-3 md:px-5 md:py-4 space-y-2.5">
                 <div>
-                  <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-1.5 md:mb-2">
                     Payment name
                   </label>
                   <input
@@ -1843,29 +1843,29 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                     placeholder="e.g., Kitchen deposit, Emergency repair"
                     maxLength={80}
                     disabled={isRenaming}
-                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full px-3 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background dark:bg-[#0f172a] text-foreground dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                   />
-                  <p className="text-xs text-gray-400 mt-1.5">
+                  <p className="text-xs text-muted-foreground mt-1.5">
                     This name is only for organizing payments in ReplyFlow. It won't change the customer name or affect receipts.
                   </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {renameLabel.length}/80 characters
                   </p>
                 </div>
 
                 {renameError && (
-                  <div className="p-3 bg-red-900/30 border border-red-700 rounded-lg">
-                    <p className="text-sm text-red-200">{renameError}</p>
+                  <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg">
+                    <p className="text-sm text-red-700 dark:text-red-200">{renameError}</p>
                   </div>
                 )}
               </div>
 
               {/* Footer */}
-              <div className="flex gap-2.5 justify-end px-4 py-3 md:px-5 md:py-4 border-t border-slate-700 shrink-0">
+              <div className="flex gap-2.5 justify-end px-4 py-3 md:px-5 md:py-4 border-t border-border dark:border-slate-700 shrink-0">
                 <button
                   onClick={handleCloseRenameModal}
                   disabled={isRenaming}
-                  className="px-4 py-2 text-sm font-medium text-gray-300 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted dark:text-gray-300 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>

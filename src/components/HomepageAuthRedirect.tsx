@@ -80,7 +80,7 @@ export default function HomepageAuthRedirect() {
   if (isSignedIn !== true) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 bg-background dark:bg-slate-950 flex items-center justify-center">
       <div className="w-10 h-10 border-4 border-blue-600/30 border-t-blue-600 border-solid rounded-full animate-spin"></div>
     </div>
   )

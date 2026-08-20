@@ -9,7 +9,7 @@ export default function AppLoadingScreen() {
   ]
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-background dark:bg-slate-950 flex flex-col items-center justify-center px-4">
       {/* Logo - using actual ReplyFlow logo */}
       <div className="mb-8">
         <img
@@ -27,12 +27,12 @@ export default function AppLoadingScreen() {
       </div>
 
       {/* Main loading text */}
-      <h1 className="text-white text-xl sm:text-2xl font-semibold mb-2 animate-pulse">
+      <h1 className="text-foreground dark:text-white text-xl sm:text-2xl font-semibold mb-2 animate-pulse">
         Setting up your account
       </h1>
 
       {/* Reassuring subtitle */}
-      <p className="text-slate-400 text-sm sm:text-base mb-8">
+      <p className="text-muted-foreground dark:text-slate-400 text-sm sm:text-base mb-8">
         This usually takes less than a minute.
       </p>
 
@@ -43,15 +43,15 @@ export default function AppLoadingScreen() {
             key={index}
             className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
               index === 0
-                ? 'bg-blue-900/30 border border-blue-500/50'
-                : 'bg-slate-900/50 border border-slate-800'
+                ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-500/50'
+                : 'bg-muted/50 dark:bg-slate-900/50 border border-border dark:border-slate-800'
             }`}
           >
             <div
               className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
                 index === 0
                   ? 'bg-blue-500'
-                  : 'bg-slate-700'
+                  : 'bg-muted-foreground/50 dark:bg-slate-700'
               }`}
             >
               {index === 0 && (
@@ -61,8 +61,8 @@ export default function AppLoadingScreen() {
             <p
               className={`text-sm sm:text-base ${
                 index === 0
-                  ? 'text-white font-medium'
-                  : 'text-slate-500'
+                  ? 'text-foreground dark:text-white font-medium'
+                  : 'text-muted-foreground dark:text-slate-500'
               }`}
             >
               {step}

@@ -76,7 +76,7 @@ export default function NativeLandingWrapper({ children }: { children: React.Rea
   // If we haven't determined environment yet, show loading
   if (isNative === null) {
     return (
-      <div className="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center">
+      <div className="fixed inset-0 z-50 bg-background dark:bg-slate-950 flex items-center justify-center">
         <div className="w-10 h-10 border-4 border-blue-600/30 border-t-blue-600 border-solid rounded-full animate-spin"></div>
       </div>
     )
@@ -85,7 +85,7 @@ export default function NativeLandingWrapper({ children }: { children: React.Rea
   // If native and on root route, show loading while redirecting
   if (isNative && shouldRedirect && pathname === '/') {
     return (
-      <div className="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center">
+      <div className="fixed inset-0 z-50 bg-background dark:bg-slate-950 flex items-center justify-center">
         <div className="w-10 h-10 border-4 border-blue-600/30 border-t-blue-600 border-solid rounded-full animate-spin"></div>
       </div>
     )
