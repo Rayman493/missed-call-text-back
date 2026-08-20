@@ -1164,6 +1164,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     }
 
     try {
+      const isMobile = window.innerWidth < 768
       const initialMapTypeId = mapType === 'satellite'
         ? (window as any).google.maps.MapTypeId.HYBRID
         : (window as any).google.maps.MapTypeId.ROADMAP
@@ -1177,7 +1178,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
-        gestureHandling: 'cooperative', // Allow page scrolling on mobile
+        gestureHandling: isMobile ? 'cooperative' : 'greedy', // Desktop: natural zoom without Ctrl; Mobile: safer page scrolling
         styles: [
           {
             featureType: 'poi',
@@ -2170,14 +2171,14 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       </div>
 
       {/* Today's Stops - Horizontal strip, visible on all screen sizes */}
-      {sortedItems.length > 0 && (
+      {sortedItems.filter(item => item.type !== 'business').length > 0 && (
         <div className="mb-3 md:mb-4 z-10">
           <div className="flex items-center justify-between mb-2 px-1">
             <h3 className="text-xs md:text-sm font-semibold text-foreground">Today's Stops</h3>
             <span className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">{routeSummary}</span>
           </div>
           <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {sortedItems.map((item, index) => (
+            {sortedItems.filter(item => item.type !== 'business').map((item, index) => (
               <button
                 key={item.id}
                 ref={selectedMapItemId === item.id ? (el: any) => {
@@ -2316,45 +2317,50 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
               {selectedItem.address}
             </p>
 
-            <div className="flex items-center gap-2 mb-3">
-              <span className={`px-2 py-0.5 text-[10px] font-medium rounded ${
-                selectedItem.type === 'job' 
-                  ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' 
-                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-              }`}>
-                {selectedItem.type === 'job' ? 'Job' : 'Appointment'}
-              </span>
-              <p className="text-xs text-slate-400 dark:text-slate-500 truncate flex-1">
-                {selectedItem.title}
-              </p>
-            </div>
+            {/* Appointment/Job specific UI */}
+            {selectedItem.type !== 'business' && (
+              <>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className={`px-2 py-0.5 text-[10px] font-medium rounded ${
+                    selectedItem.type === 'job'
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  }`}>
+                    {selectedItem.type === 'job' ? 'Job' : 'Appointment'}
+                  </span>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 truncate flex-1">
+                    {selectedItem.title}
+                  </p>
+                </div>
 
-            {/* Next/Previous Navigation */}
-            {sortedItems.length > 1 && (
-              <div className="flex items-center justify-between mb-3">
+                {/* Next/Previous Navigation */}
+                {sortedItems.filter(item => item.type !== 'business').length > 1 && (
+                  <div className="flex items-center justify-between mb-3">
+                    <button
+                      onClick={() => navigateToStop('previous')}
+                      className="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+                    >
+                      <ArrowLeft className="w-3 h-3" />
+                      Previous
+                    </button>
+                    <button
+                      onClick={() => navigateToStop('next')}
+                      className="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+                    >
+                      Next
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+
                 <button
-                  onClick={() => navigateToStop('previous')}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+                  onClick={() => handleViewItem(selectedItem)}
+                  className="w-full px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
                 >
-                  <ArrowLeft className="w-3 h-3" />
-                  Previous
+                  View Details
                 </button>
-                <button
-                  onClick={() => navigateToStop('next')}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
-                >
-                  Next
-                  <ArrowRight className="w-3 h-3" />
-                </button>
-              </div>
+              </>
             )}
-
-            <button
-              onClick={() => handleViewItem(selectedItem)}
-              className="w-full px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
-            >
-              View Details
-            </button>
           </div>
         )}
 
