@@ -25,6 +25,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import { CardSkeleton } from '@/components/ui/Skeleton'
 import Dropdown from '@/components/ui/Dropdown'
 import type { DropdownOption } from '@/components/ui/Dropdown'
+import PaymentEditModal from '@/components/payments/PaymentEditModal'
 
 interface PaymentRequest {
   id: string
@@ -154,11 +155,11 @@ export default function PaymentsPage() {
   const [showTapToPaySetup, setShowTapToPaySetup] = useState(false)
   const [paymentToMarkPaid, setPaymentToMarkPaid] = useState<PaymentRequest | null>(null)
   const [showOlderPayments, setShowOlderPayments] = useState(false)
-  const [showRenameModal, setShowRenameModal] = useState(false)
-  const [paymentToRename, setPaymentToRename] = useState<PaymentRequest | null>(null)
-  const [renameLabel, setRenameLabel] = useState('')
-  const [isRenaming, setIsRenaming] = useState(false)
-  const [renameError, setRenameError] = useState('')
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [paymentToEdit, setPaymentToEdit] = useState<PaymentRequest | null>(null)
+  const [editLabel, setEditLabel] = useState('')
+  const [isEditing, setIsEditing] = useState(false)
+  const [editError, setEditError] = useState('')
   const [isReconciling, setIsReconciling] = useState(false)
   useBodyScrollLock(showPaymentModal)
 
@@ -166,7 +167,7 @@ export default function PaymentsPage() {
   useBodyScrollLock(showMarkPaidConfirm)
   useBodyScrollLock(showQuickTapToPay)
   useBodyScrollLock(showTapToPaySetup)
-  useBodyScrollLock(showRenameModal)
+  useBodyScrollLock(showEditModal)
 
   // Check native support on mount
   useEffect(() => {
@@ -568,25 +569,25 @@ const getPaymentDescription = (payment: PaymentRequest) => {
     }
   }
 
-  const handleOpenRenameModal = (payment: PaymentRequest) => {
-    setPaymentToRename(payment)
-    setRenameLabel(payment.display_name || '')
-    setRenameError('')
-    setShowRenameModal(true)
+  const handleOpenEditModal = (payment: PaymentRequest) => {
+    setPaymentToEdit(payment)
+    setEditLabel(payment.display_name || '')
+    setEditError('')
+    setShowEditModal(true)
   }
 
-  const handleCloseRenameModal = () => {
-    setShowRenameModal(false)
-    setPaymentToRename(null)
-    setRenameLabel('')
-    setRenameError('')
+  const handleCloseEditModal = () => {
+    setShowEditModal(false)
+    setPaymentToEdit(null)
+    setEditLabel('')
+    setEditError('')
   }
 
-  const handleSaveLabel = async () => {
-    if (!paymentToRename) return
+  const handleSaveLabel = async (label: string) => {
+    if (!paymentToEdit) return
 
-    setIsRenaming(true)
-    setRenameError('')
+    setIsEditing(true)
+    setEditError('')
 
     try {
       const supabase = createBrowserClient()
@@ -597,13 +598,13 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         throw new Error('Not authenticated')
       }
 
-      const response = await fetch(`/api/payments/${paymentToRename.id}/label`, {
+      const response = await fetch(`/api/payments/${paymentToEdit.id}/label`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ display_name: renameLabel }),
+        body: JSON.stringify({ display_name: label }),
       })
 
       if (!response.ok) {
@@ -613,19 +614,16 @@ const getPaymentDescription = (payment: PaymentRequest) => {
 
       // Optimistic update: update local state immediately to avoid layout shift
       setPaymentRequests(prev => prev.map(p =>
-        p.id === paymentToRename.id ? { ...p, display_name: renameLabel } : p
+        p.id === paymentToEdit.id ? { ...p, display_name: label } : p
       ))
 
       setSuccessMessage('Payment label updated successfully')
-      handleCloseRenameModal()
-
-      // No background refresh needed - optimistic update is sufficient
-      // Other refresh mechanisms (payment completion events, page focus) will keep data in sync
     } catch (err) {
       console.error('Error updating payment label:', err)
-      setRenameError(err instanceof Error ? err.message : 'Failed to update payment label')
+      setEditError(err instanceof Error ? err.message : 'Failed to update payment label')
+      throw err
     } finally {
-      setIsRenaming(false)
+      setIsEditing(false)
     }
   }
 
@@ -953,7 +951,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                             )}
                             {(payment.status === 'paid' || payment.status === 'pending') && (
                               <button
-                                onClick={() => handleOpenRenameModal(payment)}
+                                onClick={() => handleOpenEditModal(payment)}
                                 className="p-1.5 text-muted-foreground hover:text-foreground"
                                 title="Rename payment"
                               >
@@ -1097,7 +1095,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                     )}
                                     {payment.status === 'paid' && (
                                       <button
-                                        onClick={() => handleOpenRenameModal(payment)}
+                                        onClick={() => handleOpenEditModal(payment)}
                                         className="p-1.5 text-muted-foreground hover:text-foreground"
                                         title="Rename payment"
                                       >
@@ -1282,7 +1280,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                   )}
                                   {(payment.status === 'paid' || payment.status === 'pending') && (
                                     <button
-                                      onClick={() => handleOpenRenameModal(payment)}
+                                      onClick={() => handleOpenEditModal(payment)}
                                       className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                       title="Rename payment"
                                       aria-label="Rename payment"
@@ -1423,7 +1421,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                       )}
                                       {payment.status === 'paid' && (
                                         <button
-                                          onClick={() => handleOpenRenameModal(payment)}
+                                          onClick={() => handleOpenEditModal(payment)}
                                           className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                           title="Rename payment"
                                           aria-label="Rename payment"
@@ -1797,78 +1795,15 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           }
         />
 
-        {/* Rename Payment Modal */}
-        {showRenameModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm md:items-center md:justify-center">
-            <div className="bg-card dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full max-h-[calc(100dvh-1rem)] md:max-h-[90vh] overflow-hidden flex flex-col border border-border dark:border-slate-700">
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3.5 md:px-5 md:py-4 border-b border-border dark:border-slate-700 shrink-0">
-                <div className="min-w-0 pr-3">
-                  <h3 className="text-lg font-semibold text-foreground leading-tight">
-                    Rename Payment
-                  </h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    Give this payment a custom name for easier organization
-                  </p>
-                </div>
-                <button
-                  onClick={handleCloseRenameModal}
-                  className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted dark:hover:bg-slate-700 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="overflow-y-auto flex-1 px-4 py-3 md:px-5 md:py-4 space-y-2.5">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5 md:mb-2">
-                    Payment name
-                  </label>
-                  <input
-                    type="text"
-                    value={renameLabel}
-                    onChange={(e) => setRenameLabel(e.target.value)}
-                    placeholder="e.g., Kitchen deposit, Emergency repair"
-                    maxLength={80}
-                    disabled={isRenaming}
-                    className="w-full px-3 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background dark:bg-[#0f172a] text-foreground dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1.5">
-                    This name is only for organizing payments in ReplyFlow. It won't change the customer name or affect receipts.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {renameLabel.length}/80 characters
-                  </p>
-                </div>
-
-                {renameError && (
-                  <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg">
-                    <p className="text-sm text-red-700 dark:text-red-200">{renameError}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className="flex gap-2.5 justify-end px-4 py-3 md:px-5 md:py-4 border-t border-border dark:border-slate-700 shrink-0">
-                <button
-                  onClick={handleCloseRenameModal}
-                  disabled={isRenaming}
-                  className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted dark:text-gray-300 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveLabel}
-                  disabled={isRenaming || !renameLabel.trim()}
-                  className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isRenaming ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Edit Payment Modal */}
+        <PaymentEditModal
+          isOpen={showEditModal}
+          onClose={handleCloseEditModal}
+          onSave={handleSaveLabel}
+          payment={paymentToEdit}
+          currentLabel={editLabel}
+          methodBadge={paymentToEdit ? getPaymentMethodBadge(paymentToEdit.payment_method_type, paymentToEdit.payment_provider) : null}
+        />
     </DashboardShell>
   )
 }
