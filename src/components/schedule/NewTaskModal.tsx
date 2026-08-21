@@ -264,8 +264,8 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md max-h-[calc(90vh-env(safe-area-inset-bottom)-80px)] overflow-y-auto mb-safe-bottom sm:mb-0">
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px)] sm:max-h-[90vh] overflow-hidden flex flex-col sm:mb-0">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
             {taskToEdit ? 'Edit Task' : 'New Task'}
           </h2>
@@ -277,7 +277,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
               Task Title *
@@ -380,7 +380,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
             </div>
           )}
 
-          <div className="flex gap-3 pt-2 pb-safe-bottom">
+          <div className="flex gap-3 pt-2 pb-2">
             <button
               type="button"
               onClick={handleClose}

@@ -139,8 +139,8 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, o
   return (
     <>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-in fade-in duration-200" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:p-4">
-        <div className="relative bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md flex flex-col max-h-[80dvh] sm:max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-4">
+        <div className="relative bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md flex flex-col max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px)] sm:max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200">
 
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 flex-shrink-0">
@@ -274,7 +274,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, o
 
           {/* Footer count + create new lead */}
           {!isLoading && !error && (
-            <div className="px-4 sm:px-5 py-2 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-2 border-t border-border/50 flex-shrink-0 space-y-2">
+            <div className="px-4 sm:px-5 py-2 pb-2 sm:pb-2 border-t border-border/50 flex-shrink-0 space-y-2">
               {onAddNew && (
                 <button
                   onClick={() => { onClose(); onAddNew() }}

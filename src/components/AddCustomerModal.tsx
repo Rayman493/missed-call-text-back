@@ -194,7 +194,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 md:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg max-h-[calc(100dvh-10rem-env(safe-area-inset-bottom))] md:max-h-[90vh] overflow-hidden rounded-2xl border border-border/50 bg-card shadow-2xl shadow-black/10 dark:shadow-black/30 flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-lg max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px)] md:max-h-[90vh] overflow-hidden rounded-2xl border border-border/50 bg-card shadow-2xl shadow-black/10 dark:shadow-black/30 flex flex-col animate-in zoom-in-95 duration-200">
         {/* Sticky Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 flex-shrink-0">
           <h2 className="text-lg font-semibold text-foreground">Add Customer</h2>
@@ -390,7 +390,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
         </div>
 
         {/* Sticky Footer */}
-        <div className="flex gap-3 px-5 py-4 border-t border-border/50 flex-shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
+        <div className="flex gap-3 px-5 py-4 border-t border-border/50 flex-shrink-0 pb-4 sm:pb-4">
           <button
             type="button"
             onClick={onClose}
