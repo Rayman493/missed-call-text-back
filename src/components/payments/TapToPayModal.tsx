@@ -1420,7 +1420,7 @@ export default function TapToPayModal({
   return (
     typeof document !== 'undefined' ? createPortal(
     <div className="fixed inset-x-0 top-0 h-[100dvh] z-[70] flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[calc(100dvh-32px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200 mx-auto sm:mx-0">
+      <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px-env(safe-area-inset-top))] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200 mx-auto sm:mx-0">
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-border/50 bg-card shrink-0">
           <div className="flex items-center gap-3">
@@ -1441,7 +1441,7 @@ export default function TapToPayModal({
         </div>
 
         {/* Content */}
-        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5 sm:py-6 space-y-3 sm:space-y-4 touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' as any, paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5 sm:py-6 space-y-3 sm:space-y-4 touch-pan-y pb-4" style={{ WebkitOverflowScrolling: 'touch' as any }}>
           {renderState()}
         </div>
       </div>
@@ -1452,7 +1452,7 @@ export default function TapToPayModal({
   if (showReceiptModal && typeof document !== 'undefined') {
     return createPortal(
       <div className="fixed inset-x-0 top-0 h-[100dvh] z-[80] flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-        <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-sm max-h-[calc(100dvh-32px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200">
+        <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-sm max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px-env(safe-area-inset-top))] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200">
           <div className="px-4 py-3 sm:px-5 sm:py-4 border-b border-border/50">
             <h3 className="text-lg font-semibold text-foreground">Send Receipt</h3>
           </div>

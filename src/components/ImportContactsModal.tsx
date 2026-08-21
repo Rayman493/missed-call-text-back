@@ -201,8 +201,8 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[calc(100dvh-2rem)] md:max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 sm:p-4">
+      <div className="bg-slate-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px)] md:max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-6 border-b border-slate-700 shrink-0">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-white">Import Contacts</h2>
@@ -250,7 +250,7 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
           </div>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1" style={{ maxHeight: 'calc(100dvh-10rem)' }}>
+        <div className="p-6 overflow-y-auto flex-1">
           {!preview ? (
             <div className="space-y-4">
               {activeTab === 'paste' ? (

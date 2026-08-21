@@ -401,8 +401,8 @@ export default function JobDetailsModal({
   return (
     <>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] animate-in fade-in duration-200" onClick={onClose} />
-      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-        <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-4">
+        <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-lg max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px)] sm:max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
           {/* Header */}
           <div className="flex items-start justify-between px-5 py-4 border-b border-border/50">
             <div className="flex items-start gap-3 flex-1 min-w-0">

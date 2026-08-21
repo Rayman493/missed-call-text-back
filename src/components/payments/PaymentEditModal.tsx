@@ -115,7 +115,7 @@ export default function PaymentEditModal({
     <>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm md:items-center md:justify-center">
-          <div className="bg-card dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full max-h-[calc(100dvh-1rem)] md:max-h-[90vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
+          <div className="bg-card dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px)] md:max-h-[90vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3.5 md:px-5 md:py-4 border-b border-slate-200 dark:border-slate-700 shrink-0">
               <div className="min-w-0 pr-3">

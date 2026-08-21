@@ -48,8 +48,8 @@ export default function DayDetailModal({ isOpen, onClose, date, events, onAddEve
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px)] sm:max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
           <div className="flex items-center gap-2.5">
