@@ -322,6 +322,23 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
             } : undefined}
           >
             <div className="py-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  // Close More first so its z-[1000] portal/backdrop unmounts,
+                  // then open Assistant so it cannot be blocked underneath.
+                  setIsMoreMenuOpen(false)
+                  queueMicrotask(() => {
+                    setIsAssistantOpen(true)
+                  })
+                }}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
+              >
+                <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                ReplyFlow Assistant
+              </button>
+
               <Link
                 href="/dashboard/settings"
                 onClick={(e) => {
@@ -364,24 +381,6 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 </div>
               </div>
 
-              <div className="h-px bg-border my-1" />
-
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  // Close More first so its z-[1000] portal/backdrop unmounts,
-                  // then open Assistant so it cannot be blocked underneath.
-                  setIsMoreMenuOpen(false)
-                  queueMicrotask(() => {
-                    setIsAssistantOpen(true)
-                  })
-                }}
-                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
-              >
-                <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                ReplyFlow Assistant
-              </button>
               {!isNativePlatform && (
                 <Link
                   href="/"
@@ -395,7 +394,9 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   Public Home
                 </Link>
               )}
+
               <div className="h-px bg-border my-1" />
+
               <button
                 type="button"
                 onClick={(e) => {
