@@ -1178,7 +1178,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
-        gestureHandling: isMobile ? 'cooperative' : 'greedy', // Desktop: natural zoom without Ctrl; Mobile: safer page scrolling
+        gestureHandling: 'greedy',
         styles: [
           {
             featureType: 'poi',
@@ -2242,7 +2242,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         <div ref={mapRef} className="w-full h-full" />
         
         {/* Map Controls Stack */}
-        <div className="hidden md:flex absolute top-3 right-3 z-10 flex-col gap-2">
+        <div className="flex absolute top-3 right-3 z-10 flex-col gap-2">
           {/* Map Type Toggle - Desktop only */}
           <div className="flex bg-white/95 dark:bg-slate-800/95 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700/60 overflow-hidden backdrop-blur-sm">
             <button
