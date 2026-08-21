@@ -2701,7 +2701,7 @@ export default function SettingsContent() {
                       type="text"
                       value={formBusiness.business_address_line2 || ''}
                       onChange={(e) => updateBusiness({ business_address_line2: e.target.value })}
-                      placeholder="Apt 4B"
+                      placeholder="e.g., Suite 200"
                       className="w-full px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-sm"
                     />
                   </div>
@@ -3449,8 +3449,9 @@ export default function SettingsContent() {
                       <div id="tap-to-pay-card" className="flex flex-col h-full border border-border/30 rounded-lg p-3 sm:p-4">
                     <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2">
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-2">
                           <Smartphone className="h-5 w-auto text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                          <span className="text-sm font-semibold text-foreground">Tap to Pay on iPhone</span>
                           {(() => {
                             const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
                             const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
@@ -4106,35 +4107,37 @@ export default function SettingsContent() {
 
               {/* Account Section */}
               <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
-                <div className="mb-8">
+                <div className="mb-6">
                   <h2 className="text-lg font-semibold text-foreground mb-2">Account</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Your account details and status.</p>
                 </div>
                 <div className="space-y-px bg-border/20 rounded-lg overflow-hidden">
                   {/* Login Email */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900/60 p-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2.5">
-                        <Mail className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm font-medium text-foreground">Login Email</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        This is the email you use to sign in.
-                      </span>
-                      {pendingNewEmail && (
-                        <span className="text-xs text-amber-600 dark:text-amber-400">
-                          Pending confirmation: {pendingNewEmail}
+                  <div className="flex flex-col gap-3 bg-white dark:bg-slate-900/60 p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                      <div className="flex flex-col gap-1 flex-1">
+                        <div className="flex items-center gap-2.5">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-foreground">Login Email</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          This is the email you use to sign in.
                         </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-foreground truncate max-w-[200px]">{user?.email}</span>
-                      <button
-                        onClick={() => setShowChangeEmailModal(true)}
-                        className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap"
-                      >
-                        Change Email
-                      </button>
+                        {pendingNewEmail && (
+                          <span className="text-xs text-amber-600 dark:text-amber-400">
+                            Pending confirmation: {pendingNewEmail}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <span className="text-sm font-medium text-foreground truncate max-w-[150px] sm:max-w-[200px]">{user?.email}</span>
+                        <button
+                          onClick={() => setShowChangeEmailModal(true)}
+                          className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
+                        >
+                          Change Email
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -4160,23 +4163,24 @@ export default function SettingsContent() {
                   )}
 
                   {/* Status */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900/60 p-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-2.5 h-2.5 rounded-full ${
-                          isInTrialPeriod(business?.subscription_status)
-                            ? 'bg-blue-500'
-                            : hasActiveSubscription(business)
-                              ? 'bg-green-500'
-                              : 'bg-amber-500'
-                        }`}></div>
-                        <span className="text-sm font-medium text-foreground">Status</span>
+                  <div className="flex flex-col gap-3 bg-white dark:bg-slate-900/60 p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                      <div className="flex flex-col gap-1 flex-1">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-2.5 h-2.5 rounded-full ${
+                            isInTrialPeriod(business?.subscription_status)
+                              ? 'bg-blue-500'
+                              : hasActiveSubscription(business)
+                                ? 'bg-green-500'
+                                : 'bg-amber-500'
+                          }`}></div>
+                          <span className="text-sm font-medium text-foreground">Status</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          Your account is in good standing.
+                        </span>
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        Your account is in good standing.
-                      </span>
-                    </div>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium self-start sm:self-center ${
                       isInTrialPeriod(business?.subscription_status)
                         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                         : hasActiveSubscription(business)
@@ -4185,6 +4189,7 @@ export default function SettingsContent() {
                     }`}>
                       {getSubscriptionStatusText(business?.subscription_status)}
                     </span>
+                    </div>
                   </div>
 
                   {/* Access Status */}
@@ -4193,81 +4198,87 @@ export default function SettingsContent() {
                     const accessInfo = getManualAccessDisplayInfo(business)
                     
                     return (
-                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 bg-white dark:bg-slate-900/60 p-4">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2.5">
-                            <div className={`w-2.5 h-2.5 rounded-full ${
-                              manualStatus.hasManualAccess && accessInfo.status === 'active'
-                                ? 'bg-green-500'
-                                : manualStatus.hasManualAccess && accessInfo.status === 'expired'
-                                  ? 'bg-red-500'
-                                  : 'bg-slate-400'
-                            }`}></div>
-                            <span className={`text-sm font-medium ${
-                              manualStatus.hasManualAccess && accessInfo.status === 'active'
-                                ? 'text-green-600 dark:text-green-400'
-                                : manualStatus.hasManualAccess && accessInfo.status === 'expired'
-                                  ? 'text-red-600 dark:text-red-400'
-                                  : 'text-foreground'
-                            }`}>
-                              Access Status
+                      <div className="flex flex-col gap-3 bg-white dark:bg-slate-900/60 p-4">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                          <div className="flex flex-col gap-1 flex-1">
+                            <div className="flex items-center gap-2.5">
+                              <div className={`w-2.5 h-2.5 rounded-full ${
+                                manualStatus.hasManualAccess && accessInfo.status === 'active'
+                                  ? 'bg-green-500'
+                                  : manualStatus.hasManualAccess && accessInfo.status === 'expired'
+                                    ? 'bg-red-500'
+                                    : 'bg-slate-400'
+                              }`}></div>
+                              <span className={`text-sm font-medium ${
+                                manualStatus.hasManualAccess && accessInfo.status === 'active'
+                                  ? 'text-green-600 dark:text-green-400'
+                                  : manualStatus.hasManualAccess && accessInfo.status === 'expired'
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : 'text-foreground'
+                              }`}>
+                                Access Status
+                              </span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              How you currently access ReplyFlow.
                             </span>
                           </div>
-                          <span className="text-xs text-muted-foreground">
-                            How you currently access ReplyFlow.
-                          </span>
-                        </div>
-                        <div className="flex flex-col items-start sm:items-end">
-                          <span className={`text-sm font-semibold ${
-                            manualStatus.hasManualAccess && accessInfo.status === 'active' 
-                              ? 'text-green-900 dark:text-green-100'
-                              : manualStatus.hasManualAccess && accessInfo.status === 'expired'
-                                ? 'text-red-900 dark:text-red-100'
-                                : 'text-foreground'
-                          }`}>
-                            {manualStatus.hasManualAccess 
-                              ? (accessInfo.status === 'active' 
-                                  ? 'Manual Access Active'
-                                  : 'Manual Access Expired')
-                              : (hasActiveSubscription(business) 
-                                  ? 'Active via Subscription'
-                                  : 'No manual access granted')
-                            }
-                          </span>
-                          {manualStatus.expiresAt && (
-                            <span className="text-xs text-muted-foreground mt-0.5">
-                              Until {new Date(manualStatus.expiresAt).toLocaleDateString()}
+                          <div className="flex flex-col items-start sm:items-end">
+                            <span className={`text-sm font-semibold ${
+                              manualStatus.hasManualAccess && accessInfo.status === 'active'
+                                ? 'text-green-900 dark:text-green-100'
+                                : manualStatus.hasManualAccess && accessInfo.status === 'expired'
+                                  ? 'text-red-900 dark:text-red-100'
+                                  : 'text-foreground'
+                            }`}>
+                              {manualStatus.hasManualAccess
+                                ? (accessInfo.status === 'active'
+                                    ? 'Manual Access Active'
+                                    : 'Manual Access Expired')
+                                : (hasActiveSubscription(business)
+                                    ? (isInTrialPeriod(business?.subscription_status)
+                                        ? 'Trial Active'
+                                        : 'Active via Subscription')
+                                    : 'No manual access granted')
+                              }
                             </span>
-                          )}
-                          {!manualStatus.expiresAt && manualStatus.hasManualAccess && (
-                            <span className="text-xs text-muted-foreground mt-0.5">
-                              Lifetime access
-                            </span>
-                          )}
+                            {manualStatus.expiresAt && (
+                              <span className="text-xs text-muted-foreground mt-0.5">
+                                Until {new Date(manualStatus.expiresAt).toLocaleDateString()}
+                              </span>
+                            )}
+                            {!manualStatus.expiresAt && manualStatus.hasManualAccess && (
+                              <span className="text-xs text-muted-foreground mt-0.5">
+                                Lifetime access
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )
                   })()}
 
                   {/* Password */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900/60 p-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2.5">
-                        <Smartphone className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm font-medium text-foreground">Password</span>
+                  <div className="flex flex-col gap-3 bg-white dark:bg-slate-900/60 p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                      <div className="flex flex-col gap-1 flex-1">
+                        <div className="flex items-center gap-2.5">
+                          <Smartphone className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-foreground">Password</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          Keep your account secure.
+                        </span>
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        Keep your account secure.
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-foreground">•••••••••</span>
-                      <button
-                        onClick={() => setShowChangePasswordModal(true)}
-                        className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap"
-                      >
-                        Change Password
-                      </button>
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <span className="text-sm font-medium text-foreground">•••••••••</span>
+                        <button
+                          onClick={() => setShowChangePasswordModal(true)}
+                          className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
+                        >
+                          Change Password
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -266,8 +266,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 >
                   {isActive(item.href) && (
                     <>
-                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 bg-blue-500/[0.55] blur-[8px] rounded-full -z-10" />
-                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 bg-blue-500/[0.08] blur-[20px] rounded-full -z-10" />
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 bg-blue-500/[0.25] blur-[8px] rounded-full -z-10 dark:bg-blue-500/[0.40]" />
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 bg-blue-500/[0.04] blur-[20px] rounded-full -z-10 dark:bg-blue-500/[0.12]" />
                     </>
                   )}
                   <Icon className="w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200" />
@@ -290,8 +290,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
             >
               {isMoreMenuOpen && (
                 <>
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 bg-blue-500/[0.55] blur-[8px] rounded-full -z-10" />
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 bg-blue-500/[0.08] blur-[20px] rounded-full -z-10" />
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 bg-blue-500/[0.25] blur-[8px] rounded-full -z-10 dark:bg-blue-500/[0.40]" />
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 bg-blue-500/[0.04] blur-[20px] rounded-full -z-10 dark:bg-blue-500/[0.12]" />
                 </>
               )}
                 <Settings className="w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200" />
@@ -333,7 +333,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                     setIsAssistantOpen(true)
                   })
                 }}
-                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-popover-foreground transition-colors duration-150 hover:bg-accent"
               >
                 <MessageCircle className="h-4 w-4 text-muted-foreground" />
                 ReplyFlow Assistant
@@ -406,7 +406,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 }}
                 className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-destructive transition-colors duration-150 hover:bg-accent"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-4 w-4 text-destructive" />
                 Sign Out
               </button>
             </div>
