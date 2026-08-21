@@ -110,6 +110,7 @@ export default function SettingsContent() {
   // Ignored contacts state
   const [ignoredContacts, setIgnoredContacts] = useState<any[]>([])
   const [isLoadingIgnored, setIsLoadingIgnored] = useState(false)
+  const lastFetchedUserIdRef = useRef<string | null>(null)
   
   // Add ignored contact modal state
   const [showAddModal, setShowAddModal] = useState(false)
@@ -440,7 +441,7 @@ export default function SettingsContent() {
   }, [tapToPayAwareness.state.tapToPaySupportStatus])
   
   const handleImportSuccess = (message: string) => {
-    fetchIgnoredContacts()
+    fetchIgnoredContacts({ showLoading: false })
     showToast(message, 'success')
   }
 
@@ -880,19 +881,18 @@ export default function SettingsContent() {
   }
 
   // Fetch ignored contacts
-  const fetchIgnoredContacts = async () => {
-    setIsLoadingIgnored(true)
+  const fetchIgnoredContacts = useCallback(async (options?: { showLoading?: boolean }) => {
+    const showLoading = options?.showLoading !== false
+    if (showLoading) {
+      setIsLoadingIgnored(true)
+    }
     try {
       // Check if user is authenticated before making request
-      if (!user) {
-        return
-      }
-
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
 
       if (!token) {
-        return
+        return false
       }
 
       const response = await fetch('/api/ignored-contacts', {
@@ -903,23 +903,27 @@ export default function SettingsContent() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          return
+          return false
         }
         throw new Error('Failed to fetch ignored contacts')
       }
 
       const data = await response.json()
       setIgnoredContacts(data.ignoredContacts || [])
+      return true
     } catch (error) {
       console.error('[Settings] Error fetching ignored contacts:', error)
       // Only show toast for non-authentication errors
       if (error instanceof Error && !error.message.includes('Not authenticated') && !error.message.includes('Unauthorized')) {
         showToast('Couldn\'t load personal contacts', 'error')
       }
+      return false
     } finally {
-      setIsLoadingIgnored(false)
+      if (showLoading) {
+        setIsLoadingIgnored(false)
+      }
     }
-  }
+  }, []) // Empty deps - function doesn't depend on user/business, only on runtime session
 
   // Remove ignored contact
   const removeIgnoredContact = async (contactId: string) => {
@@ -1848,10 +1852,33 @@ export default function SettingsContent() {
     setEmailSuccess(false)
   }
 
-  // Fetch ignored contacts when business loads and user is authenticated
+  // Fetch ignored contacts when user is authenticated (only once per user session)
+  useEffect(() => {
+    const userId = user?.id
+    if (!userId) {
+      return
+    }
+
+    // Skip if we've already successfully fetched for this user
+    if (lastFetchedUserIdRef.current === userId) {
+      return
+    }
+
+    // Attempt fetch - guard is set only on success
+    const doFetch = async () => {
+      const success = await fetchIgnoredContacts({ showLoading: true })
+      if (success) {
+        lastFetchedUserIdRef.current = userId
+      }
+      // On failure, guard remains unset - allows retry on next explicit refresh or navigation
+    }
+
+    doFetch()
+  }, [user?.id, fetchIgnoredContacts])
+
+  // Load automation settings and other initializations when business/user changes
   useEffect(() => {
     if (business && user) {
-      fetchIgnoredContacts()
       if (!hasUnsavedChanges) {
         const settings = getAutomationSettings()
         setSpamFilteringEnabled(settings.spamRepeatFilteringEnabled)
