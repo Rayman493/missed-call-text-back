@@ -57,6 +57,7 @@ import { OpenAIRealtimeClient } from './openai-client';
 import { TwilioStreamHandler } from './twilio-stream';
 import { createClient } from '@supabase/supabase-js';
 import audioDecode from 'audio-decode';
+import OpenAI from 'openai';
 import { cachedPromptAudio, CACHED_AUDIO_GENERATION_VERSION, CACHED_AUDIO_GENERATED_AT, REALTIME_MODEL, TTS_VOICE, OUTPUT_FORMAT } from './cached-audio';
 import {
   IntakeTemplate,
@@ -529,7 +530,7 @@ for (const [key, base64Audio] of Object.entries(cachedPromptAudio)) {
   console.log(`[CACHED AUDIO VALIDATION] byteLength: ${buffer.length}`);
   console.log(`[CACHED AUDIO VALIDATION] expectedDurationMs: ${expectedDuration}`);
   console.log(`[CACHED AUDIO VALIDATION] checksum: ${checksum}`);
-  
+
   // Validate asset integrity
   if (buffer.length === 0) {
     console.error(`[CACHED AUDIO VALIDATION] ERROR: ${key} has zero byte length`);
@@ -570,7 +571,7 @@ if (canonicalRegistrySize !== cachedAudioSize) {
 // Verify exact set equality
 const requiredSet = new Set(requiredPromptKeys);
 const loadedSet = new Set(loadedPromptKeys);
-const setsEqual = requiredSet.size === loadedSet.size && 
+const setsEqual = requiredSet.size === loadedSet.size &&
                   [...requiredSet].every(key => loadedSet.has(key));
 
 if (!setsEqual) {
@@ -826,7 +827,7 @@ function clearPendingAnswerState(state: any, reason: string): void {
   state.pendingAnswerTurnId = 0;
   state.settleWindowTimeout = null;
   state.settleGraceTimeout = null;
-  
+
   // Note: answerAcceptedForStage and answerAcceptedTurnId are preserved for durable state
   // They are cleared separately on stage advancement to maintain proper lifecycle
 }
@@ -839,7 +840,7 @@ async function retrySupabaseOperation<T>(
   baseDelayMs: number = 1000
 ): Promise<T> {
   let lastError: any;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`[SUPABASE RETRY] ${operationName} - Attempt ${attempt}/${maxRetries}`);
@@ -849,9 +850,9 @@ async function retrySupabaseOperation<T>(
     } catch (error: any) {
       lastError = error;
       console.log(`[SUPABASE RETRY] ${operationName} - Attempt ${attempt} failed:`, error.message);
-      
+
       // Check if error is retryable (network/DNS errors)
-      const isRetryable = 
+      const isRetryable =
         error.message?.includes('ENOTFOUND') ||
         error.message?.includes('ECONNREFUSED') ||
         error.message?.includes('ETIMEDOUT') ||
@@ -859,19 +860,19 @@ async function retrySupabaseOperation<T>(
         error.code === 'ENOTFOUND' ||
         error.code === 'ECONNREFUSED' ||
         error.code === 'ETIMEDOUT';
-      
+
       if (!isRetryable || attempt === maxRetries) {
         console.log(`[SUPABASE RETRY] ${operationName} - Not retryable or max retries reached`);
         throw error;
       }
-      
+
       // Exponential backoff
       const delay = baseDelayMs * Math.pow(2, attempt - 1);
       console.log(`[SUPABASE RETRY] ${operationName} - Retrying in ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
-  
+
   throw lastError;
 }
 
@@ -926,18 +927,18 @@ if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       serviceRoleKeyLength: SUPABASE_SERVICE_ROLE_KEY?.length || 0,
       timestamp: new Date().toISOString()
     });
-    
+
     log(LogLevel.INFO, '[SUPABASE INIT INPUTS]', {
       usingUrl: 'SUPABASE_URL',
       usingKey: 'SUPABASE_SERVICE_ROLE_KEY'
     });
-    
+
     supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     log(LogLevel.INFO, '[SUPABASE INIT SUCCESS] Supabase client created successfully');
-    
+
     // Test connection immediately after creation
     testSupabaseConnection();
-    
+
   } catch (error) {
     log(LogLevel.ERROR, '[SUPABASE INIT ERROR]', {
       message: error instanceof Error ? error.message : 'Unknown error',
@@ -958,13 +959,13 @@ async function testSupabaseConnection() {
     log(LogLevel.ERROR, '[SUPABASE CONNECTION TEST] Cannot test - supabase is null');
     return;
   }
-  
+
   try {
     const { data, error } = await supabase
       .from('businesses')
       .select('id')
       .limit(1) as any;
-    
+
     if (error) {
       log(LogLevel.ERROR, '[SUPABASE CONNECTION TEST]', {
         success: false,
@@ -1147,7 +1148,7 @@ function getMissingRequiredFields(intake: IntakeData): string[] {
   if (!intake.customerName) missing.push('customer name');
   if (!intake.serviceRequested) missing.push('service requested');
   if (!intake.issueDescription) missing.push('issue description');
-  
+
   // Location validation: accept flexible responses based on location type
   // For service_address type, require actual address
   // For business_location, caller_location, and online types, simple values are acceptable
@@ -1157,7 +1158,7 @@ function getMissingRequiredFields(intake: IntakeData): string[] {
     // If location type is service_address but the value is too short, consider it missing
     missing.push('service address');
   }
-  
+
   if (!intake.desiredCompletionTime) missing.push('desired completion time');
   if (!intake.callbackTime) missing.push('callback time');
   return missing;
@@ -1220,7 +1221,7 @@ function isGoodEnoughForBetaIntake(intake: IntakeData): boolean {
 function areAllRequiredFieldsCollected(intake: IntakeData, serviceLocationType: string = 'onsite'): boolean {
   // serviceAddress is only required for onsite mode
   const requiresServiceAddress = serviceLocationType === 'onsite';
-  
+
   const allCollected = !!(
     intake.customerName &&
     intake.serviceRequested &&
@@ -1241,7 +1242,7 @@ function areAllRequiredFieldsCollected(intake: IntakeData, serviceLocationType: 
   console.log('[REQUIRED FIELDS CHECK] result:', allCollected);
   console.log('[REQUIRED FIELDS CHECK] Timestamp:', new Date().toISOString());
   console.log('[REQUIRED FIELDS CHECK] =========================================');
-  
+
   if (!allCollected) {
     const missingFields = [];
     if (!intake.customerName) missingFields.push('customerName');
@@ -1255,7 +1256,7 @@ function areAllRequiredFieldsCollected(intake: IntakeData, serviceLocationType: 
     console.log('[REQUIRED FIELDS MISSING] Timestamp:', new Date().toISOString());
     console.log('[REQUIRED FIELDS MISSING] =========================================');
   }
-  
+
   return allCollected;
 }
 
@@ -1293,7 +1294,7 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   console.log('[ENTER TERMINAL CLOSE FUNCTION CALLED] enterTerminalClose function invoked');
   console.log('[ENTER TERMINAL CLOSE FUNCTION CALLED] Timestamp:', new Date().toISOString());
   console.log('[ENTER TERMINAL CLOSE FUNCTION CALLED] =========================================');
-  
+
   console.log('[ENTER TERMINAL CLOSE STEP 1] =========================================');
   console.log('[ENTER TERMINAL CLOSE STEP 1] Starting OpenAI-based final close');
   console.log('[ENTER TERMINAL CLOSE STEP 1] Timestamp:', new Date().toISOString());
@@ -1301,17 +1302,17 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   console.log('[COMPLETE FINALIZATION STEP 1] enterTerminalClose() called - Starting complete intake finalization');
   console.log('[COMPLETE FINALIZATION STEP 1] Timestamp:', new Date().toISOString());
   console.log('[COMPLETE FINALIZATION STEP 1] =========================================');
-  
+
   console.log('[OPENAI FINAL CLOSE STARTED] =========================================');
   console.log('[OPENAI FINAL CLOSE STARTED] Starting OpenAI-based final close');
   console.log('[OPENAI FINAL CLOSE STARTED] Timestamp:', new Date().toISOString());
   console.log('[OPENAI FINAL CLOSE STARTED] =========================================');
-  
+
   console.log('[ENTER TERMINAL CLOSE STEP 2] =========================================');
   console.log('[ENTER TERMINAL CLOSE STEP 2] Setting terminal flags');
   console.log('[ENTER TERMINAL CLOSE STEP 2] Timestamp:', new Date().toISOString());
   console.log('[ENTER TERMINAL CLOSE STEP 2] =========================================');
-  
+
   console.log('[CLOSING STATE SET] =========================================');
   console.log('[CLOSING STATE SET] Setting terminal flags');
   console.log('[CLOSING STATE SET] confirmationState: completed');
@@ -1321,7 +1322,7 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   console.log('[CLOSING STATE SET] callState: closing');
   console.log('[CLOSING STATE SET] Timestamp:', new Date().toISOString());
   console.log('[CLOSING STATE SET] =========================================');
-  
+
   console.log('[CONFIRMATION STATE CHANGE] =========================================');
   console.log('[CONFIRMATION STATE CHANGE] from:', closingState.confirmationState);
   console.log('[CONFIRMATION STATE CHANGE] to: completed');
@@ -1355,45 +1356,45 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   console.log('[CALL STATE CLOSING COMPLETED - PATH 4] New intakeTerminalComplete:', closingState.intakeTerminalComplete);
   console.log('[CALL STATE CLOSING COMPLETED - PATH 4] Timestamp:', new Date().toISOString());
   console.log('[CALL STATE CLOSING COMPLETED - PATH 4] =========================================');
-  
+
   // Sync individual variables for backward compatibility
   const callState = closingState.callState;
   const finalClosingStarted = closingState.finalClosingStarted;
   const terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
   const confirmationState = closingState.confirmationState;
-  
+
   // Sync to twilioHandler
   (twilioHandler as any).closingState = closingState;
   (twilioHandler as any).callState = closingState.callState;
   (twilioHandler as any).finalClosingStarted = closingState.finalClosingStarted;
   (twilioHandler as any).terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
   (twilioHandler as any).intakeTerminalComplete = closingState.intakeTerminalComplete;
-  
+
   console.log('[ENTER TERMINAL CLOSE STEP 3] =========================================');
   console.log('[ENTER TERMINAL CLOSE STEP 3] Tracking final sentence start time');
   console.log('[ENTER TERMINAL CLOSE STEP 3] Timestamp:', new Date().toISOString());
   console.log('[ENTER TERMINAL CLOSE STEP 3] =========================================');
-  
+
   // Track final sentence start time
   const finalSentenceStartTime = Date.now();
   (twilioHandler as any).finalSentenceStartTime = finalSentenceStartTime;
   (twilioHandler as any).finalCloseAudioStarted = false;
-  
+
   // Clear any previous authorized response ID - we'll use the actual OpenAI response ID
   (twilioHandler as any).authorizedFinalResponseId = null;
   (twilioHandler as any).finalClosingResponseId = null;
-  
+
   console.log('[OPENAI FINAL RESPONSE ID CLEARED] =========================================');
   console.log('[OPENAI FINAL RESPONSE ID CLEARED] Cleared previous response IDs');
   console.log('[OPENAI FINAL RESPONSE ID CLEARED] Will use actual OpenAI response ID from response.created');
   console.log('[OPENAI FINAL RESPONSE ID CLEARED] Timestamp:', new Date().toISOString());
   console.log('[OPENAI FINAL RESPONSE ID CLEARED] =========================================');
-  
+
   console.log('[ENTER TERMINAL CLOSE STEP 4] =========================================');
   console.log('[ENTER TERMINAL CLOSE STEP 4] Checking OpenAI websocket state');
   console.log('[ENTER TERMINAL CLOSE STEP 4] Timestamp:', new Date().toISOString());
   console.log('[ENTER TERMINAL CLOSE STEP 4] =========================================');
-  
+
   // Check if OpenAI websocket is open
   if (!openAiWs || openAiWs.readyState !== openAiWs.OPEN) {
     console.log('[OPENAI FINAL WS NOT OPEN] =========================================');
@@ -1401,66 +1402,66 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
     console.log('[OPENAI FINAL WS NOT OPEN] readyState:', openAiWs ? openAiWs.readyState : 'null');
     console.log('[OPENAI FINAL WS NOT OPEN] Timestamp:', new Date().toISOString());
     console.log('[OPENAI FINAL WS NOT OPEN] =========================================');
-    
+
     console.log('[OPENAI FINAL EARLY RETURN] =========================================');
     console.log('[OPENAI FINAL EARLY RETURN] Early return: OpenAI websocket not open');
     console.log('[OPENAI FINAL EARLY RETURN] Reason: readyState is not OPEN');
     console.log('[OPENAI FINAL EARLY RETURN] Timestamp:', new Date().toISOString());
     console.log('[OPENAI FINAL EARLY RETURN] =========================================');
-    
+
     console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] =========================================');
     console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] OpenAI websocket not open, falling back to TwiML');
     console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] Timestamp:', new Date().toISOString());
     console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] =========================================');
-    
+
     executeTwilioFallback(ws, twilioHandler, closingState);
     return;
   }
-  
+
   console.log('[ENTER TERMINAL CLOSE STEP 5] =========================================');
   console.log('[ENTER TERMINAL CLOSE STEP 5] Attempting to send final sentence');
   console.log('[ENTER TERMINAL CLOSE STEP 5] Timestamp:', new Date().toISOString());
   console.log('[ENTER TERMINAL CLOSE STEP 5] =========================================');
-  
+
   console.log('[OPENAI FINAL SEND ATTEMPT] =========================================');
   console.log('[OPENAI FINAL SEND ATTEMPT] Attempting to send final sentence through OpenAI');
   console.log('[OPENAI FINAL SEND ATTEMPT] Sentence:', FINAL_CLOSE_SENTENCE);
   console.log('[OPENAI FINAL SEND ATTEMPT] Timestamp:', new Date().toISOString());
   console.log('[OPENAI FINAL SEND ATTEMPT] =========================================');
-  
+
   console.log('[OPENAI FINAL SENTENCE SENT] =========================================');
   console.log('[OPENAI FINAL SENTENCE SENT] Sending final sentence through OpenAI Realtime');
   console.log('[OPENAI FINAL SENTENCE SENT] Sentence:', FINAL_CLOSE_SENTENCE);
   console.log('[OPENAI FINAL SENTENCE SENT] Timestamp:', new Date().toISOString());
   console.log('[OPENAI FINAL SENTENCE SENT] =========================================');
-  
+
   console.log('[OPENAI FINAL RESPONSE CREATE SENT] =========================================');
   console.log('[OPENAI FINAL RESPONSE CREATE SENT] Sending response.create for final sentence');
   console.log('[OPENAI FINAL RESPONSE CREATE SENT] Response ID will be captured from response.created');
   console.log('[OPENAI FINAL RESPONSE CREATE SENT] Timestamp:', new Date().toISOString());
   console.log('[OPENAI FINAL RESPONSE CREATE SENT] =========================================');
-  
+
   // Send final sentence through OpenAI Realtime
   sendControlledAssistantText(FINAL_CLOSE_SENTENCE, 'FINAL_CLOSE_OPENAI', openAiWs);
-  
+
   console.log('[OPENAI FINAL RESPONSE CREATED] =========================================');
   console.log('[OPENAI FINAL RESPONSE CREATED] Response.create sent successfully');
   console.log('[OPENAI FINAL RESPONSE CREATED] Response ID will be captured from response.created');
   console.log('[OPENAI FINAL RESPONSE CREATED] Timestamp:', new Date().toISOString());
   console.log('[OPENAI FINAL RESPONSE CREATED] =========================================');
-  
+
   console.log('[ENTER TERMINAL CLOSE STEP 6] =========================================');
   console.log('[ENTER TERMINAL CLOSE STEP 6] Starting fixed delay hangup timer');
   console.log('[ENTER TERMINAL CLOSE STEP 6] Timestamp:', new Date().toISOString());
   console.log('[ENTER TERMINAL CLOSE STEP 6] =========================================');
-  
+
   console.log('[OPENAI FINAL HANGUP TIMER STARTED] =========================================');
   console.log('[OPENAI FINAL HANGUP TIMER STARTED] Starting fixed delay hangup timer');
   console.log('[OPENAI FINAL HANGUP TIMER STARTED] Delay:', FINAL_CLOSE_OPENAI_HANGUP_DELAY_MS, 'ms');
   console.log('[OPENAI FINAL HANGUP TIMER STARTED] Minimum playback:', MIN_OPENAI_FINAL_PLAYBACK_MS, 'ms');
   console.log('[OPENAI FINAL HANGUP TIMER STARTED] Timestamp:', new Date().toISOString());
   console.log('[OPENAI FINAL HANGUP TIMER STARTED] =========================================');
-  
+
   // Schedule fixed delay hangup
   setTimeout(() => {
     const elapsed = Date.now() - finalSentenceStartTime;
@@ -1470,15 +1471,15 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
     console.log('[OPENAI FINAL MIN PLAYBACK SATISFIED] Minimum required:', MIN_OPENAI_FINAL_PLAYBACK_MS, 'ms');
     console.log('[OPENAI FINAL MIN PLAYBACK SATISFIED] Timestamp:', new Date().toISOString());
     console.log('[OPENAI FINAL MIN PLAYBACK SATISFIED] =========================================');
-    
+
     executeOpenaiFinalHangup(ws, twilioHandler, closingState);
   }, FINAL_CLOSE_OPENAI_HANGUP_DELAY_MS);
-  
+
   console.log('[ENTER TERMINAL CLOSE STEP 7] =========================================');
   console.log('[ENTER TERMINAL CLOSE STEP 7] Starting emergency fallback timer');
   console.log('[ENTER TERMINAL CLOSE STEP 7] Timestamp:', new Date().toISOString());
   console.log('[ENTER TERMINAL CLOSE STEP 7] =========================================');
-  
+
   // Emergency fallback: if no audio delta received within 3 seconds, redirect to TwiML
   setTimeout(() => {
     if (!(twilioHandler as any).finalCloseAudioStarted) {
@@ -1488,11 +1489,11 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
       console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] Redirecting to TwiML endpoint');
       console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] Timestamp:', new Date().toISOString());
       console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] =========================================');
-      
+
       executeTwilioFallback(ws, twilioHandler, closingState);
     }
   }, OPENAI_FINAL_EMERGENCY_FALLBACK_MS);
-  
+
   console.log('[ENTER TERMINAL CLOSE STEP 8] =========================================');
   console.log('[ENTER TERMINAL CLOSE STEP 8] Function completed successfully');
   console.log('[ENTER TERMINAL CLOSE STEP 8] Timestamp:', new Date().toISOString());
@@ -1751,15 +1752,15 @@ function executeOpenaiFinalHangup(ws: any, twilioHandler: any, closingState: any
   console.log('[COMPLETE FINALIZATION STEP 2] executeOpenaiFinalHangup() called - Initiating hangup');
   console.log('[COMPLETE FINALIZATION STEP 2] Timestamp:', new Date().toISOString());
   console.log('[COMPLETE FINALIZATION STEP 2] =========================================');
-  
+
   console.log('[OPENAI FINAL TWILIO HANGUP REQUESTED] =========================================');
   console.log('[OPENAI FINAL TWILIO HANGUP REQUESTED] Calling Twilio API to hangup after OpenAI final sentence');
   console.log('[OPENAI FINAL TWILIO HANGUP REQUESTED] Timestamp:', new Date().toISOString());
   console.log('[OPENAI FINAL TWILIO HANGUP REQUESTED] =========================================');
-  
+
   const callSid = (ws as any).callSid;
   const twilioClient = (twilioHandler as any).twilioClient;
-  
+
   if (callSid && twilioClient) {
     twilioClient.calls(callSid).update({ status: 'completed' })
       .then(() => {
@@ -1768,13 +1769,13 @@ function executeOpenaiFinalHangup(ws: any, twilioHandler: any, closingState: any
         console.log('[COMPLETE FINALIZATION STEP 2 SUCCESS] Call SID:', callSid);
         console.log('[COMPLETE FINALIZATION STEP 2 SUCCESS] Timestamp:', new Date().toISOString());
         console.log('[COMPLETE FINALIZATION STEP 2 SUCCESS] =========================================');
-        
+
         console.log('[OPENAI FINAL TWILIO HANGUP SUCCESS] =========================================');
         console.log('[OPENAI FINAL TWILIO HANGUP SUCCESS] OpenAI final close hangup succeeded');
         console.log('[OPENAI FINAL TWILIO HANGUP SUCCESS] Call SID:', callSid);
         console.log('[OPENAI FINAL TWILIO HANGUP SUCCESS] Timestamp:', new Date().toISOString());
         console.log('[OPENAI FINAL TWILIO HANGUP SUCCESS] =========================================');
-        
+
         if (ws && ws.readyState === ws.OPEN) {
           ws.close();
         }
@@ -1810,7 +1811,7 @@ function executeTwilioFallback(ws: any, twilioHandler: any, closingState: any): 
   const twilioClient = (twilioHandler as any).twilioClient;
   const baseUrl = process.env.BASE_URL || 'https://replyflow-ai-voice.fly.dev';
   const finalCloseUrl = `${baseUrl}/api/twilio/ai-final-close`;
-  
+
   if (callSid && twilioClient) {
     twilioClient.calls(callSid).update({
       url: finalCloseUrl,
@@ -1823,7 +1824,7 @@ function executeTwilioFallback(ws: any, twilioHandler: any, closingState: any): 
         console.log('[TWILIO FINAL CLOSE REDIRECT SUCCESS] TwiML URL:', finalCloseUrl);
         console.log('[TWILIO FINAL CLOSE REDIRECT SUCCESS] Timestamp:', new Date().toISOString());
         console.log('[TWILIO FINAL CLOSE REDIRECT SUCCESS] =========================================');
-        
+
         if (ws && ws.readyState === ws.OPEN) {
           ws.close();
         }
@@ -1834,7 +1835,7 @@ function executeTwilioFallback(ws: any, twilioHandler: any, closingState: any): 
         console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] Error:', error.message);
         console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] Timestamp:', new Date().toISOString());
         console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] =========================================');
-        
+
         if (ws && ws.readyState === ws.OPEN) {
           ws.close();
         }
@@ -1844,7 +1845,7 @@ function executeTwilioFallback(ws: any, twilioHandler: any, closingState: any): 
     console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] No callSid or twilioClient available for emergency fallback');
     console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] Timestamp:', new Date().toISOString());
     console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] =========================================');
-    
+
     if (ws && ws.readyState === ws.OPEN) {
       ws.close();
     }
@@ -1933,7 +1934,7 @@ function sendApprovedPrompt(stage: string, openAiWs: any, ws?: any): boolean {
 
   // Get intake template from websocket session
   const intakeTemplate = ws?.intakeTemplate as IntakeTemplate || 'on_site';
-  
+
   // Map internal stage to template stage
   const stageMapping: Record<string, IntakeStage> = {
     'ask_name_reason': 'ask_name_reason',
@@ -1945,9 +1946,9 @@ function sendApprovedPrompt(stage: string, openAiWs: any, ws?: any): boolean {
     'ask_callback_time': 'ask_callback_time',
     'final_goodbye': 'complete',
   };
-  
+
   const templateStage = stageMapping[stage] || 'ask_name_reason';
-  
+
   // For targeted reprompts, use the direct prompt from APPROVED_PROMPTS instead of template
   let approvedText: string;
   if (stage === 'ask_name_reason_service_only' || stage === 'ask_name_reason_name_only') {
@@ -2367,7 +2368,7 @@ Speak ONLY the exact text in quotes above.`;
     console.log('[CONTROLLED TEXT SEND] assistantSpeaking should already be TRUE');
     console.log('[CONTROLLED TEXT SEND] Timestamp:', new Date().toISOString());
     console.log('[CONTROLLED TEXT SEND] =========================================');
-    
+
     openAiWs.send(JSON.stringify(message));
     console.log('[CONTROLLED RESPONSE CREATE SENT] =========================================');
     console.log('[CONTROLLED RESPONSE CREATE SENT] Response.create sent');
@@ -2658,7 +2659,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
   console.log('[EXTRACTION PATH DETECTION] transcript:', transcript || 'none');
   console.log('[EXTRACTION PATH DETECTION] Timestamp:', new Date().toISOString());
   console.log('[EXTRACTION PATH DETECTION] =========================================');
-  
+
   console.log('[SCRIPTED FLOW] =========================================');
   console.log('[SCRIPTED FLOW] caller transcript received');
   console.log('[SCRIPTED FLOW] currentStage:', intake.stage);
@@ -3004,7 +3005,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
 // Helper function to extract multiple answers from single response (STAGE-AWARE)
 function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
   const lowerTranscript = transcript.toLowerCase().trim();
-  
+
   // STAGE 2: Extraction Function Entry
   console.log('[EXTRACTION TRACE STAGE 2] =========================================');
   console.log('[EXTRACTION TRACE STAGE 2] extractMultipleAnswersInput:', transcript);
@@ -3013,7 +3014,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
   console.log('[EXTRACTION TRACE STAGE 2] existingServiceRequested:', intake.serviceRequested);
   console.log('[EXTRACTION TRACE STAGE 2] Timestamp:', new Date().toISOString());
   console.log('[EXTRACTION TRACE STAGE 2] =========================================');
-  
+
   console.log('[FIELD EXTRACTION INPUT] =========================================');
   console.log('[FIELD EXTRACTION INPUT] currentStage:', intake.stage);
   console.log('[FIELD EXTRACTION INPUT] transcript:', transcript);
@@ -3027,7 +3028,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
   }, null, 2));
   console.log('[FIELD EXTRACTION INPUT] Timestamp:', new Date().toISOString());
   console.log('[FIELD EXTRACTION INPUT] =========================================');
-  
+
   console.log('[LIVE EXTRACTION RAW] =========================================');
   console.log('[LIVE EXTRACTION RAW] Transcript:', transcript);
   console.log('[LIVE EXTRACTION RAW] Current Stage:', intake.stage);
@@ -3240,7 +3241,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       console.log('[CUSTOMER NAME EXTRACTION START] customerName before extraction:', intake.customerName);
       console.log('[CUSTOMER NAME EXTRACTION START] Timestamp:', new Date().toISOString());
       console.log('[CUSTOMER NAME EXTRACTION START] =========================================');
-      
+
       if (!intake.customerName) {
         const oldName = intake.customerName;
         const name = extractName(transcript);
@@ -3280,7 +3281,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
         console.log('[CUSTOMER NAME PRESERVED] Timestamp:', new Date().toISOString());
         console.log('[CUSTOMER NAME PRESERVED] =========================================');
       }
-      
+
       console.log('[CUSTOMER NAME EXTRACTION END] =========================================');
       console.log('[CUSTOMER NAME EXTRACTION END] customerName after extraction:', intake.customerName);
       console.log('[CUSTOMER NAME EXTRACTION END] Timestamp:', new Date().toISOString());
@@ -3300,12 +3301,12 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
         if (!isUnusable) {
           // Intelligently extract reason by removing name portion from transcript
           let extractedReason = trimmedTranscript;
-          
+
           // If we successfully extracted a name, remove it from the transcript to get the reason
           if (intake.customerName && intake.customerName.length > 1) {
             const nameLower = intake.customerName.toLowerCase();
             const transcriptLower = trimmedTranscript.toLowerCase();
-            
+
             // Find and remove the name from the transcript
             const nameIndex = transcriptLower.indexOf(nameLower);
             if (nameIndex !== -1) {
@@ -3313,7 +3314,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
               let reasonCandidate = trimmedTranscript
                 .substring(nameIndex + intake.customerName.length)
                 .trim();
-              
+
               // Remove common connecting phrases that follow the name
               const connectingPhrases = [
                 /^,\s*/i,
@@ -3325,16 +3326,16 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
                 /^calling\s+(?:because|about|for|to)\s*/i,
                 /^i\s+(?:need|want|would like|am calling|'m calling)\s*/i,
               ];
-              
+
               for (const phrase of connectingPhrases) {
                 reasonCandidate = reasonCandidate.replace(phrase, '');
               }
-              
+
               // Clean up the reason
               reasonCandidate = reasonCandidate.trim();
-              
+
               // Only use the extracted reason if it's meaningful
-              if (reasonCandidate.length > 2 && 
+              if (reasonCandidate.length > 2 &&
                   reasonCandidate.split(/\s+/).length >= 2 &&
                   !/^and\s*$/i.test(reasonCandidate)) {
                 extractedReason = reasonCandidate;
@@ -3360,7 +3361,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
               }
             }
           }
-          
+
           intake.serviceRequested = extractedReason;
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[FIELD ASSIGNMENT] field: serviceRequested');
@@ -3372,7 +3373,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
           console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[LIVE EXTRACTION MAPPED] serviceRequested:', intake.serviceRequested);
-          
+
           // STAGE 3: Extraction Function Output
           console.log('[EXTRACTION TRACE STAGE 3] =========================================');
           console.log('[EXTRACTION TRACE STAGE 3] extractedCustomerName:', intake.customerName);
@@ -3380,14 +3381,14 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
           console.log('[EXTRACTION TRACE STAGE 3] extractionMethod:', usedFallbackGpt ? 'fallback_gpt_extraction' : 'deterministic_regex_parse');
           console.log('[EXTRACTION TRACE STAGE 3] Timestamp:', new Date().toISOString());
           console.log('[EXTRACTION TRACE STAGE 3] =========================================');
-          
+
           // STAGE 4: In-Memory State
           console.log('[EXTRACTION TRACE STAGE 4] =========================================');
           console.log('[EXTRACTION TRACE STAGE 4] intakeData.customerName:', intake.customerName);
           console.log('[EXTRACTION TRACE STAGE 4] intakeData.serviceRequested:', intake.serviceRequested);
           console.log('[EXTRACTION TRACE STAGE 4] Timestamp:', new Date().toISOString());
           console.log('[EXTRACTION TRACE STAGE 4] =========================================');
-          
+
           // DIAGNOSTIC LOGGING FOR FIRST-STAGE EXTRACTION
           console.log('[FIRST-STAGE EXTRACTION DIAGNOSTICS] =========================================');
           console.log('[FIRST-STAGE EXTRACTION DIAGNOSTICS] rawFirstStageTranscript:', transcript);
@@ -3625,14 +3626,14 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       } else {
         // Field is already locked - prevent overwriting with trivial farewell utterances
         const trivialFarewellUtterances = [
-          'bye', 'goodbye', 'thank you', 'thanks', 'okay', 'ok', 'sounds good', 
+          'bye', 'goodbye', 'thank you', 'thanks', 'okay', 'ok', 'sounds good',
           'see you', 'have a good day', 'have a great day', 'alright', 'fine'
         ];
-        
-        const isTrivialFarewell = trivialFarewellUtterances.some(utterance => 
+
+        const isTrivialFarewell = trivialFarewellUtterances.some(utterance =>
           lowerTranscript.trim() === utterance || lowerTranscript.trim() === utterance + '.'
         );
-        
+
         if (isTrivialFarewell) {
           console.log('[FIELD LOCK PROTECTION] =========================================');
           console.log('[FIELD LOCK PROTECTION] field: callbackTime');
@@ -3710,7 +3711,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
   console.log('[LIVE EXTRACTION COMPLETE] callbackTime:', intake.callbackTime);
   console.log('[LIVE EXTRACTION COMPLETE] Timestamp:', new Date().toISOString());
   console.log('[LIVE EXTRACTION COMPLETE] =========================================');
-  
+
   console.log('[FIELD EXTRACTION RESULT] =========================================');
   console.log('[FIELD EXTRACTION RESULT] extractedFields:', JSON.stringify({
     customerName: intake.customerName,
@@ -3737,14 +3738,14 @@ function isValidCustomerName(name: string): boolean {
   if (!name || typeof name !== 'string') {
     return false;
   }
-  
+
   const trimmedName = name.trim().toLowerCase();
-  
+
   // Reject if too short or too long
   if (trimmedName.length < 2 || trimmedName.length > 50) {
     return false;
   }
-  
+
   // Blocklist of common non-name values that should not be saved as customerName
   const blockedValues = [
     // Service types
@@ -3754,21 +3755,21 @@ function isValidCustomerName(name: string): boolean {
     'insulation', 'solar', 'security', 'fencing', 'deck', 'pool', 'moving', 'storage',
     'junk removal', 'lawn care', 'toilet', 'installation', 'maintenance', 'repair',
     'service', 'consultation', 'appointment', 'quote', 'estimate', 'inspection',
-    
+
     // Locations
     'south park', 'north park', 'east park', 'west park', 'downtown', 'uptown',
-    
+
     // Generic phrases
     'customer', 'client', 'caller', 'someone', 'anyone', 'nobody', 'unknown',
     'help', 'need', 'want', 'call', 'phone', 'message',
-    
+
     // Business-related
     'business', 'company', 'office', 'store', 'shop',
-    
+
     // Time-related
     'morning', 'afternoon', 'evening', 'today', 'tomorrow', 'week'
   ];
-  
+
   // Reject generic introductory scaffolding that is not a name
   const introScaffolding = /^(?:my name is|name is|i am|i'm|this is)\b/i;
   if (introScaffolding.test(name.trim())) {
@@ -3779,19 +3780,19 @@ function isValidCustomerName(name: string): boolean {
   if (blockedValues.some(blocked => trimmedName === blocked || trimmedName.includes(blocked))) {
     return false;
   }
-  
+
   // Check if it contains only common service words
   const serviceWords = ['service', 'repair', 'maintenance', 'installation', 'cleaning', 'management', 'inspection'];
   if (serviceWords.some(word => trimmedName.includes(word))) {
     return false;
   }
-  
+
   // Check if it's a multi-word phrase that looks like a service description
   const words = trimmedName.split(/\s+/);
   if (words.length > 2) {
     return false;
   }
-  
+
   return true;
 }
 
@@ -3913,26 +3914,196 @@ function sanitizeEnglishIntakeField(fieldName: string, value: string): string {
   return trimmed;
 }
 
+// Model-based semantic extraction for AI intake request title and additional details
+// Uses OpenAI structured output for reliable semantic separation
+
+interface SemanticExtractionResult {
+  requestTitle: string;
+  additionalDetails: string;
+}
+
+const SEMANTIC_EXTRACTION_MODEL = 'gpt-4o-mini';
+const SEMANTIC_EXTRACTION_TIMEOUT_MS = 5000;
+const SEMANTIC_EXTRACTION_MAX_RETRIES = 1;
+
+// In-memory cache for semantic extraction results to prevent duplicate invocations WITHIN THE SAME PROCESS
+// Key: callSid, Value: { rawRequestHash, result, timestamp }
+// Note: This cache is in-memory only. Across process restarts or different instances, duplicate extraction may occur.
+// This is acceptable because: (1) duplicate extraction cannot corrupt source data, (2) canonical persistence is idempotent,
+// (3) raw request remains available, (4) each extraction is inexpensive, (5) correctness does not depend on exactly-once model billing.
+const semanticExtractionCache = new Map<string, { rawRequestHash: string; result: SemanticExtractionResult; timestamp: number }>();
+
+function getSemanticExtractionCacheKey(callSid: string, rawRequest: string): string {
+  // Create a simple hash of the raw request to detect if it changed
+  const rawRequestHash = Buffer.from(rawRequest).toString('base64').slice(0, 32);
+  return `${callSid}:${rawRequestHash}`;
+}
+
+let semanticExtractionClient: OpenAI | null = null;
+
+function getSemanticExtractionClient(): OpenAI {
+  if (!semanticExtractionClient) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY is required for semantic extraction');
+    }
+    semanticExtractionClient = new OpenAI({ apiKey });
+  }
+  return semanticExtractionClient;
+}
+
+async function extractRequestTitleAndDetailsWithModel(
+  rawRequest: string,
+  callSid: string
+): Promise<{ result: SemanticExtractionResult; fallbackUsed: boolean }> {
+  const startTime = Date.now();
+
+  console.log('[AI REQUEST SEMANTIC EXTRACTION START] =========================================');
+  console.log('[AI REQUEST SEMANTIC EXTRACTION START] callSid:', callSid);
+  console.log('[AI REQUEST SEMANTIC EXTRACTION START] rawRequestLength:', rawRequest.length);
+  console.log('[AI REQUEST SEMANTIC EXTRACTION START] Timestamp:', new Date().toISOString());
+  console.log('[AI REQUEST SEMANTIC EXTRACTION START] =========================================');
+
+  if (!rawRequest || rawRequest.trim() === '') {
+    return {
+      result: { requestTitle: '', additionalDetails: '' },
+      fallbackUsed: true
+    };
+  }
+
+  // Check cache for idempotency
+  const cacheKey = getSemanticExtractionCacheKey(callSid, rawRequest);
+  const cached = semanticExtractionCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp < 60000)) { // Cache valid for 1 minute
+    console.log('[AI REQUEST SEMANTIC EXTRACTION CACHE HIT] =========================================');
+    console.log('[AI REQUEST SEMANTIC EXTRACTION CACHE HIT] callSid:', callSid);
+    console.log('[AI REQUEST SEMANTIC EXTRACTION CACHE HIT] cachedAt:', cached.timestamp);
+    console.log('[AI REQUEST SEMANTIC EXTRACTION CACHE HIT] Timestamp:', new Date().toISOString());
+    console.log('[AI REQUEST SEMANTIC EXTRACTION CACHE HIT] =========================================');
+    return { result: cached.result, fallbackUsed: false };
+  }
+
+  try {
+    const client = getSemanticExtractionClient();
+
+    const response = await client.chat.completions.create({
+      model: SEMANTIC_EXTRACTION_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You extract structured service-request information from a caller\'s answer. Return a concise Request Title describing what the customer needs and Additional Details containing useful supporting context. The title should preserve the complete core service intent, including compound work when necessary. Additional Details should contain facts, conditions, symptoms, preferences, history, reasons, or clarifications not needed in the short title. Do not invent information. Do not repeat the title in Additional Details. If there are no meaningful additional details, return an empty string.'
+        },
+        {
+          role: 'user',
+          content: rawRequest
+        }
+      ],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'semantic_extraction',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              requestTitle: {
+                type: 'string',
+                description: 'Concise title describing the service requested'
+              },
+              additionalDetails: {
+                type: 'string',
+                description: 'Supporting context not needed in the title (empty if none)'
+              }
+            },
+            required: ['requestTitle', 'additionalDetails']
+          }
+        }
+      },
+      temperature: 0,
+      max_tokens: 200
+    }, {
+      timeout: SEMANTIC_EXTRACTION_TIMEOUT_MS
+    });
+
+    const durationMs = Date.now() - startTime;
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No content returned from semantic extraction');
+    }
+
+    const parsed = JSON.parse(content) as SemanticExtractionResult;
+
+    if (!parsed.requestTitle || parsed.requestTitle.trim() === '') {
+      throw new Error('Empty requestTitle returned');
+    }
+
+    const result = {
+      requestTitle: parsed.requestTitle.trim(),
+      additionalDetails: parsed.additionalDetails.trim()
+    };
+
+    // Cache the result
+    semanticExtractionCache.set(cacheKey, { rawRequestHash: cacheKey.split(':')[1], result, timestamp: Date.now() });
+
+    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] =========================================');
+    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] callSid:', callSid);
+    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] requestTitle:', parsed.requestTitle);
+    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] additionalDetailsPresent:', !!parsed.additionalDetails);
+    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] additionalDetailsLength:', parsed.additionalDetails.length);
+    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] durationMs:', durationMs);
+    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] fallbackUsed:', false);
+    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] Timestamp:', new Date().toISOString());
+    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] =========================================');
+
+    return {
+      result,
+      fallbackUsed: false
+    };
+
+  } catch (error: any) {
+    const durationMs = Date.now() - startTime;
+    console.log('[AI REQUEST SEMANTIC EXTRACTION FALLBACK] =========================================');
+    console.log('[AI REQUEST SEMANTIC EXTRACTION FALLBACK] callSid:', callSid);
+    console.log('[AI REQUEST SEMANTIC EXTRACTION FALLBACK] error:', error.message);
+    console.log('[AI REQUEST SEMANTIC EXTRACTION FALLBACK] durationMs:', durationMs);
+    console.log('[AI REQUEST SEMANTIC EXTRACTION FALLBACK] fallbackUsed:', true);
+    console.log('[AI REQUEST SEMANTIC EXTRACTION FALLBACK] Timestamp:', new Date().toISOString());
+    console.log('[AI REQUEST SEMANTIC EXTRACTION FALLBACK] =========================================');
+
+    return {
+      result: { requestTitle: '', additionalDetails: '' },
+      fallbackUsed: true
+    };
+  }
+}
+
+
 // Build canonical extracted_info for leads.raw_metadata and ai_call_records.
 // Keeps field names aligned with getLeadAIIntake expectations.
-function buildCanonicalExtractedInfo(
+async function buildCanonicalExtractedInfo(
   fields: any,
   callerPhone?: string,
-  serviceLocationType?: string
-): {
+  serviceLocationType?: string,
+  callSid?: string
+): Promise<{
   customerName: string
   customerPhone: string
   serviceRequested: string
+  importantDetails: string
+  additionalDetails: string
   serviceAddress: string
   desiredCompletion: string
   callbackTime: string
   serviceLocationType?: string
-} {
+}> {
   if (!fields) {
     return {
       customerName: '',
       customerPhone: callerPhone || '',
       serviceRequested: '',
+      importantDetails: '',
+      additionalDetails: '',
       serviceAddress: '',
       desiredCompletion: '',
       callbackTime: '',
@@ -3974,52 +4145,72 @@ function buildCanonicalExtractedInfo(
     console.log('[CANONICAL INFO REPAIR] error (non-fatal):', e instanceof Error ? e.message : e);
   }
 
-  // Combine serviceRequested and additionalDetails into serviceRequested
+  // Preserve distinct importantDetails without heuristic splitting
   // Simple Mode captures to 'request' field, Regular Mode uses 'serviceRequested'
   // Canonical resolution: serviceRequested || request || issueDescription
   console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
-  console.log('[CANONICAL REQUEST DIAGNOSTIC] event: simple_mode_request_captured');
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] event: canonical_field_mapping');
   console.log('[CANONICAL REQUEST DIAGNOSTIC] serviceRequested present:', !!fields.serviceRequested);
   console.log('[CANONICAL REQUEST DIAGNOSTIC] request present:', !!fields.request);
   console.log('[CANONICAL REQUEST DIAGNOSTIC] issueDescription present:', !!fields.issueDescription);
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] additionalDetails present:', !!fields.additionalDetails);
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] importantDetails present:', !!fields.importantDetails);
   console.log('[CANONICAL REQUEST DIAGNOSTIC] serviceRequested length:', fields.serviceRequested?.length || 0);
   console.log('[CANONICAL REQUEST DIAGNOSTIC] request length:', fields.request?.length || 0);
   console.log('[CANONICAL REQUEST DIAGNOSTIC] issueDescription length:', fields.issueDescription?.length || 0);
   console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
 
-  const serviceRequested = sanitizeEnglishIntakeField('serviceRequested', fields.serviceRequested || fields.request || fields.issueDescription || '');
-  const additionalDetails = sanitizeEnglishIntakeField(
-    'additionalDetails',
-    fields.additionalDetails ||
-    fields.importantDetails ||
-    ''
-  );
+  // Extract the full request text (may contain both request and details in Simple Mode)
+  const rawRequestText = fields.serviceRequested || fields.request || fields.issueDescription || '';
 
-  console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
-  console.log('[CANONICAL REQUEST DIAGNOSTIC] event: simple_mode_request_normalized');
-  console.log('[CANONICAL REQUEST DIAGNOSTIC] serviceRequested after normalization length:', serviceRequested.length);
-  console.log('[CANONICAL REQUEST DIAGNOSTIC] additionalDetails length:', additionalDetails.length);
-  console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
+  // Extract separate importantDetails if provided (canonical field name)
+  const rawImportantDetails = fields.additionalDetails || fields.importantDetails || '';
 
-  // Combine into serviceRequested field, avoiding duplication
-  let finalServiceRequested = serviceRequested;
-  if (additionalDetails && additionalDetails !== serviceRequested) {
-    finalServiceRequested = serviceRequested ? `${serviceRequested}. ${additionalDetails}` : additionalDetails;
+  let serviceRequested: string;
+  let importantDetails: string;
+
+  if (rawImportantDetails && rawImportantDetails.trim() !== '') {
+    // Separate importantDetails provided - preserve both fields distinctly
+    serviceRequested = sanitizeEnglishIntakeField('serviceRequested', rawRequestText);
+    importantDetails = sanitizeEnglishIntakeField('importantDetails', rawImportantDetails);
+  } else {
+    // No separate importantDetails provided - perform model-based semantic extraction from single response
+    // Extract concise request title and additional details from the combined text
+    const semanticExtraction = await extractRequestTitleAndDetailsWithModel(rawRequestText, callSid || 'unknown');
+
+    // Validate semantic extraction result
+    if (!semanticExtraction.fallbackUsed && semanticExtraction.result.requestTitle) {
+      serviceRequested = sanitizeEnglishIntakeField('serviceRequested', semanticExtraction.result.requestTitle);
+      importantDetails = sanitizeEnglishIntakeField('importantDetails', semanticExtraction.result.additionalDetails);
+    } else {
+      // Fallback: preserve original text if semantic extraction fails
+      console.log('[AI REQUEST SEMANTIC EXTRACTION] =========================================');
+      console.log('[AI REQUEST SEMANTIC EXTRACTION] event: semantic_extraction_fallback');
+      console.log('[AI REQUEST SEMANTIC EXTRACTION] reason: model_extraction_failed_or_timeout');
+      console.log('[AI REQUEST SEMANTIC EXTRACTION] Timestamp:', new Date().toISOString());
+      console.log('[AI REQUEST SEMANTIC EXTRACTION] =========================================');
+      serviceRequested = sanitizeEnglishIntakeField('serviceRequested', rawRequestText);
+      importantDetails = '';
+    }
   }
 
   console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
-  console.log('[CANONICAL REQUEST DIAGNOSTIC] event: simple_mode_request_persisted');
-  console.log('[CANONICAL REQUEST DIAGNOSTIC] final serviceRequested length:', finalServiceRequested.length);
-  console.log('[CANONICAL REQUEST DIAGNOSTIC] serviceRequested present:', !!finalServiceRequested);
-  if (!finalServiceRequested || finalServiceRequested.length === 0) {
-    console.log('[CANONICAL REQUEST DIAGNOSTIC] event: simple_mode_request_missing');
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] event: canonical_fields_preserved');
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] serviceRequested length:', serviceRequested.length);
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] importantDetails length:', importantDetails.length);
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] serviceRequested present:', !!serviceRequested);
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] importantDetails present:', !!importantDetails);
+  if (!serviceRequested || serviceRequested.length === 0) {
+    console.log('[CANONICAL REQUEST DIAGNOSTIC] event: serviceRequested_missing');
   }
   console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
 
   return {
     customerName: sanitizeEnglishIntakeField('customerName', fields.customerName || ''),
     customerPhone: (callerPhone || fields.customerPhone || '').trim(),
-    serviceRequested: finalServiceRequested,
+    serviceRequested: serviceRequested,
+    importantDetails: importantDetails,
+    additionalDetails: importantDetails, // Alias for backward compatibility
     serviceAddress: sanitizeEnglishIntakeField('serviceAddress', fields.serviceAddress || fields.addressOrLocation || ''),
     desiredCompletion: sanitizeEnglishIntakeField(
       'desiredCompletion',
@@ -4069,13 +4260,13 @@ function isAIIntakeComplete(extractedFields: any): boolean {
 function hasUsefulCollectedFields(intakeData: IntakeData | null): boolean {
   console.log('[USEFUL COLLECTED FIELDS CHECK] =========================================');
   console.log('[USEFUL COLLECTED FIELDS CHECK] intakeData:', JSON.stringify(intakeData, null, 2));
-  
+
   if (!intakeData) {
     console.log('[USEFUL COLLECTED FIELDS CHECK] intakeData is null, returning false');
     console.log('[USEFUL COLLECTED FIELDS CHECK] =========================================');
     return false;
   }
-  
+
   const usefulFields = [
     intakeData.customerName,
     intakeData.serviceRequested,
@@ -4084,13 +4275,13 @@ function hasUsefulCollectedFields(intakeData: IntakeData | null): boolean {
     intakeData.desiredCompletionTime,
     intakeData.callbackTime
   ];
-  
+
   const hasAnyField = usefulFields.some(field => field && field.trim() !== '');
-  
+
   console.log('[USEFUL COLLECTED FIELDS CHECK] usefulFields:', usefulFields);
   console.log('[USEFUL COLLECTED FIELDS CHECK] hasAnyField:', hasAnyField);
   console.log('[USEFUL COLLECTED FIELDS CHECK] =========================================');
-  
+
   return hasAnyField;
 }
 
@@ -4116,14 +4307,14 @@ async function finalizeIncompleteIntake(
   console.log('[FINALIZE INCOMPLETE ENTER] callerPhone:', callerPhone);
   console.log('[FINALIZE INCOMPLETE ENTER] Timestamp:', new Date().toISOString());
   console.log('[FINALIZE INCOMPLETE ENTER] =========================================');
-  
+
   // INCOMPLETE FINALIZATION OWNERSHIP CHECK
   const stage = intakeData?.stage || 'unknown';
   const effectiveServiceLocationType = serviceLocationType || 'onsite';
   const allRequiredFieldsCollected = intakeData ? areAllRequiredFieldsCollected(intakeData, effectiveServiceLocationType) : false;
   const finalClosingStarted = closingState?.finalClosingStarted || false;
   const terminalClosingResponseStarted = closingState?.terminalClosingResponseStarted || false;
-  
+
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] =========================================');
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] stage:', stage);
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] allRequiredFieldsCollected:', allRequiredFieldsCollected);
@@ -4131,18 +4322,18 @@ async function finalizeIncompleteIntake(
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] terminalClosingResponseStarted:', terminalClosingResponseStarted);
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] Timestamp:', new Date().toISOString());
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] =========================================');
-  
+
   // Verify call is truly incomplete before claiming ownership
-  const willClaimCall = stage !== 'complete' && 
-                        !allRequiredFieldsCollected && 
-                        !finalClosingStarted && 
+  const willClaimCall = stage !== 'complete' &&
+                        !allRequiredFieldsCollected &&
+                        !finalClosingStarted &&
                         !terminalClosingResponseStarted;
-  
+
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] =========================================');
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] willClaimCall:', willClaimCall);
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] Timestamp:', new Date().toISOString());
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] =========================================');
-  
+
   if (!willClaimCall) {
     console.log('[INCOMPLETE FINALIZATION NOT CLAIMED - COMPLETE CALL] =========================================');
     console.log('[INCOMPLETE FINALIZATION NOT CLAIMED - COMPLETE CALL] Call is complete, incomplete finalization will NOT claim ownership');
@@ -4152,14 +4343,14 @@ async function finalizeIncompleteIntake(
     console.log('[INCOMPLETE FINALIZATION NOT CLAIMED - COMPLETE CALL] terminalClosingResponseStarted:', terminalClosingResponseStarted);
     console.log('[INCOMPLETE FINALIZATION NOT CLAIMED - COMPLETE CALL] Timestamp:', new Date().toISOString());
     console.log('[INCOMPLETE FINALIZATION NOT CLAIMED - COMPLETE CALL] =========================================');
-    
+
     console.log('[FINALIZE INCOMPLETE EXIT] =========================================');
     console.log('[FINALIZE INCOMPLETE EXIT] Function exit (call is complete)');
     console.log('[FINALIZE INCOMPLETE EXIT] Timestamp:', new Date().toISOString());
     console.log('[FINALIZE INCOMPLETE EXIT] =========================================');
     return;
   }
-  
+
   // Acquire finalization lock
   if (finalizationInProgressByCallSid.has(callSid)) {
     console.log('[FINALIZATION SKIPPED ALREADY IN PROGRESS] =========================================');
@@ -4172,17 +4363,17 @@ async function finalizeIncompleteIntake(
     console.log('[FINALIZE INCOMPLETE EXIT] =========================================');
     return;
   }
-  
+
   finalizationInProgressByCallSid.set(callSid, Date.now());
   incompleteFinalizedCallSids.set(callSid, Date.now());
-  
+
   console.log('[FINALIZATION LOCK ACQUIRED] =========================================');
   console.log('[FINALIZATION LOCK ACQUIRED] callSid:', callSid);
   console.log('[FINALIZATION LOCK ACQUIRED] Timestamp:', new Date().toISOString());
   console.log('[FINALIZATION LOCK ACQUIRED] =========================================');
-  
+
   console.log('[INCOMPLETE FINALIZATION] Starting for callSid:', callSid, 'businessId:', businessId, 'callerPhone:', callerPhone);
-  
+
   const hasUsefulFields = hasUsefulCollectedFields(intakeData);
   const hasUserSpeech = transcript && transcript.some(entry => entry.role === 'user' && entry.text && entry.text.trim().length > 0);
 
@@ -4212,7 +4403,7 @@ async function finalizeIncompleteIntake(
     preferredCallbackTime: intakeData?.callbackTime || null,
     summary: `Partial intake: ${intakeData?.customerName || 'Unknown'} called about ${intakeData?.serviceRequested || 'unknown issue'}. Some details may be missing.`
   };
-  
+
   // STAGE 5: Partial Persistence Payload
   console.log('[EXTRACTION TRACE STAGE 5] =========================================');
   console.log('[EXTRACTION TRACE STAGE 5] extractedFields.callerName:', extractedFields.callerName);
@@ -4221,16 +4412,16 @@ async function finalizeIncompleteIntake(
   console.log('[EXTRACTION TRACE STAGE 5] intakeData.serviceRequested:', intakeData?.serviceRequested);
   console.log('[EXTRACTION TRACE STAGE 5] Timestamp:', new Date().toISOString());
   console.log('[EXTRACTION TRACE STAGE 5] =========================================');
-  
-  const canonicalInfo = buildCanonicalExtractedInfo(extractedFields, callerPhone || '', undefined);
-  
+
+  const canonicalInfo = await buildCanonicalExtractedInfo(extractedFields, callerPhone || '', undefined, undefined);
+
   // STAGE 7: Canonical Mapping Values
   console.log('[EXTRACTION TRACE STAGE 7] =========================================');
   console.log('[EXTRACTION TRACE STAGE 7] canonicalInfo.customerName:', canonicalInfo.customerName);
   console.log('[EXTRACTION TRACE STAGE 7] canonicalInfo.serviceRequested:', canonicalInfo.serviceRequested);
   console.log('[EXTRACTION TRACE STAGE 7] Timestamp:', new Date().toISOString());
   console.log('[EXTRACTION TRACE STAGE 7] =========================================');
-  
+
   // Prefer the lead/conversation IDs pre-created by the voice route. If they are not
   // available (e.g., direct stream reconnect without custom parameters), fall back to
   // upserting/creating from the caller phone number.
@@ -4349,12 +4540,12 @@ async function finalizeIncompleteIntake(
     console.log('[INCOMPLETE FINALIZATION] Creating/updating conversation for leadId:', lead.id);
     // Use the race-recovery helper function
     conversation = await getOrCreateConversation(supabase, lead.id, businessId, 'open');
-    
+
     if (!conversation) {
       console.log('[INCOMPLETE FINALIZATION] Conversation creation failed - conversation is null');
       throw new Error('Conversation creation returned null');
     }
-    
+
     console.log('[INCOMPLETE FINALIZATION] Using conversation:', conversation.id);
   }
   console.log('[INCOMPLETE FINALIZATION] Conversation ready:', conversation.id);
@@ -4378,7 +4569,7 @@ async function finalizeIncompleteIntake(
     console.error('[INCOMPLETE FINALIZATION] AI record check failed:', checkError, 'callSid:', callSid);
     return;
   }
-  
+
   let recordError;
   if (existingRecord) {
     console.log('[INCOMPLETE FINALIZATION] Updating existing AI record:', existingRecord.id);
@@ -4431,13 +4622,13 @@ async function finalizeIncompleteIntake(
     );
     recordError = insertError;
   }
-  
+
   if (recordError) {
     console.error('[INCOMPLETE FINALIZATION] AI record operation failed:', recordError, 'callSid:', callSid);
     return;
   }
   console.log('[INCOMPLETE FINALIZATION] AI record created/updated successfully');
-  
+
   // STAGE 8: Final Persisted Values
   console.log('[EXTRACTION TRACE STAGE 8] =========================================');
   console.log('[EXTRACTION TRACE STAGE 8] persistedExtractedInfo.customerName:', canonicalInfo.customerName);
@@ -4506,7 +4697,7 @@ async function finalizeIncompleteIntake(
     console.error('[INCOMPLETE FINALIZATION] Follow-ups failed:', followUpError, 'callSid:', callSid);
     // Continue despite follow-up failure
   }
-  
+
   // Create notification
   console.log('[INCOMPLETE FINALIZATION] Creating notification for leadId:', lead.id);
 
@@ -4537,7 +4728,7 @@ async function finalizeIncompleteIntake(
       3,
       1000
     );
-    
+
     if (notificationError) {
       console.error('[INCOMPLETE FINALIZATION] Notification failed:', notificationError, 'callSid:', callSid);
     } else {
@@ -4546,9 +4737,9 @@ async function finalizeIncompleteIntake(
   } catch (notificationCatchError) {
     console.error('[INCOMPLETE FINALIZATION] Notification exception:', notificationCatchError, 'callSid:', callSid);
   }
-  
+
   console.log('[INCOMPLETE FINALIZATION] Complete for callSid:', callSid, 'leadId:', lead.id);
-  
+
   // Release finalization lock
   finalizationInProgressByCallSid.delete(callSid);
   incompleteFinalizedCallSids.delete(callSid);
@@ -4641,12 +4832,12 @@ function getResponseForMissingField(missingField: string, intake: IntakeData): {
 function extractName(transcript: string): string {
   const trimmed = transcript.trim();
   const lowerTranscript = trimmed.toLowerCase();
-  
+
   console.log('[NAME EXTRACTION] =========================================');
   console.log('[NAME EXTRACTION] rawTranscript:', trimmed);
   console.log('[NAME EXTRACTION] Timestamp:', new Date().toISOString());
   console.log('[NAME EXTRACTION] =========================================');
-  
+
   // Pattern: "My name is X" or "I am X" or "This is X"
   const namePatterns = [
     /my name is\s+(.+?)(?:\s|$)/i,
@@ -4654,7 +4845,7 @@ function extractName(transcript: string): string {
     /i'm\s+(.+?)(?:\s|$)/i,
     /this is\s+(.+?)(?:\s|$)/i,
   ];
-  
+
   for (const pattern of namePatterns) {
     const match = trimmed.match(pattern);
     if (match && match[1]) {
@@ -4662,12 +4853,12 @@ function extractName(transcript: string): string {
       // Take only the first word of the extracted name (the actual name)
       const nameWords = extractedName.split(' ');
       const finalName = nameWords[0];
-      
+
       console.log('[NAME EXTRACTION] Pattern matched:', pattern);
       console.log('[NAME EXTRACTION] extractedName:', extractedName);
       console.log('[NAME EXTRACTION] finalName:', finalName);
       console.log('[NAME EXTRACTION] =========================================');
-      
+
       // Validate the extracted name before returning
       if (isValidCustomerName(finalName)) {
         return finalName;
@@ -4679,7 +4870,7 @@ function extractName(transcript: string): string {
       }
     }
   }
-  
+
   // REMOVED: Dangerous fallback that took the last word of transcript
   // This caused cross-contamination (e.g., "toilet." became customerName)
   // Now only set customerName when a valid name pattern is matched
@@ -4716,17 +4907,17 @@ function createAISessionTracker(callSid: string, businessId: string): AISessionS
 function updateAISessionState(tracker: AISessionStateTracker, newState: AISessionState, reason?: string): void {
   const now = Date.now();
   const previousState = tracker.currentState;
-  
+
   // Update state
   tracker.currentState = newState;
-  
+
   // Add to history
   tracker.stateHistory.push({
     state: newState,
     timestamp: now,
     transitionFrom: previousState,
   });
-  
+
   // Update specific timestamps
   switch (newState) {
     case 'AI_CONNECTED':
@@ -4747,7 +4938,7 @@ function updateAISessionState(tracker: AISessionStateTracker, newState: AISessio
       tracker.metrics.failureReason = reason;
       break;
   }
-  
+
   // Log state transition
   console.log(`[AI STATE] ${newState}`, {
     callSid: tracker.metrics.callSid,
@@ -4763,7 +4954,7 @@ function logCallMetrics(tracker: AISessionStateTracker): void {
   const connectMs = metrics.aiConnectedAt ? metrics.aiConnectedAt - metrics.callReceivedAt : 0;
   const readyMs = metrics.sessionReadyAt ? metrics.sessionReadyAt - metrics.callReceivedAt : 0;
   const firstAudioMs = metrics.firstAudioReceivedAt ? metrics.firstAudioReceivedAt - metrics.callReceivedAt : 0;
-  
+
   console.log('[CALL METRICS]', {
     callSid: metrics.callSid,
     businessId: metrics.businessId,
@@ -4777,45 +4968,45 @@ function logCallMetrics(tracker: AISessionStateTracker): void {
 
 // Comprehensive voicemail fallback function for critical requirement
 async function triggerVoicemailFallback(
-  ws: WebSocket, 
-  twilioHandler: any, 
-  aiSessionTracker: AISessionStateTracker, 
-  failureReason: string, 
-  callSid: string, 
-  businessId: string, 
-  callerPhone: string, 
+  ws: WebSocket,
+  twilioHandler: any,
+  aiSessionTracker: AISessionStateTracker,
+  failureReason: string,
+  callSid: string,
+  businessId: string,
+  callerPhone: string,
   businessPhone: string,
   businessName: string,
   forwardedFrom: string
 ): Promise<void> {
   console.log('[AI FAILURE] AI system failure detected');
   console.log('[VOICEMAIL FALLBACK ACTIVATED] Triggering voicemail fallback due to:', failureReason);
-  
+
   // Record the failure
   recordAIFailure(aiSessionTracker, 'VOICEMAIL_FALLBACK', failureReason);
   updateAISessionState(aiSessionTracker, 'FAILED', failureReason);
-  
+
   // Close AI connection if it exists
   const openAiWs = (ws as any).openAiWs;
   if (openAiWs) {
     openAiWs.close();
   }
-  
-  console.log('[AI FALLBACK CHECK]', { 
-    callSid, 
-    businessId, 
+
+  console.log('[AI FALLBACK CHECK]', {
+    callSid,
+    businessId,
     failureReason,
     timestamp: new Date().toISOString()
   });
-  
-  console.log('[AI FALLBACK TRIGGERED]', { 
-    callSid, 
-    businessId, 
-    failureReason 
+
+  console.log('[AI FALLBACK TRIGGERED]', {
+    callSid,
+    businessId,
+    failureReason
   });
-  
+
   console.log('[AI FALLBACK REASON]', failureReason);
-  
+
   // Store fallback metadata for later processing
   (ws as any).voicemailFallback = {
     triggered: true,
@@ -4830,11 +5021,11 @@ async function triggerVoicemailFallback(
 
   try {
     console.log('[AI FALLBACK TO VOICEMAIL]', { callSid, businessId });
-    
+
     // Use Twilio REST API to redirect the call to voicemail
     const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
     const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
-    
+
     if (!twilioAccountSid || !twilioAuthToken) {
       console.log('[VOICEMAIL FALLBACK] Missing Twilio credentials, using fallback');
       await createFallbackLead(callSid, businessId, callerPhone, businessPhone, businessName, forwardedFrom, failureReason);
@@ -4843,31 +5034,31 @@ async function triggerVoicemailFallback(
     }
 
     const twilioClient = require('twilio')(twilioAccountSid, twilioAuthToken);
-    
+
     // Redirect the call to the voicemail endpoint
     const voicemailUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.replyflowhq.com'}/api/twilio/voicemail`;
-    
+
     console.log('[VOICEMAIL FALLBACK START]', { callSid, voicemailUrl });
-    
+
     await twilioClient.calls(callSid).update({
       method: 'POST',
       url: voicemailUrl
     });
-    
+
     console.log('[VOICEMAIL FALLBACK RECORDING]', { callSid, voicemailUrl });
     console.log('[VOICEMAIL FALLBACK COMPLETE]', { callSid });
-    
+
     // Close the WebSocket connection
     if (ws.readyState === WebSocket.OPEN) {
       ws.close(1008, 'Voicemail fallback activated');
     }
-    
+
   } catch (error) {
     console.log('[VOICEMAIL FALLBACK ERROR] Failed to redirect call:', error);
-    
+
     // Fallback: create lead directly and close connection
     await createFallbackLead(callSid, businessId, callerPhone, businessPhone, businessName, forwardedFrom, failureReason);
-    
+
     if (ws.readyState === WebSocket.OPEN) {
       ws.close(1008, 'Voicemail fallback activated');
     }
@@ -4885,7 +5076,7 @@ async function createFallbackLead(
   failureReason: string
 ): Promise<void> {
   console.log('[LEAD CREATED FROM FALLBACK] Creating lead due to AI failure');
-  
+
   if (!supabase) {
     console.log('[LEAD CREATED FROM FALLBACK] No Supabase client available');
     return;
@@ -4893,7 +5084,7 @@ async function createFallbackLead(
 
   try {
     // Create lead
-    const canonicalInfo = buildCanonicalExtractedInfo({ customerPhone: callerPhone }, callerPhone || '');
+    const canonicalInfo = await buildCanonicalExtractedInfo({ customerPhone: callerPhone }, callerPhone || '', undefined, undefined);
     const leadInsertPayload = {
       business_id: businessId,
       caller_phone: callerPhone,
@@ -4906,7 +5097,7 @@ async function createFallbackLead(
       },
     };
     console.log('[LEAD INSERT PAYLOAD]', leadInsertPayload);
-    
+
     const { data: lead, error: leadError } = await supabase
       .from('leads')
       .upsert(leadInsertPayload, {
@@ -4927,7 +5118,7 @@ async function createFallbackLead(
       status: 'active',
     };
     console.log('[CONVERSATION INSERT PAYLOAD]', conversationInsertPayload);
-    
+
     // Lookup existing conversation by lead_id
     const { data: existingConversation, error: conversationLookupError } = await supabase
       .from('conversations')
@@ -4937,7 +5128,7 @@ async function createFallbackLead(
 
     let conversation;
     let conversationError;
-    
+
     if (existingConversation) {
       conversation = existingConversation;
       console.log('[LEAD CREATED FROM FALLBACK] Existing conversation found', { conversationId: conversation.id });
@@ -5032,14 +5223,14 @@ async function createFallbackLead(
       console.log('[LEAD CREATED FROM FALLBACK] AI call record creation error:', aiRecordError);
     } else {
       console.log('[LEAD CREATED FROM FALLBACK] AI call record created successfully');
-      
+
       // Create follow-up jobs directly using Supabase
-      console.log('[FOLLOWUP DIRECT INSERT START - PATH-A]', { 
-        businessId: fallbackCallRecordPayload.business_id, 
+      console.log('[FOLLOWUP DIRECT INSERT START - PATH-A]', {
+        businessId: fallbackCallRecordPayload.business_id,
         leadId: fallbackCallRecordPayload.lead_id,
         conversationId: fallbackCallRecordPayload.conversation_id
       });
-      
+
       try {
         const { error: followUpError } = await supabase
           .from('follow_up_jobs')
@@ -5051,12 +5242,12 @@ async function createFallbackLead(
             scheduled_for: new Date().toISOString(),
             created_at: new Date().toISOString()
           });
-        
+
         if (followUpError) {
           console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-A]', followUpError);
         } else {
-          console.log('[FOLLOWUP DIRECT INSERT SUCCESS - PATH-A]', { 
-            businessId: fallbackCallRecordPayload.business_id, 
+          console.log('[FOLLOWUP DIRECT INSERT SUCCESS - PATH-A]', {
+            businessId: fallbackCallRecordPayload.business_id,
             leadId: fallbackCallRecordPayload.lead_id
           });
         }
@@ -5064,13 +5255,13 @@ async function createFallbackLead(
         console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-A]', followUpError);
       }
       console.log('[FOLLOWUP DIRECT INSERT COMPLETE - PATH-A]');
-      
+
       // Create notification directly using Supabase
-      console.log('[NOTIFICATION DIRECT INSERT START - PATH-A]', { 
-        businessId: fallbackCallRecordPayload.business_id, 
+      console.log('[NOTIFICATION DIRECT INSERT START - PATH-A]', {
+        businessId: fallbackCallRecordPayload.business_id,
         leadId: fallbackCallRecordPayload.lead_id
       });
-      
+
       try {
         const notificationPayload = {
           business_id: fallbackCallRecordPayload.business_id,
@@ -5085,11 +5276,11 @@ async function createFallbackLead(
           created_at: new Date().toISOString()
         };
         console.log('[NOTIFICATION DIRECT INSERT PAYLOAD - PATH-A]', notificationPayload);
-        
+
         const { error: notificationError } = await supabase
           .from('notifications')
           .insert(notificationPayload);
-        
+
         if (notificationError) {
           console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-A]', {
             code: notificationError.code,
@@ -5098,8 +5289,8 @@ async function createFallbackLead(
             hint: notificationError.hint
           });
         } else {
-          console.log('[NOTIFICATION DIRECT INSERT SUCCESS - PATH-A]', { 
-            businessId: fallbackCallRecordPayload.business_id, 
+          console.log('[NOTIFICATION DIRECT INSERT SUCCESS - PATH-A]', {
+            businessId: fallbackCallRecordPayload.business_id,
             leadId: fallbackCallRecordPayload.lead_id
           });
         }
@@ -5128,7 +5319,7 @@ function recordAIFailure(tracker: AISessionStateTracker, failureStage: string, f
     console.log('[AI FAILURE RECORDED] No Supabase client, skipping database record');
     return;
   }
-  
+
   try {
     supabase
       .from('ai_call_failures')
@@ -5160,7 +5351,7 @@ function generateLeadSummary(intake: IntakeData): LeadSummary {
   console.log('[CUSTOMER NAME BEFORE SMS GENERATION] intake.customerName:', intake.customerName);
   console.log('[CUSTOMER NAME BEFORE SMS GENERATION] Timestamp:', new Date().toISOString());
   console.log('[CUSTOMER NAME BEFORE SMS GENERATION] =========================================');
-  
+
   const summary = `${intake.customerName || 'Caller'} called about ${intake.serviceRequested || 'general inquiry'}. Issue: ${intake.issueDescription || 'not specified'}. Location: ${intake.serviceAddress || 'not specified'}. Desired completion time: ${intake.desiredCompletionTime || 'not specified'}. Callback requested at ${intake.callbackTime || 'anytime'}.`;
 
   return {
@@ -5182,10 +5373,10 @@ async function saveLeadSummary(leadSummary: LeadSummary) {
     console.log('[AI INTAKE] Supabase not available, skipping save');
     return;
   }
-  
+
   try {
     console.log('[AI SUMMARY GENERATED]', JSON.stringify(leadSummary, null, 2));
-    
+
     // Save to conversations table
     const conversationInsertPayload = {
       business_id: leadSummary.businessId,
@@ -5194,7 +5385,7 @@ async function saveLeadSummary(leadSummary: LeadSummary) {
       updated_at: leadSummary.timestamp,
     };
     console.log('[CONVERSATION INSERT PAYLOAD]', conversationInsertPayload);
-    
+
     const { error } = await supabase
       .from('conversations')
       .insert({
@@ -5203,7 +5394,7 @@ async function saveLeadSummary(leadSummary: LeadSummary) {
         created_at: leadSummary.timestamp,
         updated_at: leadSummary.timestamp,
       });
-      
+
     if (error) {
       console.log('[AI INTAKE] Error saving conversation:', error);
     } else {
@@ -5255,7 +5446,7 @@ const server = createServer(async (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
-  
+
   // Health check endpoint
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -5269,33 +5460,33 @@ const server = createServer(async (req, res) => {
     console.log('[FINAL CLOSE TWIML HIT] Twilio final close TwiML endpoint hit');
     console.log('[FINAL CLOSE TWIML HIT] Timestamp:', new Date().toISOString());
     console.log('[FINAL CLOSE TWIML HIT] =========================================');
-    
+
     console.log('[FINAL CLOSE VOICE SELECTED] =========================================');
     console.log('[FINAL CLOSE VOICE SELECTED] Voice:', FINAL_CLOSE_TWILIO_VOICE);
     console.log('[FINAL CLOSE VOICE SELECTED] Timestamp:', new Date().toISOString());
     console.log('[FINAL CLOSE VOICE SELECTED] =========================================');
-    
+
     console.log('[FINAL CLOSE TWIML SAY SENT] =========================================');
     console.log('[FINAL CLOSE TWIML SAY SENT] Final sentence to be spoken:', FINAL_CLOSE_SENTENCE);
     console.log('[FINAL CLOSE TWIML SAY SENT] Timestamp:', new Date().toISOString());
     console.log('[FINAL CLOSE TWIML SAY SENT] =========================================');
-    
+
     console.log('[FINAL CLOSE TWIML SAY VOICE] =========================================');
     console.log('[FINAL CLOSE TWIML SAY VOICE] Using voice:', FINAL_CLOSE_TWILIO_VOICE);
     console.log('[FINAL CLOSE TWIML SAY VOICE] Timestamp:', new Date().toISOString());
     console.log('[FINAL CLOSE TWIML SAY VOICE] =========================================');
-    
+
     console.log('[FINAL CLOSE TWIML HANGUP SENT] =========================================');
     console.log('[FINAL CLOSE TWIML HANGUP SENT] Hangup instruction sent');
     console.log('[FINAL CLOSE TWIML HANGUP SENT] Timestamp:', new Date().toISOString());
     console.log('[FINAL CLOSE TWIML HANGUP SENT] =========================================');
-    
+
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="${FINAL_CLOSE_TWILIO_VOICE}">${FINAL_CLOSE_SENTENCE}</Say>
   <Hangup/>
 </Response>`;
-    
+
     res.writeHead(200, { 'Content-Type': 'application/xml' });
     res.end(twiml);
     return;
@@ -5305,7 +5496,7 @@ const server = createServer(async (req, res) => {
   if (req.url === '/test-openai') {
     console.log('[TEST OPENAI] endpoint hit');
     console.log('[TEST OPENAI] key present', { exists: !!OPENAI_API_KEY });
-    
+
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
     const wsUrl = createOpenAIRealtimeUrl();
@@ -5317,7 +5508,7 @@ const server = createServer(async (req, res) => {
     console.log('[TEST OPENAI] creating websocket');
     const testWs = new WebSocket(wsUrl, { headers });
     console.log('[TEST OPENAI] websocket created, readyState:', testWs.readyState);
-    
+
     let opened = false;
     let errored = false;
     let closed = false;
@@ -5331,7 +5522,7 @@ const server = createServer(async (req, res) => {
       result = 'open';
       console.log('[TEST OPENAI] open event fired');
       events.push({ type: 'open', timestamp: Date.now() });
-      
+
       // Wait 2 seconds to confirm connection stays open
       setTimeout(() => {
         console.log('[TEST OPENAI] 2s delay complete, readyState:', testWs.readyState);
@@ -5429,7 +5620,7 @@ const server = createServer(async (req, res) => {
   // Debug OpenAI Realtime without Twilio
   if (req.url === '/debug-openai-realtime') {
     console.log('[DEBUG OPENAI] starting debug test');
-    
+
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
     const wsUrl = createOpenAIRealtimeUrl();
@@ -5468,7 +5659,7 @@ const server = createServer(async (req, res) => {
 
     debugWs.on('message', (data) => {
       console.log('[DEBUG OPENAI] inbound message');
-      
+
       let message;
       try {
         message = JSON.parse(data.toString());
@@ -5533,51 +5724,51 @@ const server = createServer(async (req, res) => {
     console.log('[MINIMAL TEST] starting minimal websocket test');
     console.log('[MINIMAL TEST] WebSocket package:', 'ws');
     console.log('[MINIMAL TEST] API key exists:', !!OPENAI_API_KEY);
-    
+
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    
+
     const wsUrl = createOpenAIRealtimeUrl();
     console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
     console.log('[MINIMAL TEST] creating websocket to:', wsUrl);
-    
+
     const testWs = new WebSocket(wsUrl, {
       headers: {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
     });
-    
+
     console.log('[MINIMAL TEST] websocket created, readyState:', testWs.readyState);
-    
+
     testWs.on('open', () => {
       console.log('[MINIMAL TEST] OPEN event fired');
     });
-    
+
     testWs.on('message', (msg) => {
       const msgLength = Buffer.isBuffer(msg) ? msg.length : msg instanceof ArrayBuffer ? msg.byteLength : 0;
       console.log('[MINIMAL TEST] MESSAGE received, length:', msgLength);
     });
-    
+
     testWs.on('error', (err) => {
       console.log('[MINIMAL TEST] ERROR event:', String(err));
     });
-    
+
     testWs.on('close', (code, reason) => {
       console.log('[MINIMAL TEST] CLOSE event, code:', code, 'reason:', reason);
     });
-    
+
     // Log readyState every second for 10 seconds
     for (let i = 1; i <= 10; i++) {
       setTimeout(() => {
         console.log(`[MINIMAL TEST] after ${i}s readyState:`, testWs.readyState);
       }, i * 1000);
     }
-    
+
     // Close after 10 seconds
     setTimeout(() => {
       console.log('[MINIMAL TEST] closing websocket after 10s');
       testWs.close();
     }, 10000);
-    
+
     res.end(JSON.stringify({ status: 'minimal test started', url: wsUrl }));
     return;
   }
@@ -5585,7 +5776,7 @@ const server = createServer(async (req, res) => {
   // Temporary admin endpoint to generate cached audio for Simple Mode (remove after use)
   if (req.url === '/admin/generate-cached-audio' && req.method === 'GET') {
     console.log('[ADMIN] Generating cached audio for Simple Mode prompts');
-    
+
     const prompts = {
       ask_name_reason: "Hello! This is ReplyFlow AI. Who am I speaking with and how can I help you today?",
       ask_request: "Got it. Can you share any important details the business should know?",
@@ -5670,7 +5861,7 @@ function startAuthoritativeFinalClose(
   console.log('[ACTIVE RESPONSE ID CLEAR - FINAL CLOSE START] This prevents duplicate blocking of final response');
   console.log('[ACTIVE RESPONSE ID CLEAR - FINAL CLOSE START] Timestamp:', new Date().toISOString());
   console.log('[ACTIVE RESPONSE ID CLEAR - FINAL CLOSE START] =========================================');
-  
+
   // Clear the activeResponseId in both local variable and twilioHandler
   (twilioHandler as any).activeResponseId = null;
   console.log('[ACTIVE RESPONSE ID CLEARED] twilioHandler.activeResponseId set to null');
@@ -5706,7 +5897,7 @@ function startAuthoritativeFinalClose(
   console.log('[FINAL_CLOSING_SET_TRUE] Value after set:', closingState.finalClosingStarted);
 
   console.log('[AUTHORITATIVE FINAL CLOSE] Step 4: callState -> closing (set immediately, not waiting for audio)');
-  
+
   console.log('[CALL STATE CLOSING REQUEST - PATH 3] =========================================');
   console.log('[CALL STATE CLOSING REQUEST - PATH 3] Source: startAuthoritativeFinalClose function at line 2958');
   console.log('[CALL STATE CLOSING REQUEST - PATH 3] Trigger: Authoritative final close sequence initiated');
@@ -5718,7 +5909,7 @@ function startAuthoritativeFinalClose(
   console.log('[CALL STATE CLOSING REQUEST - PATH 3] Stack: startAuthoritativeFinalClose -> immediate state transition');
   console.log('[CALL STATE CLOSING REQUEST - PATH 3] Timestamp:', new Date().toISOString());
   console.log('[CALL STATE CLOSING REQUEST - PATH 3] =========================================');
-  
+
   console.log('[CALL_STATE_SET_CLOSING] Setting callState to closing immediately');
   console.log('[CALL_STATE_SET_CLOSING] Source: startAuthoritativeFinalClose at', source);
   console.log('[CALL_STATE_SET_CLOSING] Stack: startAuthoritativeFinalClose -> immediate state transition');
@@ -5726,7 +5917,7 @@ function startAuthoritativeFinalClose(
   closingState.callState = 'closing';
   (twilioHandler as any).callState = closingState.callState;
   console.log('[CALL_STATE_SET_CLOSING] Value after set:', closingState.callState);
-  
+
   console.log('[CALL STATE CLOSING COMPLETED - PATH 3] =========================================');
   console.log('[CALL STATE CLOSING COMPLETED - PATH 3] New callState:', closingState.callState);
   console.log('[CALL STATE CLOSING COMPLETED - PATH 3] New terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
@@ -5796,19 +5987,19 @@ function startAuthoritativeFinalClose(
 async function endCallCleanly(ws: any, twilioHandler: any) {
   // Note: Logging is now handled by the response.audio.done handler
   // This function only executes the actual hangup
-  
+
   try {
     const callContext = (ws as any).callContext;
     const callSid = callContext?.callSid || (ws as any).callSid;
     const businessId = callContext?.businessId || (ws as any).businessId;
     const sessionId = callContext?.sessionId || (ws as any).sessionId;
     const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
-    
+
     // Final call transcript audit
     const transcript = (ws as any).transcript || [];
     const intakeData = (ws as any).intakeData || (twilioHandler as any).intakeData;
     const finalStage = intakeData?.stage || 'unknown';
-    
+
     console.log('[CALL TRANSCRIPT AUDIT] =========================================');
     console.log('[CALL TRANSCRIPT AUDIT] allCallerTranscripts:', JSON.stringify(transcript.filter((t: any) => t.role === 'user'), null, 2));
     console.log('[CALL TRANSCRIPT AUDIT] transcriptCount:', transcript.filter((t: any) => t.role === 'user').length);
@@ -5818,9 +6009,9 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
     console.log('[CALL TRANSCRIPT AUDIT] sessionId:', sessionId);
     console.log('[CALL TRANSCRIPT AUDIT] Timestamp:', new Date().toISOString());
     console.log('[CALL TRANSCRIPT AUDIT] =========================================');
-    
+
     console.log('[CALL CONTEXT USED FOR HANGUP]', { callSid, businessId, sessionId, callContext });
-    
+
     console.log('[AUTO HANGUP CONDITIONS MET] Checking required parameters', {
       hasCallSid: !!callSid,
       hasBusinessId: !!businessId,
@@ -5831,7 +6022,7 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
       sessionId: sessionId || 'missing',
       twilioAccountSid: twilioAccountSid ? 'present' : 'missing'
     });
-    
+
     if (!callSid) {
       console.log('[TWILIO HANGUP ERROR] No callSid available for hangup');
       console.log('[TWILIO HANGUP ERROR] callSid became unavailable at:', {
@@ -5843,7 +6034,7 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
       });
       return;
     }
-    
+
     // Verify Twilio client availability
     const twilioClient = (twilioHandler as any).twilioClient;
     console.log('[AUTO HANGUP CONDITIONS MET] Checking Twilio client availability', {
@@ -5851,7 +6042,7 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
       twilioClientType: typeof twilioClient,
       twilioClientMethods: twilioClient ? Object.getOwnPropertyNames(twilioClient) : 'none'
     });
-    
+
     if (twilioClient && callSid) {
       console.log('[TWILIO HANGUP EXECUTING] Terminating call via REST API', {
         callSid,
@@ -5859,16 +6050,16 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
         sessionId,
         timestamp: new Date().toISOString()
       });
-      
+
       // Execute the hangup
       const updateResult = await twilioClient.calls(callSid).update({ status: 'completed' });
-      
+
       console.log('[TWILIO HANGUP SUCCESS] Call terminated successfully', {
         callSid,
         resultStatus: updateResult.status,
         timestamp: new Date().toISOString()
       });
-      
+
     } else {
       // Fallback: close the WebSocket connection
       console.log('[TWILIO HANGUP ERROR] Twilio client not available, using WebSocket fallback');
@@ -5883,7 +6074,7 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
       console.log('[AUTO HANGUP FALLBACK] WebSocket closed');
     }
   } catch (error) {
-    console.log('[TWILIO HANGUP ERROR] Exception during call termination', { 
+    console.log('[TWILIO HANGUP ERROR] Exception during call termination', {
       error: error instanceof Error ? error.message : 'Unknown error',
       errorType: error instanceof Error ? error.constructor.name : 'Unknown',
       stack: error instanceof Error ? error.stack : undefined,
@@ -5934,10 +6125,10 @@ async function getOrCreateConversation(supabase: any, leadId: string, businessId
   if (result.error) {
     // Check for 23505 duplicate key error (race condition)
     if (result.error.code === '23505' || result.error.message?.includes('duplicate key')) {
-      console.log('[CONVERSATION RACE RECOVERY]', { 
+      console.log('[CONVERSATION RACE RECOVERY]', {
         message: 'Detected duplicate conversation creation race (23505), fetching canonical conversation',
-        leadId, 
-        businessId 
+        leadId,
+        businessId
       });
 
       // Fetch the canonical existing conversation created by the racing request
@@ -5952,7 +6143,7 @@ async function getOrCreateConversation(supabase: any, leadId: string, businessId
         console.log('[CONVERSATION RACE RECOVERED]', { conversationId: canonicalConversation.id });
         return canonicalConversation;
       } else {
-        console.log('[CONVERSATION RACE RECOVERY FAILED]', { 
+        console.log('[CONVERSATION RACE RECOVERY FAILED]', {
           message: 'Failed to find canonical conversation after 23505 error',
           fetchError: fetchError?.message || 'none'
         });
@@ -6150,7 +6341,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   state.callerPhone = url.searchParams.get('callerPhone') || '';
   state.businessName = url.searchParams.get('businessName') || '';
   state.forwardedFrom = url.searchParams.get('forwardedFrom') || '';
-  
+
   // Initialize AI session tracker with actual values
   state.aiSessionTracker = createAISessionTracker(state.callSid, state.businessId);
 
@@ -6595,13 +6786,13 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     else if (stage === 'ask_name_reason') {
       const stateCustomerNameBefore = state.intakeData.customerName;
       const stateServiceRequestedBefore = state.intakeData.serviceRequested;
-      
+
       // SIMPLE MODE STAGE 1: Raw Input Trace
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 1] =========================================');
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 1] rawFirstStageTranscript:', rawTranscript);
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 1] Timestamp:', new Date().toISOString());
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 1] =========================================');
-      
+
       // SIMPLE MODE STAGE 2: Function Entry Trace
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 2] =========================================');
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 2] storeStageCaptureInput:', rawTranscript);
@@ -6692,7 +6883,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           console.log('[PARSER SERVICE-ONLY CONTINUATION] action: treat_as_service_reason_continuation');
           console.log('[PARSER SERVICE-ONLY CONTINUATION] Timestamp:', new Date().toISOString());
           console.log('[PARSER SERVICE-ONLY CONTINUATION] =========================================');
-          
+
           // Strip conversational fillers and use the normalized text as the service
           const normalizedInput = stripConversationalFillers(trimmed);
           serviceRequested = normalizedInput;
@@ -6707,14 +6898,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         if (sentences.length >= 2) {
           const firstSentence = sentences[0].trim();
           const secondSentence = sentences.slice(1).join('. ').trim();
-          
+
           // Check if first sentence is a name introduction
           const nameIntroPatterns = [
             /^(?:hi|hello|hey)[,\s]+(?:this is|my name is|my name's|name is|i am|i'm)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+)$/i,
             /^(?:this is|my name is|my name's|name is|i am|i'm)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+)$/i,
             /^([a-z][a-z' -]{1,40}?)\s+here$/i,
           ];
-          
+
           let nameFromFirstSentence: string | null = null;
           for (const pattern of nameIntroPatterns) {
             const match = firstSentence.match(pattern);
@@ -6723,7 +6914,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
               break;
             }
           }
-          
+
           // Check if second sentence contains service language
           const servicePatterns = [
             /(?:i'm calling because|i am calling because|calling because)\s+(.+)/i,
@@ -6731,7 +6922,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
             /(?:i need|i want|i'd like|i would like)\s+(.+)/i,
             /(?:looking for|looking to|need someone to)\s+(.+)/i,
           ];
-          
+
           let serviceFromSecondSentence: string | null = null;
           for (const pattern of servicePatterns) {
             const match = secondSentence.match(pattern);
@@ -6740,7 +6931,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
               break;
             }
           }
-          
+
           // If we got both name and service from two-sentence pattern, use it
           if (nameFromFirstSentence && serviceFromSecondSentence) {
             customerName = nameFromFirstSentence;
@@ -6757,20 +6948,20 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         if (commaIndex > 0 && commaIndex < parseText.length - 1) {
           const leftSide = parseText.slice(0, commaIndex).trim();
           const rightSide = parseText.slice(commaIndex + 1).trim();
-          
+
           // Safety check: Left side must look like a plausible name
           const looksLikeName = (candidate: string): boolean => {
             const trimmedCandidate = candidate.trim();
             const lowerCandidate = trimmedCandidate.toLowerCase();
-            
+
             // Must be short (2-4 words typical for names)
             const wordCount = trimmedCandidate.split(/\s+/).length;
             if (wordCount < 2 || wordCount > 4) return false;
-            
+
             // Must be primarily alphabetic (allow apostrophes, hyphens, spaces)
             const alphaRatio = (trimmedCandidate.match(/[a-z]/gi) || []).length / trimmedCandidate.length;
             if (alphaRatio < 0.7) return false;
-            
+
             // Must NOT contain service/problem language
             const servicePhrases = [
               "i need", "i'm calling", "i am calling", "calling about",
@@ -6781,7 +6972,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
               "broken", "not working", "issue", "problem"
             ];
             if (servicePhrases.some(phrase => lowerCandidate.includes(phrase))) return false;
-            
+
             // Must NOT begin with common service phrases
             const invalidStarts = [
               "i need", "i'm", "i am", "calling", "looking", "need",
@@ -6789,15 +6980,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
               "the pipe", "the toilet", "the faucet", "the water"
             ];
             if (invalidStarts.some(start => lowerCandidate.startsWith(start))) return false;
-            
+
             return true;
           };
-          
+
           // Safety check: Right side must look like a plausible service (not a name introduction)
           const looksLikeService = (candidate: string): boolean => {
             const trimmedCandidate = candidate.trim();
             const lowerCandidate = trimmedCandidate.toLowerCase();
-            
+
             // Must NOT be a name introduction
             const nameIntroPatterns = [
               /^hi, this is .+$/i,
@@ -6808,15 +6999,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
               /^i am .+$/i
             ];
             if (nameIntroPatterns.some(pattern => pattern.test(trimmedCandidate))) return false;
-            
+
             return true;
           };
-          
+
           // If both sides pass safety checks, use the comma-separated split
           if (looksLikeName(leftSide) && looksLikeService(rightSide)) {
             const nameCandidate = normalizeNameCandidate(leftSide);
             const serviceCandidate = stripServicePrefix(rightSide).replace(/[.,;]\s*$/, '');
-            
+
             if (nameCandidate && serviceCandidate) {
               customerName = nameCandidate;
               serviceRequested = serviceCandidate;
@@ -6983,18 +7174,18 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       };
 
       parseNameAndServiceCalled = true;
-      
+
       // Validation: Reject obviously invalid customerName values
       const isValidCustomerName = (name: string): boolean => {
         if (!name || typeof name !== 'string') return false;
         const trimmed = name.trim();
-        
+
         // Reject non-answers (uncertainty, refusal, filler-only responses)
         if (isNonAnswer(trimmed)) {
           console.log('[CUSTOMER NAME VALIDATION] Rejected as non-answer:', trimmed);
           return false;
         }
-        
+
         // Reject if too long (likely full sentence)
         if (trimmed.length > 50) return false;
         // Reject if contains service-request language
@@ -7030,15 +7221,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         if (nameIntroPatterns.some(pattern => pattern.test(trimmed))) return false;
         return true;
       };
-      
+
       // Check validity of existing fields before merge
       const existingNameValid = state.intakeData.customerName && isValidCustomerName(state.intakeData.customerName);
       const existingServiceValid = state.intakeData.serviceRequested && isValidServiceRequested(state.intakeData.serviceRequested);
-      
+
       // Determine which fields are missing
       const missingName = !existingNameValid;
       const missingService = !existingServiceValid;
-      
+
       // MERGE DECISION TRACE
       console.log('[ASK_NAME_REASON MERGE DECISION] =========================================');
       console.log('[ASK_NAME_REASON MERGE DECISION] existingCustomerName:', state.intakeData.customerName);
@@ -7050,7 +7241,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[ASK_NAME_REASON MERGE DECISION] newRawTranscript:', rawTranscript);
       console.log('[ASK_NAME_REASON MERGE DECISION] Timestamp:', new Date().toISOString());
       console.log('[ASK_NAME_REASON MERGE DECISION] =========================================');
-      
+
       // Parse the new transcript with awareness of existing valid fields
       const parseResult = parseNameAndService(rawTranscript, existingServiceValid ? state.intakeData.serviceRequested : undefined, existingNameValid ? state.intakeData.customerName : undefined);
 
@@ -7067,12 +7258,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       // Validate parsed candidates
       const parsedNameValid = parseResult.customerName && isValidCustomerName(parseResult.customerName);
       const parsedServiceValid = parseResult.serviceRequested && isValidServiceRequested(parseResult.serviceRequested);
-      
+
       // MISSING-FIELD-AWARE MERGE LOGIC
       let mergeDecision = 'unknown';
       let customerNameAfterMerge = state.intakeData.customerName;
       let serviceRequestedAfterMerge = state.intakeData.serviceRequested;
-      
+
       if (missingName && missingService) {
         // Case A: Both fields missing - use normal combined extraction
         mergeDecision = 'assign_both';
@@ -7102,11 +7293,11 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         customerNameAfterMerge = state.intakeData.customerName;
         serviceRequestedAfterMerge = state.intakeData.serviceRequested;
       }
-      
+
       // Apply merge decisions
       state.intakeData.customerName = customerNameAfterMerge;
       state.intakeData.serviceRequested = serviceRequestedAfterMerge;
-      
+
       // MERGE RESULT TRACE
       console.log('[ASK_NAME_REASON MERGE RESULT] =========================================');
       console.log('[ASK_NAME_REASON MERGE RESULT] mergeDecision:', mergeDecision);
@@ -7118,7 +7309,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[ASK_NAME_REASON MERGE RESULT] serviceRequestedAfterMerge:', serviceRequestedAfterMerge);
       console.log('[ASK_NAME_REASON MERGE RESULT] Timestamp:', new Date().toISOString());
       console.log('[ASK_NAME_REASON MERGE RESULT] =========================================');
-      
+
       // Determine which field was actually filled for stage capture metadata
       let extractedFieldActual = 'customerName';
       if (mergeDecision === 'preserve_name_assign_service' && parsedServiceValid) {
@@ -7134,7 +7325,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           extractedFieldActual = 'serviceRequested';
         }
       }
-      
+
       // Recalculate validity flags for raw transcript preservation logic
       const customerNameValid = state.intakeData.customerName && isValidCustomerName(state.intakeData.customerName);
       const serviceRequestedValid = state.intakeData.serviceRequested && isValidServiceRequested(state.intakeData.serviceRequested);
@@ -7170,7 +7361,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[FIRST-STAGE ASSIGNMENT RESULT] serviceRequestedChanged:', stateServiceRequestedBefore !== stateServiceRequestedAfter);
       console.log('[FIRST-STAGE ASSIGNMENT RESULT] Timestamp:', new Date().toISOString());
       console.log('[FIRST-STAGE ASSIGNMENT RESULT] =========================================');
-      
+
       // SIMPLE MODE STAGE 3: Extraction Output Trace
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 3] =========================================');
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 3] extractedCustomerName:', parseResult.customerName);
@@ -7178,7 +7369,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 3] extractionMethod:', 'parseNameAndService (Simple Mode)');
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 3] Timestamp:', new Date().toISOString());
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 3] =========================================');
-      
+
       // SIMPLE MODE STAGE 4: In-Memory State Trace
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 4] =========================================');
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 4] intakeData.customerName:', state.intakeData.customerName);
@@ -7220,11 +7411,11 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         extractedField = 'customerName';
       }
     }
-    
+
     // FIELD WRITE INVARIANT PROTECTION
     // Prevent late transcriptions from overwriting finalized fields
     const stageFinalized = state.answerAcceptedForStage && state.answerAcceptedForStage !== stage;
-    
+
     console.log('[FIELD WRITE INVARIANT] =========================================');
     console.log('[FIELD WRITE INVARIANT] callSid:', state.callSid);
     console.log('[FIELD WRITE INVARIANT] stage:', stage);
@@ -7235,14 +7426,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[FIELD WRITE INVARIANT] answerAcceptedForStage:', state.answerAcceptedForStage);
     console.log('[FIELD WRITE INVARIANT] currentStage:', state.currentStage);
     console.log('[FIELD WRITE INVARIANT] source:', source);
-    
+
     if (stageFinalized && state.intakeData[extractedField]) {
       console.log('[FIELD WRITE INVARIANT] allowed:', false);
       console.log('[FIELD WRITE INVARIANT] reason: stage_finalized_field_already_set');
       console.log('[FIELD WRITE INVARIANT] action: write_blocked');
       console.log('[FIELD WRITE INVARIANT] timestamp:', new Date().toISOString());
       console.log('[FIELD WRITE INVARIANT] =========================================');
-      
+
       // Still store in stageCaptures for audit trail, but don't overwrite intakeData
       const capture = {
         stage,
@@ -7257,13 +7448,13 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       state.stageCaptures.push(capture);
       return extractedField; // Return the field name but don't mutate state
     }
-    
+
     console.log('[FIELD WRITE INVARIANT] allowed:', true);
     console.log('[FIELD WRITE INVARIANT] reason:', 'field_writeable');
     console.log('[FIELD WRITE INVARIANT] action: write_proceeding');
     console.log('[FIELD WRITE INVARIANT] timestamp:', new Date().toISOString());
     console.log('[FIELD WRITE INVARIANT] =========================================');
-    
+
     if (!stage || stage !== 'ask_name_reason') {
       state.intakeData[extractedField] = capturedAnswer;
     }
@@ -7288,7 +7479,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[AI INTAKE CAPTURE AUDIT] allStageCaptures:', JSON.stringify(state.stageCaptures, null, 2));
     console.log('[AI INTAKE CAPTURE AUDIT] Timestamp:', capture.timestamp);
     console.log('[AI INTAKE CAPTURE AUDIT] =========================================');
-    
+
     // RAW STAGE CAPTURE OVERWRITE CHECK
     if (stage === 'ask_name_reason') {
       console.log('[RAW STAGE CAPTURE OVERWRITE CHECK] =========================================');
@@ -7325,7 +7516,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[PARTIAL PERSISTENCE TIMING] desiredCompletionTime:', state.intakeData.desiredCompletionTime);
     console.log('[PARTIAL PERSISTENCE TIMING] callbackTime:', state.intakeData.callbackTime);
     console.log('[PARTIAL PERSISTENCE TIMING] =========================================');
-    
+
     if (!state.callSid || !state.businessId || !state.callerPhone) {
       console.log('[PARTIAL INTAKE PERSIST] =========================================');
       console.log('[PARTIAL INTAKE PERSIST] callSid:', state.callSid);
@@ -7337,7 +7528,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       return;
     }
 
-    const canonicalExtractedInfo = buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '', state.serviceLocationType);
+    const canonicalExtractedInfo = await buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '', state.serviceLocationType, state.callSid);
     const extractedInfoKeys = Object.keys(canonicalExtractedInfo).filter(k => canonicalExtractedInfo[k as keyof typeof canonicalExtractedInfo]);
 
     console.log('[PARTIAL INTAKE PERSIST] =========================================');
@@ -7529,7 +7720,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     }
 
     // Defensive guard: Block if current-turn speech has started
-    const callerSpeechStarted = state.speechStartedStage === state.currentStage && 
+    const callerSpeechStarted = state.speechStartedStage === state.currentStage &&
                                state.speechStartedTurnId === state.currentTurnId;
     if (callerSpeechStarted) {
       console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
@@ -7605,7 +7796,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[STAGE TIMEOUT] pendingAnswerStage:', state.pendingAnswerStage);
       console.log('[STAGE TIMEOUT] Timestamp:', new Date().toISOString());
       console.log('[STAGE TIMEOUT] =========================================');
-      
+
       // Reset timeout to allow more time for continuation
       if (state.stageTimeout) {
         clearTimeout(state.stageTimeout);
@@ -7622,7 +7813,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
     if (retryCount === 0) {
       state.silenceRetryCountByStage[stage] = 1;
-      
+
       console.log('[REPROMPT OWNER] =========================================');
       console.log('[REPROMPT OWNER] callSid:', state.callSid);
       console.log('[REPROMPT OWNER] mode:', 'simple_mode');
@@ -7633,7 +7824,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[REPROMPT OWNER] reason:', 'silence_timeout_detected');
       console.log('[REPROMPT OWNER] Timestamp:', new Date().toISOString());
       console.log('[REPROMPT OWNER] =========================================');
-      
+
       console.log('[STAGE TIMEOUT] =========================================');
       console.log('[STAGE TIMEOUT] event: reprompt_triggered');
       console.log('[STAGE TIMEOUT] logicalStage:', stage);
@@ -7641,15 +7832,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[STAGE TIMEOUT] retryCountAfter:', state.silenceRetryCountByStage[stage]);
       console.log('[STAGE TIMEOUT] elapsedMs:', Date.now() - state.stageStartTime);
       console.log('[STAGE TIMEOUT] =========================================');
-      
+
       logSimple('stage_timeout_reprompt', { stage });
-      
+
       // For ask_name_reason, use targeted reprompt based on missing fields
       let promptKeyOverride: string | undefined;
       if (stage === 'ask_name_reason') {
         const hasValidCustomerName = !!state.intakeData.customerName && state.intakeData.customerName.trim().length > 0;
         const hasValidServiceRequested = !!state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim().length > 0;
-        
+
         if (hasValidCustomerName && !hasValidServiceRequested) {
           promptKeyOverride = 'ask_name_reason_service_only';
           console.log('[STAGE TIMEOUT TARGETED REPROMPT] =========================================');
@@ -7672,7 +7863,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           console.log('[STAGE TIMEOUT TARGETED REPROMPT] =========================================');
         }
       }
-      
+
       console.log('[STAGE TIMEOUT REPROMPT ROUTING] =========================================');
       console.log('[STAGE TIMEOUT REPROMPT ROUTING] turnId:', state.currentTurnId);
       console.log('[STAGE TIMEOUT REPROMPT ROUTING] action: timeout_reprompt_with_targeted_variant');
@@ -7682,7 +7873,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[STAGE TIMEOUT REPROMPT ROUTING] repromptAttempt:', state.silenceRetryCountByStage[stage]);
       console.log('[STAGE TIMEOUT REPROMPT ROUTING] Timestamp:', new Date().toISOString());
       console.log('[STAGE TIMEOUT REPROMPT ROUTING] =========================================');
-      
+
       console.log('[REPROMPT ARGUMENT TRACE] =========================================');
       console.log('[REPROMPT ARGUMENT TRACE] callSid:', state.callSid);
       console.log('[REPROMPT ARGUMENT TRACE] currentStage:', stage);
@@ -7694,9 +7885,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[REPROMPT ARGUMENT TRACE] silenceRetryCountByStage[stage]:', state.silenceRetryCountByStage[stage]);
       console.log('[REPROMPT ARGUMENT TRACE] Timestamp:', new Date().toISOString());
       console.log('[REPROMPT ARGUMENT TRACE] =========================================');
-      
+
       sendPrompt(stage, promptKeyOverride, 'stage_timeout_handler', state.currentTurnId, state.silenceRetryCountByStage[stage]);
-      
+
       console.log('[REPROMPT TIMEOUT LIFECYCLE] =========================================');
       console.log('[REPROMPT TIMEOUT LIFECYCLE] previousTimeoutCleared:', true);
       console.log('[REPROMPT TIMEOUT LIFECYCLE] repromptAttempt:', state.silenceRetryCountByStage[stage]);
@@ -7716,21 +7907,21 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[STAGE TIMEOUT] totalElapsedMs:', Date.now() - state.stageStartTime);
       console.log('[STAGE TIMEOUT] finalizingWithPartialInfo: true');
       console.log('[STAGE TIMEOUT] =========================================');
-      
+
       logSimple('stage_timeout_finalization', { stage });
-      
+
       // Clear timeout
       if (state.stageTimeout) {
         clearTimeout(state.stageTimeout);
         state.stageTimeout = null;
       }
-      
+
       // Cancel any active silence timers
       if (state.silentTimeout) {
         clearTimeout(state.silentTimeout);
         state.silentTimeout = null;
       }
-      
+
       // Finalize with partial info and hang up
       state.currentStage = 'complete';
       sendPrompt('complete');
@@ -7802,7 +7993,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   const isNonAnswer = (value: string): boolean => {
     if (!value || typeof value !== 'string') return false;
     const trimmed = value.trim().toLowerCase();
-    
+
     // Exact matches for common non-answer phrases (conservative list)
     const nonAnswerPatterns = [
       /^i'm not really sure\.?$/i,
@@ -7918,20 +8109,20 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       /^i don't know what you're asking for\.?$/i,
       /^i don't know what you're asking\.?$/i,
     ];
-    
+
     // Check against exact patterns
     for (const pattern of nonAnswerPatterns) {
       if (pattern.test(trimmed)) {
         return true;
       }
     }
-    
+
     // Check for uncertainty/refusal keywords (conservative, only when phrase is primarily these words)
     const uncertaintyKeywords = [
-      'not sure', 'don\'t know', 'no idea', 'rather not', 'prefer not', 
+      'not sure', 'don\'t know', 'no idea', 'rather not', 'prefer not',
       'uncertain', 'unsure', 'confused', 'maybe', 'possibly', 'perhaps'
     ];
-    
+
     // Only reject if the response is SHORT and consists primarily of uncertainty words
     // This prevents false positives on legitimate names like "May Brooks" or "Will Hope"
     if (trimmed.split(/\s+/).length <= 3) {
@@ -7940,7 +8131,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         return true;
       }
     }
-    
+
     return false;
   };
 
@@ -7987,7 +8178,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[COMPLETION SOURCE] intakeData:', JSON.stringify(state.intakeData, null, 2));
     console.log('[COMPLETION SOURCE] Timestamp:', new Date().toISOString());
     console.log('[COMPLETION SOURCE] =========================================');
-    
+
     // STAGE 6: Completion Input Values
     console.log('[EXTRACTION TRACE STAGE 6] =========================================');
     console.log('[EXTRACTION TRACE STAGE 6] completionInput.customerName:', state.intakeData.customerName);
@@ -8056,7 +8247,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         console.log('[COMPLETION REPAIR SERVICE-ONLY CONTINUATION] action: treat_as_service_reason_continuation');
         console.log('[COMPLETION REPAIR SERVICE-ONLY CONTINUATION] Timestamp:', new Date().toISOString());
         console.log('[COMPLETION REPAIR SERVICE-ONLY CONTINUATION] =========================================');
-        
+
         const normalizedInput = stripConversationalFillers(trimmed);
         serviceRequested = normalizedInput;
         customerName = existingName;
@@ -8296,9 +8487,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Helper function to normalize text for display
     const normalizeText = (text: string | undefined): string => {
       if (!text || text.trim() === '') return 'Not collected';
-      
+
       let normalized = text.trim();
-      
+
       // Remove conversational filler
       const fillerPatterns = [
         /^um\s+/i,
@@ -8309,30 +8500,30 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         /^maybe\s+/i,
         /^\s+|\s+$/g,
       ];
-      
+
       for (const pattern of fillerPatterns) {
         normalized = normalized.replace(pattern, '');
       }
-      
+
       // Remove duplicate punctuation
       normalized = normalized.replace(/([.!?])\1+/g, '$1');
-      
+
       // Capitalize first letter
       normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1);
-      
+
       // Trim final whitespace
       normalized = normalized.trim();
-      
+
       return normalized || 'Not collected';
     };
 
     // Helper function to generate canonical request title for SMS
     const generateCanonicalTitle = (text: string | null | undefined): string => {
       if (!text || text.trim() === '') return 'Not collected';
-      
+
       const original = text.trim().toLowerCase();
       let processed = original;
-      
+
       // Remove conversational prefixes
       const prefixes = [
         /^i would like /i,
@@ -8345,15 +8536,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         /^need help with /i,
         /^help with /i,
       ];
-      
+
       for (const pattern of prefixes) {
         processed = processed.replace(pattern, '');
       }
-      
+
       // Extract key service words (simple heuristic for canonical title)
       const words = processed.split(/\s+/).filter(w => w.length > 0);
       if (words.length === 0) return 'Not collected';
-      
+
       // Take first 3-5 meaningful words
       const titleWords = words.slice(0, 5);
       return titleWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -8368,9 +8559,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       const desiredCompletionTime = sanitizeEnglishIntakeField('desiredCompletion', intakeData.desiredCompletionTime || '') || 'Not collected';
       const callbackTime = sanitizeEnglishIntakeField('callbackTime', intakeData.callbackTime || '') || 'Not collected';
       const issueDescription = sanitizeEnglishIntakeField('additionalDetails', intakeData.issueDescription || '') || 'Not collected';
-      
+
       const displayName = businessName || 'us';
-      
+
       return `--------------------------------
 
 Thanks for calling ${displayName}!
@@ -8427,7 +8618,7 @@ Reply to this message if you'd like to update or add any information.
       // If extractMultipleAnswers already populated serviceRequested, preserve it and
       // only clean the name portion out of customerName (strip trailing service text).
       const alreadyHasService = !!(state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim());
-      
+
       // COMPLETION STAGE VALIDATION: Check if existing values are valid before overwriting
       const isValidCustomerName = (name: string): boolean => {
         if (!name || typeof name !== 'string') return false;
@@ -8469,7 +8660,7 @@ Reply to this message if you'd like to update or add any information.
 
       const existingCustomerNameValid = isValidCustomerName(state.intakeData.customerName || '');
       const existingServiceRequestedValid = isValidServiceRequested(state.intakeData.serviceRequested || '');
-      
+
       // COMPLETION STAGE OVERWRITE CHECK
       console.log('[COMPLETION OVERWRITE CHECK] =========================================');
       console.log('[COMPLETION OVERWRITE CHECK] rawCustomerName:', state.intakeData.customerName);
@@ -8479,14 +8670,14 @@ Reply to this message if you'd like to update or add any information.
       console.log('[COMPLETION OVERWRITE CHECK] alreadyHasService:', alreadyHasService);
       console.log('[COMPLETION OVERWRITE CHECK] Timestamp:', new Date().toISOString());
       console.log('[COMPLETION OVERWRITE CHECK] =========================================');
-      
+
       let customerName = state.intakeData.customerName || '';
       let serviceRequested = state.intakeData.serviceRequested || '';
-      
+
       // Only reparse if existing values are invalid
       if (!existingCustomerNameValid || !existingServiceRequestedValid) {
         console.log('[COMPLETION STAGE] Reparsing due to invalid existing values');
-        
+
         // COMPLETION REPAIR SOURCE: Use preserved raw transcript if available
         const repairSource = state.rawFirstStageTranscript || state.intakeData.customerName || '';
         console.log('[COMPLETION REPAIR SOURCE] =========================================');
@@ -8495,7 +8686,7 @@ Reply to this message if you'd like to update or add any information.
         console.log('[COMPLETION REPAIR SOURCE] usingPreservedRawTranscript:', !!state.rawFirstStageTranscript);
         console.log('[COMPLETION REPAIR SOURCE] Timestamp:', new Date().toISOString());
         console.log('[COMPLETION REPAIR SOURCE] =========================================');
-        
+
         console.log('[parseNameAndService input]', {
           repairSource,
           rawCustomerName:  state.intakeData.customerName,
@@ -8509,13 +8700,13 @@ Reply to this message if you'd like to update or add any information.
           existingCustomerNameValid ? state.intakeData.customerName : undefined
         );
         console.log('[parseNameAndService output]', parseResult);
-        
+
         console.log('[COMPLETION REPAIR OUTPUT] =========================================');
         console.log('[COMPLETION REPAIR OUTPUT] parseResult.customerName:', parseResult.customerName);
         console.log('[COMPLETION REPAIR OUTPUT] parseResult.serviceRequested:', parseResult.serviceRequested);
         console.log('[COMPLETION REPAIR OUTPUT] Timestamp:', new Date().toISOString());
         console.log('[COMPLETION REPAIR OUTPUT] =========================================');
-        
+
         // Only overwrite invalid fields
         if (!existingCustomerNameValid && parseResult.customerName) {
           customerName = parseResult.customerName;
@@ -8526,7 +8717,7 @@ Reply to this message if you'd like to update or add any information.
       } else {
         console.log('[COMPLETION STAGE] Preserving valid first-stage extraction values');
       }
-      
+
       // COMPLETION STAGE OVERWRITE RESULT
       console.log('[COMPLETION OVERWRITE RESULT] =========================================');
       console.log('[COMPLETION OVERWRITE RESULT] customerNameBefore:', state.intakeData.customerName);
@@ -8578,7 +8769,7 @@ Reply to this message if you'd like to update or add any information.
       // Create lead and conversation using caller phone (not callSid)
       // Include canonical AI intake metadata in the upsert so the lead is useful
       // even if the ai_call_record insert fails.
-      const canonicalExtractedInfo = buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '', state.serviceLocationType);
+      const canonicalExtractedInfo = await buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '', state.serviceLocationType, state.callSid);
 
       console.log('[AI INTAKE FINAL EXTRACTION AUDIT] =========================================');
       console.log('[AI INTAKE FINAL EXTRACTION AUDIT] stageCaptures:', JSON.stringify(state.stageCaptures, null, 2));
@@ -8616,7 +8807,7 @@ Reply to this message if you'd like to update or add any information.
           .eq('id', existingLead.id)
           .select()
           .single();
-        
+
         lead = updatedLead;
         if (updateError) {
           console.log('[SIMPLE MODE] lead update failed:', updateError);
@@ -8645,7 +8836,7 @@ Reply to this message if you'd like to update or add any information.
           })
           .select()
           .single();
-        
+
         lead = newLead;
         if (createError) {
           console.log('[SIMPLE MODE] lead creation failed:', createError);
@@ -8738,33 +8929,33 @@ Reply to this message if you'd like to update or add any information.
         try {
           // Construct a business-facing summary from intake data (conditional, no placeholders)
           const parts: string[] = [];
-          
+
           if (state.intakeData.customerName) {
             parts.push(`${state.intakeData.customerName} called`);
           } else {
             parts.push('Caller called');
           }
-          
+
           if (state.intakeData.serviceRequested) {
             parts.push(`regarding ${state.intakeData.serviceRequested}`);
           }
-          
+
           if (state.intakeData.issueDescription) {
             parts.push(state.intakeData.issueDescription);
           }
-          
+
           if (state.intakeData.serviceAddress) {
             parts.push(`Service location: ${state.intakeData.serviceAddress}`);
           }
-          
+
           if (state.intakeData.desiredCompletionTime) {
             parts.push(`Requested completion: ${state.intakeData.desiredCompletionTime}`);
           }
-          
+
           if (state.intakeData.callbackTime) {
             parts.push(`Callback requested: ${state.intakeData.callbackTime}`);
           }
-          
+
           const summaryMessage = parts.join('. ') + (parts.length > 0 ? '.' : '');
 
           // Construct readable transcript from stage captures (Simple Mode doesn't have role labels)
@@ -8793,7 +8984,7 @@ Reply to this message if you'd like to update or add any information.
           const summarySucceeded = persistResult.summary.status === 'inserted' || persistResult.summary.status === 'already_exists';
           const transcriptSucceeded = persistResult.transcript.status === 'inserted' || persistResult.transcript.status === 'already_exists';
           const anyFailed = persistResult.summary.status === 'failed' || persistResult.transcript.status === 'failed';
-          
+
           if (summarySucceeded || transcriptSucceeded) {
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: simple_mode_message_persistence_succeeded');
@@ -8804,7 +8995,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SIMPLE MODE] transcriptStatus:', persistResult.transcript.status);
             console.log('[SIMPLE MODE] =========================================');
           }
-          
+
           if (anyFailed) {
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: simple_mode_message_persistence_failed');
@@ -8872,7 +9063,7 @@ Reply to this message if you'd like to update or add any information.
             callSid: state.callSid,
             businessId: state.businessId
           };
-          
+
           console.log('[SIMPLE MODE] =========================================');
           console.log('[SIMPLE MODE] event: simple_mode_final_intake_data');
           console.log('[SIMPLE MODE] finalIntakeData:', finalIntakeData);
@@ -9078,7 +9269,7 @@ Reply to this message if you'd like to update or add any information.
     console.log('[LEGACY SILENCE TIMER] Timestamp:', new Date().toISOString());
     console.log('[LEGACY SILENCE TIMER] =========================================');
     return;
-    
+
     // Original legacy timer logic (disabled):
     /*
     if (state.currentStage !== 'ask_name_reason' || state.stageCaptures.length > 0 || state.silentCloseStarted) {
@@ -9090,7 +9281,7 @@ Reply to this message if you'd like to update or add any information.
     console.log('[SIMPLE MODE] event: silent_timeout_started');
     state.silentTimeout = setTimeout(() => {
       console.log('[SILENCE TIMER FIRED]');
-      
+
       // Prevent legacy timer from firing during settle window
       if (state.settleWindowTimeout && state.pendingAnswerStage) {
         console.log('[LEGACY SILENCE TIMER] =========================================');
@@ -9101,7 +9292,7 @@ Reply to this message if you'd like to update or add any information.
         console.log('[LEGACY SILENCE TIMER] =========================================');
         return;
       }
-      
+
       if (state.stageCaptures.length > 0 || state.silentCloseStarted) {
         console.log('[SILENCE REPROMPT SKIPPED] reason:', state.stageCaptures.length > 0 ? 'user_spoke' : 'silent_close_already_started');
         return;
@@ -9134,7 +9325,7 @@ Reply to this message if you'd like to update or add any information.
   // Stage-aware answer validation to reject filler, incomplete, or non-responsive answers
   const validateStageAnswer = (stage: string, transcript: string, existingIntakeData?: typeof state.intakeData): { accepted: boolean; rejectionReason?: string } => {
     const trimmed = transcript.trim().toLowerCase();
-    
+
     // Helper to check if text is filler-only
     const isFillerOnly = (text: string): boolean => {
       const fillerWords = ['yeah', 'yep', 'yes', 'uh', 'um', 'okay', 'ok', 'alright', 'sure', 'fine', 'sorry', 'well', 'so', 'hold on', 'one second', 'let me think', 'a minute'];
@@ -9143,7 +9334,7 @@ Reply to this message if you'd like to update or add any information.
       if (words.length > 3) return false; // More than 3 words is likely not just filler
       return words.every(w => fillerWords.some(f => w === f || w.startsWith(f)));
     };
-    
+
     // Helper to check if text is clearly incomplete
     const isIncomplete = (text: string): boolean => {
       // Check for trailing ellipsis or cutoff
@@ -9154,19 +9345,19 @@ Reply to this message if you'd like to update or add any information.
       if (text.startsWith("it's") && text.length < 10) return true;
       return false;
     };
-    
+
     // Helper to check if text has service-like content
     const hasServiceContent = (text: string): boolean => {
       const serviceIndicators = ['need', 'want', 'looking for', 'help with', 'service', 'repair', 'install', 'issue', 'problem', 'question', 'broken', 'not working', 'furnace', 'ac', 'heating', 'cooling', 'plumbing', 'electrical'];
       return serviceIndicators.some(ind => text.includes(ind));
     };
-    
+
     // Helper to check if text has name-like content
     const hasNameContent = (text: string): boolean => {
       const nameIndicators = ['my name is', "i'm", 'i am', 'this is', 'call me'];
       return nameIndicators.some(ind => text.includes(ind));
     };
-    
+
     // Stage-specific validation
     switch (stage) {
       case 'ask_name':
@@ -9195,7 +9386,7 @@ Reply to this message if you'd like to update or add any information.
         // Check existing intake state for ask_name_reason
         const hasExistingName = existingIntakeData?.customerName && existingIntakeData.customerName.trim().length > 0;
         const hasExistingService = existingIntakeData?.serviceRequested && existingIntakeData.serviceRequested.trim().length > 0;
-        
+
         // If both name and service are already captured, any non-filler answer is acceptable
         if (hasExistingName && hasExistingService) {
           if (isFillerOnly(trimmed)) {
@@ -9203,27 +9394,27 @@ Reply to this message if you'd like to update or add any information.
           }
           return { accepted: true };
         }
-        
+
         // If name is already captured but service is missing, allow service-only answers
         if (hasExistingName && !hasExistingService) {
           // Strip filler prefix and check for service content
           const fillerWords = ['yeah', 'yep', 'yes', 'uh', 'um', 'okay', 'ok', 'alright', 'sure', 'fine', 'sorry', 'well', 'so'];
           const afterFiller = trimmed.replace(new RegExp(`^(${fillerWords.join('|')})\\s*[,.]?\\s*`, 'i'), '').trim();
-          
+
           // If after removing filler, we have service content, accept it
           if (hasServiceContent(afterFiller) && afterFiller.length >= 3) {
             return { accepted: true };
           }
-          
+
           // If it's filler-only, reject
           if (isFillerOnly(trimmed)) {
             return { accepted: false, rejectionReason: 'filler_only' };
           }
-          
+
           // If no service content detected, still accept (merge logic will handle it)
           return { accepted: true };
         }
-        
+
         // If service is already captured but name is missing, allow name-only answers
         if (!hasExistingName && hasExistingService) {
           if (isFillerOnly(trimmed)) {
@@ -9234,7 +9425,7 @@ Reply to this message if you'd like to update or add any information.
           }
           return { accepted: false, rejectionReason: 'no_name_content' };
         }
-        
+
         // If both are missing, require at least name or service content
         if (!hasExistingName && !hasExistingService) {
           if (isFillerOnly(trimmed)) {
@@ -9246,9 +9437,9 @@ Reply to this message if you'd like to update or add any information.
           // Accept if it's not filler-only (merge logic will extract what it can)
           return { accepted: true };
         }
-        
+
         return { accepted: true };
-        
+
       case 'ask_location':
         // Reject filler-only responses
         if (isFillerOnly(trimmed)) {
@@ -9259,7 +9450,7 @@ Reply to this message if you'd like to update or add any information.
           return { accepted: false, rejectionReason: 'incomplete' };
         }
         return { accepted: true };
-        
+
       case 'ask_completion_time':
         // Reject filler-only
         if (isFillerOnly(trimmed)) {
@@ -9287,7 +9478,7 @@ Reply to this message if you'd like to update or add any information.
           return { accepted: false, rejectionReason: 'no_timing_pattern' };
         }
         return { accepted: true };
-        
+
       case 'ask_callback_time':
         // Reject filler-only
         if (isFillerOnly(trimmed)) {
@@ -9295,7 +9486,7 @@ Reply to this message if you'd like to update or add any information.
         }
         // Accept any meaningful response for callback time
         return { accepted: true };
-        
+
       default:
         return { accepted: true };
     }
@@ -9337,7 +9528,7 @@ Reply to this message if you'd like to update or add any information.
   const sendPrompt = async (stage: string, promptKeyOverride?: string, source?: string, turnId?: number, deliveryAttempt?: number) => {
     const authorizedAt = Date.now();
     state.turnTiming.promptScheduledAt = authorizedAt;
-    
+
     // Update silence duration based on stage before sending prompt
     const silenceDurationMs = getStageSilenceMs(stage);
     console.log('[STAGE-SPECIFIC TIMING] =========================================');
@@ -9346,7 +9537,7 @@ Reply to this message if you'd like to update or add any information.
     console.log('[STAGE-SPECIFIC TIMING] timingType:', stage === 'ask_name' ? 'NAME_RESPONSE' : stage === 'ask_request' ? 'REQUEST_RESPONSE' : 'LONG_RESPONSE');
     console.log('[STAGE-SPECIFIC TIMING] Timestamp:', new Date().toISOString());
     console.log('[STAGE-SPECIFIC TIMING] =========================================');
-    
+
     // Update session with stage-specific silence duration
     if (state.openAiWs && state.openAiWs.readyState === WebSocket.OPEN) {
       const sessionUpdatePayload = {
@@ -9387,7 +9578,7 @@ Reply to this message if you'd like to update or add any information.
         console.log('[STAGE-SPECIFIC TIMING] Failed to send session.update:', error);
       }
     }
-    
+
     console.log('[REPROMPT ARGUMENT TRACE] =========================================');
     console.log('[REPROMPT ARGUMENT TRACE] location: sendPrompt_entry');
     console.log('[REPROMPT ARGUMENT TRACE] callSid:', state.callSid);
@@ -9399,7 +9590,7 @@ Reply to this message if you'd like to update or add any information.
     console.log('[REPROMPT ARGUMENT TRACE] authorizedAt:', authorizedAt);
     console.log('[REPROMPT ARGUMENT TRACE] Timestamp:', new Date().toISOString());
     console.log('[REPROMPT ARGUMENT TRACE] =========================================');
-    
+
     // Turn ID validation: prevent stale callbacks from sending prompts
     if (turnId !== undefined && turnId < state.currentTurnId) {
       console.log('[PROMPT IDEMPOTENCY] =========================================');
@@ -9429,10 +9620,10 @@ Reply to this message if you'd like to update or add any information.
     const authorizedTurnId = turnId !== undefined ? turnId : state.currentTurnId;
     const deliveryAttemptStr = deliveryAttempt !== undefined ? `:reprompt-${deliveryAttempt}` : ':initial';
     const deliveryIdentity = `${state.callSid}:${authorizedTurnId}:${promptKey}${deliveryAttemptStr}`;
-    
+
     // Determine delivery type for logging
     const deliveryType = deliveryAttempt !== undefined ? 'reprompt' : 'initial';
-    
+
     console.log('[PROMPT DELIVERY IDENTITY] =========================================');
     console.log('[PROMPT DELIVERY IDENTITY] callSid:', state.callSid);
     console.log('[PROMPT DELIVERY IDENTITY] stage:', stage);
@@ -9443,7 +9634,7 @@ Reply to this message if you'd like to update or add any information.
     console.log('[PROMPT DELIVERY IDENTITY] deliveryIdentity:', deliveryIdentity);
     console.log('[PROMPT DELIVERY IDENTITY] Timestamp:', new Date().toISOString());
     console.log('[PROMPT DELIVERY IDENTITY] =========================================');
-    
+
     console.log('[REPROMPT ARGUMENT TRACE] =========================================');
     console.log('[REPROMPT ARGUMENT TRACE] location: before_idempotency_check');
     console.log('[REPROMPT ARGUMENT TRACE] callSid:', state.callSid);
@@ -9453,7 +9644,7 @@ Reply to this message if you'd like to update or add any information.
     console.log('[REPROMPT ARGUMENT TRACE] deliveryIdentity:', deliveryIdentity);
     console.log('[REPROMPT ARGUMENT TRACE] Timestamp:', new Date().toISOString());
     console.log('[REPROMPT ARGUMENT TRACE] =========================================');
-    
+
     if (state.sentPrompts.has(deliveryIdentity)) {
       console.log('[PROMPT IDEMPOTENCY] =========================================');
       console.log('[PROMPT IDEMPOTENCY] event: prompt_send_blocked_duplicate');
@@ -9487,7 +9678,7 @@ Reply to this message if you'd like to update or add any information.
     console.log('[PROMPT IDEMPOTENCY] action: allowed');
     console.log('[PROMPT IDEMPOTENCY] Timestamp:', new Date().toISOString());
     console.log('[PROMPT IDEMPOTENCY] =========================================');
-    
+
     // PROMPT SOURCE TRACE DIAGNOSTIC LOGGING
     console.log('[PROMPT SOURCE TRACE] =========================================');
     console.log('[PROMPT SOURCE TRACE] callSid:', state.callSid);
@@ -9505,7 +9696,7 @@ Reply to this message if you'd like to update or add any information.
     console.log('[PROMPT SOURCE TRACE] action:', 'prompt_delivery_authorized');
     console.log('[PROMPT SOURCE TRACE] timestamp:', new Date().toISOString());
     console.log('[PROMPT SOURCE TRACE] =========================================');
-    
+
     // Block stale same-stage prompts after answer acceptance using durable flag
     // This guard works even if pendingAnswerStage/settleWindowTimeout are cleared during finalization
     if (stage === state.answerAcceptedForStage && stage === state.currentStage && state.answerAcceptedTurnId === state.currentTurnId) {
@@ -9608,7 +9799,7 @@ Reply to this message if you'd like to update or add any information.
         console.log('[TARGETED PROMPT DELIVERY] audioByteLength:', Buffer.from(fallbackAudio, 'base64').length);
         console.log('[TARGETED PROMPT DELIVERY] Timestamp:', new Date().toISOString());
         console.log('[TARGETED PROMPT DELIVERY] =========================================');
-        
+
         // Use the fallback audio
         cachedAudio = fallbackAudio;
         resolvedCacheKey = stage;
@@ -9626,7 +9817,7 @@ Reply to this message if you'd like to update or add any information.
         console.log('[TARGETED PROMPT DELIVERY ERROR] action: preserving_call_state');
         console.log('[TARGETED PROMPT DELIVERY ERROR] Timestamp:', new Date().toISOString());
         console.log('[TARGETED PROMPT DELIVERY ERROR] =========================================');
-        
+
         // Reset assistantSpeaking to allow the conversation to continue
         state.assistantSpeaking = false;
         state.promptAudioStartedAt = 0;
@@ -9650,7 +9841,7 @@ Reply to this message if you'd like to update or add any information.
       console.log('[TARGETED PROMPT DELIVERY] expectedPromptText:', prompts[resolvedCacheKey] || 'N/A');
       console.log('[TARGETED PROMPT DELIVERY] Timestamp:', new Date().toISOString());
       console.log('[TARGETED PROMPT DELIVERY] =========================================');
-      
+
       console.log('[GREETING_AUDIO_SEND] =========================================');
       console.log('[GREETING_AUDIO_SEND] event: greeting_audio_send');
       console.log('[GREETING_AUDIO_SEND] logicalStage:', stage);
@@ -9658,7 +9849,7 @@ Reply to this message if you'd like to update or add any information.
       console.log('[GREETING_AUDIO_SEND] audio_length_bytes:', Buffer.from(cachedAudio, 'base64').length);
       console.log('[GREETING_AUDIO_SEND] Timestamp:', new Date().toISOString());
       console.log('[GREETING_AUDIO_SEND] =========================================');
-      
+
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: cached_prompt_audio_found');
       console.log('[SIMPLE MODE] sourceOfSpeech:', 'cached_realtime_pcmu_prompt');
@@ -9703,11 +9894,11 @@ Reply to this message if you'd like to update or add any information.
           console.log('[TWILIO_WS_ERROR] readyState:', ws.readyState);
           console.log('[TWILIO_WS_ERROR] Timestamp:', new Date().toISOString());
           console.log('[TWILIO_WS_ERROR] =========================================');
-          
+
           if (state.aiSessionTracker) {
             updateAISessionState(state.aiSessionTracker, 'FAILED', 'Twilio WebSocket not open when sending cached audio');
           }
-          
+
           triggerVoicemailFallback(
             ws,
             twilioHandler,
@@ -9737,7 +9928,7 @@ Reply to this message if you'd like to update or add any information.
             const firstChunkAt = Date.now();
             state.turnTiming.firstAudioChunkAt = firstChunkAt;
             authorizationDelayMs = firstChunkAt - authorizedAt;
-            
+
             console.log('[PROMPT AUDIO LIFECYCLE] =========================================');
             console.log('[PROMPT AUDIO LIFECYCLE] event: first_audio_chunk_queued');
             console.log('[PROMPT AUDIO LIFECYCLE] callSid:', state.callSid);
@@ -9755,17 +9946,17 @@ Reply to this message if you'd like to update or add any information.
 
             logTurnTiming(stage);
           }
-          
+
           // Pre-media-send validation: check if stage has changed since authorization
           if (i === 0) {
             const stageChanged = stage !== state.currentStage;
             const turnChanged = authorizedTurnId !== state.currentTurnId;
-            
+
             // Check if a valid answer has already been accepted for this stage/turn
             // This blocks stale prompts that were authorized before answer acceptance
-            const answerAlreadyAccepted = state.answerAcceptedForStage === stage && 
+            const answerAlreadyAccepted = state.answerAcceptedForStage === stage &&
                                           state.answerAcceptedTurnId === authorizedTurnId;
-            
+
             console.log('[PROMPT PRE-SEND VALIDATION] =========================================');
             console.log('[PROMPT PRE-SEND VALIDATION] callSid:', state.callSid);
             console.log('[PROMPT PRE-SEND VALIDATION] expectedStage:', stage);
@@ -9778,7 +9969,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[PROMPT PRE-SEND VALIDATION] answerAcceptedForStage:', state.answerAcceptedForStage);
             console.log('[PROMPT PRE-SEND VALIDATION] answerAcceptedTurnId:', state.answerAcceptedTurnId);
             console.log('[PROMPT PRE-SEND VALIDATION] answerAlreadyAccepted:', answerAlreadyAccepted);
-            
+
             if (stageChanged || turnChanged || answerAlreadyAccepted) {
               let reason = '';
               if (stageChanged) {
@@ -9788,26 +9979,26 @@ Reply to this message if you'd like to update or add any information.
               } else {
                 reason = 'answer_already_accepted_for_stage';
               }
-              
+
               console.log('[PROMPT PRE-SEND VALIDATION] allowed:', false);
               console.log('[PROMPT PRE-SEND VALIDATION] reason:', reason);
               console.log('[PROMPT PRE-SEND VALIDATION] action:', 'blocked_stale_delivery');
               console.log('[PROMPT PRE-SEND VALIDATION] timestamp:', new Date().toISOString());
               console.log('[PROMPT PRE-SEND VALIDATION] =========================================');
-              
+
               // Reset assistantSpeaking to allow the conversation to continue
               state.assistantSpeaking = false;
               state.promptAudioStartedAt = 0;
               return;
             }
-            
+
             console.log('[PROMPT PRE-SEND VALIDATION] allowed:', true);
             console.log('[PROMPT PRE-SEND VALIDATION] reason:', 'stage_and_turn_still_valid');
             console.log('[PROMPT PRE-SEND VALIDATION] action:', 'media_send_proceeding');
             console.log('[PROMPT PRE-SEND VALIDATION] timestamp:', new Date().toISOString());
             console.log('[PROMPT PRE-SEND VALIDATION] =========================================');
           }
-          
+
           if (state.cachedPlaybackInterrupted) {
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: cached_prompt_playback_interrupted');
@@ -9830,12 +10021,12 @@ Reply to this message if you'd like to update or add any information.
           };
           ws.send(JSON.stringify(mediaMessage));
           totalChunks++;
-          
+
           // Prompt audio lifecycle logging - track last chunk send
           if (i + chunkSize >= audioBuffer.length) {
             const lastChunkAt = Date.now();
             const totalAudioDurationMs = authorizationDelayMs + (totalChunks * 20);
-            
+
             console.log('[PROMPT AUDIO LIFECYCLE] =========================================');
             console.log('[PROMPT AUDIO LIFECYCLE] event: last_audio_chunk_queued');
             console.log('[PROMPT AUDIO LIFECYCLE] callSid:', state.callSid);
@@ -9854,7 +10045,7 @@ Reply to this message if you'd like to update or add any information.
 
             logTurnTiming(stage);
           }
-          
+
           // Send at real-time rate (20ms chunks)
           await new Promise(resolve => setTimeout(resolve, 20));
         }
@@ -9902,7 +10093,7 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] cached_prompt_key:', stage);
         console.log('[SIMPLE MODE] chunk_count:', totalChunks);
         console.log('[SIMPLE MODE] =========================================');
-        
+
         console.log('[TARGETED PROMPT DELIVERY] =========================================');
         console.log('[TARGETED PROMPT DELIVERY] event: media_send_completed');
         console.log('[TARGETED PROMPT DELIVERY] callSid:', state.callSid);
@@ -9911,7 +10102,7 @@ Reply to this message if you'd like to update or add any information.
         console.log('[TARGETED PROMPT DELIVERY] chunksSent:', totalChunks);
         console.log('[TARGETED PROMPT DELIVERY] Timestamp:', new Date().toISOString());
         console.log('[TARGETED PROMPT DELIVERY] =========================================');
-        
+
         // Update AI session state to GREETING_SENT when audio is sent
         if (state.aiSessionTracker && stage === 'ask_name_reason') {
           updateAISessionState(state.aiSessionTracker, 'GREETING_SENT', 'Greeting audio sent to Twilio');
@@ -9942,7 +10133,7 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] logicalStage:', stage);
         console.log('[SIMPLE MODE] selectedPromptKey:', promptKey);
         console.log('[SIMPLE MODE] =========================================');
-        
+
         console.log('[TARGETED PROMPT DELIVERY] =========================================');
         console.log('[TARGETED PROMPT DELIVERY] event: mark_sent');
         console.log('[TARGETED PROMPT DELIVERY] callSid:', state.callSid);
@@ -9982,10 +10173,10 @@ Reply to this message if you'd like to update or add any information.
             console.log('[MARK WATCHDOG] timeoutMs:', MARK_TIMEOUT_MS);
             console.log('[MARK WATCHDOG] Timestamp:', new Date().toISOString());
             console.log('[MARK WATCHDOG] =========================================');
-            
+
             state.assistantSpeaking = false;
             state.ttsCompleteTime = Date.now();
-            
+
             // Process any queued transcript that was waiting for mark
             if (state.queuedTranscript) {
               console.log('[MARK WATCHDOG] Processing queued transcript after timeout');
@@ -10006,7 +10197,7 @@ Reply to this message if you'd like to update or add any information.
 
         // LEGACY SILENCE TIMER DISABLED - current stage-timeout is now authoritative for all stages
         // Including ask_name_reason. This prevents duplicate timer systems.
-        
+
         // Start stage timeout for all intake stages (including ask_name_reason)
         if (stage !== 'complete') {
           startStageTimeout();
@@ -10043,14 +10234,14 @@ Reply to this message if you'd like to update or add any information.
         console.log('[CACHED_AUDIO_ERROR] stage:', stage);
         console.log('[CACHED_AUDIO_ERROR] Timestamp:', new Date().toISOString());
         console.log('[CACHED_AUDIO_ERROR] =========================================');
-        
+
         console.log('[SIMPLE MODE] Error sending cached audio:', error);
         state.assistantSpeaking = false;
-        
+
         if (state.aiSessionTracker) {
           updateAISessionState(state.aiSessionTracker, 'FAILED', `Cached audio send error: ${error instanceof Error ? error.message : String(error)}`);
         }
-        
+
         triggerVoicemailFallback(
           ws,
           twilioHandler,
@@ -10071,7 +10262,7 @@ Reply to this message if you'd like to update or add any information.
       console.log('[GREETING_AUDIO_MISSING] cached_prompt_key:', stage);
       console.log('[GREETING_AUDIO_MISSING] Timestamp:', new Date().toISOString());
       console.log('[GREETING_AUDIO_MISSING] =========================================');
-      
+
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] CRITICAL ERROR: Cached prompt audio is required but missing!');
       console.log('[SIMPLE MODE] CRITICAL ERROR: cached_prompt_key:', stage);
@@ -10081,11 +10272,11 @@ Reply to this message if you'd like to update or add any information.
       console.log('[SIMPLE MODE] CRITICAL ERROR: Run: npx ts-node scripts/generate-realtime-cached-audio.ts');
       console.log('[SIMPLE MODE] CRITICAL ERROR: Triggering voicemail fallback');
       console.log('[SIMPLE MODE] =========================================');
-      
+
       // Simple Mode must never fall back to live speech - use voicemail fallback instead
       state.assistantSpeaking = false;
       logSimple('cached_prompt_missing_critical_error', { stage });
-      
+
       triggerVoicemailFallback(
         ws,
         twilioHandler,
@@ -10115,12 +10306,12 @@ Reply to this message if you'd like to update or add any information.
       console.log('[SESSION_READY] currentStage:', state.currentStage);
       console.log('[SESSION_READY] Timestamp:', new Date().toISOString());
       console.log('[SESSION_READY] =========================================');
-      
+
       // Update AI session state to SESSION_READY
       if (state.aiSessionTracker) {
         updateAISessionState(state.aiSessionTracker, 'SESSION_READY', 'OpenAI session ready, sending greeting');
       }
-      
+
       console.log('[OPENAI READY]', Date.now(), 'both session.created and session.updated received');
       console.log('[OPENAI TIMING]', Date.now(), 'sendPrompt.initial');
       sendPrompt(state.currentStage, undefined, 'initial_prompt', state.currentTurnId, undefined);
@@ -10138,92 +10329,92 @@ Reply to this message if you'd like to update or add any information.
 
       if (message.event === 'start') {
         state.streamSid = message.streamSid;
-        
+
         console.log('[TWILIO_START_RECEIVED] =========================================');
         console.log('[TWILIO_START_RECEIVED] event: twilio_start_received');
         console.log('[TWILIO_START_RECEIVED] streamSid:', message.streamSid);
         console.log('[TWILIO_START_RECEIVED] Timestamp:', new Date().toISOString());
         console.log('[TWILIO_START_RECEIVED] =========================================');
-        
+
         // Log raw start event keys for debugging
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: simple_mode_twilio_start_raw_keys');
         console.log('[SIMPLE MODE] startKeys:', Object.keys(message.start || {}));
         console.log('[SIMPLE MODE] =========================================');
-        
+
         // Log custom parameters if present
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: simple_mode_twilio_start_custom_parameters');
         console.log('[SIMPLE MODE] customParameters:', message.start?.customParameters || 'none');
         console.log('[SIMPLE MODE] =========================================');
-        
+
         // Extract Twilio call metadata
         // Try multiple possible locations for the data
         const startData = message.start || {};
         const customParams = startData.customParameters || {};
-        
-        const callSid = startData.callSid || startData.CallSid || 
+
+        const callSid = startData.callSid || startData.CallSid ||
                        customParams.callSid || customParams.CallSid ||
                        url.searchParams.get('callSid') || '';
-        
-        const from = startData.from || startData.From || 
+
+        const from = startData.from || startData.From ||
                     customParams.from || customParams.From ||
                     url.searchParams.get('from') || '';
-        
-        const to = startData.to || startData.To || 
+
+        const to = startData.to || startData.To ||
                   customParams.to || customParams.To ||
                   url.searchParams.get('to') || '';
-        
+
         const businessId = customParams.businessId || customParams.business_id ||
                           url.searchParams.get('businessId') || state.businessId || '';
-        
+
         state.callSid = callSid;
         state.businessId = businessId;
         state.callerPhone = from;
-        
+
         // Initialize AI session tracker now that we have callSid and businessId
         state.aiSessionTracker = createAISessionTracker(callSid, businessId);
         updateAISessionState(state.aiSessionTracker, 'AI_CONNECTING', 'Twilio WebSocket connected, connecting to OpenAI');
-        
+
         // Also expose callSid on the websocket so the fallback ingest paths can find it.
         (ws as any).callSid = callSid;
         (ws as any).businessId = businessId;
         (ws as any).callerPhone = from;
         (ws as any).aiSessionTracker = state.aiSessionTracker;
-        
+
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: simple_mode_call_sid_set');
         console.log('[SIMPLE MODE] callSid:', state.callSid);
         console.log('[SIMPLE MODE] =========================================');
-        
+
         if (!state.callSid) {
           console.log('[SIMPLE MODE] WARNING: callSid is empty at start event');
           console.log('[SIMPLE MODE] startData.callSid:', startData.callSid);
           console.log('[SIMPLE MODE] customParams.callSid:', customParams.callSid);
         }
-        
+
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: simple_mode_from_set');
         console.log('[SIMPLE MODE] from:', from);
         console.log('[SIMPLE MODE] =========================================');
-        
+
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: simple_mode_to_set');
         console.log('[SIMPLE MODE] to:', to);
         console.log('[SIMPLE MODE] =========================================');
-        
+
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: simple_mode_business_resolved');
         console.log('[SIMPLE MODE] businessId:', state.businessId);
         console.log('[SIMPLE MODE] =========================================');
-        
+
         // Load authoritative service_location_type now that businessId is resolved
         try {
           // Fire-and-forget; resolution completes quickly and before any stage advancement matters
           void loadServiceLocationTypeForBusiness(state.businessId);
         } catch {}
 
-        logSimple('twilio_start', { 
+        logSimple('twilio_start', {
           streamSid: state.streamSid,
           callSid: state.callSid,
           from: from,
@@ -10251,11 +10442,11 @@ Reply to this message if you'd like to update or add any information.
             console.log('[OPENAI_CONNECT_TIMEOUT] timeoutMs: 5000');
             console.log('[OPENAI_CONNECT_TIMEOUT] Timestamp:', new Date().toISOString());
             console.log('[OPENAI_CONNECT_TIMEOUT] =========================================');
-            
+
             if (state.aiSessionTracker) {
               updateAISessionState(state.aiSessionTracker, 'FAILED', 'OpenAI WebSocket connection timeout');
             }
-            
+
             state.openAiWs.terminate();
             triggerVoicemailFallback(
               ws,
@@ -10279,11 +10470,11 @@ Reply to this message if you'd like to update or add any information.
           console.log('[OPENAI_CONNECT_ERROR] error:', error.message);
           console.log('[OPENAI_CONNECT_ERROR] Timestamp:', new Date().toISOString());
           console.log('[OPENAI_CONNECT_ERROR] =========================================');
-          
+
           if (state.aiSessionTracker) {
             updateAISessionState(state.aiSessionTracker, 'FAILED', `OpenAI WebSocket connection error: ${error.message}`);
           }
-          
+
           triggerVoicemailFallback(
             ws,
             twilioHandler,
@@ -10304,12 +10495,12 @@ Reply to this message if you'd like to update or add any information.
           console.log('[OPENAI_CONNECTED] event: openai_connected');
           console.log('[OPENAI_CONNECTED] Timestamp:', new Date().toISOString());
           console.log('[OPENAI_CONNECTED] =========================================');
-          
+
           // Update AI session state
           if (state.aiSessionTracker) {
             updateAISessionState(state.aiSessionTracker, 'AI_CONNECTED', 'OpenAI WebSocket connected');
           }
-          
+
           logSimple('openai_connected');
           console.log('[OPENAI TIMING]', Date.now(), 'websocket_open');
           console.log('[SIMPLE MODE] =========================================');
@@ -10370,7 +10561,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SESSION_READY_TIMEOUT] currentStage:', state.currentStage);
             console.log('[SESSION_READY_TIMEOUT] Timestamp:', new Date().toISOString());
             console.log('[SESSION_READY_TIMEOUT] =========================================');
-            
+
             console.log('[OPENAI READY TIMEOUT]', {
               elapsedMs: 5000,
               sessionCreatedReceived: state.sessionCreatedReceived,
@@ -10378,7 +10569,7 @@ Reply to this message if you'd like to update or add any information.
               initialPromptSent: state.initialPromptSent,
               currentStage: state.currentStage,
             });
-            
+
             // Trigger voicemail fallback if session never became ready
             if (!state.sessionCreatedReceived || !state.sessionUpdatedReceived) {
               console.log('[SESSION_READY_TIMEOUT] Triggering voicemail fallback due to session not ready');
@@ -10414,7 +10605,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SESSION_CREATED] session.id:', message.session?.id);
             console.log('[SESSION_CREATED] Timestamp:', new Date().toISOString());
             console.log('[SESSION_CREATED] =========================================');
-            
+
             console.log('[OPENAI EVENT] session.created');
             console.log('[OPENAI TIMING]', Date.now(), 'session.created received');
             console.log('[SIMPLE MODE] =========================================');
@@ -10430,7 +10621,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SESSION_UPDATED] session.id:', message.session?.id);
             console.log('[SESSION_UPDATED] Timestamp:', new Date().toISOString());
             console.log('[SESSION_UPDATED] =========================================');
-            
+
             console.log('[OPENAI EVENT] session.updated');
             console.log('[OPENAI TIMING]', Date.now(), 'session.updated received');
             console.log('[SIMPLE MODE] =========================================');
@@ -10445,14 +10636,14 @@ Reply to this message if you'd like to update or add any information.
             console.log('[OPENAI_EVENT_ERROR] error:', JSON.stringify(message.error));
             console.log('[OPENAI_EVENT_ERROR] Timestamp:', new Date().toISOString());
             console.log('[OPENAI_EVENT_ERROR] =========================================');
-            
+
             console.log('[OPENAI EVENT] error', message.error);
             console.log('[OPENAI ERROR DUMP]', JSON.stringify(message, null, 2));
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: error from OpenAI');
             console.log('[SIMPLE MODE] error:', JSON.stringify(message.error));
             console.log('[SIMPLE MODE] =========================================');
-            
+
             // Trigger voicemail fallback on OpenAI errors
             triggerVoicemailFallback(
               ws,
@@ -10474,7 +10665,7 @@ Reply to this message if you'd like to update or add any information.
             if (!state.firstSpeechStartedAfterPromptAt) {
               state.firstSpeechStartedAfterPromptAt = speechStartedAt;
             }
-            
+
             // Track originating stage for cross-stage attribution prevention
             state.speechStartedStage = state.currentStage;
             state.speechStartedTurnId = state.currentTurnId;
@@ -10499,7 +10690,7 @@ Reply to this message if you'd like to update or add any information.
               console.log('[STAGE TIMEOUT LIFECYCLE] timestamp:', new Date().toISOString());
               console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
             }
-            
+
             // TRANSCRIPTION OWNERSHIP DIAGNOSTIC LOGGING
             console.log('[TRANSCRIPTION OWNERSHIP] =========================================');
             console.log('[TRANSCRIPTION OWNERSHIP] event:', 'speech_segment_started');
@@ -10511,7 +10702,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[TRANSCRIPTION OWNERSHIP] transcriptionPending:', true);
             console.log('[TRANSCRIPTION OWNERSHIP] timestamp:', new Date().toISOString());
             console.log('[TRANSCRIPTION OWNERSHIP] =========================================');
-            
+
             // CONTINUATION DETECTION TIMING DIAGNOSTIC LOGGING
             if (state.settleWindowTimeout && state.pendingAnswerStage) {
               const delayBetweenAudioAndSpeechStarted = state.lastInboundAudioAt ? speechStartedAt - state.lastInboundAudioAt : 0;
@@ -10527,7 +10718,7 @@ Reply to this message if you'd like to update or add any information.
               console.log('[CONTINUATION DETECTION TIMING] action:', 'continuation_speech_detected');
               console.log('[CONTINUATION DETECTION TIMING] =========================================');
             }
-            
+
             // Cancel settle window if new speech starts during continuation
             if (state.settleWindowTimeout && state.pendingAnswerStage) {
               console.log('[CONTINUATION SPEECH] =========================================');
@@ -10541,11 +10732,11 @@ Reply to this message if you'd like to update or add any information.
               console.log('[CONTINUATION SPEECH] action:', 'settle_cancelled_new_speech');
               console.log('[CONTINUATION SPEECH] timestamp:', new Date().toISOString());
               console.log('[CONTINUATION SPEECH] =========================================');
-              
+
               clearTimeout(state.settleWindowTimeout);
               state.settleWindowTimeout = null;
               state.settleGeneration++; // Increment generation to invalidate stale settle callbacks
-              
+
               console.log('[LOGICAL TURN LIFECYCLE] =========================================');
               console.log('[LOGICAL TURN LIFECYCLE] event: continuation_speech_started');
               console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
@@ -10571,7 +10762,7 @@ Reply to this message if you'd like to update or add any information.
               console.log('[SETTLE GRACE] timestamp:', new Date().toISOString());
               console.log('[SETTLE GRACE] =========================================');
             }
-            
+
             console.log('[AUDIO PIPELINE] =========================================');
             console.log('[AUDIO PIPELINE] event: input_audio_buffer.speech_started');
             console.log('[AUDIO PIPELINE] timestamp:', speechStartedAt);
@@ -10589,7 +10780,7 @@ Reply to this message if you'd like to update or add any information.
             state.inSpeechSegment = true;
             state.audioAppendBlockedLogged = false;
             state.turnTiming = { speechStartedAt: speechStartedAt };
-            
+
             // TRANSCRIPTION WATCHDOG: Start watchdog when speech begins
             // This detects if OpenAI never returns a transcription after speech
             const TRANSCRIPTION_TIMEOUT_MS = 15000; // 15 seconds - longer than any reasonable answer
@@ -10608,7 +10799,7 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[TRANSCRIPTION WATCHDOG] =========================================');
                 return;
               }
-              
+
               console.log('[TRANSCRIPTION WATCHDOG] =========================================');
               console.log('[TRANSCRIPTION WATCHDOG] event: transcription_timeout');
               console.log('[TRANSCRIPTION WATCHDOG] stage:', state.currentStage);
@@ -10617,17 +10808,17 @@ Reply to this message if you'd like to update or add any information.
               console.log('[TRANSCRIPTION WATCHDOG] timeoutMs:', TRANSCRIPTION_TIMEOUT_MS);
               console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
               console.log('[TRANSCRIPTION WATCHDOG] =========================================');
-              
+
               // Clear the watchdog
               state.transcriptionWatchdogTimeout = null;
-              
+
               // Reprompt the current stage with targeted prompt variant for ask_name_reason
               if (state.currentStage && state.currentStage !== 'complete') {
                 let promptKeyOverride: string | undefined;
                 if (state.currentStage === 'ask_name_reason') {
                   const hasValidCustomerName = !!state.intakeData.customerName && state.intakeData.customerName.trim().length > 0;
                   const hasValidServiceRequested = !!state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim().length > 0;
-                  
+
                   if (hasValidCustomerName && !hasValidServiceRequested) {
                     promptKeyOverride = 'ask_name_reason_service_only';
                     console.log('[TRANSCRIPTION WATCHDOG TARGETED REPROMPT] =========================================');
@@ -10644,7 +10835,7 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[TRANSCRIPTION WATCHDOG TARGETED REPROMPT] =========================================');
                   }
                 }
-                
+
                 console.log('[TRANSCRIPTION WATCHDOG REPROMPT ROUTING] =========================================');
                 console.log('[TRANSCRIPTION WATCHDOG REPROMPT ROUTING] turnId:', state.currentTurnId);
                 console.log('[TRANSCRIPTION WATCHDOG REPROMPT ROUTING] action: watchdog_timeout_reprompt');
@@ -10653,7 +10844,7 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[TRANSCRIPTION WATCHDOG REPROMPT ROUTING] source:', 'transcription_watchdog');
                 console.log('[TRANSCRIPTION WATCHDOG REPROMPT ROUTING] Timestamp:', new Date().toISOString());
                 console.log('[TRANSCRIPTION WATCHDOG REPROMPT ROUTING] =========================================');
-                
+
                 sendPrompt(state.currentStage, promptKeyOverride, 'transcription_watchdog', state.currentTurnId);
               }
             }, TRANSCRIPTION_TIMEOUT_MS);
@@ -10663,7 +10854,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[TRANSCRIPTION WATCHDOG] timeoutMs:', TRANSCRIPTION_TIMEOUT_MS);
             console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
             console.log('[TRANSCRIPTION WATCHDOG] =========================================');
-            
+
             if (state.assistantSpeaking) {
               console.log('[SIMPLE MODE] =========================================');
               console.log('[SIMPLE MODE] event: caller_speech_detected_during_prompt');
@@ -10705,7 +10896,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[AUDIO PIPELINE] elapsedMsPromptCompleteToSpeechStarted:', state.promptAudioSentAt && state.firstSpeechStartedAfterPromptAt ? state.firstSpeechStartedAfterPromptAt - state.promptAudioSentAt : null);
             console.log('[AUDIO PIPELINE] elapsedMsSpeechStartedToFirstAudioForwarded:', state.firstSpeechStartedAfterPromptAt && state.firstAudioForwardedAfterPromptAt ? state.firstAudioForwardedAfterPromptAt - state.firstSpeechStartedAfterPromptAt : null);
             console.log('[AUDIO PIPELINE] =========================================');
-            
+
             // Clear transcription watchdog since transcription was received
             if (state.transcriptionWatchdogTimeout) {
               clearTimeout(state.transcriptionWatchdogTimeout);
@@ -10731,7 +10922,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[TRANSCRIPTION FAILED] inSpeechSegment:', state.inSpeechSegment);
             console.log('[TRANSCRIPTION FAILED] currentStage:', state.currentStage);
             console.log('[TRANSCRIPTION FAILED] =========================================');
-            
+
             // Clear transcription watchdog since transcription failed
             if (state.transcriptionWatchdogTimeout) {
               clearTimeout(state.transcriptionWatchdogTimeout);
@@ -10741,33 +10932,33 @@ Reply to this message if you'd like to update or add any information.
               console.log('[TRANSCRIPTION FAILED] reason: transcription_failed');
               console.log('[TRANSCRIPTION FAILED] =========================================');
             }
-            
+
             // Track consecutive transcription failures for this stage
             const stage = state.currentStage;
             const failureCount = (transcriptionFailureCount.get(stage) || 0) + 1;
             transcriptionFailureCount.set(stage, failureCount);
-            
+
             console.log('[TRANSCRIPTION FAILED] =========================================');
             console.log('[TRANSCRIPTION FAILED] consecutiveFailures:', failureCount);
             console.log('[TRANSCRIPTION FAILED] maxFailuresBeforeFallback:', MAX_TRANSCRIPTION_FAILURES);
             console.log('[TRANSCRIPTION FAILED] stage:', stage);
             console.log('[TRANSCRIPTION FAILED] =========================================');
-            
+
             // Determine if error is fatal (server-level) or recoverable
             // Only trigger fallback for true server errors or after repeated failures
-            const isFatalError = message.error?.code === 'server_error' || 
+            const isFatalError = message.error?.code === 'server_error' ||
                                  message.error?.type === 'server_error';
             const shouldFallback = isFatalError || failureCount >= MAX_TRANSCRIPTION_FAILURES;
-            
+
             if (shouldFallback) {
               console.log('[TRANSCRIPTION FAILED] =========================================');
               console.log('[TRANSCRIPTION FAILED] action: triggering_voicemail_fallback');
               console.log('[TRANSCRIPTION FAILED] reason:', isFatalError ? 'server_or_infrastructure_error' : 'max_consecutive_failures_reached');
               console.log('[TRANSCRIPTION FAILED] =========================================');
-              
+
               // Reset failure count for this stage
               transcriptionFailureCount.delete(stage);
-              
+
               // Trigger voicemail fallback for fatal errors or repeated failures
               triggerVoicemailFallback(
                 ws,
@@ -10788,14 +10979,14 @@ Reply to this message if you'd like to update or add any information.
               console.log('[TRANSCRIPTION FAILED] reason: transcription_temporarily_failed');
               console.log('[TRANSCRIPTION FAILED] action: reprompting_current_stage');
               console.log('[TRANSCRIPTION FAILED] =========================================');
-              
+
               // Reprompt the current stage with targeted prompt variant for ask_name_reason if connection is healthy
               if (state.currentStage && state.currentStage !== 'complete' && state.openAiWs?.readyState === WebSocket.OPEN) {
                 let promptKeyOverride: string | undefined;
                 if (state.currentStage === 'ask_name_reason') {
                   const hasValidCustomerName = !!state.intakeData.customerName && state.intakeData.customerName.trim().length > 0;
                   const hasValidServiceRequested = !!state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim().length > 0;
-                  
+
                   if (hasValidCustomerName && !hasValidServiceRequested) {
                     promptKeyOverride = 'ask_name_reason_service_only';
                     console.log('[TRANSCRIPTION FAILED TARGETED REPROMPT] =========================================');
@@ -10842,13 +11033,13 @@ Reply to this message if you'd like to update or add any information.
               console.log('[SIMPLE MODE] CRITICAL: Discarding live OpenAI audio to prevent off-script speech');
               console.log('[SIMPLE MODE] CRITICAL: outboundSpeechSource must be cached_scripted_prompt only');
               console.log('[SIMPLE MODE] =========================================');
-              logSimple('critical_invariant_violation', { 
+              logSimple('critical_invariant_violation', {
                 violation: 'assistant_audio_delta_in_simple_mode',
                 action: 'discarded'
               });
               return; // Discard the audio delta - do not forward to Twilio
             }
-            
+
             // Decode base64 delta into raw bytes and accumulate
             const deltaBytes = Buffer.from(message.delta, 'base64');
             state.audioAccumulator.push(deltaBytes);
@@ -10944,7 +11135,7 @@ Reply to this message if you'd like to update or add any information.
                 if (state.currentStage === 'ask_name_reason') {
                   const hasValidCustomerName = !!state.intakeData.customerName && state.intakeData.customerName.trim() !== '';
                   const hasValidServiceRequested = !!state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim() !== '';
-                  
+
                   console.log('[ASK_NAME_REASON STAGE VALIDATION] =========================================');
                   console.log('[ASK_NAME_REASON STAGE VALIDATION] hasValidCustomerName:', hasValidCustomerName);
                   console.log('[ASK_NAME_REASON STAGE VALIDATION] customerName:', state.intakeData.customerName);
@@ -10952,13 +11143,13 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[ASK_NAME_REASON STAGE VALIDATION] serviceRequested:', state.intakeData.serviceRequested);
                   console.log('[ASK_NAME_REASON STAGE VALIDATION] Timestamp:', new Date().toISOString());
                   console.log('[ASK_NAME_REASON STAGE VALIDATION] =========================================');
-                  
+
                   if (hasValidCustomerName && hasValidServiceRequested) {
                     // Both fields valid: advance to next stage
                     const previousStage = state.currentStage;
                     const nextStage = stages[currentIndex + 1];
                     state.currentStage = nextStage;
-                    
+
                     console.log('[STAGE TRANSITION] =========================================');
                     console.log('[STAGE TRANSITION] event: stage_advanced');
                     console.log('[STAGE TRANSITION] trigger: queued_transcript_after_assistant_response');
@@ -10968,7 +11159,7 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[STAGE TRANSITION] fieldName:', fieldName);
                     console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
                     console.log('[STAGE TRANSITION] =========================================');
-                    
+
                     sendPrompt(state.currentStage);
                   } else {
                     // Missing one or both fields: reprompt with targeted prompt variant
@@ -10981,7 +11172,7 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[STAGE TRANSITION] action: remaining_on_ask_name_reason_with_targeted_reprompt');
                     console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
                     console.log('[STAGE TRANSITION] =========================================');
-                    
+
                     // Select targeted prompt variant based on which field is missing
                     let promptKeyOverride: string | undefined;
                     if (hasValidCustomerName && !hasValidServiceRequested) {
@@ -11006,7 +11197,7 @@ Reply to this message if you'd like to update or add any information.
                       console.log('[TARGETED REPROMPT SELECTED] Timestamp:', new Date().toISOString());
                       console.log('[TARGETED REPROMPT SELECTED] =========================================');
                     }
-                    
+
                     // Reprompt with targeted prompt variant (logical stage remains ask_name_reason)
                     console.log('[IMMEDIATE PARTIAL FIELD REPROMPT] =========================================');
                     console.log('[IMMEDIATE PARTIAL FIELD REPROMPT] event: immediate_partial_field_reprompt');
@@ -11017,7 +11208,7 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[IMMEDIATE PARTIAL FIELD REPROMPT] promptKeyOverridePassedToSendPrompt:', promptKeyOverride || 'none');
                     console.log('[IMMEDIATE PARTIAL FIELD REPROMPT] Timestamp:', new Date().toISOString());
                     console.log('[IMMEDIATE PARTIAL FIELD REPROMPT] =========================================');
-                    
+
                     sendPrompt(state.currentStage, promptKeyOverride);
                   }
                 } else if (currentIndex < stages.length - 1) {
@@ -11025,7 +11216,7 @@ Reply to this message if you'd like to update or add any information.
                   const previousStage = state.currentStage;
                   const nextStage = stages[currentIndex + 1];
                   state.currentStage = nextStage;
-                  
+
                   console.log('[STAGE TRANSITION] =========================================');
                   console.log('[STAGE TRANSITION] event: stage_advanced');
                   console.log('[STAGE TRANSITION] trigger: queued_transcript_after_assistant_response');
@@ -11035,13 +11226,13 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[STAGE TRANSITION] fieldName:', fieldName);
                   console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
                   console.log('[STAGE TRANSITION] =========================================');
-                  
+
                   sendPrompt(state.currentStage);
                 } else if (isFinalStage) {
                   // Final stage (ask_callback_time) completed - advance to complete
                   const previousStage = state.currentStage;
                   state.currentStage = 'complete';
-                  
+
                   console.log('[STAGE TRANSITION] =========================================');
                   console.log('[STAGE TRANSITION] event: final_stage_advanced_to_complete');
                   console.log('[STAGE TRANSITION] trigger: queued_transcript_after_assistant_response');
@@ -11051,16 +11242,16 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[STAGE TRANSITION] fieldName:', fieldName);
                   console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
                   console.log('[STAGE TRANSITION] =========================================');
-                  
+
                   sendPrompt('complete');
-                  
+
                   // Run completion persistence immediately after setting stage to complete
                   processSimpleModeCompletion().catch(console.error);
                 }
               }
               state.queuedTranscript = null;
             }
-            
+
             // DO NOT hang up on response.done for final goodbye
             // Wait for response.output_audio.done instead
           }
@@ -11070,7 +11261,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: final_goodbye_audio_done');
             console.log('[SIMPLE MODE] =========================================');
-            
+
             // Send Twilio mark to track audio playback completion
             const markName = 'final-goodbye-complete';
             const markMessage = {
@@ -11080,14 +11271,14 @@ Reply to this message if you'd like to update or add any information.
                 name: markName
               }
             };
-            
+
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: final_goodbye_mark_sent');
             console.log('[SIMPLE MODE] markName:', markName);
             console.log('[SIMPLE MODE] =========================================');
-            
+
             ws.send(JSON.stringify(markMessage));
-            
+
             // Set fallback timeout if mark is never received (15 seconds)
             // Increased from 10s to 15s to ensure full audio playback completes
             // response.output_audio.done fires when OpenAI finishes generating audio,
@@ -11112,7 +11303,7 @@ Reply to this message if you'd like to update or add any information.
             state.turnTiming.transcriptFinalAt = transcriptionCompletedAt;
             const transcript = message.transcript || '';
             const transcriptionGeneration = state.speechStartedTurnId === state.currentTurnId ? state.speechGeneration : state.pendingTranscriptionGeneration;
-            
+
             // TRANSCRIPTION OWNERSHIP DIAGNOSTIC LOGGING
             console.log('[TRANSCRIPTION OWNERSHIP] =========================================');
             console.log('[TRANSCRIPTION OWNERSHIP] event:', 'transcription_received');
@@ -11127,7 +11318,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[TRANSCRIPTION OWNERSHIP] transcriptionPending:', state.transcriptionPending);
             console.log('[TRANSCRIPTION OWNERSHIP] timestamp:', new Date().toISOString());
             console.log('[TRANSCRIPTION OWNERSHIP] =========================================');
-            
+
             // Only clear transcriptionPending if this transcription matches the current speech generation
             // This prevents an older transcription from clearing pending state for a newer continuation
             if (transcriptionGeneration === state.speechGeneration) {
@@ -11148,7 +11339,7 @@ Reply to this message if you'd like to update or add any information.
               console.log('[TRANSCRIPTION OWNERSHIP] timestamp:', new Date().toISOString());
               console.log('[TRANSCRIPTION OWNERSHIP] =========================================');
             }
-            
+
             state.transcript += ' ' + transcript;
             state.lastTranscriptionCompletedAt = transcriptionCompletedAt;
 
@@ -11209,7 +11400,7 @@ Reply to this message if you'd like to update or add any information.
               if (!validationResult.accepted) {
                 accepted = false;
                 ignoredReason = validationResult.rejectionReason || 'stage_validation_failed';
-                
+
                 console.log('[ANSWER VALIDATION] =========================================');
                 console.log('[ANSWER VALIDATION] callSid:', state.callSid);
                 console.log('[ANSWER VALIDATION] originatingStage:', originatingStage);
@@ -11222,7 +11413,7 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[ANSWER VALIDATION] action: rejected_no_persistence_no_advancement');
                 console.log('[ANSWER VALIDATION] Timestamp:', new Date().toISOString());
                 console.log('[ANSWER VALIDATION] =========================================');
-                
+
                 console.log('[ANSWER CONTINUATION] =========================================');
                 console.log('[ANSWER CONTINUATION] fragment:', meaningfulTranscript);
                 console.log('[ANSWER CONTINUATION] stage:', originatingStage);
@@ -11230,7 +11421,7 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[ANSWER CONTINUATION] action: extending_stage_timeout_for_continuation');
                 console.log('[ANSWER CONTINUATION] Timestamp:', new Date().toISOString());
                 console.log('[ANSWER CONTINUATION] =========================================');
-                
+
                 // Extend stage timeout to allow caller to complete answer
                 state.waitingForContinuation = true;
                 if (state.continuationTimeout) {
@@ -11246,7 +11437,7 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[ANSWER CONTINUATION] Timestamp:', new Date().toISOString());
                   console.log('[ANSWER CONTINUATION] =========================================');
                 }, 5000);
-                
+
                 // Do not persist, do not advance, do not increment turn
                 // Allow caller to continue naturally on same stage
                 return;
@@ -11263,9 +11454,9 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[ANSWER VALIDATION] action: accepted_persistence_allowed');
                 console.log('[ANSWER VALIDATION] Timestamp:', new Date().toISOString());
                 console.log('[ANSWER VALIDATION] =========================================');
-                
+
                 state.turnTiming.responseAcceptedAt = Date.now();
-                
+
                 // Clear continuation tracking since we got a valid answer
                 if (state.waitingForContinuation) {
                   state.waitingForContinuation = false;
@@ -11280,23 +11471,23 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[ANSWER CONTINUATION] Timestamp:', new Date().toISOString());
                   console.log('[ANSWER CONTINUATION] =========================================');
                 }
-                
+
                 // CONTINUATION SPEECH CHECK: Prevent premature finalization if newer same-stage speech has started
                 // This applies to ALL stages, not just settle-window stages
                 const sameTurnSpeechActive = !!state.inSpeechSegment &&
                   state.speechStartedStage === originatingStage &&
                   state.speechStartedTurnId === originatingTurnId;
                 const speechOngoingNoStop = state.lastDetectedSpeechAt && (!state.lastSpeechStoppedAt || state.lastSpeechStoppedAt < state.lastDetectedSpeechAt);
-                
+
                 // GENERATION COMPARISON: Detect if a newer speech generation exists for the same stage/turn
                 // This is the key signal that continuation speech has started
                 const newerSpeechExists = state.speechGeneration > transcriptionGeneration;
-                
+
                 // Determine if this stage requires a settle window (either intrinsic or due to continuation)
                 const needsSettleWindow = requiresSettleWindow(originatingStage);
                 const hasContinuation = sameTurnSpeechActive || newerSpeechExists || speechOngoingNoStop;
                 const stageNeedsSettle = needsSettleWindow || (hasContinuation && originatingStage === state.currentStage);
-                
+
                 // Log continuation detection
                 if (hasContinuation && !needsSettleWindow) {
                   console.log('[CONTINUATION SPEECH DETECTED] =========================================');
@@ -11312,12 +11503,12 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[CONTINUATION SPEECH DETECTED] timestamp:', new Date().toISOString());
                   console.log('[CONTINUATION SPEECH DETECTED] =========================================');
                 }
-                
+
                 // Settle window for long natural answers (ask_request, ask_name_reason) OR continuation speech
                 // Uses the generalized stageNeedsSettle variable computed above
                 if (stageNeedsSettle && originatingStage === state.currentStage) {
                   // Defensive reset: if pending state belongs to a different stage/turn, clear it first
-                  if (state.pendingAnswerStage && 
+                  if (state.pendingAnswerStage &&
                       (state.pendingAnswerStage !== originatingStage || state.pendingAnswerTurnId !== originatingTurnId)) {
                     console.log('[PENDING ANSWER STATE DEFENSIVE RESET] =========================================');
                     console.log('[PENDING ANSWER STATE DEFENSIVE RESET] event: stale_pending_state_detected');
@@ -11328,13 +11519,13 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[PENDING ANSWER STATE DEFENSIVE RESET] action: clearing_stale_state');
                     console.log('[PENDING ANSWER STATE DEFENSIVE RESET] timestamp:', new Date().toISOString());
                     console.log('[PENDING ANSWER STATE DEFENSIVE RESET] =========================================');
-                    
+
                     clearPendingAnswerState(state, 'defensive_reset_stale_stage_turn_mismatch');
                   }
-                  
+
                   // Store as pending answer and start settle window
                   const isFirstSegment = !state.pendingAnswerStage;
-                  
+
                   if (isFirstSegment) {
                     state.pendingAnswerStage = originatingStage;
                     state.pendingAnswerTurnId = originatingTurnId;
@@ -11343,13 +11534,13 @@ Reply to this message if you'd like to update or add any information.
                     // Merge with existing segments
                     state.pendingAnswerSegments.push(meaningfulTranscript);
                   }
-                  
+
                   // Set durable answer accepted flag on first valid answer
                   // This flag persists even if pendingAnswerStage is cleared during finalization
                   if (!state.answerAcceptedForStage || state.answerAcceptedForStage !== originatingStage) {
                     state.answerAcceptedForStage = originatingStage;
                     state.answerAcceptedTurnId = originatingTurnId;
-                    
+
                     console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
                     console.log('[ANSWER ACCEPTANCE DURABLE] event: answer_accepted_for_stage');
                     console.log('[ANSWER ACCEPTANCE DURABLE] callSid:', state.callSid);
@@ -11359,7 +11550,7 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[ANSWER ACCEPTANCE DURABLE] answerAcceptedTurnId:', state.answerAcceptedTurnId);
                     console.log('[ANSWER ACCEPTANCE DURABLE] timestamp:', new Date().toISOString());
                     console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
-                    
+
                     // Immediately cancel stage timeout and transcription watchdog when answer is accepted
                     // This prevents them from firing reprompts after a valid answer has been received
                     if (state.stageTimeout) {
@@ -11372,7 +11563,7 @@ Reply to this message if you'd like to update or add any information.
                       console.log('[STAGE TIMEOUT] Timestamp:', new Date().toISOString());
                       console.log('[STAGE TIMEOUT] =========================================');
                     }
-                    
+
                     if (state.transcriptionWatchdogTimeout) {
                       clearTimeout(state.transcriptionWatchdogTimeout);
                       state.transcriptionWatchdogTimeout = null;
@@ -11384,7 +11575,7 @@ Reply to this message if you'd like to update or add any information.
                       console.log('[TRANSCRIPTION WATCHDOG] =========================================');
                     }
                   }
-                  
+
                   // Cancel any existing settle window and increment generation
                   if (state.settleWindowTimeout) {
                     clearTimeout(state.settleWindowTimeout);
@@ -11392,15 +11583,15 @@ Reply to this message if you'd like to update or add any information.
                   }
                   state.settleGeneration++; // Increment generation to invalidate stale callbacks
                   const capturedGeneration = state.settleGeneration;
-                  
+
                   const accumulatedAnswer = state.pendingAnswerSegments.join(' ');
                   const segmentCount = state.pendingAnswerSegments.length;
-                  
+
                   // Determine settle window duration from the stage-specific timing policy
                   const settleWindowMs = getSettleWindowMs(originatingStage);
                   const settleStartedAt = Date.now();
                   const settleDeadlineAt = settleStartedAt + settleWindowMs;
-                  
+
                   console.log('[LOGICAL TURN LIFECYCLE] =========================================');
                   console.log('[LOGICAL TURN LIFECYCLE] event: pending_answer_started');
                   console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
@@ -11412,7 +11603,7 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[LOGICAL TURN LIFECYCLE] segmentCount:', segmentCount);
                   console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
                   console.log('[LOGICAL TURN LIFECYCLE] =========================================');
-                  
+
                   console.log('[ANSWER SETTLE WINDOW] =========================================');
                   console.log('[ANSWER SETTLE WINDOW] callSid:', state.callSid);
                   console.log('[ANSWER SETTLE WINDOW] stage:', originatingStage);
@@ -11426,7 +11617,7 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[ANSWER SETTLE WINDOW] action:', 'settle_started');
                   console.log('[ANSWER SETTLE WINDOW] timestamp:', new Date().toISOString());
                   console.log('[ANSWER SETTLE WINDOW] =========================================');
-                  
+
                   // SETTLE TIMER CREATION DIAGNOSTIC LOGGING
                   const timerCreatedAt = Date.now();
                   const expectedFireAt = timerCreatedAt + settleWindowMs;
@@ -11442,11 +11633,11 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[SETTLE TIMER CREATION] expectedFireAt:', expectedFireAt);
                   console.log('[SETTLE TIMER CREATION] timestamp:', new Date().toISOString());
                   console.log('[SETTLE TIMER CREATION] =========================================');
-                  
+
                   // Start settle window
                   state.settleWindowTimeout = setTimeout(() => {
                     const settleCallbackAt = Date.now();
-                    
+
                     // ANSWER SETTLE TIMING DIAGNOSTIC LOGGING
                     console.log('[ANSWER SETTLE TIMING] =========================================');
                     console.log('[ANSWER SETTLE TIMING] callSid:', state.callSid);
@@ -11463,12 +11654,12 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[ANSWER SETTLE TIMING] msSinceLastCallerActivityAtDeadline:', state.lastInboundAudioAt ? settleDeadlineAt - state.lastInboundAudioAt : 'none');
                     console.log('[ANSWER SETTLE TIMING] action:', 'settle_callback_executed');
                     console.log('[ANSWER SETTLE TIMING] =========================================');
-                    
+
                     // Instrument Additional Details timing at settle window end
                     if (originatingStage === 'ask_request') {
                       state.detailsTiming.settleWindowEnd = settleCallbackAt;
                     }
-                    
+
                     // Authorization guard: prevent stale or mismatched callbacks from finalizing
                     const auth = isSettleCallbackAuthorized(state, originatingStage, originatingTurnId, capturedGeneration);
                     if (!auth.authorized) return;
@@ -11479,7 +11670,7 @@ Reply to this message if you'd like to update or add any information.
                       state.speechStartedStage === originatingStage &&
                       state.speechStartedTurnId === originatingTurnId;
                     const speechOngoingNoStop = state.lastDetectedSpeechAt && (!state.lastSpeechStoppedAt || state.lastSpeechStoppedAt < state.lastDetectedSpeechAt);
-                    
+
                     // GENERATION COMPARISON: Detect if a newer speech generation exists
                     const newerSpeechExists = state.speechGeneration > state.pendingTranscriptionGeneration;
 
@@ -11643,11 +11834,11 @@ Reply to this message if you'd like to update or add any information.
                         console.log('[SETTLE FINALIZATION GATE] action:', 'finalize_now_grace_already_used');
                       }
                     }
-                    
+
                     // Settle window expired - finalize the accumulated answer
                     const finalAnswer = state.pendingAnswerSegments.join(' ');
                     const finalSegmentCount = state.pendingAnswerSegments.length;
-                    
+
                     console.log('[ANSWER SETTLE WINDOW] =========================================');
                     console.log('[ANSWER SETTLE WINDOW] callSid:', state.callSid);
                     console.log('[ANSWER SETTLE WINDOW] stage:', state.pendingAnswerStage);
@@ -11657,7 +11848,7 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[ANSWER SETTLE WINDOW] action:', 'settle_completed_finalize');
                     console.log('[ANSWER SETTLE WINDOW] timestamp:', new Date().toISOString());
                     console.log('[ANSWER SETTLE WINDOW] =========================================');
-                    
+
                     console.log('[LOGICAL TURN LIFECYCLE] =========================================');
                     console.log('[LOGICAL TURN LIFECYCLE] event: finalization_authorized');
                     console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
@@ -11667,10 +11858,10 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[LOGICAL TURN LIFECYCLE] segmentCount:', finalSegmentCount);
                     console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
                     console.log('[LOGICAL TURN LIFECYCLE] =========================================');
-                    
+
                     // Store the accumulated answer
                     const fieldName = storeStageCapture(state.pendingAnswerStage, finalAnswer, 'settle_window_finalization');
-                    
+
                     console.log('[ANSWER FINALIZATION] =========================================');
                     console.log('[ANSWER FINALIZATION] stage:', state.pendingAnswerStage);
                     console.log('[ANSWER FINALIZATION] turnId:', state.pendingAnswerTurnId);
@@ -11679,7 +11870,7 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[ANSWER FINALIZATION] persistedField:', fieldName);
                     console.log('[ANSWER FINALIZATION] timestamp:', new Date().toISOString());
                     console.log('[ANSWER FINALIZATION] =========================================');
-                    
+
                     const finalStage = state.pendingAnswerStage;
                     finalizeSimpleModeSettledAnswer(
                       state,
@@ -11694,7 +11885,7 @@ Reply to this message if you'd like to update or add any information.
                         loadServiceLocationTypeForBusiness: (bid: string) => loadServiceLocationTypeForBusiness(bid),
                       },
                     );
-                    
+
                     console.log('[LOGICAL TURN LIFECYCLE] =========================================');
                     console.log('[LOGICAL TURN LIFECYCLE] event: logical_turn_finalized');
                     console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
@@ -11703,7 +11894,7 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
                     console.log('[LOGICAL TURN LIFECYCLE] =========================================');
                   }, settleWindowMs);
-                  
+
                   // Don't persist or advance immediately - wait for settle window
                   return;
                 }
@@ -11753,15 +11944,15 @@ Reply to this message if you'd like to update or add any information.
             console.log('[TRANSCRIPTION PROCESSING] partialPersistResult:', fieldName ? 'success' : 'failed');
             console.log('[TRANSCRIPTION PROCESSING] Timestamp:', new Date().toISOString());
             console.log('[TRANSCRIPTION PROCESSING] =========================================');
-            
+
             // Track turn ID for targeted reprompt authorization
             // Initialize with current turn ID, will be updated after successful processing
             let authorizedTurnId = turnId;
-            
+
             if (fieldName) {
               clearSilentTimeout('valid_transcript_accepted');
               clearStageTimeout(); // Clear timeout on valid response
-              
+
               // Clear transcription watchdog on valid transcription to prevent stale reprompts
               if (state.transcriptionWatchdogTimeout) {
                 clearTimeout(state.transcriptionWatchdogTimeout);
@@ -11773,16 +11964,16 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
                 console.log('[TRANSCRIPTION WATCHDOG] =========================================');
               }
-              
+
               // Increment turn ID on successful transcription to invalidate stale callbacks
               state.currentTurnId++;
-              
+
               // CRITICAL FIX: Use the NEW turn ID for targeted reprompt authorization
               // The targeted reprompt is a response to the current accepted turn, so it must be
               // authorized for the NEXT listening turn (the incremented turn ID).
               // This prevents the stale callback guard from rejecting legitimate targeted reprompts.
               authorizedTurnId = state.currentTurnId;
-              
+
               console.log('[NAME_ONLY_TRACE] =========================================');
               console.log('[NAME_ONLY_TRACE] event: turn_incremented');
               console.log('[NAME_ONLY_TRACE] currentTurnIdAfter:', state.currentTurnId);
@@ -11791,7 +11982,7 @@ Reply to this message if you'd like to update or add any information.
               console.log('[NAME_ONLY_TRACE] serviceRequestedAfter:', state.intakeData.serviceRequested);
               console.log('[NAME_ONLY_TRACE] Timestamp:', new Date().toISOString());
               console.log('[NAME_ONLY_TRACE] =========================================');
-              
+
               console.log('[ASK_NAME_REASON TURN MERGED] =========================================');
               console.log('[ASK_NAME_REASON TURN MERGED] turnId:', turnId);
               console.log('[ASK_NAME_REASON TURN MERGED] parsedCustomerName:', state.intakeData.customerName);
@@ -11820,7 +12011,7 @@ Reply to this message if you'd like to update or add any information.
             }
             if (fieldName && accepted) {
               logSimple('intake_data_stored', { field: fieldName, value: meaningfulTranscript.substring(0, 50) });
-              
+
               // Log when final callback transcript is received
               if (state.currentStage === 'ask_callback_time') {
                 console.log('[SIMPLE MODE] =========================================');
@@ -11838,7 +12029,7 @@ Reply to this message if you'd like to update or add any information.
               if (originatingStage === 'ask_name_reason') {
                 const hasValidCustomerName = !!state.intakeData.customerName && state.intakeData.customerName.trim() !== '';
                 const hasValidServiceRequested = !!state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim() !== '';
-                
+
                 console.log('[ASK_NAME_REASON STAGE VALIDATION] =========================================');
                 console.log('[ASK_NAME_REASON STAGE VALIDATION] hasValidCustomerName:', hasValidCustomerName);
                 console.log('[ASK_NAME_REASON STAGE VALIDATION] customerName:', state.intakeData.customerName);
@@ -11846,17 +12037,17 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[ASK_NAME_REASON STAGE VALIDATION] serviceRequested:', state.intakeData.serviceRequested);
                 console.log('[ASK_NAME_REASON STAGE VALIDATION] Timestamp:', new Date().toISOString());
                 console.log('[ASK_NAME_REASON STAGE VALIDATION] =========================================');
-                
+
                 if (hasValidCustomerName && hasValidServiceRequested) {
                   // Both fields valid: advance to next applicable stage
                   const previousStage = state.currentStage;
                   const nextStage = getNextIntakeStage(previousStage);
-                  
+
                   // Clear pending answer state to prevent cross-stage leakage
                   clearPendingAnswerState(state, 'ask_name_reason_stage_advancement');
-                  
+
                   state.currentStage = nextStage;
-                  
+
                   console.log('[STAGE TRANSITION] =========================================');
                   console.log('[STAGE TRANSITION] event: stage_advanced');
                   console.log('[STAGE TRANSITION] trigger: user_transcription_accepted');
@@ -11892,7 +12083,7 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[STAGE TRANSITION] action: remaining_on_ask_name_reason_with_targeted_reprompt');
                   console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
                   console.log('[STAGE TRANSITION] =========================================');
-                  
+
                   // Select targeted prompt variant based on which field is missing
                   let promptKeyOverride: string | undefined;
                   if (hasValidCustomerName && !hasValidServiceRequested) {
@@ -11917,7 +12108,7 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[TARGETED REPROMPT SELECTED] Timestamp:', new Date().toISOString());
                     console.log('[TARGETED REPROMPT SELECTED] =========================================');
                   }
-                  
+
                   // Reprompt with targeted prompt variant (logical stage remains ask_name_reason)
                   console.log('[IMMEDIATE TRANSCRIPTION REPROMPT] =========================================');
                   console.log('[IMMEDIATE TRANSCRIPTION REPROMPT] event: immediate_transcription_reprompt');
@@ -11929,7 +12120,7 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[IMMEDIATE TRANSCRIPTION REPROMPT] promptKeyOverridePassedToSendPrompt:', promptKeyOverride || 'none');
                   console.log('[IMMEDIATE TRANSCRIPTION REPROMPT] Timestamp:', new Date().toISOString());
                   console.log('[IMMEDIATE TRANSCRIPTION REPROMPT] =========================================');
-                  
+
                   console.log('[NAME_ONLY_TRACE] =========================================');
                   console.log('[NAME_ONLY_TRACE] event: routing_decision');
                   console.log('[NAME_ONLY_TRACE] selectedRoutingAction:', 'targeted_reprompt');
@@ -11937,7 +12128,7 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[NAME_ONLY_TRACE] promptTurnId:', authorizedTurnId);
                   console.log('[NAME_ONLY_TRACE] Timestamp:', new Date().toISOString());
                   console.log('[NAME_ONLY_TRACE] =========================================');
-                  
+
                   console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
                   console.log('[ASK_NAME_REASON ROUTING DECISION] turnId:', authorizedTurnId);
                   console.log('[ASK_NAME_REASON ROUTING DECISION] action: reprompt_with_targeted_variant');
@@ -11945,21 +12136,21 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[ASK_NAME_REASON ROUTING DECISION] reason:', hasValidCustomerName && !hasValidServiceRequested ? 'customerName_valid_serviceRequested_missing' : !hasValidCustomerName && hasValidServiceRequested ? 'customerName_missing_serviceRequested_valid' : 'both_fields_missing');
                   console.log('[ASK_NAME_REASON ROUTING DECISION] Timestamp:', new Date().toISOString());
                   console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
-                  
+
                   sendPrompt(state.currentStage, promptKeyOverride, 'immediate_post_transcription', authorizedTurnId);
                 }
               } else if (currentIndex < stages.length - 1) {
                 // Normal stage advancement for other stages
                 const previousStage = state.currentStage;
                 const nextStage = getNextIntakeStage(previousStage);
-                
+
                 // Clear pending answer state to prevent cross-stage leakage
                 clearPendingAnswerState(state, 'normal_stage_advancement');
-                
+
                 // Stage advancement invariant guard: prevent nonsensical transitions
                 const isNonsensicalTransition = previousStage === nextStage;
                 const isStaleTransition = originatingStage !== previousStage;
-                
+
                 console.log('[STAGE ADVANCEMENT INVARIANT] =========================================');
                 console.log('[STAGE ADVANCEMENT INVARIANT] expectedStage:', originatingStage);
                 console.log('[STAGE ADVANCEMENT INVARIANT] expectedTurnId:', originatingTurnId);
@@ -11975,7 +12166,7 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[STAGE ADVANCEMENT INVARIANT] reason:', isNonsensicalTransition ? 'nonsensical_same_stage' : isStaleTransition ? 'stale_originating_stage' : 'valid_transition');
                 console.log('[STAGE ADVANCEMENT INVARIANT] timestamp:', new Date().toISOString());
                 console.log('[STAGE ADVANCEMENT INVARIANT] =========================================');
-                
+
                 if (isNonsensicalTransition) {
                   console.log('[STAGE ADVANCEMENT INVARIANT] =========================================');
                   console.log('[STAGE ADVANCEMENT INVARIANT] event: stage_advancement_blocked');
@@ -11988,7 +12179,7 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[STAGE ADVANCEMENT INVARIANT] =========================================');
                   return; // Block nonsensical transition
                 }
-                
+
                 if (isStaleTransition) {
                   console.log('[STAGE ADVANCEMENT INVARIANT] =========================================');
                   console.log('[STAGE ADVANCEMENT INVARIANT] event: stage_advancement_blocked');
@@ -12000,12 +12191,12 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[STAGE ADVANCEMENT INVARIANT] =========================================');
                   return; // Block stale transition
                 }
-                
+
                 state.currentStage = nextStage;
                 state.turnTiming.stageAdvancedAt = Date.now();
                 state.turnTiming.fromStage = previousStage;
                 state.turnTiming.toStage = nextStage;
-                
+
                 console.log('[STAGE TRANSITION] =========================================');
                 console.log('[STAGE TRANSITION] event: stage_advanced');
                 console.log('[STAGE TRANSITION] trigger: user_transcription_accepted');
@@ -12019,7 +12210,7 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[STAGE TRANSITION] timeSinceTtsCompleteMs:', timeSinceTtsCompleteMs);
                 console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
                 console.log('[STAGE TRANSITION] =========================================');
-                
+
                 console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
                 console.log('[ASK_NAME_REASON ROUTING DECISION] turnId:', authorizedTurnId);
                 console.log('[ASK_NAME_REASON ROUTING DECISION] action: advance_to_next_stage');
@@ -12029,17 +12220,17 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[ASK_NAME_REASON ROUTING DECISION] source:', 'normal_stage_advancement');
                 console.log('[ASK_NAME_REASON ROUTING DECISION] Timestamp:', new Date().toISOString());
                 console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
-                
+
                 sendPrompt(state.currentStage, undefined, 'normal_stage_advancement', authorizedTurnId);
               } else if (isFinalStage) {
                 // Final stage (ask_callback_time) completed - advance to complete
                 const previousStage = state.currentStage;
-                
+
                 // Clear pending answer state to prevent cross-stage leakage
                 clearPendingAnswerState(state, 'final_stage_advancement_to_complete');
-                
+
                 state.currentStage = 'complete';
-                
+
                 console.log('[STAGE TRANSITION] =========================================');
                 console.log('[STAGE TRANSITION] event: final_stage_advanced_to_complete');
                 console.log('[STAGE TRANSITION] trigger: user_transcription_accepted');
@@ -12052,7 +12243,7 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[STAGE TRANSITION] timeSinceTtsCompleteMs:', timeSinceTtsCompleteMs);
                 console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
                 console.log('[STAGE TRANSITION] =========================================');
-                
+
                 console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
                 console.log('[ASK_NAME_REASON ROUTING DECISION] turnId:', authorizedTurnId);
                 console.log('[ASK_NAME_REASON ROUTING DECISION] action: advance_to_complete');
@@ -12061,9 +12252,9 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[ASK_NAME_REASON ROUTING DECISION] source:', 'final_stage_completion');
                 console.log('[ASK_NAME_REASON ROUTING DECISION] Timestamp:', new Date().toISOString());
                 console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
-                
+
                 sendPrompt('complete', undefined, 'final_stage_completion', authorizedTurnId);
-                
+
                 // Run completion persistence immediately after setting stage to complete
                 processSimpleModeCompletion().catch(console.error);
               }
@@ -12186,7 +12377,7 @@ Reply to this message if you'd like to update or add any information.
           console.log('[MARK VALIDATION] assistantSpeaking:', state.assistantSpeaking);
           console.log('[MARK VALIDATION] Timestamp:', new Date().toISOString());
           console.log('[MARK VALIDATION] =========================================');
-          
+
           // Validate that the mark is for the current stage
           if (stage !== state.currentStage) {
             console.log('[MARK VALIDATION] =========================================');
@@ -12202,7 +12393,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[MARK VALIDATION] =========================================');
             return; // Ignore stale mark - do not mutate state
           }
-          
+
           console.log('[MARK VALIDATION] =========================================');
           console.log('[MARK VALIDATION] event: mark_accepted_valid');
           console.log('[MARK VALIDATION] callSid:', state.callSid);
@@ -12214,14 +12405,14 @@ Reply to this message if you'd like to update or add any information.
           console.log('[MARK VALIDATION] reason: stage_match');
           console.log('[MARK VALIDATION] Timestamp:', new Date().toISOString());
           console.log('[MARK VALIDATION] =========================================');
-          
+
           console.log('[SIMPLE MODE] =========================================');
           console.log('[SIMPLE MODE] event: prompt_mark_received');
           console.log('[SIMPLE MODE] stage:', stage);
           console.log('[SIMPLE MODE] markName:', message.mark.name);
           console.log('[SIMPLE MODE] action: setting_assistantSpeaking_false');
           console.log('[SIMPLE MODE] =========================================');
-          
+
           // Clear mark watchdog since mark was received
           if (state.markWatchdogTimeout) {
             clearTimeout(state.markWatchdogTimeout);
@@ -12233,11 +12424,11 @@ Reply to this message if you'd like to update or add any information.
             console.log('[MARK WATCHDOG] Timestamp:', new Date().toISOString());
             console.log('[MARK WATCHDOG] =========================================');
           }
-          
+
           // Now that audio has finished playing, allow caller audio
           state.assistantSpeaking = false;
           state.ttsCompleteTime = Date.now();
-          
+
           console.log('[AUDIO TIMING] =========================================');
           console.log('[AUDIO TIMING] event: prompt_playback_completed');
           console.log('[AUDIO TIMING] stage:', stage);
@@ -12252,7 +12443,7 @@ Reply to this message if you'd like to update or add any information.
           console.log('[SIMPLE MODE] =========================================');
           console.log('[SIMPLE MODE] event: final_goodbye_mark_received');
           console.log('[SIMPLE MODE] =========================================');
-          
+
           // Clear fallback timeout since mark was received
           if (state.simpleModeFinalTimeout) {
             clearTimeout(state.simpleModeFinalTimeout);
@@ -12277,7 +12468,7 @@ Reply to this message if you'd like to update or add any information.
         if (message.mark?.name === 'silent_close_audio_complete') {
           console.log('[SILENCE FINAL CLOSE TWILIO MARK RECEIVED]');
           state.silentCloseMarkReceived = true;
-          
+
           // Clear fallback timeout since mark was received
           if (state.silentCloseHangupTimeout) {
             clearTimeout(state.silentCloseHangupTimeout);
@@ -12305,7 +12496,7 @@ Reply to this message if you'd like to update or add any information.
   ws.on('close', async () => {
     // Clear all timers on WebSocket close to prevent memory leaks
     clearSilentTimeout('websocket_closed');
-    
+
     if (state.stageTimeout) {
       clearTimeout(state.stageTimeout);
       state.stageTimeout = null;
@@ -12330,7 +12521,7 @@ Reply to this message if you'd like to update or add any information.
       clearTimeout(state.sessionReadyTimeout);
       state.sessionReadyTimeout = null;
     }
-    
+
     console.log('[SIMPLE MODE] WebSocket closed');
     console.log('[DISCONNECT SOURCE] =========================================');
     console.log('[DISCONNECT SOURCE] source: websocket_close');
@@ -12543,7 +12734,7 @@ wss.on('connection', (ws, req) => {
     let assistantSpeaking = false; // Local variable - must sync with callSessionState.assistantSpeaking
     let finalGoodbyeMarkReceived = false; // Track when final-goodbye-complete mark is received
     let finalGoodbyeMarkSent = false; // Track when final-goodbye-complete mark is sent
-    
+
     // Per-stage prompt guard to prevent duplicate prompts
     const promptedStages = new Set<IntakeStage>();
     const stagePromptAttempts = new Map<IntakeStage, number>(); // Track prompt attempts per stage
@@ -12833,25 +13024,25 @@ wss.on('connection', (ws, req) => {
     // Start AI timeout timer - will trigger voicemail fallback if AI doesn't start within 10 seconds
     aiTimeoutTimer = setTimeout(async () => {
       if (!aiGreetingGenerated && openaiInitAttempted && !openaiInitSucceeded) {
-        console.log('[AI FALLBACK TRIGGERED]', { 
+        console.log('[AI FALLBACK TRIGGERED]', {
           reason: 'AI timeout before greeting generated',
           callSid: callSid || 'unknown',
           businessId: businessId || 'unknown'
         });
         console.log('[AI FALLBACK REASON]', 'AI timeout before greeting generated');
-        
+
         // Trigger voicemail fallback
         const aiSessionTracker = createAISessionTracker(callSid || '', businessId || '');
         await triggerVoicemailFallback(
-          ws, 
-          twilioHandler, 
-          aiSessionTracker, 
-          'AI timeout before greeting generated', 
-          callSid || '', 
-          businessId || '', 
-          callerPhone || '', 
+          ws,
+          twilioHandler,
+          aiSessionTracker,
+          'AI timeout before greeting generated',
+          callSid || '',
+          businessId || '',
+          callerPhone || '',
           businessPhone || '',
-          businessName || '', 
+          businessName || '',
           forwardedFrom || ''
         );
       }
@@ -12863,22 +13054,22 @@ wss.on('connection', (ws, req) => {
       console.log('[COMPLETE FINALIZATION STEP 3] ingestCallData() triggered - WebSocket closed');
       console.log('[COMPLETE FINALIZATION STEP 3] Timestamp:', new Date().toISOString());
       console.log('[COMPLETE FINALIZATION STEP 3] =========================================');
-      
+
       console.log('[INGEST CALL DATA ENTER] =========================================');
       console.log('[INGEST CALL DATA ENTER] Function entry');
       console.log('[INGEST CALL DATA ENTER] Timestamp:', new Date().toISOString());
       console.log('[INGEST CALL DATA ENTER] =========================================');
-      
+
       console.log('[CALL END DETECTED] WebSocket closed, starting post-call persistence');
       console.log('[INGEST FUNCTION ENTRY] path=main-ws-close');
       console.log('[INGEST CALL DATA START] Function called');
-      
+
       const sessionSessionId = (ws as any).sessionId || '';
       const sessionBusinessId = (ws as any).businessId || '';
       const sessionCallSid = (ws as any).callSid || '';
       const sessionCallerPhone = (ws as any).callerPhone || '';
       const sessionForwardedFrom = (ws as any).forwardedFrom || '';
-      
+
       // Check if incomplete finalization owns this call
       if (finalizationInProgressByCallSid.has(sessionCallSid) || incompleteFinalizedCallSids.has(sessionCallSid)) {
         // Verify call is truly incomplete before skipping
@@ -12888,12 +13079,12 @@ wss.on('connection', (ws, req) => {
         const allRequiredFieldsCollected = intakeData ? areAllRequiredFieldsCollected(intakeData, serviceLocationType) : false;
         const finalClosingStarted = closingState?.finalClosingStarted || false;
         const terminalClosingResponseStarted = closingState?.terminalClosingResponseStarted || false;
-        
-        const isCompleteCall = stage === 'complete' || 
-                              allRequiredFieldsCollected || 
-                              finalClosingStarted || 
+
+        const isCompleteCall = stage === 'complete' ||
+                              allRequiredFieldsCollected ||
+                              finalClosingStarted ||
                               terminalClosingResponseStarted;
-        
+
         if (isCompleteCall) {
           console.log('[COMPLETE INGEST ALLOWED DESPITE FINALIZATION FLAGS] =========================================');
           console.log('[COMPLETE INGEST ALLOWED DESPITE FINALIZATION FLAGS] Call is complete, allowing full persistence');
@@ -12903,7 +13094,7 @@ wss.on('connection', (ws, req) => {
           console.log('[COMPLETE INGEST ALLOWED DESPITE FINALIZATION FLAGS] terminalClosingResponseStarted:', terminalClosingResponseStarted);
           console.log('[COMPLETE INGEST ALLOWED DESPITE FINALIZATION FLAGS] Timestamp:', new Date().toISOString());
           console.log('[COMPLETE INGEST ALLOWED DESPITE FINALIZATION FLAGS] =========================================');
-          
+
           // Continue with full persistence - don't skip
         } else {
           console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
@@ -12911,7 +13102,7 @@ wss.on('connection', (ws, req) => {
           console.log('[COMPLETE FINALIZATION STEP 3 FAILED] callSid:', sessionCallSid);
           console.log('[COMPLETE FINALIZATION STEP 3 FAILED] Timestamp:', new Date().toISOString());
           console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
-          
+
           console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] =========================================');
           console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] callSid:', sessionCallSid);
           console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] finalizationInProgress:', finalizationInProgressByCallSid.has(sessionCallSid));
@@ -12927,25 +13118,25 @@ wss.on('connection', (ws, req) => {
           return;
         }
       }
-      
+
       console.log('[AI INGEST START] call ended');
       console.log('[AI INGEST TRANSCRIPT COUNT]', { transcriptLength: transcript.length });
       console.log('[AI INGEST SUPABASE AVAILABLE]', { hasSupabase: !!supabase });
-      console.log('[AI INGEST] session data', { 
-        sessionId: sessionSessionId, 
-        businessId: sessionBusinessId, 
-        callSid: sessionCallSid, 
+      console.log('[AI INGEST] session data', {
+        sessionId: sessionSessionId,
+        businessId: sessionBusinessId,
+        callSid: sessionCallSid,
         callerPhone: sessionCallerPhone,
         forwardedFrom: sessionForwardedFrom
       });
-      
+
       // Check for existing AI call record (idempotency protection)
       if (!supabase) {
         console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
         console.log('[COMPLETE FINALIZATION STEP 3 FAILED] ingestCallData() failed - supabase client not available');
         console.log('[COMPLETE FINALIZATION STEP 3 FAILED] Timestamp:', new Date().toISOString());
         console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
-        
+
         console.log('[AI INGEST FAILED] supabase client not available for ingestion');
         console.log('[INGEST CALL DATA RETURN] =========================================');
         console.log('[INGEST CALL DATA RETURN] reason: supabase client not available');
@@ -12957,21 +13148,21 @@ wss.on('connection', (ws, req) => {
         console.log('[INGEST CALL DATA EXIT] =========================================');
         return;
       }
-      
+
       console.log('[AI INGEST INSERT START] checking for existing record');
       const { data: existingRecord, error: existingError } = await supabase
         .from('ai_call_records')
         .select('id, created_at, lead_id, conversation_id')
         .eq('call_sid', sessionCallSid)
         .single();
-      
+
       if (existingError && existingError.code !== 'PGRST116') {
         console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
         console.log('[COMPLETE FINALIZATION STEP 3 FAILED] ingestCallData() failed - error checking existing record');
         console.log('[COMPLETE FINALIZATION STEP 3 FAILED] Error:', existingError.message);
         console.log('[COMPLETE FINALIZATION STEP 3 FAILED] Timestamp:', new Date().toISOString());
         console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
-        
+
         console.log('[AI INGEST FAILED] error checking existing record', existingError);
         console.log('[INGEST CALL DATA RETURN] =========================================');
         console.log('[INGEST CALL DATA RETURN] reason: error checking existing record');
@@ -12983,14 +13174,14 @@ wss.on('connection', (ws, req) => {
         console.log('[INGEST CALL DATA EXIT] =========================================');
         return;
       }
-      
+
       if (existingRecord) {
-        console.log('[AI INGEST] record already exists, updating instead of creating', { 
-          existingId: existingRecord.id, 
-          createdAt: existingRecord.created_at 
+        console.log('[AI INGEST] record already exists, updating instead of creating', {
+          existingId: existingRecord.id,
+          createdAt: existingRecord.created_at
         });
         // Update existing record instead of creating duplicate
-        
+
         // Guard: Skip extraction if transcript is empty
         if (!transcript || transcript.length === 0) {
           console.log('[AI INGEST] transcript is empty, skipping extraction');
@@ -13009,11 +13200,11 @@ wss.on('connection', (ws, req) => {
           }
           return;
         }
-        
+
         // Convert structured transcript to string format
         const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
         console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
-        
+
         try {
           // Extract structured fields from transcript
           console.log('[AI INGEST] extracting fields...');
@@ -13058,7 +13249,7 @@ Return only JSON, no other text.`;
             console.log('[AI INGEST FAILED] error updating existing record', updateError);
             throw updateError;
           }
-          
+
           console.log('[AI INGEST INSERT SUCCESS] existing record updated successfully');
 
           const existingSummary = (extractedFields && typeof extractedFields.summary === 'string' && extractedFields.summary.length > 0)
@@ -13084,7 +13275,7 @@ Return only JSON, no other text.`;
           return;
         } catch (error) {
           console.log('[AI INGEST FAILED] extraction failed during update, updating with transcript only', error);
-          
+
           // Update with transcript only if extraction failed
           const { error: fallbackUpdateError } = await supabase
             .from('ai_call_records')
@@ -13118,14 +13309,14 @@ Return only JSON, no other text.`;
           return;
         }
       }
-      
+
       // Create new AI call record if no existing record found
       console.log('[AI INGEST INSERT START] no existing record, creating new AI call record');
-      
+
       // Convert structured transcript to string format
       const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
       console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
-      
+
       // Guard: Skip extraction if transcript is empty
       if (!transcript || transcript.length === 0) {
         console.log('[AI INGEST] transcript is empty, skipping extraction');
@@ -13160,14 +13351,14 @@ Return only JSON, no other text.`;
           console.log('[AI INGEST FAILED] empty record creation failed', emptyRecordError);
         } else {
           console.log('[AI INGEST INSERT SUCCESS] empty record created successfully');
-          
+
           console.log('[AI RECORD INSERT SUCCESS - EMPTY PATH]', {
             businessId: sessionBusinessId,
             leadId: null,
             conversationId: null,
             callSid: sessionCallSid
           });
-          
+
           // AI completed call suppression: Do not create follow-up jobs for completed AI intake
           console.log('[AI SERVICE FOLLOWUPS SKIPPED]', {
             reason: 'ai_intake_completed',
@@ -13183,13 +13374,13 @@ Return only JSON, no other text.`;
             businessId: sessionBusinessId,
             reason: 'AI intake completed - follow-up creation suppressed'
           });
-          
+
           // Create notification directly using Supabase (empty transcript path)
-          console.log('[NOTIFICATION DIRECT INSERT START - PATH-B]', { 
-            businessId: sessionBusinessId, 
+          console.log('[NOTIFICATION DIRECT INSERT START - PATH-B]', {
+            businessId: sessionBusinessId,
             leadId: null
           });
-          
+
           try {
             const { error: notificationError } = await supabase
               .from('notifications')
@@ -13203,11 +13394,11 @@ Return only JSON, no other text.`;
                 read: false,
                 created_at: new Date().toISOString()
               });
-            
+
             if (notificationError) {
               console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-B]', notificationError);
             } else {
-              console.log('[NOTIFICATION DIRECT INSERT SUCCESS - PATH-B]', { 
+              console.log('[NOTIFICATION DIRECT INSERT SUCCESS - PATH-B]', {
                 businessId: sessionBusinessId
               });
             }
@@ -13222,7 +13413,7 @@ Return only JSON, no other text.`;
         console.log('[INGEST CALL DATA EXIT] =========================================');
         return;
       }
-      
+
       try {
         // Extract structured fields from transcript
         console.log('[AI INGEST] extracting fields...');
@@ -13262,7 +13453,7 @@ Return only JSON, no other text.`;
 
         const extractionData = await extractionResponse.json();
         console.log('[AI INGEST EXTRACTION RAW]', (extractionData as any).choices[0].message.content);
-        
+
         let extractedFields;
         try {
           extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
@@ -13287,9 +13478,9 @@ Return only JSON, no other text.`;
         console.log('[COMPLETE FINALIZATION STEP 4] Creating lead record');
         console.log('[COMPLETE FINALIZATION STEP 4] Timestamp:', new Date().toISOString());
         console.log('[COMPLETE FINALIZATION STEP 4] =========================================');
-        
+
         console.log('[LEAD CREATE START] Starting lead creation');
-        console.log('[AI LEAD LOOKUP START]', { 
+        console.log('[AI LEAD LOOKUP START]', {
           businessId: sessionBusinessId,
           callerPhone: sessionCallerPhone,
           operation: 'lead upsert for ai_call_records linking'
@@ -13298,8 +13489,8 @@ Return only JSON, no other text.`;
         console.log('[CUSTOMER NAME BEFORE LEAD UPDATE] extractedFields.callerName:', extractedFields.callerName);
         console.log('[CUSTOMER NAME BEFORE LEAD UPDATE] Timestamp:', new Date().toISOString());
         console.log('[CUSTOMER NAME BEFORE LEAD UPDATE] =========================================');
-        
-        const canonicalExtractedInfo = buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone, (ws as any).callSessionState?.serviceLocationType);
+
+        const canonicalExtractedInfo = await buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone, (ws as any).callSessionState?.serviceLocationType, sessionCallSid);
 
         // Prefer the lead/conversation IDs pre-created by the voice route.
         const baselineLeadId = (ws as any).leadId || null;
@@ -13399,15 +13590,15 @@ Return only JSON, no other text.`;
         }
 
         if (!conversation) {
-          console.log('[AI CONVERSATION LOOKUP START]', { 
+          console.log('[AI CONVERSATION LOOKUP START]', {
             businessId: sessionBusinessId,
             leadId: lead.id,
             operation: 'conversation upsert for ai_call_records linking'
           });
-          
+
           // Use the race-recovery helper function
           conversation = await getOrCreateConversation(supabase, lead.id, sessionBusinessId, 'open');
-          
+
           if (!conversation) {
             console.log('[COMPLETE FINALIZATION STEP 5 FAILED] =========================================');
             console.log('[COMPLETE FINALIZATION STEP 5 FAILED] Conversation creation failed');
@@ -13431,18 +13622,18 @@ Return only JSON, no other text.`;
         console.log('[COMPLETE FINALIZATION STEP 6] Inserting ai_call_records');
         console.log('[COMPLETE FINALIZATION STEP 6] Timestamp:', new Date().toISOString());
         console.log('[COMPLETE FINALIZATION STEP 6] =========================================');
-        
+
         console.log('[AI SAVE START] creating new AI call record...');
-        
+
         // Normalize extracted field names to session intake field names
         const normalizedFields = normalizeExtractedFields(extractedFields);
-        
+
         console.log('[CUSTOMER NAME BEFORE PERSISTENCE] =========================================');
         console.log('[CUSTOMER NAME BEFORE PERSISTENCE] extractedFields.callerName:', extractedFields.callerName);
         console.log('[CUSTOMER NAME BEFORE PERSISTENCE] normalizedFields.customerName:', normalizedFields.customerName);
         console.log('[CUSTOMER NAME BEFORE PERSISTENCE] Timestamp:', new Date().toISOString());
         console.log('[CUSTOMER NAME BEFORE PERSISTENCE] =========================================');
-        
+
         // Determine outcome based on whether all required fields are present
         // Location is required only for onsite businesses
         const serviceLocationTypeRaw = (ws as any).business?.service_location_type || (typeof (ws as any).service_location_type !== 'undefined' ? (ws as any).service_location_type : null);
@@ -13460,7 +13651,7 @@ Return only JSON, no other text.`;
         const locationSatisfied = serviceLocationMode === 'onsite' ? hasServiceAddress : true;
         // Note: issueDescription is canonically resolved into serviceRequested by buildCanonicalExtractedInfo
         const intakeComplete = hasCustomerName && hasServiceRequested && locationSatisfied && hasDesiredCompletionTime && hasCallbackTime;
-        
+
         const hasUserSpeech = transcript.some((entry: any) => entry.role === 'user' && entry.text && entry.text.trim().length > 0);
         const hasUsefulFields = !!(
           normalizedFields.customerName ||
@@ -13480,8 +13671,8 @@ Return only JSON, no other text.`;
         } else {
           outcome = 'early_hangup';
         }
-        
-        const canonicalCallRecordInfo = buildCanonicalExtractedInfo(normalizedFields, sessionCallerPhone, serviceLocationMode);
+
+        const canonicalCallRecordInfo = await buildCanonicalExtractedInfo(normalizedFields, sessionCallerPhone, serviceLocationMode, sessionCallSid);
         const mainInsertPayload = {
             business_id: sessionBusinessId,
             lead_id: lead.id,
@@ -13564,15 +13755,15 @@ Return only JSON, no other text.`;
           console.log('[COMPLETE FINALIZATION STEP 6 FAILED] Error:', newRecordError.message);
           console.log('[COMPLETE FINALIZATION STEP 6 FAILED] Timestamp:', new Date().toISOString());
           console.log('[COMPLETE FINALIZATION STEP 6 FAILED] =========================================');
-          
-          console.log('[AI SAVE RESULT]', { 
-            success: false, 
+
+          console.log('[AI SAVE RESULT]', {
+            success: false,
             error: newRecordError.message,
             operation: 'ai_call_records insert'
           });
           throw newRecordError;
         }
-        
+
         console.log('[AI CALL RECORD INSERT SUCCESS] AI call record created successfully');
         console.log('[AI SAVE RESULT]', {
           success: true,
@@ -13620,7 +13811,7 @@ Return only JSON, no other text.`;
         console.log('[COMPLETE FINALIZATION STEP 7] Creating follow-up jobs');
         console.log('[COMPLETE FINALIZATION STEP 7] Timestamp:', new Date().toISOString());
         console.log('[COMPLETE FINALIZATION STEP 7] =========================================');
-        
+
         console.log('[ACTIVE PATH FOLLOWUP START]', {
           businessId: sessionBusinessId,
           leadId: lead.id,
@@ -13649,15 +13840,15 @@ Return only JSON, no other text.`;
             secretFirstChar: internalApiSecret?.[0],
             secretLastChar: internalApiSecret?.[internalApiSecret.length - 1]
           });
-          
+
           const headers: Record<string, string> = {
             'Content-Type': 'application/json',
           };
-          
+
           if (internalApiSecret) {
             headers['Authorization'] = `Bearer ${internalApiSecret}`;
           }
-          
+
           const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
             method: 'POST',
             headers,
@@ -13668,15 +13859,15 @@ Return only JSON, no other text.`;
               businessName: extractedFields.callerName || null
             })
           });
-          
+
           console.log('[FOLLOWUP DEBUG API RESPONSE - ACTIVE]', response.status);
-          
+
           if (response.ok) {
             const result = await response.json() as { success: boolean; jobCount: number };
-            console.log('[FOLLOWUP DEBUG SUCCESS - ACTIVE]', { 
-              businessId: sessionBusinessId, 
+            console.log('[FOLLOWUP DEBUG SUCCESS - ACTIVE]', {
+              businessId: sessionBusinessId,
               leadId: lead.id,
-              jobCount: result.jobCount 
+              jobCount: result.jobCount
             });
             console.log('[COMPLETE FINALIZATION STEP 7 SUCCESS] =========================================');
             console.log('[COMPLETE FINALIZATION STEP 7 SUCCESS] Follow-up jobs created successfully');
@@ -13684,8 +13875,8 @@ Return only JSON, no other text.`;
             console.log('[COMPLETE FINALIZATION STEP 7 SUCCESS] Timestamp:', new Date().toISOString());
             console.log('[COMPLETE FINALIZATION STEP 7 SUCCESS] =========================================');
           } else {
-            console.error('[FOLLOWUP DEBUG ERROR - ACTIVE]', { 
-              businessId: sessionBusinessId, 
+            console.error('[FOLLOWUP DEBUG ERROR - ACTIVE]', {
+              businessId: sessionBusinessId,
               leadId: lead.id,
               status: response.status,
               statusText: response.statusText
@@ -13697,8 +13888,8 @@ Return only JSON, no other text.`;
             console.log('[COMPLETE FINALIZATION STEP 7 FAILED] =========================================');
           }
         } catch (followUpError) {
-          console.error('[FOLLOWUP DEBUG ERROR - ACTIVE]', { 
-            businessId: sessionBusinessId, 
+          console.error('[FOLLOWUP DEBUG ERROR - ACTIVE]', {
+            businessId: sessionBusinessId,
             leadId: lead.id,
             error: followUpError
           });
@@ -13709,22 +13900,22 @@ Return only JSON, no other text.`;
           console.log('[COMPLETE FINALIZATION STEP 7 FAILED] =========================================');
         }
         console.log('[FOLLOWUP DEBUG COMPLETE - ACTIVE] Follow-up API call finished');
-        
+
         // Create notification directly using Supabase
         console.log('[COMPLETE FINALIZATION STEP 8] =========================================');
         console.log('[COMPLETE FINALIZATION STEP 8] Creating notification record');
         console.log('[COMPLETE FINALIZATION STEP 8] Timestamp:', new Date().toISOString());
         console.log('[COMPLETE FINALIZATION STEP 8] =========================================');
-        
-        console.log('[NOTIFICATION DIRECT INSERT START]', { 
-          businessId: sessionBusinessId, 
+
+        console.log('[NOTIFICATION DIRECT INSERT START]', {
+          businessId: sessionBusinessId,
           leadId: lead.id
         });
-        
+
         try {
           const callerName = extractedFields.callerName || null;
           const serviceRequested = extractedFields.reasonForCalling || null;
-          
+
           const notificationPayload = {
             business_id: sessionBusinessId,
             type: 'new_lead', // Valid type from schema
@@ -13742,19 +13933,19 @@ Return only JSON, no other text.`;
             action_url: `/dashboard/leads/${lead.id}`,
             action_text: 'View Lead'
           };
-          
-          console.log('[ACTIVE PATH NOTIFICATION PAYLOAD]', { 
+
+          console.log('[ACTIVE PATH NOTIFICATION PAYLOAD]', {
             keys: Object.keys(notificationPayload),
-            businessId: sessionBusinessId, 
+            businessId: sessionBusinessId,
             leadId: lead.id
           });
-          
+
           const { error: notificationError } = await supabase
             .from('notifications')
             .insert(notificationPayload);
-          
+
           if (notificationError) {
-            console.log('[NOTIFICATION DIRECT INSERT ERROR]', { 
+            console.log('[NOTIFICATION DIRECT INSERT ERROR]', {
               error: notificationError,
               code: notificationError.code,
               message: notificationError.message,
@@ -13766,8 +13957,8 @@ Return only JSON, no other text.`;
             console.log('[COMPLETE FINALIZATION STEP 8 FAILED] Timestamp:', new Date().toISOString());
             console.log('[COMPLETE FINALIZATION STEP 8 FAILED] =========================================');
           } else {
-            console.log('[NOTIFICATION DIRECT INSERT SUCCESS]', { 
-              businessId: sessionBusinessId, 
+            console.log('[NOTIFICATION DIRECT INSERT SUCCESS]', {
+              businessId: sessionBusinessId,
               leadId: lead.id
             });
             console.log('[COMPLETE FINALIZATION STEP 8 SUCCESS] =========================================');
@@ -13838,14 +14029,14 @@ Return only JSON, no other text.`;
 
       } catch (error) {
         console.log('[AI INGEST FAILED] extraction failed during creation, creating with transcript only', error);
-        
+
         // Create lead and conversation BEFORE inserting ai_call_records (fallback path)
-        console.log('[AI LEAD LOOKUP START]', { 
+        console.log('[AI LEAD LOOKUP START]', {
           businessId: sessionBusinessId,
           callerPhone: sessionCallerPhone,
           operation: 'lead upsert for fallback ai_call_records linking'
         });
-        const fallbackCanonicalInfo = buildCanonicalExtractedInfo({ customerPhone: sessionCallerPhone }, sessionCallerPhone || '', (ws as any).callSessionState?.serviceLocationType);
+        const fallbackCanonicalInfo = await buildCanonicalExtractedInfo({ customerPhone: sessionCallerPhone }, sessionCallerPhone || '', (ws as any).callSessionState?.serviceLocationType, sessionCallSid);
         const { data: fallbackLead, error: fallbackLeadError } = await supabase
           .from('leads')
           .upsert({
@@ -13863,7 +14054,7 @@ Return only JSON, no other text.`;
           .select()
           .single();
 
-        console.log('[AI LEAD LOOKUP RESULT]', { 
+        console.log('[AI LEAD LOOKUP RESULT]', {
           leadId: fallbackLead?.id || 'null',
           leadError: fallbackLeadError?.message || 'none',
           callerPhone: sessionCallerPhone
@@ -13885,7 +14076,7 @@ Return only JSON, no other text.`;
           console.log('[AI LEAD UPSERT RESULT]', { leadId: fallbackLead.id, businessId: sessionBusinessId, callerPhone: sessionCallerPhone });
 
           // Create or update conversation
-          console.log('[AI CONVERSATION LOOKUP START]', { 
+          console.log('[AI CONVERSATION LOOKUP START]', {
             businessId: sessionBusinessId,
             leadId: fallbackLead.id,
             operation: 'conversation upsert for fallback ai_call_records linking'
@@ -13918,7 +14109,7 @@ Return only JSON, no other text.`;
             fallbackConversationError = result.error;
           }
 
-          console.log('[AI CONVERSATION LOOKUP RESULT]', { 
+          console.log('[AI CONVERSATION LOOKUP RESULT]', {
             conversationId: fallbackConversation?.id || 'null',
             conversationError: fallbackConversationError?.message || 'none',
             leadId: fallbackLead.id
@@ -13980,14 +14171,14 @@ Return only JSON, no other text.`;
             extracted_info: null,
             summary: 'AI call completed (extraction failed)'
           };
-          
+
           console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackInsertPayload);
-          
+
           let recordInsertSuccess = true;
           const { error: fallbackRecordError } = await supabase
             .from('ai_call_records')
             .insert(fallbackInsertPayload);
-          
+
           if (fallbackRecordError) {
             console.log('[AI CALL RECORD SAVE FAILED]', fallbackRecordError);
             console.log('[AI INCOMPLETE RECORD INSERT FAILED - CONTINUING] =========================================');
@@ -14076,15 +14267,15 @@ Return only JSON, no other text.`;
             console.log('[MAIN APP API CONFIG] sourceEnvUsed:', process.env.MAIN_APP_URL ? 'MAIN_APP_URL' : process.env.NEXT_PUBLIC_APP_URL ? 'NEXT_PUBLIC_APP_URL' : process.env.APP_BASE_URL ? 'APP_BASE_URL' : 'fallback');
             console.log('[MAIN APP API CONFIG] Timestamp:', new Date().toISOString());
             console.log('[MAIN APP API CONFIG] =========================================');
-            
+
             const headers: Record<string, string> = {
               'Content-Type': 'application/json',
             };
-            
+
             if (internalApiSecret) {
               headers['Authorization'] = `Bearer ${internalApiSecret}`;
             }
-            
+
             const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
               method: 'POST',
               headers,
@@ -14095,7 +14286,7 @@ Return only JSON, no other text.`;
                 businessName: null
               })
             });
-            
+
             if (response.ok) {
               const result = await response.json() as { success: boolean; jobCount: number; jobs?: any[] };
               console.log('[INCOMPLETE FOLLOWUP CREATE RESULT] =========================================');
@@ -14129,7 +14320,7 @@ Return only JSON, no other text.`;
           console.log('[INCOMPLETE FOLLOWUP STEP 4 SKIPPED] Timestamp:', new Date().toISOString());
           console.log('[INCOMPLETE FOLLOWUP STEP 4 SKIPPED] =========================================');
         }
-        
+
         console.log('[INGEST CALL DATA EXIT] =========================================');
         console.log('[INGEST CALL DATA EXIT] Function exit');
         console.log('[INGEST CALL DATA EXIT] Timestamp:', new Date().toISOString());
@@ -14174,7 +14365,7 @@ Return only JSON, no other text.`;
         // Log parsed frame (non-media only, or first media, or every 100th media)
         if (message.event === 'media') {
           // Safety fallback: ignore audio during closing - check ALL terminal state flags
-          const terminalStateActive = 
+          const terminalStateActive =
             closingState.intakeTerminalComplete ||
             closingState.terminalClosingResponseStarted ||
             closingState.finalClosingStarted ||
@@ -14195,20 +14386,20 @@ Return only JSON, no other text.`;
             // Silently drop caller audio in terminal mode
             return;
           }
-          
+
           mediaPacketCount++;
           const payloadSize = message.media?.payload?.length || 0;
-          
+
           if (!audioReceived) {
             audioReceived = true;
             console.log('[OPENAI TIMING]', Date.now(), 'first_twilio_media_packet');
-            log(LogLevel.INFO, '[TWILIO AUDIO RECEIVED]', { 
-              packetCount: mediaPacketCount, 
+            log(LogLevel.INFO, '[TWILIO AUDIO RECEIVED]', {
+              packetCount: mediaPacketCount,
               payloadSize: payloadSize,
-              timestamp: new Date().toISOString() 
+              timestamp: new Date().toISOString()
             });
           }
-          
+
           if (!firstMediaPacketLogged) {
             log(LogLevel.INFO, '[TWILIO MEDIA PACKET COUNT]', { count: mediaPacketCount });
             log(LogLevel.INFO, '[TWILIO PAYLOAD SIZE]', { size: payloadSize });
@@ -14249,11 +14440,11 @@ Return only JSON, no other text.`;
           // Extract call forwarding information from Twilio start event
           const callInfo = message.start || {};
           const customParams = callInfo.customParameters || {};
-          
+
           // Log raw call info for debugging
           console.log('[TWILIO START DEBUG] callInfo:', JSON.stringify(callInfo, null, 2));
           console.log('[TWILIO START DEBUG] customParameters:', JSON.stringify(customParams, null, 2));
-          
+
           // Create normalized callContext immediately
           const params = customParams || {};
           const callContext: CallContext = {
@@ -14295,14 +14486,14 @@ Return only JSON, no other text.`;
           console.log('[DUPLICATE WEBHOOK CHECK] callSid:', callSid);
           console.log('[DUPLICATE WEBHOOK CHECK] Timestamp:', new Date().toISOString());
           console.log('[DUPLICATE WEBHOOK CHECK] =========================================');
-          
+
           if (supabase) {
             const { data: existingRecord, error: recordCheckError } = await supabase
               .from('ai_call_records')
               .select('id, outcome')
               .eq('call_sid', callSid)
               .maybeSingle();
-            
+
             if (existingRecord) {
               console.log('[DUPLICATE WEBHOOK DETECTED] =========================================');
               console.log('[DUPLICATE WEBHOOK DETECTED] ai_call_record already exists for this call');
@@ -14312,17 +14503,17 @@ Return only JSON, no other text.`;
               console.log('[DUPLICATE WEBHOOK DETECTED] Timestamp:', new Date().toISOString());
               console.log('[DUPLICATE WEBHOOK DETECTED] Skipping processing to prevent duplicate lead creation');
               console.log('[DUPLICATE WEBHOOK DETECTED] =========================================');
-              
+
               // Close WebSocket to prevent duplicate processing
               ws.close(1008, 'Duplicate webhook - call already processed');
               return;
             }
-            
+
             if (recordCheckError && recordCheckError.code !== 'PGRST116') {
               console.log('[DUPLICATE WEBHOOK CHECK ERROR]', recordCheckError);
             }
           }
-          
+
           console.log('[DUPLICATE WEBHOOK CHECK PASSED] No existing record found, proceeding with call processing');
 
           // Store callContext on ws for use throughout the call
@@ -14350,7 +14541,7 @@ Return only JSON, no other text.`;
             source: 'customParameters',
             timestamp: new Date().toISOString()
           });
-          
+
           // Update local variables for backward compatibility
           sessionId = callContext.sessionId;
           businessId = callContext.businessId;
@@ -14368,7 +14559,7 @@ Return only JSON, no other text.`;
           console.log('[AI VOICE ACTIVE CODE CHECK] callSid:', callSid);
           console.log('[AI VOICE ACTIVE CODE CHECK] Timestamp:', new Date().toISOString());
           console.log('[AI VOICE ACTIVE CODE CHECK] =========================================');
-          
+
           console.log('[CALL CONTEXT USED FOR BUSINESS LOOKUP]', { businessId: callContext.businessId });
 
           // Fetch business data if businessId is available
@@ -14440,14 +14631,14 @@ Return only JSON, no other text.`;
               }
             } catch (err) {
               console.log('[BUSINESS LOOKUP ERROR]', err);
-              console.log('[BUSINESS LOOKUP FAILED]', { 
-                hasSupabase: !!supabase, 
-                error: err instanceof Error ? err.message : 'Unknown error' 
+              console.log('[BUSINESS LOOKUP FAILED]', {
+                hasSupabase: !!supabase,
+                error: err instanceof Error ? err.message : 'Unknown error'
               });
             }
           } else {
-            console.log('[BUSINESS LOOKUP FAILED]', { 
-              hasSupabase: !!supabase, 
+            console.log('[BUSINESS LOOKUP FAILED]', {
+              hasSupabase: !!supabase,
               businessId: businessId || 'missing',
               error: !businessId ? 'Missing businessId' : 'Missing supabase client'
             });
@@ -14478,7 +14669,7 @@ Return only JSON, no other text.`;
           // Determine intake template based on business type (with safe fallback)
           const selectedIntakeTemplate = getIntakeTemplateForBusinessTypeSafe(businessType);
           (ws as any).intakeTemplate = selectedIntakeTemplate;
-          
+
           console.log('[AI INTAKE TEMPLATE] =========================================');
           console.log('[AI INTAKE TEMPLATE] business_type:', businessType);
           console.log('[AI INTAKE TEMPLATE] selected_template:', selectedIntakeTemplate);
@@ -14487,11 +14678,11 @@ Return only JSON, no other text.`;
 
           // Instructions are now handled via session.update - disable old system
           console.log('[AI] using session.update instructions - old system disabled');
-          
+
           // Deployment verification and version logging
           console.log('[AI INSTRUCTIONS VERSION] confirmation-flow-v2');
           console.log('[AI CONFIRMATION FLOW] ENABLED - requires confirmation before final goodbye');
-          
+
           try {
             const { execSync } = require('child_process');
             const gitCommit = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
@@ -14499,7 +14690,7 @@ Return only JSON, no other text.`;
           } catch (error) {
             console.log('[AI GIT COMMIT] unavailable - running in container');
           }
-          
+
           // Store empty placeholder to avoid undefined errors
           (ws as any).aiInstructions = '';
 
@@ -14532,11 +14723,11 @@ Return only JSON, no other text.`;
             console.log('[MISSING_PARAMS_ERROR] callSid:', callSid || 'none');
             console.log('[MISSING_PARAMS_ERROR] Timestamp:', new Date().toISOString());
             console.log('[MISSING_PARAMS_ERROR] =========================================');
-            
+
             log(LogLevel.WARN, '[AI POC] initialization skipped because: missing required parameters', { sessionId, callSid });
             openaiInitAttempted = false;
             openaiInitFailed = true;
-            
+
             // Trigger voicemail fallback for missing parameters
             const aiSessionTrackerFallback = createAISessionTracker(callSid || '', businessId || '');
             await triggerVoicemailFallback(
@@ -14562,17 +14753,17 @@ Return only JSON, no other text.`;
             processEnvKeyLength: process.env.OPENAI_API_KEY?.length || 0,
             timestamp: new Date().toISOString()
           });
-          
+
           if (!OPENAI_API_KEY) {
             console.log('[OPENAI_KEY_ERROR] =========================================');
             console.log('[OPENAI_KEY_ERROR] event: openai_api_key_missing');
             console.log('[OPENAI_KEY_ERROR] Timestamp:', new Date().toISOString());
             console.log('[OPENAI_KEY_ERROR] =========================================');
-            
+
             log(LogLevel.ERROR, '[AI POC] initialization skipped because: OPENAI_API_KEY not set');
             openaiInitAttempted = false;
             openaiInitFailed = true;
-            
+
             // Trigger voicemail fallback for missing API key
             const aiSessionTrackerFallback = createAISessionTracker(callSid || '', businessId || '');
             await triggerVoicemailFallback(
@@ -14606,7 +14797,7 @@ Return only JSON, no other text.`;
             console.log('[STREAM_CLONE_COUNT] Source: initializeOpenAI at line 3079');
             console.log('[STREAM CLONED] WebSocket package:', 'ws');
             console.log('[STREAM CLONED] API key exists:', !!OPENAI_API_KEY);
-            
+
             const wsUrl = createOpenAIRealtimeUrl();
     console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
             console.log('[STREAM CLONED] creating websocket to:', wsUrl);
@@ -14615,17 +14806,17 @@ Return only JSON, no other text.`;
             console.log('[OPENAI WEBSOCKET CLEANUP] businessId:', businessId);
             console.log('[OPENAI CONNECT START]');
             console.log('[OPENAI KEY CHECK]', OPENAI_API_KEY?.slice(-6));
-            
+
             // Phase 4: OpenAI Connection Retry Logic
             let retryAttempt = 0;
             const maxRetries = 1;
-            
+
             function connectToOpenAI(): Promise<WebSocket> {
               return new Promise((resolve, reject) => {
                 retryAttempt++;
                 console.log(`[OPENAI CONNECT ATTEMPT ${retryAttempt}]`);
                 updateAISessionState(aiSessionTracker, 'AI_CONNECTING', `Attempt ${retryAttempt}`);
-                
+
                 console.log('[LEGACY WS CREATE] URL:', wsUrl);
                 console.log('[LEGACY WS CREATE] model extracted:', new URL(wsUrl).searchParams.get('model'));
                 const ws = new WebSocket(wsUrl, {
@@ -14633,14 +14824,14 @@ Return only JSON, no other text.`;
                     Authorization: `Bearer ${OPENAI_API_KEY}`,
                   },
                 });
-                
+
                 const connectTimeout = setTimeout(() => {
                   if (ws.readyState === WebSocket.CONNECTING) {
                     ws.terminate();
                     reject(new Error('Connection timeout'));
                   }
                 }, 5000);
-                
+
                 ws.on('open', () => {
                   clearTimeout(connectTimeout);
                   console.log('[OPENAI CONNECT SUCCESS]');
@@ -14648,7 +14839,7 @@ Return only JSON, no other text.`;
                   updateAISessionState(aiSessionTracker, 'AI_CONNECTED', `Connected on attempt ${retryAttempt}`);
                   resolve(ws);
                 });
-                
+
                 ws.on('error', (error) => {
                   clearTimeout(connectTimeout);
                   console.log('[OPENAI CONNECT ERROR]', error);
@@ -14658,7 +14849,7 @@ Return only JSON, no other text.`;
                 });
               });
             }
-            
+
             // Attempt connection with retry logic
             let openAiWs: WebSocket;
             try {
@@ -14671,15 +14862,15 @@ Return only JSON, no other text.`;
                 } catch (retryError) {
                   console.log('[OPENAI RETRY FAILED]', retryError);
                   await triggerVoicemailFallback(
-                    ws, 
-                    twilioHandler, 
-                    aiSessionTracker, 
-                    `OpenAI connection failed after ${retryAttempt} attempts`, 
-                    callSid || '', 
-                    businessId || '', 
-                    callerPhone || '', 
+                    ws,
+                    twilioHandler,
+                    aiSessionTracker,
+                    `OpenAI connection failed after ${retryAttempt} attempts`,
+                    callSid || '',
+                    businessId || '',
+                    callerPhone || '',
                     businessPhone || '',
-                    businessName || '', 
+                    businessName || '',
                     forwardedFrom || ''
                   );
                   return;
@@ -14687,53 +14878,53 @@ Return only JSON, no other text.`;
               } else {
                 console.log('[OPENAI CONNECT FAILED] No retries remaining');
                 await triggerVoicemailFallback(
-                  ws, 
-                  twilioHandler, 
-                  aiSessionTracker, 
-                  'OpenAI connection failed - no retries remaining', 
-                  callSid || '', 
-                  businessId || '', 
-                  callerPhone || '', 
+                  ws,
+                  twilioHandler,
+                  aiSessionTracker,
+                  'OpenAI connection failed - no retries remaining',
+                  callSid || '',
+                  businessId || '',
+                  callerPhone || '',
                   businessPhone || '',
-                  businessName || '', 
+                  businessName || '',
                   forwardedFrom || ''
                 );
                 return;
               }
             }
-            
+
             console.log('[STREAM CLONED] websocket created, readyState:', openAiWs.readyState);
             console.log('[OPENAI STATE BEFORE LISTENER] readyState:', openAiWs.readyState, 'OPEN:', WebSocket.OPEN);
-            
+
             // Set websocket on Twilio handler so media handler can access it
             (twilioHandler as any).openAiWs = openAiWs;
             (ws as any).openAiWs = openAiWs;
             console.log('[STREAM CLONED] websocket set on Twilio handler');
-            
+
             // Startup gate to prevent media flood during initialization
             let streamReady = false;
             const audioBuffer: Buffer[] = [];
-            
+
             // Phase 2: Dead Air Protection (3-second timeout)
             const deadAirTimeout = setTimeout(async () => {
               console.log('[DEAD AIR DEBUG]', { audioReceived, mediaPacketCount, openAiReady: !!openAiWs, sessionReady: streamReady });
               if (!audioReceived) {
                 console.log('[DEAD AIR DETECTED] No audio received within 3 seconds');
                 await triggerVoicemailFallback(
-                  ws, 
-                  twilioHandler, 
-                  aiSessionTracker, 
-                  'No audio received within 3 seconds', 
-                  callSid || '', 
-                  businessId || '', 
-                  callerPhone || '', 
+                  ws,
+                  twilioHandler,
+                  aiSessionTracker,
+                  'No audio received within 3 seconds',
+                  callSid || '',
+                  businessId || '',
+                  callerPhone || '',
                   businessPhone || '',
-                  businessName || '', 
+                  businessName || '',
                   forwardedFrom || ''
                 );
               }
             }, 3000);
-            
+
             // Phase 3: Session Ready Timeout (5-second timeout)
             let sessionReady = false;
             const sessionReadyTimeout = setTimeout(async () => {
@@ -14747,20 +14938,20 @@ Return only JSON, no other text.`;
                 });
                 console.log('[SESSION READY TIMEOUT] Session not ready within 5 seconds');
                 await triggerVoicemailFallback(
-                  ws, 
-                  twilioHandler, 
-                  aiSessionTracker, 
-                  'Session not ready within 5 seconds', 
-                  callSid || '', 
-                  businessId || '', 
-                  callerPhone || '', 
+                  ws,
+                  twilioHandler,
+                  aiSessionTracker,
+                  'Session not ready within 5 seconds',
+                  callSid || '',
+                  businessId || '',
+                  callerPhone || '',
                   businessPhone || '',
-                  businessName || '', 
+                  businessName || '',
                   forwardedFrom || ''
                 );
               }
             }, 5000);
-            
+
             // Additional tracking variables
             let opened = false;
             let greetingSent = false;
@@ -14768,10 +14959,10 @@ Return only JSON, no other text.`;
             let sessionCreated = false;
             let sessionCreatedReceived = false;
             let sessionUpdatedReceived = false;
-            
+
             // Attach listeners - using minimal endpoint pattern
             console.log('[OPENAI STATE AFTER LISTENER] readyState:', openAiWs.readyState, 'OPEN:', WebSocket.OPEN);
-            
+
             // Define sendSessionUpdate helper function with dynamic silence_duration_ms
             const sendSessionUpdate = (silenceDurationMs: number = 1800) => {
               console.log('[OPENAI SEND PATH ENTERED]');
@@ -14779,7 +14970,7 @@ Return only JSON, no other text.`;
               twilioHandler.setOpenAiReady();
               console.log('[OPENAI READY] openAiReady set to true');
               console.log('[SILENCE DURATION] Setting silence_duration_ms to:', silenceDurationMs);
-              
+
               const sessionUpdatePayload = {
                 type: "session.update",
                 session: {
@@ -14919,7 +15110,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 voice: audioConfig.output?.voice || 'not_set',
                 model: OPENAI_REALTIME_MODEL
               });
-              
+
               // Verify audio format matches Twilio (audio/pcmu / mulaw 8khz)
               console.log('[OPENAI AUDIO FORMAT VERIFICATION]', {
                 inputFormat: inputFormat,
@@ -14941,11 +15132,11 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[OPENAI TIMING]', Date.now(), 'session.update sent');
                 openAiWs.send(rawSessionUpdate);
               }
-              
+
               // Greeting will be sent after session.created and session.updated are received
               console.log('[SESSION] waiting for session.created and session.updated before sending greeting');
             };
-            
+
             // Check if websocket is already open and send session.update immediately
             if (openAiWs.readyState === WebSocket.OPEN) {
               console.log('[OPENAI WEBSOCKET ALREADY OPEN] sending session.update immediately');
@@ -14955,7 +15146,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.error('[OPENAI SEND PATH ERROR]', err);
               }
             }
-            
+
             openAiWs.on('open', () => {
               console.log('[STREAM CLONED] OPEN event fired');
               console.log('[OPENAI WEBSOCKET STATE] readyState:', openAiWs?.readyState, 'OPEN:', WebSocket.OPEN);
@@ -14975,7 +15166,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               console.log('[STREAM CLONED] MESSAGE received');
               console.log('[OPENAI AUDIT] message listener attached');
               console.log('[OPENAI RAW] message');
-              
+
               // Parse message
               let message;
               try {
@@ -15000,7 +15191,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               // Log every message type with full details
               console.log('[OPENAI WS] message type', { type: message.type });
               console.log('[OPENAI WS] message payload', JSON.stringify(message, null, 2));
-              
+
               // Log full error payloads without truncation
               if (message.type === 'error' || message.error) {
                 console.error('[OPENAI FULL ERROR]', JSON.stringify(message, null, 2));
@@ -15050,7 +15241,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               if (message.type === 'conversation.item.created') {
                 console.log('[OPENAI USER MESSAGE CREATED]');
                 console.log('[USER ITEM] created:', message.item?.type || 'unknown');
-                
+
                 // Ignore user item creation in terminal mode
                 if (closingState.intakeTerminalComplete && message.item?.type === 'user') {
                   console.log('[TERMINAL_USER_EVENT_IGNORED] =========================================');
@@ -15059,7 +15250,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[TERMINAL_USER_EVENT_IGNORED] =========================================');
                   return;
                 }
-                
+
                 if (message.item?.type === 'user') {
                   const userTranscript = message.item.content?.[0]?.transcript || '';
                   console.log('[CALLER TRANSCRIPT RECEIVED] =========================================');
@@ -15073,15 +15264,15 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[CALLER TRANSCRIPT RECEIVED] sessionId:', sessionId || 'unknown');
                   console.log('[CALLER TRANSCRIPT RECEIVED] Timestamp:', new Date().toISOString());
                   console.log('[CALLER TRANSCRIPT RECEIVED] =========================================');
-                  
+
                   // Add user transcript router for confirmation interception
                   const currentStage = intakeData?.stage || 'unknown';
-                  console.log('[AI USER TRANSCRIPT ROUTER]', { 
-                    currentStage, 
-                    intakeComplete: intakeComplete, 
-                    transcript: userTranscript 
+                  console.log('[AI USER TRANSCRIPT ROUTER]', {
+                    currentStage,
+                    intakeComplete: intakeComplete,
+                    transcript: userTranscript
                   });
-                  
+
                                   }
               }
               if (message.type === 'conversation.item.done') {
@@ -15099,15 +15290,15 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[CALLER TRANSCRIPT RECEIVED] sessionId:', sessionId || 'unknown');
                   console.log('[CALLER TRANSCRIPT RECEIVED] Timestamp:', new Date().toISOString());
                   console.log('[CALLER TRANSCRIPT RECEIVED] =========================================');
-                  
+
                   // Add user transcript router for confirmation interception
                   const currentStage = intakeData?.stage || 'unknown';
-                  console.log('[AI USER TRANSCRIPT ROUTER]', { 
-                    currentStage, 
-                    intakeComplete: intakeComplete, 
-                    transcript: userTranscript 
+                  console.log('[AI USER TRANSCRIPT ROUTER]', {
+                    currentStage,
+                    intakeComplete: intakeComplete,
+                    transcript: userTranscript
                   });
-                  
+
                                   }
               }
               if (message.type === 'conversation.item.completed') {
@@ -15125,15 +15316,15 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[CALLER TRANSCRIPT RECEIVED] sessionId:', sessionId || 'unknown');
                   console.log('[CALLER TRANSCRIPT RECEIVED] Timestamp:', new Date().toISOString());
                   console.log('[CALLER TRANSCRIPT RECEIVED] =========================================');
-                  
+
                   // Add user transcript router for confirmation interception
                   const currentStage = intakeData?.stage || 'unknown';
-                  console.log('[AI USER TRANSCRIPT ROUTER]', { 
-                    currentStage, 
-                    intakeComplete: intakeComplete, 
-                    transcript: userTranscript 
+                  console.log('[AI USER TRANSCRIPT ROUTER]', {
+                    currentStage,
+                    intakeComplete: intakeComplete,
+                    transcript: userTranscript
                   });
-                  
+
                                   }
               }
 
@@ -15157,7 +15348,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   itemId: message.item_id,
                   isEmpty: !userTranscript || userTranscript.trim() === ''
                 });
-                
+
                 if (userTranscript && userTranscript.trim() !== '') {
                   console.log('[USER TRANSCRIPT FOUND]', userTranscript);
                   console.log('[USER TRANSCRIPT APPEND]', { role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
@@ -15204,7 +15395,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[USER TRANSCRIPT MISSING] Skipping intake processing due to empty transcript');
                   return; // Skip processing if transcript is empty
                 }
-                
+
                 // Process intake stage advancement after FINAL transcript
                 console.log('[TRACE COMPLETE 1] =========================================');
                 console.log('[TRACE COMPLETE 1] Checking intake processing conditions');
@@ -15229,7 +15420,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[AUTO MODEL RESPONSE DISABLED] App controls all assistant responses');
                   console.log('[AUTO MODEL RESPONSE DISABLED] Timestamp:', new Date().toISOString());
                   console.log('[AUTO MODEL RESPONSE DISABLED] =========================================');
-                  
+
                   console.log('[INTAKE FIELD CHECK] =========================================');
                   console.log('[INTAKE FIELD CHECK] Checking required fields after transcript');
                   console.log('[INTAKE FIELD CHECK] customerName:', !!intakeData.customerName);
@@ -15240,7 +15431,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[INTAKE FIELD CHECK] callbackTime:', !!intakeData.callbackTime);
                   console.log('[INTAKE FIELD CHECK] Timestamp:', new Date().toISOString());
                   console.log('[INTAKE FIELD CHECK] =========================================');
-                  
+
                   // Sync callSessionState when intakeData is initialized
                   if (!callSessionState.intakeData && intakeData) {
                     callSessionState.intakeData = intakeData;
@@ -15274,15 +15465,15 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[CALL SESSION STATE SYNC] =========================================');
                   }
 
-                  console.log('[AI USER TRANSCRIPT ROUTER]', { 
-                    currentStage: intakeData.stage, 
-                    intakeComplete: intakeComplete, 
-                    transcript: userTranscript 
+                  console.log('[AI USER TRANSCRIPT ROUTER]', {
+                    currentStage: intakeData.stage,
+                    intakeComplete: intakeComplete,
+                    transcript: userTranscript
                   });
                   console.log('[INTAKE COMPLETION CHECK] Processing intake stage:', intakeData.stage);
                   console.log('[INTAKE COMPLETION CHECK] User transcript:', userTranscript);
                   console.log('[INTAKE COMPLETION CHECK] Session ready:', sessionReady);
-                  
+
                   // Check if all required fields are collected - HARD APP-LEVEL ENFORCEMENT
                   console.log('[TRACE COMPLETE 3] =========================================');
                   console.log('[TRACE COMPLETE 3] About to call areAllRequiredFieldsCollected');
@@ -15394,17 +15585,17 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[GOOD ENOUGH INTAKE TRIGGERED CLOSING] Triggering app-controlled closing');
                     console.log('[GOOD ENOUGH INTAKE TRIGGERED CLOSING] Timestamp:', new Date().toISOString());
                     console.log('[GOOD ENOUGH INTAKE TRIGGERED CLOSING] =========================================');
-                    
+
                     console.log('[APP CONTROLLED CLOSING STARTED] =========================================');
                     console.log('[APP CONTROLLED CLOSING STARTED] Setting intake stage to complete');
                     console.log('[APP CONTROLLED CLOSING STARTED] Setting intakeComplete flag to true');
                     console.log('[APP CONTROLLED CLOSING STARTED] Calling enterTerminalClose');
                     console.log('[APP CONTROLLED CLOSING STARTED] Timestamp:', new Date().toISOString());
                     console.log('[APP CONTROLLED CLOSING STARTED] =========================================');
-                    
+
                     intakeData!.stage = 'complete';
                     intakeComplete = true;
-                    
+
                     console.log('[ABOUT TO CALL ENTER TERMINAL CLOSE] =========================================');
                     console.log('[ABOUT TO CALL ENTER TERMINAL CLOSE] About to call enterTerminalClose');
                     console.log('[ABOUT TO CALL ENTER TERMINAL CLOSE] closingState:', !!closingState);
@@ -15413,19 +15604,19 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[ABOUT TO CALL ENTER TERMINAL CLOSE] openAiWs:', !!openAiWs);
                     console.log('[ABOUT TO CALL ENTER TERMINAL CLOSE] Timestamp:', new Date().toISOString());
                     console.log('[ABOUT TO CALL ENTER TERMINAL CLOSE] =========================================');
-                    
+
                     enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
                     return; // Skip normal intake processing - NO MORE AI RESPONSES
                   }
 
-                  
-                                    
+
+
                   // CRITICAL FIX: Answer gating - check if transcript was received after prompt completed
                   const currentTimestamp = Date.now();
                   const promptCompletedAt = callSessionState.promptCompletedAt || 0;
                   const blockedAudioDuringPrompt = callSessionState.blockedAudioDuringPrompt || false;
                   const promptStartedAt = callSessionState.promptStartedAt || 0;
-                  
+
                   console.log('[ANSWER GATING CHECK] =========================================');
                   console.log('[ANSWER GATING CHECK] currentTimestamp:', currentTimestamp);
                   console.log('[ANSWER GATING CHECK] promptStartedAt:', promptStartedAt);
@@ -15435,10 +15626,10 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[ANSWER GATING CHECK] currentStage:', intakeData!.stage);
                   console.log('[ANSWER GATING CHECK] Timestamp:', new Date().toISOString());
                   console.log('[ANSWER GATING CHECK] =========================================');
-                  
+
                   // Check if answer was received during prompt playback (before prompt completed)
                   const answerReceivedDuringPrompt = promptCompletedAt > 0 && currentTimestamp < promptCompletedAt;
-                  
+
                   if (answerReceivedDuringPrompt || blockedAudioDuringPrompt) {
                     console.log('[BLOCKED AUDIO DOES NOT SATISFY STAGE] =========================================');
                     console.log('[BLOCKED AUDIO DOES NOT SATISFY STAGE] Answer received during prompt or blocked audio detected');
@@ -15448,14 +15639,14 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[BLOCKED AUDIO DOES NOT SATISFY STAGE] Transcript:', userTranscript);
                     console.log('[BLOCKED AUDIO DOES NOT SATISFY STAGE] Timestamp:', new Date().toISOString());
                     console.log('[BLOCKED AUDIO DOES NOT SATISFY STAGE] =========================================');
-                    
+
                     // Do not advance stage - skip the rest of the processing
                     return;
                   }
-                  
+
                   // Mark that we received a valid user answer after prompt completion
                   callSessionState.validUserAnswerReceivedAt = currentTimestamp;
-                  
+
                   console.log('[USER ANSWER ACCEPTED FOR STAGE] =========================================');
                   console.log('[USER ANSWER ACCEPTED FOR STAGE] Answer received after prompt completion');
                   console.log('[USER ANSWER ACCEPTED FOR STAGE] validUserAnswerReceivedAt:', callSessionState.validUserAnswerReceivedAt);
@@ -15489,7 +15680,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[INTAKE RESPONSE CALCULATION] stagePromptAttempts:', stagePromptAttempts);
                   console.log('[INTAKE RESPONSE CALCULATION] Timestamp:', new Date().toISOString());
                   console.log('[INTAKE RESPONSE CALCULATION] =========================================');
-                  
+
                   const intakeResponse = getIntakeResponse(intakeData!, userTranscript, stagePromptAttempts, (callSessionState as any).serviceLocationType || 'onsite');
 
                   console.log('[INTAKE RESPONSE RESULT] =========================================');
@@ -15543,7 +15734,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[CURRENT STAGE SET] sourceFunction: getIntakeResponse');
                   console.log('[CURRENT STAGE SET] Timestamp:', new Date().toISOString());
                   console.log('[CURRENT STAGE SET] =========================================');
-                  
+
                   console.log('[STAGE ADVANCED] =========================================');
                   console.log('[STAGE ADVANCED] Stage advanced successfully');
                   console.log('[STAGE ADVANCED] oldStage:', intakeData!.stage);
@@ -15553,7 +15744,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[STAGE ADVANCED] blockedAudioDuringPrompt:', callSessionState.blockedAudioDuringPrompt);
                   console.log('[STAGE ADVANCED] Timestamp:', new Date().toISOString());
                   console.log('[STAGE ADVANCED] =========================================');
-                  
+
                   // Clear activeResponseId when stage changes to allow new response
                   if (activeResponseId) {
                     console.log('[STAGE CHANGE CLEARING ACTIVE RESPONSE] =========================================');
@@ -15686,7 +15877,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   // Sync state flags to intakeData for persistence across stage changes
                   intakeData!.skipNextStage = callSessionState.skipNextStage;
                   intakeData!.needsNameReprompt = callSessionState.needsNameReprompt;
-                  
+
                   if (intakeData!.stage === 'complete') {
                     console.log('[INTAKE COMPLETE] =========================================');
                     console.log('[INTAKE COMPLETE] All required fields collected');
@@ -15694,9 +15885,9 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[INTAKE COMPLETE] Triggering terminal close');
                     console.log('[INTAKE COMPLETE] Timestamp:', new Date().toISOString());
                     console.log('[INTAKE COMPLETE] =========================================');
-                    
+
                     intakeComplete = true;
-                    
+
                     console.log('[SCRIPTED FLOW] =========================================');
                     console.log('[SCRIPTED FLOW] final goodbye send requested immediately');
                     console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
@@ -15784,7 +15975,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[AI RESPONSE CREATE] authorizedResponseCreateSource:', authorizedResponseCreateSource);
                 console.log('[AI RESPONSE CREATE] Timestamp:', new Date().toISOString());
                 console.log('[AI RESPONSE CREATE] =========================================');
-                
+
                 // HARD GUARD: Cancel unauthorized OpenAI responses
                 // Only responses from sendApprovedPrompt or sendControlledAssistantText are allowed
                 if (!authorizedResponseCreateSource) {
@@ -15796,7 +15987,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[UNAUTHORIZED RESPONSE BLOCKED] Canceling unauthorized response');
                   console.log('[UNAUTHORIZED RESPONSE BLOCKED] Timestamp:', new Date().toISOString());
                   console.log('[UNAUTHORIZED RESPONSE BLOCKED] =========================================');
-                  
+
                   // Cancel the unauthorized response
                   if (openAiWs) {
                     openAiWs.send(JSON.stringify({
@@ -15806,12 +15997,12 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   }
                   return; // Do not process this response
                 }
-                
+
                 // CRITICAL: Set assistantSpeaking to TRUE in response.created BEFORE OpenAI generates audio
                 // This ensures caller audio is blocked immediately when OpenAI starts generating the response
                 const callSessionState = (ws as any).callSessionState || {};
                 const previousAssistantSpeaking = callSessionState.assistantSpeaking || false;
-                
+
                 console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] =========================================');
                 console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] Setting assistantSpeaking to TRUE');
                 console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] Previous state:', previousAssistantSpeaking);
@@ -15819,24 +16010,24 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] Stage:', intakeData?.stage || 'unknown');
                 console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] Timestamp:', new Date().toISOString());
                 console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] =========================================');
-                
+
                 callSessionState.assistantSpeaking = true;
                 assistantSpeaking = true; // Sync local variable
                 callSessionState.activeResponseId = responseId;
                 callSessionState.lastPromptAt = Date.now();
-                
+
                 // Sync to twilioHandler for twilio-stream.ts access
                 (twilioHandler as any).assistantSpeaking = true;
                 (twilioHandler as any).activeResponseId = responseId;
                 (twilioHandler as any).lastPromptAt = callSessionState.lastPromptAt;
-                
+
                 console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] =========================================');
                 console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] Caller audio blocked - AI is generating response');
                 console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] Response ID:', responseId);
                 console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] Stage:', intakeData?.stage || 'unknown');
                 console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] Timestamp:', new Date().toISOString());
                 console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] =========================================');
-                
+
                 // Guard: Only one active assistant response per stage
                 // EXCEPTION: Allow final closing response even if activeResponseId is stale
                 const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
@@ -15887,12 +16078,12 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     return; // Do not process this response
                   }
                 }
-                
+
                 // Set activeResponseId to track the current response
                 activeResponseId = responseId;
                 console.log('[AI RESPONSE CREATE] Set activeResponseId to:', responseId);
                 console.log('[AI RESPONSE CREATE] Stage:', intakeData?.stage || 'unknown');
-                
+
                 // Check if this is the final closing response
                 if (responseId === authorizedFinalResponseId) {
                   console.log('[FINAL SENTENCE RESPONSE CREATED] =========================================');
@@ -15901,7 +16092,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[FINAL SENTENCE RESPONSE CREATED] Timestamp:', new Date().toISOString());
                   console.log('[FINAL SENTENCE RESPONSE CREATED] =========================================');
                 }
-                
+
                 // Cancel unauthorized responses in terminal mode
                 // BUT allow the final close response to be created even if authorizedFinalResponseId is not yet set
                 if (closingState.intakeTerminalComplete) {
@@ -15923,7 +16114,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[UNAUTHORIZED_RESPONSE_CREATED_AFTER_FINAL] Timestamp:', new Date().toISOString());
                     console.log('[UNAUTHORIZED_RESPONSE_CREATED_AFTER_FINAL] Canceling this response immediately');
                     console.log('[UNAUTHORIZED_RESPONSE_CREATED_AFTER_FINAL] =========================================');
-                    
+
                     // Cancel the unauthorized response
                     if (openAiWs) {
                       openAiWs.send(JSON.stringify({
@@ -15946,7 +16137,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[FINAL_OUTPUT_ITEM_DONE] finalClosingStarted:', finalClosingStarted);
                 console.log('[FINAL_OUTPUT_ITEM_DONE] callState:', callState);
                 console.log('[FINAL_OUTPUT_ITEM_DONE] item_id:', message.item_id || 'unknown');
-                
+
                 // CRITICAL FIX: Do NOT reset assistantSpeaking here
                 // response.output_item.done fires when generation completes, NOT when audio playback completes
                 // assistantSpeaking will be reset in response.audio.done to ensure audio has fully finished
@@ -15979,11 +16170,11 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[OPENING ORDER TRACE] timestamp:', new Date().toISOString());
                   console.log('[OPENING ORDER TRACE] =========================================');
                 }
-                
+
                 // Force-allow final close audio if finalClosingStarted is true, regardless of response ID
                 const isFinalClosingStarted = (twilioHandler as any).finalClosingStarted;
                 const forceAllowFinalAudio = isFinalClosingStarted && message.delta && message.delta.length > 0;
-                
+
                 // Log response ID comparison for debugging
                 if (isFinalClosingStarted) {
                   console.log('[FINAL AUDIO RESPONSE ID CHECK] =========================================');
@@ -15993,7 +16184,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[FINAL AUDIO RESPONSE ID CHECK] Force allow final audio:', forceAllowFinalAudio);
                   console.log('[FINAL AUDIO RESPONSE ID CHECK] Timestamp:', new Date().toISOString());
                   console.log('[FINAL AUDIO RESPONSE ID CHECK] =========================================');
-                  
+
                   if (!isFinalResponse && !forceAllowFinalAudio) {
                     console.log('[FINAL AUDIO REJECTED] =========================================');
                     console.log('[FINAL AUDIO REJECTED] Audio delta rejected - response ID mismatch');
@@ -16002,7 +16193,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[FINAL AUDIO REJECTED] Timestamp:', new Date().toISOString());
                     console.log('[FINAL AUDIO REJECTED] =========================================');
                   }
-                  
+
                   if (forceAllowFinalAudio) {
                     console.log('[FINAL CLOSE AUDIO FORCE ALLOWED] =========================================');
                     console.log('[FINAL CLOSE AUDIO FORCE ALLOWED] Force allowing final close audio delta');
@@ -16012,7 +16203,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[FINAL CLOSE AUDIO FORCE ALLOWED] =========================================');
                   }
                 }
-                
+
                 if (isFinalResponse || forceAllowFinalAudio) {
                   console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] =========================================');
                   console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] Audio delta for final closing response');
@@ -16020,7 +16211,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] Delta length:', message.delta?.length || 0);
                   console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] Timestamp:', new Date().toISOString());
                   console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] =========================================');
-                  
+
                   // Track final audio activity
                   if (!(twilioHandler as any).finalSentenceAudioStartedAt) {
                     (twilioHandler as any).finalSentenceAudioStartedAt = Date.now();
@@ -16031,13 +16222,13 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   }
                   (twilioHandler as any).finalSentenceLastAudioDeltaAt = Date.now();
                   (twilioHandler as any).finalSentenceAudioDeltaCount = ((twilioHandler as any).finalSentenceAudioDeltaCount || 0) + 1;
-                  
+
                   const audioDeltaCount = (twilioHandler as any).finalSentenceAudioDeltaCount;
                   console.log('[FINAL AUDIO DELTA COUNT] =========================================');
                   console.log('[FINAL AUDIO DELTA COUNT] Audio delta count:', audioDeltaCount);
                   console.log('[FINAL AUDIO DELTA COUNT] Timestamp:', new Date().toISOString());
                   console.log('[FINAL AUDIO DELTA COUNT] =========================================');
-                  
+
                   // Track OpenAI final close audio started
                   (twilioHandler as any).finalCloseAudioStarted = true;
                   console.log('[OPENAI FINAL AUDIO DELTA RECEIVED] =========================================');
@@ -16046,7 +16237,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[OPENAI FINAL AUDIO DELTA RECEIVED] Timestamp:', new Date().toISOString());
                   console.log('[OPENAI FINAL AUDIO DELTA RECEIVED] =========================================');
                 }
-                
+
                 // Log when audio is sent to Twilio
                 if (isFinalResponse) {
                   console.log('[OPENAI FINAL AUDIO DELTA SENT TO TWILIO] =========================================');
@@ -16055,7 +16246,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[OPENAI FINAL AUDIO DELTA SENT TO TWILIO] Timestamp:', new Date().toISOString());
                   console.log('[OPENAI FINAL AUDIO DELTA SENT TO TWILIO] =========================================');
                 }
-                
+
                 // Drop unauthorized audio in terminal mode
                 // BUT allow the final close response audio even if authorizedFinalResponseId is not yet set
                 if (closingState.intakeTerminalComplete) {
@@ -16158,12 +16349,12 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[FINAL_AUDIO_DONE] callState:', callState);
                 console.log('[FINAL_AUDIO_DONE] hangupScheduled:', hangupScheduled);
                 console.log('[FINAL_AUDIO_DONE] finalGoodbyeMarkSent:', finalGoodbyeMarkSent);
-                
+
                 // CRITICAL: Reset assistantSpeaking when audio generation is complete
                 // This allows caller audio to be accepted after playback finishes
                 const callSessionState = (ws as any).callSessionState || {};
                 const previousAssistantSpeaking = callSessionState.assistantSpeaking || false;
-                
+
                 console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] =========================================');
                 console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] Setting assistantSpeaking to FALSE');
                 console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] Previous state:', previousAssistantSpeaking);
@@ -16187,23 +16378,23 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 callSessionState.assistantSpeaking = false;
                 assistantSpeaking = false; // Sync local variable
                 callSessionState.promptCompletedAt = Date.now();
-                
+
                 // Sync to twilioHandler for twilio-stream.ts access
                 (twilioHandler as any).assistantSpeaking = false;
                 (twilioHandler as any).promptCompletedAt = callSessionState.promptCompletedAt;
-                
+
                 // Clear timeout protection
                 if (assistantSpeakingTimeout) {
                   clearTimeout(assistantSpeakingTimeout);
                   assistantSpeakingTimeout = null;
                 }
-                
+
                 console.log('[AUTHORIZED_FINAL_RESPONSE_AUDIO_DONE] =========================================');
                 console.log('[AUTHORIZED_FINAL_RESPONSE_AUDIO_DONE] Authorized final response audio generation complete');
                 console.log('[AUTHORIZED_FINAL_RESPONSE_AUDIO_DONE] Timestamp:', new Date().toISOString());
                 console.log('[AUTHORIZED_FINAL_RESPONSE_AUDIO_DONE] Terminal mode active:', closingState.intakeTerminalComplete);
                 console.log('[AUTHORIZED_FINAL_RESPONSE_AUDIO_DONE] =========================================');
-                
+
                 // Start hard-close timer if terminal mode is active
                 if (closingState.intakeTerminalComplete && closingState.callState !== 'closed') {
                   console.log('[NORMAL FINAL COMPLETION HANGUP] =========================================');
@@ -16212,7 +16403,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[NORMAL FINAL COMPLETION HANGUP] This ensures audio playback completes before hangup');
                   console.log('[NORMAL FINAL COMPLETION HANGUP] Timestamp:', new Date().toISOString());
                   console.log('[NORMAL FINAL COMPLETION HANGUP] =========================================');
-                  
+
                   console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] =========================================');
                   console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] Starting 2-second hangup buffer after authorized final response audio done');
                   console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] This ensures audio playback completes before hangup');
@@ -16254,7 +16445,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 // Check if this is the final closing response
                 const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
                 const isFinalResponse = currentResponseId === authorizedFinalResponseId;
-                
+
                 if (isFinalResponse) {
                   console.log('[FINAL SENTENCE RESPONSE DONE] =========================================');
                   console.log('[FINAL SENTENCE RESPONSE DONE] Final closing response done event received');
@@ -16282,11 +16473,11 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   const beforeIndividualVar = assistantSpeaking;
                   const beforeTwilioHandler = (twilioHandler as any).assistantSpeaking;
                   const stackTrace = new Error().stack?.split('\n').slice(1, 4).join('\n') || 'unknown';
-                  
+
                   assistantSpeaking = false;
                   callSessionState.assistantSpeaking = false;
                   (twilioHandler as any).assistantSpeaking = false;
-                  
+
                   console.log('[ASSISTANT SPEAKING ASSIGNMENT] =========================================');
                   console.log('[ASSISTANT SPEAKING ASSIGNMENT] BEFORE callSessionState.assistantSpeaking:', beforeAssistantSpeaking);
                   console.log('[ASSISTANT SPEAKING ASSIGNMENT] BEFORE individual assistantSpeaking var:', beforeIndividualVar);
@@ -16300,7 +16491,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[ASSISTANT SPEAKING ASSIGNMENT] Stack trace:', stackTrace);
                   console.log('[ASSISTANT SPEAKING ASSIGNMENT] Timestamp:', new Date().toISOString());
                   console.log('[ASSISTANT SPEAKING ASSIGNMENT] =========================================');
-                  
+
                   // Clear timeout protection
                   if (assistantSpeakingTimeout) {
                     clearTimeout(assistantSpeakingTimeout);
@@ -16309,7 +16500,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 }
 
                 console.log('[FINAL GOODBYE RESPONSE DONE] Final goodbye response completed');
-                
+
                 // DO NOT trigger hangup on response.done anymore
                 // Wait for response.audio.done instead to ensure audio generation is complete
               }
@@ -16319,10 +16510,10 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   const assistantText = message.content;
                   const currentStage = intakeData?.stage || 'ask_name';
                   const intakeTemplate = (ws as any).intakeTemplate || 'on_site';
-                  
+
                   // Get the approved prompt for the current stage
                   const approvedPrompt = getIntakeStageTextSafe(intakeTemplate, currentStage as any);
-                  
+
                   // Log approved prompt
                   console.log('[APPROVED PROMPT] =========================================');
                   console.log('[APPROVED PROMPT] stage:', currentStage);
@@ -16330,14 +16521,14 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[APPROVED PROMPT] prompt:', approvedPrompt);
                   console.log('[APPROVED PROMPT] Timestamp:', new Date().toISOString());
                   console.log('[APPROVED PROMPT] =========================================');
-                  
+
                   // Log assistant response generated
                   console.log('[ASSISTANT RESPONSE GENERATED] =========================================');
                   console.log('[ASSISTANT RESPONSE GENERATED] stage:', currentStage);
                   console.log('[ASSISTANT RESPONSE GENERATED] text:', assistantText);
                   console.log('[ASSISTANT RESPONSE GENERATED] Timestamp:', new Date().toISOString());
                   console.log('[ASSISTANT RESPONSE GENERATED] =========================================');
-                  
+
                   // Check if the assistant text substantially matches the approved prompt
                   // Allow for minor variations but require substantial overlap
                   const textMatchesApproved = approvedPrompt && (
@@ -16345,7 +16536,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     assistantText.includes(approvedPrompt.substring(0, 30)) ||
                     approvedPrompt.includes(assistantText.substring(0, 30))
                   );
-                  
+
                   // Check for unapproved question patterns (comprehensive list)
                   const unapprovedQuestionPatterns = [
                     'budget',
@@ -16385,11 +16576,11 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     'home features',
                     'house features',
                   ];
-                  
-                  const containsUnapprovedQuestion = unapprovedQuestionPatterns.some(pattern => 
+
+                  const containsUnapprovedQuestion = unapprovedQuestionPatterns.some(pattern =>
                     assistantText.toLowerCase().includes(pattern)
                   );
-                  
+
                   // Comprehensive logging for response validation
                   console.log('[RESPONSE VALIDATION] =========================================');
                   console.log('[RESPONSE VALIDATION] Response ID:', message.response_id || 'unknown');
@@ -16400,7 +16591,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[RESPONSE VALIDATION] Unauthorized audio dropped:', textMatchesApproved ? 'no' : 'yes');
                   console.log('[RESPONSE VALIDATION] Timestamp:', new Date().toISOString());
                   console.log('[RESPONSE VALIDATION] =========================================');
-                  
+
                   // Block unapproved questions OR responses that don't match approved prompt
                   if (!textMatchesApproved) {
                     console.log('[UNAPPROVED RESPONSE BLOCKED] =========================================');
@@ -16413,7 +16604,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[UNAPPROVED RESPONSE BLOCKED] Response ID:', message.response_id || 'unknown');
                     console.log('[UNAPPROVED RESPONSE BLOCKED] Timestamp:', new Date().toISOString());
                     console.log('[UNAPPROVED RESPONSE BLOCKED] =========================================');
-                    
+
                     // Cancel the response if it has an ID
                     if (message.response_id && openAiWs) {
                       openAiWs.send(JSON.stringify({
@@ -16422,12 +16613,12 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                       }));
                       console.log('[UNAPPROVED RESPONSE CANCELED] Response cancel command sent');
                     }
-                    
+
                     // Cancel audio buffering
                     if (twilioHandler && typeof (twilioHandler as any).cancelResponse === 'function') {
                       (twilioHandler as any).cancelResponse();
                     }
-                    
+
                     // Replay the approved prompt immediately to self-correct
                     console.log('[APPROVED PROMPT REPLAYED] =========================================');
                     console.log('[APPROVED PROMPT REPLAYED] Replaying approved prompt after blocking unapproved response');
@@ -16435,17 +16626,17 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[APPROVED PROMPT REPLAYED] prompt:', approvedPrompt);
                     console.log('[APPROVED PROMPT REPLAYED] Timestamp:', new Date().toISOString());
                     console.log('[APPROVED PROMPT REPLAYED] =========================================');
-                    
+
                     sendApprovedPrompt(currentStage, openAiWs, ws);
                     // Set current stage for validation
                     if (twilioHandler && typeof (twilioHandler as any).setCurrentStage === 'function') {
                       (twilioHandler as any).setCurrentStage(currentStage);
                     }
-                    
+
                     // Do not add to transcript - skip this unapproved content
                     return;
                   }
-                  
+
                   // Authorize response and flush buffered audio if transcript matches
                   if (textMatchesApproved && twilioHandler && typeof (twilioHandler as any).authorizeResponse === 'function') {
                     console.log('[RESPONSE AUTHORIZED] =========================================');
@@ -16454,10 +16645,10 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[RESPONSE AUTHORIZED] authorized text:', assistantText);
                     console.log('[RESPONSE AUTHORIZED] Timestamp:', new Date().toISOString());
                     console.log('[RESPONSE AUTHORIZED] =========================================');
-                    
+
                     (twilioHandler as any).authorizeResponse();
                   }
-                  
+
                   console.log('[AI TRANSCRIPT CAPTURED]', { role: 'assistant', text: message.content, timestamp: new Date().toISOString() });
                   transcript.push({ role: 'assistant', text: message.content, timestamp: new Date().toISOString() });
                 }
@@ -16525,13 +16716,13 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[SESSION UPDATED RECEIVED]');
                 sessionUpdatedReceived = true;
                 sessionReady = true; // Set sessionReady to true
-                
+
                 // Clear the session ready timeout since we received session.updated
                 clearTimeout(sessionReadyTimeout);
-                
+
                 // Update session state tracking
                 updateAISessionState(aiSessionTracker, 'SESSION_READY', 'session.updated received');
-                
+
                 console.log('[SESSION UPDATED CONFIG]', JSON.stringify(message.session, null, 2));
                 console.log('[SESSION COMPARE] instructions:', {
                   outbound: 'You are an English-speaking receptionist.',
@@ -16545,7 +16736,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   outbound: 'not set (minimal test)',
                   returned: message.session?.audio
                 });
-                
+
                 // Send exactly one greeting response.create after both session.created and session.updated
                 sendGreetingIfReady();
               }
@@ -16567,11 +16758,11 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 });
                 return;
               }
-              
+
               // Log specific OpenAI events for debugging
               if (message.type === 'input_audio_buffer.speech_started') {
                 console.log('[OPENAI RECV] input_audio_buffer.speech_started');
-                
+
                 // Ignore user speech started in terminal mode
                 if (closingState.intakeTerminalComplete) {
                   console.log('[TERMINAL_USER_EVENT_IGNORED] =========================================');
@@ -16583,7 +16774,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               }
               if (message.type === 'input_audio_buffer.speech_stopped') {
                 console.log('[OPENAI RECV] input_audio_buffer.speech_stopped');
-                
+
                 // Ignore user speech stopped in terminal mode
                 if (closingState.intakeTerminalComplete) {
                   console.log('[TERMINAL_USER_EVENT_IGNORED] =========================================');
@@ -16596,7 +16787,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               if (message.type === 'input_audio_buffer.committed') {
                 console.log('[OPENAI RECV] input_audio_buffer.committed');
                 console.log('[USER TRANSCRIPT] committed:', message.transcript || 'null');
-                
+
                 // Block input_audio_buffer commits in terminal mode
                 if (closingState.intakeTerminalComplete) {
                   console.log('[TERMINAL_USER_AUDIO_EVENT_IGNORED] =========================================');
@@ -16606,7 +16797,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[TERMINAL_USER_AUDIO_EVENT_IGNORED] =========================================');
                   return; // Do not process this commit
                 }
-                
+
                 // Comprehensive logging for caller transcript processing
                 const callerTranscript = message.transcript || '';
                 const stageBeforeProcessing = intakeData?.stage || 'ask_name_reason';
@@ -16614,7 +16805,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 const callSessionState = (ws as any).callSessionState || {};
                 const nextStage = getNextStage(stageBeforeProcessing as any, callSessionState.serviceLocationType || 'onsite');
                 const expectedNextScriptLine = getIntakeStageTextSafe(intakeTemplate, nextStage as any);
-                
+
                 console.log('[CALLER TRANSCRIPT PROCESSING] =========================================');
                 console.log('[CALLER TRANSCRIPT PROCESSING] First caller transcript:', callerTranscript);
                 console.log('[CALLER TRANSCRIPT PROCESSING] Stage before processing:', stageBeforeProcessing);
@@ -16690,15 +16881,15 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     }));
                     console.log('[UNAUTHORIZED RESPONSE CANCELED] Response cancel command sent');
                   }
-                  
+
                   // Cancel audio buffering
                   if (twilioHandler && typeof (twilioHandler as any).cancelResponse === 'function') {
                     (twilioHandler as any).cancelResponse();
                   }
-                  
+
                   return; // Do not process this response
                 }
-                
+
                 // Pre-authorize approved scripted prompts immediately at creation time
                 // For scripted prompts, we already know the exact text before response.create
                 // We should authorize immediately, not wait for transcript text after audio generation
@@ -16811,15 +17002,15 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     const cleanBuffer = buffer.replace(/\[CALL_COMPLETE\]|CALL_COMPLETE|call complete/gi, '').trim();
                     if (cleanBuffer) {
                       transcript.push({ role: 'assistant', text: cleanBuffer, timestamp: new Date().toISOString() });
-                      console.log('[TRANSCRIPT FINALIZED]', { 
-                        item_id: itemId, 
-                        final_text: cleanBuffer 
+                      console.log('[TRANSCRIPT FINALIZED]', {
+                        item_id: itemId,
+                        final_text: cleanBuffer
                       });
                     }
                   }
                 });
                 activeAssistantTranscripts.clear();
-                
+
                 // response.done handler no longer triggers terminal close
                 // Terminal mode is now triggered by confirmation acceptance branch
                 // See: CONFIRMATION_ACCEPTED_TERMINAL_MODE_STARTED section
@@ -16830,33 +17021,33 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[ACTIVE_TRANSCRIPT_DELTA_RECEIVED] Delta received in main transcript handler');
                 console.log('[ACTIVE_TRANSCRIPT_DELTA_RECEIVED] Timestamp:', new Date().toISOString());
                 console.log('[ACTIVE_TRANSCRIPT_DELTA_RECEIVED] =========================================');
-                
+
                 // Accumulate assistant transcript deltas in buffer
                 if (message.delta) {
                   const itemId = message.item_id || 'current';
                   const currentBuffer = activeAssistantTranscripts.get(itemId) || '';
                   const updatedBuffer = currentBuffer + message.delta;
                   activeAssistantTranscripts.set(itemId, updatedBuffer);
-                  
+
                   // Update transcript in twilioHandler for validation
                   if (twilioHandler && typeof (twilioHandler as any).updateTranscript === 'function') {
                     (twilioHandler as any).updateTranscript(message.delta);
                   }
-                  
-                  console.log('[TRANSCRIPT DELTA]', { 
-                    item_id: itemId, 
-                    current_buffer_length: updatedBuffer.length 
+
+                  console.log('[TRANSCRIPT DELTA]', {
+                    item_id: itemId,
+                    current_buffer_length: updatedBuffer.length
                   });
-                  
+
                   // Final sentence self-defense detection
                   // This ensures terminal mode is set when the actual final sentence appears in the transcript
                   const exactClosingSentence = "Perfect. I have everything I need. The team will follow up with you soon.";
                   const followUpPhrase = "The team will follow up with you soon";
-                  
+
                   const bufferLower = updatedBuffer.toLowerCase();
                   const hasExactClosing = bufferLower.includes(exactClosingSentence.toLowerCase());
                   const hasFollowUpPhrase = bufferLower.includes(followUpPhrase.toLowerCase());
-                  
+
                   if ((hasExactClosing || hasFollowUpPhrase) && !closingState.intakeTerminalComplete) {
                     console.log('[FINAL_SENTENCE_DETECTED_IN_TRANSCRIPT] =========================================');
                     console.log('[FINAL_SENTENCE_DETECTED_IN_TRANSCRIPT] Final sentence detected in transcript delta');
@@ -16919,20 +17110,20 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     const cleanBuffer = buffer.replace(/\[CALL_COMPLETE\]|CALL_COMPLETE|call complete/gi, '').trim();
                     if (cleanBuffer) {
                       transcript.push({ role: 'assistant', text: cleanBuffer, timestamp: new Date().toISOString() });
-                      console.log('[TRANSCRIPT FINALIZED]', { 
-                        item_id: itemId, 
-                        final_text: cleanBuffer 
+                      console.log('[TRANSCRIPT FINALIZED]', {
+                        item_id: itemId,
+                        final_text: cleanBuffer
                       });
                     }
                   }
                 });
                 activeAssistantTranscripts.clear();
-                
+
                 // DO NOT start hard-close timer here
                 // response.output_audio_transcript.done is NOT safe as final playback-complete signal
                 // It fires while audio is still streaming
                 // Hard-close timer will be started in response.audio.done or response.done instead
-                
+
                 // Validate greeting transcript
                 if (greetingSent && message.transcript) {
                   console.log('[GREETING ACTUAL TRANSCRIPT]', message.transcript);
@@ -16944,24 +17135,24 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                             if (message.type === 'conversation.item.output_audio_transcription.completed') {
                 console.log('[OPENAI RECV] conversation.item.output_audio_transcription.completed');
                 console.log('[FINAL ASSISTANT TRANSCRIPT]:', message.transcript || 'null');
-                
+
                 // Verify transcript matches expected prompt
                 if (expectedPrompt && message.transcript) {
                   const actualTranscript = message.transcript.trim();
                   const normalizedExpected = expectedPrompt.trim().toLowerCase();
                   const normalizedActual = actualTranscript.toLowerCase();
-                  
+
                   // Check if actual transcript contains the expected prompt (allowing for minor variations)
-                  const matchesExpected = normalizedActual.includes(normalizedExpected) || 
+                  const matchesExpected = normalizedActual.includes(normalizedExpected) ||
                                         normalizedExpected.includes(normalizedActual);
-                  
+
                   console.log('[VOICE PROMPT VERIFICATION] =========================================');
                   console.log('[VOICE PROMPT VERIFICATION] expectedPrompt:', expectedPrompt);
                   console.log('[VOICE PROMPT VERIFICATION] actualTranscript:', actualTranscript);
                   console.log('[VOICE PROMPT VERIFICATION] matchesExpected:', matchesExpected);
                   console.log('[VOICE PROMPT VERIFICATION] Timestamp:', new Date().toISOString());
                   console.log('[VOICE PROMPT VERIFICATION] =========================================');
-                  
+
                   if (!matchesExpected) {
                     console.log('[VOICE PROMPT SCOPE VIOLATION] =========================================');
                     console.log('[VOICE PROMPT SCOPE VIOLATION] AI spoke outside allowed prompt scope');
@@ -16971,18 +17162,18 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[VOICE PROMPT SCOPE VIOLATION] Timestamp:', new Date().toISOString());
                     console.log('[VOICE PROMPT SCOPE VIOLATION] =========================================');
                   }
-                  
+
                   // Clear expected prompt after verification
                   expectedPrompt = null;
                 }
-                
+
                 // Accumulate complete assistant transcript
                 if (message.transcript) {
                   console.log('[AI TRANSCRIPT APPEND]', { role: 'assistant', text: message.transcript });
-                  
+
                   // Check for final closing phrases
                   const cleanTranscript = message.transcript.replace(/\[CALL_COMPLETE\]|CALL_COMPLETE|call complete/gi, '').trim();
-                  
+
                   // Hard log for model-generated legacy confirmation
                   if (cleanTranscript.toLowerCase().includes('is that correct?') || cleanTranscript.toLowerCase().includes('is this correct?')) {
                     console.log('[MODEL GENERATED LEGACY CONFIRMATION] =========================================');
@@ -16993,21 +17184,21 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     });
                     console.log('[MODEL GENERATED LEGACY CONFIRMATION] =========================================');
                   }
-                  
+
                   if (cleanTranscript) {
                     transcript.push({ role: 'assistant', text: cleanTranscript, timestamp: new Date().toISOString() });
                   }
-                  
+
                   // Log transcript state after accumulation
                   console.log('[AI TRANSCRIPT STATE]', {
                     transcriptLength: transcript.length,
                     transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | ')
                   });
                 }
-                
+
                 // Legacy hangup logic removed - using final response.done + 1500ms buffer only
                 console.log('[AI LEGACY HANGUP REMOVED - USING FINAL RESPONSE DONE ONLY]');
-                
+
                 // Validate greeting transcript
                 if (greetingSent && message.transcript) {
                   console.log('[GREETING ACTUAL TRANSCRIPT]', message.transcript);
@@ -17016,13 +17207,13 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   }
                 }
               }
-              
+
               // Catch-all logging for every OpenAI event type
               if (process.env.DEBUG_AI_VOICE === 'true') {
                 console.log('[OPENAI EVENT]', message.type);
               }
 
-              
+
               // Handle audio delta - now PCMU directly from OpenAI
               if (message.type === 'response.output_audio.delta') {
                 // Greeting timeline: first_audio_delta and last_audio_delta
@@ -17233,7 +17424,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   // Set prompt completion time for answer gating
                   callSessionState.promptCompletedAt = Date.now();
                   callSessionState.listeningStartedAt = Date.now();
-                  
+
                   console.log('[STAGE LISTENING OPENED] =========================================');
                   console.log('[STAGE LISTENING OPENED] Prompt playback completed');
                   console.log('[STAGE LISTENING OPENED] promptCompletedAt:', callSessionState.promptCompletedAt);
@@ -17367,7 +17558,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   callSessionState.assistantSpeaking = false;
                   assistantSpeaking = false; // Sync individual variable for backward compatibility
                   (twilioHandler as any).assistantSpeaking = false;
-                  
+
                   console.log('[ASSISTANT SPEAKING ASSIGNMENT] =========================================');
                   console.log('[ASSISTANT SPEAKING ASSIGNMENT] BEFORE callSessionState.assistantSpeaking:', beforeAssistantSpeaking);
                   console.log('[ASSISTANT SPEAKING ASSIGNMENT] BEFORE individual assistantSpeaking var:', beforeIndividualVar);
@@ -17381,7 +17572,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[ASSISTANT SPEAKING ASSIGNMENT] Stack trace:', stackTrace);
                   console.log('[ASSISTANT SPEAKING ASSIGNMENT] Timestamp:', new Date().toISOString());
                   console.log('[ASSISTANT SPEAKING ASSIGNMENT] =========================================');
-                  
+
                   // Clear timeout protection
                   if (assistantSpeakingTimeout) {
                     clearTimeout(assistantSpeakingTimeout);
@@ -17418,15 +17609,15 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[GREETING AUDIO DELTA RECEIVED] Audio delta from OpenAI');
                 }
                 console.log('[FORWARDING PCMU DIRECTLY] - no conversion needed');
-                
+
                 const streamSid = twilioHandler.getStreamSid();
-                
+
                 // Only send audio if streamSid is available
                 if (!streamSid) {
                   console.log('[AUDIO OUT] SKIPPED - streamSid not available yet');
                   return;
                 }
-                
+
                 // Log call state during audio streaming
                 if (process.env.DEBUG_AI_VOICE === 'true') {
                   console.log('[OUTBOUND ASSISTANT AUDIO DELTA]', {
@@ -17476,18 +17667,18 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               console.log('[OPENAI AUDIT] error listener attached');
               log(LogLevel.ERROR, '[STREAM OPENAI] error event fired', error as Error);
               openaiInitFailed = true;
-              
+
               // Trigger voicemail fallback for OpenAI WebSocket errors
               await triggerVoicemailFallback(
-                ws, 
-                twilioHandler, 
-                aiSessionTracker, 
-                `OpenAI WebSocket error: ${error}`, 
-                callSid || '', 
-                businessId || '', 
-                callerPhone || '', 
+                ws,
+                twilioHandler,
+                aiSessionTracker,
+                `OpenAI WebSocket error: ${error}`,
+                callSid || '',
+                businessId || '',
+                callerPhone || '',
                 businessPhone || '',
-                businessName || '', 
+                businessName || '',
                 forwardedFrom || ''
               );
             });
@@ -17501,7 +17692,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               const sessionForwardedFrom = (ws as any).forwardedFrom || '';
               const sessionLeadId = (ws as any).leadId || null;
               const sessionConversationId = (ws as any).conversationId || null;
-              
+
               console.log('[AI INGEST START] call ended');
               console.log('[INGEST FUNCTION ENTRY] path=openai-ws-close');
               console.log('[AI INGEST] transcript captured', { transcriptLength: transcript.length });
@@ -17509,16 +17700,16 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 transcriptLength: transcript.length,
                 transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | ')
               });
-              console.log('[AI INGEST] session data', { 
-                sessionId: sessionSessionId, 
-                businessId: sessionBusinessId, 
-                callSid: sessionCallSid, 
+              console.log('[AI INGEST] session data', {
+                sessionId: sessionSessionId,
+                businessId: sessionBusinessId,
+                callSid: sessionCallSid,
                 callerPhone: sessionCallerPhone,
                 forwardedFrom: sessionForwardedFrom,
                 leadId: sessionLeadId,
                 conversationId: sessionConversationId
               });
-              
+
               console.log('[AI INGEST FINAL CONTEXT]', {
                 businessId: sessionBusinessId,
                 callerPhone: sessionCallerPhone,
@@ -17528,34 +17719,34 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 transcriptLength: transcript.length,
                 transcriptPreview: transcript.slice(-3).map(t => `${t.role}: ${t.text}`).join(' | ')
               });
-              
+
               // Check for existing AI call record (idempotency protection)
               if (!supabase) {
                 console.log('[AI INGEST] supabase client not available for idempotency check');
                 return;
               }
-              
+
               const { data: existingRecord, error: existingError } = await supabase
                 .from('ai_call_records')
                 .select('id, created_at, lead_id, conversation_id')
                 .eq('call_sid', sessionCallSid)
                 .single();
-              
+
               if (existingError && existingError.code !== 'PGRST116') {
                 console.log('[AI INGEST] error checking existing record', existingError);
                 return;
               }
-              
+
               if (existingRecord) {
-                console.log('[AI INGEST] record already exists, updating instead of creating', { 
-                  existingId: existingRecord.id, 
-                  createdAt: existingRecord.created_at 
+                console.log('[AI INGEST] record already exists, updating instead of creating', {
+                  existingId: existingRecord.id,
+                  createdAt: existingRecord.created_at
                 });
                 // Update existing record instead of creating duplicate
                 // Convert structured transcript to string format
                 const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
                 console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
-                
+
                 // Guard: Skip extraction if transcript is empty
                 if (!transcript || transcript.length === 0) {
                   console.log('[AI INGEST] transcript is empty, skipping extraction');
@@ -17574,7 +17765,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   }
                   return;
                 }
-                
+
                 try {
                   // Extract structured fields from transcript
                   console.log('[AI INGEST] extracting fields...');
@@ -17605,7 +17796,7 @@ Return only JSON, no other text.`;
 
                   const extractionData = await extractionResponse.json();
                   console.log('[AI INGEST EXTRACTION RAW]', (extractionData as any).choices[0].message.content);
-                  
+
                   let extractedFields;
                   try {
                     extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
@@ -17628,7 +17819,7 @@ Return only JSON, no other text.`;
                   // Update existing AI call record
                   const updatePayload = {
                       transcript: transcript,
-                      extracted_info: buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone, (ws as any).callSessionState?.serviceLocationType),
+                      extracted_info: await buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone, (ws as any).callSessionState?.serviceLocationType, sessionCallSid),
                       summary: extractedFields.summary,
                       extraction_failed: false,
                       updated_at: new Date().toISOString()
@@ -17643,7 +17834,7 @@ Return only JSON, no other text.`;
                     console.log('[AI INGEST] error updating existing record', updateError);
                     throw updateError;
                   }
-                  
+
                   console.log('[AI INGEST] existing record updated successfully');
                   const existingSummary = (extractedFields && typeof extractedFields.summary === 'string' && extractedFields.summary.length > 0)
                     ? extractedFields.summary
@@ -17664,7 +17855,7 @@ Return only JSON, no other text.`;
                   return;
                 } catch (error) {
                   console.log('[AI INGEST FAILED] extraction failed during update, updating with transcript only', error);
-                  
+
                   // Update with transcript only if extraction failed
                   const { error: fallbackUpdateError } = await supabase
                     .from('ai_call_records')
@@ -17694,14 +17885,14 @@ Return only JSON, no other text.`;
                   return;
                 }
               }
-              
+
               // Create new AI call record if no existing record found
               console.log('[AI INGEST] no existing record, creating new AI call record');
-              
+
               // Convert structured transcript to string format
               const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
               console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
-              
+
               // Guard: Skip extraction if transcript is empty
               if (!transcript || transcript.length === 0) {
                 console.log('[AI INGEST] transcript is empty, skipping extraction');
@@ -17728,7 +17919,7 @@ Return only JSON, no other text.`;
                 }
                 return;
               }
-              
+
               try {
                 // Extract structured fields from transcript
                 console.log('[AI INGEST] extracting fields...');
@@ -17759,12 +17950,12 @@ Return only JSON, no other text.`;
 
                 const extractionData = await extractionResponse.json();
                 console.log('[AI INGEST EXTRACTION RAW]', (extractionData as any).choices[0].message.content);
-                
+
                 let extractedFields;
                 try {
                   extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
                   console.log('[AI INGEST EXTRACTION PARSED]', extractedFields);
-                  
+
                   // Validate customerName to prevent non-name values from being saved
                   if (extractedFields.customerName && !isValidCustomerName(extractedFields.customerName)) {
                     console.log('[AI INGEST CUSTOMER NAME BLOCKED] =========================================');
@@ -17800,7 +17991,7 @@ Return only JSON, no other text.`;
                     ai_session_id: sessionSessionId,
                     transcript: Array.isArray(transcript) ? transcript : [],
                     outcome: 'completed',
-                    extracted_info: buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone, (ws as any).callSessionState?.serviceLocationType),
+                    extracted_info: await buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone, (ws as any).callSessionState?.serviceLocationType, sessionCallSid),
                     summary: extractedFields.summary,
                     extraction_failed: false
                   };
@@ -17855,7 +18046,7 @@ Return only JSON, no other text.`;
                   console.log('[AI CALL RECORD SAVE FAILED]', newRecordError);
                   throw newRecordError;
                 }
-                
+
                 console.log('[AI CALL RECORD SAVED]', { recordId: newRecord.id });
                 console.log('[AI RECORD INSERT PATH IDENTIFIED]', {
                   pathName: 'path-C-main-insert-with-extraction',
@@ -17864,14 +18055,14 @@ Return only JSON, no other text.`;
                   conversationId: insertPayload.conversation_id,
                   businessId: sessionBusinessId
                 });
-                
+
                 // Create follow-up jobs directly using Supabase
-                console.log('[FOLLOWUP DIRECT INSERT START - PATH-C]', { 
-                  businessId: sessionBusinessId, 
+                console.log('[FOLLOWUP DIRECT INSERT START - PATH-C]', {
+                  businessId: sessionBusinessId,
                   leadId: insertPayload.lead_id,
                   conversationId: insertPayload.conversation_id
                 });
-                
+
                 try {
                   const { error: followUpError } = await supabase
                     .from('follow_up_jobs')
@@ -17883,12 +18074,12 @@ Return only JSON, no other text.`;
                       scheduled_for: new Date().toISOString(),
                       created_at: new Date().toISOString()
                     });
-                  
+
                   if (followUpError) {
                     console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-C]', followUpError);
                   } else {
-                    console.log('[FOLLOWUP DIRECT INSERT SUCCESS - PATH-C]', { 
-                      businessId: sessionBusinessId, 
+                    console.log('[FOLLOWUP DIRECT INSERT SUCCESS - PATH-C]', {
+                      businessId: sessionBusinessId,
                       leadId: insertPayload.lead_id
                     });
                   }
@@ -17896,7 +18087,7 @@ Return only JSON, no other text.`;
                   console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-C]', followUpError);
                 }
                 console.log('[FOLLOWUP DIRECT INSERT COMPLETE - PATH-C]');
-                
+
                 // Create notification via API endpoint (uses notificationServiceServer)
                 console.log('[NOTIFICATION SERVICE START - PATH-C]', {
                   businessId: sessionBusinessId,
@@ -17962,8 +18153,8 @@ Return only JSON, no other text.`;
                   console.log('[AI INGEST] supabase client not available');
                   return;
                 }
-                
-                const canonicalInfo = buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone, (ws as any).callSessionState?.serviceLocationType);
+
+                const canonicalInfo = await buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone, (ws as any).callSessionState?.serviceLocationType, sessionCallSid);
                 const leadInsertPayload = {
                   business_id: sessionBusinessId,
                   caller_phone: sessionCallerPhone,
@@ -17975,7 +18166,7 @@ Return only JSON, no other text.`;
                   },
                 };
                 console.log('[LEAD CREATE START]', { payload: leadInsertPayload });
-                
+
                 const { data: lead, error: leadError } = await supabase
                   .from('leads')
                   .upsert(leadInsertPayload, {
@@ -17993,10 +18184,10 @@ Return only JSON, no other text.`;
 
                 // Create or update conversation
                 console.log('[CONVERSATION CREATE START]', { leadId: lead.id, businessId: sessionBusinessId });
-                
+
                 // Use the race-recovery helper function
                 const conversation = await getOrCreateConversation(supabase, lead.id, sessionBusinessId, 'active');
-                
+
                 if (!conversation) {
                   console.log('[CONVERSATION CREATE ERROR]', { error: 'conversation is null' });
                   throw new Error('Conversation creation returned null');
@@ -18049,7 +18240,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                   transcript: fullTranscript,
                   extractedFields,
                 });
-                
+
                 // Create AI call record
                 console.log('[AI INGEST] creating AI call record...');
                 const transcriptInsertPayload = {
@@ -18120,14 +18311,14 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                     conversationId: transcriptInsertPayload.conversation_id,
                     businessId: sessionBusinessId
                   });
-                  
+
                   // Create follow-up jobs directly using Supabase
-                  console.log('[FOLLOWUP DIRECT INSERT START - PATH-D]', { 
-                    businessId: sessionBusinessId, 
+                  console.log('[FOLLOWUP DIRECT INSERT START - PATH-D]', {
+                    businessId: sessionBusinessId,
                     leadId: transcriptInsertPayload.lead_id,
                     conversationId: transcriptInsertPayload.conversation_id
                   });
-                  
+
                   try {
                     const { error: followUpError } = await supabase
                       .from('follow_up_jobs')
@@ -18139,12 +18330,12 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                         scheduled_for: new Date().toISOString(),
                         created_at: new Date().toISOString()
                       });
-                    
+
                     if (followUpError) {
                       console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-D]', followUpError);
                     } else {
-                      console.log('[FOLLOWUP DIRECT INSERT SUCCESS - PATH-D]', { 
-                        businessId: sessionBusinessId, 
+                      console.log('[FOLLOWUP DIRECT INSERT SUCCESS - PATH-D]', {
+                        businessId: sessionBusinessId,
                         leadId: transcriptInsertPayload.lead_id
                       });
                     }
@@ -18152,7 +18343,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                     console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-D]', followUpError);
                   }
                   console.log('[FOLLOWUP DIRECT INSERT COMPLETE - PATH-D]');
-                  
+
                   // Create notification via API endpoint (uses notificationServiceServer)
                   console.log('[NOTIFICATION SERVICE START - PATH-D]', {
                     businessId: sessionBusinessId,
@@ -18289,21 +18480,21 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                     });
                   }
                 }
-                
+
                 console.log('[AI INGEST COMPLETE] all data saved successfully');
 
               } catch (error) {
                 console.log('[AI INGEST FAILED] extraction failed, saving raw transcript as fallback', error);
-                
+
                 // Fallback: Create lead and conversation BEFORE inserting ai_call_records
                 if (!supabase) {
                   console.log('[AI INGEST] supabase client not available for fallback');
                   return;
                 }
-                
+
                 try {
                   console.log('[AI INGEST] creating lead and conversation for fallback case...');
-                  const fallbackCanonicalInfo = buildCanonicalExtractedInfo({ customerPhone: sessionCallerPhone }, sessionCallerPhone || '', (ws as any).callSessionState?.serviceLocationType);
+                  const fallbackCanonicalInfo = await buildCanonicalExtractedInfo({ customerPhone: sessionCallerPhone }, sessionCallerPhone || '', (ws as any).callSessionState?.serviceLocationType, sessionCallSid);
                   const { data: fallbackLead, error: fallbackLeadError } = await supabase
                     .from('leads')
                     .upsert({
@@ -18328,12 +18519,12 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
 
                   // Use the race-recovery helper function
                   const fallbackConversation = await getOrCreateConversation(supabase, fallbackLead.id, sessionBusinessId, 'active');
-                  
+
                   if (!fallbackConversation) {
                     console.log('[AI INGEST] fallback conversation creation error', { error: 'conversation is null' });
                     throw new Error('Fallback conversation creation returned null');
                   }
-                  
+
                   console.log('[AI INGEST] fallback conversation result', { conversationId: fallbackConversation.id });
 
                   console.log('[AI INGEST] creating fallback AI call record with populated IDs...');
@@ -18403,7 +18594,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                     console.log('[AI CALL RECORD SAVE FAILED]', fallbackRecordError);
                     throw fallbackRecordError;
                   }
-                  
+
                   console.log('[AI CALL RECORD SAVED]', { recordId: fallbackRecord.id });
                   console.log('[AI RECORD INSERT PATH IDENTIFIED]', {
                     pathName: 'path-E-fallback-transcript-insert',
@@ -18412,14 +18603,14 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                     conversationId: fallbackInsertPayload.conversation_id,
                     businessId: sessionBusinessId
                   });
-                  
+
                   // Create follow-up jobs directly using Supabase
-                  console.log('[FOLLOWUP DIRECT INSERT START - PATH-E]', { 
-                    businessId: sessionBusinessId, 
+                  console.log('[FOLLOWUP DIRECT INSERT START - PATH-E]', {
+                    businessId: sessionBusinessId,
                     leadId: fallbackInsertPayload.lead_id,
                     conversationId: fallbackInsertPayload.conversation_id
                   });
-                  
+
                   try {
                     const { error: followUpError } = await supabase
                       .from('follow_up_jobs')
@@ -18431,12 +18622,12 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                         scheduled_for: new Date().toISOString(),
                         created_at: new Date().toISOString()
                       });
-                    
+
                     if (followUpError) {
                       console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-E]', followUpError);
                     } else {
-                      console.log('[FOLLOWUP DIRECT INSERT SUCCESS - PATH-E]', { 
-                        businessId: sessionBusinessId, 
+                      console.log('[FOLLOWUP DIRECT INSERT SUCCESS - PATH-E]', {
+                        businessId: sessionBusinessId,
                         leadId: fallbackInsertPayload.lead_id
                       });
                     }
@@ -18444,7 +18635,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                     console.log('[FOLLOWUP DIRECT INSERT ERROR - PATH-E]', followUpError);
                   }
                   console.log('[FOLLOWUP DIRECT INSERT COMPLETE - PATH-E]');
-                  
+
                   // Create notification via API endpoint (uses notificationServiceServer)
                   console.log('[NOTIFICATION SERVICE START - PATH-E]', {
                     businessId: sessionBusinessId,
@@ -18522,13 +18713,13 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
 
                   console.log('[AI INGEST] fallback processing complete');
                   return;
-                  
+
                 } catch (fallbackError) {
                   console.log('[AI INGEST] fallback processing failed', fallbackError);
                 }
               }
             };
-            
+
             // Single outcome guarantee - verify at least one lead exists
             // This runs after all ingestion paths to ensure no caller is lost
             const ensureSingleOutcome = async (callSid: string, businessId: string, callerPhone: string) => {
@@ -18536,14 +18727,14 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                 console.log('[SINGLE OUTCOME GUARANTEE] No Supabase client available');
                 return;
               }
-              
+
               try {
                 console.log('[SINGLE OUTCOME GUARANTEE] Checking if lead exists for call', {
                   callSid,
                   businessId,
                   callerPhone
                 });
-                
+
                 // Check if any lead exists for this caller
                 const normalizedPhone = normalizePhoneNumberForStorage(callerPhone);
                 const { data: existingLead, error: leadCheckError } = await supabase
@@ -18552,7 +18743,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                   .eq('business_id', businessId)
                   .eq('caller_phone', normalizedPhone)
                   .maybeSingle();
-                
+
                 if (existingLead) {
                   console.log('[SINGLE OUTCOME GUARANTEE] Lead exists, no action needed', {
                     leadId: existingLead.id,
@@ -18560,20 +18751,20 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                   });
                   return;
                 }
-                
+
                 if (leadCheckError && leadCheckError.code !== 'PGRST116') {
                   console.log('[SINGLE OUTCOME GUARANTEE] Lead check error', leadCheckError);
                   return;
                 }
-                
+
                 // No lead exists - create emergency lead
                 console.log('[EMERGENCY LEAD RECOVERY] No lead found, creating emergency missed-call lead', {
                   callSid,
                   businessId,
                   callerPhone
                 });
-                
-                const emergencyCanonicalInfo = buildCanonicalExtractedInfo({ customerPhone: callerPhone }, callerPhone || '', undefined);
+
+                const emergencyCanonicalInfo = await buildCanonicalExtractedInfo({ customerPhone: callerPhone }, callerPhone || '', undefined, callSid);
                 const { data: emergencyLead, error: emergencyLeadError } = await supabase
                   .from('leads')
                   .upsert({
@@ -18590,18 +18781,18 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                   })
                   .select()
                   .single();
-                
+
                 if (emergencyLeadError) {
                   console.log('[EMERGENCY LEAD RECOVERY] Emergency lead creation failed', emergencyLeadError);
                   return;
                 }
-                
+
                 console.log('[EMERGENCY LEAD RECOVERY] Emergency lead created successfully', {
                   leadId: emergencyLead.id,
                   businessId,
                   callerPhone
                 });
-                
+
                 // Use the race-recovery helper function
                 const emergencyConversation = await getOrCreateConversation(supabase, emergencyLead.id, businessId, 'active');
 
@@ -18624,13 +18815,13 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                     extraction_failed: true,
                     summary: 'Emergency recovery - no lead, voicemail, or SMS was created for this call'
                   });
-                
+
                 if (emergencyRecordError) {
                   console.log('[EMERGENCY LEAD RECOVERY] Emergency AI call record creation failed', emergencyRecordError);
                 } else {
                   console.log('[EMERGENCY LEAD RECOVERY] Emergency AI call record created');
                 }
-                
+
               } catch (error) {
                 console.log('[EMERGENCY LEAD RECOVERY] Emergency recovery failed', error);
               }
@@ -18650,17 +18841,17 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
               console.log('[OPENAI AUDIT] close listener attached');
               console.log('[OPENAI RAW] close');
               log(LogLevel.INFO, '[STREAM OPENAI] close event fired');
-              
+
               // Cleanup: Clear assistantSpeaking timeout to prevent memory leaks
               if (assistantSpeakingTimeout) {
                 clearTimeout(assistantSpeakingTimeout);
                 assistantSpeakingTimeout = null;
                 console.log('[TIMEOUT CLEANUP] assistantSpeakingTimeout cleared on WebSocket close');
               }
-              
+
               // Log call metrics before ingestion
               logCallMetrics(aiSessionTracker);
-              
+
               console.log('[INGEST CALL DATA CALLSITE REACHED] OpenAI WebSocket close path');
               ingestCallData().then(() => {
                 console.log('[INGEST CALL DATA CALLSITE COMPLETE] OpenAI WebSocket close path');
@@ -18681,12 +18872,12 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
               console.log('[OPENAI CONNECT ERROR]', 'Unexpected response from OpenAI');
               console.log('[OPENAI AUDIT] unexpected-response listener attached');
               console.log('[OPENAI RAW] unexpected-response', { statusCode: response.statusCode });
-              console.log('[OPENAI AUDIT] unexpected-response details', { 
-                statusCode: response.statusCode, 
+              console.log('[OPENAI AUDIT] unexpected-response details', {
+                statusCode: response.statusCode,
                 statusMessage: response.statusMessage,
-                headers: response.headers 
+                headers: response.headers
               });
-              
+
               // Try to read response body
               let body = '';
               response.on('data', (chunk) => {
@@ -18703,18 +18894,18 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
           } catch (error) {
             log(LogLevel.ERROR, '[AI POC] initializeOpenAI failed with exception', error as Error);
             openaiInitFailed = true;
-            
+
             // Trigger voicemail fallback for unexpected runtime exceptions
             await triggerVoicemailFallback(
-              ws, 
-              twilioHandler, 
-              aiSessionTracker, 
-              `Unexpected runtime exception during AI initialization: ${error}`, 
-              callSid || '', 
-              businessId || '', 
-              callerPhone || '', 
+              ws,
+              twilioHandler,
+              aiSessionTracker,
+              `Unexpected runtime exception during AI initialization: ${error}`,
+              callSid || '',
+              businessId || '',
+              callerPhone || '',
               businessPhone || '',
-              businessName || '', 
+              businessName || '',
               forwardedFrom || ''
             );
           }
@@ -18736,7 +18927,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
       console.log('[TWILIO WEBSOCKET CLOSE] finalClosingStarted:', finalClosingStarted);
       console.log('[TWILIO WEBSOCKET CLOSE] hangupScheduled:', hangupScheduled);
       console.log('[TWILIO WEBSOCKET CLOSE] finalGoodbyeMarkReceived:', finalGoodbyeMarkReceived);
-      
+
       // Log handler entry state before any conditional logic
       console.log('[WS CLOSE HANDLER ENTRY] =========================================');
       console.log('[WS CLOSE HANDLER ENTRY] callState:', callState);
@@ -18747,22 +18938,22 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
       console.log('[WS CLOSE HANDLER ENTRY] callSid:', callSid);
       console.log('[WS CLOSE HANDLER ENTRY] Timestamp:', new Date().toISOString());
       console.log('[WS CLOSE HANDLER ENTRY] =========================================');
-      
+
       // Log intake data for debugging
       console.log('[WS CLOSE HANDLER INTAKE DATA] =========================================');
       console.log('[WS CLOSE HANDLER INTAKE DATA] intakeData:', JSON.stringify(intakeData, null, 2));
       console.log('[WS CLOSE HANDLER INTAKE DATA] transcript length:', transcript.length);
       console.log('[WS CLOSE HANDLER INTAKE DATA] =========================================');
-      
+
       // Clear AI timeout timer if it exists
       if (aiTimeoutTimer) {
         clearTimeout(aiTimeoutTimer);
         aiTimeoutTimer = null;
       }
-      
+
       // Handle incomplete intake finalization
       // Only run if intake is incomplete (caller hung up before completing intake)
-      
+
       // Runtime verification logging
       console.log('[WS CLOSE GUARD VERSION] =========================================');
       console.log('[WS CLOSE GUARD VERSION] callSid:', callSid);
@@ -18775,13 +18966,13 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
       }
       console.log('[WS CLOSE GUARD VERSION] guardVersion: closingState_v2');
       console.log('[WS CLOSE GUARD VERSION] =========================================');
-      
+
       // Log all condition components for audit
       const stage = intakeData?.stage || 'unknown';
       const serviceLocationTypeForCheck = (ws as any).callSessionState?.serviceLocationType || 'onsite';
       const allRequiredFieldsCollected = intakeData ? areAllRequiredFieldsCollected(intakeData, serviceLocationTypeForCheck) : false;
       const terminalClosingResponseStarted = closingState?.terminalClosingResponseStarted || false;
-      
+
       console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] =========================================');
       console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] !incompleteFinalizationStarted:', !incompleteFinalizationStarted);
       console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] callState === "active":', callState === 'active');
@@ -18798,7 +18989,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
       console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] terminalClosingResponseStarted:', terminalClosingResponseStarted);
       console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] Timestamp:', new Date().toISOString());
       console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] =========================================');
-      
+
       // Corrected condition: prevent ANY call that reached complete or terminal close from entering incomplete finalization
       // FIXED: Read from closingState instead of local variables to prevent race condition
       // CRITICAL FIX: Allow incomplete finalization even if terminalClosingResponseStarted is true when required fields are missing
@@ -18821,7 +19012,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
         console.log('[FINALIZE INCOMPLETE CALLSITE] closingState.terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
         console.log('[FINALIZE INCOMPLETE CALLSITE] timestamp:', new Date().toISOString());
         console.log('[FINALIZE INCOMPLETE CALLSITE] =========================================');
-        
+
         console.log('[TWILIO WEBSOCKET CLOSE] Detecting incomplete intake - caller hung up before completing intake');
         console.log('[TWILIO WEBSOCKET CLOSE] callState:', closingState.callState);
         console.log('[TWILIO WEBSOCKET CLOSE] finalClosingStarted:', closingState.finalClosingStarted);
@@ -18830,9 +19021,9 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
         console.log('[TWILIO WEBSOCKET CLOSE] allRequiredFieldsCollected:', allRequiredFieldsCollected);
         console.log('[TWILIO WEBSOCKET CLOSE] terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
         console.log('[TWILIO WEBSOCKET CLOSE] Triggering incomplete intake finalization');
-        
+
         incompleteFinalizationStarted = true;
-        
+
         // Finalize incomplete intake asynchronously
         finalizeIncompleteIntake(
           transcript,
@@ -18869,7 +19060,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
         console.log('[INCOMPLETE FINALIZATION SKIPPED] Timestamp:', new Date().toISOString());
         console.log('[INCOMPLETE FINALIZATION SKIPPED] =========================================');
       }
-      
+
       // Only close OpenAI WebSocket if we're not in the middle of final closing
       // If finalClosingStarted is true, let the mark-based hangup handle cleanup
       // BUT add forced cleanup after 30 seconds to prevent connection leaks
@@ -18901,7 +19092,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
         console.log('[OPENAI WEBSOCKET CLEANUP] OpenAI WebSocket already closed or closing');
         console.log('[OPENAI WEBSOCKET CLEANUP] readyState:', openAiWs.readyState);
       }
-      
+
       log(LogLevel.INFO, '[AI POC] websocket closed');
       log(LogLevel.INFO, '[AI POC] websocket close details', { code, reason: reason?.toString() });
       log(LogLevel.INFO, '[AI POC] OpenAI initialization status', {
@@ -18909,7 +19100,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
         succeeded: openaiInitSucceeded,
         failed: openaiInitFailed,
       });
-      
+
       // Call ingestion when main WebSocket closes
       console.log('[INGEST CALL DATA CALLSITE REACHED] Main WebSocket close path');
       ingestCallData().then(() => {
@@ -19004,7 +19195,7 @@ async function sendAIConfirmationSMS(
       console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Error:', businessError?.message || 'Business not found');
       console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Timestamp:', new Date().toISOString());
       console.log('[COMPLETE FINALIZATION STEP 9 FAILED] =========================================');
-      
+
       console.error('[AI CONFIRMATION SMS ERROR] Failed to fetch business:', businessError);
       return;
     }
@@ -19032,7 +19223,7 @@ async function sendAIConfirmationSMS(
       secretFirstChar: internalApiSecret?.[0],
       secretLastChar: internalApiSecret?.[internalApiSecret.length - 1]
     });
-    
+
     if (!internalApiSecret) {
       console.error('[AI CONFIRMATION SMS ERROR] INTERNAL_API_SECRET not configured');
       return;
@@ -19041,11 +19232,11 @@ async function sendAIConfirmationSMS(
     // Retry logic for SMS delivery (3 retries with exponential backoff)
     let lastError: any = null;
     let response: Response | null = null;
-    
+
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         console.log('[AI CONFIRMATION SMS RETRY]', { attempt, maxAttempts: 3 });
-        
+
         response = await fetch(confirmationUrl, {
           method: 'POST',
           headers: {
@@ -19086,7 +19277,7 @@ async function sendAIConfirmationSMS(
             status: response.status,
             statusText: response.statusText
           });
-          
+
           if (attempt < 3) {
             const backoffMs = Math.pow(2, attempt) * 1000; // Exponential backoff: 1s, 2s, 4s
             console.log('[AI CONFIRMATION SMS RETRY BACKOFF]', { backoffMs, nextAttempt: attempt + 1 });
@@ -19099,7 +19290,7 @@ async function sendAIConfirmationSMS(
           attempt,
           error: error instanceof Error ? error.message : String(error)
         });
-        
+
         if (attempt < 3) {
           const backoffMs = Math.pow(2, attempt) * 1000;
           console.log('[AI CONFIRMATION SMS RETRY BACKOFF]', { backoffMs, nextAttempt: attempt + 1 });
@@ -19114,7 +19305,7 @@ async function sendAIConfirmationSMS(
     console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Last error:', lastError);
     console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Timestamp:', new Date().toISOString());
     console.log('[COMPLETE FINALIZATION STEP 9 FAILED] =========================================');
-    
+
     console.error('[AI CONFIRMATION SMS ERROR] All retries failed:', lastError);
     return;
 
@@ -19124,7 +19315,7 @@ async function sendAIConfirmationSMS(
     console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Error:', error instanceof Error ? error.message : String(error));
     console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Timestamp:', new Date().toISOString());
     console.log('[COMPLETE FINALIZATION STEP 9 FAILED] =========================================');
-    
+
     console.error('[AI CONFIRMATION SMS ERROR]', error);
     // Don't fail the AI ingestion if SMS fails
   }
