@@ -276,7 +276,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
     <>
     <div
       className="fixed inset-0 z-50 flex sm:items-center sm:justify-center justify-end bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
-      style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, calc(16px + env(safe-area-inset-bottom) + var(--bottom-nav-height,0px)))' }}
+      style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="appointment-title"
@@ -286,7 +286,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
         }
       }}
     >
-      <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[calc(100dvh-32px-2*env(safe-area-inset-bottom))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4">
+      <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px-env(safe-area-inset-top))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 sm:px-4 sm:py-3 border-b border-border/30 shrink-0">
           <div className="flex items-center gap-2.5">
