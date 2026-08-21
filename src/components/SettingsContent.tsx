@@ -569,6 +569,7 @@ export default function SettingsContent() {
   const programmaticScrollInProgressRef = useRef(false) // Track when programmatic scroll is in progress
   const scrollFallbackTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Track fallback timeout for cleanup
   const [appVisibilityTrigger, setAppVisibilityTrigger] = useState(0) // Trigger for visibility changes
+  const sectionScrollHandledRef = useRef(false) // Track if section deep-link scroll has been handled
 
   // Listen for visibility change and focus events to trigger Stripe Connect return check
   // This ensures the effect runs when user returns from external browser on Android
@@ -1986,6 +1987,34 @@ export default function SettingsContent() {
       window.history.replaceState({}, '', url.toString())
     }
   }, [])
+
+  // Handle section deep-linking (e.g., ?section=contacts)
+  useEffect(() => {
+    // One-shot guard - only handle once
+    if (sectionScrollHandledRef.current) return
+
+    const urlParams = new URLSearchParams(window.location.search)
+    const section = urlParams.get('section')
+
+    if (section === 'contacts' && business && formBusiness) {
+      // Settings content is rendered, check if contacts section exists
+      const contactsSection = document.getElementById('contacts')
+      if (contactsSection) {
+        // Element exists - scroll to it
+        requestAnimationFrame(() => {
+          contactsSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          // Clean up the section parameter after successful scroll
+          const url = new URL(window.location.href)
+          url.searchParams.delete('section')
+          window.history.replaceState({}, '', url.toString())
+          // Mark as handled to prevent re-scrolling on subsequent rerenders
+          sectionScrollHandledRef.current = true
+        })
+      }
+      // If element doesn't exist yet, effect will rerun when business/formBusiness change
+      // and the element becomes available
+    }
+  }, [business, formBusiness])
 
   // App resume reconciliation for Stripe Connect
   useEffect(() => {
