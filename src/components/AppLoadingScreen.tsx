@@ -9,7 +9,7 @@ export default function AppLoadingScreen() {
   ]
 
   return (
-    <div className="min-h-screen bg-background dark:bg-slate-950 flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       {/* Logo - using actual ReplyFlow logo */}
       <div className="mb-8">
         <img
@@ -23,16 +23,16 @@ export default function AppLoadingScreen() {
 
       {/* Spinner */}
       <div className="relative mb-8">
-        <div className="w-14 h-14 border-4 border-blue-600/30 border-t-blue-600 border-solid rounded-full animate-spin"></div>
+        <div className="w-14 h-14 border-4 border-primary/30 border-t-primary border-solid rounded-full animate-spin"></div>
       </div>
 
       {/* Main loading text */}
-      <h1 className="text-foreground dark:text-white text-xl sm:text-2xl font-semibold mb-2 animate-pulse">
+      <h1 className="text-foreground text-xl sm:text-2xl font-semibold mb-2 animate-pulse">
         Setting up your account
       </h1>
 
       {/* Reassuring subtitle */}
-      <p className="text-muted-foreground dark:text-slate-400 text-sm sm:text-base mb-8">
+      <p className="text-muted-foreground text-sm sm:text-base mb-8">
         This usually takes less than a minute.
       </p>
 
@@ -43,26 +43,26 @@ export default function AppLoadingScreen() {
             key={index}
             className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
               index === 0
-                ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-500/50'
-                : 'bg-muted/50 dark:bg-slate-900/50 border border-border dark:border-slate-800'
+                ? 'bg-primary/10 border border-primary/20'
+                : 'bg-muted/50 border border-border'
             }`}
           >
             <div
               className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
                 index === 0
-                  ? 'bg-blue-500'
-                  : 'bg-muted-foreground/50 dark:bg-slate-700'
+                  ? 'bg-primary'
+                  : 'bg-muted-foreground/30'
               }`}
             >
               {index === 0 && (
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-primary-foreground rounded-full animate-pulse"></div>
               )}
             </div>
             <p
               className={`text-sm sm:text-base ${
                 index === 0
-                  ? 'text-foreground dark:text-white font-medium'
-                  : 'text-muted-foreground dark:text-slate-500'
+                  ? 'text-foreground font-medium'
+                  : 'text-muted-foreground'
               }`}
             >
               {step}

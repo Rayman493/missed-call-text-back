@@ -12,7 +12,7 @@ export default function Loading() {
 
   return (
     <div
-      className="min-h-dvh min-h-screen bg-background dark:bg-[#020617] flex flex-col items-center justify-center px-4 relative overflow-hidden"
+      className="min-h-dvh min-h-screen bg-background flex flex-col items-center justify-center px-4 relative overflow-hidden"
       role="status"
       aria-live="polite"
       aria-label="Loading ReplyFlow"
@@ -35,12 +35,12 @@ export default function Loading() {
         <BrandLoader size={48} className="mb-6" />
 
         {/* Product name */}
-        <h1 className="text-xl font-semibold text-foreground dark:text-white mb-2">
+        <h1 className="text-xl font-semibold text-foreground mb-2">
           ReplyFlow
         </h1>
 
         {/* Status line */}
-        <p className="text-sm text-muted-foreground dark:text-slate-400 mb-6">
+        <p className="text-sm text-muted-foreground mb-6">
           Preparing your workspace…
         </p>
 
@@ -58,7 +58,7 @@ export default function Loading() {
 function LoadingDot({ delay }: { delay: number }) {
   return (
     <div
-      className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"
+      className="w-2 h-2 bg-primary rounded-full animate-pulse"
       style={{
         animationDelay: `${delay}ms`,
         animationDuration: '1.4s',

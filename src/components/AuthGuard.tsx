@@ -286,9 +286,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-200 text-lg">Finishing secure sign-in...</p>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">This can take a few seconds on mobile.</p>
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
+          <p className="text-muted-foreground text-lg">Finishing secure sign-in...</p>
+          <p className="text-muted-foreground/70 text-sm mt-2">This can take a few seconds on mobile.</p>
         </div>
       </div>
     )
@@ -316,9 +316,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       return (
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center">
-            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-200 text-lg">Restoring your session...</p>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">This can take a few seconds on mobile.</p>
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
+            <p className="text-muted-foreground text-lg">Restoring your session...</p>
+            <p className="text-muted-foreground/70 text-sm mt-2">This can take a few seconds on mobile.</p>
           </div>
         </div>
       )

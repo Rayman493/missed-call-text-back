@@ -797,12 +797,12 @@ export default function CompleteSetupPage() {
 
   if (authLoading || businessLoading || isResolvingCheckoutState) {
     return (
-      <div className="min-h-screen bg-background dark:bg-slate-950 flex flex-col items-center justify-center px-4 text-center">
-        <div className="w-14 h-14 border-4 border-blue-600/30 border-t-blue-600 border-solid rounded-full animate-spin mb-6"></div>
-        <h1 className="text-xl font-semibold text-foreground dark:text-white mb-2">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 text-center">
+        <div className="w-14 h-14 border-4 border-primary/30 border-t-primary border-solid rounded-full animate-spin mb-6"></div>
+        <h1 className="text-xl font-semibold text-foreground mb-2">
           {isInitialMount ? 'Finalizing your account...' : 'Verifying your subscription...'}
         </h1>
-        <p className="text-sm text-muted-foreground dark:text-slate-400">
+        <p className="text-sm text-muted-foreground">
           {isInitialMount ? 'Setting up ReplyFlow. This should only take a moment.' : 'Please wait while we confirm your subscription status.'}
         </p>
       </div>
