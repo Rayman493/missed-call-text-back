@@ -629,3 +629,18 @@ html.light select:-moz-autofill:focus {
     padding-bottom: 0;
   }
 }
+
+/*
+ * Mobile bottom nav safe content with visual gap
+ * Mobile: padding = bottom nav height + 16px visual gap
+ * Desktop (lg breakpoint and above): No extra padding (no bottom nav)
+ */
+.mobile-bottom-nav-safe-content-with-gap {
+  padding-bottom: calc(var(--bottom-nav-height, 72px) + 16px);
+}
+
+@media (min-width: 1024px) {
+  .mobile-bottom-nav-safe-content-with-gap {
+    padding-bottom: 0;
+  }
+}
