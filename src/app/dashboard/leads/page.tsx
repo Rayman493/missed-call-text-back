@@ -974,6 +974,11 @@ export default function LeadsPage() {
                   } else {
                     setQuickFilter('new')
                     setStatusFilter('all')
+                    // Clear status query parameter for consistency
+                    const params = new URLSearchParams(searchParams?.toString())
+                    params.delete('status')
+                    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+                    router.replace(newUrl)
                   }
                 }}
                 ariaLabel="Filter customers needing a reply"
@@ -1002,6 +1007,11 @@ export default function LeadsPage() {
                   } else {
                     setQuickFilter('active')
                     setStatusFilter('all')
+                    // Clear status query parameter for consistency
+                    const params = new URLSearchParams(searchParams?.toString())
+                    params.delete('status')
+                    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+                    router.replace(newUrl)
                   }
                 }}
                 ariaLabel="Filter active customers"
@@ -1030,6 +1040,11 @@ export default function LeadsPage() {
                   } else {
                     setQuickFilter('completed')
                     setStatusFilter('all')
+                    // Clear status query parameter for consistency
+                    const params = new URLSearchParams(searchParams?.toString())
+                    params.delete('status')
+                    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+                    router.replace(newUrl)
                   }
                 }}
                 ariaLabel="Filter completed customers"
@@ -1045,7 +1060,7 @@ export default function LeadsPage() {
                 icon="🚫"
                 iconColor="orange"
                 isInteractive={true}
-                isSelected={quickFilter === 'ignored'}
+                isSelected={quickFilter === 'ignored' && statusFilter === 'all'}
                 onClick={() => {
                   if (quickFilter === 'ignored') {
                     setQuickFilter('all')
@@ -1058,6 +1073,11 @@ export default function LeadsPage() {
                   } else {
                     setQuickFilter('ignored')
                     setStatusFilter('all')
+                    // Clear status query parameter for consistency
+                    const params = new URLSearchParams(searchParams?.toString())
+                    params.delete('status')
+                    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+                    router.replace(newUrl)
                   }
                 }}
                 ariaLabel="Filter ignored customers"
