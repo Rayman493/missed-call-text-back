@@ -37,6 +37,7 @@ export default function LeadsSourceGraph() {
   const [loading, setLoading] = useState(true)
   const [unclassifiedCount, setUnclassifiedCount] = useState(0)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('90d')
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
@@ -259,54 +260,81 @@ export default function LeadsSourceGraph() {
         ) : (
           <div className="h-[260px]">
             <ChartTouchWrapper>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={data}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={CHART_STYLES.donutInnerRadius}
-                    outerRadius={CHART_STYLES.donutOuterRadius}
-                    paddingAngle={CHART_STYLES.donutPaddingAngle}
-                    dataKey="value"
-                  >
-                    {data.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Label
-                    content={({ viewBox }: any) => {
-                      if (!viewBox) return null
-                      const { x, y, width, height } = viewBox
-                      const cx = x + width / 2
-                      const cy = y + height / 2
-                      return (
-                        <g>
-                          <text x={cx} y={cy - 5} textAnchor="middle" dominantBaseline="middle" className="fill-foreground" style={{ fontSize: '20px', fontWeight: '600' }}>
-                            {formatInteger(trueTotal)}
-                          </text>
-                          <text x={cx} y={cy + 10} textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground" style={{ fontSize: '10px' }}>
-                            Leads
-                          </text>
-                        </g>
-                      )
-                    }}
-                    position="center"
-                  />
-                  {!isTouchDevice && (
-                    <Tooltip
-                      content={<PremiumTooltip />}
+              <div onClick={() => setSelectedIndex(null)}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={data}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={CHART_STYLES.donutInnerRadius}
+                      outerRadius={CHART_STYLES.donutOuterRadius}
+                      paddingAngle={CHART_STYLES.donutPaddingAngle}
+                      dataKey="value"
+                      onClick={(data: any, index: number, event: React.MouseEvent) => {
+                        event.stopPropagation()
+                        setSelectedIndex(selectedIndex === index ? null : index)
+                      }}
+                    >
+                      {data.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.color}
+                          stroke={selectedIndex === index ? 'hsl(var(--background))' : 'none'}
+                          strokeWidth={selectedIndex === index ? 2 : 0}
+                        />
+                      ))}
+                    </Pie>
+                    <Label
+                      content={({ viewBox }: any) => {
+                        if (!viewBox) return null
+                        const { x, y, width, height } = viewBox
+                        const cx = x + width / 2
+                        const cy = y + height / 2
+
+                        // Show selected segment value, or default total
+                        if (selectedIndex !== null && data[selectedIndex]) {
+                          const selected = data[selectedIndex]
+                          return (
+                            <g>
+                              <text x={cx} y={cy - 5} textAnchor="middle" dominantBaseline="middle" className="fill-foreground" style={{ fontSize: '20px', fontWeight: '600' }}>
+                                {selected.value}
+                              </text>
+                              <text x={cx} y={cy + 10} textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground" style={{ fontSize: '10px' }}>
+                                {selected.name}
+                            </text>
+                            </g>
+                          )
+                        }
+
+                        return (
+                          <g>
+                            <text x={cx} y={cy - 5} textAnchor="middle" dominantBaseline="middle" className="fill-foreground" style={{ fontSize: '20px', fontWeight: '600' }}>
+                              {formatInteger(trueTotal)}
+                            </text>
+                            <text x={cx} y={cy + 10} textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground" style={{ fontSize: '10px' }}>
+                              Leads
+                            </text>
+                          </g>
+                        )
+                      }}
+                      position="center"
                     />
-                  )}
-                  <Legend
-                    verticalAlign="bottom"
-                    height={36}
-                    iconType="circle"
-                    iconSize={CHART_STYLES.legendIconSize}
-                    wrapperStyle={{ fontSize: `${CHART_STYLES.legendFontSize}px` }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+                    {!isTouchDevice && (
+                      <Tooltip
+                        content={<PremiumTooltip />}
+                      />
+                    )}
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      iconType="circle"
+                      iconSize={CHART_STYLES.legendIconSize}
+                      wrapperStyle={{ fontSize: `${CHART_STYLES.legendFontSize}px` }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             </ChartTouchWrapper>
           </div>
         )}
