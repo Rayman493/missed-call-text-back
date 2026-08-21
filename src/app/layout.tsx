@@ -96,7 +96,9 @@ export default function RootLayout({
 
                 if (isPublicRoute) {
                   document.documentElement.classList.add('dark');
-                  document.body.style.backgroundColor = '#09090b';
+                  if (document.body) {
+                    document.body.classList.add('public-route-dark');
+                  }
                 }
               })();
             `,

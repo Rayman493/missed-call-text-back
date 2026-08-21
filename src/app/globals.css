@@ -51,6 +51,11 @@ html.light body {
   color: #0f172a;
 }
 
+/* Public route dark background for theme flash prevention */
+body.public-route-dark {
+  background-color: #09090b !important;
+}
+
 /* Dark mode styles */
 html.dark {
   color-scheme: dark;

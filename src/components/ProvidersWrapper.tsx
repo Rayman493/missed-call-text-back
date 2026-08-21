@@ -38,9 +38,28 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
   const [VoicemailProgressProvider, setVoicemailProgressProvider] = useState<any>(null)
   const [NotificationProvider, setNotificationProvider] = useState<any>(null)
 
-  // Check if current route is public (after client-side hydration)
+  // Check if current route is public
   // Use exact matching to avoid classifying all routes as public
-  const isPublicRoute = isClient && pathname && PUBLIC_ROUTES.has(normalizePathname(pathname))
+  // Do NOT gate on isClient - public routes must be detected on initial render to prevent AppLoadingScreen flash
+  const normalizedPathname = normalizePathname(pathname)
+  const isPublicRoute = Boolean(pathname) && PUBLIC_ROUTES.has(normalizedPathname)
+
+  // Cleanup public-route-dark class when navigating away from public routes
+  useEffect(() => {
+    const cleanupPublicRouteClass = () => {
+      if (typeof document !== 'undefined' && document.body) {
+        document.body.classList.remove('public-route-dark')
+      }
+    }
+
+    // If not on public route, remove the class immediately
+    if (!isPublicRoute) {
+      cleanupPublicRouteClass()
+    }
+
+    // Cleanup on unmount
+    return cleanupPublicRouteClass
+  }, [isPublicRoute])
 
   // Trace log on every page load
   useEffect(() => {
@@ -80,13 +99,27 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
     loadProviders()
   }, [])
 
-  // For public routes, render children immediately without waiting for providers
-  // Public content doesn't need AuthProvider, BusinessProvider, etc. to render
+  // For public routes, render dark bootstrap while essential providers load, then wrap with providers
+  // Skip BusinessProvider, NotificationProvider, and voicemail providers on public routes
+  // Skip the loading screen on public routes to prevent theme flash
   if (isPublicRoute) {
-    return <>{children}</>
+    // While essential providers are loading, show dark bootstrap to prevent useAuth crash
+    if (!isClient || !ThemeProvider || !AuthProvider) {
+      return (
+        <div className="min-h-screen bg-zinc-950" />
+      )
+    }
+    // Once essential providers are loaded, wrap public content
+    return (
+      <ThemeProvider>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </ThemeProvider>
+    )
   }
 
-  // Don't render anything until providers are loaded to prevent context errors
+  // Don't render anything until all providers are loaded to prevent context errors
   // Only applies to authenticated routes
   if (!isClient || !providersLoaded || !AuthProvider || !BusinessProvider || !ThemeProvider || !VoicemailVolumeProvider || !VoicemailPlaybackManagerProvider || !VoicemailProgressProvider || !NotificationProvider) {
     return (
