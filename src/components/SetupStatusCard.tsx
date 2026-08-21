@@ -161,8 +161,9 @@ export default function SetupStatusCard({
       return 'critical-issue'
     }
 
-    // Priority 4: Setup incomplete (user hasn't completed all steps)
-    if (!hasCompletedTestCall || !hasConfirmedForwardingInstructions) {
+    // Priority 4: Setup incomplete (user hasn't completed required steps)
+    // Test call is optional/recommended, not required for operational readiness
+    if (!hasConfirmedForwardingInstructions) {
       return 'setup-incomplete'
     }
 
@@ -171,7 +172,7 @@ export default function SetupStatusCard({
       return 'setup-complete'
     }
 
-    // Priority 7: Healthy active account
+    // Priority 6: Healthy active account
     return 'healthy'
   }
   
@@ -240,13 +241,13 @@ export default function SetupStatusCard({
   // Auto-expand the current step
   React.useEffect(() => {
     if (cardState === 'setup-incomplete') {
-      if (!hasConfirmedForwardingInstructions) {
+      if (!business?.twilio_phone_number) {
+        setExpandedStep(1)
+      } else if (!hasConfirmedForwardingInstructions) {
         setExpandedStep(2)
-      } else if (!hasCompletedTestCall) {
-        setExpandedStep(3)
       }
     }
-  }, [cardState, hasConfirmedForwardingInstructions, hasCompletedTestCall])
+  }, [cardState, business?.twilio_phone_number, hasConfirmedForwardingInstructions])
   
   // Shared forwarding instructions modal portal available for all render branches
   const modalPortal = showForwardingInstructions ? (
@@ -271,10 +272,8 @@ export default function SetupStatusCard({
   // Collapsed overview for setup-incomplete (user may manually collapse)
   if (!isExpanded && cardState === 'setup-incomplete') {
     const currentStep = !business?.twilio_phone_number
-      ? 'Step 1 of 3'
-      : !hasConfirmedForwardingInstructions
-        ? 'Step 2 of 3'
-        : 'Step 3 of 3'
+      ? 'Step 1 of 2'
+      : 'Step 2 of 2'
 
     return (
       <>
@@ -438,10 +437,10 @@ export default function SetupStatusCard({
     const forwardingStep2Complete = hasConfirmedForwardingInstructions
 
     const handleContinueSetup = () => {
-      if (!forwardingActuallyVerified) {
+      if (!hasConfirmedForwardingInstructions) {
         setShowForwardingInstructions(true)
       } else if (!hasCompletedTestCall) {
-        // Forwarding is done; surface test guidance.
+        // Forwarding is confirmed; surface test guidance.
         setExpandedStep(3)
       }
     }
@@ -544,23 +543,41 @@ export default function SetupStatusCard({
               </div>
             </div>
 
-            {/* Test Call */}
+            {/* Success message when required setup is complete */}
+          {forwardingStep2Complete && (
+            <div className="bg-green-500/20 border border-green-400/30 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-300 flex-shrink-0" />
+                <div>
+                  <p className="text-green-100 text-sm font-medium">ReplyFlow is ready</p>
+                  <p className="text-green-200/80 text-xs">Your number and call forwarding are configured. Missed calls will be handled automatically.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Test Call - Optional/Recommended */}
             <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${hasCompletedTestCall ? 'bg-green-500' : 'bg-gray-500'}`}>
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${hasCompletedTestCall ? 'bg-green-500' : 'bg-blue-500/30'}`}>
                     {hasCompletedTestCall ? (
                       <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     ) : (
-                      <div className="w-2 h-2 bg-white/50 rounded-full" />
+                      <Phone className="w-3 h-3 text-blue-200" />
                     )}
                   </div>
                   <div>
-                    <span className="text-white text-sm font-medium">Test Your Setup</span>
-                    <span className={`text-xs block ${hasCompletedTestCall ? 'text-green-200' : 'text-gray-300'}`}>
-                      {hasCompletedTestCall ? 'Complete' : 'Not Started'}
+                    <div className="flex items-center gap-2">
+                      <span className="text-white text-sm font-medium">Test Your Setup</span>
+                      {!hasCompletedTestCall && (
+                        <span className="text-xs text-green-200 bg-green-500/20 px-1.5 py-0.5 rounded">Recommended</span>
+                      )}
+                    </div>
+                    <span className={`text-xs block ${hasCompletedTestCall ? 'text-green-200' : 'text-blue-200'}`}>
+                      {hasCompletedTestCall ? 'Complete' : 'Optional'}
                     </span>
                   </div>
                 </div>
@@ -584,7 +601,7 @@ export default function SetupStatusCard({
           {forwardingStep2Complete && !hasCompletedTestCall && expandedStep === 3 && (
             <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-4">
               <p className="text-green-100 text-sm">
-                From another phone, call your business number and let it go to voicemail. ReplyFlow will capture the missed call and send a test text.
+                Want to verify everything works? Call your business number from another phone and let it go to voicemail. ReplyFlow will capture the missed call and send a test text.
               </p>
               {business?.business_phone_number && (
                 <p className="text-white font-mono text-base mt-2">
@@ -647,7 +664,7 @@ export default function SetupStatusCard({
                   Complete Setup
                 </h1>
                 <p className="text-muted-foreground text-xs sm:text-sm">
-                  {!hasConfirmedForwardingInstructions ? 'Step 2 of 3' : 'Step 3 of 3'}
+                  {!business?.twilio_phone_number ? 'Step 1 of 2' : 'Step 2 of 2'}
                 </p>
               </div>
               <button
@@ -760,7 +777,7 @@ export default function SetupStatusCard({
                 )}
               </div>
 
-              {/* Step 3: Test Setup - Accordion */}
+              {/* Recommended: Test Setup - Accordion */}
               {hasConfirmedForwardingInstructions && (
                 <div className={`border rounded-xl overflow-hidden transition-all duration-200 ${
                   !hasCompletedTestCall && expandedStep === 3
@@ -769,7 +786,7 @@ export default function SetupStatusCard({
                 }`}>
                   <button
                     type="button"
-                    aria-label="Toggle step 3 details"
+                    aria-label="Toggle test setup details"
                     aria-expanded={expandedStep === 3}
                     onClick={() => setExpandedStep(expandedStep === 3 ? null : 3)}
                     className="w-full flex items-center gap-3 p-3 sm:p-4 text-left hover:bg-muted/40 transition-colors"
@@ -777,20 +794,25 @@ export default function SetupStatusCard({
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
                       hasCompletedTestCall
                         ? 'bg-green-500/20'
-                        : 'bg-background border-2 border-primary/40'
+                        : 'bg-blue-500/10 border border-blue-500/30'
                     }`}>
                       {hasCompletedTestCall ? (
                         <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       ) : (
-                        <span className="text-primary text-sm font-semibold">3</span>
+                        <Phone className="w-3.5 h-3.5 text-blue-500" />
                       )}
                     </div>
                     <div className="flex-1">
-                      <span className="text-foreground text-sm font-medium">
-                        {hasCompletedTestCall ? 'Test completed' : 'Test your setup'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-foreground text-sm font-medium">
+                          {hasCompletedTestCall ? 'Test completed' : 'Test your setup'}
+                        </span>
+                        {!hasCompletedTestCall && (
+                          <span className="text-xs text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">Recommended</span>
+                        )}
+                      </div>
                     </div>
                     {expandedStep === 3 ? (
                       <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -801,7 +823,7 @@ export default function SetupStatusCard({
                   {expandedStep === 3 && (
                     <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
                       <p className="text-muted-foreground text-sm mb-2">
-                        From another phone, call your business number once to test your setup.
+                        ReplyFlow is ready to handle calls. Want to verify everything works? Call your business number from another phone and let it go to voicemail.
                       </p>
                       {business?.business_phone_number && (
                         <div className="flex items-center gap-3 mb-2">
@@ -812,7 +834,7 @@ export default function SetupStatusCard({
                         </div>
                       )}
                       <p className="text-muted-foreground text-xs">
-                        Use any phone other than your business phone to confirm the missed call reaches ReplyFlow.
+                        This optional test confirms your call forwarding is working correctly.
                       </p>
                     </div>
                   )}
