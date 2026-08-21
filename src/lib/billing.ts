@@ -1,12 +1,15 @@
 // Centralized billing action utilities for ReplyFlow
 
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { openNativeWebSession, isNativeIOS, isNativeAndroid } from '@/lib/native-web-session'
+import { setPendingStripeOperation } from '@/lib/external-return-handler'
 
 export interface BillingActionResult {
   success: boolean
   url?: string
   error?: string
   action?: 'portal' | 'checkout'
+  canceled?: boolean
 }
 
 /**
@@ -122,7 +125,11 @@ async function openBillingPortal(accessToken: string, returnUrl?: string, hasExi
     })
 
     const data = await response.json()
-    console.log('[Billing Action] Portal response:', data)
+    // REDACTED: Do not log full portal URL (contains session secret)
+    console.log('[Billing Action] Portal response:', {
+      urlPresent: !!data.url,
+      ok: response.ok
+    })
 
     // Only fall back to checkout if:
     // 1. Portal response positively indicates NO customer (not a network/API error)
@@ -135,11 +142,86 @@ async function openBillingPortal(accessToken: string, returnUrl?: string, hasExi
     }
 
     if (data.url && response.ok) {
-      console.log('[Billing Action] Redirecting to portal:', data.url)
-      return {
-        success: true,
-        url: data.url,
-        action: 'portal'
+      // Use native web session for native platforms, web navigation for desktop/web
+      if (isNativeIOS() || isNativeAndroid()) {
+        console.log('[Billing Action] Opening portal in native web session')
+
+        // Get business ID for pending operation tracking
+        const supabase = createBrowserClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const { data: business } = await supabase
+          .from('businesses')
+          .select('id')
+          .eq('user_id', user?.id)
+          .maybeSingle()
+
+        // Set pending operation for external return handler reconciliation
+        if (business?.id) {
+          await setPendingStripeOperation('portal', business.id, user?.id)
+          console.log('[Billing Action] Pending portal operation set for business:', business.id)
+        }
+
+        try {
+          // Use deterministic return URL for native platforms
+          const callbackUrl = `${window.location.origin}/dashboard/settings?billing=returned`
+          const callbackUrlObj = new URL(callbackUrl)
+          const callbackHost = callbackUrlObj.hostname
+          const callbackPath = callbackUrlObj.pathname + callbackUrlObj.search
+
+          const result = await openNativeWebSession({
+            url: data.url,
+            callbackHost,
+            callbackPath,
+          })
+          console.log('[Billing Action] Native session completed:', result)
+
+          // Handle terminal result
+          if (result.canceled) {
+            console.log('[Billing Action] User canceled portal session')
+            // Clear pending operation on cancel
+            await setPendingStripeOperation(null)
+            return {
+              success: true,
+              url: data.url,
+              action: 'portal',
+              canceled: true
+            }
+          }
+
+          if (result.errorCode || result.errorMessage) {
+            console.error('[Billing Action] Native session error:', result.errorCode, result.errorMessage)
+            // Clear pending operation on error
+            await setPendingStripeOperation(null)
+            return {
+              success: false,
+              error: result.errorMessage || 'Failed to open billing portal. Please try again.'
+            }
+          }
+
+          // Success - external return handler will handle reconciliation
+          return {
+            success: true,
+            url: data.url,
+            action: 'portal'
+          }
+        } catch (error) {
+          console.error('[Billing Action] Native session failed:', error)
+          // Clear pending operation on error
+          await setPendingStripeOperation(null)
+          return {
+            success: false,
+            error: 'Failed to open billing portal. Please try again.'
+          }
+        }
+      } else {
+        // Desktop/web: Use normal browser navigation
+        console.log('[Billing Action] Opening portal in browser (desktop/web)')
+        console.log('[Billing Action] Redirecting to portal (web)')
+        return {
+          success: true,
+          url: data.url,
+          action: 'portal'
+        }
       }
     }
 

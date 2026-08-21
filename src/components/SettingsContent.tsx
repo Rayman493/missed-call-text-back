@@ -1126,7 +1126,7 @@ export default function SettingsContent() {
   }
 
   // Google Calendar handlers
-  const fetchCalendarStatus = async (): Promise<{ connected: boolean }> => {
+  const fetchCalendarStatus = useCallback(async (): Promise<{ connected: boolean }> => {
     if (!business || !user) return { connected: false }
 
     setIsLoadingCalendar(true)
@@ -1168,7 +1168,7 @@ export default function SettingsContent() {
     } finally {
       setIsLoadingCalendar(false)
     }
-  }
+  }, [business, user, supabase.auth])
 
   const handleConnectCalendar = async () => {
     // Prevent duplicate concurrent OAuth launches
@@ -1435,16 +1435,37 @@ export default function SettingsContent() {
   }
 
   const handleBillingActionClick = async (action: 'portal' | 'upgrade') => {
+    // Prevent duplicate rapid taps while opening
+    if (isOpeningPortal) {
+      console.log('[Settings] Billing action already in progress, ignoring duplicate tap')
+      return
+    }
+
     try {
       const result = await handleBillingAction()
       if (result.success && result.url) {
-        window.location.href = result.url
+        // For native platforms, the URL is opened by the native session helper
+        // For web, we need to navigate manually
+        const { isCapacitorNative } = await import('@/capacitor/init')
+        if (!isCapacitorNative()) {
+          window.location.href = result.url
+        }
+        // Native platforms: loading will be cleared by external return handler listener
+        // unless user canceled
+        if (result.canceled) {
+          console.log('[Settings] Billing portal canceled, clearing loading state')
+          setIsOpeningPortal(false)
+        }
       } else if (result.error) {
         showToast(result.error, 'error')
+        // Clear loading on error
+        setIsOpeningPortal(false)
       }
     } catch (error) {
       console.error('Billing action error:', error)
       showToast('Failed to process billing action', 'error')
+      // Clear loading on error
+      setIsOpeningPortal(false)
     }
   }
 
@@ -1919,7 +1940,7 @@ export default function SettingsContent() {
       fetchCalendarStatus()
       checkPhoneCooldown()
     }
-  }, [business, user, hasUnsavedChanges])
+  }, [business, user, hasUnsavedChanges, fetchCalendarStatus])
 
   // Check URL params for calendar connection status
   useEffect(() => {
@@ -2033,13 +2054,32 @@ export default function SettingsContent() {
     }
   }, [business, user, fetchCalendarStatus])
 
+  // Clear loading state when external return handler completes for Billing Portal
+  useEffect(() => {
+    const handleStripeReturn = (event: CustomEvent) => {
+      if (event.detail.flow === 'STRIPE_PORTAL') {
+        console.log('[Settings] Stripe Portal external return detected, clearing loading state')
+        setIsOpeningPortal(false)
+        // Refresh canonical business state to get updated subscription status
+        refreshBusiness(true)
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('stripeReturn', handleStripeReturn as EventListener)
+      return () => {
+        window.removeEventListener('stripeReturn', handleStripeReturn as EventListener)
+      }
+    }
+  }, [refreshBusiness])
+
   // Refresh Stripe Connect status when Payments section becomes active
   useEffect(() => {
     if (activeSection === 'payments' && business?.stripe_connect_account_id && !stripeStatusChecking) {
       console.log('[STRIPE_CONNECT_STATUS] section_active=payments refreshing_status')
       refreshStripeStatus()
     }
-  }, [activeSection])
+  }, [activeSection, business?.stripe_connect_account_id, stripeStatusChecking, refreshStripeStatus])
 
   useEffect(() => {
     const activeTab = sectionTabRefs.current[activeSection]

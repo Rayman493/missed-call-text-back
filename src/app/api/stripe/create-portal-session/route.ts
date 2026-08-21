@@ -142,20 +142,31 @@ export async function POST(request: Request) {
 
     console.log('[stripe-portal] stripe_customer_id is valid, proceeding to Stripe API call')
 
-    // Validate and use return URL from request if provided
+    // Use deterministic return URL for native platforms
+    // For native iOS/Android, we need a predictable callback URL that the native session can intercept
+    // For web, we can use the current URL or a default
     let returnUrl: string
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || getDashboardUrl()
-    
-    if (returnUrlParam) {
-      // Security: Ensure return URL is within the application
+
+    // Check if request is from native app
+    const userAgent = request.headers.get('user-agent') || ''
+    const isNativeApp = userAgent.includes('Capacitor') || userAgent.includes('ReplyFlow')
+    const isNativeIOS = isNativeApp && (userAgent.includes('iPhone') || userAgent.includes('iPad') || userAgent.includes('iOS'))
+
+    if (isNativeApp) {
+      // Native: Use deterministic return URL for native session interception
+      returnUrl = `${appUrl}/dashboard/settings?billing=returned`
+      console.log('[stripe-portal] Using deterministic return URL for native:', returnUrl)
+    } else if (returnUrlParam) {
+      // Web: Allow custom return URL if provided and same-origin
       try {
         const returnUrlObj = new URL(returnUrlParam, appUrl)
         const appUrlObj = new URL(appUrl)
-        
+
         // Allow return only if same origin (same protocol, host, port)
         if (returnUrlObj.origin === appUrlObj.origin) {
           returnUrl = returnUrlParam
-          console.log('[stripe-portal] Using custom return URL from request:', returnUrl)
+          console.log('[stripe-portal] Using custom return URL from request (web):', returnUrl)
         } else {
           console.warn('[stripe-portal] Return URL has different origin, using default:', {
             returnUrlOrigin: returnUrlObj.origin,
@@ -182,7 +193,11 @@ export async function POST(request: Request) {
     })
 
     console.log('[stripe-portal] Stripe API call successful')
-    console.log('[stripe-portal] Portal session created:', session.url)
+    // REDACTED: Do not log full portal URL (contains session secret)
+    console.log('[stripe-portal] Portal session created:', {
+      urlPresent: !!session.url,
+      host: session.url ? new URL(session.url).hostname : null
+    })
     console.log('[stripe-portal] ========== SUCCESS ==========')
 
     return NextResponse.json({ url: session.url })

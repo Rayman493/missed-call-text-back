@@ -75,13 +75,17 @@ const EXTERNAL_RETURN_FLOWS: ExternalReturnFlow[] = [
     matcher: (url) => url.searchParams.get('billing') === 'returned',
     internalDestination: '/dashboard/settings',
     reconcile: async (businessId) => {
-      // Stripe Portal reconciliation - refresh billing status from backend
-      const result = await fetch('/api/billing/checkout-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_billing: true })
-      })
-      console.log('[STRIPE PORTAL RETURN] Billing status refresh result:', result.ok)
+      // Stripe Portal reconciliation - refresh subscription status from Stripe
+      if (businessId) {
+        const result = await fetch('/api/billing/refresh-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ business_id: businessId })
+        })
+        console.log('[STRIPE PORTAL RETURN] Subscription refresh result:', result.ok)
+      } else {
+        console.warn('[STRIPE PORTAL RETURN] No business_id available for refresh')
+      }
     }
   },
   {
