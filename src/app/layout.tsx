@@ -5,7 +5,6 @@ import ProvidersWrapper from '@/components/ProvidersWrapper'
 import GlobalErrorBoundary from '@/components/GlobalErrorBoundary'
 import { CapacitorInitializer } from '@/components/capacitor/CapacitorInitializer'
 import NativeOfflineBoundary from '@/components/NativeOfflineBoundary'
-import PublicThemeBoundary from '@/components/PublicThemeBoundary'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -82,14 +81,22 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Force dark theme for public homepage to prevent flash on initial document load
-              // This runs before React mounts and does NOT alter stored user preference
-              // Client-side navigation is handled by PublicThemeBoundary component
+              // Force dark theme for public routes before first paint to prevent white flash
+              // Use exact matching to avoid classifying all routes as public
               (function() {
                 const pathname = window.location.pathname;
-                // Public homepage is at root path
-                if (pathname === '/' || pathname === '/home') {
+                const publicRoutes = ['/', '/home', '/pricing', '/faq', '/privacy', '/terms'];
+
+                // Normalize pathname (remove trailing slash)
+                const normalizedPath = pathname.endsWith('/') && pathname.length > 1
+                  ? pathname.slice(0, -1)
+                  : pathname;
+
+                const isPublicRoute = publicRoutes.includes(normalizedPath);
+
+                if (isPublicRoute) {
                   document.documentElement.classList.add('dark');
+                  document.body.style.backgroundColor = '#09090b';
                 }
               })();
             `,
@@ -105,14 +112,10 @@ export default function RootLayout({
                   return 'dark';
                 }
                 const theme = getTheme();
-                // Only apply stored theme if NOT on public homepage
-                const pathname = window.location.pathname;
-                if (pathname !== '/' && pathname !== '/home') {
-                  if (theme === 'dark') {
-                    document.documentElement.classList.add('dark');
-                  } else {
-                    document.documentElement.classList.remove('dark');
-                  }
+                if (theme === 'dark') {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
                 }
               })();
             `,
@@ -203,7 +206,6 @@ export default function RootLayout({
         <CapacitorInitializer />
         <NativeOfflineBoundary>
           <GlobalErrorBoundary>
-            <PublicThemeBoundary />
             <ProvidersWrapper>{children}</ProvidersWrapper>
           </GlobalErrorBoundary>
         </NativeOfflineBoundary>

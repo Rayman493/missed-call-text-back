@@ -7,6 +7,25 @@ interface ProvidersWrapperProps {
   children: React.ReactNode
 }
 
+// Public routes that don't require authenticated app providers
+// Use exact matching to avoid classifying all routes as public
+const PUBLIC_ROUTES = new Set([
+  '/',
+  '/home',
+  '/pricing',
+  '/faq',
+  '/privacy',
+  '/terms',
+])
+
+function normalizePathname(pathname: string | null): string {
+  if (!pathname) return ''
+  // Remove trailing slash for consistent matching
+  return pathname.endsWith('/') && pathname.length > 1 
+    ? pathname.slice(0, -1) 
+    : pathname
+}
+
 export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
   const pathname = usePathname()
   const [isClient, setIsClient] = useState(false)
@@ -19,12 +38,18 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
   const [VoicemailProgressProvider, setVoicemailProgressProvider] = useState<any>(null)
   const [NotificationProvider, setNotificationProvider] = useState<any>(null)
 
+  // Check if current route is public (after client-side hydration)
+  // Use exact matching to avoid classifying all routes as public
+  const isPublicRoute = isClient && pathname && PUBLIC_ROUTES.has(normalizePathname(pathname))
+
   // Trace log on every page load
   useEffect(() => {
     // Page load tracking removed for production
   }, [])
 
   useEffect(() => {
+    setIsClient(true)
+    
     const loadProviders = async () => {
       try {
         // Dynamically import providers only on client side
@@ -46,17 +71,23 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
         setVoicemailProgressProvider(() => VPP)
         setNotificationProvider(() => NP)
         setProvidersLoaded(true)
-        setIsClient(true)
       } catch (error) {
         console.error('Failed to load providers:', error)
-        setIsClient(true)
+        setProvidersLoaded(true)
       }
     }
 
     loadProviders()
   }, [])
 
+  // For public routes, render children immediately without waiting for providers
+  // Public content doesn't need AuthProvider, BusinessProvider, etc. to render
+  if (isPublicRoute) {
+    return <>{children}</>
+  }
+
   // Don't render anything until providers are loaded to prevent context errors
+  // Only applies to authenticated routes
   if (!isClient || !providersLoaded || !AuthProvider || !BusinessProvider || !ThemeProvider || !VoicemailVolumeProvider || !VoicemailPlaybackManagerProvider || !VoicemailProgressProvider || !NotificationProvider) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
