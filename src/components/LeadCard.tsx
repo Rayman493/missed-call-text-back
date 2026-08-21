@@ -168,7 +168,7 @@ export default function LeadCard({
                 </span>
               )}
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-700 dark:text-muted-foreground">
+            <p className="text-[11px] sm:text-xs text-muted-foreground">
               {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
             </p>
           </div>
@@ -208,7 +208,7 @@ export default function LeadCard({
             <p className={`text-[11px] sm:text-xs font-medium ${
               aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
                 ? 'text-red-500 dark:text-red-400'
-                : 'text-slate-700 dark:text-muted-foreground'
+                : 'text-muted-foreground'
             }`}>
               {sentenceCase(aiData.urgency)}
             </p>
