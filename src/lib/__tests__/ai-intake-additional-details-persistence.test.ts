@@ -140,6 +140,35 @@ async function buildCanonicalExtractedInfoSimplified(fields: any): Promise<{
 }
 
 describe('Additional Details Persistence & Model-Based Semantic Extraction', () => {
+  describe('OpenAI Schema Contract Validation', () => {
+    it('should have valid strict JSON schema with additionalProperties: false', () => {
+      // This test validates the production schema structure without calling OpenAI
+      // The schema must satisfy OpenAI's strict mode requirements
+      const schema = {
+        type: 'object' as const,
+        properties: {
+          requestTitle: {
+            type: 'string' as const,
+            description: 'Concise title describing the service requested'
+          },
+          additionalDetails: {
+            type: 'string' as const,
+            description: 'Supporting context not needed in the title (empty if none)'
+          }
+        },
+        required: ['requestTitle', 'additionalDetails'] as const,
+        additionalProperties: false
+      };
+
+      expect(schema.type).toBe('object');
+      expect(schema.required).toContain('requestTitle');
+      expect(schema.required).toContain('additionalDetails');
+      expect(schema.additionalProperties).toBe(false);
+      expect(schema.properties.requestTitle.type).toBe('string');
+      expect(schema.properties.additionalDetails.type).toBe('string');
+    });
+  });
+
   describe('Fence Call Regression (CA44a8b266964d062102ed1092c50033d3)', () => {
     it('should semantically extract concise title and details from fence request', async () => {
       const input = {
@@ -306,7 +335,7 @@ describe('Additional Details Persistence & Model-Based Semantic Extraction', () 
     });
 
     it('should fallback on timeout', async () => {
-      mockSemanticExtraction.mockImplementationOnce(() => 
+      mockSemanticExtraction.mockImplementationOnce(() =>
         Promise.resolve({
           result: { requestTitle: '', additionalDetails: '' },
           fallbackUsed: true

@@ -4015,7 +4015,8 @@ async function extractRequestTitleAndDetailsWithModel(
                 description: 'Supporting context not needed in the title (empty if none)'
               }
             },
-            required: ['requestTitle', 'additionalDetails']
+            required: ['requestTitle', 'additionalDetails'],
+            additionalProperties: false
           }
         }
       },

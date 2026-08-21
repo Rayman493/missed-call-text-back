@@ -47,7 +47,7 @@ function looksLikePhoneNumber(text: string): boolean {
 // Canonical details fields are always authoritative - reasonForCalling is only checked as a fallback
 function hasMeaningfulDetails(intakeData: any): { hasDetails: boolean; detailsValue: string } {
   // Check canonical details fields with full fallback chain
-  let detailsValue = intakeData?.requestDetails ?? intakeData?.additionalDetails ?? intakeData?.importantDetails ?? '';
+  let detailsValue = intakeData?.requestDetails ?? intakeData?.additionalDetails ?? intakeData?.importantDetails ?? intakeData?.additional_details ?? '';
   if (detailsValue && detailsValue !== 'Not collected' && detailsValue.trim() !== '') {
     return { hasDetails: true, detailsValue };
   }
