@@ -214,6 +214,55 @@ async function setReconciliationInFlight(inFlight: boolean): Promise<void> {
 }
 
 /**
+ * Trigger authoritative Google Calendar status reconciliation from the server
+ * This should be called when:
+ * - User returns from Google OAuth (via URL callback)
+ * - App resumes with a pending Google operation
+ *
+ * Returns connection status so caller can reset loading state appropriately
+ */
+export async function reconcileGoogleStatus(): Promise<{ success: boolean; connected?: boolean; error?: string }> {
+  // Native apps only (web doesn't need this - it can check status directly via URL params)
+  if (!isNative()) {
+    console.log('[EXTERNAL RETURN] Not native, skipping Google reconciliation')
+    return { success: false, error: 'Not native' }
+  }
+
+  try {
+    console.log('[EXTERNAL RETURN] Reconciling Google Calendar status')
+
+    const response = await fetch('/api/google/calendar/status?provider=google')
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[EXTERNAL RETURN] Google reconciliation failed:', response.status, errorText)
+      // Keep pending operation on error - OAuth might still be in progress
+      return { success: false, error: errorText, connected: false }
+    }
+
+    const data = await response.json()
+    console.log('[EXTERNAL RETURN] Google reconciliation succeeded:', { connected: data.connected })
+
+    // Only clear pending operation if we successfully checked canonical state
+    // The pending operation represents an unresolved OAuth flow
+    // If connected=true, OAuth completed successfully - clear pending
+    // If connected=false, OAuth might still be in progress - keep pending to avoid race
+    // The pending operation will expire after 5 minutes anyway
+    if (data.connected) {
+      await setPendingGoogleOperation(null)
+      console.log('[EXTERNAL RETURN] Google pending operation cleared (connected)')
+    } else {
+      console.log('[EXTERNAL RETURN] Google pending operation kept (not connected - OAuth may be in progress)')
+    }
+
+    return { success: true, connected: data.connected }
+  } catch (error) {
+    console.error('[EXTERNAL RETURN] Google reconciliation error:', error)
+    // Keep pending operation on error - OAuth might still be in progress
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error', connected: false }
+  }
+}
+
+/**
  * Trigger authoritative Stripe status reconciliation from the server
  * This should be called when:
  * - User returns from Stripe Connect onboarding (via URL callback)
@@ -473,10 +522,10 @@ export async function handleAppResume(): Promise<void> {
   const pendingGoogle = await getPendingGoogleOperation()
   if (pendingGoogle.operation) {
     console.log('[EXTERNAL RETURN] Pending Google operation found:', pendingGoogle.operation)
-    // For Google, we just need to refresh the calendar status
-    // The calendar page will handle the actual status check
-    // Clear the operation after detecting it
-    await setPendingGoogleOperation(null)
+    // Reconcile Google Calendar status before clearing pending operation
+    // This prevents clearing the marker while OAuth is still in progress
+    const result = await reconcileGoogleStatus()
+    console.log('[EXTERNAL RETURN] Google reconciliation result:', result)
   } else {
     console.log('[EXTERNAL RETURN] No pending Google operation')
   }

@@ -11,6 +11,7 @@ import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import SettingsActionBar from '@/components/SettingsActionBar'
 import Toast, { ToastContainer } from '@/components/Toast'
 import PasswordInput from '@/components/PasswordInput'
+import LoadingSpinner from '@/components/LoadingSpinner'
 import { useSettingsFormState } from '@/hooks/useSettingsFormState'
 import { useTapToPayAwareness } from '@/hooks/useTapToPayAwareness'
 import { useTapToPayReaderPresentation } from '@/hooks/useTapToPayReaderPresentation'
@@ -1125,9 +1126,9 @@ export default function SettingsContent() {
   }
 
   // Google Calendar handlers
-  const fetchCalendarStatus = async () => {
-    if (!business || !user) return
-    
+  const fetchCalendarStatus = async (): Promise<{ connected: boolean }> => {
+    if (!business || !user) return { connected: false }
+
     setIsLoadingCalendar(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -1135,7 +1136,7 @@ export default function SettingsContent() {
 
       if (!token) {
         setCalendarConnected(false)
-        return
+        return { connected: false }
       }
 
       const response = await fetch('/api/google/calendar/status?provider=google', {
@@ -1147,7 +1148,7 @@ export default function SettingsContent() {
       if (!response.ok) {
         if (response.status === 401) {
           setCalendarConnected(false)
-          return
+          return { connected: false }
         }
         throw new Error('Failed to fetch calendar status')
       }
@@ -1158,22 +1159,38 @@ export default function SettingsContent() {
       if (data.connectedAt) {
         setLastSyncTime(new Date(data.connectedAt))
       }
+
+      return { connected: data.connected || false }
     } catch (error) {
       console.error('[Settings] Error fetching calendar status:', error)
       setCalendarConnected(false)
+      return { connected: false }
     } finally {
       setIsLoadingCalendar(false)
     }
   }
 
   const handleConnectCalendar = async () => {
+    // Prevent duplicate concurrent OAuth launches
+    if (isConnectingCalendar) {
+      console.log('[Settings] Google Calendar connection already in progress, ignoring duplicate tap')
+      return
+    }
+
     setIsConnectingCalendar(true)
     try {
+      console.log('[Settings] Google Calendar connect started')
       const response = await fetch('/api/google/calendar/connect')
       if (!response.ok) {
         throw new Error('Failed to initiate OAuth flow')
       }
       const data = await response.json()
+      console.log('[Settings] OAuth URL received successfully')
+
+      // Set pending operation so app resume can reconcile Google Calendar status
+      const { setPendingGoogleOperation } = await import('@/lib/external-return-handler')
+      await setPendingGoogleOperation('calendar_connect', user?.id)
+      console.log('[Settings] Pending Google operation set for user:', user?.id)
 
       // For iOS native: Use ASWebAuthenticationSession for automatic return-to-app
       // For Android native: Use Capacitor Browser plugin
@@ -1203,13 +1220,26 @@ export default function SettingsContent() {
         }
       } else {
         // Web: Standard redirect
+        console.log('[Settings] Redirecting to Google OAuth (web)')
         window.location.href = data.authUrl
       }
+
+      // Note: Loading state will be reset on app return via URL param handling
+      // or on error. We don't reset it here to avoid race conditions with OAuth completion.
     } catch (error) {
-      console.error('Error connecting calendar:', error)
+      console.error('[Settings] Error connecting calendar:', error)
       showToast('Couldn\'t connect calendar', 'error')
+      // Clear pending operation on error
+      try {
+        const { setPendingGoogleOperation } = await import('@/lib/external-return-handler')
+        await setPendingGoogleOperation(null)
+      } catch {}
     } finally {
-      setIsConnectingCalendar(false)
+      // For web, we redirect so loading state doesn't matter
+      // For native, we keep loading true until return to show correct state
+      if (!isCapacitorNative()) {
+        setIsConnectingCalendar(false)
+      }
     }
   }
 
@@ -1895,7 +1925,28 @@ export default function SettingsContent() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const calendarStatus = urlParams.get('calendar')
-    if (calendarStatus === 'disconnected') {
+    if (calendarStatus === 'connected') {
+      showToast('Google Calendar connected', 'success')
+      setIsConnectingCalendar(false)
+      fetchCalendarStatus()
+      // Clear pending Google operation after successful return
+      const { setPendingGoogleOperation } = require('@/lib/external-return-handler')
+      setPendingGoogleOperation(null)
+      // Clean up URL params but preserve hash to maintain active section
+      const url = new URL(window.location.href)
+      url.search = ''
+      window.history.replaceState({}, '', url.toString())
+    } else if (calendarStatus === 'cancelled') {
+      showToast('Google Calendar connection cancelled', 'info')
+      setIsConnectingCalendar(false)
+      // Clear pending Google operation on cancel
+      const { setPendingGoogleOperation } = require('@/lib/external-return-handler')
+      setPendingGoogleOperation(null)
+      // Clean up URL params but preserve hash to maintain active section
+      const url = new URL(window.location.href)
+      url.search = ''
+      window.history.replaceState({}, '', url.toString())
+    } else if (calendarStatus === 'disconnected') {
       showToast('Google Calendar disconnected', 'success')
       setCalendarConnected(false)
       // Clean up URL params but preserve hash to maintain active section
@@ -1904,6 +1955,10 @@ export default function SettingsContent() {
       window.history.replaceState({}, '', url.toString())
     } else if (calendarStatus === 'error') {
       showToast('Failed to connect Google Calendar', 'error')
+      setIsConnectingCalendar(false)
+      // Clear pending Google operation on error
+      const { setPendingGoogleOperation } = require('@/lib/external-return-handler')
+      setPendingGoogleOperation(null)
       // Clean up URL params but preserve hash to maintain active section
       const url = new URL(window.location.href)
       url.search = ''
@@ -1933,6 +1988,50 @@ export default function SettingsContent() {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [business?.stripe_connect_account_id, stripeStatusChecking])
+
+  // App resume reconciliation for Google Calendar
+  useEffect(() => {
+    const handleAppStateChange = async () => {
+      console.log('[Settings] App resumed, refreshing Google Calendar connection status')
+      const { connected } = await fetchCalendarStatus()
+      // Clear connecting state if calendar is connected
+      // This handles the case where OAuth completed but URL callback was missed
+      if (connected) {
+        console.log('[Settings] Google Calendar connected on resume, clearing connecting state')
+        setIsConnectingCalendar(false)
+      }
+    }
+
+    // Only set up listener on native platforms
+    if (isCapacitorNative()) {
+      const setupListener = async () => {
+        try {
+          const { App } = await import('@capacitor/app')
+          const listener = await App.addListener('appStateChange', async ({ isActive }) => {
+            if (isActive) {
+              console.log('[Settings] App became active')
+              await handleAppStateChange()
+            }
+          })
+          return listener
+        } catch (error) {
+          console.error('[Settings] Failed to set up app state listener:', error)
+          return null
+        }
+      }
+
+      let listenerHandle: { remove: () => void } | null = null
+      setupListener().then(handle => {
+        listenerHandle = handle
+      })
+
+      return () => {
+        if (listenerHandle) {
+          listenerHandle.remove()
+        }
+      }
+    }
+  }, [business, user, fetchCalendarStatus])
 
   // Refresh Stripe Connect status when Payments section becomes active
   useEffect(() => {
@@ -3200,10 +3299,7 @@ export default function SettingsContent() {
                           >
                             {isConnectingCalendar || isDisconnectingCalendar ? (
                               <>
-                                <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.001 0 01-15.357-2m15.357 2H15" />
-                                </svg>
+                                <LoadingSpinner size="sm" />
                                 <span>Processing...</span>
                               </>
                             ) : (

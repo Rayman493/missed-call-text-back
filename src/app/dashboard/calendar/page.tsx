@@ -338,6 +338,7 @@ export default function SchedulePage() {
 
       if (calendarStatus === 'connected' || status === 'connected') {
         showToast('Google Calendar connected — your appointments will stay in sync', 'success')
+        setIsConnecting(false)
         setTokenExpired(false)
         setScheduleTab('agenda') // Switch to Agenda tab after successful connection
         window.history.replaceState({}, '', '/dashboard/calendar')
@@ -347,6 +348,7 @@ export default function SchedulePage() {
       } else if (calendarStatus === 'cancelled' || status === 'cancelled') {
         // User cancelled or denied access
         showToast('Google Calendar Not Connected. You can try again anytime.', 'info')
+        setIsConnecting(false)
         window.history.replaceState({}, '', '/dashboard/calendar')
         // Clear pending Google operation on cancel
         const { setPendingGoogleOperation } = require('@/lib/external-return-handler')
@@ -354,6 +356,7 @@ export default function SchedulePage() {
       } else if (calendarStatus === 'error' || status === 'error') {
         // Genuine OAuth/server error
         showToast('Couldn\'t connect Google Calendar. Please try again.', 'error')
+        setIsConnecting(false)
         window.history.replaceState({}, '', '/dashboard/calendar')
         // Clear pending Google operation on error
         const { setPendingGoogleOperation } = require('@/lib/external-return-handler')
@@ -492,8 +495,15 @@ export default function SchedulePage() {
   }
 
   const handleConnectCalendar = async () => {
+    // Prevent duplicate concurrent OAuth launches
+    if (isConnecting) {
+      console.log('[CALENDAR] Google Calendar connection already in progress, ignoring duplicate tap')
+      return
+    }
+
     setIsConnecting(true)
     try {
+      console.log('[CALENDAR] Google Calendar connect started')
       const response = await fetch('/api/google/calendar/connect', {
         method: 'GET',
         credentials: 'include',
@@ -505,6 +515,7 @@ export default function SchedulePage() {
       }
 
       const data = await response.json() as { authUrl: string }
+      console.log('[CALENDAR] OAuth URL received successfully')
 
       // Set pending operation so app resume can reconcile Google Calendar status
       const { setPendingGoogleOperation } = await import('@/lib/external-return-handler')
@@ -539,17 +550,20 @@ export default function SchedulePage() {
         }
       } else {
         // Web: Standard redirect
+        console.log('[CALENDAR] Redirecting to Google OAuth (web)')
         window.location.href = data.authUrl
       }
-      
-      // Reset connecting state after OAuth flow is initiated
-      // The connection status will be refreshed when the app resumes or when the OAuth callback is handled
-      setTimeout(() => {
-        setIsConnecting(false)
-      }, 2000)
+
+      // Note: Loading state will be reset on app return via URL param handling
+      // or on error. We don't reset it here to avoid race conditions with OAuth completion.
     } catch (error) {
-      console.error('Failed to connect calendar:', error)
+      console.error('[CALENDAR] Failed to connect calendar:', error)
       showToast('Couldn\'t connect calendar', 'error')
+      // Clear pending operation on error
+      try {
+        const { setPendingGoogleOperation } = await import('@/lib/external-return-handler')
+        await setPendingGoogleOperation(null)
+      } catch {}
       setIsConnecting(false)
     }
   }
@@ -691,7 +705,7 @@ export default function SchedulePage() {
     })
   }
 
-  const fetchCalendarStatus = async () => {
+  const fetchCalendarStatus = async (): Promise<{ connected: boolean }> => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -700,7 +714,7 @@ export default function SchedulePage() {
         setCalendarConnected(false)
         setIsLoading(false)
         setIsInitialLoad(false)
-        return
+        return { connected: false }
       }
 
       const response = await fetch('/api/google/calendar/status?provider=google', {
@@ -714,7 +728,7 @@ export default function SchedulePage() {
           setCalendarConnected(false)
           setIsLoading(false)
           setIsInitialLoad(false)
-          return
+          return { connected: false }
         }
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         console.error('[GOOGLE CALENDAR SYNC] Status error:', errorData)
@@ -722,7 +736,7 @@ export default function SchedulePage() {
       }
 
       const data = await response.json()
-      
+
       // Set connection status first
       setCalendarConnected(data.connected || false)
       setCalendarEmail(data.calendarEmail || null)
@@ -737,11 +751,14 @@ export default function SchedulePage() {
       if (data.connected) {
         await fetchEvents()
       }
+
+      return { connected: data.connected || false }
     } catch (error) {
       console.error('[GOOGLE CALENDAR SYNC ERROR] Error fetching calendar status:', error)
       setCalendarConnected(false)
       setIsLoading(false)
       setIsInitialLoad(false)
+      return { connected: false }
     }
   }
 
@@ -889,7 +906,13 @@ export default function SchedulePage() {
 
     const handleAppStateChange = async () => {
       console.log('[Calendar Page] App resumed, refreshing connection status')
-      await fetchCalendarStatus()
+      const { connected } = await fetchCalendarStatus()
+      // Clear connecting state if calendar is connected
+      // This handles the case where OAuth completed but URL callback was missed
+      if (connected) {
+        console.log('[Calendar Page] Calendar connected on resume, clearing connecting state')
+        setIsConnecting(false)
+      }
     }
 
     // Listen for app state changes
