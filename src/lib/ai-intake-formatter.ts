@@ -1389,8 +1389,9 @@ export const formatAiIntakeSummary = (
   // Extract details field separately from request
   const { hasDetails, detailsValue } = hasMeaningfulDetails(intakeData);
   // Use canonical request field for SMS (concise, professional summary)
+  // Match completion checker alias resolution: serviceRequested || reasonForCalling || request || issueDescription
   const serviceRequestedRaw = normalizeServiceReason(
-    intakeData?.serviceRequested ?? intakeData?.reasonForCalling
+    intakeData?.serviceRequested ?? intakeData?.reasonForCalling ?? intakeData?.request ?? intakeData?.issueDescription
   );
   const serviceRequested = intakeData?.request
     ? generateCanonicalRequestTitle(intakeData.request)
@@ -1490,7 +1491,7 @@ export const formatAdaptiveIntakeSms = (
     intakeData?.callbackTime ?? intakeData?.preferredCallbackTime
   );
   const serviceRequestedRaw = normalizeServiceReason(
-    intakeData?.serviceRequested ?? intakeData?.reasonForCalling
+    intakeData?.serviceRequested ?? intakeData?.reasonForCalling ?? intakeData?.request ?? intakeData?.issueDescription
   );
   // Extract details field
   const { hasDetails, detailsValue } = hasMeaningfulDetails(intakeData);

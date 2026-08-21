@@ -98,4 +98,42 @@ describe('SMS Formatter Additional Details Regression', () => {
     expect(sms).toContain('Lawn Mowing');
     expect(sms).not.toContain('Details: Existing wooden'); // No fake details
   });
+
+  it('should recognize reasonForCalling alias for Request (canonical shape)', () => {
+    const intakeData = {
+      callerName: 'Ryan',
+      reasonForCalling: 'Fence Repair',
+      importantDetails: 'The current wooden privacy fence is old and rotten, necessitating a replacement.',
+      addressOrLocation: '1632 South Pine Drive',
+      desiredCompletionTime: 'In the next month',
+      preferredCallbackTime: 'In the morning',
+      serviceLocationType: 'onsite'
+    };
+
+    const sms = formatAdaptiveIntakeSms(intakeData, '+15551234567', 'iOS Final Testing');
+
+    expect(sms).toContain('Service: Fence Repair');
+    expect(sms).toContain('Details: The current wooden privacy fence is old and rotten');
+    expect(sms).not.toContain('What you\'re looking to have done');
+    expect(sms).not.toContain('Still needed:');
+  });
+
+  it('should recognize serviceRequested alias for Request (persisted shape)', () => {
+    const intakeData = {
+      customerName: 'Ryan',
+      serviceRequested: 'Fence Repair',
+      importantDetails: 'The current wooden privacy fence is old and rotten, necessitating a replacement.',
+      serviceAddress: '1632 South Pine Drive',
+      desiredCompletionTime: 'In the next month',
+      callbackTime: 'In the morning',
+      serviceLocationType: 'onsite'
+    };
+
+    const sms = formatAdaptiveIntakeSms(intakeData, '+15551234567', 'iOS Final Testing');
+
+    expect(sms).toContain('Service: Fence Repair');
+    expect(sms).toContain('Details: The current wooden privacy fence is old and rotten');
+    expect(sms).not.toContain('What you\'re looking to have done');
+    expect(sms).not.toContain('Still needed:');
+  });
 });
