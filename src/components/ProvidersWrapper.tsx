@@ -100,11 +100,15 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
   }, [])
 
   // For public routes, render dark bootstrap while essential providers load, then wrap with providers
-  // Skip BusinessProvider, NotificationProvider, and voicemail providers on public routes
+  // Skip NotificationProvider and voicemail providers on public routes (not needed)
   // Skip the loading screen on public routes to prevent theme flash
   if (isPublicRoute) {
-    // While essential providers are loading, show dark bootstrap to prevent useAuth crash
-    if (!isClient || !ThemeProvider || !AuthProvider) {
+    // While essential providers are loading, show dark bootstrap to prevent context errors
+    // ThemeProvider, AuthProvider, and BusinessProvider are required for public routes:
+    // - ThemeProvider for theming
+    // - AuthProvider for NativeLandingWrapper, HomepageCTA, Navbar
+    // - BusinessProvider for UserDropdown (rendered by Navbar when user is logged in)
+    if (!isClient || !ThemeProvider || !AuthProvider || !BusinessProvider) {
       return (
         <div className="min-h-screen bg-zinc-950" />
       )
@@ -113,7 +117,9 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
     return (
       <ThemeProvider>
         <AuthProvider>
-          {children}
+          <BusinessProvider>
+            {children}
+          </BusinessProvider>
         </AuthProvider>
       </ThemeProvider>
     )
