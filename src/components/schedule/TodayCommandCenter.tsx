@@ -384,35 +384,9 @@ export default function TodayCommandCenter({
           </div>
         ) : sortedWorkItems.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Nothing needs done today
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {onAddTask && (
-                <button
-                  onClick={onAddTask}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
-                >
-                  Create Task
-                </button>
-              )}
-              {onAddJob && (
-                <button
-                  onClick={onAddJob}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
-                >
-                  Create Job
-                </button>
-              )}
-              {onAddAppointment && (
-                <button
-                  onClick={onAddAppointment}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
-                >
-                  Schedule Appointment
-                </button>
-              )}
-            </div>
           </div>
         ) : (
           <div className="p-4 space-y-1">
