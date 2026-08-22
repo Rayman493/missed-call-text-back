@@ -2953,6 +2953,94 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           )}
         </div>
 
+        {/* Appointments - Collapsible */}
+        <div className="bg-background dark:bg-background rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <button
+              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, appointments: !prev.appointments }))}
+              className="flex items-center gap-2 group"
+            >
+              <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Appointments</h3>
+              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.appointments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={handleAppointmentClick}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+            >
+              <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="hidden sm:inline">Add</span>
+              <span className="sm:hidden">Add</span>
+            </button>
+          </div>
+          {!collapsedSections.appointments && (
+            <div className="transition-all duration-200">
+              {loadingAppointments ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                </div>
+              ) : appointments.length === 0 ? (
+                <div className="text-center py-2 sm:py-4">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No appointments scheduled yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {(() => {
+                    const now = new Date()
+                    const sorted = [...appointments].sort((a: any, b: any) => {
+                      const dateA = new Date(a.start?.dateTime || a.start?.date)
+                      const dateB = new Date(b.start?.dateTime || b.start?.date)
+                      const isAPast = dateA < now
+                      const isBPast = dateB < now
+
+                      // Upcoming events always before past events
+                      if (isAPast && !isBPast) return 1
+                      if (!isAPast && isBPast) return -1
+
+                      // Within same group, sort by date
+                      if (isAPast && isBPast) {
+                        return dateB.getTime() - dateA.getTime() // newest past first
+                      }
+                      return dateA.getTime() - dateB.getTime() // earliest upcoming first
+                    })
+                    return sorted.slice(0, 3).map((event: any) => {
+                      const startDate = new Date(event.start?.dateTime || event.start?.date)
+                      const isPast = startDate < now
+                      const isAllDay = !!(event.start?.date && !event.start?.dateTime)
+                      let timeStr = ''
+                      if (isAllDay) {
+                        timeStr = 'All day'
+                      } else if (event.start?.dateTime) {
+                        timeStr = new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                      }
+                      const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      return (
+                        <div key={event.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground truncate">{event.summary}</p>
+                            <p className="text-xs text-muted-foreground/80">
+                              {dateStr} • {timeStr}
+                            </p>
+                          </div>
+                          {isPast && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap ml-2 border border-border/40">
+                              Past
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })
+                  })()}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Internal Notes - Standalone Section */}
         <div className="bg-background dark:bg-background rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3">
@@ -3552,13 +3640,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <span>Create Job</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onSelect={() => handleAppointmentClick()}
-                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
-                        >
-                          <CalendarDays className="w-4 h-4" />
-                          <span>Schedule</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
                           onSelect={() => setShowPaymentModal(true)}
                           disabled={!business || getAvailableProviders(business).length === 0}
                           className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
@@ -3566,9 +3647,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <CreditCard className="w-4 h-4" />
                           <span>Request Payment</span>
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => handleAppointmentClick()}
+                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
+                        >
+                          <CalendarDays className="w-4 h-4" />
+                          <span>Schedule Appointment</span>
+                        </DropdownMenuItem>
                       </div>
 
-                      {/* Subtle Divider */}
+                      {/* Divider - Workflow actions vs Internal Notes */}
                       <div className="px-3 py-1">
                         <div className="h-px bg-border/20"></div>
                       </div>
@@ -3587,6 +3675,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </svg>
                           <span>Internal Notes</span>
                         </DropdownMenuItem>
+                      </div>
+
+                      {/* Divider - Internal Notes vs Refresh */}
+                      <div className="px-3 py-1">
+                        <div className="h-px bg-border/20"></div>
+                      </div>
+
+                      {/* Utility Actions Group */}
+                      <div className="px-1.5 py-1 space-y-0.5">
                         <DropdownMenuItem
                           onSelect={() => handleRefresh()}
                           disabled={refreshing}
@@ -3726,17 +3823,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </DropdownMenuItem>
                         </div>
 
-                        {/* Schedule */}
-                        <div className="px-1 py-0.5">
-                          <DropdownMenuItem
-                            onSelect={handleAppointmentClick}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
-                          >
-                            <CalendarDays className="w-3.5 h-3.5" />
-                            <span>Schedule</span>
-                          </DropdownMenuItem>
-                        </div>
-
                         {/* Request Payment */}
                         <div className="px-1 py-0.5">
                           <DropdownMenuItem
@@ -3749,7 +3835,39 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </DropdownMenuItem>
                         </div>
 
-                        {/* Divider */}
+                        {/* Schedule Appointment */}
+                        <div className="px-1 py-0.5">
+                          <DropdownMenuItem
+                            onSelect={handleAppointmentClick}
+                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
+                          >
+                            <CalendarDays className="w-3.5 h-3.5" />
+                            <span>Schedule Appointment</span>
+                          </DropdownMenuItem>
+                        </div>
+
+                        {/* Divider - Workflow actions vs Internal Notes */}
+                        <div className="px-2.5 py-1">
+                          <div className="h-px bg-border/20"></div>
+                        </div>
+
+                        {/* Internal Notes */}
+                        <div className="px-1 py-0.5">
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              setInternalNotesValue(leadData?.notes || '')
+                              setShowInternalNotesModal(true)
+                            }}
+                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span>Internal Notes</span>
+                          </DropdownMenuItem>
+                        </div>
+
+                        {/* Divider - Workflow vs Settings */}
                         <div className="px-2.5 py-1">
                           <div className="h-px bg-border/20"></div>
                         </div>
@@ -3780,6 +3898,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </div>
 
                         {/* Divider */}
+                        <div className="px-2.5 py-1">
+                          <div className="h-px bg-border/20"></div>
+                        </div>
+
+                        {/* Divider - Settings vs Utility */}
                         <div className="px-2.5 py-1">
                           <div className="h-px bg-border/20"></div>
                         </div>
