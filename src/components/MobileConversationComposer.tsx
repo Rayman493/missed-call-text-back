@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react'
-import { Plus, X, Smartphone, MessageSquare, ChevronDown } from 'lucide-react'
+import { Paperclip, X, Smartphone, MessageSquare, ChevronDown } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -256,11 +256,11 @@ export default function MobileConversationComposer({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-muted-foreground/50 hover:text-foreground hover:bg-muted/30 transition-all duration-200 flex-shrink-0 rounded-md h-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/10 focus:ring-offset-2 focus:ring-offset-background"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all duration-200 flex-shrink-0 rounded-md h-11 w-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/10 focus:ring-offset-2 focus:ring-offset-background"
               disabled={sending}
-              aria-label="Add image"
+              aria-label="Attach image"
             >
-              <Plus className="w-5 h-5" />
+              <Paperclip className="w-5 h-5 shrink-0" />
             </button>
             <input
               ref={fileInputRef}

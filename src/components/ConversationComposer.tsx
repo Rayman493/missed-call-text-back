@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Plus, X, MessageSquare, Clock, Lightbulb, FileText, FileSpreadsheet, File, Video } from 'lucide-react'
+import { Paperclip, X, MessageSquare, Clock, Lightbulb, FileText, FileSpreadsheet, File, Video } from 'lucide-react'
 import { supportsBusinessNumber } from '@/lib/platform-capabilities'
 import { focusService } from '@/lib/focus/focus-service'
 import type { FocusItem } from '@/lib/focus/focus-types'
@@ -394,15 +394,15 @@ export default function ConversationComposer({
           className="relative"
         >
           <div className="flex items-center gap-2 bg-muted/30 border border-border/20 rounded-lg p-2 hover:bg-muted/40 transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/30 focus-within:bg-muted/50 shadow-sm">
-            {/* Image Upload Button */}
+            {/* Attachment Button */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-muted-foreground/50 hover:text-foreground hover:bg-muted/30 transition-all duration-200 flex-shrink-0 rounded-md h-11 w-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/10 focus:ring-offset-2 focus:ring-offset-background"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all duration-200 flex-shrink-0 rounded-md h-11 w-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/10 focus:ring-offset-2 focus:ring-offset-background"
               disabled={sending}
-              aria-label="Add image"
+              aria-label="Attach file"
             >
-              <Plus className="w-5 h-5" />
+              <Paperclip className="w-5 h-5 shrink-0" />
             </button>
           <input
             ref={fileInputRef}
