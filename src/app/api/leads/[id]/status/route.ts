@@ -20,7 +20,7 @@ export async function PATCH(
     console.log('[API LEADS STATUS PATCH] Requested status:', status)
 
     // Validate status - canonical statuses matching frontend CustomerStatus enum
-    const validStatuses = ['new', 'needs_reply', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'ignored', 'lost']
+    const validStatuses = ['new', 'needs_reply', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'cancelled', 'ignored', 'lost']
     if (!validStatuses.includes(status)) {
       console.log('[API LEADS STATUS PATCH] Invalid status. Valid statuses:', validStatuses)
       return NextResponse.json(
@@ -141,9 +141,9 @@ export async function PATCH(
     
     console.log('[API LEADS STATUS PATCH] Lead updated successfully:', lead.id)
 
-    // Cancel pending follow-ups when lead is marked as ignored
-    if (status === 'ignored') {
-      console.log('[API LEADS STATUS PATCH] Cancelling pending follow-ups for ignored lead')
+    // Cancel pending follow-ups when lead is marked as ignored or cancelled
+    if (status === 'ignored' || status === 'cancelled') {
+      console.log(`[API LEADS STATUS PATCH] Cancelling pending follow-ups for ${status} lead`)
       try {
         const { data: updatedJobs, error: followUpError } = await supabase
           .from('follow_up_jobs')
@@ -151,7 +151,7 @@ export async function PATCH(
             status: 'paused',
             paused_at: new Date().toISOString(),
             paused_by: 'system',
-            cancellation_reason: 'lead_ignored'
+            cancellation_reason: `lead_${status}`
           })
           .eq('lead_id', id)
           .eq('status', 'pending')
@@ -177,6 +177,10 @@ export async function PATCH(
       case 'completed':
         activityMessage = `Lead marked completed for ${existingLead.caller_phone === '+10000000000' ? 'Test Lead' : existingLead.caller_phone}`
         activityType = 'lead_completed'
+        break
+      case 'cancelled':
+        activityMessage = `Lead marked cancelled for ${existingLead.caller_phone === '+10000000000' ? 'Test Lead' : existingLead.caller_phone}`
+        activityType = 'lead_cancelled'
         break
       case 'lost':
         activityMessage = `Lead marked lost for ${existingLead.caller_phone === '+10000000000' ? 'Test Lead' : existingLead.caller_phone}`

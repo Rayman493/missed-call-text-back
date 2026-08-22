@@ -1019,7 +1019,7 @@ export const db = {
     }
 
     // Check status
-    if (lead.status === 'completed' || lead.status === 'ignored') {
+    if (lead.status === 'completed' || lead.status === 'ignored' || lead.status === 'cancelled') {
       return false
     }
 

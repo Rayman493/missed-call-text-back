@@ -216,7 +216,7 @@ export default function LeadsPage() {
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [quickFilter, setQuickFilter] = useState<'all' | 'active' | 'new' | 'completed' | 'ignored'>('all')
+  const [quickFilter, setQuickFilter] = useState<'all' | 'active' | 'new' | 'completed' | 'ignored' | 'cancelled'>('all')
   const [showFilters, setShowFilters] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
@@ -242,9 +242,9 @@ export default function LeadsPage() {
   useEffect(() => {
     if (statusParam) {
       // Map status parameter to quickFilter
-      const validStatuses = ['new', 'active', 'completed', 'ignored']
+      const validStatuses = ['new', 'active', 'completed', 'ignored', 'cancelled']
       if (validStatuses.includes(statusParam)) {
-        setQuickFilter(statusParam as 'all' | 'active' | 'new' | 'completed' | 'ignored')
+        setQuickFilter(statusParam as 'all' | 'active' | 'new' | 'completed' | 'ignored' | 'cancelled')
         setStatusFilter('all')
       } else {
         setStatusFilter(statusParam)

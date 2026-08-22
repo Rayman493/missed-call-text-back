@@ -1743,6 +1743,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         payment_requested: 'Customer marked as payment requested',
         paid: 'Customer marked as paid',
         completed: 'Customer marked as complete',
+        cancelled: 'Customer marked as cancelled',
         lost: 'Customer marked as lost',
         ignored: 'Customer marked as ignored'
       }

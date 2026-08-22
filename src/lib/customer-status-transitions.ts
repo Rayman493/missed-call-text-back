@@ -13,7 +13,7 @@ import { normalizeCustomerStatus } from './customer-status'
 /**
  * Canonical customer statuses
  */
-export type CustomerStatus = 'new' | 'needs_reply' | 'active' | 'scheduled' | 'payment_requested' | 'paid' | 'completed' | 'ignored' | 'lost'
+export type CustomerStatus = 'new' | 'needs_reply' | 'active' | 'scheduled' | 'payment_requested' | 'paid' | 'completed' | 'cancelled' | 'ignored' | 'lost'
 
 /**
  * Events that can trigger status transitions
@@ -31,7 +31,7 @@ export type StatusEvent =
 /**
  * Protected statuses that should never be overridden automatically
  */
-const PROTECTED_STATUSES: CustomerStatus[] = ['ignored', 'lost']
+const PROTECTED_STATUSES: CustomerStatus[] = ['cancelled', 'ignored', 'lost']
 
 /**
  * Statuses that should not transition backward
@@ -84,6 +84,9 @@ const TRANSITION_TABLE: Record<CustomerStatus, Partial<Record<StatusEvent, Custo
   },
   completed: {
     // No transitions from completed - it's a terminal state
+  },
+  cancelled: {
+    // Protected status - no automatic transitions
   },
   ignored: {
     // Protected status - no automatic transitions

@@ -1,7 +1,7 @@
 /**
  * Centralized status color mapping for customer cards
  * Provides accent colors, border colors, and badge styles for each status
- * 
+ *
  * Semantic color system:
  * - New: Blue (new lead waiting for first contact)
  * - Active: Emerald (conversation in progress)
@@ -9,6 +9,7 @@
  * - Payment Requested: Amber (waiting on customer payment)
  * - Paid: Teal (payment received)
  * - Completed: Slate (job finished successfully)
+ * - Cancelled: Amber (engagement cancelled)
  * - Lost: Red (customer declined or opportunity lost)
  * - Ignored: Slate (customer ignored)
  */
@@ -102,6 +103,17 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
     text: 'text-slate-300',
     iconBg: 'bg-slate-500/20 dark:bg-slate-400/20',
     gradient: 'from-slate-500/5 via-slate-500/5 to-slate-50/50 dark:to-slate-900/50'
+  },
+  'cancelled': {
+    accent: 'bg-amber-300',
+    border: 'border-amber-400/20',
+    accentColor: 'rgb(252 211 77)',
+    badgeBg: 'bg-amber-400/10 dark:bg-amber-300/10',
+    badgeText: 'text-amber-700 dark:text-amber-300',
+    badgeBorder: 'ring-1 ring-inset ring-amber-400/20 dark:ring-amber-300/20',
+    text: 'text-amber-300',
+    iconBg: 'bg-amber-400/10 dark:bg-amber-300/10',
+    gradient: 'from-amber-400/5 via-amber-400/5 to-slate-50/50 dark:to-slate-900/50'
   },
   'lost': {
     accent: 'bg-red-400',
@@ -235,6 +247,7 @@ export function getCardAccentClasses(status: string): string {
     'rgb(74 222 128)': 'before:bg-green-400',
     'rgb(45 212 191)': 'before:bg-teal-400',
     'rgb(148 163 184)': 'before:bg-slate-400',
+    'rgb(252 211 77)': 'before:bg-amber-300',
     'rgb(248 113 113)': 'before:bg-red-400',
     'rgb(203 213 225)': 'before:bg-slate-300'
   }

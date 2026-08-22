@@ -5,7 +5,7 @@
 
 import { getStatusColorConfig } from './lead-status-colors'
 
-export type LeadLifecycleStatus = 'new' | 'active' | 'scheduled' | 'payment_requested' | 'paid' | 'completed' | 'lost' | 'ignored'
+export type LeadLifecycleStatus = 'new' | 'active' | 'scheduled' | 'payment_requested' | 'paid' | 'completed' | 'cancelled' | 'lost' | 'ignored'
 
 export interface LeadLifecycleConfig {
   color: string
@@ -50,6 +50,12 @@ export const LEAD_LIFECYCLE_CONFIG: Record<LeadLifecycleStatus, LeadLifecycleCon
     bgColor: getStatusColorConfig('completed').iconBg,
     label: 'Completed',
     description: 'Handled and resolved'
+  },
+  cancelled: {
+    color: getStatusColorConfig('cancelled').text,
+    bgColor: getStatusColorConfig('cancelled').iconBg,
+    label: 'Cancelled',
+    description: 'Engagement cancelled'
   },
   lost: {
     color: getStatusColorConfig('lost').text,
@@ -177,7 +183,7 @@ export function getLeadLifecycleStatus(lead: any): LeadLifecycleStatus {
   }
 
   // Use the database status directly if it's a valid status
-  const validStatuses: LeadLifecycleStatus[] = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'lost', 'ignored']
+  const validStatuses: LeadLifecycleStatus[] = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'cancelled', 'lost', 'ignored']
   if (lead.status && validStatuses.includes(lead.status)) {
     return lead.status as LeadLifecycleStatus
   }

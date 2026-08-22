@@ -12,12 +12,12 @@
  * All Tailwind classes are complete literal strings for production build safety.
  */
 
-import { Phone, MessageCircle, Calendar, CreditCard, CheckSquare, Check, X, Clock } from 'lucide-react'
+import { Phone, MessageCircle, Calendar, CreditCard, CheckSquare, Check, X, Clock, CircleX } from 'lucide-react'
 
 /**
  * Canonical customer status enum
  */
-export type CustomerStatus = 
+export type CustomerStatus =
   | 'new'
   | 'needs_reply'
   | 'active'
@@ -25,6 +25,7 @@ export type CustomerStatus =
   | 'payment_requested'
   | 'paid'
   | 'completed'
+  | 'cancelled'
   | 'ignored'
   | 'lost'
 
@@ -117,6 +118,16 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     selectedClass: 'border-slate-400/40 bg-slate-400/12',
     color: '#94A3B8'
   },
+  cancelled: {
+    label: 'Cancelled',
+    cardClass: 'border-amber-400/70 bg-gradient-to-br from-amber-50/95 via-amber-50/90 to-amber-100/80 dark:from-amber-400/25 dark:via-amber-400/12 dark:to-slate-900/95 shadow-md shadow-amber-400/10 dark:shadow-[0_0_20px_rgba(251,191,36,0.10)]',
+    accentStripClass: 'bg-amber-400',
+    badgeClass: 'border-amber-400/40 bg-amber-400/12 text-amber-400',
+    iconClass: 'bg-amber-400/15 text-amber-400 dark:text-amber-400',
+    textClass: 'text-amber-600 dark:text-amber-400',
+    selectedClass: 'border-amber-400/40 bg-amber-400/12',
+    color: '#FBBF24'
+  },
   ignored: {
     label: 'Ignored',
     cardClass: 'border-orange-500/70 bg-gradient-to-br from-orange-50/95 via-orange-50/90 to-orange-100/80 dark:from-orange-500/25 dark:via-orange-500/12 dark:to-slate-900/95 shadow-md shadow-orange-500/10 dark:shadow-[0_0_20px_rgba(249,115,22,0.10)]',
@@ -155,9 +166,10 @@ export function normalizeCustomerStatus(rawStatus: string | null | undefined): C
   if (status === 'payment_requested') return 'payment_requested'
   if (status === 'paid') return 'paid'
   if (status === 'completed') return 'completed'
+  if (status === 'cancelled') return 'cancelled'
   if (status === 'ignored') return 'ignored'
   if (status === 'lost') return 'lost'
-  
+
   // Log unknown values in development only
   if (process.env.NODE_ENV === 'development') {
     console.warn(`[normalizeCustomerStatus] Unknown status value: "${rawStatus}", falling back to "new"`)
@@ -194,6 +206,7 @@ export function getCustomerStatusIcon(rawStatus: string | null | undefined): any
     case 'payment_requested': return CreditCard
     case 'paid': return CheckSquare
     case 'completed': return Check
+    case 'cancelled': return CircleX
     case 'ignored': return Clock
     case 'lost': return X
     default: return Phone
@@ -218,5 +231,5 @@ export function getWorkflowStatuses(): CustomerStatus[] {
  * Get terminal statuses (end states)
  */
 export function getTerminalStatuses(): CustomerStatus[] {
-  return ['ignored', 'lost']
+  return ['cancelled', 'ignored', 'lost']
 }
