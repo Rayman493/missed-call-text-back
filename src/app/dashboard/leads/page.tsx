@@ -600,6 +600,39 @@ export default function LeadsPage() {
     router.push(`/dashboard/leads/${leadId}`)
   }
 
+  // Handle empty-space click to clear status filter
+  const handlePageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Check if the click target is an interactive element
+    const target = e.target as HTMLElement
+    const interactiveSelectors = [
+      'button',
+      'a',
+      'input',
+      'textarea',
+      'select',
+      '[role="button"]',
+      '[role="link"]',
+      '[role="menuitem"]',
+      '[role="option"]',
+      '[role="tab"]',
+    ]
+
+    const isInteractive = interactiveSelectors.some(selector =>
+      target.closest(selector)
+    )
+
+    // Only clear filter if clicking on genuinely non-interactive empty space
+    if (!isInteractive && quickFilter !== 'all') {
+      setQuickFilter('all')
+      setStatusFilter('all')
+      // Clear status query parameter
+      const params = new URLSearchParams(searchParams?.toString())
+      params.delete('status')
+      const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+      router.replace(newUrl)
+    }
+  }
+
   // Handle billing actions
   const handleBillingActionClick = async (action: 'portal' | 'upgrade') => {
     try {
@@ -764,7 +797,7 @@ export default function LeadsPage() {
             <AppHeader title="Customers" />
 
           {/* Main Content */}
-          <main className="flex-1 pt-6 sm:pt-8 lg:pt-10 px-4 sm:px-5 lg:px-7 md:pb-10 relative z-10 overflow-y-auto mobile-bottom-nav-safe-content-with-gap">
+          <main className="flex-1 pt-6 sm:pt-8 lg:pt-10 px-4 sm:px-5 lg:px-7 md:pb-10 relative z-10 overflow-y-auto mobile-bottom-nav-safe-content-with-gap" onClick={handlePageClick}>
             <div className="max-w-[1400px] mx-auto space-y-6">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
