@@ -110,7 +110,7 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
     // - BusinessProvider for UserDropdown (rendered by Navbar when user is logged in)
     if (!isClient || !ThemeProvider || !AuthProvider || !BusinessProvider) {
       return (
-        <div className="min-h-screen bg-zinc-950" />
+        <div className="min-h-screen bg-slate-950" />
       )
     }
     // Once essential providers are loaded, wrap public content

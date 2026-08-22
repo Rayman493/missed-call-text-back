@@ -4054,7 +4054,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         }
                       >
                         {paymentRequests.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">No payments yet</p>
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-2">No payments yet</p>
+                            {!business || getAvailableProviders(business).length === 0 ? (
+                              <div className="text-xs text-muted-foreground">
+                                <span>Set up a payment method in Settings to request payments.</span>
+                                <Link
+                                  href="/dashboard/settings#payments"
+                                  className="text-blue-600 dark:text-blue-400 hover:underline ml-1"
+                                >
+                                  Set up payments →
+                                </Link>
+                              </div>
+                            ) : null}
+                          </div>
                         ) : (
                           <div>
                             <div className="text-sm font-medium text-foreground mb-2">

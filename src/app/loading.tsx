@@ -34,7 +34,7 @@ export default function Loading() {
   return (
     <div
       className={`min-h-dvh min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden ${
-        isPublicRoute ? 'bg-zinc-950' : 'bg-background'
+        isPublicRoute ? 'bg-slate-950' : 'bg-background'
       }`}
       role="status"
       aria-live="polite"
