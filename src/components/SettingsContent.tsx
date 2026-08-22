@@ -1205,7 +1205,7 @@ export default function SettingsContent() {
 
         if (platform === 'ios') {
           // iOS: Use ASWebAuthenticationSession for automatic return-to-app
-          const ReplyflowWebCheckoutPlugin = await import('@/lib/web-checkout').then(m => m.default)
+          const { default: ReplyflowWebCheckoutPlugin } = await import('@/lib/web-checkout')
           console.log('[Settings] Opening Google Calendar in ASWebAuthenticationSession on iOS')
           const result = await ReplyflowWebCheckoutPlugin.openCheckoutSession({
             url: data.authUrl,
@@ -1213,6 +1213,25 @@ export default function SettingsContent() {
             callbackPath,
           })
           console.log('[Settings] ASWebAuthenticationSession result:', result)
+
+          // Handle user cancellation immediately
+          if (result.canceled) {
+            console.log('[Settings] User canceled Google Calendar OAuth')
+            showToast('Google Calendar Not Connected. You can try again anytime.', 'info')
+            // Clear pending operation on cancel
+            try {
+              const { setPendingGoogleOperation } = await import('@/lib/external-return-handler')
+              await setPendingGoogleOperation(null)
+            } catch {}
+            setIsConnectingCalendar(false)
+            return
+          }
+
+          // Handle native session error
+          if (!result.completed && !result.canceled) {
+            console.error('[Settings] Native session error:', result)
+            throw new Error(result.errorMessage || 'Native authentication session failed')
+          }
         } else {
           // Android: Use Capacitor Browser plugin
           const { Browser } = await import('@capacitor/browser')
@@ -1235,9 +1254,11 @@ export default function SettingsContent() {
         const { setPendingGoogleOperation } = await import('@/lib/external-return-handler')
         await setPendingGoogleOperation(null)
       } catch {}
+      // Reset loading state on error
+      setIsConnectingCalendar(false)
     } finally {
       // For web, we redirect so loading state doesn't matter
-      // For native, we keep loading true until return to show correct state
+      // For native, loading state is reset in error handler or on return
       if (!isCapacitorNative()) {
         setIsConnectingCalendar(false)
       }

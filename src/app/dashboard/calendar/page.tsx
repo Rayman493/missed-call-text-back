@@ -534,7 +534,7 @@ export default function SchedulePage() {
 
         if (platform === 'ios') {
           // iOS: Use ASWebAuthenticationSession for automatic return-to-app
-          const ReplyflowWebCheckoutPlugin = await import('@/lib/web-checkout').then(m => m.default)
+          const { default: ReplyflowWebCheckoutPlugin } = await import('@/lib/web-checkout')
           console.log('[CALENDAR] Opening in ASWebAuthenticationSession on iOS')
           const result = await ReplyflowWebCheckoutPlugin.openCheckoutSession({
             url: data.authUrl,
@@ -542,6 +542,25 @@ export default function SchedulePage() {
             callbackPath,
           })
           console.log('[CALENDAR] ASWebAuthenticationSession result:', result)
+
+          // Handle user cancellation immediately
+          if (result.canceled) {
+            console.log('[CALENDAR] User canceled Google Calendar OAuth')
+            showToast('Google Calendar Not Connected. You can try again anytime.', 'info')
+            // Clear pending operation on cancel
+            try {
+              const { setPendingGoogleOperation } = await import('@/lib/external-return-handler')
+              await setPendingGoogleOperation(null)
+            } catch {}
+            setIsConnecting(false)
+            return
+          }
+
+          // Handle native session error
+          if (!result.completed && !result.canceled) {
+            console.error('[CALENDAR] Native session error:', result)
+            throw new Error(result.errorMessage || 'Native authentication session failed')
+          }
         } else {
           // Android: Use Capacitor Browser plugin
           const { Browser } = await import('@capacitor/browser')
@@ -564,7 +583,13 @@ export default function SchedulePage() {
         const { setPendingGoogleOperation } = await import('@/lib/external-return-handler')
         await setPendingGoogleOperation(null)
       } catch {}
+      // Reset loading state on error
       setIsConnecting(false)
+    } finally {
+      // For web, we redirect so loading state doesn't matter
+      if (!isCapacitorNative()) {
+        setIsConnecting(false)
+      }
     }
   }
 
