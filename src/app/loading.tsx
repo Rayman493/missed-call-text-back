@@ -2,9 +2,30 @@
 
 import BrandLoader from '@/components/BrandLoader'
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
+
+// Public routes that are always dark
+const PUBLIC_ROUTES = new Set([
+  '/',
+  '/home',
+  '/pricing',
+  '/faq',
+  '/privacy',
+  '/terms',
+])
+
+function normalizePathname(pathname: string | null): string {
+  if (!pathname) return ''
+  return pathname.endsWith('/') && pathname.length > 1
+    ? pathname.slice(0, -1)
+    : pathname
+}
 
 export default function Loading() {
   const [mounted, setMounted] = useState(false)
+  const pathname = usePathname()
+  const normalizedPathname = normalizePathname(pathname)
+  const isPublicRoute = PUBLIC_ROUTES.has(normalizedPathname)
 
   useEffect(() => {
     setMounted(true)
@@ -12,7 +33,9 @@ export default function Loading() {
 
   return (
     <div
-      className="min-h-dvh min-h-screen bg-background flex flex-col items-center justify-center px-4 relative overflow-hidden"
+      className={`min-h-dvh min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden ${
+        isPublicRoute ? 'bg-zinc-950' : 'bg-background'
+      }`}
       role="status"
       aria-live="polite"
       aria-label="Loading ReplyFlow"
@@ -35,30 +58,30 @@ export default function Loading() {
         <BrandLoader size={48} className="mb-6" />
 
         {/* Product name */}
-        <h1 className="text-xl font-semibold text-foreground mb-2">
+        <h1 className={`text-xl font-semibold mb-2 ${isPublicRoute ? 'text-white' : 'text-foreground'}`}>
           ReplyFlow
         </h1>
 
         {/* Status line */}
-        <p className="text-sm text-muted-foreground mb-6">
+        <p className={`text-sm mb-6 ${isPublicRoute ? 'text-zinc-400' : 'text-muted-foreground'}`}>
           Preparing your workspace…
         </p>
 
         {/* Loading indicator - three dots with staggered animation */}
         <div className="flex items-center gap-2">
-          <LoadingDot delay={0} />
-          <LoadingDot delay={150} />
-          <LoadingDot delay={300} />
+          <LoadingDot delay={0} isPublicRoute={isPublicRoute} />
+          <LoadingDot delay={150} isPublicRoute={isPublicRoute} />
+          <LoadingDot delay={300} isPublicRoute={isPublicRoute} />
         </div>
       </div>
     </div>
   )
 }
 
-function LoadingDot({ delay }: { delay: number }) {
+function LoadingDot({ delay, isPublicRoute }: { delay: number; isPublicRoute: boolean }) {
   return (
     <div
-      className="w-2 h-2 bg-primary rounded-full animate-pulse"
+      className={`w-2 h-2 rounded-full animate-pulse ${isPublicRoute ? 'bg-blue-400' : 'bg-primary'}`}
       style={{
         animationDelay: `${delay}ms`,
         animationDuration: '1.4s',

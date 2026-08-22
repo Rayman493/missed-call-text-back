@@ -113,11 +113,24 @@ export default function RootLayout({
                   if (stored) return stored;
                   return 'dark';
                 }
-                const theme = getTheme();
-                if (theme === 'dark') {
-                  document.documentElement.classList.add('dark');
-                } else {
-                  document.documentElement.classList.remove('dark');
+
+                // Check if current route is public before applying saved theme
+                const pathname = window.location.pathname;
+                const publicRoutes = ['/', '/home', '/pricing', '/faq', '/privacy', '/terms'];
+                const normalizedPath = pathname.endsWith('/') && pathname.length > 1
+                  ? pathname.slice(0, -1)
+                  : pathname;
+                const isPublicRoute = publicRoutes.includes(normalizedPath);
+
+                // Only apply saved theme if NOT on a public route
+                // Public routes are always dark regardless of saved preference
+                if (!isPublicRoute) {
+                  const theme = getTheme();
+                  if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
                 }
               })();
             `,
