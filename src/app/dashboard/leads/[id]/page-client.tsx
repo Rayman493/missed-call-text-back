@@ -56,7 +56,7 @@ import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skelet
 import EmptyState from '@/components/ui/EmptyState'
 import Modal from '@/components/ui/Modal'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
-import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2 } from 'lucide-react'
+import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import { SidebarSection } from '@/components/SidebarSection'
 import SuccessBanner from '@/components/SuccessBanner'
@@ -4290,17 +4290,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     )}
                     <div className="flex items-center gap-1 bg-muted/40 dark:bg-muted/30 border border-border/20 rounded-lg p-1 hover:shadow-md transition-all duration-200 focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-500/40 focus-within:bg-muted/60 dark:focus-within:bg-muted/40">
-                      {/* Image Upload Button */}
+                      {/* Attachment Button */}
                       <button
                         type="button"
                         onClick={() => mobileFileInputRef.current?.click()}
-                        className="p-2 text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 dark:hover:bg-muted/30 transition-all duration-200 flex-none rounded-lg h-11 w-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:ring-offset-2 focus:ring-offset-background"
+                        className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 dark:hover:bg-muted/30 transition-all duration-200 flex-none rounded-lg h-11 w-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:ring-offset-2 focus:ring-offset-background"
                         disabled={sending}
-                        aria-label="Add image"
+                        aria-label="Attach file"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <Paperclip className="w-5 h-5 shrink-0" />
                       </button>
                       <input
                         ref={mobileFileInputRef}
