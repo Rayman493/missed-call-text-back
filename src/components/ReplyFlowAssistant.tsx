@@ -679,6 +679,20 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
             </div>
           </div>
         )}
+
+        {/* Support Footer */}
+        <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Mail className="w-3.5 h-3.5" />
+            <span>Still need help?</span>
+            <a
+              href="mailto:support@replyflowhq.com"
+              className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+            >
+              Contact support
+            </a>
+          </div>
+        </div>
         </div>
       </div>
     </div>
