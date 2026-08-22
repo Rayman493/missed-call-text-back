@@ -64,6 +64,24 @@ export function useSettingsFormState({
     }
   }, [initialBusiness])
 
+  // Normalize value for comparison to match persistence behavior
+  const normalizeValue = useCallback((value: any, field: keyof Business): any => {
+    // Only normalize fields where persistence actually normalizes
+    if (field === 'service_location_type' && typeof value === 'string') {
+      return value.trim().toLowerCase()
+    }
+
+    // For text fields with defaults, treat empty string as equivalent to undefined
+    const fieldsWithDefaults = ['out_of_office_message', 'after_hours_message']
+    if (fieldsWithDefaults.includes(field as string)) {
+      if (value === '' || value === null || value === undefined) {
+        return undefined
+      }
+    }
+
+    return value
+  }, [])
+
   // Deep comparison to detect changes
   const checkForChanges = useCallback((current: Business, original: Business): boolean => {
     const fieldsToCheck: (keyof Business)[] = [
@@ -102,25 +120,43 @@ export function useSettingsFormState({
     return fieldsToCheck.some(field => {
       const currentValue = current[field]
       const originalValue = original[field]
-      
+
       // Handle nested object comparison for automation_settings
       if (field === 'automation_settings') {
         if (!currentValue && !originalValue) return false
         if (!currentValue || !originalValue) return true
-        return JSON.stringify(currentValue) !== JSON.stringify(originalValue)
+
+        // Deep comparison with key sorting for stable comparison
+        const deepCompare = (a: any, b: any): boolean => {
+          if (a === b) return false
+          if (!a || !b) return true
+
+          if (typeof a !== typeof b) return true
+
+          if (typeof a === 'object') {
+            const keysA = Object.keys(a).sort()
+            const keysB = Object.keys(b).sort()
+
+            if (keysA.length !== keysB.length) return true
+            if (keysA.some((k, i) => k !== keysB[i])) return true
+
+            return keysA.some(key => deepCompare(a[key], b[key]))
+          }
+
+          return a !== b
+        }
+
+        return deepCompare(currentValue, originalValue)
       }
-      
-      // Handle null/undefined comparisons
-      if (currentValue === null || currentValue === undefined) {
-        return originalValue !== null && originalValue !== undefined
-      }
-      if (originalValue === null || originalValue === undefined) {
-        return true
-      }
-      
-      return currentValue !== originalValue
+
+      // Normalize values for comparison based on field-specific persistence behavior
+      const normalizedCurrent = normalizeValue(currentValue, field)
+      const normalizedOriginal = normalizeValue(originalValue, field)
+
+      // Compare normalized values
+      return normalizedCurrent !== normalizedOriginal
     })
-  }, [])
+  }, [normalizeValue])
 
   // Update business field and check for changes
   const updateBusiness = useCallback((updates: Partial<Business>) => {
