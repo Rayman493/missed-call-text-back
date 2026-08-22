@@ -1429,7 +1429,10 @@ export default function SettingsContent() {
       }
     } catch (error) {
       console.error('[Settings] Error connecting Stripe:', error)
-      showToast(error instanceof Error ? error.message : 'We couldn\'t connect Stripe. Please try again.', 'error')
+      const errorMessage = error instanceof Error ? error.message : 'We couldn\'t connect Stripe. Please try again.'
+      // Use info/warning style for user cancellation (friendly message)
+      const toastType = errorMessage.includes('Stripe setup wasn’t completed') ? 'info' : 'error'
+      showToast(errorMessage, toastType)
     } finally {
       setIsConnectingStripe(false)
       setStripeConnectLoading(false)

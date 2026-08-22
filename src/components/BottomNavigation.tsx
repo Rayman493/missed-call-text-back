@@ -258,10 +258,10 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
+                  className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-colors duration-150 ${
                     isActive(item.href)
                       ? 'text-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                      : 'text-muted-foreground active:text-foreground'
                   }`}
                 >
                   {isActive(item.href) && (
@@ -282,10 +282,10 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
             <button
               ref={moreButtonRef}
               onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
-              className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
+              className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-colors duration-150 ${
                 isMoreMenuOpen
                   ? 'text-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                  : 'text-muted-foreground active:text-foreground'
               }`}
             >
               {isMoreMenuOpen && (
@@ -322,6 +322,18 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
             } : undefined}
           >
             <div className="py-1">
+              <Link
+                href="/dashboard/settings"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsMoreMenuOpen(false)
+                }}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-popover-foreground transition-colors duration-150 hover:bg-accent"
+              >
+                <Settings className="h-4 w-4 text-muted-foreground" />
+                Settings
+              </Link>
+
               <button
                 type="button"
                 onClick={(e) => {
@@ -338,18 +350,6 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 <MessageCircle className="h-4 w-4 text-muted-foreground" />
                 ReplyFlow Assistant
               </button>
-
-              <Link
-                href="/dashboard/settings"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsMoreMenuOpen(false)
-                }}
-                className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-popover-foreground transition-colors duration-150 hover:bg-accent"
-              >
-                <Settings className="h-4 w-4 text-muted-foreground" />
-                Settings
-              </Link>
 
               {/* Appearance Selector */}
               <div className="px-4 py-2">

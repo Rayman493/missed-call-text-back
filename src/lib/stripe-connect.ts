@@ -24,11 +24,15 @@ export function normalizeStripeConnectError(errorMessage: string): string {
   const lowerError = errorMessage.toLowerCase()
 
   // Normalize user cancellation/incomplete onboarding to user-friendly message
+  // Apple AuthenticationServices error 1 (canceledLogin) indicates user cancellation
+  // Other error codes indicate genuine native failures
   if (lowerError.includes('canceled') ||
       lowerError.includes('cancelled') ||
       lowerError.includes('user cancelled') ||
-      lowerError.includes('user canceled')) {
-    return 'Stripe Setup Not Completed'
+      lowerError.includes('user canceled') ||
+      (lowerError.includes('authenticationservices') && lowerError.includes('error 1')) ||
+      (lowerError.includes('webauthenticationsession') && lowerError.includes('error 1'))) {
+    return 'Stripe setup wasn’t completed. You can continue setup anytime.'
   }
 
   // Strip raw native/plugin implementation details
