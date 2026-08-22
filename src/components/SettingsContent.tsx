@@ -1198,19 +1198,18 @@ export default function SettingsContent() {
       // For web: Use standard redirect
       if (isCapacitorNative()) {
         const platform = getCapacitorPlatform()
-        const callbackUrl = `${window.location.origin}/dashboard/settings?calendar=connected`
-        const callbackUrlObj = new URL(callbackUrl)
-        const callbackHost = callbackUrlObj.hostname
-        const callbackPath = callbackUrlObj.pathname + callbackUrlObj.search
+        const callbackHost = window.location.hostname
 
         if (platform === 'ios') {
           // iOS: Use ASWebAuthenticationSession for automatic return-to-app
+          // IMPORTANT: callbackPath must NOT include query parameters for ASWebAuthenticationSession matching
+          // We manually navigate with query parameters after callback is received
           const { default: ReplyflowWebCheckoutPlugin } = await import('@/lib/web-checkout')
           console.log('[Settings] Opening Google Calendar in ASWebAuthenticationSession on iOS')
           const result = await ReplyflowWebCheckoutPlugin.openCheckoutSession({
             url: data.authUrl,
             callbackHost,
-            callbackPath,
+            callbackPath: '/dashboard/settings', // Path only - no query parameters
           })
           console.log('[Settings] ASWebAuthenticationSession result:', result)
 
@@ -1231,6 +1230,13 @@ export default function SettingsContent() {
           if (!result.completed && !result.canceled) {
             console.error('[Settings] Native session error:', result)
             throw new Error(result.errorMessage || 'Native authentication session failed')
+          }
+
+          // Handle successful callback - manually navigate with query parameters
+          if (result.completed && result.callbackMatched) {
+            console.log('[Settings] Callback matched, navigating with calendar=connected')
+            window.location.href = '/dashboard/settings?calendar=connected'
+            return
           }
         } else {
           // Android: Use Capacitor Browser plugin

@@ -527,19 +527,18 @@ export default function SchedulePage() {
       // For web: Use standard redirect
       if (isCapacitorNative()) {
         const platform = getCapacitorPlatform()
-        const callbackUrl = `${window.location.origin}/dashboard/calendar?calendar=connected`
-        const callbackUrlObj = new URL(callbackUrl)
-        const callbackHost = callbackUrlObj.hostname
-        const callbackPath = callbackUrlObj.pathname + callbackUrlObj.search
+        const callbackHost = window.location.hostname
 
         if (platform === 'ios') {
           // iOS: Use ASWebAuthenticationSession for automatic return-to-app
+          // IMPORTANT: callbackPath must NOT include query parameters for ASWebAuthenticationSession matching
+          // We manually navigate with query parameters after callback is received
           const { default: ReplyflowWebCheckoutPlugin } = await import('@/lib/web-checkout')
           console.log('[CALENDAR] Opening in ASWebAuthenticationSession on iOS')
           const result = await ReplyflowWebCheckoutPlugin.openCheckoutSession({
             url: data.authUrl,
             callbackHost,
-            callbackPath,
+            callbackPath: '/dashboard/calendar', // Path only - no query parameters
           })
           console.log('[CALENDAR] ASWebAuthenticationSession result:', result)
 
@@ -560,6 +559,13 @@ export default function SchedulePage() {
           if (!result.completed && !result.canceled) {
             console.error('[CALENDAR] Native session error:', result)
             throw new Error(result.errorMessage || 'Native authentication session failed')
+          }
+
+          // Handle successful callback - manually navigate with query parameters
+          if (result.completed && result.callbackMatched) {
+            console.log('[CALENDAR] Callback matched, navigating with calendar=connected')
+            window.location.href = '/dashboard/calendar?calendar=connected'
+            return
           }
         } else {
           // Android: Use Capacitor Browser plugin
