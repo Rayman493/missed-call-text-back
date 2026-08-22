@@ -340,7 +340,7 @@ export default function SchedulePage() {
         showToast('Google Calendar connected — your appointments will stay in sync', 'success')
         setIsConnecting(false)
         setTokenExpired(false)
-        setScheduleTab('agenda') // Switch to Agenda tab after successful connection
+        setScheduleTab('calendar') // Switch to Calendar tab after successful connection
         window.history.replaceState({}, '', '/dashboard/calendar')
         // Clear pending Google operation after successful return
         const { setPendingGoogleOperation } = require('@/lib/external-return-handler')
