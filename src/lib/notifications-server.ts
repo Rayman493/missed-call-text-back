@@ -316,7 +316,7 @@ export class NotificationServiceServer {
   ): Promise<boolean> {
     const template = NOTIFICATION_TEMPLATES[type]
     let notificationData: any = template
-    
+
     if (typeof template === 'function') {
       notificationData = template(data || {})
     }
@@ -332,106 +332,23 @@ export class NotificationServiceServer {
       return true
     }
 
-    // Idempotency check: prevent duplicate notifications for the same context
-    // Check for customer_reply by messageId
-    if (data && data.messageId && type === 'customer_reply') {
-      const { data: existingNotification } = await supabaseAdmin
-        .from('notifications')
-        .select('id')
-        .eq('business_id', businessId)
-        .eq('type', type)
-        .eq('data->>leadId', data.leadId)
-        .eq('data->>messageId', data.messageId)
-        .maybeSingle()
+    // Atomic idempotency for ai_intake_completed only
+    // Uses INSERT + unique constraint (23505 error) to prevent race conditions
+    let idempotencyKey: string | null = null
+    let useAtomicIdempotency = false
 
-      if (existingNotification) {
-        console.log('[NOTIFICATIONS IDEMPOTENT SKIP]', { 
-          businessId, 
-          type, 
-          leadId: data.leadId,
-          messageId: data.messageId 
-        })
-        return true // Return true to indicate success (notification already exists)
-      }
+    if (data && data.aiCallRecordId && type === 'ai_intake_completed') {
+      // Use aiCallRecordId as the stable per-event identifier
+      // Do NOT use leadId as fallback to avoid suppressing legitimate subsequent AI calls
+      idempotencyKey = `ai_${data.aiCallRecordId}`
+      useAtomicIdempotency = true
     }
 
-    // Idempotency check for voicemail_received by recordingSid
-    if (data && data.recordingSid && type === 'voicemail_received') {
-      const { data: existingNotification } = await supabaseAdmin
-        .from('notifications')
-        .select('id')
-        .eq('business_id', businessId)
-        .eq('type', type)
-        .eq('data->>leadId', data.leadId)
-        .eq('data->>recordingSid', data.recordingSid)
-        .maybeSingle()
-
-      if (existingNotification) {
-        console.log('[NOTIFICATIONS IDEMPOTENT SKIP]', { 
-          businessId, 
-          type, 
-          leadId: data.leadId,
-          recordingSid: data.recordingSid 
-        })
-        return true
-      }
-    }
-
-    // Idempotency check for new_lead by callSid (unique per call)
-    if (data && data.leadId && type === 'new_lead') {
-      // Use callSid for idempotency if available, otherwise fall back to leadId
-      const idempotencyKey = data.callSid || data.leadId
-      const idempotencyField = data.callSid ? 'callSid' : 'leadId'
-      
-      const { data: existingNotification } = await supabaseAdmin
-        .from('notifications')
-        .select('id')
-        .eq('business_id', businessId)
-        .eq('type', type)
-        .eq(`data->>${idempotencyField}`, idempotencyKey)
-        .maybeSingle()
-
-      if (existingNotification) {
-        console.log('[NOTIFICATIONS IDEMPOTENT SKIP]', { 
-          businessId, 
-          type, 
-          leadId: data.leadId,
-          idempotencyField,
-          idempotencyKey
-        })
-        return true
-      }
-    }
-
-    // Idempotency check for ai_intake_completed by aiCallRecordId (unique per intake)
-    if (data && data.leadId && type === 'ai_intake_completed') {
-      // Use aiCallRecordId for idempotency if available, otherwise fall back to leadId
-      const idempotencyKey = data.aiCallRecordId || data.leadId
-      const idempotencyField = data.aiCallRecordId ? 'aiCallRecordId' : 'leadId'
-      
-      const { data: existingNotification } = await supabaseAdmin
-        .from('notifications')
-        .select('id')
-        .eq('business_id', businessId)
-        .eq('type', type)
-        .eq(`data->>${idempotencyField}`, idempotencyKey)
-        .maybeSingle()
-
-      if (existingNotification) {
-        console.log('[NOTIFICATIONS IDEMPOTENT SKIP]', { 
-          businessId, 
-          type, 
-          leadId: data.leadId,
-          idempotencyField,
-          idempotencyKey
-        })
-        return true
-      }
-    }
-
-    console.log('[NOTIFICATIONS INSERT PAYLOAD]', { 
-      businessId, 
-      type, 
+    console.log('[NOTIFICATIONS INSERT PAYLOAD]', {
+      businessId,
+      type,
+      idempotencyKey,
+      useAtomicIdempotency,
       title: notificationData.title,
       message: message || notificationData.message,
       data,
@@ -439,21 +356,107 @@ export class NotificationServiceServer {
       actionText: actionText || notificationData.action_text
     })
 
-    const { data: insertedData, error } = await supabaseAdmin
-      .from('notifications')
-      .insert({
-        business_id: businessId,
-        type,
-        title: notificationData.title,
-        message: message || notificationData.message,
-        data,
-        action_url: actionUrl || notificationData.action_url,
-        action_text: actionText || notificationData.action_text,
-        read: false,
-        created_at: new Date().toISOString()
+    const insertPayload = {
+      business_id: businessId,
+      type,
+      title: notificationData.title,
+      message: message || notificationData.message,
+      data,
+      action_url: actionUrl || notificationData.action_url,
+      action_text: actionText || notificationData.action_text,
+      read: false,
+      created_at: new Date().toISOString()
+    }
+
+    let insertedData: any
+    let error: any
+    let isNewInsert = false
+
+    if (useAtomicIdempotency && idempotencyKey) {
+      // Attempt INSERT with idempotency_key
+      // Unique database constraint (business_id, type, idempotency_key) arbitrates concurrent inserts
+      const { data: insertData, error: insertError } = await supabaseAdmin
+        .from('notifications')
+        .insert({
+          ...insertPayload,
+          idempotency_key: idempotencyKey
+        })
+        .select('id, created_at')
+        .single()
+
+      if (insertError) {
+        // Check for unique constraint violation (duplicate notification)
+        if (insertError.code === '23505') {
+          console.log('[NOTIFICATIONS IDEMPOTENT SKIP - UNIQUE CONSTRAINT]', {
+            businessId,
+            type,
+            idempotencyKey
+          })
+
+          // Fetch existing notification by idempotency key
+          const { data: existingNotification } = await supabaseAdmin
+            .from('notifications')
+            .select('id, created_at')
+            .eq('business_id', businessId)
+            .eq('type', type)
+            .eq('idempotency_key', idempotencyKey)
+            .single()
+
+          insertedData = existingNotification
+          error = null
+          isNewInsert = false // Existing row, do NOT trigger push
+
+          console.log('[NOTIFICATIONS REUSED EXISTING]', {
+            notificationId: insertedData?.id,
+            createdAt: insertedData?.created_at
+          })
+        } else {
+          // Real error - preserve existing error handling
+          console.error('[NOTIFICATIONS INSERT ERROR]', {
+            code: insertError.code,
+            message: insertError.message,
+            details: insertError.details,
+            hint: insertError.hint
+          })
+          return false
+        }
+      } else {
+        // INSERT succeeded - this invocation created the row
+        insertedData = insertData
+        error = null
+        isNewInsert = true // New row, trigger push
+
+        console.log('[NOTIFICATIONS INSERT SUCCESS]', {
+          notificationId: insertedData?.id,
+          createdAt: insertedData?.created_at
+        })
+      }
+    } else {
+      // Regular insert for non-idempotent notification types
+      const result = await supabaseAdmin
+        .from('notifications')
+        .insert(insertPayload)
+        .select('id')
+        .single()
+
+      insertedData = result.data
+      error = result.error
+      isNewInsert = true
+
+      if (error) {
+        console.error('[NOTIFICATIONS INSERT ERROR]', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        })
+        return false
+      }
+
+      console.log('[NOTIFICATIONS INSERT SUCCESS]', {
+        notificationId: insertedData?.id
       })
-      .select('id')
-      .single()
+    }
 
     if (error) {
       console.error('[NOTIFICATIONS INSERT ERROR]', {
@@ -465,31 +468,46 @@ export class NotificationServiceServer {
       return false
     } else {
       const notificationId = insertedData.id
-      console.log('[NOTIFICATIONS INSERT SUCCESS]', { businessId, type, notificationId })
-
-      // Send push notification asynchronously (best-effort, does not block)
-      // This is fire-and-forget - failures are logged but don't affect the business event
-      setImmediate(async () => {
-        try {
-          console.log('[PUSH] delivery triggered', { notificationId })
-          const notification = {
-            id: notificationId,
-            business_id: businessId,
-            type,
-            title: notificationData.title,
-            message: message || notificationData.message,
-            action_url: actionUrl || notificationData.action_url,
-            data,
-          }
-          await sendPushForNotification(notification)
-        } catch (pushError) {
-          console.error('[NOTIFICATIONS PUSH ERROR]', {
-            notificationId,
-            error: pushError instanceof Error ? pushError.message : String(pushError)
-          })
-          // Push failures are logged but do not affect the notification creation success
-        }
+      console.log('[NOTIFICATIONS FINAL RESULT]', {
+        businessId,
+        type,
+        notificationId,
+        idempotencyKey,
+        isNewInsert,
+        createdAt: insertedData.created_at
       })
+
+      // Send push notification asynchronously ONLY for new inserts
+      // Existing rows (from 23505 conflict) do NOT trigger push again
+      // This ensures only the invocation that actually created the notification row triggers push
+      if (isNewInsert) {
+        setImmediate(async () => {
+          try {
+            console.log('[PUSH] delivery triggered', { notificationId })
+            const notification = {
+              id: notificationId,
+              business_id: businessId,
+              type,
+              title: notificationData.title,
+              message: message || notificationData.message,
+              action_url: actionUrl || notificationData.action_url,
+              data,
+            }
+            await sendPushForNotification(notification)
+          } catch (pushError) {
+            console.error('[NOTIFICATIONS PUSH ERROR]', {
+              notificationId,
+              error: pushError instanceof Error ? pushError.message : String(pushError)
+            })
+            // Push failures are logged but do not affect the notification creation success
+          }
+        })
+      } else {
+        console.log('[PUSH] delivery skipped - existing notification reused', {
+          notificationId,
+          originalCreatedAt: insertedData.created_at
+        })
+      }
 
       return true
     }
