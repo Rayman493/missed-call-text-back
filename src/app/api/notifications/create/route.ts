@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
 
     if (type === 'ai_intake_completed') {
       data = { leadId, customerName, customerPhone, serviceRequested }
-      finalTitle = title || 'New AI intake lead'
+      finalTitle = title || 'New Request'
       const nameLabel = customerName || null
       const serviceLabel = serviceRequested || null
       const preview = nameLabel && serviceLabel

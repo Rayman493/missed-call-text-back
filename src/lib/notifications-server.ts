@@ -91,8 +91,8 @@ export const NOTIFICATION_TEMPLATES = {
   new_lead: (data: { leadName: string; leadPhone: string; leadId: string; callSid?: string }) => {
     const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
     return {
-      title: displayName === 'Customer' ? 'New Lead' : `${displayName}`,
-      message: 'New lead captured · ReplyFlow started follow-up',
+      title: displayName === 'Customer' ? 'New Customer' : `${displayName}`,
+      message: 'New customer request',
       action_url: `/dashboard/leads/${data.leadId}`,
       action_text: 'View Lead'
     }
@@ -102,8 +102,8 @@ export const NOTIFICATION_TEMPLATES = {
     const displayName = resolveCustomerDisplayName(data.leadName, null)
     const truncatedMessage = truncateMessage(data.message, 120)
     return {
-      title: data.hasPhoto ? 'Photo sent' : `${displayName}`,
-      message: truncatedMessage,
+      title: data.hasPhoto ? 'Photo sent' : 'New Reply',
+      message: displayName === 'Customer' ? truncatedMessage : `${displayName}: ${truncatedMessage}`,
       action_url: `/dashboard/leads/${data.leadId}`,
       action_text: 'Reply'
     }
@@ -112,7 +112,7 @@ export const NOTIFICATION_TEMPLATES = {
   followup_completed: (data: { leadName: string; leadId: string }) => {
     const displayName = resolveCustomerDisplayName(data.leadName, null)
     return {
-      title: displayName === 'Customer' ? 'Follow-ups complete' : `${displayName}`,
+      title: displayName === 'Customer' ? 'Follow-Up Sent' : `${displayName}`,
       message: 'All follow-up messages sent',
       action_url: `/dashboard/leads/${data.leadId}`,
       action_text: 'View Lead'
@@ -120,8 +120,8 @@ export const NOTIFICATION_TEMPLATES = {
   },
 
   forwarding_disconnected: () => ({
-    title: 'Forwarding Issue',
-    message: 'Call forwarding may be disconnected',
+    title: 'Call Forwarding Disconnected',
+    message: 'Tap to fix setup',
     action_url: '/setup/phone-forwarding',
     action_text: 'Fix Setup'
   }),
@@ -129,15 +129,15 @@ export const NOTIFICATION_TEMPLATES = {
   sms_failed: (data: { leadName: string; leadId: string }) => {
     const displayName = resolveCustomerDisplayName(data.leadName, null)
     return {
-      title: 'SMS Failed',
-      message: `Message to ${displayName} not delivered`,
+      title: 'Message Failed',
+      message: `Not delivered to ${displayName}`,
       action_url: `/dashboard/leads/${data.leadId}`,
       action_text: 'Retry'
     }
   },
 
   trial_ending: (data: { daysLeft: number }) => ({
-    title: 'Trial Ending',
+    title: 'Trial Ending Soon',
     message: `${data.daysLeft} day${data.daysLeft !== 1 ? 's' : ''} remaining`,
     action_url: '/pricing',
     action_text: 'Upgrade'
@@ -153,8 +153,8 @@ export const NOTIFICATION_TEMPLATES = {
   voicemail_received: (data: { leadName: string; leadPhone: string; leadId: string }) => {
     const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
     return {
-      title: displayName === 'Customer' ? 'New Voicemail' : `Voicemail from ${displayName}`,
-      message: 'Tap to listen and reply',
+      title: 'New Voicemail',
+      message: displayName === 'Customer' ? 'Tap to listen' : `From ${displayName}`,
       action_url: `/dashboard/leads/${data.leadId}`,
       action_text: 'Listen'
     }
@@ -164,8 +164,8 @@ export const NOTIFICATION_TEMPLATES = {
     const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
     const service = data.serviceRequested ? normalizePunctuation(data.serviceRequested) : ''
     return {
-      title: displayName === 'Customer' ? 'New AI Lead' : `${displayName}`,
-      message: service ? `AI captured: ${service}` : 'AI intake completed',
+      title: displayName === 'Customer' ? 'New Request' : `${displayName}`,
+      message: service ? `${service}` : 'New customer request',
       action_url: `/dashboard/leads/${data.leadId}`,
       action_text: 'View Lead'
     }
