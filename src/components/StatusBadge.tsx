@@ -4,7 +4,7 @@ export default function StatusBadge({ status, errorCode }: { status?: string; er
   // Override for carrier blocking
   if (errorCode === '30007') {
     return (
-      <span className="px-3 py-1.5 rounded-md text-sm font-semibold inline-flex items-center gap-1.5 bg-amber-900/30 text-amber-400 border border-amber-800">
+      <span className="px-3 py-1.5 rounded-md text-sm font-semibold inline-flex items-center gap-1.5 bg-amber-900/30 text-amber-400 border border-amber-800 bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
         <Timer className="w-3.5 h-3.5" aria-hidden="true" />
         <span>Phone setup pending</span>
       </span>
@@ -12,45 +12,45 @@ export default function StatusBadge({ status, errorCode }: { status?: string; er
   }
 
   const statusConfig = {
-    queued: { 
-      label: "Sending...", 
+    queued: {
+      label: "Sending...",
       icon: (
         <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
         </svg>
-      ), 
-      style: "bg-muted text-muted-foreground border-border" 
+      ),
+      style: "bg-muted text-muted-foreground border-border bg-slate-100 text-slate-600 border-slate-300 dark:bg-muted dark:text-muted-foreground dark:border-border"
     },
-    sending: { 
-      label: "Sending...", 
+    sending: {
+      label: "Sending...",
       icon: (
         <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
         </svg>
-      ), 
-      style: "bg-blue-900/30 text-blue-400 border-blue-800" 
+      ),
+      style: "bg-blue-900/30 text-blue-400 border-blue-800 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
     },
-    sent: { 
-      label: "Sent", 
+    sent: {
+      label: "Sent",
       icon: <ArrowRight className="h-3 w-3" aria-hidden="true" />,
-      style: "bg-blue-900/30 text-blue-400 border-blue-800" 
+      style: "bg-blue-900/30 text-blue-400 border-blue-800 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
     },
-    delivered: { 
-      label: "Delivered", 
+    delivered: {
+      label: "Delivered",
       icon: <Check className="h-3 w-3" aria-hidden="true" />,
-      style: "bg-green-900/30 text-green-400 border-green-800" 
+      style: "bg-green-900/30 text-green-400 border-green-800 bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800"
     },
-    failed: { 
-      label: "Failed", 
+    failed: {
+      label: "Failed",
       icon: <X className="h-3 w-3" aria-hidden="true" />,
-      style: "bg-red-900/30 text-red-400 border-red-800" 
+      style: "bg-red-900/30 text-red-400 border-red-800 bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
     },
-    undelivered: { 
-      label: "Failed", 
+    undelivered: {
+      label: "Failed",
       icon: <X className="h-3 w-3" aria-hidden="true" />,
-      style: "bg-red-900/30 text-red-400 border-red-800" 
+      style: "bg-red-900/30 text-red-400 border-red-800 bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
     },
   };
 
