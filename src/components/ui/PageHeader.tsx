@@ -12,7 +12,7 @@ export default function PageHeader({ title, description, actions, className = ''
     <div className={`flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between ${className}`}>
       <div className="min-w-0">
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">{title}</h1>
-        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+        {description && <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{description}</p>}
       </div>
       {actions && <div className="flex flex-col sm:flex-row gap-2 sm:items-center">{actions}</div>}
     </div>
