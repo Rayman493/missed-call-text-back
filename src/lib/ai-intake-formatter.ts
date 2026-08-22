@@ -8,7 +8,7 @@ const PLACEHOLDER_NAMES = new Set([
 // Placeholder service values that should be treated as missing
 const PLACEHOLDER_SERVICES = new Set([
   'general service', 'general', 'service', 'not specified', 'not provided',
-  'unknown', 'n/a', 'request', 'help needed', 'service request'
+  'unknown', 'n/a', 'request', 'help needed', 'service request', 'not collected'
 ])
 // Question patterns that indicate the customer asked about pricing, hours, etc. instead of requesting a service
 const QUESTION_PATTERNS = [
@@ -619,6 +619,13 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     'Insurance': [/\binsurance\s*(?:service|claim|quote)/i],
     'Property Management': [/\bproperty\s*(?:manage|management)/i],
     'Real Estate': [/\breal\s*estate/i],
+    // Noun-phrase services (no verb required)
+    'Cat Sitter': [/\bcat\s*(?:sit|sitter|sitting|care)/i],
+    'Dog Walker': [/\bdog\s*(?:walk|walker|walking)/i],
+    'Pet Sitter': [/\bpet\s*(?:sit|sitter|sitting|care)/i],
+    'Plumber': [/\bplumber/i, /\bplumbing/i],
+    'Electrician': [/\belectrician/i],
+    'Brake Inspection': [/\bbrake\s*(?:inspect|inspection)/i],
   };
   // Try to match against service mappings first
   // Sort mappings by specificity (longer patterns first) to ensure context-aware patterns match before general ones
@@ -892,6 +899,57 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     if (normalizedService) {
       return normalizedService;
     }
+  }
+  // Fallback for short noun-phrase service names (1-3 words)
+  // Preserve original if it looks like a valid service name and not a placeholder
+  // This is a conservative fallback to avoid rejecting legitimate noun-phrase services
+  const fallbackWords = processed.split(/\s+/).filter(w => w.length > 0);
+  if (fallbackWords.length >= 1 && fallbackWords.length <= 3) {
+    // EXACT PLACEHOLDER PHRASES (whole-phrase matching, not per-word)
+    const exactPlaceholders = [
+      'what service do you need',
+      'what are you looking to have done',
+      'service request',
+      'service requested',
+      'general service',
+      'unknown',
+      'not provided',
+      'n/a',
+      'need help',
+      'something',
+      'question',
+      'what service',
+      'service',
+      'help',
+    ];
+    const lowerProcessed = processed.toLowerCase();
+    if (exactPlaceholders.includes(lowerProcessed)) {
+      return 'Service Request';
+    }
+
+    // CONVERSATIONAL FRAGMENTS (whole-phrase matching)
+    const conversationalPhrases = [
+      'hello', 'hi', 'hey', 'thanks', 'thank you', 'please', 'sure', 'okay',
+      'yes', 'no', 'nothing', 'anything', 'someone', 'anybody', 'whatever',
+      'not sure', 'i don\'t know', 'call me', 'call back',
+      'my house', 'my business', 'at home', 'maybe',
+    ];
+    if (conversationalPhrases.includes(lowerProcessed)) {
+      return 'Service Request';
+    }
+
+    // SCHEDULING/TIMING TERMS (whole-phrase matching)
+    const schedulingTerms = [
+      'tomorrow', 'today', 'next week', 'this weekend', 'morning',
+      'afternoon', 'asap', 'right away', 'soon', 'later', 'this weekend',
+    ];
+    if (schedulingTerms.includes(lowerProcessed)) {
+      return 'Service Request';
+    }
+
+    // PRESERVE ORIGINAL CAPITALIZATION for acronyms and proper names
+    // Only capitalize first letter, preserve rest as-is
+    return processed.charAt(0).toUpperCase() + processed.slice(1);
   }
   // If no clear service action found, return safe neutral label
   // DO NOT fabricate a title from unrelated nouns
@@ -1401,6 +1459,7 @@ export const formatAiIntakeSummary = (
   const hasRequest = serviceRequested &&
                      serviceRequested.trim() !== '' &&
                      serviceRequested !== 'General Service' &&
+                     serviceRequested !== 'Not collected' &&
                      !isPlaceholderValue(serviceRequested, PLACEHOLDER_SERVICES);
   const hasAddress = serviceAddress && serviceAddress.trim() !== '' && serviceAddress !== 'Not collected';
   const hasCompletionTime = desiredCompletionTime && desiredCompletionTime !== 'Not collected' && desiredCompletionTime.trim() !== '';
@@ -1431,10 +1490,11 @@ export const formatAiIntakeSummary = (
   if (hasCompletionTime) capturedFields.push(`• Desired completion: ${desiredCompletionTime}`);
   if (hasCallbackTime) capturedFields.push(`• Preferred callback: ${callbackTime}`);
   // Determine which fields are still needed (customer-friendly prompts)
+  // Note: details are optional - do not ask for them
   const stillNeededFields: string[] = [];
   if (!hasName) stillNeededFields.push('• Your name');
   if (!hasRequest) stillNeededFields.push('• What you\'re looking to have done');
-  if (!hasDetails) stillNeededFields.push('• Any helpful details');
+  // Additional details are optional - do not add to still-needed list
   if (addressIsApplicable && !hasAddress) stillNeededFields.push('• Service address');
   if (!hasCompletionTime) stillNeededFields.push('• When you\'d like it completed');
   if (!hasCallbackTime) stillNeededFields.push('• Best time to call you');
@@ -1505,6 +1565,7 @@ export const formatAdaptiveIntakeSms = (
   const hasRequest = serviceRequested &&
                      serviceRequested.trim() !== '' &&
                      serviceRequested !== 'General Service' &&
+                     serviceRequested !== 'Not collected' &&
                      !isPlaceholderValue(serviceRequested, PLACEHOLDER_SERVICES);
   const hasAddress = serviceAddress && serviceAddress.trim() !== '';
   const hasCompletionTime = desiredCompletionTime && desiredCompletionTime !== 'Not collected' && desiredCompletionTime.trim() !== '';
@@ -1554,12 +1615,13 @@ export const formatAdaptiveIntakeSms = (
     const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
     // Build dynamic list of missing fields to request
     // Canonical intake requirements from voice flow:
-    // - Always required: request, details, timing, callback
+    // - Always required: request, timing, callback
     // - Conditional (onsite only): address
+    // - Optional: details
     const { hasDetails } = hasMeaningfulDetails(intakeData);
     const missingFields = [];
     if (!hasRequest) missingFields.push('What you need help with');
-    if (!hasDetails) missingFields.push('Any important details');
+    // Details are optional - do not ask for them
     if (!hasAddress && shouldShowLocation) missingFields.push('Service address');
     if (!hasCompletionTime) missingFields.push('When you\'d like the work completed');
     if (!hasCallbackTime) missingFields.push('Best time to call you back');
@@ -1578,9 +1640,10 @@ export const formatAdaptiveIntakeSms = (
     const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
     const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
     // Build dynamic list of missing fields to request
+    // Details are optional - do not ask for them
     const { hasDetails } = hasMeaningfulDetails(intakeData);
     const missingFields = [];
-    if (!hasDetails) missingFields.push('Any important details');
+    // Details are optional - do not ask for them
     if (!hasAddress && shouldShowLocation) missingFields.push('Service address');
     if (!hasCompletionTime) missingFields.push('When you\'d like the work completed');
     if (!hasCallbackTime) missingFields.push('Best time to call you back');
@@ -1624,6 +1687,34 @@ export const formatAdaptiveIntakeSms = (
     return body.trim();
   }
   // Level D: Complete intake - sufficient information
+  // Request is REQUIRED for complete intake
+  if (!hasRequest) {
+    // Fall back to partial intake if request is missing
+    const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
+    const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
+    let body = `${prefix}${greeting}${businessPart}\n\nHere's what we captured:\n`;
+    // Service (missing)
+    // Details (if available)
+    if (hasDetails) {
+      body += `• Details: ${truncateForSms(detailsValue, 200)}`;
+    }
+    // Location (without emoji)
+    if (shouldShowLocation && hasAddress) {
+      body += `\n\n• Address: ${serviceAddress}`;
+    }
+    // Timing (without emoji)
+    if (hasCompletionTime) {
+      body += `\n\n• Preferred timing: ${desiredCompletionTime}`;
+    }
+    // Callback (without emoji)
+    if (hasCallbackTime) {
+      body += `\n\n• Best callback time: ${callbackTime}`;
+    }
+    // Ask for missing request
+    body += `\n\nStill needed:\n• What you need help with\n\n`;
+    body += `Reply here with the missing details or anything else you'd like to add.`;
+    return body.trim();
+  }
   const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
   const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
   let body = `${prefix}${greeting}${businessPart}\n\nHere's what we captured:\n`;
