@@ -900,11 +900,11 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
       return normalizedService;
     }
   }
-  // Fallback for short noun-phrase service names (1-3 words)
+  // Fallback for short noun-phrase service names (1-5 words)
   // Preserve original if it looks like a valid service name and not a placeholder
   // This is a conservative fallback to avoid rejecting legitimate noun-phrase services
   const fallbackWords = processed.split(/\s+/).filter(w => w.length > 0);
-  if (fallbackWords.length >= 1 && fallbackWords.length <= 3) {
+  if (fallbackWords.length >= 1 && fallbackWords.length <= 5) {
     // EXACT PLACEHOLDER PHRASES (whole-phrase matching, not per-word)
     const exactPlaceholders = [
       'what service do you need',
