@@ -1361,12 +1361,50 @@ function convertLeadingSpokenStreetNumber(address: string): string {
   const cleanedRest = adjustedRest.trim().replace(/^,\s*/, '')
   return `${num} ${cleanedRest}`.trim()
 }
+// Remove leading conversational filler words from timing fields
+// Boundary-aware: only removes from the start, not from within meaningful phrases
+function stripLeadingFillerWords(text: string): string {
+  let normalized = text.trim();
+  // Remove leading filler words (case-insensitive, with optional punctuation/whitespace)
+  // Use word boundary \b to avoid matching parts of other words (e.g., "so" in "sometime")
+  const fillerPatterns = [
+    /^\s*uhh?\b[\s.,;:—\-–]*\s*/i,
+    /^\s*umm?\b[\s.,;:—\-–]*\s*/i,
+    /^\s*yeah\b[\s.,;:—\-–]*\s*/i,
+    /^\s*yep\b[\s.,;:—\-–]*\s*/i,
+    /^\s*okay\b[\s.,;:—\-–]*\s*/i,
+    /^\s*ok\b[\s.,;:—\-–]*\s*/i,
+    /^\s*alright\b[\s.,;:—\-–]*\s*/i,
+    /^\s*so\b[\s.,;:—\-–]*\s*/i,
+  ];
+  // Apply each filler pattern repeatedly to handle multiple consecutive fillers
+  let changed = true;
+  let iterations = 0;
+  const MAX_ITERATIONS = 5; // Increased to handle filler+punctuation chains
+  while (changed && iterations < MAX_ITERATIONS) {
+    changed = false;
+    for (const pattern of fillerPatterns) {
+      const before = normalized;
+      normalized = normalized.replace(pattern, '');
+      if (before !== normalized) {
+        changed = true;
+      }
+    }
+    iterations++;
+  }
+  // Clean up any remaining leading punctuation after filler removal
+  // This catches cases like "... after 5" where the filler is gone but punctuation remains
+  normalized = normalized.replace(/^[\s.,;:—\-–]+/, '');
+  return normalized.trim();
+}
 // Field-specific normalization for timing preferences
 // Preserves timing values like "Wednesday", "This week", "Whenever"
 export const normalizeTiming = (text: string | null | undefined): string => {
   if (!text || text.trim() === '') return 'Not collected';
   const original = text.trim();
   let normalized = original;
+  // Remove leading filler words (uh, um, yeah, okay, etc.)
+  normalized = stripLeadingFillerWords(normalized);
   // Timing-specific conversational prefixes (strictly anchored)
   const timingPrefixPatterns = [
     /^\s*i would like it\s+/i,
@@ -1485,6 +1523,8 @@ export const polishTimingWrapper = (timing: string | null | undefined): string =
 export const normalizeCallbackTime = (callbackTime: string | null | undefined): string => {
   if (!callbackTime || callbackTime.trim() === '') return 'Not collected';
   let normalized = callbackTime.trim();
+  // Remove leading filler words (uh, um, yeah, okay, etc.)
+  normalized = stripLeadingFillerWords(normalized);
   // Remove callback-specific conversational wrappers
   const callbackPatterns = [
     { pattern: / are best for calling me$/i, replacement: '' },
