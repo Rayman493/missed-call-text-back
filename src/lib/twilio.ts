@@ -41,7 +41,7 @@ export async function sendSms(
     clientMessageId?: string; // Client-generated UUID for optimistic message correlation
     callSid?: string; // Twilio call SID for durable idempotency and webhook correlation
   }
-): Promise<{ sid: string | null; messageId: string | null }> {
+): Promise<{ sid: string | null; messageId: string | null; idempotentSkip?: boolean }> {
   console.log('[SMS TRACE sendSms ENTRY]', {
     business_id: business?.id,
     business_name: business?.name,
@@ -82,13 +82,23 @@ export async function sendSms(
   console.log('[SMS TRACE sendSms STEP_2_CLASSIFICATION]', { isAutomatedMessage, isFollowUpMessage });
 
   if (isAutomatedMessage) {
-    console.log('[SMS TRACE sendSms STEP_2A_QUERYING_DUPLICATES]', { lead_id: options?.lead_id });
+    console.log('[SMS TRACE sendSms STEP_2A_QUERYING_DUPLICATES]', { lead_id: options?.lead_id, callSid: options.callSid });
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const { data: existingMessage, error: duplicateError } = await supabase
+
+    let query = supabase
       .from('messages')
-      .select('id, created_at, body, twilio_message_sid, status, error_code')
-      .eq('lead_id', options.lead_id)
-      .eq('body', message)
+      .select('id, created_at, body, twilio_message_sid, status, error_code, structured_data')
+
+    // For call-specific messages (e.g., ai_summary), use call_sid for idempotency
+    // This allows new calls from the same customer to send new summary SMS
+    if (options.callSid) {
+      query = query.contains('structured_data', { call_sid: options.callSid })
+    } else {
+      // For other automated messages, use lead_id + body for backward compatibility
+      query = query.eq('lead_id', options.lead_id).eq('body', message)
+    }
+
+    const { data: existingMessage, error: duplicateError } = await query
       .gte('created_at', fiveMinutesAgo)
       .limit(1)
       .maybeSingle();
@@ -107,7 +117,7 @@ export async function sendSms(
       if (wasTwilioCalled && !hasError && !isFailedStatus) {
         console.log('[SMS TRACE sendSms RETURN_NULL]', { reason: 'IDEMPOTENCY_DUPLICATE_SENT_OR_PENDING', lead_id: options.lead_id, message_sid: existingMessage.id, twilio_message_sid: existingMessage.twilio_message_sid });
         console.log('[SMS] Duplicate blocked (idempotency):', { lead_id: options.lead_id, message_sid: existingMessage.id, twilio_message_sid: existingMessage.twilio_message_sid });
-        return { sid: null, messageId: null }; // Block duplicate
+        return { sid: null, messageId: null, idempotentSkip: true }; // Block duplicate
       } else {
         console.log('[SMS] Previous message failed/unsent, allowing retry:', {
           lead_id: options.lead_id,
@@ -293,6 +303,7 @@ export async function sendSms(
         status: 'simulated',
         error_message: null,
         created_at: new Date().toISOString(),
+        structured_data: options?.callSid ? { call_sid: options.callSid } : null,
       };
 
       console.log('[SMS PERSISTENCE] Simulated insert payload (sanitized):', {
@@ -718,6 +729,7 @@ export async function sendSms(
         created_at: new Date().toISOString(),
         is_manual: options?.isManual || false,
         client_message_id: options?.clientMessageId || null,
+        structured_data: options?.callSid ? { call_sid: options.callSid } : null,
       };
 
       console.log('[SMS PERSISTENCE] message_insert_payload_keys:', Object.keys(insertPayload));
@@ -736,11 +748,14 @@ export async function sendSms(
         client_message_id: insertPayload.client_message_id
       });
 
-      const { data: insertedMessage, error: insertError } = await supabase
+      const result = await supabase
         .from('messages')
         .insert(insertPayload)
         .select('id, client_message_id')
         .single();
+
+      const insertedMessage = result.data;
+      const insertError = result.error;
 
       console.log('[SMS PERSISTENCE] Supabase insert result:', {
         success: !insertError,
@@ -762,7 +777,7 @@ export async function sendSms(
           error_details: insertError.details,
           error_hint: insertError.hint
         });
-      } else {
+      } else if (insertedMessage) {
         console.log('[SMS PERSISTENCE SUCCESS] Message record stored:', {
           message_sid: messageResult.sid,
           message_id: insertedMessage.id,
@@ -789,7 +804,7 @@ export async function sendSms(
     console.log('[SMS TRACE sendSms STEP_13_COMPLETE]', { proceeding: true });
 
     console.log('[SMS TRACE sendSms STEP_14_RETURN_SUCCESS]', { sid: messageResult.sid, messageId });
-    return { sid: messageResult.sid, messageId };
+    return { sid: messageResult.sid, messageId, idempotentSkip: false };
   } catch (error: any) {
     console.error('[SMS FAILED] Twilio send failed:', {
       business_id: business.id,

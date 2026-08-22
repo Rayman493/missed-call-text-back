@@ -47,6 +47,227 @@ interface DispatchResult {
   messageId?: string | null
 }
 
+/**
+ * Atomically claim the AI summary SMS for this call before sending to Twilio
+ * This uses a dedicated claims table to prevent ghost messages in Customer Conversation UI
+ * @returns { claimed: boolean, claimId: string | null, claimToken: string | null, reason: string }
+ */
+async function claimAiSummarySms(
+  businessId: string,
+  leadId: string,
+  conversationId: string,
+  callSid: string
+): Promise<{ claimed: boolean; claimId: string | null; claimToken: string | null; reason: string }> {
+  console.log('[AI SMS CLAIM] Attempting to claim AI summary SMS for call:', callSid);
+
+  // Generate a unique claim token for ownership tracking
+  const claimToken = `claim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+  const claimPayload = {
+    business_id: businessId,
+    call_sid: callSid,
+    claim_token: claimToken,
+    status: 'claimed',
+    lead_id: leadId,
+    conversation_id: conversationId,
+    claimed_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+  };
+
+  const { data: claimedClaim, error: claimError } = await supabaseAdmin
+    .from('ai_summary_sms_claims')
+    .insert(claimPayload)
+    .select('id')
+    .single();
+
+  if (claimError) {
+    // Check if this is a unique constraint violation (duplicate claim)
+    if (claimError.code === '23505') {
+      console.log('[AI SMS CLAIM] Duplicate claim detected - another handler already claimed this call', {
+        callSid,
+        businessId,
+        errorCode: claimError.code,
+        errorMessage: claimError.message
+      });
+      return { claimed: false, claimId: null, claimToken: null, reason: 'duplicate_claim' };
+    }
+
+    // Other error - log but allow retry
+    console.error('[AI SMS CLAIM] Failed to claim AI summary SMS', {
+      callSid,
+      businessId,
+      errorCode: claimError.code,
+      errorMessage: claimError.message
+    });
+    return { claimed: false, claimId: null, claimToken: null, reason: 'claim_failed' };
+  }
+
+  console.log('[AI SMS CLAIM] Successfully claimed AI summary SMS', {
+    claimId: claimedClaim.id,
+    callSid,
+    businessId,
+    claimToken
+  });
+
+  return { claimed: true, claimId: claimedClaim.id, claimToken: claimToken, reason: 'claimed' };
+}
+
+/**
+ * Mark the claim as sent after successful Twilio send
+ * Includes ownership guard to prevent stale workers from overwriting newer owners
+ */
+async function markClaimSent(
+  claimId: string,
+  twilioMessageSid: string,
+  claimToken: string
+): Promise<void> {
+  console.log('[AI SMS CLAIM] Marking claim as sent with Twilio result', {
+    claimId,
+    twilioMessageSid,
+    claimToken
+  });
+
+  const updateQuery = supabaseAdmin
+    .from('ai_summary_sms_claims')
+    .update({
+      status: 'sent',
+      twilio_message_sid: twilioMessageSid,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', claimId)
+    .eq('claim_token', claimToken);
+
+  const { error: updateError } = await updateQuery;
+
+  if (updateError) {
+    console.error('[AI SMS CLAIM] Failed to mark claim as sent', {
+      claimId,
+      twilioMessageSid,
+      errorCode: updateError.code,
+      errorMessage: updateError.message,
+      ownershipGuard: true
+    });
+    // Non-fatal - message was sent to Twilio, just claim status update failed
+  }
+}
+
+/**
+ * Mark the claim as failed (ambiguous or definitive)
+ * Includes ownership guard to prevent stale workers from overwriting newer owners
+ */
+async function markClaimFailed(
+  claimId: string,
+  status: 'failed_ambiguous' | 'failed_definitive',
+  claimToken: string
+): Promise<void> {
+  console.log('[AI SMS CLAIM] Marking claim as failed', {
+    claimId,
+    status,
+    claimToken
+  });
+
+  const updateQuery = supabaseAdmin
+    .from('ai_summary_sms_claims')
+    .update({
+      status: status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', claimId)
+    .eq('claim_token', claimToken);
+
+  const { error: updateError } = await updateQuery;
+
+  if (updateError) {
+    console.error('[AI SMS CLAIM] Failed to mark claim as failed', {
+      claimId,
+      status,
+      errorCode: updateError.code,
+      errorMessage: updateError.message,
+      ownershipGuard: true
+    });
+  }
+}
+
+/**
+ * Attempt to reclaim a stale pending claim using compare-and-set semantics
+ * This allows recovery from crashed processes without permitting concurrent winners
+ * @returns { reclaimed: boolean, claimId: string | null, claimToken: string | null }
+ */
+async function reclaimStaleClaim(
+  businessId: string,
+  callSid: string,
+  staleThresholdMinutes: number = 5
+): Promise<{ reclaimed: boolean; claimId: string | null; claimToken: string | null }> {
+  console.log('[AI SMS CLAIM] Attempting to reclaim stale claim for call:', callSid);
+
+  const staleThreshold = new Date(Date.now() - staleThresholdMinutes * 60 * 1000).toISOString();
+  const newClaimToken = `reclaim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  // First, check for a stale pending claim
+  const { data: staleClaim } = await supabaseAdmin
+    .from('ai_summary_sms_claims')
+    .select('id, claim_token, status, claimed_at')
+    .eq('business_id', businessId)
+    .eq('call_sid', callSid)
+    .eq('status', 'claimed')
+    .lt('claimed_at', staleThreshold)
+    .maybeSingle();
+
+  if (!staleClaim) {
+    console.log('[AI SMS CLAIM] No stale claim found for reclamation', { callSid });
+    return { reclaimed: false, claimId: null, claimToken: null };
+  }
+
+  const oldClaimToken = staleClaim.claim_token;
+
+  console.log('[AI SMS CLAIM] Found stale claim, attempting compare-and-set reclamation', {
+    claimId: staleClaim.id,
+    callSid,
+    claimed_at: staleClaim.claimed_at,
+    oldClaimToken
+  });
+
+  // Attempt atomic compare-and-set: UPDATE only if status is still 'claimed' AND claim_token matches
+  const { data: updatedClaim, error: updateError } = await supabaseAdmin
+    .from('ai_summary_sms_claims')
+    .update({
+      claim_token: newClaimToken,
+      claimed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', staleClaim.id)
+    .eq('status', 'claimed')
+    .eq('claim_token', oldClaimToken)
+    .select('id')
+    .single();
+
+  if (updateError) {
+    console.error('[AI SMS CLAIM] Failed to reclaim stale claim (likely concurrent reclamation)', {
+      claimId: staleClaim.id,
+      errorCode: updateError.code,
+      errorMessage: updateError.message
+    });
+    return { reclaimed: false, claimId: null, claimToken: null };
+  }
+
+  if (!updatedClaim) {
+    console.log('[AI SMS CLAIM] Compare-and-set failed - another process already reclaimed', {
+      claimId: staleClaim.id,
+      oldClaimToken,
+      newClaimToken
+    });
+    return { reclaimed: false, claimId: null, claimToken: null };
+  }
+
+  console.log('[AI SMS CLAIM] Successfully reclaimed stale claim with new token', {
+    claimId: updatedClaim.id,
+    callSid,
+    newClaimToken
+  });
+
+  return { reclaimed: true, claimId: updatedClaim.id, claimToken: newClaimToken };
+}
+
 async function getConversationId(leadId: string, businessId: string, conversationId?: string): Promise<string | undefined> {
   if (conversationId) return conversationId
 
@@ -117,37 +338,33 @@ function mergeExtractedInfo(params: any, aiCallRecord: any, leadMetadata: any): 
 }
 
 async function hasAutomaticSmsForCall(conversationId: string | undefined, businessId: string, callSid: string): Promise<boolean> {
-  // CRITICAL: This is conversation-scoped to ensure exactly one automatic SMS per call
+  // CRITICAL: This is now call-scoped to ensure exactly one automatic SMS per call
   // Previous calls should NOT suppress future calls' automatic SMS
-  // NOTE: call_sid is NOT in production messages schema, used only for logging
+  // Deduplication strategy: call_sid (in structured_data) for call-specific messages
   console.log('[AUTO SMS IDEMPOTENCY CHECK] =========================================');
   console.log('[AUTO SMS IDEMPOTENCY CHECK] Checking for existing automatic SMS');
   console.log('[AUTO SMS IDEMPOTENCY CHECK] callSid:', callSid);
   console.log('[AUTO SMS IDEMPOTENCY CHECK] conversationId:', conversationId);
   console.log('[AUTO SMS IDEMPOTENCY CHECK] businessId:', businessId);
-  console.log('[AUTO SMS IDEMPOTENCY CHECK] scoping: Conversation + Message Type + Time Window');
+  console.log('[AUTO SMS IDEMPOTENCY CHECK] scoping: Call-Specific (call_sid in structured_data)');
   console.log('[AUTO SMS IDEMPOTENCY CHECK] Timestamp:', new Date().toISOString());
   console.log('[AUTO SMS IDEMPOTENCY CHECK] =========================================');
 
-  // Verify a message with a valid Twilio SID exists for this specific conversation
+  // Verify a message with a valid Twilio SID exists for this specific call
   // This prevents false positives from failed attempts that set metadata flags
-  // Deduplication strategy: conversation_id + message_type + time window (1 hour)
-  if (!conversationId) {
-    console.log('[AUTO SMS IDEMPOTENCY CHECK] No conversationId provided, skipping check');
-    return false;
-  }
-
+  // Deduplication strategy: call_sid in structured_data (call-specific)
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const { data: existingMessage } = await supabaseAdmin
     .from('messages')
-    .select('id, conversation_id, business_id, twilio_message_sid, status, error_code, is_manual')
-    .eq('conversation_id', conversationId)
+    .select('id, conversation_id, business_id, twilio_message_sid, status, error_code, is_manual, structured_data')
+    .contains('structured_data', { call_sid: callSid })
     .eq('business_id', businessId)
     .eq('direction', 'outbound')
     .eq('is_manual', false)
     .not('twilio_message_sid', 'is', null)
     .not('twilio_message_sid', 'eq', 'NOT_CALLED')
     .not('twilio_message_sid', 'like', 'SIM_%')
+    .not('twilio_message_sid', 'eq', 'CLAIMED')
     .gte('created_at', oneHourAgo)
     .maybeSingle()
 
@@ -583,20 +800,74 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     // Business availability text should only apply to instant-response SMS
     // AI recaps, payment requests, manual messages, and follow-ups should not receive availability text
     const shouldAppendAvailability = isInstantResponse
-    
+
+    // Claim the message before sending to Twilio (atomic claim)
+    // Only claim on first attempt to avoid re-claiming on retry
+    let claimId: string | null = null
+    let claimToken: string | null = null
+    if (attempt === 0) {
+      // First, attempt to reclaim any stale pending claim
+      const reclaimResult = await reclaimStaleClaim(
+        businessId,
+        callSid
+      )
+
+      if (reclaimResult.reclaimed) {
+        claimId = reclaimResult.claimId
+        claimToken = reclaimResult.claimToken
+        console.log('[SMS RETRY] Reclaimed stale claim, proceeding to send', { claimId, claimToken })
+      } else {
+        // No stale claim, attempt new claim
+        const claimResult = await claimAiSummarySms(
+          businessId,
+          leadId,
+          resolvedConversationId!,
+          callSid
+        )
+
+        if (!claimResult.claimed) {
+          // Another handler already claimed this call - return as idempotent skip
+          console.log('[SMS RETRY SKIPPED]', {
+            reason: claimResult.reason,
+            callSid,
+            leadId,
+            timestamp: new Date().toISOString()
+          })
+          return { success: false, skipped: true, reason: `duplicate_claim: ${claimResult.reason}` }
+        }
+
+        claimId = claimResult.claimId
+        claimToken = claimResult.claimToken
+      }
+    }
+
     const sendResult = await sendSms(business, callerPhone, messageBody, {
       lead_id: leadId,
       conversation_id: resolvedConversationId,
       source: 'ai_summary',
       reason,
-      skipBusinessAvailabilityAppend: !shouldAppendAvailability
+      skipBusinessAvailabilityAppend: !shouldAppendAvailability,
+      callSid: callSid
     })
 
     twilioMessageSid = sendResult.sid
-    messageId = sendResult.messageId
+
+    if (sendResult.idempotentSkip) {
+      // SMS skipped due to idempotency (same call already sent) - do not retry
+      console.log('[SMS RETRY SKIPPED]', {
+        reason: 'idempotent_skip',
+        callSid,
+        leadId,
+        timestamp: new Date().toISOString()
+      })
+      break
+    }
 
     if (twilioMessageSid) {
-      // SMS sent successfully
+      // SMS sent successfully - mark claim as sent
+      if (claimId && claimToken) {
+        await markClaimSent(claimId, twilioMessageSid, claimToken)
+      }
       break
     }
 
@@ -610,6 +881,30 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
         maxRetries: maxRetries + 1,
         timestamp: new Date().toISOString()
       })
+
+      // Classify failure type to determine claim behavior
+      // CONSERVATIVE DEFAULT: Treat all failures as AMBIGUOUS to prevent duplicate SMS
+      const isDefinitiveFailure = false // Conservative: assume ambiguous by default
+      const isAmbiguousFailure = !isDefinitiveFailure
+
+      if (claimId && claimToken) {
+        if (isDefinitiveFailure) {
+          // Safe to mark as failed_definitive for retry
+          await markClaimFailed(claimId, 'failed_definitive', claimToken)
+          console.log('[SMS DEFINITIVE FAILURE] Claim marked as failed_definitive for retry', {
+            claimId,
+            callSid
+          })
+        } else if (isAmbiguousFailure) {
+          // Preserve claim as failed_ambiguous to prevent duplicate SMS
+          await markClaimFailed(claimId, 'failed_ambiguous', claimToken)
+          console.log('[SMS AMBIGUOUS FAILURE] Claim preserved as failed_ambiguous to prevent duplicate SMS', {
+            claimId,
+            callSid,
+            claimToken
+          })
+        }
+      }
       break
     }
 
