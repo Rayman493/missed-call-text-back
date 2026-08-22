@@ -8,6 +8,7 @@ import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Se
 import AppHeader from '@/components/AppHeader'
 import Navigation from '@/components/Navigation'
 import AppBackButton from '@/components/AppBackButton'
+import { getNotificationIcon, getNotificationColor } from '@/lib/notification-icons'
 
 export default function NotificationsPage() {
   const { business } = useBusiness()
@@ -94,50 +95,6 @@ export default function NotificationsPage() {
         unread: previousNotifications.filter(n => !n.read).length,
         total: previousNotifications.length
       })
-    }
-  }
-
-  const getNotificationIcon = (type: Notification['type']) => {
-    switch (type) {
-      case 'new_lead':
-        return <User className="w-5 h-5 text-blue-500" />
-      case 'customer_reply':
-        return <MessageSquare className="w-5 h-5 text-green-500" />
-      case 'followup_completed':
-        return <CheckCircle className="w-5 h-5 text-purple-500" />
-      case 'forwarding_disconnected':
-        return <AlertTriangle className="w-5 h-5 text-red-500" />
-      case 'sms_failed':
-        return <AlertTriangle className="w-5 h-5 text-red-500" />
-      case 'trial_ending':
-        return <Clock className="w-5 h-5 text-amber-500" />
-      case 'subscription_issue':
-        return <CreditCard className="w-5 h-5 text-amber-500" />
-      case 'voicemail_received':
-        return <PhoneMissed className="w-5 h-5 text-blue-500" />
-      default:
-        return <Bell className="w-5 h-5 text-slate-400" />
-    }
-  }
-
-  const getNotificationColor = (type: Notification['type']) => {
-    switch (type) {
-      case 'new_lead':
-        return 'bg-blue-500/10 text-blue-500'
-      case 'customer_reply':
-        return 'bg-green-500/10 text-green-500'
-      case 'followup_completed':
-        return 'bg-purple-500/10 text-purple-500'
-      case 'forwarding_disconnected':
-      case 'sms_failed':
-        return 'bg-red-500/10 text-red-500'
-      case 'trial_ending':
-      case 'subscription_issue':
-        return 'bg-amber-500/10 text-amber-500'
-      case 'voicemail_received':
-        return 'bg-blue-500/10 text-blue-500'
-      default:
-        return 'bg-slate-500/10 text-slate-400'
     }
   }
 
@@ -266,7 +223,7 @@ export default function NotificationsPage() {
               {notificationCount.unread > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shrink-0"
+                  className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors shrink-0"
                 >
                   Mark all as read
                 </button>
@@ -321,7 +278,7 @@ export default function NotificationsPage() {
               >
                 <div className="flex items-start gap-3">
                   {/* Icon */}
-                  <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${getNotificationColor(notification.type)} flex items-center justify-center ring-1 ring-white/5 group-hover:ring-white/10 transition-all`}>
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ring-1 ring-white/5 group-hover:ring-white/10 transition-all ${getNotificationColor(notification.type)}`}>
                     {getNotificationIcon(notification.type)}
                   </div>
 
