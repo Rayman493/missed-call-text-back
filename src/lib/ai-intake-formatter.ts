@@ -1082,8 +1082,14 @@ export const normalizeAddress = (text: string | null | undefined): string => {
   // Only when the first two tokens are pure digits and are immediately followed by a street word.
   // Do NOT affect ordinals like "34th" or non-leading occurrences (e.g., "Route 16 32").
   normalized = normalized.replace(/^\s*(\d{1,5})\s+(\d{1,5})(?=\s+[A-Za-z])/, (_m, a: string, b: string) => `${a}${b}`);
+  // Normalize spoken ZIP codes (e.g., "one five two oh seven" → "15207")
+  normalized = normalizeSpokenZipInAddress(normalized);
   // Address/location-specific conversational prefixes (strictly anchored)
-  const addressPrefixPatterns = [
+  // Only apply if the text looks like an actual address (contains street-like content)
+  const hasStreetContent = STREET_SUFFIXES.has(normalized.split(/\s+/).pop()?.toLowerCase().replace(/[^a-z]/g, '') || '') ||
+                           DIRECTIONS.has(normalized.split(/\s+/)[0]?.toLowerCase().replace(/[^a-z]/g, '') || '') ||
+                           /^\d+/.test(normalized)
+  const addressPrefixPatterns = hasStreetContent ? [
     /^\s*my address is\s+/i,
     /^\s*i live at\s+/i,
     /^\s*we'?re located at\s+/i,
@@ -1094,8 +1100,8 @@ export const normalizeAddress = (text: string | null | undefined): string => {
     /^\s*my location is\s+/i,
     /^\s*the location is\s+/i,
     /^\s*at\s+/i,  // Only if "at" is followed by a number or street name
-  ];
-  // Apply address-specific prefixes
+  ] : [];
+  // Apply address-specific prefixes only if it looks like an address
   for (const pattern of addressPrefixPatterns) {
     normalized = normalized.replace(pattern, '');
   }
@@ -1114,7 +1120,7 @@ export const normalizeAddress = (text: string | null | undefined): string => {
 // ----------------------------
 // Minimal set of number words for leading house numbers
 const UNITS: Record<string, number> = {
-  'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9,
+  'zero': 0, 'oh': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9,
   'ten': 10, 'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15, 'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19,
 }
 const TENS: Record<string, number> = {
@@ -1125,6 +1131,20 @@ const STREET_SUFFIXES = new Set([
   'street','st','road','rd','avenue','ave','drive','dr','lane','ln','boulevard','blvd','court','ct','circle','way','parkway','pkwy','pike','highway','hwy','terrace','trl','trail','place','pl'
 ])
 const DIRECTIONS = new Set(['north','n','south','s','east','e','west','w','northeast','ne','northwest','nw','southeast','se','southwest','sw'])
+// Ordinal words that indicate street names, not house numbers
+const ORDINALS = new Set(['first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth','eleventh','twelfth','thirteenth','fourteenth','fifteenth','sixteenth','seventeenth','eighteenth','nineteenth','twentieth','thirtieth','fortieth','fiftieth','sixtieth','seventieth','eightieth','ninetieth','hundredth','fifth'])
+// Check if the tokens form an ordinal street name (e.g., "Fifty Fifth Street")
+function isOrdinalStreetName(tokens: string[]): boolean {
+  if (tokens.length < 2) return false
+  const first = tokens[0].toLowerCase().replace(/[^a-z]/g, '')
+  const second = tokens[1].toLowerCase().replace(/[^a-z]/g, '')
+  // Check if first word is TENS and second is ORDINAL (e.g., "Fifty Fifth")
+  const firstIsTens = TENS[first] !== undefined
+  const secondIsOrdinal = ORDINALS.has(second)
+  // Check if first word itself is an ordinal (e.g., "First Street")
+  const firstIsOrdinal = ORDINALS.has(first)
+  return firstIsOrdinal || (firstIsTens && secondIsOrdinal)
+}
 function isNumberWordToken(token: string): boolean {
   const t = token.toLowerCase()
   if (t === 'and') return true // allow filler within numeric phrases
@@ -1137,6 +1157,11 @@ function isNumberWordToken(token: string): boolean {
     if ((TENS[a] !== undefined && (UNITS[b] !== undefined || b === 'one')) || (UNITS[a] !== undefined && UNITS[b] !== undefined)) return true
   }
   return false
+}
+// Check if token is an ordinal (for street name protection)
+function isOrdinalToken(token: string): boolean {
+  const t = token.toLowerCase().replace(/[^a-z]/g, '')
+  return ORDINALS.has(t)
 }
 function parseHyphenNumber(token: string): number | null {
   const t = token.toLowerCase()
@@ -1180,6 +1205,8 @@ function tryParseCardinal(tokens: string[]): number | null {
   return null
 }
 // Parse digit-group style like "sixteen thirty-two" or sequence like "one six three two"
+// Also handles grouped patterns like "fifty five ten" → 55-10 → 5510
+// And "twelve thirty four" → 12-34 → 1234
 function tryParseConcatenated(tokens: string[]): { value: number, consumed: number } | null {
   const parts: number[] = []
   let consumed = 0
@@ -1206,11 +1233,54 @@ function tryParseConcatenated(tokens: string[]): { value: number, consumed: numb
     const single = parts[0]
     if (single >= 10 && single <= 99) return { value: single, consumed }
   }
+  // Handle grouped patterns like "fifty five ten" → 55-10 → 5510
+  // Pattern: TENS followed by UNIT followed by... should be grouped as (TENS+UNIT)
+  if (parts.length >= 3) {
+    const firstIsTens = TENS[tokens[0].toLowerCase()] !== undefined
+    const secondIsUnit = UNITS[tokens[1].toLowerCase()] !== undefined && tokens[1].toLowerCase() !== 'oh'
+    if (firstIsTens && secondIsUnit) {
+      const grouped = (parts[0] + parts[1]).toString()
+      const remaining = parts.slice(2).map(p => p.toString()).join('')
+      const concat = parseInt(grouped + remaining, 10)
+      if (!isNaN(concat)) return { value: concat, consumed: 2 + (parts.length - 2) }
+    }
+  }
+  // Handle patterns like "twelve thirty four" → 12-34 → 1234
+  // Pattern: UNIT followed by TENS followed by UNIT should be grouped as UNIT+(TENS+UNIT)
+  if (parts.length >= 3) {
+    const firstIsUnit = UNITS[tokens[0].toLowerCase()] !== undefined && tokens[0].toLowerCase() !== 'oh'
+    const secondIsTens = TENS[tokens[1].toLowerCase()] !== undefined
+    const thirdIsUnit = UNITS[tokens[2].toLowerCase()] !== undefined && tokens[2].toLowerCase() !== 'oh'
+    if (firstIsUnit && secondIsTens && thirdIsUnit) {
+      const firstPart = parts[0].toString()
+      const grouped = (parts[1] + parts[2]).toString()
+      const remaining = parts.slice(3).map(p => p.toString()).join('')
+      const concat = parseInt(firstPart + grouped + remaining, 10)
+      if (!isNaN(concat)) return { value: concat, consumed: 3 + (parts.length - 3) }
+    }
+  }
   if (parts.length >= 2 && parts.length <= 4) {
     const concat = parseInt(parts.map(p => p.toString()).join(''), 10)
     if (!isNaN(concat)) return { value: concat, consumed }
   }
   return null
+}
+// Normalize spoken ZIP codes in address strings
+// Detects patterns like "one five two oh seven" → "15207"
+function normalizeSpokenZipInAddress(address: string): string {
+  // Pattern: comma followed by 5 spoken digits/oh, possibly with spaces or "zero"
+  const zipPattern = /,\s*(zero|one|two|three|four|five|six|seven|eight|nine|oh)(?:\s+(zero|one|two|three|four|five|six|seven|eight|nine|oh)){4}(?:\s*$)/gi
+  return address.replace(zipPattern, (match) => {
+    const hasComma = match.includes(',')
+    const digits = match.toLowerCase().split(/\s+/).filter(t => t && t !== ',').map(t => {
+      if (t === 'zero' || t === 'oh') return '0'
+      return UNITS[t]?.toString() || t
+    })
+    if (digits.length === 5 && digits.every(d => /^\d$/.test(d))) {
+      return hasComma ? `, ${digits.join('')}` : digits.join('')
+    }
+    return match
+  })
 }
 function looksLikeStreetRemainder(text: string): boolean {
   const rest = text.trim().replace(/^,\s*/, '')
@@ -1225,12 +1295,31 @@ function looksLikeStreetRemainder(text: string): boolean {
 }
 function convertLeadingSpokenStreetNumber(address: string): string {
   const input = address
-  // Iteratively consume leading number-word tokens (allow commas/spaces after each token)
+  // Early check for ordinal street names (e.g., "Fifty Fifth Street")
+  // Collect first few words to check for ordinal patterns
+  const firstWords: string[] = []
   let i = 0
-  // skip leading spaces
   while (i < input.length && /\s/.test(input[i])) i++
-  const tokens: string[] = []
   let cursor = i
+  for (let j = 0; j < 3 && cursor < input.length; j++) {
+    const wordMatch = /([A-Za-z\-]+)/y
+    wordMatch.lastIndex = cursor
+    const m = wordMatch.exec(input)
+    if (!m) break
+    firstWords.push(m[1])
+    cursor = wordMatch.lastIndex
+    // Skip separators
+    const sepMatch = /([\s,]+)/y
+    sepMatch.lastIndex = cursor
+    const sm = sepMatch.exec(input)
+    if (sm) cursor = sepMatch.lastIndex
+  }
+  if (isOrdinalStreetName(firstWords)) {
+    return address // Don't convert ordinal street names
+  }
+  // Iteratively consume leading number-word tokens (allow commas/spaces after each token)
+  cursor = i
+  const tokens: string[] = []
   let tokenCount = 0
   const MAX_TOKENS = 7
   while (tokenCount < MAX_TOKENS && cursor < input.length) {
