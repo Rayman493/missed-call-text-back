@@ -9,11 +9,12 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { handleBillingAction } from '@/lib/billing'
 import { useTheme } from 'next-themes'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, ReceiptText, Settings, User, Home, X, Monitor, Sun, Moon } from 'lucide-react'
+import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, ReceiptText, Settings, User, Home, X, Monitor, Sun, Moon, Mail } from 'lucide-react'
 import { accountMenuItems } from '@/lib/navigation-config'
 import { isAdmin } from '@/lib/admin'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 import AssistantMobileShell from '@/components/AssistantMobileShell'
+import ContactSupportModal from '@/components/ContactSupportModal'
 
 // Compact theme switcher for dropdown
 function QuickThemeSwitcher() {
@@ -74,6 +75,7 @@ interface UserDropdownProps {
 export default function UserDropdown({ forceDark = false, isPublicPage = false }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
+  const [isContactSupportOpen, setIsContactSupportOpen] = useState(false)
   const [isValidSession, setIsValidSession] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' }[]>([])
@@ -394,6 +396,18 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
               <button
                 type="button"
                 role="menuitem"
+                onClick={() => {
+                  setIsOpen(false)
+                  setIsContactSupportOpen(true)
+                }}
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                Contact Support
+              </button>
+              <button
+                type="button"
+                role="menuitem"
                 onClick={handleManageBilling}
                 className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
@@ -530,6 +544,16 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
                       <MessageCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       ReplyFlow Assistant
                     </button>
+                    <button
+                      onClick={() => {
+                        setIsOpen(false)
+                        setIsContactSupportOpen(true)
+                      }}
+                      className="w-full px-2.5 py-2 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2.5 rounded-md"
+                    >
+                      <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      Contact Support
+                    </button>
                   </div>
                 )
               })}
@@ -566,6 +590,13 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
           )}
         </>
       )}
+
+      {/* Contact Support Modal */}
+      <ContactSupportModal
+        isOpen={isContactSupportOpen}
+        onClose={() => setIsContactSupportOpen(false)}
+        onOpenAssistant={() => setIsAssistantOpen(true)}
+      />
 
       {/* Toast notifications */}
       {toasts.length > 0 && createPortal(
