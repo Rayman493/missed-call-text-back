@@ -67,6 +67,26 @@ describe('isValidCoordinate', () => {
     expect(isValidCoordinate(0, 180)).toBe(true)
     expect(isValidCoordinate(0, -180)).toBe(true)
   })
+
+  it('should accept valid coordinates on equator (latitude = 0)', () => {
+    expect(isValidCoordinate(0, -78)).toBe(true) // Valid location on equator
+    expect(isValidCoordinate(0, 45)).toBe(true) // Valid location on equator
+    expect(isValidCoordinate(0, -122)).toBe(true) // Valid location on equator
+  })
+
+  it('should accept valid coordinates on prime meridian (longitude = 0)', () => {
+    expect(isValidCoordinate(51, 0)).toBe(true) // Valid location on prime meridian
+    expect(isValidCoordinate(45, 0)).toBe(true) // Valid location on prime meridian
+    expect(isValidCoordinate(37, 0)).toBe(true) // Valid location on prime meridian
+  })
+
+  it('should reject Infinity', () => {
+    expect(isValidCoordinate(Infinity, 0)).toBe(false)
+    expect(isValidCoordinate(0, Infinity)).toBe(false)
+    expect(isValidCoordinate(Infinity, Infinity)).toBe(false)
+    expect(isValidCoordinate(-Infinity, 0)).toBe(false)
+    expect(isValidCoordinate(0, -Infinity)).toBe(false)
+  })
 })
 
 describe('getResponsiveMapPadding', () => {

@@ -5,6 +5,7 @@ import { MapPin, Calendar, Briefcase, AlertCircle, ChevronLeft, ChevronRight, Fi
 import Link from 'next/link'
 import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
+import { isValidCoordinate } from '@/lib/map-utils'
 
 // Check if Google Maps API is fully initialized
 function isGoogleMapsReady(): boolean {
@@ -873,8 +874,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         continue
       }
 
-      // Check if already geocoded
-      if (hasCoordinates) {
+      // Check if already geocoded with valid coordinates
+      if (hasCoordinates && isValidCoordinate(job.latitude, job.longitude)) {
         items.push({
           id: job.id,
           type: 'job',
@@ -913,7 +914,10 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           })
           const result = await response.json()
           if (result.success) {
-            items.push({
+            if (!isValidCoordinate(result.latitude, result.longitude)) {
+              console.warn('[ScheduleMap] Geocoding returned invalid coordinates for job:', job.id, result)
+            } else {
+              items.push({
               id: job.id,
               type: 'job',
               title: job.title,
@@ -930,6 +934,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
               latitude: result.latitude,
               longitude: result.longitude
             })
+            }
           } else {
             console.error('[ScheduleMap] Geocoding failed for job:', job.id, result.error)
           }
@@ -962,6 +967,12 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           continue
         }
 
+        // Validate cached coordinates
+        if (!isValidCoordinate(cached.lat, cached.lng)) {
+          console.warn('[ScheduleMap] Skipping calendar event with invalid cached coordinates:', event.id, cached)
+          continue
+        }
+
         const dateTime = event.start.dateTime
         const dateOnly = event.start.date
         items.push({
@@ -991,6 +1002,14 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           })
           const result = await response.json()
           if (result.success) {
+            // Validate geocoding result
+            if (!isValidCoordinate(result.latitude, result.longitude)) {
+              console.warn('[ScheduleMap] Geocoding returned invalid coordinates for calendar event:', event.id, result)
+              // Cache as failure to prevent repeated attempts
+              calendarEventCoordsCacheRef.current.set(cacheKey, null)
+              continue
+            }
+
             // Cache the result
             calendarEventCoordsCacheRef.current.set(cacheKey, {
               lat: result.latitude,
@@ -1033,7 +1052,11 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     // Add business location marker if available
     const businessCoords = businessCoordsCacheRef.current
     if (businessCoords && business) {
-      items.push({
+      // Validate business coordinates
+      if (!isValidCoordinate(businessCoords.lat, businessCoords.lng)) {
+        console.warn('[ScheduleMap] Skipping business marker with invalid coordinates:', businessCoords)
+      } else {
+        items.push({
         id: 'business:home',
         type: 'business',
         title: business.name || 'Business',
@@ -1050,6 +1073,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         latitude: businessCoords.lat,
         longitude: businessCoords.lng
       })
+      }
     }
 
     // Check if this preparation is still the most recent (prevents stale async results)
