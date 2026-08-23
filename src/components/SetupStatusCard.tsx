@@ -325,6 +325,13 @@ export default function SetupStatusCard({
             <div className="flex-1 min-w-0">
               <h3 className="text-base sm:text-lg font-semibold text-foreground leading-tight">ReplyFlow Ready</h3>
               <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 leading-tight">Setup completed</p>
+              <button
+                type="button"
+                onClick={() => setShowForwardingInstructions(true)}
+                className="text-xs text-muted-foreground hover:text-foreground hover:underline mt-1 text-left"
+              >
+                Missing calls? Review your call forwarding setup.
+              </button>
             </div>
           </div>
           <button
@@ -873,6 +880,13 @@ export default function SetupStatusCard({
                   <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 leading-tight">
                     Setup completed
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowForwardingInstructions(true)}
+                    className="text-xs text-muted-foreground hover:text-foreground hover:underline mt-1 text-left"
+                  >
+                    Missing calls? Review your call forwarding setup.
+                  </button>
                 </div>
               </div>
               <button
