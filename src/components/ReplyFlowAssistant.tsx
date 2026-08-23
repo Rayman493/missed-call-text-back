@@ -316,7 +316,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
   }, [])
 
   return (
-    <div data-rf-assistant-root className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full flex flex-col overflow-hidden min-h-0 ${className}`}>
+    <div data-rf-assistant-root className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full flex flex-col overflow-hidden max-h-full ${className}`}>
       {/* Fixed header */}
       <div className="flex-shrink-0 z-30 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-b border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-4">
         {/* Header */}
@@ -381,19 +381,10 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
       </div>
 
       {/* Scrollable Content */}
-      <div 
-        ref={scrollContainerRef} 
-        className="flex-1 overflow-y-auto scrollbar-hide"
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto"
       >
-        <style>{`
-          .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-          }
-          .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-          }
-        `}</style>
         <div className="p-3 sm:p-4 sm:pt-3">
         {/* Results */}
         {showResults && !selectedArticle && (
@@ -679,20 +670,20 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
             </div>
           </div>
         )}
-
-        {/* Support Footer */}
-        <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Mail className="w-3.5 h-3.5" />
-            <span>Still need help?</span>
-            <a
-              href="mailto:support@replyflowhq.com"
-              className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
-            >
-              Contact support
-            </a>
-          </div>
         </div>
+      </div>
+
+      {/* Fixed Support Footer */}
+      <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-800/95 backdrop-blur p-3 sm:p-4">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Mail className="w-3.5 h-3.5" />
+          <span>Still need help?</span>
+          <a
+            href="mailto:support@replyflowhq.com"
+            className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+          >
+            Contact support
+          </a>
         </div>
       </div>
     </div>
