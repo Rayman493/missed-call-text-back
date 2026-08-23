@@ -228,7 +228,6 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   const [mapError, setMapError] = useState<string | null>(null)
   const [selectedMarker, setSelectedMarker] = useState<MarkerInfo | null>(null)
   const [selectedMapItemId, setSelectedMapItemId] = useState<string | null>(null)
-  const [selectedListItem, setSelectedListItem] = useState<any>(null)
   const [mapItems, setMapItems] = useState<MapItem[]>([])
   const [mapFilter, setMapFilter] = useState<MapFilter>('all')
   const [mapType, setMapType] = useState<MapType>(() => {
@@ -244,6 +243,12 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   const [showAllMode, setShowAllMode] = useState(true)
   const [previousDateKey, setPreviousDateKey] = useState<string | null>(null)
   const [lastAutoFitDateKey, setLastAutoFitDateKey] = useState<string | null>(null) // Track when we last auto-fitted to prevent repeated fits
+
+  // Derive selectedListItem from selectedMapItemId and mapItems (prevents stale object risk)
+  const selectedListItem = useMemo(() =>
+    mapItems.find(item => item.id === selectedMapItemId) ?? null,
+    [mapItems, selectedMapItemId]
+  )
 
   // TEMPORARY: Performance diagnostic switch - disable high-frequency logging to test smoothness
   const enableHighFrequencyDiagnostics = useRef(false)
@@ -2051,7 +2056,6 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                 const isMappable = item.hasLocation && item.latitude !== null && item.longitude !== null
 
                 const handleItemClick = () => {
-                  setSelectedListItem(item)
                   if (isMappable && item.latitude !== null && item.longitude !== null) {
                     // Determine the map item ID based on type
                     const mapItemId = item.type === 'job' && item.jobId
