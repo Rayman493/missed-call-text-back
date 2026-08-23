@@ -872,12 +872,25 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {currentLeadId && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); (onViewCustomer ? onViewCustomer(currentLeadId) : window.location.assign(`/dashboard/leads/${currentLeadId}`)) }}
-                      className="text-xs px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
-                    >
-                      View
-                    </button>
+                    <>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); (onViewCustomer ? onViewCustomer(currentLeadId) : window.location.assign(`/dashboard/leads/${currentLeadId}`)) }}
+                        className="text-xs px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+                      >
+                        View
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsSavingCustomer(true)
+                          handleRemoveCustomer()
+                        }}
+                        disabled={isSavingCustomer}
+                        className="text-xs text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 rounded px-2"
+                        aria-label="Remove customer"
+                      >
+                        {isSavingCustomer ? '...' : 'Clear'}
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => setIsLeadPickerOpen(true)}
@@ -1242,7 +1255,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         isOpen={isLeadPickerOpen}
         onClose={() => setIsLeadPickerOpen(false)}
         onSelect={handleCustomerSelect}
-        onRemove={handleRemoveCustomer}
         title="Select Customer"
         subtitle="Search your customers"
       />
