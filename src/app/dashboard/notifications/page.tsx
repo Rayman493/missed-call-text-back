@@ -206,36 +206,39 @@ export default function NotificationsPage() {
       <AppHeader showNavigation={true} />
       <div className="max-w-5xl mx-auto px-4 py-6">
         {/* Header */}
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="mb-6">
+          {/* Title row with back button */}
+          <div className="flex items-center gap-3 mb-4">
             <AppBackButton fallbackHref="/dashboard" label="Back" />
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Stay updated on your ReplyFlow activity.
-              </p>
-            </div>
+            <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
           </div>
 
-          {/* Actions - secondary utility */}
-          {notifications.length > 0 && (
-            <div className="flex items-center gap-2 shrink-0">
-              {notificationCount.unread > 0 && (
+          {/* Subtitle row with actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              Stay updated on your ReplyFlow activity.
+            </p>
+
+            {/* Actions - secondary utility */}
+            {notifications.length > 0 && (
+              <div className="flex items-center gap-2 shrink-0">
+                {notificationCount.unread > 0 && (
+                  <button
+                    onClick={handleMarkAllAsRead}
+                    className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors shrink-0"
+                  >
+                    Mark all as read
+                  </button>
+                )}
                 <button
-                  onClick={handleMarkAllAsRead}
-                  className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors shrink-0"
+                  onClick={handleClearAll}
+                  className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors shrink-0"
                 >
-                  Mark all as read
+                  Clear all
                 </button>
-              )}
-              <button
-                onClick={handleClearAll}
-                className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors shrink-0"
-              >
-                Clear all
-              </button>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Notifications List */}
