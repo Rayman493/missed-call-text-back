@@ -653,7 +653,7 @@ export default function SetupStatusCard({
   return (
     <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border/40">
       {modalPortal}
-      <div className="flex flex-col gap-3 sm:gap-4 p-4 sm:p-5">
+      <div className={`flex flex-col gap-3 sm:gap-4 ${cardState === 'setup-complete' || cardState === 'healthy' ? '' : 'p-4 sm:p-5'}`}>
         {/* MODE 1: Setup Incomplete */}
         {cardState === 'setup-incomplete' && (
           <>
@@ -893,6 +893,8 @@ export default function SetupStatusCard({
             {/* Subtle Divider */}
             <div className="h-px bg-border/20"></div>
 
+            {/* Expanded content wrapper with padding */}
+            <div className="px-3 sm:px-4 pb-3 sm:pb-4">
             {/* Two-zone layout for desktop */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left Zone: Primary Content */}
@@ -950,6 +952,7 @@ export default function SetupStatusCard({
                   </div>
                 </div>
               </div>
+            </div>
             </div>
           </>
         )}
