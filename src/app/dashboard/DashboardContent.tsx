@@ -241,6 +241,14 @@ export default function DashboardContent() {
   // Track dashboard routes for smart redirect
   useDashboardRouteTracking()
 
+  // Add enhanced scrollbar class for Home/Dashboard page
+  useEffect(() => {
+    document.body.classList.add('dashboard-route')
+    return () => {
+      document.body.classList.remove('dashboard-route')
+    }
+  }, [])
+
   const { business, loading: businessLoading, fetchComplete: businessFetchComplete, refreshBusiness } = useBusiness()
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
