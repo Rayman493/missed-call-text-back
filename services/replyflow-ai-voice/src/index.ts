@@ -223,6 +223,14 @@ function buildSimpleModeTranscript(
   console.log('[SIMPLE MODE TRANSCRIPT BUILD] Timestamp:', new Date().toISOString());
   console.log('[SIMPLE MODE TRANSCRIPT BUILD] =========================================');
 
+  // Map Simple Mode stage keys to template stage keys
+  // Simple Mode uses shorter keys (ask_location, ask_completion_time)
+  // Templates use longer keys (ask_location_or_context, ask_timing)
+  const simpleModeToTemplateStageMap: Record<string, string> = {
+    'ask_location': 'ask_location_or_context',
+    'ask_completion_time': 'ask_timing',
+  };
+
   for (const capture of stageCaptures) {
     // Skip blocked captures - they don't represent valid question/answer pairs
     if (capture.blocked) {
@@ -230,8 +238,11 @@ function buildSimpleModeTranscript(
       continue;
     }
 
+    // Map Simple Mode stage key to template stage key
+    const templateStage = simpleModeToTemplateStageMap[capture.stage] || capture.stage;
+
     // Get canonical question text for this stage
-    const questionText = getIntakeStageTextSafe(template, capture.stage as any);
+    const questionText = getIntakeStageTextSafe(template, templateStage as any);
 
     // Add assistant turn (question)
     transcript.push({

@@ -55,15 +55,24 @@ function buildSimpleModeTranscript(
   intakeTemplate: string = 'on_site'
 ): Array<{ role: string; text: string; timestamp?: string }> {
   const transcript: Array<{ role: string; text: string; timestamp?: string }> = []
-  
+
+  // Map Simple Mode stage keys to template stage keys
+  const simpleModeToTemplateStageMap: Record<string, string> = {
+    'ask_location': 'ask_location_or_context',
+    'ask_completion_time': 'ask_timing',
+  }
+
   for (const capture of stageCaptures) {
     // Skip blocked captures
     if (capture.blocked) {
       continue
     }
-    
+
+    // Map Simple Mode stage key to template stage key
+    const templateStage = simpleModeToTemplateStageMap[capture.stage] || capture.stage
+
     // Get canonical question text
-    const questionText = mockGetIntakeStageTextSafe(intakeTemplate, capture.stage)
+    const questionText = mockGetIntakeStageTextSafe(intakeTemplate, templateStage)
     
     // Add assistant turn (question)
     transcript.push({
@@ -569,6 +578,31 @@ describe('Simple Mode Transcript Persistence', () => {
       expect(transcript[5].text).toBe('1632 South Pine Drive')
       expect(transcript[7].text).toBe('Next two weeks')
       expect(transcript[9].text).toBe('In the afternoon')
+    })
+
+    it('TEST T - Simple Mode stage keys map to correct template questions', () => {
+      // Test that Simple Mode stage keys (ask_location, ask_completion_time)
+      // map to the correct template stage keys (ask_location_or_context, ask_timing)
+      const stageCaptures = [
+        { stage: 'ask_name', rawTranscript: 'Ryan', capturedAnswer: 'Ryan', extractedField: 'customerName', source: 'whisper', timestamp: '2024-01-01T10:00:00Z' },
+        { stage: 'ask_request', rawTranscript: 'Lawn mowing', capturedAnswer: 'Lawn mowing', extractedField: 'request', source: 'whisper', timestamp: '2024-01-01T10:00:05Z' },
+        { stage: 'ask_location', rawTranscript: '1632 South Pine Drive', capturedAnswer: '1632 South Pine Drive', extractedField: 'serviceAddress', source: 'whisper', timestamp: '2024-01-01T10:00:10Z' },
+        { stage: 'ask_completion_time', rawTranscript: 'Next two weeks', capturedAnswer: 'Next two weeks', extractedField: 'desiredCompletionTime', source: 'whisper', timestamp: '2024-01-01T10:00:15Z' },
+        { stage: 'ask_callback_time', rawTranscript: 'In the afternoon', capturedAnswer: 'In the afternoon', extractedField: 'callbackTime', source: 'whisper', timestamp: '2024-01-01T10:00:20Z' }
+      ]
+
+      const transcript = buildSimpleModeTranscript(stageCaptures, 'on_site')
+
+      // Verify we have 10 turns (5 questions + 5 answers)
+      expect(transcript.length).toBe(10)
+
+      // Verify location question is the canonical location question, not the generic fallback
+      expect(transcript[4].text).toBe("All right. Just a couple more questions. Where will this take place?")
+      expect(transcript[4].text).not.toBe("Can you please provide more information?")
+
+      // Verify timing question is the canonical timing question, not the generic fallback
+      expect(transcript[6].text).toBe("When are you hoping this will be done?")
+      expect(transcript[6].text).not.toBe("Can you please provide more information?")
     })
   })
 })
