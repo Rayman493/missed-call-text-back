@@ -171,6 +171,32 @@ export default function SettingsContent() {
     }
   }, [tapToPayAwareness.state.isEligible, showAwarenessModal, tapToPayAwareness.isAcknowledged])
 
+  // Handle hash navigation to scroll to specific section after render
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash.replace('#', '')
+      if (!hash) return
+
+      // Wait for next render cycle to ensure section is in DOM
+      requestAnimationFrame(() => {
+        const element = document.getElementById(hash)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          console.log('[SETTINGS] Scrolled to section:', hash)
+        } else {
+          console.warn('[SETTINGS] Section not found for hash:', hash)
+        }
+      })
+    }
+
+    // Handle hash on mount
+    handleHash()
+
+    // Handle hash changes
+    window.addEventListener('hashchange', handleHash)
+    return () => window.removeEventListener('hashchange', handleHash)
+  }, [])
+
   const handleAwarenessSetup = async () => {
     try {
       await tapToPayAwareness.acknowledgeAwareness()
@@ -2436,10 +2462,6 @@ export default function SettingsContent() {
 
               {/* General Section */}
               <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
-                <div className="mb-8">
-                  <h2 className="text-lg font-semibold text-foreground mb-2">General</h2>
-                  <p className="text-sm text-muted-foreground leading-relaxed">Your business identity and contact details.</p>
-                </div>
                 <div className="space-y-5">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">

@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from 'next-themes'
-import { Home, Users, Calendar, CreditCard, Settings, LogOut, MessageCircle, ExternalLink, Sun, Moon, Monitor } from 'lucide-react'
+import { Home, Users, Calendar, CreditCard, Settings, LogOut, MessageCircle, ExternalLink, Sun, Moon, Monitor, HelpCircle } from 'lucide-react'
 import { primaryNavItems, accountMenuItems } from '@/lib/navigation-config'
 import { handleBillingAction } from '@/lib/billing'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
@@ -350,6 +350,18 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 <MessageCircle className="h-4 w-4 text-muted-foreground" />
                 ReplyFlow Assistant
               </button>
+
+              <Link
+                href="/faq"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsMoreMenuOpen(false)
+                }}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-popover-foreground transition-colors duration-150 hover:bg-accent"
+              >
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                Help & Support
+              </Link>
 
               {/* Appearance Selector */}
               <div className="px-4 py-2">

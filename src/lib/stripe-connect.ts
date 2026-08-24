@@ -82,7 +82,7 @@ export async function openStripeConnectOnboarding(url: string, businessId?: stri
       const result = await ReplyflowStripeConnect.openConnectOnboarding({
         url,
         callbackHost: 'www.replyflowhq.com',
-        callbackPath: '/dashboard/settings'
+        callbackPath: '/dashboard/settings#payments'
       })
 
       console.log('[STRIPE CONNECT] native_promise_returned=true', { hasResult: !!result })

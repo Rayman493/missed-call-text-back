@@ -53,7 +53,7 @@ const EXTERNAL_RETURN_FLOWS: ExternalReturnFlow[] = [
   {
     name: 'STRIPE_CONNECT',
     matcher: (url) => url.searchParams.get('stripe_onboarding') === 'complete',
-    internalDestination: '/dashboard/settings',
+    internalDestination: '/dashboard/settings#payments',
     reconcile: async (businessId) => {
       const result = await reconcileStripeStatus(businessId)
       console.log('[STRIPE CONNECT RETURN] Reconciliation result:', result)
