@@ -313,18 +313,26 @@ export interface LeadAIIntake {
 
 /**
  * Resolve canonical AI intake fields from a lead.
- * Reads from ai_call_records, raw_metadata.extracted_info, raw_metadata.ai_extracted_info,
- * direct raw_metadata fields, and corrected_fields with proper fallback chains.
+ *
+ * CRITICAL: This function represents CURRENT-CALL intake only.
+ * It reads from the most recent ai_call_record.extracted_info and does NOT
+ * fall back to historical lead.raw_metadata. Historical data remains available
+ * for customer history but must not contaminate current-call intake display.
+ *
+ * Priority order:
+ * 1. Manual corrections (intentional user edits)
+ * 2. Current call normalized extracted_info
+ * 3. Current call raw extracted_info (alias fallback)
+ *
+ * Historical lead.raw_metadata is NOT used for current-call intake fields.
  */
 export function getLeadAIIntake(lead: any): LeadAIIntake {
   const rawMetadata = lead?.raw_metadata || {}
 
-  // Extracted info from ai_call_records (UI-normalized) or raw_metadata
+  // Extracted info from CURRENT ai_call_record only - NO historical fallback
   const extractedInfoRaw =
     lead?.aiCallRecords?.[0]?.extracted_info ||
     lead?.ai_call_records?.[0]?.extracted_info ||
-    rawMetadata.extracted_info ||
-    rawMetadata.ai_extracted_info ||
     {}
 
   const normalized = normalizeExtractedInfo(extractedInfoRaw)
@@ -374,29 +382,29 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
   };
 
   // Extract service requested value first for concise title generation
+  // Priority: manual corrections > current-call normalized > current-call raw
+  // NO historical raw_metadata fallback
   const serviceRequestedValue = normalizeServiceReason(traceFieldSelection('serviceRequested', [
     corrected.serviceRequested,
     corrected.reason,
     corrected.reasonForCalling,
-    rawMetadata.serviceRequested,
     normalized.reasonForCalling,
     extractedInfoRaw.serviceRequested
   ], pick));
 
   const result = {
+    // Customer name: current-call captured name beats lead profile identity
+    // Priority: manual corrections > current-call normalized > current-call raw > lead profile
+    // NO historical raw_metadata fallback
     customerName: normalizeCustomerName(traceFieldSelection('customerName', [
       corrected.name,
       corrected.callerName,
       corrected.customerName,
       corrected.caller_name,
-      lead?.name,
-      lead?.contact_name,
-      rawMetadata.customerName,
-      rawMetadata.callerName,
-      rawMetadata.caller_name,
       normalized.callerName,
-      rawMetadata.name,
-      extractedInfoRaw.customerName
+      extractedInfoRaw.customerName,
+      lead?.name,
+      lead?.contact_name
     ], pickNotPhone)),
     customerPhone: pick(
       lead?.caller_phone,
@@ -409,37 +417,44 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       extractedInfoRaw.customerPhone
     ),
     serviceRequested: serviceRequestedValue,
+    // Additional details: current-call only, preserve multi-part facts
+    // Priority: manual corrections > current-call normalized > current-call raw
+    // NO historical raw_metadata fallback
     additionalDetails: normalizeAdditionalDetails(pick(
       corrected.details,
       corrected.issueDescription,
       corrected.importantDetails,
-      rawMetadata.additionalDetails,
       normalized.importantDetails,
       extractedInfoRaw.additionalDetails
     )),
+    // Service address: current-call only
+    // Priority: manual corrections > current-call normalized > current-call raw
+    // NO historical raw_metadata fallback
     serviceAddress: normalizeAddress(pick(
       corrected.address,
       corrected.serviceAddress,
       corrected.addressOrLocation,
-      rawMetadata.serviceAddress,
       normalized.addressOrLocation,
-      rawMetadata.address,
       extractedInfoRaw.serviceAddress
     )),
+    // Desired completion time: current-call only
+    // Priority: manual corrections > current-call normalized > current-call raw
+    // NO historical raw_metadata fallback
     desiredCompletion: normalizeTiming(pick(
       corrected.desiredCompletion,
       corrected.urgency,
       corrected.urgencyLevel,
       corrected.desiredCompletionTime,
-      rawMetadata.desiredCompletion,
       normalized.desiredCompletionTime,
       extractedInfoRaw.desiredCompletion
     )),
+    // Callback time: current-call only
+    // Priority: manual corrections > current-call normalized > current-call raw
+    // NO historical raw_metadata fallback
     callbackTime: normalizeTiming(pick(
       corrected.callbackTime,
       corrected.callback_time,
       corrected.preferredCallbackTime,
-      rawMetadata.callbackTime,
       normalized.preferredCallbackTime,
       extractedInfoRaw.callbackTime
     )),
@@ -448,7 +463,6 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       corrected.serviceRequested ||
       corrected.reason ||
       corrected.reasonForCalling ||
-      rawMetadata.serviceRequested ||
       normalized.reasonForCalling ||
       extractedInfoRaw.serviceRequested
     ),
@@ -461,14 +475,10 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       leadName: lead?.name,
       rawMetadataKeys: Object.keys(rawMetadata),
       extractedInfoSource: lead?.aiCallRecords?.[0]?.extracted_info
-        ? 'aiCallRecords[0].extracted_info'
+        ? 'aiCallRecords[0].extracted_info (current call)'
         : lead?.ai_call_records?.[0]?.extracted_info
-          ? 'ai_call_records[0].extracted_info'
-          : rawMetadata.extracted_info
-            ? 'raw_metadata.extracted_info'
-            : rawMetadata.ai_extracted_info
-              ? 'raw_metadata.ai_extracted_info'
-              : 'none',
+          ? 'ai_call_records[0].extracted_info (current call)'
+          : 'none (no current call record)',
       extractedInfoRaw,
       normalized,
       result,
@@ -514,8 +524,9 @@ export function getLeadRequestTitle(lead: any): string {
     }
   }
 
-  // Secondary: Check for explicit request field on lead or raw_metadata
-  const explicitRequest = rawMetadata.request || rawMetadata.serviceRequested || rawMetadata.reason || aiIntake.serviceRequested
+  // Secondary: Check for explicit request field from current AI intake only
+  // NO historical raw_metadata fallback - use only aiIntake.serviceRequested
+  const explicitRequest = aiIntake.serviceRequested
   if (explicitRequest && typeof explicitRequest === 'string' && explicitRequest.trim()) {
     // Validate first to reject bad patterns
     const validated = validateRequestTitle(explicitRequest.trim())
