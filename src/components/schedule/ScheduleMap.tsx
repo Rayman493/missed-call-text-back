@@ -1616,6 +1616,20 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           }
         })
 
+        // Add hover feedback for desktop discoverability
+        marker.addListener('mouseenter', () => {
+          // Only apply hover effect to unselected markers
+          const isMarkerSelected = selectedMapItemId !== null && markerInfo.items.some(item => item.id === selectedMapItemId)
+          if (!isMarkerSelected) {
+            marker.setOpacity(0.8)
+          }
+        })
+
+        marker.addListener('mouseleave', () => {
+          // Always restore full opacity on mouse leave
+          marker.setOpacity(1.0)
+        })
+
         markersRef.current.set(markerKey, marker)
       }
     })
