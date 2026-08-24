@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { getBusinessDayStart } from '@/lib/business-date-utils'
 import { Phone, Users, MessageSquare, CheckCircle } from 'lucide-react'
 
 interface TodaySnapshotProps {
@@ -30,10 +31,9 @@ export default function TodaySnapshot({ business }: TodaySnapshotProps) {
       try {
         const supabase = createBrowserClient()
 
-        // Get data from today
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        const todayIso = today.toISOString()
+        // Get data from today using business timezone
+        const businessTimezone = business.business_hours_timezone || 'UTC'
+        const todayIso = getBusinessDayStart(businessTimezone, new Date())
 
         // Fetch leads from today
         const { data: leads } = await supabase

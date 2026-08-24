@@ -9,7 +9,8 @@ import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
-import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe, getDaysInTimeframe } from '@/lib/analytics-timeframe'
+import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getDaysInTimeframe } from '@/lib/analytics-timeframe'
+import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 
 interface NewCustomersData {
   date: string
@@ -30,9 +31,11 @@ export default function NewCustomersGraph() {
       try {
         const supabase = createBrowserClient()
 
-        // Calculate date range using shared utility
-        const startDate = getStartDateForTimeframe(timeRange)
-        const startDateIso = startDate.toISOString()
+        // Calculate date range using business timezone
+        const businessTimezone = business.business_hours_timezone || 'UTC'
+        const daysMap = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 }
+        const daysAgo = daysMap[timeRange] || 30
+        const startDateIso = getBusinessDaysAgoRelative(businessTimezone, daysAgo, new Date())
 
         // Fetch leads grouped by date
         const { data: leads } = await supabase
@@ -43,10 +46,10 @@ export default function NewCustomersGraph() {
           .gte('created_at', startDateIso)
           .order('created_at', { ascending: true })
 
-        // Group by date
+        // Group by business-local date
         const groupedData: { [key: string]: number } = {}
         leads?.forEach((lead: any) => {
-          const date = new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          const date = formatBusinessLocalDate(lead.created_at, businessTimezone)
           groupedData[date] = (groupedData[date] || 0) + 1
         })
 

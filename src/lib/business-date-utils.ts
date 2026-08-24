@@ -136,3 +136,20 @@ export function getBusinessDaysAgoRelative(timezone: string, daysAgo: number, re
   const utcDate = fromZonedTime(zonedDate, normalizedTimezone)
   return utcDate.toISOString()
 }
+
+/**
+ * Formats a UTC timestamp as a business-local date string for display.
+ *
+ * Use this for grouping and displaying dates in charts to ensure consistency
+ * with business timezone regardless of user's browser timezone.
+ *
+ * @param timestamp - UTC timestamp string or Date
+ * @param timezone - Business timezone (e.g., 'America/New_York', 'UTC')
+ * @returns Formatted date string (e.g., "Jan 15")
+ */
+export function formatBusinessLocalDate(timestamp: string | Date, timezone: string): string {
+  const normalizedTimezone = normalizeBusinessTimezone(timezone)
+  const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp
+  const zonedDate = toZonedTime(date, normalizedTimezone)
+  return zonedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}

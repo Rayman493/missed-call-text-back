@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { calculateLeadStatusCounts } from '@/lib/lead-lifecycle'
+import { getBusinessDaysAgoRelative } from '@/lib/business-date-utils'
 import AppHeader from '@/components/AppHeader'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
@@ -65,8 +66,9 @@ export default function AnalyticsContent() {
       try {
         const supabase = createBrowserClient()
 
-        // Get date range for analytics (last 30 days)
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        // Get date range for analytics (last 30 days using business timezone)
+        // businessTimezone is defined below for trend logic, reuse it here
+        const thirtyDaysAgo = getBusinessDaysAgoRelative(business.business_hours_timezone || 'UTC', 30, new Date())
 
         // Fetch leads in the last 30 days - include all fields required by calculateLeadStatusCounts
         // Filter out deleted customers for accurate metrics

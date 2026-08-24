@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { getBusinessDaysAgoRelative } from '@/lib/business-date-utils'
 import { Phone, Users, MessageSquare, Reply, Clock, PhoneMissed, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
 interface BusinessSnapshotProps {
@@ -38,8 +39,9 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
       try {
         const supabase = createBrowserClient()
 
-        // Get data from the last 30 days
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        // Get data from the last 30 days using business timezone
+        const businessTimezone = business.business_hours_timezone || 'UTC'
+        const thirtyDaysAgo = getBusinessDaysAgoRelative(businessTimezone, 30, new Date())
 
         // Fetch leads (leads recovered)
         const { data: leads } = await supabase

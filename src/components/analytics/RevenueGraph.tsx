@@ -9,7 +9,8 @@ import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
-import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe } from '@/lib/analytics-timeframe'
+import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
+import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 
 interface RevenueData {
   date: string
@@ -36,9 +37,11 @@ export default function RevenueGraph() {
       try {
         const supabase = createBrowserClient()
 
-        // Calculate date range using shared utility
-        const startDate = getStartDateForTimeframe(timeRange)
-        const startDateIso = startDate.toISOString()
+        // Calculate date range using business timezone
+        const businessTimezone = business.business_hours_timezone || 'UTC'
+        const daysMap = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 }
+        const daysAgo = daysMap[timeRange] || 30
+        const startDateIso = getBusinessDaysAgoRelative(businessTimezone, daysAgo, new Date())
 
         // Fetch completed payments
         const { data: payments } = await supabase
@@ -49,10 +52,10 @@ export default function RevenueGraph() {
           .gte('created_at', startDateIso)
           .order('created_at', { ascending: true })
 
-        // Group by date (convert cents to dollars)
+        // Group by business-local date (convert cents to dollars)
         const groupedData: { [key: string]: number } = {}
         payments?.forEach((payment: any) => {
-          const date = new Date(payment.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          const date = formatBusinessLocalDate(payment.created_at, businessTimezone)
           groupedData[date] = (groupedData[date] || 0) + ((payment.amount_cents || 0) / 100)
         })
 

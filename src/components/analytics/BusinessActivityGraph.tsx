@@ -9,7 +9,8 @@ import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
-import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe } from '@/lib/analytics-timeframe'
+import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
+import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 
 const SERIES_LABELS: Record<string, string> = {
   conversations: 'Conversations',
@@ -40,9 +41,11 @@ export default function BusinessActivityGraph() {
       try {
         const supabase = createBrowserClient()
 
-        // Calculate date range using shared utility
-        const startDate = getStartDateForTimeframe(timeRange)
-        const startDateIso = startDate.toISOString()
+        // Calculate date range using business timezone
+        const businessTimezone = business.business_hours_timezone || 'UTC'
+        const daysMap = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 }
+        const daysAgo = daysMap[timeRange] || 30
+        const startDateIso = getBusinessDaysAgoRelative(businessTimezone, daysAgo, new Date())
 
         // Fetch conversations (leads with conversation_id)
         const { data: conversations } = await supabase
@@ -75,7 +78,7 @@ export default function BusinessActivityGraph() {
           .eq('status', 'completed')
           .gte('created_at', startDateIso)
 
-        // Group by date
+        // Group by business-local date
         const groupedData: { [key: string]: ActivityData } = {}
 
         const addToGroup = (date: string, field: keyof ActivityData) => {
@@ -92,22 +95,22 @@ export default function BusinessActivityGraph() {
         }
 
         conversations?.forEach((conv: any) => {
-          const date = new Date(conv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          const date = formatBusinessLocalDate(conv.created_at, businessTimezone)
           addToGroup(date, 'conversations')
         })
 
         appointments?.forEach((apt: any) => {
-          const date = new Date(apt.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          const date = formatBusinessLocalDate(apt.created_at, businessTimezone)
           addToGroup(date, 'appointments')
         })
 
         paymentRequests?.forEach((pr: any) => {
-          const date = new Date(pr.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          const date = formatBusinessLocalDate(pr.created_at, businessTimezone)
           addToGroup(date, 'paymentRequests')
         })
 
         completedJobs?.forEach((job: any) => {
-          const date = new Date(job.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          const date = formatBusinessLocalDate(job.created_at, businessTimezone)
           addToGroup(date, 'completedJobs')
         })
 

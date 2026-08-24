@@ -9,7 +9,8 @@ import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { PremiumTooltip, CHART_STYLES, formatInteger, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
-import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getStartDateForTimeframe } from '@/lib/analytics-timeframe'
+import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
+import { getBusinessDaysAgoRelative } from '@/lib/business-date-utils'
 
 interface PaymentStatusData {
   name: string
@@ -52,8 +53,10 @@ export default function PaymentCollectionGraph() {
         const supabase = createBrowserClient()
 
         // Calculate date range based on selected timeframe
-        const startDate = getStartDateForTimeframe(timeRange)
-        const startDateIso = startDate.toISOString()
+        const businessTimezone = business?.business_hours_timezone || 'UTC'
+        const daysMap = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 }
+        const daysAgo = daysMap[timeRange as keyof typeof daysMap] || 90
+        const startDateIso = getBusinessDaysAgoRelative(businessTimezone, daysAgo, new Date())
 
         // Fetch payment requests grouped by status for selected timeframe
         const { data: payments } = await supabase
@@ -93,7 +96,7 @@ export default function PaymentCollectionGraph() {
 
     fetchData()
     return () => { isMounted = false }
-  }, [business?.id, timeRange])
+  }, [business?.id, business?.business_hours_timezone, timeRange])
 
   const isEmpty = data.length === 0
 
