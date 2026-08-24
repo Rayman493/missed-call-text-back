@@ -14713,7 +14713,6 @@ Return only JSON, no other text.`;
           // Determine intake template based on business type (with safe fallback)
           const selectedIntakeTemplate = getIntakeTemplateForBusinessTypeSafe(businessType);
           (ws as any).intakeTemplate = selectedIntakeTemplate;
-          state.intakeTemplate = selectedIntakeTemplate;
 
           console.log('[AI INTAKE TEMPLATE] =========================================');
           console.log('[AI INTAKE TEMPLATE] business_type:', businessType);
