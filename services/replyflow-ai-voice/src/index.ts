@@ -4058,7 +4058,7 @@ async function extractRequestTitleAndDetailsWithModel(
       messages: [
         {
           role: 'system',
-          content: 'You extract structured service-request information from a caller\'s answer. Return a concise Request Title describing what the customer needs and Additional Details containing useful supporting context. The title should preserve the complete core service intent, including compound work when necessary. Additional Details should contain facts, conditions, symptoms, preferences, history, reasons, or clarifications not needed in the short title. Do not invent information. Do not repeat the title in Additional Details. If there are no meaningful additional details, return an empty string.'
+          content: 'You extract structured service-request information from a caller\'s answer. Return a concise Request Title describing what the customer needs and Additional Details containing ALL materially useful job context mentioned by the caller. The title should preserve the complete core service intent, including compound work when necessary. Additional Details should include facts, conditions, symptoms, preferences, history, reasons, clarifications, size/scale, access limitations, equipment concerns, obstacles, special requests, property conditions, urgency nuance, or relevant prior work. Do NOT omit relevant constraints, access issues, size, obstacles, equipment concerns, or special requests merely for brevity. Preserve uncertainty and qualifiers (e.g., "might be difficult" should not become "cannot access"). Do not invent information. Do not repeat the title in Additional Details. Do not include unrelated chit-chat or filler. If there are no meaningful additional details beyond the title, return an empty string. Prefer 1-3 natural sentences when the caller provided multiple meaningful facts.'
         },
         {
           role: 'user',
@@ -4079,7 +4079,7 @@ async function extractRequestTitleAndDetailsWithModel(
               },
               additionalDetails: {
                 type: 'string',
-                description: 'Supporting context not needed in the title (empty if none)'
+                description: 'All materially useful job context not needed in the title (empty if none)'
               }
             },
             required: ['requestTitle', 'additionalDetails'],
@@ -4088,7 +4088,7 @@ async function extractRequestTitleAndDetailsWithModel(
         }
       },
       temperature: 0,
-      max_tokens: 200
+      max_tokens: 300
     }, {
       timeout: SEMANTIC_EXTRACTION_TIMEOUT_MS
     });
