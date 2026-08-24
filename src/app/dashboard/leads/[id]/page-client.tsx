@@ -338,6 +338,10 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
   return sorted
 }
 
+// Canonical near-bottom threshold for conversation auto-scroll
+// 150px allows for reasonable content growth (images, audio) without yanking users reading history
+const NEAR_BOTTOM_THRESHOLD_PX = 150
+
 async function getLeadDetails(leadId: string) {
   const supabase = createBrowserClient()
   const { data: { session } } = await supabase.auth.getSession()
@@ -427,6 +431,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     relatedId?: string
     relatedType?: string
   }) => {
+    const currentLeadId = params.id
     try {
       const response = await fetch('/api/business-phone/record', {
         method: 'POST',
@@ -438,7 +443,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }
       // Refresh lead data to update timeline
       const updatedData = await getLeadDetails(config.leadId)
-      if (updatedData) {
+      // Guard against customer switch - only update if still on same lead
+      if (updatedData && currentLeadId === params.id) {
         setLeadData(updatedData)
       }
     } catch (error) {
@@ -627,9 +633,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       return
     }
 
-    // Use smaller threshold for mobile (40px) vs desktop (200px) for better mobile UX
-    const scrollThreshold = isDesktop ? 200 : 40
-    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
+    // Use canonical near-bottom threshold
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= NEAR_BOTTOM_THRESHOLD_PX
 
     // Force scroll on initial load regardless of scroll position
     if (force || isInitialLoad || isNearBottom || behavior === 'auto') {
@@ -657,6 +662,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Handle image load for latest message - scroll after image loads
   const handleSaveNotes = async () => {
     if (!lead?.id) return
+    const currentLeadId = params.id
     setIsSavingNotes(true)
     try {
       const { error } = await supabase
@@ -666,8 +672,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       if (error) throw error
 
       // Refresh lead data to get the updated notes
-      const updatedData = await getLeadDetails(params.id)
-      if (updatedData?.ok && updatedData.lead) {
+      const updatedData = await getLeadDetails(currentLeadId)
+      // Guard against customer switch - only update if still on same lead
+      if (updatedData?.ok && updatedData.lead && currentLeadId === params.id) {
         setLeadData(updatedData.lead)
         setInternalNotes(updatedData.lead.notes || '')
       }
@@ -1125,15 +1132,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       })
 
       // Set up ResizeObserver to detect content height changes (images, transcription, audio)
+      // During initial auto-scrolling, always scroll to bottom regardless of user position
+      // This ensures conversation stays pinned to newest message while content is settling
       if (typeof ResizeObserver !== 'undefined') {
         resizeObserver = new ResizeObserver((entries) => {
           for (const entry of entries) {
-            // If user is still near bottom during content resize, scroll to bottom
-            const scrollThreshold = isDesktop ? 200 : 40
-            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
-
-            if (isNearBottom) {
+            // During initial auto-scrolling, always scroll to bottom (no near-bottom check)
+            // This prevents content growth from leaving newest message below viewport
+            if (isInitialAutoScrollingRef.current) {
               scrollToBottomNow()
+            } else {
+              // After initial positioning, respect user's scroll position
+              // Only auto-scroll if user is genuinely near bottom
+              const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= NEAR_BOTTOM_THRESHOLD_PX
+              if (isNearBottom) {
+                scrollToBottomNow()
+              }
             }
           }
         })
@@ -1838,7 +1852,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     automationStatus = 'Follow-ups completed'
   }
 
-  // Fetch lead data on mount with race condition protection
+  // Fetch lead data on mount with race condition protection and monotonic merging
   const latestFetchRequestRef = useRef<number>(0)
 
   useEffect(() => {
@@ -1871,7 +1885,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           conversation: result.conversation || result.lead.conversation
         }
 
-        setLeadData(leadWithMergedData)
+        // Merge with existing state to preserve realtime messages that arrived during fetch
+        setLeadData((prev: any) => {
+          if (!prev) return leadWithMergedData
+
+          // Merge messages using canonical merge function to preserve realtime updates
+          const existingMessages = prev.messages || []
+          const newMessages = leadWithMergedData.messages || []
+          const mergedMessages = mergeMessagesById(existingMessages, newMessages, 'initial-fetch')
+
+          return {
+            ...leadWithMergedData,
+            messages: mergedMessages
+          }
+        })
         setLoading(false)
         return
       }
@@ -2190,6 +2217,46 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         },
         (payload: any) => {
           fetchLeadJobs()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'voicemail_recordings',
+          filter: `lead_id=eq.${leadId}`
+        },
+        (payload: any) => {
+          console.log('[REALTIME VOICEMAIL EVENT]', {
+            leadId,
+            eventType: payload.eventType,
+            voicemailId: payload.new?.id,
+            timestamp: new Date().toISOString()
+          })
+
+          setLeadData((prev: any) => {
+            if (!prev) return prev
+
+            const existingVoicemails = prev.voicemailRecordings || []
+            if (payload.eventType === 'INSERT') {
+              // Deduplicate: only add if this voicemail ID doesn't already exist
+              const alreadyExists = existingVoicemails.some((v: any) => v.id === payload.new.id)
+              if (alreadyExists) {
+                console.log('[REALTIME VOICEMAIL INSERT] Voicemail already exists, skipping')
+                return prev
+              }
+              return { ...prev, voicemailRecordings: [...existingVoicemails, payload.new] }
+            } else if (payload.eventType === 'UPDATE') {
+              return {
+                ...prev,
+                voicemailRecordings: existingVoicemails.map((v: any) =>
+                  v.id === payload.new.id ? { ...v, ...payload.new } : v
+                )
+              }
+            }
+            return prev
+          })
         }
       )
       .subscribe((status: any) => {
@@ -2662,16 +2729,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
+  // Refresh deduplication with request version tracking
+  const latestRefreshRequestRef = useRef<number>(0)
+
   const handleRefresh = async () => {
     if (refreshing) return
     
+    const requestId = ++latestRefreshRequestRef.current
     setRefreshing(true)
     setError('')
     
     try {
-      console.log('[Refresh] Refreshing conversation data for lead:', params.id)
+      console.log('[Refresh] Refreshing conversation data for lead:', params.id, 'requestId:', requestId)
       
       const result = await getLeadDetails(params.id)
+
+      // Check if this is still the latest refresh request (ignore stale responses)
+      if (requestId !== latestRefreshRequestRef.current) {
+        console.log('[Refresh] Ignoring stale refresh result, newer refresh in progress:', {
+          requestId,
+          latestRequestId: latestRefreshRequestRef.current
+        })
+        return
+      }
       
       if (!result) {
         console.log('[Refresh] No response returned from API')
@@ -2705,7 +2785,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       console.error('[Refresh] Error refreshing conversation:', error)
       setError('Failed to refresh conversation')
     } finally {
-      setRefreshing(false)
+      // Only clear refreshing if this is still the latest request
+      if (requestId === latestRefreshRequestRef.current) {
+        setRefreshing(false)
+      }
     }
   }
 
