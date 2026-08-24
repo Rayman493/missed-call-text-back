@@ -6,6 +6,15 @@ import { sendToFcmTokens, PushPayload as FcmPayload } from '@/lib/fcm-sender'
 const MAX_RETRY_ATTEMPTS = 3
 const RETRY_DELAYS = [0, 2000, 5000] // Immediate, 2 seconds, 5 seconds
 
+// Per-token result for retry logic
+export interface TokenResult {
+  token: string
+  success: boolean
+  permanentFailure: boolean
+  platform: 'android' | 'ios'
+  errorCode?: string
+}
+
 /**
  * Record a delivery attempt in the database
  */
@@ -118,16 +127,48 @@ export async function sendPushForNotification(notification: {
     leadId: notification.data?.leadId,
   }
 
-  // Implement retry logic with exponential backoff
+  // Track per-token state across retry attempts
+  const tokenState = new Map<string, TokenResult>()
+
+  // Initialize token state for all eligible tokens
+  for (const token of androidTokens) {
+    tokenState.set(token, { token, success: false, permanentFailure: false, platform: 'android' })
+  }
+  for (const token of iosTokens) {
+    tokenState.set(token, { token, success: false, permanentFailure: false, platform: 'ios' })
+  }
+
   let finalResult: UnifiedResult = {
     android: { attempted: 0, successful: 0, failed: 0 },
     ios: { attempted: 0, successful: 0, failed: 0 }
   }
 
   for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+    // Build retry token sets from current state
+    const retryAndroidTokens = Array.from(tokenState.entries())
+      .filter(([_, state]) => state.platform === 'android' && !state.success && !state.permanentFailure)
+      .map(([token]) => token)
+
+    const retryIosTokens = Array.from(tokenState.entries())
+      .filter(([_, state]) => state.platform === 'ios' && !state.success && !state.permanentFailure)
+      .map(([token]) => token)
+
+    // If no retryable tokens remain, exit early
+    if (retryAndroidTokens.length === 0 && retryIosTokens.length === 0) {
+      console.log('[PUSH DELIVERY] No retryable tokens remaining, exiting retry loop', {
+        notificationId: notification.id,
+        attempt,
+        correlationId
+      })
+      break
+    }
+
     console.log(`[PUSH DELIVERY] Attempt ${attempt}/${MAX_RETRY_ATTEMPTS}`, {
       notificationId: notification.id,
       businessId: notification.business_id,
+      attempt,
+      androidTokens: retryAndroidTokens.length,
+      iosTokens: retryIosTokens.length,
       correlationId
     })
 
@@ -139,43 +180,92 @@ export async function sendPushForNotification(notification: {
     // Send in parallel; failures on one provider should not block the other
     const [androidRes, iosRes] = await Promise.allSettled([
       (async () => {
-        if (androidTokens.size === 0) return { attempted: 0, successful: 0, failed: 0 }
-        return await sendToFcmTokens(Array.from(androidTokens), {
+        if (retryAndroidTokens.length === 0) return { attempted: 0, successful: 0, failed: 0, results: [] }
+        const result = await sendToFcmTokens(retryAndroidTokens, {
           title: notification.title,
           body: notification.message,
           payload: payload as FcmPayload,
         })
+
+        // Update token state with FCM results
+        for (const fcmResult of result.results) {
+          tokenState.set(fcmResult.token, {
+            token: fcmResult.token,
+            success: fcmResult.success,
+            permanentFailure: fcmResult.permanentFailure,
+            platform: 'android',
+            errorCode: fcmResult.errorCode
+          })
+        }
+
+        return result
       })(),
       (async () => {
-        return await sendApnsToTokens(Array.from(iosTokens), {
+        if (retryIosTokens.length === 0) return { attempted: 0, successful: 0, failed: 0, disabled: 0, results: [] }
+        const result = await sendApnsToTokens(retryIosTokens, {
           title: notification.title,
           body: notification.message,
           payload,
         })
+
+        // Update token state with APNS results
+        if (result.results) {
+          for (const apnsResult of result.results) {
+            tokenState.set(apnsResult.token, {
+              token: apnsResult.token,
+              success: apnsResult.success,
+              permanentFailure: apnsResult.permanentFailure,
+              platform: 'ios',
+              errorCode: apnsResult.errorCode
+            })
+          }
+        }
+
+        return result
       })(),
     ])
 
-    const android = androidRes.status === 'fulfilled' ? androidRes.value : { attempted: 0, successful: 0, failed: 0 }
-    const ios = iosRes.status === 'fulfilled' ? iosRes.value : { attempted: 0, successful: 0, failed: 0 }
+    const android = androidRes.status === 'fulfilled' ? androidRes.value : { attempted: 0, successful: 0, failed: 0, results: [] }
+    const ios = iosRes.status === 'fulfilled' ? iosRes.value : { attempted: 0, successful: 0, failed: 0, disabled: 0, results: [] }
+
+    // Calculate final aggregate results from token state
+    const androidSuccessful = Array.from(tokenState.values()).filter(s => s.platform === 'android' && s.success).length
+    const androidFailed = Array.from(tokenState.values()).filter(s => s.platform === 'android' && !s.success).length
+    const iosSuccessful = Array.from(tokenState.values()).filter(s => s.platform === 'ios' && s.success).length
+    const iosFailed = Array.from(tokenState.values()).filter(s => s.platform === 'ios' && !s.success).length
 
     finalResult = {
-      android: { attempted: (android as any).attempted ?? 0, successful: (android as any).successful ?? 0, failed: (android as any).failed ?? 0 },
-      ios: ios as any,
+      android: { attempted: androidTokens.size, successful: androidSuccessful, failed: androidFailed },
+      ios: { attempted: iosTokens.size, successful: iosSuccessful, failed: iosFailed }
     }
 
-    // Check if delivery was successful
-    const totalAttempted = finalResult.android.attempted + finalResult.ios.attempted
-    const totalSuccessful = finalResult.android.successful + finalResult.ios.successful
-    const totalFailed = finalResult.android.failed + finalResult.ios.failed
+    // Log attempt results
+    console.log(`[PUSH DELIVERY] Attempt ${attempt} complete`, {
+      notificationId: notification.id,
+      businessId: notification.business_id,
+      attempt,
+      androidAttempted: (android as any).attempted,
+      androidSuccessful: (android as any).successful,
+      androidFailed: (android as any).failed,
+      iosAttempted: (ios as any).attempted,
+      iosSuccessful: (ios as any).successful,
+      iosFailed: (ios as any).failed,
+      newAndroidSuccess: androidSuccessful - finalResult.android.successful + (android as any).failed,
+      newIosSuccess: iosSuccessful - finalResult.ios.successful + (ios as any).failed,
+      remainingRetryTokens: Array.from(tokenState.values()).filter(s => !s.success && !s.permanentFailure).length,
+      correlationId
+    })
 
-    const isSuccess = totalAttempted > 0 && totalFailed === 0
+    // Check if delivery was successful (no failures remain)
+    const totalFailed = finalResult.android.failed + finalResult.ios.failed
+    const isSuccess = totalFailed === 0
 
     if (isSuccess) {
       console.log('[PUSH DELIVERY] Delivery successful', {
         notificationId: notification.id,
         businessId: notification.business_id,
         attempt,
-        totalSuccessful,
+        totalSuccessful: finalResult.android.successful + finalResult.ios.successful,
         correlationId
       })
 
@@ -197,6 +287,7 @@ export async function sendPushForNotification(notification: {
         nextAttempt: attempt + 1,
         delay,
         totalFailed,
+        retryableTokens: Array.from(tokenState.values()).filter(s => !s.success && !s.permanentFailure).length,
         correlationId
       })
 

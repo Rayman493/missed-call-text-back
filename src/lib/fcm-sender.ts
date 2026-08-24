@@ -175,15 +175,26 @@ export async function sendPushForNotification(notification: {
 }
 
 /**
+ * Per-token FCM result for retry logic
+ */
+export interface FcmTokenResult {
+  token: string
+  success: boolean
+  permanentFailure: boolean
+  errorCode?: string
+}
+
+/**
  * Send an FCM notification to a provided list of tokens.
  * Mirrors the payload used in sendPushForNotification and applies the same
  * invalid token handling logic.
+ * Returns per-token results for intelligent retry logic.
  */
 export async function sendToFcmTokens(
   tokens: string[],
   opts: { title: string; body: string; payload: PushPayload }
-): Promise<{ attempted: number; successful: number; failed: number }> {
-  const summary = { attempted: 0, successful: 0, failed: 0 }
+): Promise<{ attempted: number; successful: number; failed: number; results: FcmTokenResult[] }> {
+  const summary = { attempted: 0, successful: 0, failed: 0, results: [] as FcmTokenResult[] }
 
   if (!tokens || tokens.length === 0) return summary
 
@@ -208,28 +219,46 @@ export async function sendToFcmTokens(
     token: '',
   }
 
+  // Permanent FCM error codes that should never be retried
+  const PERMANENT_FAILURE_CODES = new Set([
+    'messaging/registration-token-not-registered',
+    'messaging/invalid-registration-token',
+  ])
+
   const results = await Promise.allSettled(
     uniqueTokens.map(async (token) => {
       try {
         const message = { ...fcmMessageBase, token }
         await messaging.send(message as any)
-        return { success: true, token }
+        return { success: true, token, permanentFailure: false }
       } catch (error: any) {
-        // Handle invalid token disabling
-        if (
-          error?.code === 'messaging/registration-token-not-registered' ||
-          error?.code === 'messaging/invalid-registration-token'
-        ) {
+        const isPermanent = PERMANENT_FAILURE_CODES.has(error?.code)
+
+        // Handle invalid token disabling for permanent failures
+        if (isPermanent) {
           await disableInvalidToken(token)
         }
-        return { success: false, token }
+
+        return {
+          success: false,
+          token,
+          permanentFailure: isPermanent,
+          errorCode: error?.code
+        }
       }
     })
   )
 
   for (const r of results) {
-    if (r.status === 'fulfilled' && (r.value as any).success) summary.successful++
-    else summary.failed++
+    if (r.status === 'fulfilled') {
+      const result = r.value as FcmTokenResult
+      summary.results.push(result)
+      if (result.success) summary.successful++
+      else summary.failed++
+    } else {
+      // Promise rejection - treat as transient failure
+      summary.failed++
+    }
   }
 
   return summary

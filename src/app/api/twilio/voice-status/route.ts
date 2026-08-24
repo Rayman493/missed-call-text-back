@@ -331,7 +331,8 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
 
   // CRITICAL: Perform final refresh before declaring ai_failed
   // The AI service may have finished persisting data during the retry window
-  // Check BOTH ai_call_records AND lead.raw_metadata for extracted info
+  // Check ONLY ai_call_records for extracted info - never merge from lead metadata
+  // to prevent returning-customer intake contamination
   if (aiCallRecord && aiCallRecord.outcome === 'incomplete') {
     const totalRetries = callNeverReachedAI ? 0 : retryDelays.length;
     console.log('[FINAL REFRESH] AI call record still incomplete - performing final refresh', {
@@ -343,7 +344,7 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
       retriesSkipped: callNeverReachedAI
     });
 
-    // Final refresh: Reload ai_call_records
+    // Final refresh: Reload ai_call_records ONLY
     const { data: refreshedAiCallRecord } = await supabase
       .from('ai_call_records')
       .select('id, lead_id, conversation_id, caller_phone, call_sid, business_id, outcome, extracted_info, summary')
@@ -360,45 +361,7 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
       });
     }
 
-    // Final refresh: Reload lead to check raw_metadata for extracted info
-    if (aiCallRecord?.lead_id) {
-      const { data: refreshedLead } = await supabase
-        .from('leads')
-        .select('id, raw_metadata')
-        .eq('id', aiCallRecord.lead_id)
-        .maybeSingle();
-
-      if (refreshedLead?.raw_metadata) {
-        const leadExtractedInfo = refreshedLead.raw_metadata.extracted_info || refreshedLead.raw_metadata;
-        const hasLeadExtractedInfo = leadExtractedInfo && Object.keys(leadExtractedInfo).length > 0;
-
-        console.log('[FINAL REFRESH] Reloaded lead metadata', {
-          callSid: CallSid,
-          leadId: aiCallRecord.lead_id,
-          hasRawMetadata: !!refreshedLead.raw_metadata,
-          hasExtractedInfo: hasLeadExtractedInfo,
-          leadExtractedInfoKeys: hasLeadExtractedInfo ? Object.keys(leadExtractedInfo) : []
-        });
-
-        // If lead metadata has extracted info but ai_call_records doesn't, merge it
-        if (hasLeadExtractedInfo && (!aiCallRecord.extracted_info || Object.keys(aiCallRecord.extracted_info).length === 0)) {
-          console.log('[FINAL REFRESH] Merging extracted info from lead metadata into ai_call_records');
-          aiCallRecord.extracted_info = leadExtractedInfo;
-          // Update ai_call_records with the merged extracted_info for consistency
-          try {
-            await supabase
-              .from('ai_call_records')
-              .update({ extracted_info: leadExtractedInfo })
-              .eq('id', aiCallRecord.id);
-            console.log('[FINAL REFRESH] Updated ai_call_records with merged extracted info');
-          } catch (mergeError) {
-            console.error('[FINAL REFRESH] Failed to update ai_call_records with merged extracted info:', mergeError);
-          }
-        }
-      }
-    }
-
-    // Only mark ai_failed if BOTH sources are still empty
+    // Only mark ai_failed if ai_call_records is still empty
     const hasAiCallRecordExtractedInfo = aiCallRecord.extracted_info && Object.keys(aiCallRecord.extracted_info).length > 0;
     const aiCallRecordStillIncomplete = aiCallRecord.outcome === 'incomplete';
 

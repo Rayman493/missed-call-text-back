@@ -16,6 +16,14 @@ export interface ApnsSendResult {
   disabled: number
   skipped?: boolean
   skipReason?: string
+  results?: ApnsTokenResult[]
+}
+
+export interface ApnsTokenResult {
+  token: string
+  success: boolean
+  permanentFailure: boolean
+  errorCode?: string
 }
 
 function base64url(input: Buffer | string): string {
@@ -102,7 +110,7 @@ export async function sendApnsToTokens(
   tokens: string[],
   opts: { title: string; body: string; payload: PushPayload }
 ): Promise<ApnsSendResult> {
-  const result: ApnsSendResult = { attempted: 0, successful: 0, failed: 0, disabled: 0 }
+  const result: ApnsSendResult = { attempted: 0, successful: 0, failed: 0, disabled: 0, results: [] }
 
   if (!tokens || tokens.length === 0) {
     return result
@@ -166,6 +174,13 @@ export async function sendApnsToTokens(
         const status = Number(headers[':status'] || 0)
         req.on('data', (chunk) => { data += chunk })
         req.on('end', async () => {
+          const tokenResult: ApnsTokenResult = {
+            token,
+            success: status >= 200 && status < 300,
+            permanentFailure: false,
+            errorCode: undefined
+          }
+
           if (status >= 200 && status < 300) {
             result.successful++
           } else {
@@ -178,11 +193,19 @@ export async function sendApnsToTokens(
               }
             } catch {}
 
-            if (status === 410 || (reason && isPermanentInvalidReason(reason))) {
+            const isPermanent = status === 410 || (reason && isPermanentInvalidReason(reason))
+
+            if (isPermanent) {
               await disableInvalidIosToken(token)
               result.disabled++
+              tokenResult.permanentFailure = true
+              tokenResult.errorCode = reason || `HTTP_${status}`
+            } else {
+              tokenResult.errorCode = reason || `HTTP_${status}`
             }
           }
+
+          result.results!.push(tokenResult)
           resolve()
         })
       })
@@ -190,6 +213,12 @@ export async function sendApnsToTokens(
       req.on('error', (err) => {
         console.error('[APNS] Request error:', err?.message)
         result.failed++
+        result.results!.push({
+          token,
+          success: false,
+          permanentFailure: false,
+          errorCode: 'NETWORK_ERROR'
+        })
         resolve()
       })
 
