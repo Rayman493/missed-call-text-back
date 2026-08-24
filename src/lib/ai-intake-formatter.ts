@@ -1614,7 +1614,7 @@ export const formatAiIntakeSummary = (
   // Determine which meaningful fields are captured (only show actual captured values, not "Not collected")
   const capturedFields: string[] = [];
   if (hasRequest) capturedFields.push(`• Request: ${serviceRequested}`);
-  if (hasDetails) capturedFields.push(`• Details: ${truncateForSms(detailsValue, 200)}`);
+  if (hasDetails) capturedFields.push(`• Details: ${detailsValue}`);
   if (hasAddress) capturedFields.push(`• Address: ${serviceAddress}`);
   if (hasCompletionTime) capturedFields.push(`• Desired completion: ${desiredCompletionTime}`);
   if (hasCallbackTime) capturedFields.push(`• Preferred callback: ${callbackTime}`);
@@ -1797,7 +1797,7 @@ export const formatAdaptiveIntakeSms = (
     }
     // Details (if available)
     if (hasDetails) {
-      body += `\n\n• Details: ${truncateForSms(detailsValue, 200)}`;
+      body += `\n\n• Details: ${detailsValue}`;
     }
     // Location (without emoji to avoid UCS-2 encoding)
     if (shouldShowLocation && hasAddress) {
@@ -1825,7 +1825,7 @@ export const formatAdaptiveIntakeSms = (
     // Service (missing)
     // Details (if available)
     if (hasDetails) {
-      body += `• Details: ${truncateForSms(detailsValue, 200)}`;
+      body += `• Details: ${detailsValue}`;
     }
     // Location (without emoji)
     if (shouldShowLocation && hasAddress) {
@@ -1852,7 +1852,7 @@ export const formatAdaptiveIntakeSms = (
   }
   // Details (if available)
   if (hasDetails) {
-    body += `\n\n• Details: ${truncateForSms(detailsValue, 200)}`;
+    body += `\n\n• Details: ${detailsValue}`;
   }
   // Location (without emoji to avoid UCS-2 encoding)
   if (shouldShowLocation && hasAddress) {
