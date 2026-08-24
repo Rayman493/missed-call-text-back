@@ -325,4 +325,68 @@ describe('Transcript Shape Robustness', () => {
       expect(result[0].content).toContain('1632 South Pine Drive')
     })
   })
+
+  describe('Call Review UI behavior', () => {
+    it('TEST X - Message count label: 1 message (singular)', () => {
+      const input = [
+        { role: 'assistant', text: 'Hello', timestamp: '2024-01-01T10:00:00Z' }
+      ]
+
+      const result = normalizeAITranscript(input)
+      const count = result.length
+      const label = count === 1 ? 'message' : 'messages'
+
+      expect(count).toBe(1)
+      expect(label).toBe('message')
+      expect(`${count} ${label}`).toBe('1 message')
+    })
+
+    it('TEST Y - Message count label: 2 messages (plural)', () => {
+      const input = [
+        { role: 'assistant', text: 'Hello', timestamp: '2024-01-01T10:00:00Z' },
+        { role: 'user', text: 'Hi there', timestamp: '2024-01-01T10:00:05Z' }
+      ]
+
+      const result = normalizeAITranscript(input)
+      const count = result.length
+      const label = count === 1 ? 'message' : 'messages'
+
+      expect(count).toBe(2)
+      expect(label).toBe('messages')
+      expect(`${count} ${label}`).toBe('2 messages')
+    })
+
+    it('TEST Z - Simple Mode structured Q/A pairs render as turn-by-turn', () => {
+      // Simulate Simple Mode transcript with canonical questions and verbatim answers
+      const input = [
+        { role: 'assistant', text: 'Hi, thanks for calling. I\'m the virtual assistant for the business. I\'ll gather a few quick details so the business owner can follow up with you. First, may I have your name?', timestamp: '2024-01-01T10:00:00Z' },
+        { role: 'user', text: 'Ryan', timestamp: '2024-01-01T10:00:05Z' },
+        { role: 'assistant', text: 'Thank you. Can you let me know what you need help with today and any details that would be helpful?', timestamp: '2024-01-01T10:00:10Z' },
+        { role: 'user', text: 'I need my grass cut', timestamp: '2024-01-01T10:00:15Z' }
+      ]
+
+      const result = normalizeAITranscript(input)
+
+      // Verify alternating pattern
+      expect(result[0].role).toBe('assistant')
+      expect(result[1].role).toBe('caller')
+      expect(result[2].role).toBe('assistant')
+      expect(result[3].role).toBe('caller')
+
+      // Verify canonical question text preserved
+      expect(result[0].content).toContain('First, may I have your name?')
+      expect(result[2].content).toContain('what you need help with')
+
+      // Verify verbatim customer answers preserved
+      expect(result[1].content).toBe('Ryan')
+      expect(result[3].content).toBe('I need my grass cut')
+
+      // Verify no legacy warning (has assistant turns)
+      const hasUserTurns = result.some(t => t.role === 'user' || t.role === 'caller')
+      const hasAssistantTurns = result.some(t => t.role === 'assistant')
+      const isLegacyCustomerOnly = hasUserTurns && !hasAssistantTurns && result.length > 0
+
+      expect(isLegacyCustomerOnly).toBe(false)
+    })
+  })
 })

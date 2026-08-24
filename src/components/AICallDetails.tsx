@@ -896,7 +896,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               </div>
               <div>
                 <span className="text-sm font-semibold text-foreground">
-                  Call Transcript
+                  Call Review
                 </span>
                 <span className="ml-2 text-xs text-muted-foreground">
                   ({normalizedTranscript.length} message{normalizedTranscript.length !== 1 ? 's' : ''})
