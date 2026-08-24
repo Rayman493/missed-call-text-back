@@ -136,8 +136,15 @@ Guidelines:
 - Preserve high-confidence information unless clearly corrected
 
 IMPORTANT: Callback time detection must take priority over name detection
-- Phrases like "you can call me back at any time", "call me back anytime", "call me after 5", "anytime is fine" should update preferredCallbackTime
+- ONLY update preferredCallbackTime when the customer EXPLICITLY states when they want to be called back
+- Valid callback intent requires phrases like: "call me back at", "you can call me", "best time to reach me", "call me after", "call me before", "anytime is fine for callback"
 - Extract the actual callback time value (e.g., "Anytime", "After 5 PM", "Tomorrow", "Morning")
+- DO NOT update preferredCallbackTime for:
+  - Incidental time mentions like "6:31 Test", "I got home at 6:30", "The crew showed up at 8"
+  - Appointment scheduling times like "Tomorrow at 6:30 works for the appointment" (unless explicitly about callback preference)
+  - Service availability times like "We're usually open until 6"
+  - Past event times like "I called at 5"
+- A time entity alone is NOT sufficient for callback preference update - there must be explicit callback intent
 - Do NOT treat these as name corrections
 - Only update callerName from explicit patterns like "my name is Brian", "this is Brian", "I'm Brian"
 
