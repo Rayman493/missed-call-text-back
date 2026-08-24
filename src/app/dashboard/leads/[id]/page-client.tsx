@@ -460,6 +460,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const currentLeadIdRef = useRef<string | null>(null)
   const supabaseRef = useRef(createBrowserClient())
   const supabase = supabaseRef.current
+
+  // Component mount/unmount diagnostics
+  useEffect(() => {
+    console.log('[REALTIME COMPONENT MOUNT]', {
+      instanceId: realtimeInstanceIdRef.current,
+      leadId: params.id,
+      timestamp: new Date().toISOString()
+    })
+
+    return () => {
+      console.log('[REALTIME COMPONENT UNMOUNT]', {
+        instanceId: realtimeInstanceIdRef.current,
+        leadId: params.id,
+        timestamp: new Date().toISOString()
+      })
+    }
+  }, [params.id])
+
+  // Stable component instance ID for diagnostics
+  const realtimeInstanceIdRef = useRef(
+    `lead-realtime-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  )
   
   // Fallback refresh for stuck messages
   const stuckMessageCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -1985,7 +2007,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const conversationId = leadData?.conversation_id || leadData?.conversationId
     if (!leadId || !supabase) return
 
+    console.log('[REALTIME EFFECT ENTER]', {
+      instanceId: realtimeInstanceIdRef.current,
+      leadId,
+      conversationId,
+      currentLeadIdRef: currentLeadIdRef.current,
+      hasChannel: !!realtimeChannelRef.current,
+      timestamp: new Date().toISOString()
+    })
+
     console.log('[REALTIME SUBSCRIPTION SETUP]', {
+      instanceId: realtimeInstanceIdRef.current,
       leadId,
       conversationId,
       channelName: `lead-detail:${leadId}`,
@@ -2002,8 +2034,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     currentLeadIdRef.current = leadId
 
     // Clean up existing subscription
+    const hadExistingChannel = !!realtimeChannelRef.current
     if (realtimeChannelRef.current) {
-      console.log('[REALTIME SUBSCRIPTION] Cleaning up existing channel')
+      console.log('[REALTIME SUBSCRIPTION CLEANUP]', {
+        instanceId: realtimeInstanceIdRef.current,
+        leadId,
+        hadChannel: hadExistingChannel,
+        timestamp: new Date().toISOString()
+      })
       supabase.removeChannel(realtimeChannelRef.current)
     }
     
@@ -2014,8 +2052,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
 
     // Set up new subscription
+    const channelName = `lead-detail:${leadId}`
+    console.log('[REALTIME SUBSCRIBE REQUEST]', {
+      instanceId: realtimeInstanceIdRef.current,
+      leadId,
+      channelName,
+      hadExistingChannel,
+      timestamp: new Date().toISOString()
+    })
+
     const channel = supabase
-      .channel(`lead-detail:${leadId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -2026,13 +2073,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         },
         (payload: any) => {
           console.log('[REALTIME MESSAGE EVENT]', {
+            instanceId: realtimeInstanceIdRef.current,
             leadId,
             conversationId,
             eventType: payload.eventType,
             messageId: payload.new?.id,
             messageLeadId: payload.new?.lead_id,
-            messageConversationId: payload.new?.conversation_id,
+            messageBusinessId: payload.new?.business_id,
+            messageDirection: payload.new?.direction,
             messageStatus: payload.new?.status,
+            hasClientMessageId: !!(payload.new?.client_message_id),
+            hasTwilioSid: !!(payload.new?.twilio_message_sid),
             timestamp: new Date().toISOString()
           })
           
@@ -2260,8 +2311,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       )
       .subscribe((status: any) => {
-        console.log('[REALTIME CONNECTION]', {
+        console.log('[REALTIME CHANNEL STATUS]', {
+          instanceId: realtimeInstanceIdRef.current,
           leadId,
+          channelName,
           status,
           timestamp: new Date().toISOString()
         })
@@ -2330,6 +2383,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     // Cleanup on unmount or lead ID change
     return () => {
+      console.log('[REALTIME EFFECT CLEANUP]', {
+        instanceId: realtimeInstanceIdRef.current,
+        effectLeadId: leadId,
+        currentLeadIdRef: currentLeadIdRef.current,
+        currentLeadDataId: leadData?.id,
+        hasChannel: !!realtimeChannelRef.current,
+        timestamp: new Date().toISOString()
+      })
       if (realtimeChannelRef.current) {
         console.log('[REALTIME SUBSCRIPTION CLEANUP] Removing channel')
         supabase.removeChannel(realtimeChannelRef.current)

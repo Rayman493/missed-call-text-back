@@ -68,6 +68,17 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
 
     if (error) {
+      console.error('[SUPABASE QUERY ERROR]', {
+        source: 'lead-details-lead',
+        table: 'leads',
+        leadId,
+        error: {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        }
+      })
       return NextResponse.json(
         { ok: false, source: "supabase_error", error: error.message },
         { status: 500 }
@@ -82,7 +93,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch conversation for this lead with RLS protection
-    const { data: conversation } = await supabase
+    const { data: conversation, error: conversationError } = await supabase
       .from("conversations")
       .select("*")
       .eq("lead_id", leadId)
@@ -91,13 +102,42 @@ export async function GET(request: NextRequest) {
       .limit(1)
       .maybeSingle()
 
+    if (conversationError) {
+      console.error('[SUPABASE QUERY ERROR]', {
+        source: 'lead-details-conversation',
+        table: 'conversations',
+        leadId,
+        businessId: lead.business_id,
+        error: {
+          code: conversationError.code,
+          message: conversationError.message,
+          details: conversationError.details,
+          hint: conversationError.hint
+        }
+      })
+    }
+
     // Fetch messages by lead_id to ensure all messages for the lead are visible
     // regardless of conversation assignment
-    const { data: messagesByLead } = await supabase
+    const { data: messagesByLead, error: messagesError } = await supabase
       .from("messages")
       .select("*")
       .eq("lead_id", leadId)
       .order("created_at", { ascending: true })
+
+    if (messagesError) {
+      console.error('[SUPABASE QUERY ERROR]', {
+        source: 'lead-details-messages',
+        table: 'messages',
+        leadId,
+        error: {
+          code: messagesError.code,
+          message: messagesError.message,
+          details: messagesError.details,
+          hint: messagesError.hint
+        }
+      })
+    }
 
     const messages = messagesByLead || []
 
@@ -131,11 +171,25 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch voicemail recordings for this lead with RLS protection
-    const { data: voicemailRecordings } = await supabase
+    const { data: voicemailRecordings, error: voicemailError } = await supabase
       .from("voicemail_recordings")
       .select("*")
       .eq("lead_id", leadId)
       .order("created_at", { ascending: true })
+
+    if (voicemailError) {
+      console.error('[SUPABASE QUERY ERROR]', {
+        source: 'lead-details-voicemail',
+        table: 'voicemail_recordings',
+        leadId,
+        error: {
+          code: voicemailError.code,
+          message: voicemailError.message,
+          details: voicemailError.details,
+          hint: voicemailError.hint
+        }
+      })
+    }
 
     // Fetch AI call records for this lead with RLS protection
     const normalizedLeadPhone = normalizePhone(lead.caller_phone)

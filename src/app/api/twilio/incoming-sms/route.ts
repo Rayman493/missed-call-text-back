@@ -137,7 +137,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (result.message) {
-      console.log('[INBOUND SMS] Message inserted:', result.message.id)
+      console.log('[INBOUND SMS PERSISTED]', {
+        messageId: result.message.id,
+        leadId: result.message.lead_id,
+        direction: result.message.direction,
+        status: result.message.status,
+        hasTwilioSid: !!(result.message.twilio_message_sid),
+        created_at: result.message.created_at
+      })
     }
 
     // Return the TwiML response

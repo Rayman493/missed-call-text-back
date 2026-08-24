@@ -11,9 +11,16 @@ export function useRealtimeLeads(
   onNewMessage: (message: any) => void,
   onLeadUpdate: (lead: any) => void
 ) {
-  const supabase = createBrowserClient()
+  const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null)
   const channelsRef = useRef<RealtimeChannel[]>([])
   const callbacksRef = useRef({ onNewLead, onNewMessage, onLeadUpdate })
+
+  // Lazy initialization - only create client once
+  if (!supabaseRef.current) {
+    supabaseRef.current = createBrowserClient()
+  }
+
+  const supabase = supabaseRef.current
 
   // Update callbacks ref without triggering effect re-run
   useEffect(() => {
@@ -100,7 +107,7 @@ export function useRealtimeLeads(
       })
       channelsRef.current = []
     }
-  }, [businessId, supabase])
+  }, [businessId])
 
   return {
     cleanup: () => {
