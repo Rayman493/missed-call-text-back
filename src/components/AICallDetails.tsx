@@ -540,11 +540,21 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   const selectedRecord = normalizedRecords.find(r => r.id === selectedRecordId) || normalizedRecords[0] || null
   const isLatest = selectedRecord?.id === normalizedRecords[0]?.id
 
+  // Normalize transcript to handle various shapes safely (array, string, object, null, etc.)
+  const normalizedTranscript = useMemo(() => {
+    return normalizeAITranscript(aiCallRecord?.transcript)
+  }, [aiCallRecord?.transcript])
+
   const calculateCallDuration = () => {
-    if (!aiCallRecord?.transcript || aiCallRecord.transcript.length < 2) return 'Unknown'
+    if (!Array.isArray(normalizedTranscript) || normalizedTranscript.length < 2) return 'Unknown'
     
-    const firstMessage = aiCallRecord.transcript[0]
-    const lastMessage = aiCallRecord.transcript[aiCallRecord.transcript.length - 1]
+    const firstMessage = normalizedTranscript[0]
+    const lastMessage = normalizedTranscript[normalizedTranscript.length - 1]
+
+    // Defensive check: require timestamps for duration calculation
+    if (!firstMessage.timestamp || !lastMessage.timestamp) {
+      return 'Unknown'
+    }
     
     const startTime = new Date(firstMessage.timestamp).getTime()
     const endTime = new Date(lastMessage.timestamp).getTime()
@@ -874,7 +884,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       </div>
 
       {/* Call Transcript - Word-for-word conversation */}
-      {aiCallRecord.transcript && aiCallRecord.transcript.length > 0 && (
+      {Array.isArray(normalizedTranscript) && normalizedTranscript.length > 0 && (
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
           <button
             onClick={() => setTranscriptExpanded(!transcriptExpanded)}
@@ -889,7 +899,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                   Call Transcript
                 </span>
                 <span className="ml-2 text-xs text-muted-foreground">
-                  ({aiCallRecord.transcript.length} messages)
+                  ({normalizedTranscript.length} messages)
                 </span>
               </div>
             </div>
@@ -899,9 +909,18 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           {transcriptExpanded && (
             <div className="px-4 pb-4 pt-2 border-t border-border/50">
               <div className="space-y-3">
-                {aiCallRecord.transcript.map((turn, index) => {
-                  const isAI = turn.role === 'assistant'
-                  const isCaller = turn.role === 'caller' || turn.role === 'user'
+                {(() => {
+                  // Defensive check: only render if we have a valid array
+                  if (!Array.isArray(normalizedTranscript) || normalizedTranscript.length === 0) {
+                    return (
+                      <div className="text-center py-4 text-sm text-muted-foreground">
+                        No transcript available
+                      </div>
+                    )
+                  }
+                  return normalizedTranscript.map((turn, index) => {
+                    const isAI = turn.role === 'assistant'
+                    const isCaller = turn.role === 'caller' || turn.role === 'user'
 
                   return (
                     <div
@@ -931,7 +950,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                           }`}
                         >
                           <p className="leading-relaxed whitespace-pre-wrap break-words">
-                            {turn.text}
+                            {turn.content}
                           </p>
                         </div>
                         {turn.timestamp && (
@@ -945,8 +964,10 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                         )}
                       </div>
                     </div>
-                  )
-                })}
+                    )
+                  })
+                  })() // End IIFE
+                }
               </div>
             </div>
           )}
