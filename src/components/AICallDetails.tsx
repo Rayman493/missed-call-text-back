@@ -908,6 +908,24 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
           {transcriptExpanded && (
             <div className="px-4 pb-4 pt-2 border-t border-border/50">
+              {/* Legacy transcript indicator for customer-only transcripts */}
+              {(() => {
+                const hasUserTurns = normalizedTranscript.some(t => t.role === 'user' || t.role === 'caller')
+                const hasAssistantTurns = normalizedTranscript.some(t => t.role === 'assistant')
+                const isLegacyCustomerOnly = hasUserTurns && !hasAssistantTurns && normalizedTranscript.length > 0
+
+                if (isLegacyCustomerOnly) {
+                  return (
+                    <div className="mb-3 px-3 py-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-lg">
+                      <p className="text-xs text-amber-800 dark:text-amber-200">
+                        Full turn-by-turn transcript unavailable for this call.
+                      </p>
+                    </div>
+                  )
+                }
+                return null
+              })()}
+
               <div className="space-y-3">
                 {(() => {
                   // Defensive check: only render if we have a valid array

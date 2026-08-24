@@ -227,4 +227,102 @@ describe('Transcript Shape Robustness', () => {
       expect(resultB).not.toContain(resultA[0])
     })
   })
+
+  describe('Legacy transcript detection', () => {
+    it('TEST R - Full assistant + customer turns → no legacy warning', () => {
+      const input = [
+        { role: 'assistant', text: 'Hello, how can I help?', timestamp: '2024-01-01T10:00:00Z' },
+        { role: 'user', text: 'I need lawn mowing', timestamp: '2024-01-01T10:00:05Z' },
+        { role: 'assistant', text: 'What is your address?', timestamp: '2024-01-01T10:00:10Z' },
+        { role: 'caller', text: '123 Main Street', timestamp: '2024-01-01T10:00:15Z' }
+      ]
+
+      const result = normalizeAITranscript(input)
+
+      const hasUserTurns = result.some(t => t.role === 'user' || t.role === 'caller')
+      const hasAssistantTurns = result.some(t => t.role === 'assistant')
+      const isLegacyCustomerOnly = hasUserTurns && !hasAssistantTurns && result.length > 0
+
+      expect(hasUserTurns).toBe(true)
+      expect(hasAssistantTurns).toBe(true)
+      expect(isLegacyCustomerOnly).toBe(false)
+    })
+
+    it('TEST S - Customer-only legacy transcript → warning where reliably identifiable', () => {
+      const input = [
+        { role: 'user', text: 'I need lawn mowing at 123 Main Street', timestamp: '2024-01-01T10:00:00Z' }
+      ]
+
+      const result = normalizeAITranscript(input)
+
+      const hasUserTurns = result.some(t => t.role === 'user' || t.role === 'caller')
+      const hasAssistantTurns = result.some(t => t.role === 'assistant')
+      const isLegacyCustomerOnly = hasUserTurns && !hasAssistantTurns && result.length > 0
+
+      expect(hasUserTurns).toBe(true)
+      expect(hasAssistantTurns).toBe(false)
+      expect(isLegacyCustomerOnly).toBe(true)
+    })
+
+    it('TEST T - Multiple customer-only turns → legacy warning', () => {
+      const input = [
+        { role: 'caller', text: 'I need lawn mowing', timestamp: '2024-01-01T10:00:00Z' },
+        { role: 'user', text: 'My address is 123 Main Street', timestamp: '2024-01-01T10:00:05Z' }
+      ]
+
+      const result = normalizeAITranscript(input)
+
+      const hasUserTurns = result.some(t => t.role === 'user' || t.role === 'caller')
+      const hasAssistantTurns = result.some(t => t.role === 'assistant')
+      const isLegacyCustomerOnly = hasUserTurns && !hasAssistantTurns && result.length > 0
+
+      expect(hasUserTurns).toBe(true)
+      expect(hasAssistantTurns).toBe(false)
+      expect(isLegacyCustomerOnly).toBe(true)
+    })
+
+    it('TEST U - Empty transcript → no legacy warning', () => {
+      const input: any[] = []
+
+      const result = normalizeAITranscript(input)
+
+      const hasUserTurns = result.some(t => t.role === 'user' || t.role === 'caller')
+      const hasAssistantTurns = result.some(t => t.role === 'assistant')
+      const isLegacyCustomerOnly = hasUserTurns && !hasAssistantTurns && result.length > 0
+
+      expect(hasUserTurns).toBe(false)
+      expect(hasAssistantTurns).toBe(false)
+      expect(isLegacyCustomerOnly).toBe(false)
+    })
+
+    it('TEST V - Assistant-only transcript → no legacy warning (edge case)', () => {
+      const input = [
+        { role: 'assistant', text: 'Hello? Anyone there?', timestamp: '2024-01-01T10:00:00Z' }
+      ]
+
+      const result = normalizeAITranscript(input)
+
+      const hasUserTurns = result.some(t => t.role === 'user' || t.role === 'caller')
+      const hasAssistantTurns = result.some(t => t.role === 'assistant')
+      const isLegacyCustomerOnly = hasUserTurns && !hasAssistantTurns && result.length > 0
+
+      expect(hasUserTurns).toBe(false)
+      expect(hasAssistantTurns).toBe(true)
+      expect(isLegacyCustomerOnly).toBe(false)
+    })
+
+    it('TEST W - Verbatim wording preserved in legacy transcript', () => {
+      const exactWording = "Yeah, I need to get my grass cut. That's about a half an acre yard and it's got a privacy fence. But it can make it tougher to get some heavier equipment into the yard in the backyard 1632 South Pine Drive Sometime in the next two weeks, if that's possible. Any time in the mornings"
+      const input = [
+        { role: 'user', text: exactWording, timestamp: '2024-01-01T10:00:00Z' }
+      ]
+
+      const result = normalizeAITranscript(input)
+
+      expect(result[0].content).toBe(exactWording)
+      expect(result[0].content).toContain('half an acre yard')
+      expect(result[0].content).toContain('privacy fence')
+      expect(result[0].content).toContain('1632 South Pine Drive')
+    })
+  })
 })

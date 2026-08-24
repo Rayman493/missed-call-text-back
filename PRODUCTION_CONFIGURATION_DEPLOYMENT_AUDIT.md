@@ -88,12 +88,20 @@ stripeSecretKeyMode: stripeSecretKey?.startsWith('sk_live_') ? 'live' : stripeSe
 **Variables:**
 - `AI_VOICE_FLY_WS_URL` ✅ Required
 - `OPENAI_API_KEY` ✅ Required (for AI voice)
+- `AI_VOICE_SIMPLE_MODE` ⚠️ OPTIONAL - MUST be unset or `false` in production
 
 **Analysis:**
 - ✅ AI voice WebSocket URL configured
 - ✅ OpenAI API key for AI voice
 - ✅ Production model settings (hardcoded in code)
 - ⚠️ No validation that AI_VOICE_WS_URL is production endpoint (acceptable for launch)
+- ⚠️ **CRITICAL**: `AI_VOICE_SIMPLE_MODE` must NOT be set to `true` in production
+
+**AI_VOICE_SIMPLE_MODE Impact:**
+- When `AI_VOICE_SIMPLE_MODE=true`: Only customer speech is captured in transcripts (legacy mode)
+- When unset or `false` (default): Full turn-by-turn transcript with both AI and customer speech is captured (modern OpenAI Realtime mode)
+- Production should use modern mode for complete transcript fidelity
+- Legacy customer-only transcripts display a subtle indicator in the UI
 
 ### Google Configuration ✅
 
