@@ -105,13 +105,18 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   // Extract key points from AI summary for scanability
   const extractKeyPoints = (summary: string): string[] => {
     if (!summary || typeof summary !== 'string') return []
-    
+
+    // Normalize common list prefixes to avoid double bullets
+    const normalized = summary
+      .replace(/^[-•*]\s+/gm, '')  // Remove leading markdown bullets
+      .replace(/^\d+\.\s+/gm, '')  // Remove leading numbered list markers
+
     // Split by sentences and filter for meaningful points
-    const sentences = summary
+    const sentences = normalized
       .split(/[.!?]+/)
       .map(s => s.trim())
       .filter(s => s.length > 0 && s.length < 100) // Filter out very short or very long sentences
-    
+
     // Return up to 5 key points
     return sentences.slice(0, 5)
   }

@@ -1637,13 +1637,13 @@ export const formatAiIntakeSummary = (
   }
   // Case 2: Partial intake - show captured and ask for missing
   if (stillNeededFields.length > 0) {
-    body += `Here's what we captured:\n${capturedFields.join('\n')}\n\n`;
+    body += `Here's what we captured:\n\n${capturedFields.join('\n\n')}\n\n`;
     body += `Still needed:\n${stillNeededFields.join('\n')}\n\n`;
     body += `Reply here with the missing details or anything else you'd like to add.`;
     return body.trim();
   }
   // Case 3: Complete intake - show captured and confirm
-  body += `Here's what we captured:\n${capturedFields.join('\n')}\n\n`;
+  body += `Here's what we captured:\n\n${capturedFields.join('\n\n')}\n\n`;
   body += `We've shared this with the team. Reply here if you'd like to add anything.`;
   return body.trim();
 };
@@ -1790,7 +1790,7 @@ export const formatAdaptiveIntakeSms = (
   if (meaningfulFieldCount === 2) {
     const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
     const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
-    let body = `${prefix}${greeting}${businessPart}\n\nHere's what we captured:\n`;
+    let body = `${prefix}${greeting}${businessPart}\n\nHere's what we captured:\n\n`;
     // Service (always show if available)
     if (hasRequest) {
       body += `• Service: ${serviceRequested}`;
@@ -1821,7 +1821,7 @@ export const formatAdaptiveIntakeSms = (
     // Fall back to partial intake if request is missing
     const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
     const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
-    let body = `${prefix}${greeting}${businessPart}\n\nHere's what we captured:\n`;
+    let body = `${prefix}${greeting}${businessPart}\n\nHere's what we captured:\n\n`;
     // Service (missing)
     // Details (if available)
     if (hasDetails) {
@@ -1846,7 +1846,7 @@ export const formatAdaptiveIntakeSms = (
   }
   const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
   const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
-  let body = `${prefix}${greeting}${businessPart}\n\nHere's what we captured:\n`;
+  let body = `${prefix}${greeting}${businessPart}\n\nHere's what we captured:\n\n`;
   if (hasRequest) {
     body += `• Service: ${serviceRequested}`;
   }

@@ -33,7 +33,7 @@ describe('AI Intake SMS - Polished Format', () => {
       expect(sms).toContain('Here\'s what we captured:')
       expect(sms).toContain('• Request: Lawn Mowing')
       expect(sms).toContain('Still needed:')
-      expect(sms).toContain('• Any helpful details')
+      expect(sms).not.toContain('• Any helpful details') // Details are optional, don't ask for them
       expect(sms).toContain('• Service address')
       expect(sms).toContain('• When you\'d like it completed')
       expect(sms).toContain('• Best time to call you')
@@ -52,10 +52,10 @@ describe('AI Intake SMS - Polished Format', () => {
       expect(sms).toContain('To help the team follow up, reply with:')
       expect(sms).toContain('• Your name')
       expect(sms).toContain('• What you\'re looking to have done')
-      expect(sms).toContain('• Any helpful details')
+      expect(sms).not.toContain('• Any helpful details') // Details are optional, don't ask for them
       expect(sms).toContain('• Service address')
-      expect(sms).toContain('• When you\'d like it completed')
-      expect(sms).toContain('• Best time to call you')
+      expect(sms).toContain('When you\'d like it completed')
+      expect(sms).toContain('Best time to call you')
       expect(sms).toContain('Send whatever you know')
     })
   })
