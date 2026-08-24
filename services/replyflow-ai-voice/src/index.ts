@@ -195,6 +195,69 @@ export function handleImmediateAdvanceIfMultiFieldCaptured(
   return false;
 }
 
+// Helper function to build turn-by-turn transcript from Simple Mode stageCaptures
+// Uses canonical questions from intake templates and verbatim customer answers
+function buildSimpleModeTranscript(
+  stageCaptures: Array<{
+    stage: string;
+    rawTranscript: string;
+    capturedAnswer: string;
+    extractedField: string;
+    source: string;
+    timestamp: string;
+    blocked?: boolean;
+    blockReason?: string;
+  }>,
+  intakeTemplate: string
+): Array<{ role: string; text: string; timestamp?: string }> {
+  const transcript: Array<{ role: string; text: string; timestamp?: string }> = [];
+
+  if (stageCaptures.length === 0) {
+    return transcript;
+  }
+
+  const template = intakeTemplate || 'on_site';
+  console.log('[SIMPLE MODE TRANSCRIPT BUILD] =========================================');
+  console.log('[SIMPLE MODE TRANSCRIPT BUILD] template:', template);
+  console.log('[SIMPLE MODE TRANSCRIPT BUILD] stageCaptures:', stageCaptures.length);
+  console.log('[SIMPLE MODE TRANSCRIPT BUILD] Timestamp:', new Date().toISOString());
+  console.log('[SIMPLE MODE TRANSCRIPT BUILD] =========================================');
+
+  for (const capture of stageCaptures) {
+    // Skip blocked captures - they don't represent valid question/answer pairs
+    if (capture.blocked) {
+      console.log('[SIMPLE MODE TRANSCRIPT BUILD] Skipping blocked capture:', capture.stage, capture.blockReason);
+      continue;
+    }
+
+    // Get canonical question text for this stage
+    const questionText = getIntakeStageTextSafe(template, capture.stage as any);
+
+    // Add assistant turn (question)
+    transcript.push({
+      role: 'assistant',
+      text: questionText,
+      timestamp: capture.timestamp
+    });
+
+    // Add user turn (answer) - verbatim customer speech
+    transcript.push({
+      role: 'user',
+      text: capture.rawTranscript,
+      timestamp: capture.timestamp
+    });
+  }
+
+  console.log('[SIMPLE MODE TRANSCRIPT BUILT] =========================================');
+  console.log('[SIMPLE MODE TRANSCRIPT BUILT] totalTurns:', transcript.length);
+  console.log('[SIMPLE MODE TRANSCRIPT BUILT] assistantTurns:', transcript.filter(t => t.role === 'assistant').length);
+  console.log('[SIMPLE MODE TRANSCRIPT BUILT] userTurns:', transcript.filter(t => t.role === 'user').length);
+  console.log('[SIMPLE MODE TRANSCRIPT BUILT] Timestamp:', new Date().toISOString());
+  console.log('[SIMPLE MODE TRANSCRIPT BUILT] =========================================');
+
+  return transcript;
+}
+
 // Minimal shared wrapper for Simple Mode websocket-close incomplete finalization
 // Executes the same persistence call used in production, with provided dependencies.
 export async function finalizeIncompleteOnWebsocketCloseSimple(
@@ -231,49 +294,11 @@ export async function finalizeIncompleteOnWebsocketCloseSimple(
     console.log('[INCOMPLETE FINALIZE] intakeDataKeys:', Object.keys(state.intakeData).filter((k: string) => state.intakeData[k]));
 
     // Build turn-by-turn transcript from stageCaptures with canonical questions
-    let transcriptToPersist: Array<{ role: string; text: string; timestamp?: string }> = [];
-    if (state.stageCaptures.length > 0) {
-      const template = state.intakeTemplate || 'on_site';
-      console.log('[SIMPLE MODE TRANSCRIPT BUILD] =========================================');
-      console.log('[SIMPLE MODE TRANSCRIPT BUILD] template:', template);
-      console.log('[SIMPLE MODE TRANSCRIPT BUILD] stageCaptures:', state.stageCaptures.length);
-      console.log('[SIMPLE MODE TRANSCRIPT BUILD] Timestamp:', new Date().toISOString());
-      console.log('[SIMPLE MODE TRANSCRIPT BUILD] =========================================');
+    const transcriptToPersist = buildSimpleModeTranscript(state.stageCaptures, state.intakeTemplate);
 
-      for (const capture of state.stageCaptures) {
-        // Skip blocked captures - they don't represent valid question/answer pairs
-        if (capture.blocked) {
-          console.log('[SIMPLE MODE TRANSCRIPT BUILD] Skipping blocked capture:', capture.stage, capture.blockReason);
-          continue;
-        }
-
-        // Get canonical question text for this stage
-        const questionText = getIntakeStageTextSafe(template, capture.stage as any);
-
-        // Add assistant turn (question)
-        transcriptToPersist.push({
-          role: 'assistant',
-          text: questionText,
-          timestamp: capture.timestamp
-        });
-
-        // Add user turn (answer) - verbatim customer speech
-        transcriptToPersist.push({
-          role: 'user',
-          text: capture.rawTranscript,
-          timestamp: capture.timestamp
-        });
-      }
-
-      console.log('[SIMPLE MODE TRANSCRIPT BUILT] =========================================');
-      console.log('[SIMPLE MODE TRANSCRIPT BUILT] totalTurns:', transcriptToPersist.length);
-      console.log('[SIMPLE MODE TRANSCRIPT BUILT] assistantTurns:', transcriptToPersist.filter(t => t.role === 'assistant').length);
-      console.log('[SIMPLE MODE TRANSCRIPT BUILT] userTurns:', transcriptToPersist.filter(t => t.role === 'user').length);
-      console.log('[SIMPLE MODE TRANSCRIPT BUILT] Timestamp:', new Date().toISOString());
-      console.log('[SIMPLE MODE TRANSCRIPT BUILT] =========================================');
-    } else if (state.transcript) {
-      // Fallback to customer-only transcript if no stageCaptures
-      transcriptToPersist = [{ role: 'user', text: state.transcript }];
+    // Fallback to customer-only transcript if no stageCaptures
+    if (transcriptToPersist.length === 0 && state.transcript) {
+      transcriptToPersist.push({ role: 'user', text: state.transcript });
     }
 
     try {
@@ -7664,13 +7689,20 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       }
 
       // Upsert ai_call_record with partial data
+      const transcriptToPersist = buildSimpleModeTranscript(state.stageCaptures, state.intakeTemplate);
+
+      // Fallback to customer-only transcript if no stageCaptures
+      if (transcriptToPersist.length === 0 && state.transcript) {
+        transcriptToPersist.push({ role: 'user', text: state.transcript });
+      }
+
       const aiCallRecordPayload = {
         lead_id: lead.id,
         conversation_id: conversationId,
         business_id: state.businessId,
         call_sid: state.callSid,
         caller_phone: state.callerPhone,
-        transcript: state.transcript,
+        transcript: transcriptToPersist,
         extracted_info: canonicalExtractedInfo,
         summary: canonicalExtractedInfo.serviceRequested || '',
         outcome: 'incomplete',
@@ -8912,13 +8944,20 @@ Reply to this message if you'd like to update or add any information.
 
       // Create ai_call_record with exact call_sid
       // Store canonical field names that match getLeadAIIntake expectations.
+      const transcriptToPersist = buildSimpleModeTranscript(state.stageCaptures, state.intakeTemplate);
+
+      // Fallback to customer-only transcript if no stageCaptures
+      if (transcriptToPersist.length === 0 && state.transcript) {
+        transcriptToPersist.push({ role: 'user', text: state.transcript });
+      }
+
       const aiCallRecordPayload = {
         lead_id: lead.id,
         conversation_id: conversation.id,
         business_id: state.businessId,
         call_sid: state.callSid,
         caller_phone: state.callerPhone,
-        transcript: state.transcript,
+        transcript: transcriptToPersist,
         extracted_info: canonicalExtractedInfo,
         summary: canonicalExtractedInfo.serviceRequested || '',
         outcome: 'completed',
