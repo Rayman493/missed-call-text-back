@@ -2044,34 +2044,6 @@ export default function SettingsContent() {
     }
   }, [])
 
-  // Handle section deep-linking (e.g., ?section=contacts)
-  useEffect(() => {
-    // One-shot guard - only handle once
-    if (sectionScrollHandledRef.current) return
-
-    const urlParams = new URLSearchParams(window.location.search)
-    const section = urlParams.get('section')
-
-    if (section === 'contacts' && business && formBusiness) {
-      // Settings content is rendered, check if contacts section exists
-      const contactsSection = document.getElementById('contacts')
-      if (contactsSection) {
-        // Element exists - scroll to it
-        requestAnimationFrame(() => {
-          contactsSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          // Clean up the section parameter after successful scroll
-          const url = new URL(window.location.href)
-          url.searchParams.delete('section')
-          window.history.replaceState({}, '', url.toString())
-          // Mark as handled to prevent re-scrolling on subsequent rerenders
-          sectionScrollHandledRef.current = true
-        })
-      }
-      // If element doesn't exist yet, effect will rerun when business/formBusiness change
-      // and the element becomes available
-    }
-  }, [business, formBusiness])
-
   // App resume reconciliation for Stripe Connect
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -2312,7 +2284,7 @@ export default function SettingsContent() {
   }
 
   // Shared scroll-to-section helper
-  const scrollToSection = (sectionId: string) => {
+  const scrollToSection = useCallback((sectionId: string) => {
     // Target the divider element instead of the section content
     const dividerId = `${sectionId}-divider`
     const element = document.getElementById(dividerId)
@@ -2365,7 +2337,7 @@ export default function SettingsContent() {
         clearFlag()
       }
     }
-  }
+  }, [scrollOffset])
 
   // Smooth scroll handler
   const handleSectionClick = (sectionId: string) => {
@@ -2383,6 +2355,30 @@ export default function SettingsContent() {
       scrollToSection(sectionId)
     }
   }
+
+  // Handle section deep-linking (e.g., ?section=contacts)
+  useEffect(() => {
+    // One-shot guard - only handle once
+    if (sectionScrollHandledRef.current) return
+
+    const urlParams = new URLSearchParams(window.location.search)
+    const section = urlParams.get('section')
+
+    if (section === 'contacts' && business && formBusiness) {
+      // Settings content is rendered, use the canonical scrollToSection helper
+      requestAnimationFrame(() => {
+        scrollToSection(section)
+        // Clean up the section parameter after successful scroll
+        const url = new URL(window.location.href)
+        url.searchParams.delete('section')
+        window.history.replaceState({}, '', url.toString())
+        // Mark as handled to prevent re-scrolling on subsequent rerenders
+        sectionScrollHandledRef.current = true
+      })
+      // If element doesn't exist yet, effect will rerun when business/formBusiness change
+      // and the element becomes available
+    }
+  }, [business, formBusiness, scrollToSection])
 
   // Load ignored contacts
 
