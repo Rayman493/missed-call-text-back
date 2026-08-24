@@ -21,7 +21,7 @@ interface AICallRecord {
   call_sid: string
   ai_session_id: string | null
   outcome: 'completed_intake' | 'partial_intake' | 'early_hangup' | 'no_speech' | 'ai_connection_failed' | 'completed' | 'caller_hung_up' | 'ai_failed' | 'voicemail_fallback'
-  transcript: Array<{ role: 'user' | 'assistant'; text: string; timestamp: string }>
+  transcript: Array<{ role: 'user' | 'assistant' | 'caller'; text: string; timestamp: string }>
   extracted_info: {
     callerName?: string
     reasonForCalling?: string
@@ -872,6 +872,86 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </div>
         )}
       </div>
+
+      {/* Call Transcript - Word-for-word conversation */}
+      {aiCallRecord.transcript && aiCallRecord.transcript.length > 0 && (
+        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          <button
+            onClick={() => setTranscriptExpanded(!transcriptExpanded)}
+            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-colors duration-200"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <MessageCircle className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-foreground">
+                  Call Transcript
+                </span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  ({aiCallRecord.transcript.length} messages)
+                </span>
+              </div>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${transcriptExpanded ? 'rotate-180' : 'rotate-0'}`} />
+          </button>
+
+          {transcriptExpanded && (
+            <div className="px-4 pb-4 pt-2 border-t border-border/50">
+              <div className="space-y-3 max-h-[50vh] overflow-y-auto">
+                {aiCallRecord.transcript.map((turn, index) => {
+                  const isAI = turn.role === 'assistant'
+                  const isCaller = turn.role === 'caller' || turn.role === 'user'
+
+                  return (
+                    <div
+                      key={index}
+                      className={`flex gap-3 ${isAI ? 'flex-row' : 'flex-row-reverse'}`}
+                    >
+                      {/* Avatar */}
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                        isAI
+                          ? 'bg-blue-100 dark:bg-blue-900/30'
+                          : 'bg-slate-100 dark:bg-slate-800'
+                      }`}>
+                        {isAI ? (
+                          <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        ) : (
+                          <User className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                        )}
+                      </div>
+
+                      {/* Message bubble */}
+                      <div className={`flex-1 max-w-[80%] ${isAI ? 'text-left' : 'text-right'}`}>
+                        <div
+                          className={`inline-block px-3 py-2 rounded-2xl text-sm ${
+                            isAI
+                              ? 'bg-blue-50 dark:bg-blue-900/20 text-foreground'
+                              : 'bg-slate-100 dark:bg-slate-800 text-foreground'
+                          }`}
+                        >
+                          <p className="leading-relaxed whitespace-pre-wrap break-words">
+                            {turn.text}
+                          </p>
+                        </div>
+                        {turn.timestamp && (
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            {new Date(turn.timestamp).toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Request History - Show when multiple records exist - Moved to end */}
       {aiCallRecords.length > 1 && (
