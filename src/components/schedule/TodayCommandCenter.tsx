@@ -446,15 +446,6 @@ export default function TodayCommandCenter({
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                     )}
-                    {item.type === 'task' && (
-                      <button
-                        onClick={() => deleteTask(item.id)}
-                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100"
-                        aria-label="Delete task"
-                      >
-                        ×
-                      </button>
-                    )}
                   </div>
                 )}
                 {item.type === 'job' && (
@@ -472,15 +463,6 @@ export default function TodayCommandCenter({
                         aria-label="Edit job"
                       >
                         <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                    {onDeleteJob && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onDeleteJob(item.data) }}
-                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100"
-                        aria-label="Delete job"
-                      >
-                        ×
                       </button>
                     )}
                   </div>
@@ -599,13 +581,6 @@ export default function TodayCommandCenter({
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                         )}
-                        <button
-                          onClick={() => deleteTask(task.id)}
-                          className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100"
-                          aria-label="Delete task"
-                        >
-                          ×
-                        </button>
                       </div>
                     </div>
                   )
@@ -701,15 +676,6 @@ export default function TodayCommandCenter({
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                         )}
-                        {onDeleteJob && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onDeleteJob(job) }}
-                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100"
-                            aria-label="Delete job"
-                          >
-                            ×
-                          </button>
-                        )}
                       </div>
                     </div>
                   )
@@ -798,15 +764,6 @@ export default function TodayCommandCenter({
                             aria-label="Edit appointment"
                           >
                             <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        {onDeleteAppointment && (
-                          <button
-                            onClick={() => onDeleteAppointment(event)}
-                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100"
-                            aria-label="Delete appointment"
-                          >
-                            ×
                           </button>
                         )}
                       </div>

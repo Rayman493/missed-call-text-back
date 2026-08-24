@@ -458,13 +458,6 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={() => deleteTask(task.id)}
-                    className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                    title="Delete task"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
                 </div>
               </div>
             </div>

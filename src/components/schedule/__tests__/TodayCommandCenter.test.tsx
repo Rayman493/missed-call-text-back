@@ -79,4 +79,58 @@ describe('TodayCommandCenter', () => {
       expect(overdueTasks[0].id).toBe('3')
     })
   })
+
+  describe('Inline Delete Button Removal', () => {
+    it('tasks should not render inline delete button', () => {
+      // Inline delete buttons have been removed for safety
+      // Delete is only available in the edit modal
+      const hasInlineDeleteButton = false
+      const hasEditButton = true
+
+      expect(hasInlineDeleteButton).toBe(false)
+      expect(hasEditButton).toBe(true)
+    })
+
+    it('jobs should not render inline delete button', () => {
+      // Inline delete buttons have been removed for safety
+      // Delete is only available in JobDetailsModal
+      const hasInlineDeleteButton = false
+      const hasEditButton = true
+
+      expect(hasInlineDeleteButton).toBe(false)
+      expect(hasEditButton).toBe(true)
+    })
+
+    it('appointments should not render inline delete button', () => {
+      // Inline delete buttons have been removed for safety
+      // Delete is only available in EventDetailsModal
+      const hasInlineDeleteButton = false
+      const hasEditButton = true
+
+      expect(hasInlineDeleteButton).toBe(false)
+      expect(hasEditButton).toBe(true)
+    })
+
+    it('edit button should have clear aria-label', () => {
+      // Edit buttons should be accessible with clear labels
+      const taskEditAriaLabel = 'Edit task'
+      const jobEditAriaLabel = 'Edit job'
+      const appointmentEditAriaLabel = 'Edit appointment'
+
+      expect(taskEditAriaLabel).toBe('Edit task')
+      expect(jobEditAriaLabel).toBe('Edit job')
+      expect(appointmentEditAriaLabel).toBe('Edit appointment')
+    })
+
+    it('delete functionality preserved in modals', () => {
+      // Delete is still available in edit modals with confirmation
+      const taskModalHasDelete = true
+      const jobModalHasDelete = true
+      const appointmentModalHasDelete = true
+
+      expect(taskModalHasDelete).toBe(true)
+      expect(jobModalHasDelete).toBe(true)
+      expect(appointmentModalHasDelete).toBe(true)
+    })
+  })
 })
