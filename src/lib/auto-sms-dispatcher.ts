@@ -299,40 +299,25 @@ async function getAiCallRecord(callSid: string, leadId: string): Promise<AiCallR
   return data as AiCallRecord | null
 }
 
-async function getLeadMetadata(leadId: string) {
-  const { data } = await supabaseAdmin
-    .from('leads')
-    .select('raw_metadata')
-    .eq('id', leadId)
-    .maybeSingle()
-
-  return data
-}
-
 // Merge extracted info from multiple sources with priority
-// Priority: params.extractedInfo > aiCallRecord.extracted_info > lead.raw_metadata
-function mergeExtractedInfo(params: any, aiCallRecord: any, leadMetadata: any): any {
+// Priority: params.extractedInfo > aiCallRecord.extracted_info
+// CRITICAL: Do NOT merge lead.raw_metadata - it contains historical intake data
+// that should not be used to determine current-call completion or populate current SMS
+function mergeExtractedInfo(params: any, aiCallRecord: any): any {
   const paramsExtracted = params.extractedInfo || {};
   const aiCallRecordExtracted = aiCallRecord?.extracted_info || {};
-  const leadRawMetadata = leadMetadata?.raw_metadata || {};
-  const leadExtracted = leadRawMetadata.extracted_info || leadRawMetadata;
 
   // Start with params (highest priority)
   const merged = { ...paramsExtracted };
 
-  // Merge from ai_call_record
+  // Merge from ai_call_record only (current call data)
   Object.keys(aiCallRecordExtracted).forEach(key => {
     if (!merged[key] || merged[key] === 'Not collected') {
       merged[key] = aiCallRecordExtracted[key];
     }
   });
 
-  // Merge from lead metadata (lowest priority)
-  Object.keys(leadExtracted).forEach(key => {
-    if (!merged[key] || merged[key] === 'Not collected') {
-      merged[key] = leadExtracted[key];
-    }
-  });
+  // Do NOT merge from lead.raw_metadata - historical data must not contaminate current call
 
   return merged;
 }
@@ -634,8 +619,6 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     aiCallRecord = await getAiCallRecord(callSid, leadId)
   }
 
-  const leadMetadata = await getLeadMetadata(leadId)
-
   // Diagnostic logging before summary SMS decision
   console.log('[SUMMARY SMS RECORD SOURCE]', {
     currentCallSid: callSid,
@@ -733,8 +716,9 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   }
 
   // Merge extracted info from multiple sources to handle race conditions
-  // Priority: params.extractedInfo > aiCallRecord.extracted_info > lead.raw_metadata
-  const mergedExtractedInfo = mergeExtractedInfo(params, aiCallRecord, leadMetadata)
+  // Priority: params.extractedInfo > aiCallRecord.extracted_info
+  // CRITICAL: lead.raw_metadata is NOT merged - it contains historical intake data
+  const mergedExtractedInfo = mergeExtractedInfo(params, aiCallRecord)
   const extracted = normalizeExtractedInfo(mergedExtractedInfo)
   const aiOutcome = params.aiOutcome || aiCallRecord?.outcome || null
   const intakeComplete = isCompleteAIIntake(extracted, (business as any)?.service_location_type || 'onsite')
