@@ -540,6 +540,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       const isSelectedVisible = filteredItems.some(item => item.id === selectedMapItemId)
       if (!isSelectedVisible) {
         setSelectedMapItemId(null)
+        setSelectedMarker(null) // Clear popup to prevent stale state
         setShowAllMode(true)
         // Do NOT reset camera ownership - user owns the camera
       }
@@ -1598,7 +1599,19 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           if (markerInfo.items.length === 1) {
             selectMapItem(markerInfo.items[0].id, markerInfo.items[0].latitude, markerInfo.items[0].longitude)
           } else {
-            setSelectedMarker(markerInfo)
+            // For grouped markers, select the first item chronologically as default
+            // This ensures map/list synchronization works even when multiple items share a location
+            const sortedItems = [...markerInfo.items].sort((a, b) => {
+              const timeA = a.scheduledTime || '00:00'
+              const timeB = b.scheduledTime || '00:00'
+              const timeCompare = timeA.localeCompare(timeB)
+              if (timeCompare !== 0) return timeCompare
+              // Stable tie-breaker: use item ID for identical times
+              return a.id.localeCompare(b.id)
+            })
+            const firstItem = sortedItems[0]
+            selectMapItem(firstItem.id, firstItem.latitude, firstItem.longitude)
+            setSelectedMarker(markerInfo) // Still show popup for easy access to other items
           }
         })
 

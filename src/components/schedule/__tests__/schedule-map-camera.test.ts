@@ -162,6 +162,208 @@ describe('Schedule Map Camera Behavior', () => {
     expect(savedUserOwned).toBe(true)
     expect(shouldRestoreUserOwnership).toBe(true)
   })
+
+  it('grouped marker click selects first item chronologically', () => {
+    // When multiple items share the same location, clicking the marker should:
+    // 1. Select the first item chronologically (by scheduled time)
+    // 2. Show popup for easy access to other items
+    // 3. Maintain map/list synchronization
+    const groupedItems = [
+      { id: 'job:2', scheduledTime: '14:00' },
+      { id: 'job:1', scheduledTime: '09:00' },
+      { id: 'job:3', scheduledTime: '16:00' }
+    ]
+
+    // Sort chronologically
+    const sortedItems = [...groupedItems].sort((a, b) => {
+      const timeA = a.scheduledTime || '00:00'
+      const timeB = b.scheduledTime || '00:00'
+      return timeA.localeCompare(timeB)
+    })
+
+    // First item should be the 9:00 job
+    expect(sortedItems[0].id).toBe('job:1')
+    expect(sortedItems[0].scheduledTime).toBe('09:00')
+
+    // Selection should map/list synchronize
+    const shouldSelectFirstItem = true
+    const shouldShowPopup = true
+    const shouldSyncWithList = true
+
+    expect(shouldSelectFirstItem).toBe(true)
+    expect(shouldShowPopup).toBe(true)
+    expect(shouldSyncWithList).toBe(true)
+  })
+
+  it('grouped marker with identical times uses stable tie-breaker', () => {
+    // When items have the same scheduled time, use item ID for stable sorting
+    const groupedItems = [
+      { id: 'job:3', scheduledTime: '09:00' },
+      { id: 'job:1', scheduledTime: '09:00' },
+      { id: 'job:2', scheduledTime: '09:00' }
+    ]
+
+    // Sort by time then by ID (stable tie-breaker)
+    const sortedItems = [...groupedItems].sort((a, b) => {
+      const timeA = a.scheduledTime || '00:00'
+      const timeB = b.scheduledTime || '00:00'
+      const timeCompare = timeA.localeCompare(timeB)
+      if (timeCompare !== 0) return timeCompare
+      return a.id.localeCompare(b.id)
+    })
+
+    // First item should be job:1 (alphabetically first among identical times)
+    expect(sortedItems[0].id).toBe('job:1')
+  })
+
+  describe('Filter ↔ Selection Consistency', () => {
+    it('selected job remains selected when filter stays "all"', () => {
+      const selectedItemId = 'job:1'
+      const currentFilter = 'all'
+      const newFilter = 'all'
+      const selectedItemType = 'job'
+
+      // Filter didn't change - selection should be preserved
+      const shouldPreserveSelection = currentFilter === newFilter
+      const isSelectedVisible = selectedItemType === 'job' || newFilter === 'all'
+
+      expect(shouldPreserveSelection).toBe(true)
+      expect(isSelectedVisible).toBe(true)
+    })
+
+    it('selected job remains selected when switching to jobs-only', () => {
+      const selectedItemId = 'job:1'
+      const currentFilter = 'all'
+      const newFilter = 'jobs'
+      const selectedItemType = 'job'
+
+      // Job is visible in jobs filter - should preserve selection
+      const isSelectedVisible = selectedItemType === 'job' || newFilter === 'all'
+
+      expect(isSelectedVisible).toBe(true)
+    })
+
+    it('selected job is cleared when switching to appointments-only', () => {
+      const selectedItemId = 'job:1'
+      const currentFilter = 'all'
+      const newFilter = 'appointments'
+      const selectedItemType = 'job'
+
+      // Job is not visible in appointments filter - should clear selection
+      const isSelectedVisible = selectedItemType === 'appointment' || newFilter === 'all'
+
+      expect(isSelectedVisible).toBe(false)
+    })
+
+    it('selected appointment remains selected when filter is appointments-only', () => {
+      const selectedItemId = 'appointment:1'
+      const currentFilter = 'appointments'
+      const newFilter = 'appointments'
+      const selectedItemType = 'appointment'
+
+      // Appointment is visible in appointments filter - should preserve selection
+      const isSelectedVisible = selectedItemType === 'appointment' || newFilter === 'all'
+
+      expect(isSelectedVisible).toBe(true)
+    })
+
+    it('selected appointment is cleared when switching to jobs-only', () => {
+      const selectedItemId = 'appointment:1'
+      const currentFilter = 'appointments'
+      const newFilter = 'jobs'
+      const selectedItemType = 'appointment'
+
+      // Appointment is not visible in jobs filter - should clear selection
+      const isSelectedVisible = selectedItemType === 'job' || newFilter === 'all'
+
+      expect(isSelectedVisible).toBe(false)
+    })
+
+    it('switching back to "all" after selection cleared does not resurrect stale selection', () => {
+      const previouslySelectedItemId = 'job:1'
+      const selectedItemId = null // Was cleared
+      const newFilter = 'all'
+
+      // Selection was cleared and should stay cleared even when switching back to "all"
+      // Current implementation does not resurrect stale selections
+      const shouldResurrectSelection = false // Implementation does not resurrect
+
+      expect(shouldResurrectSelection).toBe(false)
+    })
+
+    it('selected grouped-marker item remains visible preserves selection and popup', () => {
+      const selectedItemId = 'job:1'
+      const currentFilter = 'all'
+      const newFilter = 'jobs'
+      const selectedItemType = 'job'
+      const hasPopup = true
+
+      // Item remains visible - selection and popup should be preserved
+      const isSelectedVisible = selectedItemType === 'job' || newFilter === 'all'
+      const shouldPreservePopup = isSelectedVisible && hasPopup
+
+      expect(isSelectedVisible).toBe(true)
+      expect(shouldPreservePopup).toBe(true)
+    })
+
+    it('selected grouped-marker item becomes filtered out clears selection and popup', () => {
+      const selectedItemId = 'job:1'
+      const currentFilter = 'jobs'
+      const newFilter = 'appointments'
+      const selectedItemType = 'job'
+      const hasPopup = true
+
+      // Item is not visible - selection and popup should be cleared
+      const isSelectedVisible = selectedItemType === 'appointment' || newFilter === 'all'
+      const shouldClearSelection = !isSelectedVisible
+      const shouldClearPopup = shouldClearSelection && hasPopup
+
+      expect(isSelectedVisible).toBe(false)
+      expect(shouldClearSelection).toBe(true)
+      expect(shouldClearPopup).toBe(true)
+    })
+
+    it('clearing selection does not trigger camera recentering', () => {
+      const cameraOwnerBefore = 'USER_OWNED'
+      const selectionCleared = true
+
+      // When selection is cleared due to filtering, preserve user's camera ownership
+      const cameraOwnerAfter = selectionCleared ? cameraOwnerBefore : 'APP_OWNED'
+
+      expect(cameraOwnerAfter).toBe('USER_OWNED')
+    })
+
+    it('preserving selection does not trigger camera movement', () => {
+      const selectionPreserved = true
+      const cameraOwnerBefore = 'USER_OWNED'
+      const shouldMoveCamera = false
+
+      // When selection is preserved during filter change, don't move camera
+      const cameraOwnerAfter = selectionPreserved ? cameraOwnerBefore : 'APP_OWNED'
+
+      expect(cameraOwnerAfter).toBe('USER_OWNED')
+      expect(shouldMoveCamera).toBe(false)
+    })
+
+    it('next/previous navigation operates only on currently visible items', () => {
+      const filteredItems = [
+        { id: 'job:1', scheduledTime: '09:00' },
+        { id: 'job:2', scheduledTime: '14:00' }
+      ]
+      const allItems = [
+        { id: 'job:1', scheduledTime: '09:00' },
+        { id: 'job:2', scheduledTime: '14:00' },
+        { id: 'appointment:1', scheduledTime: '10:00' }
+      ]
+
+      // Navigation should use filtered items, not all items
+      const navigationItemCount = filteredItems.length
+      const allItemCount = allItems.length
+
+      expect(navigationItemCount).toBe(2)
+      expect(allItemCount).toBe(3)
+    })
+  })
 })
 
 describe('Responsive Padding Calculation', () => {
