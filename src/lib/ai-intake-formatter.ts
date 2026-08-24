@@ -1424,6 +1424,23 @@ export const normalizeTiming = (text: string | null | undefined): string => {
   if (isNormalizationDamaged(original, normalized)) {
     return safeTrimAndCapitalize(original);
   }
+
+  // CLEANUP: Remove dangling trailing connectors (incomplete fragments)
+  // Only remove if at the very end of the string
+  const trailingConnectorPatterns = [
+    /\s+because\s*$/i,
+    /\s+and\s*$/i,
+    /\s+but\s*$/i,
+    /\s+so\s*$/i,
+    /\s+or\s*$/i,
+    /\s+that\s*$/i,
+  ];
+  for (const pattern of trailingConnectorPatterns) {
+    normalized = normalized.replace(pattern, '');
+  }
+  // Trim again after connector removal
+  normalized = normalized.trim();
+
   // Apply content sanitization for display
   normalized = sanitizeTiming(normalized);
   return normalized;
@@ -1445,6 +1462,14 @@ export const normalizeAdditionalDetails = (text: string | null | undefined): str
   for (const pattern of detailsPrefixPatterns) {
     normalized = normalized.replace(pattern, '');
   }
+
+  // CLEANUP: Insert missing sentence punctuation
+  // Pattern: lowercase letter + space + uppercase letter (sentence boundary without punctuation)
+  normalized = normalized.replace(/([a-z])\s+([A-Z])/g, '$1. $2');
+
+  // CLEANUP: Normalize spacing (remove multiple spaces)
+  normalized = normalized.replace(/\s+/g, ' ');
+
   // Apply safe trimming and capitalization
   normalized = safeTrimAndCapitalize(normalized);
   // Corruption guard: if normalization damaged the value, return original trimmed
