@@ -1592,7 +1592,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
               ? `Stop ${stopNumber}: ${primaryItem.title}`
               : `${markerInfo.items.length} stops at this location`,
           icon: createNumberedMarkerIcon(isBusinessMarker ? 0 : stopNumber, primaryItem.type, isSelected),
-          zIndex: isSelected ? 1000 : 1
+          zIndex: isSelected ? 1000 : 1,
+          shape: createMarkerShape(isSelected ? 44 : 36) // Consistent 44px touch target centered on icon
         })
 
         marker.addListener('click', () => {
@@ -1908,6 +1909,19 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     markerIconCache.set(cacheKey, icon)
 
     return icon
+  }
+
+  // Create marker shape for consistent touch targets (44px diameter = 22px radius)
+  // Coordinates are relative to the icon's top-left corner, so we center the circle
+  // For 36px icon: center at (18, 18), for 44px icon: center at (22, 22)
+  const createMarkerShape = (iconSize: number): any => {
+    const centerX = iconSize / 2
+    const centerY = iconSize / 2
+    const radius = 22 // 44px diameter for consistent touch target
+    return {
+      type: 'circle',
+      coords: [centerX, centerY, radius] // [x, y, radius] relative to icon top-left
+    }
   }
 
   // Handle marker info card actions
