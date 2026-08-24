@@ -117,7 +117,7 @@ interface MapDateState {
   filter: MapFilter
   center: { lat: number; lng: number } | null
   zoom: number | null
-  userInteracted: boolean
+  userOwned: boolean
 }
 
 interface MapItem {
@@ -183,6 +183,15 @@ function ScheduleMapComponent({
   const mapPreparationIdRef = useRef(0) // Monotonically increasing ID to prevent stale async results
   const viewportRestoredRef = useRef(false) // Track if viewport was restored from saved state
   const userIsDraggingRef = useRef(false) // Track if user is currently dragging (stronger guard than userInteracted)
+
+  // Camera ownership state: INITIALIZING, APP_OWNED, USER_OWNED, DRAGGING
+  enum CameraOwner {
+    INITIALIZING = 'INITIALIZING',
+    APP_OWNED = 'APP_OWNED',
+    USER_OWNED = 'USER_OWNED',
+    DRAGGING = 'DRAGGING'
+  }
+  const cameraOwnerRef = useRef<CameraOwner>(CameraOwner.INITIALIZING)
   // Constants for viewport behavior
 const HOME_BASE_ONLY_ZOOM = 13 // Local zoom for single marker (shows ~5-10 miles)
 const SINGLE_STOP_ZOOM = 13 // Local zoom for single service stop
@@ -239,7 +248,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     }
     return 'roadmap'
   })
-  const userInteractedRef = useRef(false) // Use ref to prevent re-renders
+
   const [showAllMode, setShowAllMode] = useState(true)
   const [previousDateKey, setPreviousDateKey] = useState<string | null>(null)
   const [lastAutoFitDateKey, setLastAutoFitDateKey] = useState<string | null>(null) // Track when we last auto-fitted to prevent repeated fits
@@ -269,7 +278,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       tasksCount: tasks.length,
       selectedDate: selectedDate.toISOString(),
       mapItemsCount: mapItems.length,
-      userInteracted: userInteractedRef.current,
+      cameraOwner: cameraOwnerRef.current,
       showAllMode,
       mapFilter
     })
@@ -471,7 +480,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       mapInstance: mapInstanceIdRef.current,
       container: `${containerWidth}x${containerHeight}`,
       deltaInfo,
-      userInteracted: userInteractedRef.current,
+      cameraOwner: cameraOwnerRef.current,
       timestamp: Date.now()
     })
   }, [])
@@ -483,7 +492,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       command,
       zoom: details.zoom || 'N/A',
       reason: details.reason || 'N/A',
-      userInteracted: userInteractedRef.current,
+      cameraOwner: cameraOwnerRef.current,
       mapInstance: mapInstanceIdRef.current,
       timestamp: Date.now()
     })
@@ -524,11 +533,6 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     return items.filter(item => item.type === mapFilter.slice(0, -1) as MapItemType)
   }, [mapFilter])
 
-  // Reset auto-fit tracking when filter changes (so map will refit to filtered markers)
-  useEffect(() => {
-    setLastAutoFitDateKey(null)
-  }, [mapFilter])
-
   // Clear selection if selected item is filtered out
   useEffect(() => {
     if (selectedMapItemId) {
@@ -537,7 +541,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       if (!isSelectedVisible) {
         setSelectedMapItemId(null)
         setShowAllMode(true)
-        // Do NOT reset userInteracted - user owns the camera
+        // Do NOT reset camera ownership - user owns the camera
       }
     }
   }, [mapFilter, mapItems, selectedMapItemId, getFilteredMapItems])
@@ -608,10 +612,23 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   }, [logCameraCommand])
 
   // Pan to marker without resetting bounds
-  const panToMarker = useCallback((lat: number, lng: number, zoom?: number, setUserInteractedFlag: boolean = true, reason: string = 'unknown') => {
+  const panToMarker = useCallback((lat: number, lng: number, options?: { zoom?: number; setCameraOwnerToUser?: boolean; checkVisibility?: boolean }, reason: string = 'unknown') => {
     if (!googleMapRef.current) return
 
-    logCameraCommand('panToMarker', 'panTo', { center: `${lat},${lng}`, zoom, reason, setUserInteractedFlag })
+    const { zoom, setCameraOwnerToUser = false, checkVisibility = false } = options || {}
+
+    logCameraCommand('panToMarker', 'panTo', { center: `${lat},${lng}`, zoom, reason, setCameraOwnerToUser, checkVisibility })
+
+    // Check if marker is already comfortably visible (if requested)
+    if (checkVisibility) {
+      const bounds = googleMapRef.current.getBounds()
+      const position = { lat, lng }
+      if (bounds.contains(position)) {
+        logCameraCommand('panToMarker', 'panTo', { reason, result: 'skipped_already_visible' })
+        // Still update selection state without moving camera
+        return
+      }
+    }
 
     // Check if this is actually a camera change (avoid no-op calls)
     const currentCenter = googleMapRef.current.getCenter()
@@ -626,20 +643,19 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
     programmaticCameraChangeRef.current = true
     pendingProgrammaticMoveRef.current = true
+    cameraOwnerRef.current = CameraOwner.APP_OWNED
     googleMapRef.current.panTo({ lat, lng })
     if (zoom !== undefined) {
       googleMapRef.current.setZoom(zoom)
     }
-    if (setUserInteractedFlag) {
-      userInteractedRef.current = true
-    }
+    // Note: camera ownership will transition to USER_OWNED on idle
   }, [logCameraCommand])
 
   // Reset to show all markers
   const showAllMarkers = useCallback(() => {
     setSelectedMapItemId(null)
     setShowAllMode(true)
-    userInteractedRef.current = false
+    cameraOwnerRef.current = CameraOwner.INITIALIZING
 
     if (!googleMapRef.current || markersRef.current.size === 0) return
 
@@ -656,30 +672,30 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   const navigateToStop = useCallback((direction: 'next' | 'previous') => {
     const filteredItems = getFilteredMapItems(mapItems)
     const sortedItems = getSortedMappedItems(filteredItems)
-    
+
     if (sortedItems.length === 0) return
-    
-    let currentIndex = selectedMapItemId 
+
+    let currentIndex = selectedMapItemId
       ? sortedItems.findIndex(item => item.id === selectedMapItemId)
       : -1
-    
+
     if (direction === 'next') {
       currentIndex = (currentIndex + 1) % sortedItems.length
     } else {
       currentIndex = currentIndex <= 0 ? sortedItems.length - 1 : currentIndex - 1
     }
-    
+
     const selectedItem = sortedItems[currentIndex]
     setSelectedMapItemId(selectedItem.id)
     setShowAllMode(false)
-    panToMarker(selectedItem.latitude, selectedItem.longitude, 15, true, 'navigate_to_stop')
+    panToMarker(selectedItem.latitude, selectedItem.longitude, { checkVisibility: true }, 'navigate_to_stop')
   }, [selectedMapItemId, mapItems, getFilteredMapItems, getSortedMappedItems, panToMarker])
 
   // Select a specific map item (pass item data directly to avoid dependency on mapItems)
   const selectMapItem = useCallback((itemId: string, latitude: number, longitude: number) => {
     setSelectedMapItemId(itemId)
     setShowAllMode(false)
-    panToMarker(latitude, longitude, 15, true, 'select_map_item')
+    panToMarker(latitude, longitude, { checkVisibility: true }, 'select_map_item')
   }, [panToMarker])
 
   // Helper function to extract customer address from lead metadata
@@ -1240,15 +1256,21 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       map.addListener('dragstart', () => {
         logCameraState('dragstart', 'user_drag_start')
         userIsDraggingRef.current = true
-        if (!programmaticCameraChangeRef.current) {
-          userInteractedRef.current = true
-          setLastAutoFitDateKey(null)
-        }
+        cameraOwnerRef.current = CameraOwner.DRAGGING
       })
 
       map.addListener('dragend', () => {
         logCameraState('dragend', 'user_drag_end')
         userIsDraggingRef.current = false
+        cameraOwnerRef.current = CameraOwner.USER_OWNED
+      })
+
+      // Track manual zoom as user ownership
+      map.addListener('zoom_changed', () => {
+        // Only treat as user interaction if not currently in programmatic move
+        if (!programmaticCameraChangeRef.current && cameraOwnerRef.current !== CameraOwner.DRAGGING) {
+          cameraOwnerRef.current = CameraOwner.USER_OWNED
+        }
       })
 
       // High-frequency diagnostic listeners - only register if diagnostics enabled
@@ -1276,8 +1298,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
       // idle fires after any movement settles (user or programmatic)
       // Event-driven guard: consume pending programmatic move on idle
-      // CRITICAL FIX: Only set userInteracted for genuine user gestures, not programmatic moves
-      // The programmaticCameraChangeRef guard must be checked BEFORE it's consumed
+      // CRITICAL: Only transition camera ownership based on actual source of movement
       map.addListener('idle', () => {
         logCameraState('idle', 'movement_settled')
 
@@ -1286,20 +1307,23 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         if (wasProgrammatic) {
           pendingProgrammaticMoveRef.current = false
           programmaticCameraChangeRef.current = false
-          // Do NOT set userInteracted for programmatic moves - this was the bug
+          // If we were INITIALIZING, stay in INITIALIZING to allow late-arriving markers to participate in initial fit
+          // Only transition to USER_OWNED if we were already APP_OWNED (explicit navigation)
+          if (cameraOwnerRef.current === CameraOwner.APP_OWNED) {
+            cameraOwnerRef.current = CameraOwner.USER_OWNED
+          }
+          // If we were INITIALIZING, remain INITIALIZING
           console.log('[SCHEDULE_MAP_CAMERA_OWNERSHIP]', {
             event: 'programmatic_move_completed',
-            userInteracted: userInteractedRef.current,
+            cameraOwner: cameraOwnerRef.current,
             mapInstance: mapInstanceIdRef.current
           })
-        } else if (!programmaticCameraChangeRef.current) {
-          // Only set userInteracted if this was NOT a programmatic move
-          // This check must use the value BEFORE any potential reset
-          userInteractedRef.current = true
-          setLastAutoFitDateKey(null)
+        } else if (cameraOwnerRef.current === CameraOwner.DRAGGING) {
+          // Transition from DRAGGING to USER_OWNED after drag settles
+          cameraOwnerRef.current = CameraOwner.USER_OWNED
           console.log('[SCHEDULE_MAP_CAMERA_OWNERSHIP]', {
-            event: 'user_interaction_confirmed',
-            userInteracted: true,
+            event: 'drag_completed',
+            cameraOwner: cameraOwnerRef.current,
             mapInstance: mapInstanceIdRef.current
           })
         }
@@ -1356,7 +1380,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
             new: `${width}x${height}`,
             reason: 'container_resize',
             mapInstance: mapInstanceIdRef.current,
-            userInteracted: userInteractedRef.current,
+            cameraOwner: cameraOwnerRef.current,
             timestamp: Date.now()
           })
           resizeLastSizeRef.current = { width, height }
@@ -1380,26 +1404,27 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         filter: 'all',
         center: null,
         zoom: null,
-        userInteracted: false
+        userOwned: false
       }
 
-      // Save current viewport if map exists and user has interacted
-      if (googleMapRef.current && userInteractedRef.current) {
+      // Save current viewport if map exists and user owns camera
+      if (googleMapRef.current && cameraOwnerRef.current === CameraOwner.USER_OWNED) {
         const center = googleMapRef.current.getCenter()
         const zoom = googleMapRef.current.getZoom()
         state.center = { lat: center.lat(), lng: center.lng() }
         state.zoom = zoom
+        state.userOwned = true
       }
 
       // Only save if state actually changed
       if (
         state.selectedMapItemId !== selectedMapItemId ||
         state.filter !== mapFilter ||
-        state.userInteracted !== userInteractedRef.current
+        state.userOwned !== (cameraOwnerRef.current === CameraOwner.USER_OWNED)
       ) {
         state.selectedMapItemId = selectedMapItemId
         state.filter = mapFilter
-        state.userInteracted = userInteractedRef.current
+        state.userOwned = cameraOwnerRef.current === CameraOwner.USER_OWNED
         perDateStateRef.current.set(previousDateKey, state)
       }
     }
@@ -1416,22 +1441,16 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       hasSavedState: !!savedState,
       mapReady,
       mapInstance: mapInstanceIdRef.current,
-      userInteracted: userInteractedRef.current
+      cameraOwner: cameraOwnerRef.current
     })
 
     if (savedState) {
       setSelectedMapItemId(savedState.selectedMapItemId)
       setMapFilter(savedState.filter)
-      // Only restore userInteracted if it's true (user had manually moved the map)
-      // Don't reset it to false if user has already interacted in current session
-      if (savedState.userInteracted) {
-        userInteractedRef.current = true
-      }
 
       // Restore viewport immediately if map is ready and saved viewport exists
       // This prevents race condition with marker rendering effect
-      // IMPORTANT: Only restore if user is NOT currently interacting
-      if (mapReady && googleMapRef.current && savedState.center && savedState.zoom && !userInteractedRef.current) {
+      if (mapReady && googleMapRef.current && savedState.center && savedState.zoom) {
         // Check if this is actually a camera change (avoid no-op calls)
         const currentCenter = googleMapRef.current.getCenter()
         const currentZoom = googleMapRef.current.getZoom()
@@ -1451,15 +1470,26 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           })
           programmaticCameraChangeRef.current = true
           pendingProgrammaticMoveRef.current = true
+          cameraOwnerRef.current = CameraOwner.APP_OWNED
           googleMapRef.current.setCenter(savedState.center)
           googleMapRef.current.setZoom(savedState.zoom)
           viewportRestoredRef.current = true
+          // If user had previously owned this view, restore that ownership
+          if (savedState.userOwned) {
+            cameraOwnerRef.current = CameraOwner.USER_OWNED
+          }
+        } else if (savedState.userOwned) {
+          // Camera already in place, restore ownership
+          cameraOwnerRef.current = CameraOwner.USER_OWNED
         }
+      } else if (savedState.userOwned) {
+        // Map not ready yet, but will restore ownership when ready
+        cameraOwnerRef.current = CameraOwner.USER_OWNED
       }
     } else {
       // First visit - no saved state, let marker update effect handle initial camera
       setShowAllMode(true)
-      userInteractedRef.current = false
+      cameraOwnerRef.current = CameraOwner.INITIALIZING
       // The marker update effect will auto-fit when markers arrive
     }
 
@@ -1627,21 +1657,23 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     // Reset viewport restoration flag at start of effect
     viewportRestoredRef.current = false
 
+    // Track if this is the first auto-fit for initial framing
+    const isFirstAutoFit = markerSetSignatureRef.current === '' && markersRef.current.size > 0
+
     // Get current date key for auto-fit logic (use local timezone)
     const currentDateKey = selectedDate.toLocaleDateString('en-CA')
     const dateChanged = previousDateKey !== null && previousDateKey !== currentDateKey
 
-    // Reset user interaction flag on date change to allow new fit for new date
-    // This prevents overriding user's saved viewport when navigating back to a date
+    // Reset camera ownership on date change to allow new fit for new date
+    // Only reset if viewport wasn't restored (restored viewport already handled ownership)
     if (dateChanged && !viewportRestoredRef.current) {
-      userInteractedRef.current = false
+      cameraOwnerRef.current = CameraOwner.INITIALIZING
     }
 
-    // Reset user interaction flag on filter change - filter changes should always auto-fit
+    // Track filter changes (do NOT reset camera ownership)
     const filterChanged = previousMapFilterRef.current !== mapFilter
     if (filterChanged) {
       previousMapFilterRef.current = mapFilter
-      userInteractedRef.current = false
     }
 
     // Smart automatic framing logic
@@ -1649,8 +1681,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       effect: 'marker_update_auto_fit_check',
       markersCount: markersRef.current.size,
       showAllMode,
-      userInteracted: userInteractedRef.current,
-      userIsDragging: userIsDraggingRef.current,
+      cameraOwner: cameraOwnerRef.current,
       dateChanged,
       signatureChanged,
       lastAutoFitDateKey
@@ -1661,21 +1692,19 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     if (markersRef.current.size === 0) {
       markerSetSignatureRef.current = signature
       setLastAutoFitDateKey(null)
-    } else if (selectedMapItemId && !userInteractedRef.current) {
+    } else if (selectedMapItemId && cameraOwnerRef.current === CameraOwner.INITIALIZING) {
       const selectedMarker = markersRef.current.get(selectedMapItemId)
       if (selectedMarker) {
         const pos = selectedMarker.getPosition()
-        panToMarker(pos.lat(), pos.lng(), 15, false, 'selected_item')
+        panToMarker(pos.lat(), pos.lng(), { checkVisibility: true }, 'selected_item')
         markerSetSignatureRef.current = signature
       }
     } else if (showAllMode && (dateChanged || signatureChanged)) {
-      // Auto-fit should happen when: date changes, filter changes, OR marker set meaningfully changes
-      // Date and filter changes always trigger auto-fit regardless of user interaction
-      // Signature changes (marker set changes) trigger when location data changes
-      // CRITICAL: Allow signature changes to trigger auto-fit even after user interaction
-      // because signature represents actual location data changes (add/move/remove)
-      // Only prevent auto-fit during active user dragging gesture
-      const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && !userIsDraggingRef.current)
+      // Auto-fit should happen when:
+      // - Date changes (new context, camera ownership already reset to INITIALIZING)
+      // - Signature changes AND camera is not USER_OWNED and not DRAGGING
+      // Filter changes do NOT trigger auto-fit (preserve user viewport)
+      const shouldAutoFit = dateChanged || (signatureChanged && cameraOwnerRef.current !== CameraOwner.USER_OWNED && cameraOwnerRef.current !== CameraOwner.DRAGGING)
 
       console.log('[SCHEDULE_MAP_EFFECT]', {
         effect: 'auto_fit_decision',
@@ -1683,8 +1712,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         dateChanged,
         filterChanged,
         signatureChanged,
-        userInteracted: userInteractedRef.current,
-        userIsDragging: userIsDraggingRef.current,
+        cameraOwner: cameraOwnerRef.current,
         lastAutoFitDateKey,
         currentDateKey
       })
@@ -1711,7 +1739,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           const [, singleMarker] = viewportMarkers[0]
           if (singleMarker) {
             const pos = singleMarker.getPosition()
-            panToMarker(pos.lat(), pos.lng(), HOME_BASE_ONLY_ZOOM, false, 'single_marker_auto_fit')
+            panToMarker(pos.lat(), pos.lng(), { zoom: HOME_BASE_ONLY_ZOOM }, 'single_marker_auto_fit')
           }
         } else {
           // Multiple markers - fit all including business
@@ -1725,13 +1753,25 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       } else {
         markerSetSignatureRef.current = signature
       }
-    } else if (!showAllMode || userInteractedRef.current) {
+    } else if (!showAllMode || cameraOwnerRef.current === CameraOwner.USER_OWNED) {
       console.log('[SCHEDULE_MAP_EFFECT]', {
         effect: 'skip_auto_fit',
-        reason: !showAllMode ? 'not_show_all_mode' : 'user_interacted',
+        reason: !showAllMode ? 'not_show_all_mode' : 'user_owned_camera',
         showAllMode,
-        userInteracted: userInteractedRef.current
+        cameraOwner: cameraOwnerRef.current
       })
+      markerSetSignatureRef.current = signature
+    } else {
+      // Signature didn't change and camera is INITIALIZING
+      // This means initial framing is complete, transition to USER_OWNED
+      if (cameraOwnerRef.current === CameraOwner.INITIALIZING && !signatureChanged) {
+        cameraOwnerRef.current = CameraOwner.USER_OWNED
+        console.log('[SCHEDULE_MAP_CAMERA_OWNERSHIP]', {
+          event: 'initial_framing_complete',
+          cameraOwner: cameraOwnerRef.current,
+          mapInstance: mapInstanceIdRef.current
+        })
+      }
       markerSetSignatureRef.current = signature
     }
 

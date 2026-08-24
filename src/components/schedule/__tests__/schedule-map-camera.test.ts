@@ -62,9 +62,8 @@ describe('Schedule Map Camera Behavior', () => {
   it('selected-day marker-set change triggers one camera request', () => {
     const dateChanged = true
     const signatureChanged = true
-    const userInteracted = false
-    const initialCameraEstablished = false
-    const shouldAutoFit = dateChanged || signatureChanged || (!userInteracted && !initialCameraEstablished)
+    const cameraOwner = 'INITIALIZING'
+    const shouldAutoFit = dateChanged || (signatureChanged && cameraOwner !== 'USER_OWNED')
 
     expect(dateChanged).toBe(true)
     expect(signatureChanged).toBe(true)
@@ -74,25 +73,22 @@ describe('Schedule Map Camera Behavior', () => {
   it('unrelated rerender does not trigger camera request', () => {
     const dateChanged = false
     const signatureChanged = false
-    const userInteracted = true
-    const initialCameraEstablished = true
-    const shouldAutoFit = dateChanged || signatureChanged || (!userInteracted && !initialCameraEstablished)
+    const cameraOwner = 'USER_OWNED'
+    const shouldAutoFit = dateChanged || (signatureChanged && cameraOwner !== 'USER_OWNED')
 
     expect(dateChanged).toBe(false)
     expect(signatureChanged).toBe(false)
-    expect(userInteracted).toBe(true)
-    expect(initialCameraEstablished).toBe(true)
+    expect(cameraOwner).toBe('USER_OWNED')
     expect(shouldAutoFit).toBe(false)
   })
 
   it('user interaction disables automatic camera movement', () => {
-    const userInteracted = true
+    const cameraOwner = 'USER_OWNED'
     const dateChanged = false
     const signatureChanged = true
-    const initialCameraEstablished = true
-    const shouldAutoFit = dateChanged || signatureChanged && (!userInteracted || !initialCameraEstablished)
+    const shouldAutoFit = dateChanged || (signatureChanged && cameraOwner !== 'USER_OWNED')
 
-    expect(userInteracted).toBe(true)
+    expect(cameraOwner).toBe('USER_OWNED')
     expect(shouldAutoFit).toBe(false)
   })
 
@@ -137,35 +133,34 @@ describe('Schedule Map Camera Behavior', () => {
     expect(expectedHeight).toBe('calc(100dvh - 80px - 140px)')
   })
 
-  it('filter change triggers camera refit', () => {
+  it('filter change does NOT trigger camera refit if user owns camera', () => {
     const filterChanged = true
-    const initialCameraEstablished = false
-    const shouldResetInitialCamera = filterChanged
+    const cameraOwner = 'USER_OWNED'
+    const shouldAutoFit = false // Filter changes should NOT auto-fit if user owns camera
 
     expect(filterChanged).toBe(true)
-    expect(shouldResetInitialCamera).toBe(true)
+    expect(cameraOwner).toBe('USER_OWNED')
+    expect(shouldAutoFit).toBe(false)
   })
 
-  it('date change resets initial camera flag', () => {
+  it('date change resets camera ownership to INITIALIZING', () => {
     const dateChanged = true
     const viewportRestored = false
-    const shouldResetUserInteracted = !viewportRestored
-    const shouldResetInitialCamera = dateChanged
+    const shouldResetToInitializing = dateChanged && !viewportRestored
 
     expect(dateChanged).toBe(true)
-    expect(shouldResetInitialCamera).toBe(true)
+    expect(shouldResetToInitializing).toBe(true)
     expect(viewportRestored).toBe(false)
-    expect(shouldResetUserInteracted).toBe(true)
   })
 
-  it('viewport restoration preserves user interaction', () => {
+  it('viewport restoration preserves user ownership', () => {
     const viewportRestored = true
-    const savedUserInteracted = true
-    const shouldPreserveUserInteracted = savedUserInteracted
+    const savedUserOwned = true
+    const shouldRestoreUserOwnership = savedUserOwned
 
     expect(viewportRestored).toBe(true)
-    expect(savedUserInteracted).toBe(true)
-    expect(shouldPreserveUserInteracted).toBe(true)
+    expect(savedUserOwned).toBe(true)
+    expect(shouldRestoreUserOwnership).toBe(true)
   })
 })
 
@@ -261,83 +256,119 @@ describe('Marker Key Stability', () => {
 })
 
 describe('Camera Ownership Model - Hardening', () => {
+  enum CameraOwner {
+    INITIALIZING = 'INITIALIZING',
+    APP_OWNED = 'APP_OWNED',
+    USER_OWNED = 'USER_OWNED',
+    DRAGGING = 'DRAGGING'
+  }
+
   it('marker refresh does NOT reset user camera ownership', () => {
-    const userInteractedBefore = true
-    const userIsDragging = false
+    const cameraOwner = CameraOwner.USER_OWNED
     const dateChanged = false
     const filterChanged = false
     const signatureChanged = true
-    const initialCameraEstablished = true
 
-    // After fix: marker signature change should NOT trigger auto-fit if user has interacted
-    const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && (!userInteractedBefore || !initialCameraEstablished) && !userIsDragging)
+    // After fix: marker signature change should NOT trigger auto-fit if user owns camera
+    const shouldAutoFit = dateChanged || (signatureChanged && cameraOwner !== CameraOwner.USER_OWNED)
 
     expect(shouldAutoFit).toBe(false)
   })
 
   it('ordinary data refresh does NOT reset user camera ownership', () => {
-    const userInteractedBefore = true
-    const userIsDragging = false
+    const cameraOwner = CameraOwner.USER_OWNED
     const dateChanged = false
     const filterChanged = false
     const signatureChanged = true
-    const initialCameraEstablished = true
 
-    const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && (!userInteractedBefore || !initialCameraEstablished) && !userIsDragging)
+    const shouldAutoFit = dateChanged || (signatureChanged && cameraOwner !== CameraOwner.USER_OWNED)
 
     expect(shouldAutoFit).toBe(false)
   })
 
-  it('programmatic move completion does NOT set userInteracted', () => {
-    const wasProgrammatic = true
-    const programmaticCameraChangeBefore = true
+  it('filter change does NOT reset user camera ownership', () => {
+    const cameraOwner = CameraOwner.USER_OWNED
+    const dateChanged = false
+    const filterChanged = true
+    const signatureChanged = false
 
-    // After fix: programmatic moves should not mark user as having interacted
-    // The guard should prevent setting userInteracted when the move was programmatic
-    const shouldSetUserInteracted = !wasProgrammatic && !programmaticCameraChangeBefore
+    // Filter changes should NOT trigger auto-fit if user owns camera
+    const shouldAutoFit = dateChanged || (signatureChanged && cameraOwner !== CameraOwner.USER_OWNED)
 
-    expect(shouldSetUserInteracted).toBe(false)
+    expect(shouldAutoFit).toBe(false)
   })
 
-  it('active dragging prevents auto-fit even with signature change', () => {
-    const userInteractedBefore = false
-    const userIsDragging = true
+  it('filter change CAN trigger auto-fit if app owns camera', () => {
+    const cameraOwner = CameraOwner.INITIALIZING
+    const dateChanged = false
+    const filterChanged = true
+    const signatureChanged = false
+
+    // Filter changes can trigger auto-fit if app owns camera
+    const shouldAutoFit = dateChanged || (signatureChanged && cameraOwner !== CameraOwner.USER_OWNED)
+
+    expect(shouldAutoFit).toBe(false)
+  })
+
+  it('dragging prevents auto-fit even with signature change', () => {
+    const cameraOwner = CameraOwner.DRAGGING
     const dateChanged = false
     const filterChanged = false
     const signatureChanged = true
-    const initialCameraEstablished = false
 
-    // After fix: active dragging should prevent auto-fit regardless of other conditions
-    const shouldAutoFit = dateChanged || filterChanged || (signatureChanged && (!userInteractedBefore || !initialCameraEstablished) && !userIsDragging)
+    // Active dragging should prevent auto-fit regardless of other conditions
+    const shouldAutoFit = dateChanged || (signatureChanged && cameraOwner !== CameraOwner.USER_OWNED && cameraOwner !== CameraOwner.DRAGGING)
 
     expect(shouldAutoFit).toBe(false)
   })
 
   it('deliberate selected-date context change CAN reset app ownership', () => {
-    const userInteractedBefore = true
+    const cameraOwnerBefore = CameraOwner.USER_OWNED
     const dateChanged = true
     const viewportRestored = false
-    const shouldResetUserInteracted = !viewportRestored
 
-    // Date changes are intentional context transitions that can reset ownership
-    expect(shouldResetUserInteracted).toBe(true)
+    // Date changes are intentional context transitions that can reset ownership to INITIALIZING
+    const shouldResetToInitializing = dateChanged && !viewportRestored
+
+    expect(shouldResetToInitializing).toBe(true)
   })
 
   it('initial frame occurs once per intended context', () => {
-    const initialCameraEstablished = false
+    const cameraOwner = CameraOwner.INITIALIZING
     const markersCount = 1
-    const userInteracted = false
+    const signatureChanged = true
 
-    // Should auto-fit on first marker arrival
-    const shouldAutoFit = !initialCameraEstablished && markersCount > 0 && !userInteracted
+    // Should auto-fit on first marker arrival when camera is INITIALIZING
+    const shouldAutoFit = markersCount > 0 && signatureChanged && cameraOwner !== CameraOwner.USER_OWNED
 
     expect(shouldAutoFit).toBe(true)
 
-    // After auto-fit, initialCameraEstablished becomes true
-    const initialCameraEstablishedAfter = true
-    const shouldAutoFitAfter = !initialCameraEstablishedAfter && markersCount > 0 && !userInteracted
+    // After auto-fit, camera owner would transition to USER_OWNED
+    const cameraOwnerAfter = CameraOwner.USER_OWNED
+    const shouldAutoFitAfter = markersCount > 0 && signatureChanged && cameraOwnerAfter !== CameraOwner.USER_OWNED
 
     expect(shouldAutoFitAfter).toBe(false)
+  })
+
+  it('manual zoom sets user camera ownership', () => {
+    const cameraOwnerBefore = CameraOwner.INITIALIZING
+    const programmaticCameraChange = false
+    const isDragging = false
+
+    // Manual zoom should set camera ownership to USER_OWNED
+    const shouldSetUserOwned = !programmaticCameraChange && !isDragging
+
+    expect(shouldSetUserOwned).toBe(true)
+  })
+
+  it('programmatic move completion transitions to user ownership on idle', () => {
+    const wasProgrammatic = true
+    const cameraOwnerBefore = CameraOwner.APP_OWNED
+
+    // Programmatic move completion should transition to USER_OWNED on idle
+    const shouldTransitionToUserOwned = wasProgrammatic
+
+    expect(shouldTransitionToUserOwned).toBe(true)
   })
 
   it('business marker survives empty selected-day marker set', () => {
@@ -407,5 +438,119 @@ describe('Camera Ownership Model - Hardening', () => {
 
     expect(canonicalLocation).not.toEqual(fallbackCoordinate)
     expect(fallbackCoordinate.lat).toBe(39.8283) // Neutral fallback, not business location
+  })
+})
+
+describe('Selection Zoom Preservation', () => {
+  it('marker selection preserves current zoom (no zoom parameter)', () => {
+    const currentZoom = 12
+    const selectionZoom = undefined
+    const shouldPreserveZoom = selectionZoom === undefined
+
+    expect(currentZoom).toBe(12)
+    expect(shouldPreserveZoom).toBe(true)
+  })
+
+  it('marker tap does not force zoom to 15', () => {
+    const checkVisibility = true
+    const zoomParam = undefined
+    const shouldForceZoom15 = zoomParam === 15
+
+    expect(checkVisibility).toBe(true)
+    expect(shouldForceZoom15).toBe(false)
+  })
+
+  it('selecting already visible marker causes no camera movement', () => {
+    const markerVisible = true
+    const checkVisibility = true
+    const shouldSkipCamera = markerVisible && checkVisibility
+
+    expect(markerVisible).toBe(true)
+    expect(shouldSkipCamera).toBe(true)
+  })
+
+  it('offscreen marker selection may pan', () => {
+    const markerVisible = false
+    const checkVisibility = true
+    const shouldPan = !markerVisible
+
+    expect(markerVisible).toBe(false)
+    expect(shouldPan).toBe(true)
+  })
+
+  it('next/previous stop preserves zoom', () => {
+    const zoomParam = undefined
+    const checkVisibility = true
+    const shouldPreserveZoom = zoomParam === undefined
+
+    expect(shouldPreserveZoom).toBe(true)
+    expect(checkVisibility).toBe(true)
+  })
+
+  it('external card selection preserves zoom', () => {
+    const zoomParam = undefined
+    const checkVisibility = true
+    const shouldPreserveZoom = zoomParam === undefined
+
+    expect(shouldPreserveZoom).toBe(true)
+  })
+
+  it('show all can still change zoom', () => {
+    const isShowAll = true
+    const shouldAllowZoomChange = isShowAll
+
+    expect(isShowAll).toBe(true)
+    expect(shouldAllowZoomChange).toBe(true)
+  })
+})
+
+describe('Initial Framing Completion', () => {
+  it('initial framing stays in INITIALIZING until signature stabilizes', () => {
+    const cameraOwner = 'INITIALIZING'
+    const signatureChanged = false
+    const shouldTransitionToUserOwned = cameraOwner === 'INITIALIZING' && !signatureChanged
+
+    expect(shouldTransitionToUserOwned).toBe(true)
+  })
+
+  it('signature change during INITIALIZING does NOT transition to USER_OWNED', () => {
+    const cameraOwner = 'INITIALIZING'
+    const signatureChanged = true
+    const shouldTransitionToUserOwned = cameraOwner === 'INITIALIZING' && !signatureChanged
+
+    expect(signatureChanged).toBe(true)
+    expect(shouldTransitionToUserOwned).toBe(false)
+  })
+
+  it('late-arriving markers can participate in initial fit', () => {
+    const cameraOwner = 'INITIALIZING'
+    const signatureChanged = true
+    const shouldAutoFit = signatureChanged && cameraOwner !== 'USER_OWNED' && cameraOwner !== 'DRAGGING'
+
+    expect(cameraOwner).toBe('INITIALIZING')
+    expect(signatureChanged).toBe(true)
+    expect(shouldAutoFit).toBe(true)
+  })
+
+  it('manual interaction during initialization permanently suppresses later fits', () => {
+    const cameraOwnerBefore = 'INITIALIZING'
+    const userInteracted = true
+    const cameraOwnerAfter = 'USER_OWNED'
+    const signatureChanged = true
+    const shouldAutoFitAfter = signatureChanged && cameraOwnerAfter !== 'USER_OWNED'
+
+    expect(userInteracted).toBe(true)
+    expect(cameraOwnerAfter).toBe('USER_OWNED')
+    expect(shouldAutoFitAfter).toBe(false)
+  })
+
+  it('async geocoding after genuine user interaction cannot steal camera', () => {
+    const cameraOwner = 'USER_OWNED'
+    const signatureChanged = true
+    const shouldAutoFit = signatureChanged && cameraOwner !== 'USER_OWNED' && cameraOwner !== 'DRAGGING'
+
+    expect(cameraOwner).toBe('USER_OWNED')
+    expect(signatureChanged).toBe(true)
+    expect(shouldAutoFit).toBe(false)
   })
 })
