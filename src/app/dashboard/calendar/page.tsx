@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
@@ -15,6 +15,9 @@ import EventDetailsModal from '@/components/calendar/EventDetailsModal'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { filterEventsByMonth, getLocalDateKey, getTodayLocalDateKey } from '@/lib/calendar-date-utils'
+import { getBusinessLocalDateString, normalizeBusinessTimezone } from '@/lib/business-date-utils'
+import { toZonedTime } from 'date-fns-tz/toZonedTime'
+import { fromZonedTime } from 'date-fns-tz/fromZonedTime'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import JobComposer from '@/components/jobs/JobComposer'
 import JobPill from '@/components/jobs/JobPill'
@@ -646,6 +649,29 @@ export default function SchedulePage() {
     setSelectedDay(clickedDate)
   }
 
+  // Calculate business-local today for calendar highlighting
+  const businessLocalToday = useMemo(() => {
+    if (!business) return new Date()
+    const businessTimezone = business.business_hours_timezone || 'UTC'
+    const normalizedTimezone = normalizeBusinessTimezone(businessTimezone)
+    const now = new Date()
+    const businessNow = toZonedTime(now, normalizedTimezone)
+    return new Date(businessNow.getFullYear(), businessNow.getMonth(), businessNow.getDate())
+  }, [business])
+
+  // Initialize calendar to business-local month when business loads
+  useEffect(() => {
+    if (!business) return
+    const businessTimezone = business.business_hours_timezone || 'UTC'
+    const normalizedTimezone = normalizeBusinessTimezone(businessTimezone)
+    const now = new Date()
+    const businessNow = toZonedTime(now, normalizedTimezone)
+    const newMonth = new Date(businessNow.getFullYear(), businessNow.getMonth(), 1)
+    const newMonthKey = `${businessNow.getFullYear()}-${businessNow.getMonth()}`
+    setCurrentMonth(newMonth)
+    setCurrentMonthKey(newMonthKey)
+  }, [business?.id])
+
   const getTodayKey = getTodayLocalDateKey
   const getDateKey = getLocalDateKey
 
@@ -1073,13 +1099,32 @@ export default function SchedulePage() {
   }
 
   const goToToday = () => {
+    if (!business) return
+
+    // Get business-local today
+    const businessTimezone = business.business_hours_timezone || 'UTC'
+    const normalizedTimezone = normalizeBusinessTimezone(businessTimezone)
     const now = new Date()
-    const newMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const newMonthKey = `${now.getFullYear()}-${now.getMonth()}`
-    
+
+    // Convert to business timezone
+    const businessNow = toZonedTime(now, normalizedTimezone)
+    const todayYear = businessNow.getFullYear()
+    const todayMonth = businessNow.getMonth()
+    const todayDay = businessNow.getDate()
+
+    // Create business-local today date
+    const businessToday = new Date(todayYear, todayMonth, todayDay)
+
+    // Update visible month to today's month
+    const newMonth = new Date(todayYear, todayMonth, 1)
+    const newMonthKey = `${todayYear}-${todayMonth}`
+
     setCurrentMonth(newMonth)
     setCurrentMonthKey(newMonthKey)
-    
+
+    // Select today's date
+    setSelectedDay(businessToday)
+
     // Check if events are cached
     const cachedEvents = eventsCache.get(newMonthKey)
     if (cachedEvents) {
@@ -1594,6 +1639,7 @@ export default function SchedulePage() {
                           events={visibleMonthEvents}
                           jobs={jobs}
                           selectedDay={selectedDay}
+                          businessLocalToday={businessLocalToday}
                           onPreviousMonth={goToPreviousMonth}
                           onNextMonth={goToNextMonth}
                           onToday={goToToday}

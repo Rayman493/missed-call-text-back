@@ -21,6 +21,7 @@ interface CalendarGridProps {
     lead_id: string | null
   }>
   selectedDay?: Date | null
+  businessLocalToday?: Date | null
   renderEvent?: (event: any, day: Date) => ReactNode
   renderExtraContent?: (date: Date) => ReactNode
   onPreviousMonth?: () => void
@@ -35,6 +36,7 @@ export default function CalendarGrid({
   events,
   jobs = [],
   selectedDay,
+  businessLocalToday,
   renderEvent,
   renderExtraContent,
   onPreviousMonth,
@@ -72,7 +74,8 @@ export default function CalendarGrid({
   const daysInMonth = lastDayOfMonth.getDate()
   const startDayOfWeek = firstDayOfMonth.getDay() // Sunday = 0, Monday = 1, etc.
   
-  const today = new Date()
+  // Use business-local today if provided, otherwise fall back to browser-local
+  const today = businessLocalToday || new Date()
   const isCurrentMonth = today.getMonth() === monthIndex && today.getFullYear() === year
 
   const days = []
@@ -202,28 +205,30 @@ export default function CalendarGrid({
   return (
     <div className="w-full bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm overflow-hidden overflow-x-hidden">
       <div className="sticky top-0 z-10 bg-white dark:bg-slate-900/60 backdrop-blur-sm p-1.5 sm:p-3 md:p-4 border-b border-slate-200/70 dark:border-slate-700/50">
-        <div className="flex items-center justify-center gap-2 sm:gap-3">
-          <button
-            onClick={onPreviousMonth}
-            className="min-w-[44px] min-h-[44px] w-10 h-10 md:w-11 md:h-11 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors active:scale-95 border border-slate-200 dark:border-slate-700"
-            aria-label="Previous month"
-          >
-            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
-          </button>
-          <h2 className="text-sm sm:text-xl md:text-2xl font-semibold text-slate-900 dark:text-foreground truncate px-2">
-            {month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-          </h2>
-          <button
-            onClick={onNextMonth}
-            className="min-w-[44px] min-h-[44px] w-10 h-10 md:w-11 md:h-11 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors active:scale-95 border border-slate-200 dark:border-slate-700"
-            aria-label="Next month"
-          >
-            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
-          </button>
+        <div className="flex items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={onPreviousMonth}
+              className="min-w-[44px] min-h-[44px] w-10 h-10 md:w-11 md:h-11 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors active:scale-95 border border-slate-200 dark:border-slate-700"
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
+            </button>
+            <h2 className="text-sm sm:text-xl md:text-2xl font-semibold text-slate-900 dark:text-foreground truncate px-2">
+              {month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            </h2>
+            <button
+              onClick={onNextMonth}
+              className="min-w-[44px] min-h-[44px] w-10 h-10 md:w-11 md:h-11 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors active:scale-95 border border-slate-200 dark:border-slate-700"
+              aria-label="Next month"
+            >
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
+            </button>
+          </div>
           {onToday && (
             <button
               onClick={onToday}
-              className="min-h-[36px] px-3 py-1.5 text-[10px] sm:text-xs md:text-sm font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full transition-colors active:scale-95 border border-slate-200 dark:border-slate-700"
+              className="min-h-[36px] px-3 py-1.5 text-[10px] sm:text-xs md:text-sm font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full transition-colors active:scale-95 border border-blue-200 dark:border-blue-800"
             >
               Today
             </button>
