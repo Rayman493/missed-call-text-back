@@ -254,3 +254,46 @@ export function getCustomerSourceLabel(source: string | null | undefined): strin
   const info = getCustomerSourceInfo(source)
   return info?.label || ''
 }
+
+/**
+ * Get customer source info using the full provenance precedence chain.
+ * This is the canonical helper for LeadCard source indicators.
+ * Returns null for unknown/unclassified sources to avoid cluttering UI.
+ *
+ * Uses the same precedence chain as getProvenanceLabel:
+ * 1. raw_metadata.creation_source (canonical)
+ * 2. raw_metadata.source (legacy)
+ * 3. leads.source (table column)
+ * 4. Historical AI intake metadata
+ *
+ * The source represents CUSTOMER ORIGIN (how they first entered ReplyFlow),
+ * not the source of the latest interaction.
+ */
+export function getCustomerSourceInfoCanonical(lead: any): CustomerSourceInfo | null {
+  const provenanceLabel = getProvenanceLabel(lead)
+
+  if (!provenanceLabel) {
+    return null
+  }
+
+  // Determine type from provenance label
+  if (provenanceLabel.includes('ReplyFlow')) {
+    return {
+      type: 'replyflow',
+      label: 'ReplyFlow',
+      description: provenanceLabel, // Use full provenance label as description
+      icon: 'PhoneIncoming'
+    }
+  }
+
+  if (provenanceLabel.includes('Manually')) {
+    return {
+      type: 'manual',
+      label: 'Manual',
+      description: provenanceLabel,
+      icon: 'UserPlus'
+    }
+  }
+
+  return null
+}

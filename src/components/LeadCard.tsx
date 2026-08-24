@@ -14,7 +14,7 @@ import { formatPhoneNumber, formatRelativeTime, sentenceCase, getLeadDisplayName
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { getCustomerStatusStyle, normalizeCustomerStatus, CustomerStatus } from '@/lib/customer-status'
 import { memoryService } from '@/lib/business-memory/memory-service'
-import { getCustomerSourceInfo } from '@/lib/customer-source'
+import { getCustomerSourceInfoCanonical } from '@/lib/customer-source'
 import { Repeat, TrendingUp, Clock, DollarSign, PhoneIncoming, UserPlus } from 'lucide-react'
 
 // Helper to get structured AI data for lead card
@@ -116,7 +116,7 @@ export default function LeadCard({
   const aiData = React.useMemo(() => getAIData(lead), [lead])
   const requestTitle = React.useMemo(() => getLeadRequestTitle(lead), [lead])
   const customerIndicators = React.useMemo(() => getCustomerIndicators(lead, businessId), [lead, businessId])
-  const customerSourceInfo = React.useMemo(() => getCustomerSourceInfo(lead.source), [lead.source])
+  const customerSourceInfo = React.useMemo(() => getCustomerSourceInfoCanonical(lead), [lead])
 
   // Hook must be called at the top level of the component
   const pressGuard = useMobilePressGuard({
@@ -139,10 +139,15 @@ export default function LeadCard({
       aria-label={`Open ${getLeadDisplayName(lead)}`}
       style={{ touchAction: 'pan-y' }}
     >
-      {/* Accent strip at the top */}
+      {/* Status accent strip at the top */}
       <div
         aria-hidden="true"
         className={`pointer-events-none absolute inset-x-0 top-0 h-0.5 ${statusStyle.accentStripClass}`}
+      ></div>
+      {/* Status accent strip on the left */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-y-0 left-0 w-1 ${statusStyle.accentStripClass}`}
       ></div>
       <div>
       {/* Header: Name, Phone, Status, Source */}
@@ -153,7 +158,7 @@ export default function LeadCard({
                 <span className="text-foreground">{getLeadDisplayName(lead)}</span>
               </h3>
               {customerSourceInfo && (
-                <span 
+                <span
                   className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium border whitespace-nowrap flex-shrink-0"
                   title={customerSourceInfo.description}
                   style={{

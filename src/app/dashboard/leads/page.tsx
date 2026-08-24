@@ -1129,21 +1129,6 @@ export default function LeadsPage() {
                   </p>
                 </div>
               </div>
-              {/* Discoverability cue for manual customer creation - shown for new/low-volume accounts */}
-              {leads.length < 5 && (
-                <div className="mt-3 sm:mt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddCustomerModal(true)}
-                    className="text-xs sm:text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5"
-                  >
-                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span>Have a customer who didn't call? Add them manually.</span>
-                  </button>
-                </div>
-              )}
             </div>
 
             {/* Search, Filter, and Overflow - single line layout */}
