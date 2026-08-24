@@ -178,6 +178,7 @@ function ScheduleMapComponent({
   const calendarEventCoordsCacheRef = useRef<Map<string, { lat: number; lng: number; formattedAddress: string } | null>>(new Map()) // Cache for calendar event coordinates (null = failed geocode)
   const businessCoordsCacheRef = useRef<{ lat: number; lng: number; formattedAddress: string } | null>(null) // Cache for business coordinates
   const lastBusinessAddressRef = useRef<string | null>(null) // Track last business address for invalidation
+  const businessGeocodingInProgressRef = useRef(false) // Track if business geocoding is in progress for current date
   const programmaticCameraChangeRef = useRef(false) // Guard to distinguish user vs programmatic movement
   const pendingProgrammaticMoveRef = useRef(false) // Track if a programmatic move is in progress
   const mapPreparationIdRef = useRef(0) // Monotonically increasing ID to prevent stale async results
@@ -363,6 +364,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     if (!business) {
       businessCoordsCacheRef.current = null
       lastBusinessAddressRef.current = null
+      businessGeocodingInProgressRef.current = false
       return
     }
 
@@ -378,6 +380,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       })
       businessCoordsCacheRef.current = null
       lastBusinessAddressRef.current = null
+      businessGeocodingInProgressRef.current = false
       return
     }
 
@@ -387,6 +390,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     }
 
     lastBusinessAddressRef.current = businessAddress
+    businessGeocodingInProgressRef.current = true
 
     console.log('[SCHEDULE_MAP_BUSINESS_ADDRESS]', {
       hasAddress: true,
@@ -417,6 +421,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         businessCoordsCacheRef.current = null
         console.log('[ScheduleMap] Business geocoding: success=false')
       }
+      businessGeocodingInProgressRef.current = false
     }
 
     geocode()
@@ -1731,8 +1736,9 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       // Auto-fit should happen when:
       // - Date changes (new context, camera ownership already reset to INITIALIZING)
       // - Signature changes AND camera is not USER_OWNED and not DRAGGING
+      // - Business geocoding is NOT in progress (wait for all markers to be ready)
       // Filter changes do NOT trigger auto-fit (preserve user viewport)
-      const shouldAutoFit = dateChanged || (signatureChanged && cameraOwnerRef.current !== CameraOwner.USER_OWNED && cameraOwnerRef.current !== CameraOwner.DRAGGING)
+      const shouldAutoFit = (dateChanged || (signatureChanged && cameraOwnerRef.current !== CameraOwner.USER_OWNED && cameraOwnerRef.current !== CameraOwner.DRAGGING)) && !businessGeocodingInProgressRef.current
 
       console.log('[SCHEDULE_MAP_EFFECT]', {
         effect: 'auto_fit_decision',
@@ -1741,6 +1747,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         filterChanged,
         signatureChanged,
         cameraOwner: cameraOwnerRef.current,
+        businessGeocodingInProgress: businessGeocodingInProgressRef.current,
         lastAutoFitDateKey,
         currentDateKey
       })

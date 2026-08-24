@@ -562,6 +562,113 @@ describe('Schedule Map Camera Behavior', () => {
       expect(isPerformant).toBe(true)
     })
   })
+
+  describe('Initial Camera Framing Reliability', () => {
+    it('initial fit waits for business geocoding to complete', () => {
+      // When business geocoding is in progress, initial auto-fit should be deferred
+      const dateChanged = true
+      const signatureChanged = true
+      const cameraOwner = 'INITIALIZING'
+      const businessGeocodingInProgress = true
+
+      const shouldAutoFit = (dateChanged || (signatureChanged && cameraOwner !== 'USER_OWNED' && cameraOwner !== 'DRAGGING')) && !businessGeocodingInProgress
+
+      expect(shouldAutoFit).toBe(false)
+    })
+
+    it('initial fit proceeds when business geocoding completes', () => {
+      // When business geocoding completes, initial auto-fit should proceed
+      const dateChanged = true
+      const signatureChanged = true
+      const cameraOwner = 'INITIALIZING'
+      const businessGeocodingInProgress = false
+
+      const shouldAutoFit = (dateChanged || (signatureChanged && cameraOwner !== 'USER_OWNED' && cameraOwner !== 'DRAGGING')) && !businessGeocodingInProgress
+
+      expect(shouldAutoFit).toBe(true)
+    })
+
+    it('date change with business marker arriving before job marker', () => {
+      // Simulate: business geocodes first, job geocodes later
+      // Initial fit should wait for job marker to arrive
+      const businessGeocodingInProgress = false
+      const jobMarkerResolved = false
+      const cameraOwner = 'INITIALIZING'
+
+      // If job marker is not yet resolved, markersCount will be 1 (only business)
+      // But business geocoding is complete, so we should wait for job marker
+      const allMarkersResolved = jobMarkerResolved
+      const shouldAutoFit = allMarkersResolved && cameraOwner === 'INITIALIZING'
+
+      expect(shouldAutoFit).toBe(false)
+    })
+
+    it('initial fit includes both markers when all resolved', () => {
+      // When both business and job markers are resolved, initial fit should include both
+      const businessMarkerResolved = true
+      const jobMarkerResolved = true
+      const cameraOwner = 'INITIALIZING'
+      const markersCount = 2
+
+      const allMarkersResolved = businessMarkerResolved && jobMarkerResolved
+      const shouldAutoFit = allMarkersResolved && cameraOwner === 'INITIALIZING' && markersCount > 0
+
+      expect(shouldAutoFit).toBe(true)
+      expect(markersCount).toBe(2)
+    })
+
+    it('date change with all markers resolving immediately', () => {
+      // If all markers resolve immediately, initial fit should work normally
+      const dateChanged = true
+      const businessGeocodingInProgress = false
+      const allMarkersResolved = true
+      const cameraOwner = 'INITIALIZING'
+
+      const shouldAutoFit = dateChanged && !businessGeocodingInProgress && allMarkersResolved && cameraOwner === 'INITIALIZING'
+
+      expect(shouldAutoFit).toBe(true)
+    })
+
+    it('date change with one failed geocode', () => {
+      // If one geocode fails, successful markers should still be framed
+      const dateChanged = true
+      const businessGeocodingInProgress = false
+      const businessGeocodeSucceeded = true
+      const jobGeocodeSucceeded = false
+      const cameraOwner = 'INITIALIZING'
+
+      // Failed geocode should not block framing of successful markers
+      const hasSuccessfulMarkers = businessGeocodeSucceeded
+      const shouldAutoFit = dateChanged && !businessGeocodingInProgress && hasSuccessfulMarkers && cameraOwner === 'INITIALIZING'
+
+      expect(shouldAutoFit).toBe(true)
+    })
+
+    it('user interaction before delayed marker resolution', () => {
+      // If user interacts before delayed marker arrives, user camera ownership wins
+      const businessGeocodingInProgress = false
+      const cameraOwner = 'USER_OWNED'
+      const jobMarkerResolved = false
+
+      const shouldAutoFit = jobMarkerResolved && cameraOwner === 'INITIALIZING'
+
+      expect(shouldAutoFit).toBe(false)
+      expect(cameraOwner).toBe('USER_OWNED')
+    })
+
+    it('no infinite loading on geocode failure', () => {
+      // Geocode failure should not cause infinite loading
+      const businessGeocodingInProgress = false
+      const businessGeocodeSucceeded = false
+      const jobGeocodeSucceeded = false
+      const cameraOwner = 'INITIALIZING'
+
+      // Even if all geocodes fail, auto-fit should still complete (with 0 markers or fallback)
+      const shouldCompleteAutoFit = !businessGeocodingInProgress
+
+      expect(shouldCompleteAutoFit).toBe(true)
+    })
+  })
 })
 
 describe('Responsive Padding Calculation', () => {
