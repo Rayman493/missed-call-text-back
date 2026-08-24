@@ -84,7 +84,7 @@ export default function AssistantMobileShell({ isOpen, context, onClose }: Assis
         }}
       >
         <div
-          className="w-full bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+          className="w-full bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-0"
           style={{
             maxHeight: 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px)',
           }}

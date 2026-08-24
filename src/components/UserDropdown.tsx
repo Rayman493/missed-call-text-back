@@ -580,8 +580,8 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
                 onClick={() => setIsAssistantOpen(false)}
                 style={{ touchAction: 'none' }}
               />
-              <div className="relative w-full max-w-lg max-h-[calc(100dvh-32px)] flex flex-col">
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden max-h-[80vh]">
+              <div className="relative w-full max-w-lg max-h-[calc(100dvh-2rem)] flex flex-col">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-0">
                   <ReplyFlowAssistant context={{ currentPage: 'dashboard' }} onClose={() => setIsAssistantOpen(false)} />
                 </div>
               </div>
