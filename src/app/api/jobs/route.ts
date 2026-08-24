@@ -523,8 +523,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('[job_created]', { jobId: job.id, source, businessId: business.id, googleCalendarEventId })
-    return NextResponse.json({ job: { ...job, google_calendar_event_id: googleCalendarEventId } }, { status: 201 })
+    // Fetch the updated job from database to return the final persisted state
+    // This ensures google_calendar_event_id and calendar sync fields are included
+    const { data: updatedJob, error: fetchError } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('id', job.id)
+      .single()
+
+    if (fetchError || !updatedJob) {
+      console.error('[JOBS CREATE] Failed to fetch updated job:', fetchError)
+      // Fall back to returning the original job with manually-added googleCalendarEventId
+      console.log('[job_created]', { jobId: job.id, source, businessId: business.id, googleCalendarEventId })
+      return NextResponse.json({ job: { ...job, google_calendar_event_id: googleCalendarEventId } }, { status: 201 })
+    }
+
+    console.log('[job_created]', { jobId: updatedJob.id, source, businessId: business.id, googleCalendarEventId: updatedJob.google_calendar_event_id })
+    return NextResponse.json({ job: updatedJob }, { status: 201 })
   } catch (error) {
     console.error('[Jobs API] POST unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
