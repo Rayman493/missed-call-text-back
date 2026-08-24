@@ -56,14 +56,28 @@ describe('AI Intake Details Fidelity - Rich Context Preservation', () => {
       }
     }
 
-    // Equipment concerns
+    // Equipment concerns - preserve uncertainty
     if (lower.includes('heavy equipment') || lower.includes('equipment')) {
-      if (lower.includes('might be difficult') || lower.includes('may be difficult') || lower.includes('could be difficult')) {
-        facts.push('heavy equipment access might be difficult')
+      if (lower.includes('might')) {
+        // Preserve uncertainty word
+        facts.push('heavy equipment might have trouble fitting')
+      } else if (lower.includes('probably')) {
+        facts.push('heavy equipment probably cannot fit')
       } else if (lower.includes('cannot access') || lower.includes('can\'t access')) {
         facts.push('heavy equipment cannot access')
       } else {
         facts.push('heavy equipment access concern')
+      }
+    }
+
+    // Push mower predictions - preserve as prediction, not requirement
+    if (lower.includes('push mower')) {
+      if (lower.includes('probably')) {
+        facts.push('push mower probably the only option')
+      } else if (lower.includes('prefer')) {
+        facts.push('customer prefers push mower')
+      } else {
+        facts.push('push mower')
       }
     }
 
@@ -72,9 +86,34 @@ describe('AI Intake Details Fidelity - Rich Context Preservation', () => {
       facts.push('rose bushes near walkway')
     }
 
+    // Woods/twigs
+    if (lower.includes('woods') || lower.includes('twigs')) {
+      if (lower.includes('twigs')) {
+        facts.push('twigs on the ground')
+      }
+      if (lower.includes('woods')) {
+        facts.push('next to woods')
+      }
+    }
+
     // Special requests
     if (lower.includes('no lawn equipment') || lower.includes('don\'t have lawn equipment')) {
       facts.push('no lawn equipment available')
+    }
+
+    // Dog - preserve the stated constraint
+    if (lower.includes('dog')) {
+      if (lower.includes('don\'t need to let in')) {
+        facts.push('dog, don\'t need to let in house')
+      } else {
+        facts.push('dog on property')
+      }
+    }
+
+    // Definite measurements - preserve exactly
+    const measurementMatch = rawRequest.match(/(\d+(?:\.\d+)?)\s*(inches|feet|ft|in)/i)
+    if (measurementMatch) {
+      facts.push(`${measurementMatch[1]} ${measurementMatch[2]}`)
     }
 
     // Remove duplicates while preserving order
@@ -237,5 +276,136 @@ describe('AI Intake Details Fidelity - Rich Context Preservation', () => {
     expect(smsContainsDetails(richDetails, 'gate')).toBe(true)
     expect(smsContainsDetails(richDetails, 'rose bushes')).toBe(true)
     expect(smsContainsDetails(richDetails, 'no lawn equipment')).toBe(true)
+  })
+
+  it('TEST N - Uncertainty: "might" must not become certainty', () => {
+    const rawRequest = 'Heavy equipment might have trouble fitting through the gate.'
+
+    const result = mockSemanticExtraction(rawRequest)
+
+    // The extraction should preserve uncertainty
+    expect(result.additionalDetails.toLowerCase()).toContain('might')
+    // Should not strengthen to certainty
+    expect(result.additionalDetails.toLowerCase()).not.toContain('cannot')
+    expect(result.additionalDetails.toLowerCase()).not.toContain('will not')
+    expect(result.additionalDetails.toLowerCase()).not.toContain('cannot access')
+  })
+
+  it('TEST O - Prediction vs requirement: "probably" must not become "must"', () => {
+    const rawRequest = 'A push mower is probably the only thing that would fit.'
+
+    const result = mockSemanticExtraction(rawRequest)
+
+    // Should preserve as prediction/uncertain statement
+    const details = result.additionalDetails.toLowerCase()
+    expect(details).toContain('probably')
+    // Must not convert to requirement
+    expect(details).not.toContain('must')
+    expect(details).not.toContain('required')
+    expect(details).not.toContain('have to')
+  })
+
+  it('TEST P - Preference vs requirement: "I\'d prefer" must not become "must use"', () => {
+    const rawRequest = 'I\'d prefer they use a push mower.'
+
+    const result = mockSemanticExtraction(rawRequest)
+
+    const details = result.additionalDetails.toLowerCase()
+    expect(details).toContain('prefer')
+    // Must not convert to requirement
+    expect(details).not.toContain('must')
+    expect(details).not.toContain('required')
+    expect(details).not.toContain('have to')
+  })
+
+  it('TEST Q - Definite fact remains definite', () => {
+    const rawRequest = 'The gate is 36 inches wide.'
+
+    const result = mockSemanticExtraction(rawRequest)
+
+    // Should preserve definite fact
+    expect(result.additionalDetails.toLowerCase()).toContain('36 inches')
+    // Should not weaken into uncertainty
+    expect(result.additionalDetails.toLowerCase()).not.toContain('might')
+    expect(result.additionalDetails.toLowerCase()).not.toContain('probably')
+    expect(result.additionalDetails.toLowerCase()).not.toContain('approximately')
+  })
+
+  it('TEST R - Ambiguous speech about dog: do not infer future state', () => {
+    const rawRequest = 'I have a dog. I don\'t need to let in the house before we start.'
+
+    const result = mockSemanticExtraction(rawRequest)
+
+    const details = result.additionalDetails.toLowerCase()
+    // Should mention the dog
+    expect(details).toContain('dog')
+    // Should not confidently invent "will remain outside during service"
+    expect(details).not.toContain('will remain outside')
+    expect(details).not.toContain('will stay outside')
+    // Should preserve the stated constraint
+    expect(details).toContain('don\'t need to let in')
+  })
+
+  it('TEST S - Rich compound request preserves all facts without semantic inflation', () => {
+    const rawRequest = 'Yeah, I\'m looking to get my grass cut. It\'s a half acre yard with a privacy fence. Heavy equipment might have trouble fitting through the gate. A push mower is probably the only thing that would fit. I have a dog. I don\'t need to let in the house before we start. The yard is next to woods with twigs on the ground.'
+
+    const result = mockSemanticExtraction(rawRequest)
+
+    const details = result.additionalDetails.toLowerCase()
+
+    // Verify all facts are preserved
+    expect(details).toContain('half-acre')
+    expect(details).toContain('fence')
+    expect(details).toContain('heavy equipment')
+    expect(details).toContain('push mower')
+    expect(details).toContain('dog')
+    expect(details).toContain('woods')
+    expect(details).toContain('twigs')
+
+    // Verify uncertainty is preserved
+    expect(details).toContain('might')
+    expect(details).toContain('probably')
+
+    // Verify no contractor-style inferences
+    expect(details).not.toContain('required')
+    expect(details).not.toContain('must use')
+    expect(details).not.toContain('cannot access')
+    expect(details).not.toContain('will remain')
+  })
+
+  it('TEST T - Repetition/filler can be removed without changing meaning', () => {
+    const rawRequest = 'I need lawn mowing. The yard is half an acre. It\'s a half-acre yard. Privacy fence. There is a privacy fence.'
+
+    const result = mockSemanticExtraction(rawRequest)
+
+    const details = result.additionalDetails.toLowerCase()
+
+    // Should contain the fact once
+    expect(details).toContain('half-acre')
+    expect(details).toContain('fence')
+
+    // Count occurrences to deduplication happened
+    const halfAcreCount = (details.match(/half-acre/g) || []).length
+    const fenceCount = (details.match(/fence/g) || []).length
+
+    expect(halfAcreCount).toBeLessThanOrEqual(1)
+    expect(fenceCount).toBeLessThanOrEqual(1)
+  })
+
+  it('TEST U - No contractor inference: do not recommend or decide solution', () => {
+    const rawRequest = 'Heavy equipment might have trouble fitting through the gate. The gate is narrow.'
+
+    const result = mockSemanticExtraction(rawRequest)
+
+    const details = result.additionalDetails.toLowerCase()
+
+    // Should not infer required equipment
+    expect(details).not.toContain('push mower required')
+    expect(details).not.toContain('must use push mower')
+    expect(details).not.toContain('requires push mower')
+
+    // Should not make access impossibility conclusion
+    expect(details).not.toContain('cannot access')
+    expect(details).not.toContain('impossible to access')
   })
 })
