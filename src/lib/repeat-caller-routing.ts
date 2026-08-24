@@ -32,16 +32,16 @@ export type RepeatCallerReason =
   | 'missing_metadata'
   | 'error_fallback';
 
-// Canonical status values
-export type LeadStatus = 'new' | 'needs_follow_up' | 'in_progress' | 'completed' | 'archived';
+// Canonical status values (matches database schema from 20260804000000_sync_canonical_customer_statuses.sql)
+export type LeadStatus = 'new' | 'needs_reply' | 'active' | 'scheduled' | 'payment_requested' | 'paid' | 'completed' | 'ignored' | 'lost';
 export type ConversationStatus = 'active' | 'closed' | 'archived';
 export type AICallOutcome = 'completed' | 'caller_hung_up' | 'ai_failed' | 'voicemail_fallback' | 'incomplete';
 
 // Active/unresolved lead statuses
-const ACTIVE_LEAD_STATUSES: LeadStatus[] = ['new', 'needs_follow_up', 'in_progress'];
+const ACTIVE_LEAD_STATUSES: LeadStatus[] = ['new', 'needs_reply', 'active', 'scheduled', 'payment_requested', 'paid'];
 
 // Closed/resolved lead statuses
-const CLOSED_LEAD_STATUSES: LeadStatus[] = ['completed', 'archived'];
+const CLOSED_LEAD_STATUSES: LeadStatus[] = ['completed', 'ignored', 'lost'];
 
 // Failed/incomplete AI outcomes that allow retry
 const RETRYABLE_AI_OUTCOMES: AICallOutcome[] = ['incomplete', 'caller_hung_up', 'ai_failed', 'voicemail_fallback'];
@@ -63,14 +63,15 @@ export interface RepeatCallerRoutingResult {
 
 /**
  * Determine the appropriate routing path for a repeat caller
- * 
+ *
  * Decision order:
  * 1. No existing canonical customer → AI intake new request
- * 2. Existing customer with no completed AI intake → AI intake new request
- * 3. Existing customer with incomplete/failed intake → AI retry after cooldown
- * 4. Existing customer with active unresolved request → Update voicemail (no retry window for completed intake)
- * 5. Existing customer with closed request → AI intake new request
- * 6. Ignored customer → Preserve existing behavior
+ * 2. Ignored customer → Preserve existing behavior
+ * 3. Existing customer with no completed AI intake → AI intake new request
+ * 4. Existing customer with closed/resolved request → AI intake new request (checked BEFORE AI outcome)
+ * 5. Existing customer with incomplete/failed intake + ACTIVE lead status → AI retry after cooldown
+ * 6. Existing customer with active unresolved request → Update voicemail
+ * 7. Unknown status → Safe fallback
  */
 export async function determineRepeatCallerRoute(params: {
   businessId: string;
@@ -127,13 +128,30 @@ export async function determineRepeatCallerRoute(params: {
     console.log('[REPEAT CALLER ROUTING] Time since last intake', {
       minutesSinceLastIntake: Math.round(minutesSinceLastIntake),
       lastIntakeTime: lastIntakeTime.toISOString(),
-      aiOutcome: latestAICallRecord.outcome
+      aiOutcome: latestAICallRecord.outcome,
+      leadStatus: lead.status
     });
 
-    // Case 4: Incomplete/failed intake - allow AI retry after cooldown
+    // Case 4: Closed/resolved request - AI intake for new request
+    // Check lead status BEFORE AI outcome to ensure completed customers start fresh
+    if (CLOSED_LEAD_STATUSES.includes(lead.status as LeadStatus)) {
+      console.log('[REPEAT CALLER ROUTING] Closed request - AI intake for new request');
+      return {
+        route: 'ai_intake_new_request',
+        reason: 'latest_request_closed',
+        leadId: lead.id,
+        latestAICallRecordId: latestAICallRecord.id,
+        leadStatus: lead.status,
+        aiOutcome: latestAICallRecord.outcome,
+        minutesSinceLastIntake: Math.round(minutesSinceLastIntake)
+      };
+    }
+
+    // Case 5: Incomplete/failed intake with ACTIVE lead status - allow AI retry after cooldown
+    // Only apply cooldown logic when the lead is still active (not completed)
     if (RETRYABLE_AI_OUTCOMES.includes(latestAICallRecord.outcome as AICallOutcome)) {
       if (minutesSinceLastIntake >= INCOMPLETE_RETRY_COOLDOWN_MINUTES) {
-        console.log('[REPEAT CALLER ROUTING] Incomplete intake - AI retry after cooldown');
+        console.log('[REPEAT CALLER ROUTING] Incomplete intake with active lead - AI retry after cooldown');
         return {
           route: 'ai_intake_retry',
           reason: 'incomplete_intake_retry',
@@ -146,7 +164,7 @@ export async function determineRepeatCallerRoute(params: {
           canRetryAI: true
         };
       } else {
-        console.log('[REPEAT CALLER ROUTING] Incomplete intake - still in cooldown, use voicemail');
+        console.log('[REPEAT CALLER ROUTING] Incomplete intake with active lead - still in cooldown, use voicemail');
         return {
           route: 'update_voicemail_active_request',
           reason: 'retry_window_expired',
@@ -161,7 +179,7 @@ export async function determineRepeatCallerRoute(params: {
       }
     }
 
-    // Case 5: Active unresolved request - ALWAYS route to update voicemail
+    // Case 6: Active unresolved request - ALWAYS route to update voicemail
     // No retry window for completed intake - customers should leave updates, not repeat entire intake
     if (ACTIVE_LEAD_STATUSES.includes(lead.status as LeadStatus)) {
       console.log('[REPEAT CALLER ROUTING] Active unresolved request - update voicemail');
@@ -175,20 +193,6 @@ export async function determineRepeatCallerRoute(params: {
         aiOutcome: latestAICallRecord.outcome,
         minutesSinceLastIntake: Math.round(minutesSinceLastIntake),
         canRetryAI: false
-      };
-    }
-
-    // Case 6: Closed/resolved request - AI intake for new request
-    if (CLOSED_LEAD_STATUSES.includes(lead.status as LeadStatus)) {
-      console.log('[REPEAT CALLER ROUTING] Closed request - AI intake for new request');
-      return {
-        route: 'ai_intake_new_request',
-        reason: 'latest_request_closed',
-        leadId: lead.id,
-        latestAICallRecordId: latestAICallRecord.id,
-        leadStatus: lead.status,
-        aiOutcome: latestAICallRecord.outcome,
-        minutesSinceLastIntake: Math.round(minutesSinceLastIntake)
       };
     }
 
