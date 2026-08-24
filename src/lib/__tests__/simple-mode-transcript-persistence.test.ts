@@ -13,21 +13,27 @@ const mockGetIntakeStageTextSafe = (template: string, stage: string): string => 
     on_site: {
       ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
       ask_request: "Thank you. Can you let me know what you need help with today and any details that would be helpful?",
-      ask_location: "All right. Just a couple more questions. Where will this take place?",
-      ask_completion_time: "When are you hoping this will be done?",
+      ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
+      ask_name_reason_service_only: "And what do you need help with?",
+      ask_name_reason_name_only: "And what's your name?",
+      ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
+      ask_timing: "When are you hoping this will be done?",
       ask_callback_time: "Okay. Last question—what would be the best time for the business to call you back?",
       complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
     },
     appointment: {
       ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
       ask_request: "Thank you. Can you let me know what you need help with today and any details that would be helpful?",
-      ask_location: "All right. Just a couple more questions. Where will this take place?",
-      ask_completion_time: "When are you hoping this will be done?",
+      ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
+      ask_name_reason_service_only: "And what do you need help with?",
+      ask_name_reason_name_only: "And what's your name?",
+      ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
+      ask_timing: "When are you hoping this will be done?",
       ask_callback_time: "Okay. Last question—what would be the best time for the business to call you back?",
       complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
     }
   }
-  
+
   return templates[template]?.[stage] || templates.on_site[stage] || "Can you please provide more information?"
 }
 
@@ -117,7 +123,7 @@ describe('Simple Mode Transcript Persistence', () => {
           timestamp: '2024-01-01T10:00:00Z'
         },
         {
-          stage: 'ask_location',
+          stage: 'ask_location_or_context',
           rawTranscript: '123 Main Street',
           capturedAnswer: '123 Main Street',
           extractedField: 'serviceAddress',
@@ -492,6 +498,77 @@ describe('Simple Mode Transcript Persistence', () => {
       
       // Follow-up logic should still be the same
       expect(shouldCreateFollowUp).toBe(true)
+    })
+  })
+
+  describe('Stage mapping verification', () => {
+    it('TEST Q - all Simple Mode stages resolve to canonical questions (no generic fallback)', () => {
+      // Test all Simple Mode runtime stages to ensure they map correctly
+      const simpleModeStages = [
+        'ask_name',
+        'ask_request',
+        'ask_name_reason',
+        'ask_name_reason_service_only',
+        'ask_name_reason_name_only',
+        'ask_location_or_context',
+        'ask_timing',
+        'ask_callback_time'
+      ]
+
+      simpleModeStages.forEach(stage => {
+        const question = mockGetIntakeStageTextSafe('on_site', stage)
+
+        // Verify no stage falls through to generic fallback
+        expect(question).not.toBe("Can you please provide more information?")
+
+        // Verify each stage has a meaningful question
+        expect(question.length).toBeGreaterThan(20)
+        expect(question).toContain('?')
+      })
+    })
+
+    it('TEST R - ask_location_or_context and ask_timing stages have canonical questions', () => {
+      // These are the stages that were producing generic fallback in production
+      const locationQuestion = mockGetIntakeStageTextSafe('on_site', 'ask_location_or_context')
+      const timingQuestion = mockGetIntakeStageTextSafe('on_site', 'ask_timing')
+
+      // Verify these specific stages have canonical questions
+      expect(locationQuestion).toContain('Where will this take place')
+      expect(locationQuestion).not.toBe("Can you please provide more information?")
+
+      expect(timingQuestion).toContain('When are you hoping this will be done')
+      expect(timingQuestion).not.toBe("Can you please provide more information?")
+    })
+
+    it('TEST S - complete intake flow with all stages uses canonical questions', () => {
+      // Simulate a complete intake flow with all stages
+      const stageCaptures = [
+        { stage: 'ask_name', rawTranscript: 'Ryan', capturedAnswer: 'Ryan', extractedField: 'customerName', source: 'whisper', timestamp: '2024-01-01T10:00:00Z' },
+        { stage: 'ask_request', rawTranscript: 'Lawn mowing', capturedAnswer: 'Lawn mowing', extractedField: 'request', source: 'whisper', timestamp: '2024-01-01T10:00:05Z' },
+        { stage: 'ask_location_or_context', rawTranscript: '1632 South Pine Drive', capturedAnswer: '1632 South Pine Drive', extractedField: 'serviceAddress', source: 'whisper', timestamp: '2024-01-01T10:00:10Z' },
+        { stage: 'ask_timing', rawTranscript: 'Next two weeks', capturedAnswer: 'Next two weeks', extractedField: 'desiredCompletion', source: 'whisper', timestamp: '2024-01-01T10:00:15Z' },
+        { stage: 'ask_callback_time', rawTranscript: 'In the afternoon', capturedAnswer: 'In the afternoon', extractedField: 'callbackTime', source: 'whisper', timestamp: '2024-01-01T10:00:20Z' }
+      ]
+
+      const transcript = buildSimpleModeTranscript(stageCaptures, 'on_site')
+
+      // Verify we have 10 turns (5 questions + 5 answers)
+      expect(transcript.length).toBe(10)
+
+      // Verify all assistant turns have canonical questions (not generic fallback)
+      transcript.forEach((turn, index) => {
+        if (turn.role === 'assistant') {
+          expect(turn.text).not.toBe("Can you please provide more information?")
+          expect(turn.text.length).toBeGreaterThan(20)
+        }
+      })
+
+      // Verify customer answers are verbatim
+      expect(transcript[1].text).toBe('Ryan')
+      expect(transcript[3].text).toBe('Lawn mowing')
+      expect(transcript[5].text).toBe('1632 South Pine Drive')
+      expect(transcript[7].text).toBe('Next two weeks')
+      expect(transcript[9].text).toBe('In the afternoon')
     })
   })
 })

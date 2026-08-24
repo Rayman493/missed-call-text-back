@@ -6275,7 +6275,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     assistantSpeaking: false,
     transcript: '',
     intakeData: {} as any,
-    intakeTemplate: 'on_site' as string,
+    intakeTemplate: '', // Will be set from business_type lookup
     stageCaptures: [] as Array<{ stage: string; rawTranscript: string; capturedAnswer: string; extractedField: string; source: string; timestamp: string }>,
     openAiWs: null as WebSocket | null,
     queuedTranscript: null as string | null,
@@ -6419,18 +6419,27 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     const v = typeof value === 'string' ? value.trim().toLowerCase() : '';
     return (v === 'onsite' || v === 'customer_comes_to_business' || v === 'remote') ? (v as any) : 'onsite';
   };
-  // Helper to resolve and set serviceLocationType after businessId is known (Twilio start)
+  // Helper to resolve and set serviceLocationType and intakeTemplate after businessId is known (Twilio start)
   const loadServiceLocationTypeForBusiness = async (businessIdToLoad: string) => {
     try {
       if (businessIdToLoad && supabase) {
         const { data, error } = await supabase
           .from('businesses')
-          .select('service_location_type')
+          .select('service_location_type, business_type')
           .eq('id', businessIdToLoad)
           .maybeSingle();
         const rawServiceLocationType = !error && data ? (data as any).service_location_type : null;
         const normalized = !error && data ? normalizeServiceLocationType(rawServiceLocationType) : 'onsite';
         state.serviceLocationType = normalized;
+        // Set intake template based on business type
+        const businessType = !error && data ? (data as any).business_type || '' : '';
+        state.intakeTemplate = getIntakeTemplateForBusinessTypeSafe(businessType);
+        console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] business_type:', businessType);
+        console.log('[SIMPLE MODE] intake_template:', state.intakeTemplate);
+        console.log('[SIMPLE MODE] service_location_type:', state.serviceLocationType);
+        console.log('[SIMPLE MODE] Timestamp:', new Date().toISOString());
+        console.log('[SIMPLE MODE] =========================================');
         // Concise warning when authoritative lookup fails (preserve operational signal)
         if (error || !data) {
           const queryOutcome = error ? 'error' : 'no_row';
@@ -6439,6 +6448,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       }
     } catch {}
     console.log('[SIMPLE MODE] service_location_type:', state.serviceLocationType);
+    console.log('[SIMPLE MODE] intake_template:', state.intakeTemplate);
   };
 
   // Centralized stage routing helper for Simple Mode

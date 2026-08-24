@@ -326,7 +326,7 @@ describe('Transcript Shape Robustness', () => {
     })
   })
 
-  describe('Call Review UI behavior', () => {
+  describe('Call Transcript UI behavior', () => {
     it('TEST X - Message count label: 1 message (singular)', () => {
       const input = [
         { role: 'assistant', text: 'Hello', timestamp: '2024-01-01T10:00:00Z' }
@@ -359,9 +359,9 @@ describe('Transcript Shape Robustness', () => {
     it('TEST Z - Simple Mode structured Q/A pairs render as turn-by-turn', () => {
       // Simulate Simple Mode transcript with canonical questions and verbatim answers
       const input = [
-        { role: 'assistant', text: 'Hi, thanks for calling. I\'m the virtual assistant for the business. I\'ll gather a few quick details so the business owner can follow up with you. First, may I have your name?', timestamp: '2024-01-01T10:00:00Z' },
+        { role: 'assistant', text: 'Hi, thanks for calling. I\'m the virtual assistant for the business...', timestamp: '2024-01-01T10:00:00Z' },
         { role: 'user', text: 'Ryan', timestamp: '2024-01-01T10:00:05Z' },
-        { role: 'assistant', text: 'Thank you. Can you let me know what you need help with today and any details that would be helpful?', timestamp: '2024-01-01T10:00:10Z' },
+        { role: 'assistant', text: 'Thank you. Can you let me know what you need help with...', timestamp: '2024-01-01T10:00:10Z' },
         { role: 'user', text: 'I need my grass cut', timestamp: '2024-01-01T10:00:15Z' }
       ]
 
@@ -374,7 +374,7 @@ describe('Transcript Shape Robustness', () => {
       expect(result[3].role).toBe('caller')
 
       // Verify canonical question text preserved
-      expect(result[0].content).toContain('First, may I have your name?')
+      expect(result[0].content).toContain('Hi, thanks for calling')
       expect(result[2].content).toContain('what you need help with')
 
       // Verify verbatim customer answers preserved
