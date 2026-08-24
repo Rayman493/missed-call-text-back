@@ -898,7 +898,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
           {transcriptExpanded && (
             <div className="px-4 pb-4 pt-2 border-t border-border/50">
-              <div className="space-y-3 max-h-[50vh] overflow-y-auto">
+              <div className="space-y-3">
                 {aiCallRecord.transcript.map((turn, index) => {
                   const isAI = turn.role === 'assistant'
                   const isCaller = turn.role === 'caller' || turn.role === 'user'
