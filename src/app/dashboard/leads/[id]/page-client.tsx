@@ -5765,6 +5765,7 @@ If you have questions, reply to this message.`
           setSuccessMessage(message)
         }
       }}
+      preselectedLeadId={params.id}
     />
 
     {/* Job Composer Modal */}

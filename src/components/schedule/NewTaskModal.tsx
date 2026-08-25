@@ -30,6 +30,7 @@ interface NewTaskModalProps {
   taskToEdit?: Task | null
   onShowToast?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
   onTaskDeleted?: () => void
+  preselectedLeadId?: string | null
 }
 
 interface Lead {
@@ -44,7 +45,7 @@ interface Job {
   customer_name: string | null
 }
 
-export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdit, onShowToast, onTaskDeleted }: NewTaskModalProps) {
+export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdit, onShowToast, onTaskDeleted, preselectedLeadId }: NewTaskModalProps) {
   const [title, setTitle] = useState('')
   const [notes, setNotes] = useState('')
   const [dueDate, setDueDate] = useState('')
@@ -78,11 +79,11 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         setNotes('')
         setDueDate('')
         setDueTime('')
-        setSelectedLeadId(null)
+        setSelectedLeadId(preselectedLeadId || null)
         setSelectedJobId(null)
       }
     }
-  }, [isOpen, taskToEdit])
+  }, [isOpen, taskToEdit, preselectedLeadId])
 
   const fetchLeads = async () => {
     setIsLoading(true)
@@ -292,21 +293,34 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-              Notes
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any details about this task..."
-              rows={3}
-              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white dark:bg-slate-800 text-slate-900 dark:text-foreground resize-none"
-              autoCapitalize="sentences"
-              autoCorrect="on"
-              spellCheck={true}
-            />
-          </div>
+          <SelectPicker
+            value={selectedLeadId}
+            onChange={setSelectedLeadId}
+            options={[
+              { value: '', label: 'No customer' },
+              ...leads.map(lead => ({ value: lead.id, label: getLeadName(lead) }))
+            ]}
+            placeholder="No customer"
+            label="Customer"
+            searchable={leads.length > 10}
+            emptyMessage="No customers available"
+          />
+
+          <SelectPicker
+            value={selectedJobId}
+            onChange={setSelectedJobId}
+            options={[
+              { value: '', label: 'No job' },
+              ...jobs.map(job => ({
+                value: job.id,
+                label: job.title + (job.customer_name ? ` - ${job.customer_name}` : '')
+              }))
+            ]}
+            placeholder="No job"
+            label="Job"
+            searchable={jobs.length > 10}
+            emptyMessage="No jobs available"
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <DatePicker
@@ -323,34 +337,21 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
             />
           </div>
 
-          <SelectPicker
-            value={selectedLeadId}
-            onChange={setSelectedLeadId}
-            options={[
-              { value: '', label: 'No customer' },
-              ...leads.map(lead => ({ value: lead.id, label: getLeadName(lead) }))
-            ]}
-            placeholder="No customer"
-            label="Customer (Optional)"
-            searchable={leads.length > 10}
-            emptyMessage="No customers available"
-          />
-
-          <SelectPicker
-            value={selectedJobId}
-            onChange={setSelectedJobId}
-            options={[
-              { value: '', label: 'No job' },
-              ...jobs.map(job => ({
-                value: job.id,
-                label: job.title + (job.customer_name ? ` - ${job.customer_name}` : '')
-              }))
-            ]}
-            placeholder="No job"
-            label="Job (Optional)"
-            searchable={jobs.length > 10}
-            emptyMessage="No jobs available"
-          />
+          <div>
+            <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+              Notes
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add any details about this task..."
+              rows={3}
+              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white dark:bg-slate-800 text-slate-900 dark:text-foreground resize-none"
+              autoCapitalize="sentences"
+              autoCorrect="on"
+              spellCheck={true}
+            />
+          </div>
 
           {/* Completion Toggle - Only in Edit Mode */}
           {taskToEdit && (
