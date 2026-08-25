@@ -1277,7 +1277,7 @@ export default function SchedulePage() {
 
                   {/* Mobile tab toggle (responsive grid, no horizontal scrolling) */}
                   <div className="md:hidden mb-4 mt-2">
-                    <div className="bg-muted/40 dark:bg-slate-800/60 rounded-xl p-0.5 border border-border/50 dark:border-slate-700/50">
+                    <div className="bg-white dark:bg-slate-800/60 rounded-xl p-0.5 border border-border/50 dark:border-slate-700/50">
                       <div className="grid grid-cols-3 gap-0.5">
                         <button
                           onClick={() => setScheduleTab('agenda')}
@@ -1424,7 +1424,7 @@ export default function SchedulePage() {
                       )}
 
                       {/* Compact Status Bar - Desktop: Simplified */}
-                      <div className="hidden md:flex items-center justify-between gap-6 mb-4 p-3 bg-muted/50 dark:bg-slate-900/50 border border-border/50 dark:border-slate-700/50 rounded-xl shadow-sm">
+                      <div className="hidden md:flex items-center justify-between gap-6 mb-4 p-3 bg-white dark:bg-slate-900/50 border border-border/50 dark:border-slate-700/50 rounded-xl shadow-sm">
                         {/* Equal-width summary columns */}
                         <div className="grid grid-cols-3 gap-4 flex-1">
                           <div className="flex items-center gap-2">
@@ -1530,7 +1530,7 @@ export default function SchedulePage() {
                       
                       {/* Mobile: Compact Metrics - equal-width columns */}
                       <div className="md:hidden mb-3">
-                        <div className="grid grid-cols-3 gap-2 p-2 bg-slate-900/50 border border-slate-700/50 rounded-lg">
+                        <div className="grid grid-cols-3 gap-2 p-2 bg-white dark:bg-slate-900/50 border border-border/50 dark:border-slate-700/50 rounded-lg">
                           <div className="flex items-center justify-center gap-1.5">
                             <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
                             <span className="text-xs font-medium text-foreground">{getThisMonthCounts().tasks}</span>
@@ -1550,7 +1550,7 @@ export default function SchedulePage() {
                       </div>
 
                       {/* Calendar Header - mobile only */}
-                      <div className="flex md:hidden items-center justify-between gap-2 mb-3 p-2 bg-slate-900/40 border border-slate-700/40 rounded-lg">
+                      <div className="flex md:hidden items-center justify-between gap-2 mb-3 p-2 bg-white dark:bg-slate-900/40 border border-border/50 dark:border-slate-700/40 rounded-lg">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 bg-emerald-400 rounded-full shadow-sm shadow-emerald-400/30"></div>
                           <div>
