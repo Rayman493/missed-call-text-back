@@ -52,7 +52,9 @@ async function getBusinessWithSubscriptionFields(
       manual_access_enabled,
       manual_access_expires_at,
       user_id,
-      business_hours_timezone
+      business_hours_timezone,
+      automation_settings,
+      name
     `)
     .eq('user_id', userId)
     .single()

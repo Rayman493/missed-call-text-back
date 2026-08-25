@@ -69,7 +69,7 @@ describe('AI Intake SMS Regression Corpus', () => {
       expect(sms).toContain('Hi Sarah Johnson, thanks for reaching out to Test Business.')
       expect(sms).toContain('• Request: Plumbing Repair')
       expect(sms).toContain('Still needed:')
-      expect(sms).toContain('• Any helpful details')
+      // Details are optional - do not ask for them
       expect(sms).toContain('• Service address')
       expect(sms).toContain('• When you\'d like it completed')
       expect(sms).toContain('• Best time to call you')
@@ -91,7 +91,8 @@ describe('AI Intake SMS Regression Corpus', () => {
       expect(sms).toContain('• Address: 456 Oak Avenue')
       expect(sms).toContain('Still needed:')
       expect(sms).toContain('• Your name')
-      expect(sms).toContain('• What you\'re looking to have done')
+      // Request field is present - should not ask for it
+      expect(sms).not.toContain('• What you\'re looking to have done')
     })
   })
 
@@ -112,7 +113,7 @@ describe('AI Intake SMS Regression Corpus', () => {
       expect(sms).toContain('To help the team follow up, reply with:')
       expect(sms).toContain('• Your name')
       expect(sms).toContain('• What you\'re looking to have done')
-      expect(sms).toContain('• Any helpful details')
+      // Details are optional - do not ask for them
       expect(sms).toContain('• Service address')
       expect(sms).toContain('• When you\'d like it completed')
       expect(sms).toContain('• Best time to call you')
@@ -133,10 +134,14 @@ describe('AI Intake SMS Regression Corpus', () => {
 
       // The reasonForCalling "I need someone to come take a look" is a generic service request
       // and should NOT be treated as having meaningful details with the refined logic
-      expect(sms).toContain('To help the team follow up, reply with:')
+      expect(sms).toContain("Here's what we captured:")
+      expect(sms).toContain('• Request:')
+      expect(sms).toContain('Still needed:')
       expect(sms).toContain('• Your name')
-      expect(sms).toContain('• What you\'re looking to have done')
-      expect(sms).toContain('• Any helpful details')
+      expect(sms).toContain('• Service address')
+      expect(sms).toContain('• When you\'d like it completed')
+      expect(sms).toContain('• Best time to call you')
+      // Details are optional - do not ask for them
     })
   })
 
@@ -444,9 +449,10 @@ describe('AI Intake SMS Regression Corpus', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
+      // All required fields are present - should not show "Still needed:"
       expect(sms).not.toContain('• Details:')
-      expect(sms).toContain('Still needed:')
-      expect(sms).toContain('• Any helpful details')
+      expect(sms).not.toContain('Still needed:')
+      // Details are optional - do not ask for them
     })
   })
 
@@ -590,7 +596,8 @@ describe('AI Intake SMS Regression Corpus', () => {
       expect(sms).toContain('• Address: 456 Oak Ave')
       expect(sms).toContain('• Desired completion: Next week')
       expect(sms).toContain('• Preferred callback: Afternoon')
-      expect(sms).toContain('Still needed:')
+      // All required fields are present - should not show "Still needed:"
+      expect(sms).not.toContain('Still needed:')
     })
   })
 

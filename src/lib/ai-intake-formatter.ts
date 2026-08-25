@@ -1071,6 +1071,28 @@ export const normalizeStructuredFieldValue = (text: string | null | undefined): 
 export const normalizeAddress = (text: string | null | undefined): string => {
   if (!text || text.trim() === '') return 'Not collected';
   const original = text.trim();
+
+  // Refusal detection: check if customer is refusing to provide address
+  // These patterns should return "Not collected" instead of storing refusal text
+  const refusalPatterns = [
+    /^(?:i\s+(?:do\s+not|don't)\s+feel\s+comfortable\s+sharing)/i,
+    /^(?:i'?m\s+not\s+comfortable\s+sharing)/i,
+    /^(?:i\s+prefer\s+not\s+to\s+share)/i,
+    /^(?:i\s+(?:cannot|can't)\s+provide)/i,
+    /^(?:i\s+(?:will\s+not|won't)\s+provide)/i,
+    /^(?:i\s+refuse\s+to\s+share)/i,
+    /^(?:not\s+comfortable\s+giving)/i,
+    /^(?:i\s+(?:do\s+not|don't)\s+want\s+to\s+give)/i,
+    /^(?:i'?d\s+rather\s+not\s+share)/i,
+  ];
+
+  // Check if the text matches any refusal pattern
+  for (const pattern of refusalPatterns) {
+    if (pattern.test(original)) {
+      return 'Not collected';
+    }
+  }
+
   let normalized = original;
   // Attempt to convert a clearly spoken street number at the very start
   // into digits, preserving the remainder of the address as-is (aside from

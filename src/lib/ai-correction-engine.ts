@@ -95,9 +95,9 @@ function cleanExtractedValue(value: string, field: string): string {
     // Business-agnostic details prefixes
     /^the details are\s+/i,
     /^actually the details are\s+/i,
-    /^the request is\s+/i,
-    /^request is\s+/i,
-    /^actually the request is\s+/i,
+    /^the request is for\s+/i,
+    /^request is for\s+/i,
+    /^actually the request is for\s+/i,
     /^my request is\s+/i,
     /^actually my request is\s+/i,
     /^the service is for\s+/i,
@@ -157,19 +157,19 @@ function cleanExtractedValue(value: string, field: string): string {
     /^call me\s+/i,
     /^name is\s+/i,
 
-    // Reason prefixes
+    // Reason prefixes (for service requests, not details)
     /^the reason is\s+/i,
     /^reason is\s+/i,
     /^actually the reason is\s+/i,
+    /^the service is\s+/i,
+    /^service is\s+/i,
+    /^actually the service is\s+/i,
 
-    // General cleanup
+    // General cleanup (but preserve service request indicators)
     /^actually\s+/i,
     /^it is actually\s+/i,
-    /^actually i need\s+/i,
-    /^actually i want\s+/i,
     /^i meant\s+/i,
     /^sorry, i meant\s+/i,
-    /^oh sorry i want\s+/i
   ]
 
   // Apply each prefix removal
@@ -350,13 +350,20 @@ async function detectCorrectionWithRegex(
         /actually i need\s+(.+)/i,
         /actually i want\s+(.+)/i,
         /i meant\s+(.+)/i,
+        /sorry, i meant\s+(.+)/i,
+        /oh sorry i want\s+(.+)/i,
         /the service is\s+(.+)/i,
         /service is\s+(.+)/i,
         /the request is\s+(.+)/i,
         /request is\s+(.+)/i,
         /i need help with\s+(.+)/i,
         /need help with\s+(.+)/i,
-        /looking for help with\s+(.+)/i
+        /looking for help with\s+(.+)/i,
+        /i need\s+(.+)/i,
+        /i want\s+(.+)/i,
+        /looking for\s+(.+)/i,
+        /need\s+(.+)/i,
+        /want\s+(.+)/i
       ]
     },
     {
@@ -393,7 +400,7 @@ async function detectCorrectionWithRegex(
         /it's actually for\s+(.+)/i,
         /its actually for\s+(.+)/i,
         /for\s+(.+)/i,
-        
+
         // Service/appointment/session specific patterns
         /the service is for\s+(.+)/i,
         /service is for\s+(.+)/i,
@@ -407,25 +414,19 @@ async function detectCorrectionWithRegex(
         /consultation is for\s+(.+)/i,
         /the visit is for\s+(.+)/i,
         /visit is for\s+(.+)/i,
-        
-        // General clarification patterns
-        /actually i need\s+(.+)/i,
-        /actually i want\s+(.+)/i,
-        /i meant\s+(.+)/i,
-        /sorry, i meant\s+(.+)/i,
-        /oh sorry i want\s+(.+)/i,
-        /not\s+(.+),\s*(.+)?/i,
-        /not\s+(.+), but\s+(.+)/i,
-        /(.+), not\s+(.+)/i,
-        /it is actually\s+(.+)/i,
+
+        // General clarification patterns (specific to details, not service requests)
         /the details are\s+(.+)/i,
-        /the request is\s+(.+)/i,
-        /i need help with\s+(.+)/i,
-        /i need\s+(.+)/i,
-        /i want\s+(.+)/i,
-        /looking for help with\s+(.+)/i,
-        /need help with\s+(.+)/i,
-        
+        /the request is for\s+(.+)/i,
+        /the yard is\s+(.+)/i,
+        /the property is\s+(.+)/i,
+        /the house is\s+(.+)/i,
+        /my yard is\s+(.+)/i,
+        /my property is\s+(.+)/i,
+        /my house is\s+(.+)/i,
+        /it's about\s+(.+)/i,
+        /its about\s+(.+)/i,
+
         // Specific location/unit patterns
         /the (.+?) unit/i,
         /(.+?) unit/i,
@@ -437,7 +438,7 @@ async function detectCorrectionWithRegex(
         /(.+?) office/i,
         /the (.+?) suite/i,
         /(.+?) suite/i,
-        
+
         // Skill/level patterns (for lessons/tutors)
         /i only need\s+(.+)/i,
         /i need\s+(.+)lessons/i,
@@ -774,18 +775,9 @@ export function applyCorrection(
 
   const mappedField = fieldMapping[fieldChanged.toLowerCase()] || fieldChanged as keyof ExtractedInfo
 
-  // Fallback: if trying to update importantDetails but it doesn't exist, update reasonForCalling instead
+  // No fallback: importantDetails should remain separate from reasonForCalling
+  // Field separation invariant: reasonForCalling = service request, importantDetails = extra context only
   let finalField = mappedField
-  if (mappedField === 'importantDetails' && !updated.importantDetails && updated.reasonForCalling) {
-    finalField = 'reasonForCalling'
-    console.log('[CORRECTION FIELD FALLBACK]', {
-      originalField: 'importantDetails',
-      fallbackField: 'reasonForCalling',
-      reason: 'importantDetails not found, using reasonForCalling',
-      hasImportantDetails: !!updated.importantDetails,
-      hasReasonForCalling: !!updated.reasonForCalling
-    })
-  }
 
   console.log('[CORRECTION FIELD UPDATE]', {
     fieldChanged,
@@ -798,45 +790,40 @@ export function applyCorrection(
     originalReasonForCalling: updated.reasonForCalling
   })
 
-  if (finalField in updated) {
-    // Intelligent Details field handling
-    if (finalField === 'importantDetails' && action && updated.importantDetails) {
-      // Inline merge logic to avoid import issues
-      let mergedValue: string
-      if (action === 'correction') {
-        mergedValue = newValue
-      } else if (action === 'addition') {
-        mergedValue = `${updated.importantDetails}. ${newValue}`
-      } else if (action === 'clarification') {
-        mergedValue = `${updated.importantDetails} (${newValue})`
-      } else {
-        mergedValue = newValue
-      }
-      (updated as any)[finalField] = mergedValue
-      console.log('[CORRECTION DETAILS MERGED]', {
-        finalField,
-        originalValue: updated.importantDetails,
-        newValue,
-        action,
-        mergedValue
-      })
+  // Always allow updating/creating fields
+  // Intelligent Details field handling
+  if (finalField === 'importantDetails' && action) {
+    // Inline merge logic to avoid import issues
+    let mergedValue: string
+    if (action === 'correction') {
+      mergedValue = newValue
+    } else if (action === 'addition' && updated.importantDetails) {
+      mergedValue = `${updated.importantDetails}. ${newValue}`
+    } else if (action === 'clarification' && updated.importantDetails) {
+      mergedValue = `${updated.importantDetails} (${newValue})`
     } else {
-      // Normalize address values to remove trailing punctuation
-      const normalizedValue = (finalField === 'addressOrLocation')
-        ? normalizeAddressForStorage(newValue)
-        : newValue;
-      (updated as any)[finalField] = normalizedValue
-      console.log('[CORRECTION FIELD UPDATED]', {
-        finalField,
-        newValue,
-        normalizedValue,
-        updatedValue: (updated as any)[finalField]
-      })
+      // For new importantDetails field or when merging is not possible
+      mergedValue = newValue
     }
-  } else {
-    console.error('[CORRECTION FIELD UPDATE ERROR]', {
+    (updated as any)[finalField] = mergedValue
+    console.log('[CORRECTION DETAILS MERGED]', {
       finalField,
-      availableFields: Object.keys(updated)
+      originalValue: updated.importantDetails,
+      newValue,
+      action,
+      mergedValue
+    })
+  } else {
+    // Normalize address values to remove trailing punctuation
+    const normalizedValue = (finalField === 'addressOrLocation')
+      ? normalizeAddressForStorage(newValue)
+      : newValue;
+    (updated as any)[finalField] = normalizedValue
+    console.log('[CORRECTION FIELD UPDATED]', {
+      finalField,
+      newValue,
+      normalizedValue,
+      updatedValue: (updated as any)[finalField]
     })
   }
 

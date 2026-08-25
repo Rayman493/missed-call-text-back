@@ -602,7 +602,9 @@ export async function POST(request: Request) {
       console.log('[PAYMENT REQUEST SMS LINK LOGIC] Timestamp:', new Date().toISOString())
       console.log('[PAYMENT REQUEST SMS LINK LOGIC] =========================================')
       
-      const smsMessage = `${businessName} has sent you a payment request of $${amount}${paymentDescription ? ` for ${paymentDescription}` : ''}.
+      const smsMessage = `${businessName} has sent you a payment request of $${amount}.${paymentDescription ? `
+
+Reason: "${paymentDescription}"` : ''}
 
 Pay securely here:
 ${paymentUrl}

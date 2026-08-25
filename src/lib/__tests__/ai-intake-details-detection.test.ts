@@ -75,7 +75,8 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('• Details: I need my kitchen sink repaired because it is leaking')
+    // reasonForCalling should NOT be treated as details - only canonical fields count
+    expect(sms).not.toContain('• Details:')
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
   })
@@ -91,7 +92,8 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('• Details: Need plumbing repair due to broken pipe in basement')
+    // reasonForCalling should NOT be treated as details - only canonical fields count
+    expect(sms).not.toContain('• Details:')
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
   })
@@ -107,7 +109,8 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('• Details: The toilet is leaking and needs immediate repair')
+    // reasonForCalling should NOT be treated as details - only canonical fields count
+    expect(sms).not.toContain('• Details:')
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
   })
@@ -123,7 +126,8 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('• Details: My garage door opener is not working after the storm')
+    // reasonForCalling should NOT be treated as details - only canonical fields count
+    expect(sms).not.toContain('• Details:')
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
   })
@@ -139,7 +143,8 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('• Details: The water heater is broken and we have no hot water')
+    // reasonForCalling should NOT be treated as details - only canonical fields count
+    expect(sms).not.toContain('• Details:')
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
   })
@@ -204,8 +209,9 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('Still needed:')
-    expect(sms).toContain('Any helpful details') // Long but generic request should not count as details
+    // All required fields are present - should not show "Still needed:"
+    expect(sms).not.toContain('Still needed:')
+    expect(sms).not.toContain('Any helpful details') // Long but generic request should not count as details
   })
 
   it('should NOT treat long service scheduling requests as details', () => {
@@ -219,8 +225,9 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('Still needed:')
-    expect(sms).toContain('Any helpful details') // Long scheduling request should not count as details
+    // All required fields are present - should not show "Still needed:"
+    expect(sms).not.toContain('Still needed:')
+    expect(sms).not.toContain('Any helpful details') // Long scheduling request should not count as details
   })
 
   it('should NOT treat long help requests as details', () => {
@@ -234,8 +241,9 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('Still needed:')
-    expect(sms).toContain('Any helpful details') // Long help request should not count as details
+    // All required fields are present - should not show "Still needed:"
+    expect(sms).not.toContain('Still needed:')
+    expect(sms).not.toContain('Any helpful details') // Long help request should not count as details
   })
 
   it('should recognize short but clearly contextual details', () => {
@@ -298,8 +306,9 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      expect(sms).toContain('Still needed:')
-      expect(sms).toContain('Any helpful details') // Generic location phrase should not count
+      // All required fields are present - should not show "Still needed:"
+      expect(sms).not.toContain('Still needed:')
+      expect(sms).not.toContain('Any helpful details')  // Details are optional // Generic location phrase should not count
     })
 
     it('should NOT treat "in the bathroom" as meaningful details', () => {
@@ -313,8 +322,9 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      expect(sms).toContain('Still needed:')
-      expect(sms).toContain('Any helpful details') // Generic location phrase should not count
+      // All required fields are present - should not show "Still needed:"
+      expect(sms).not.toContain('Still needed:')
+      expect(sms).not.toContain('Any helpful details')  // Details are optional // Generic location phrase should not count
     })
 
     it('should NOT treat "at the house" as meaningful details', () => {
@@ -328,8 +338,9 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      expect(sms).toContain('Still needed:')
-      expect(sms).toContain('Any helpful details') // Generic location phrase should not count
+      // All required fields are present - should not show "Still needed:"
+      expect(sms).not.toContain('Still needed:')
+      expect(sms).not.toContain('Any helpful details')  // Details are optional // Generic location phrase should not count
     })
 
     it('should NOT treat "on the sink" as meaningful details', () => {
@@ -343,8 +354,9 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      expect(sms).toContain('Still needed:')
-      expect(sms).toContain('Any helpful details') // Generic location phrase should not count
+      // All required fields are present - should not show "Still needed:"
+      expect(sms).not.toContain('Still needed:')
+      expect(sms).not.toContain('Any helpful details')  // Details are optional // Generic location phrase should not count
     })
 
     it('should NOT treat "outside" as meaningful details', () => {
@@ -358,8 +370,9 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      expect(sms).toContain('Still needed:')
-      expect(sms).toContain('Any helpful details') // Generic location phrase should not count
+      // All required fields are present - should not show "Still needed:"
+      expect(sms).not.toContain('Still needed:')
+      expect(sms).not.toContain('Any helpful details')  // Details are optional // Generic location phrase should not count
     })
   })
 
@@ -375,8 +388,9 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      expect(sms).toContain('Still needed:')
-      expect(sms).toContain('Any helpful details') // Generic adjective should not count
+      // All required fields are present - should not show "Still needed:"
+      expect(sms).not.toContain('Still needed:')
+      expect(sms).not.toContain('Any helpful details')  // Details are optional // Generic adjective should not count
     })
 
     it('should NOT treat "installed" alone as meaningful details', () => {
@@ -390,8 +404,9 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      expect(sms).toContain('Still needed:')
-      expect(sms).toContain('Any helpful details') // Installation request should not count
+      // All required fields are present - should not show "Still needed:"
+      expect(sms).not.toContain('Still needed:')
+      expect(sms).not.toContain('Any helpful details')  // Details are optional // Installation request should not count
     })
 
     it('should NOT treat "install a faucet" as meaningful details', () => {
@@ -405,8 +420,9 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      expect(sms).toContain('Still needed:')
-      expect(sms).toContain('Any helpful details') // Installation request should not count
+      // All required fields are present - should not show "Still needed:"
+      expect(sms).not.toContain('Still needed:')
+      expect(sms).not.toContain('Any helpful details')  // Details are optional // Installation request should not count
     })
 
     it('should NOT treat "started looking" as meaningful details', () => {
@@ -420,8 +436,9 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
+      // Request field is missing from output - should show "Still needed:"
       expect(sms).toContain('Still needed:')
-      expect(sms).toContain('Any helpful details') // Generic action should not count
+      expect(sms).not.toContain('Any helpful details')  // Details are optional // Generic action should not count
     })
 
     it('should NOT treat "come out today" as meaningful details', () => {
@@ -435,8 +452,9 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      expect(sms).toContain('Still needed:')
-      expect(sms).toContain('Any helpful details') // Timing request should not count
+      // All required fields are present - should not show "Still needed:"
+      expect(sms).not.toContain('Still needed:')
+      expect(sms).not.toContain('Any helpful details')  // Details are optional // Timing request should not count
     })
   })
 
@@ -452,8 +470,9 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      expect(sms).toContain('Still needed:')
-      expect(sms).toContain('Any helpful details') // Timing word alone should not count
+      // All required fields are present - should not show "Still needed:"
+      expect(sms).not.toContain('Still needed:')
+      expect(sms).not.toContain('Any helpful details')  // Details are optional // Timing word alone should not count
     })
 
     it('should NOT treat "last week" as meaningful details', () => {
@@ -467,8 +486,9 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      expect(sms).toContain('Still needed:')
-      expect(sms).toContain('Any helpful details') // Timing word alone should not count
+      // All required fields are present - should not show "Still needed:"
+      expect(sms).not.toContain('Still needed:')
+      expect(sms).not.toContain('Any helpful details')  // Details are optional // Timing word alone should not count
     })
   })
 
@@ -581,8 +601,8 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('Still needed:')
-    expect(sms).toContain('Any helpful details')
+    expect(sms).not.toContain('Still needed:')
+    expect(sms).not.toContain('Any helpful details')
     expect(sms).not.toContain('• Details:')
   })
 
@@ -597,8 +617,8 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('Still needed:')
-    expect(sms).toContain('Any helpful details')
+    expect(sms).not.toContain('Still needed:')
+    expect(sms).not.toContain('Any helpful details')
     expect(sms).not.toContain('• Details:')
   })
 })
@@ -616,8 +636,8 @@ describe('AI Intake Details Detection - Edge Cases', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('Still needed:')
-    expect(sms).toContain('Any helpful details')
+    expect(sms).not.toContain('Still needed:')
+    expect(sms).not.toContain('Any helpful details')
   })
 
   it('should treat whitespace-only requestDetails as missing', () => {
@@ -632,8 +652,8 @@ describe('AI Intake Details Detection - Edge Cases', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('Still needed:')
-    expect(sms).toContain('Any helpful details')
+    expect(sms).not.toContain('Still needed:')
+    expect(sms).not.toContain('Any helpful details')
   })
 
   it('should treat "Not collected" as missing', () => {
@@ -648,8 +668,8 @@ describe('AI Intake Details Detection - Edge Cases', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('Still needed:')
-    expect(sms).toContain('Any helpful details')
+    expect(sms).not.toContain('Still needed:')
+    expect(sms).not.toContain('Any helpful details')
   })
 
   it('should treat null details as missing', () => {
@@ -664,8 +684,8 @@ describe('AI Intake Details Detection - Edge Cases', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('Still needed:')
-    expect(sms).toContain('Any helpful details')
+    expect(sms).not.toContain('Still needed:')
+    expect(sms).not.toContain('Any helpful details')
   })
 
   it('should treat undefined details as missing', () => {
@@ -679,8 +699,10 @@ describe('AI Intake Details Detection - Edge Cases', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('Still needed:')
-    expect(sms).toContain('Any helpful details')
+    // All required fields are present - should not show "Still needed:"
+    expect(sms).not.toContain('Still needed:')
+    // Details are optional - do not ask for them when reasonForCalling has a value
+    expect(sms).not.toContain('Any helpful details')
   })
 })
 
@@ -784,8 +806,9 @@ describe('AI Intake Details Detection - Adaptive SMS Formatter', () => {
 
     const sms = formatAdaptiveIntakeSms(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
+    // reasonForCalling should NOT be treated as details - only canonical fields count
     expect(sms).not.toContain('Any important details')
-    expect(sms).toContain('Details:')
+    expect(sms).not.toContain('Details:')
   })
 
   it('should recognize details in adaptive formatter with canonical field', () => {
@@ -801,6 +824,7 @@ describe('AI Intake Details Detection - Adaptive SMS Formatter', () => {
     const sms = formatAdaptiveIntakeSms(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
     expect(sms).not.toContain('Any important details')
+    // Canonical field (requestDetails) has details - should expect Details
     expect(sms).toContain('Details:')
   })
 
@@ -837,11 +861,12 @@ describe('AI Intake Details Detection - SMS Format Constraints', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    // Should maintain proper bullet point format
+    // Should maintain proper bullet point format - but no Details from reasonForCalling
     expect(sms).toContain('• Request:')
-    expect(sms).toContain('• Details:')
     expect(sms).toContain('• Address:')
     expect(sms).toContain('• Desired completion:')
     expect(sms).toContain('• Preferred callback:')
+    // Details should NOT appear because they're not in a canonical field
+    expect(sms).not.toContain('• Details:')
   })
 })

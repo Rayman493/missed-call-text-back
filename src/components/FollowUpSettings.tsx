@@ -20,9 +20,10 @@ interface FollowUpSettingsProps {
   isOpen: boolean
   onClose: () => void
   onSave?: () => void
+  businessName?: string | null
 }
 
-export default function FollowUpSettings({ isOpen, onClose, onSave }: FollowUpSettingsProps) {
+export default function FollowUpSettings({ isOpen, onClose, onSave, businessName }: FollowUpSettingsProps) {
   const [settings, setSettings] = useState<FollowUpSettings>({
     enabled: true,
     followUps: [
@@ -422,7 +423,7 @@ export default function FollowUpSettings({ isOpen, onClose, onSave }: FollowUpSe
                             <div className="mt-3 p-3 bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/40 rounded-lg">
                               <p className="text-[11px] text-muted-foreground/60 mb-1.5 font-semibold uppercase tracking-wider">Preview</p>
                               <p className="text-xs text-muted-foreground/80 italic leading-relaxed">
-                                "{followUp.message.replace('{{businessName}}', 'ReplyFlowHQ')}"
+                                "{followUp.message.replace('{{businessName}}', businessName || 'our team')}"
                               </p>
                             </div>
                           )}

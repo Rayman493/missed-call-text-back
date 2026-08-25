@@ -2318,7 +2318,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           status,
           timestamp: new Date().toISOString()
         })
-        
+
         if (status === 'SUBSCRIBED') {
           console.log('[REALTIME] Successfully subscribed to lead:', leadId)
         } else if (status === 'CHANNEL_ERROR') {
@@ -5486,7 +5486,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     const businessName = business?.name || 'our business'
                     const amount = (parseFloat(paymentAmount) || 0).toFixed(2)
                     const description = paymentDescription || 'Service payment'
-                    const message = `${businessName} has sent you a payment request of $${amount}${description ? ` for ${description}` : ''}.
+                    const message = `${businessName} has sent you a payment request of $${amount}.${description ? `
+
+Reason: "${description}"` : ''}
 
 Pay securely here:
 ${data.payment_link}

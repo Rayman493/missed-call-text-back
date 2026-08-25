@@ -107,9 +107,26 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
     if (!summary || typeof summary !== 'string') return []
 
     // Normalize common list prefixes to avoid double bullets
-    const normalized = summary
+    let normalized = summary
       .replace(/^[-•*]\s+/gm, '')  // Remove leading markdown bullets
       .replace(/^\d+\.\s+/gm, '')  // Remove leading numbered list markers
+
+    // Normalize time abbreviations to prevent sentence splitting inside time expressions
+    // This prevents "7 p. M." from being split into "7 p" and "M"
+    const timeAbbreviationPatterns = [
+      // Match "p. M." or "P. M." (with any spacing and case)
+      /\bp\s*\.\s*m\s*\./gi,
+      // Match "a. M." or "A. M."
+      /\ba\s*\.\s*m\s*\./gi,
+      // Match "p.m." or "P.M."
+      /\bp\.m\./gi,
+      // Match "a.m." or "A.M."
+      /\ba\.m\./gi,
+    ]
+    normalized = normalized.replace(timeAbbreviationPatterns[0], 'PM')
+    normalized = normalized.replace(timeAbbreviationPatterns[1], 'AM')
+    normalized = normalized.replace(timeAbbreviationPatterns[2], 'PM')
+    normalized = normalized.replace(timeAbbreviationPatterns[3], 'AM')
 
     // Split by sentences and filter for meaningful points
     const sentences = normalized

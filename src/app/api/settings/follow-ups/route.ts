@@ -27,6 +27,12 @@ export async function GET() {
 
     const business = authResult.business;
     console.log('[Follow-ups Settings GET] Found business with active access:', business.id!)
+    console.log('[Follow-ups Settings GET] Business object fields:', {
+      id: business.id,
+      hasAutomationSettings: !!business.automation_settings,
+      hasName: !!business.name,
+      name: business.name
+    })
 
     // Get current follow-up settings or return defaults
     const automationSettings = business.automation_settings || {}

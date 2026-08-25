@@ -2382,24 +2382,6 @@ export default function SettingsContent() {
 
   // Load ignored contacts
 
-  if (!business || !formBusiness) {
-    return (
-      <AuthGuard>
-        <BusinessGuard>
-          <div className="min-h-screen bg-background page-gradient flex flex-col relative">
-            <AppHeader title="Settings" sticky={false} />
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-                <p className="text-slate-600 dark:text-muted-foreground">Loading settings...</p>
-              </div>
-            </div>
-          </div>
-        </BusinessGuard>
-      </AuthGuard>
-    )
-  }
-
   return (
     <DashboardErrorBoundary>
       <AuthGuard>
@@ -2447,6 +2429,16 @@ export default function SettingsContent() {
             {/* Spacer to maintain consistent spacing */}
             <div className="mb-4"></div>
 
+            {/* Show loading state inline if business or formBusiness is not available */}
+            {!business || !formBusiness ? (
+              <div className="min-h-[60vh] flex items-center justify-center">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+                  <p className="text-slate-600 dark:text-muted-foreground">Loading settings...</p>
+                </div>
+              </div>
+            ) : (
+            <>
             {/* Settings Sections */}
             <div className="space-y-6 pb-32">
               {/* Group: General */}
@@ -4452,8 +4444,8 @@ export default function SettingsContent() {
                 </div>
               </div>
             </div>
-            </div>
-            </div>
+          </>
+          )}
 
           {/* Settings Action Bar */}
           <SettingsActionBar
@@ -5122,6 +5114,8 @@ export default function SettingsContent() {
 
           {/* Toast Container */}
           <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
+              </div>
+            </div>
         </div>
       </BusinessGuard>
     </AuthGuard>
