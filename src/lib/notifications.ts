@@ -53,6 +53,51 @@ export function truncateMessage(message: string, maxLength: number): string {
   return message.substring(0, maxLength - 3) + '...'
 }
 
+/**
+ * Resolve notification subject (customer/person) for display
+ * Priority: meaningful name > phone number > "Unknown Caller"
+ * Used by both dropdown and full notifications page
+ */
+export function resolveNotificationSubject(notification: Notification): string {
+  const data = notification.data || {}
+
+  // Placeholder names to reject
+  const placeholderNames = ['Customer', 'Unknown', 'Unknown Customer', 'Caller', 'Anonymous', 'Not collected']
+
+  // Try lead name first
+  const leadName = data.leadName || data.lead_name || null
+  if (leadName) {
+    const trimmedName = leadName.trim()
+    const isPlaceholder = placeholderNames.includes(trimmedName)
+    const isMeaningfulName = trimmedName && !isPlaceholder && trimmedName.length > 0
+
+    if (isMeaningfulName) {
+      return trimmedName
+    }
+  }
+
+  // Try caller name (for personal voicemail)
+  const callerName = data.callerName || data.caller_name || null
+  if (callerName) {
+    const trimmedName = callerName.trim()
+    const isPlaceholder = placeholderNames.includes(trimmedName)
+    const isMeaningfulName = trimmedName && !isPlaceholder && trimmedName.length > 0
+
+    if (isMeaningfulName) {
+      return trimmedName
+    }
+  }
+
+  // Fallback to phone number
+  const phone = data.leadPhone || data.lead_phone || data.callerPhone || data.caller_phone || null
+  if (phone) {
+    return formatPhoneNumber(phone)
+  }
+
+  // Final fallback
+  return 'Unknown Caller'
+}
+
 export interface Notification {
   id: string
   business_id: string

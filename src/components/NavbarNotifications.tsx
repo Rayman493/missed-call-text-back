@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useNotifications } from '@/contexts/NotificationContext'
-import { Notification } from '@/lib/notifications'
+import { Notification, resolveNotificationSubject } from '@/lib/notifications'
 import { generateCanonicalRequestTitle, validateRequestTitle } from '@/lib/ai-intake-formatter'
 import { Bell, Check, MessageCircle, PhoneMissed, Send, Calendar, Info, CheckCircle, AlertTriangle, User, MessageSquare, Clock, CreditCard, Trash2, X } from 'lucide-react'
 import { getNotificationIcon, getNotificationColor, getNotificationDotColor } from '@/lib/notification-icons'
@@ -300,15 +300,19 @@ export default function NavbarNotifications() {
 
   // UI polish: Get display name with phone masking for SMS failures
   const getDisplayName = (notification: Notification): string | null => {
-    const name = notification.data?.leadName || notification.data?.lead_phone || null
-    if (!name) return null
-    
+    const subject = resolveNotificationSubject(notification)
+
     // Mask phone numbers for SMS failure notifications
     if (notification.type === 'sms_failed' && notification.data?.lead_phone) {
       return maskPhoneNumber(notification.data.lead_phone)
     }
-    
-    return name
+
+    // Don't show "Unknown Caller" in dropdown - it adds noise
+    if (subject === 'Unknown Caller') {
+      return null
+    }
+
+    return subject
   }
 
   const groupNotificationsByRecency = (notifications: Notification[]) => {
