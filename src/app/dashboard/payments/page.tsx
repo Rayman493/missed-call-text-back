@@ -161,6 +161,7 @@ export default function PaymentsPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editError, setEditError] = useState('')
   const [isReconciling, setIsReconciling] = useState(false)
+  const [scrollPositionBeforeEdit, setScrollPositionBeforeEdit] = useState<number | null>(null)
   useBodyScrollLock(showPaymentModal)
 
   // Lock background scroll when mark-paid confirm is open as well
@@ -570,6 +571,8 @@ const getPaymentDescription = (payment: PaymentRequest) => {
   }
 
   const handleOpenEditModal = (payment: PaymentRequest) => {
+    // Capture scroll position before opening modal
+    setScrollPositionBeforeEdit(window.pageYOffset)
     setPaymentToEdit(payment)
     setEditLabel(payment.display_name || '')
     setEditError('')
@@ -581,6 +584,14 @@ const getPaymentDescription = (payment: PaymentRequest) => {
     setPaymentToEdit(null)
     setEditLabel('')
     setEditError('')
+    // Restore scroll position after modal closes
+    if (scrollPositionBeforeEdit !== null) {
+      // Use requestAnimationFrame to ensure DOM has updated
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollPositionBeforeEdit)
+        setScrollPositionBeforeEdit(null)
+      })
+    }
   }
 
   const handleSaveLabel = async (label: string) => {
