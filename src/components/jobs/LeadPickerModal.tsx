@@ -111,9 +111,11 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
   const handleSelect = (lead: LeadRecord) => {
     const intake = getIntake(lead)
     const name = intake.customerName
-    const service = intake.serviceRequested
     const address = intake.serviceAddress
     const phone = intake.customerPhone
+
+    // Use canonical request title helper to filter out placeholders
+    const canonicalTitle = getLeadRequestTitle(lead)
 
     const noteParts = [
       intake.additionalDetails,
@@ -125,7 +127,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
       customer_name: name || undefined,
       customer_phone: phone || lead.caller_phone || undefined,
       service_address: address || undefined,
-      title: service || undefined,
+      title: canonicalTitle || undefined,
       notes: noteParts.length > 0 ? noteParts.join('\n\n') : undefined,
       lead_id: lead.id,
       conversation_id: lead.conversation_id || undefined,

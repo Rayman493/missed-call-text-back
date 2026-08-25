@@ -2921,7 +2921,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const intake = getLeadAIIntake(leadData)
     const leadName = intake.customerName || leadData?.name || ''
     const leadPhone = intake.customerPhone || leadData?.caller_phone || ''
-    const leadReason = getLeadRequestTitle(leadData) || intake.serviceRequested
     const leadAddress = intake.serviceAddress
 
     if (process.env.NODE_ENV !== 'production') {
@@ -2939,7 +2938,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
 
     const noteSections = []
-    
+
     if (intake.additionalDetails) {
       noteSections.push(`Additional Details\n• ${intake.additionalDetails}`)
     }
@@ -2950,9 +2949,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       intake.callbackTime
     )
 
+    // Use canonical request title helper (already filters placeholders)
+    const canonicalTitle = getLeadRequestTitle(leadData)
+
+    // Fallback: only use serviceRequested if it's not a placeholder
+    const serviceRequestedFallback = intake.serviceRequested &&
+      intake.serviceRequested !== 'Not collected' &&
+      intake.serviceRequested !== 'General Service' &&
+      intake.serviceRequested.trim() !== ''
+      ? intake.serviceRequested
+      : null
+
     return {
-      // Use canonical request title helper
-      title: getLeadRequestTitle(leadData) || intake.serviceRequested || `Job for ${leadName || 'Customer'}`,
+      title: canonicalTitle || serviceRequestedFallback || `Job for ${leadName || 'Customer'}`,
       customer_name: leadName || undefined,
       customer_phone: leadPhone || undefined,
       service_address: leadAddress || undefined,
