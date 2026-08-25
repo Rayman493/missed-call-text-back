@@ -715,7 +715,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                   value={editedLocation}
                   onChange={(e) => setEditedLocation(e.target.value)}
                   placeholder="Add an address or place"
-                  className="w-full px-4 py-3 bg-slate-800 border-2 border-slate-700 rounded-lg text-base text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                  className="w-full px-4 py-3 bg-background border border-border rounded-lg text-base text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                   autoFocus
                 />
                 <p className="text-sm text-muted-foreground mt-2">
@@ -944,7 +944,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                     onChange={(e) => setEditedDescription(e.target.value)}
                     placeholder="Add description"
                     rows={3}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                   />
                 ) : (
                   <p className="text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed">{normalizeDisplayText(event.description)}</p>
@@ -968,7 +968,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                       placeholder="Private notes for your team. Not sent to customer."
                     />
                     <div className="mt-2">
