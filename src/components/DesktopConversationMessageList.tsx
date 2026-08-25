@@ -1,29 +1,29 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { formatRelativeTime } from '@/lib/utils'
 import VoicemailMessage from '@/components/VoicemailMessage'
 import MessageMediaRenderer from '@/components/MessageMediaRenderer'
 import BusinessPhoneHistoryActions from '@/components/BusinessPhoneHistoryActions'
-import { Smartphone, CreditCard, CheckCircle2, XCircle, Clock, AlertCircle } from 'lucide-react'
+import { Smartphone, CreditCard, CheckCircle2, XCircle, Clock, AlertCircle, ArrowDown } from 'lucide-react'
 
 // Payment status to UI mapping
 function getPaymentStatusUI(status: string) {
   const statusMap: Record<string, { title: string; label: string; icon: any; iconColor: string; bgColor: string }> = {
     draft: {
-      title: 'Payment requested',
+      title: 'Payment request prepared',
       label: 'Draft',
       icon: Clock,
       iconColor: 'text-slate-500',
       bgColor: 'bg-slate-500/10'
     },
     pending: {
-      title: 'Payment requested',
+      title: 'Payment request sent — awaiting customer',
       label: 'Pending',
       icon: Clock,
       iconColor: 'text-amber-500',
       bgColor: 'bg-amber-500/10'
     },
     paid: {
-      title: 'Payment completed',
+      title: 'Customer completed payment',
       label: 'Paid',
       icon: CheckCircle2,
       iconColor: 'text-green-500',
@@ -44,7 +44,7 @@ function getPaymentStatusUI(status: string) {
       bgColor: 'bg-slate-500/10'
     },
     expired: {
-      title: 'Payment expired',
+      title: 'Payment link expired',
       label: 'Expired',
       icon: Clock,
       iconColor: 'text-slate-500',
@@ -96,7 +96,9 @@ export default function DesktopConversationMessageList({
   highlightedItemId
 }: DesktopConversationMessageListProps) {
   const [previousMessageCount, setPreviousMessageCount] = useState(0)
-  
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
   // Detect new messages for animation
   useEffect(() => {
     if (messagesArray.length > previousMessageCount) {
@@ -105,8 +107,45 @@ export default function DesktopConversationMessageList({
     setPreviousMessageCount(messagesArray.length)
   }, [messagesArray.length, previousMessageCount])
 
+  // Track scroll position to show/hide scroll-to-bottom button
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+      setShowScrollToBottom(!isNearBottom)
+    }
+
+    container.addEventListener('scroll', handleScroll)
+    handleScroll() // Initial check
+
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  const scrollToBottom = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollTo({
+        top: containerRef.current.scrollHeight,
+        behavior: 'smooth'
+      })
+    }
+  }
+
   return (
-    <div className="space-y-3 pb-24" data-desktop-layout data-active-conversation-list>
+    <div className="relative" ref={containerRef}>
+      {showScrollToBottom && (
+        <button
+          onClick={scrollToBottom}
+          className="absolute bottom-4 right-4 z-10 flex items-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-full shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+          title="Scroll to latest messages"
+        >
+          <ArrowDown className="w-3.5 h-3.5" />
+          <span>New messages</span>
+        </button>
+      )}
+      <div className="space-y-3 pb-24" data-desktop-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle payment requested events
         if (item.type === 'payment_requested') {
@@ -120,11 +159,11 @@ export default function DesktopConversationMessageList({
               id={item.id}
               className="flex items-center justify-center my-4"
             >
-              <div className="flex flex-col items-center gap-1 bg-muted/30 px-3 py-2 rounded-md border border-border/20 shadow-sm max-w-md">
+              <div className="flex flex-col items-center gap-2 bg-muted/30 px-4 py-3 rounded-md border border-border/20 shadow-sm max-w-md">
                 <div className="flex items-center gap-2 w-full justify-between">
                   <div className="flex items-center gap-1.5">
-                    <StatusIcon className={`w-3.5 h-3.5 ${statusUI.iconColor}`} />
-                    <span className="text-xs font-medium text-foreground">
+                    <StatusIcon className={`w-4 h-4 ${statusUI.iconColor}`} />
+                    <span className="text-xs font-semibold text-foreground">
                       {statusUI.title}
                     </span>
                   </div>
@@ -132,9 +171,14 @@ export default function DesktopConversationMessageList({
                     {statusUI.label}
                   </span>
                 </div>
-                <div className="text-xs text-foreground/80 font-normal">
-                  ${(payment.amount_cents / 100).toFixed(2)} • {payment.description}
+                <div className="text-sm font-semibold text-foreground">
+                  ${(payment.amount_cents / 100).toFixed(2)}
                 </div>
+                {payment.description && (
+                  <div className="text-xs text-foreground/70">
+                    For: {payment.description}
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
                   <span>{formatRelativeTime(payment.timestamp)}</span>
                 </div>
@@ -415,6 +459,7 @@ export default function DesktopConversationMessageList({
           </div>
         )
       })}
+    </div>
     </div>
   )
 }

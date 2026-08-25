@@ -32,7 +32,7 @@ import { PhoneIncoming, UserPlus, RefreshCw } from 'lucide-react'
 import { getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus, getAIIntakeStatusLabel, getAIIntakeStatusColor } from '@/lib/ai-field-mapping'
 import { deriveJobSchedulingPrefill } from '@/lib/job-scheduling-prefill'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
-import { CustomerStatus, normalizeCustomerStatus } from '@/lib/customer-status'
+import { CustomerStatus, normalizeCustomerStatus, getCustomerStatusStyle } from '@/lib/customer-status'
 import { formatJobStatus, formatPaymentStatus } from '@/lib/status-formatter'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
 import { isProviderAvailable, getAvailableProviders, PaymentProvider } from '@/lib/payment-links'
@@ -64,6 +64,7 @@ import BusinessPhoneModal from '@/components/BusinessPhoneModal'
 import { launchSMS, copyToClipboard, openBusinessSms } from '@/lib/sms-launch'
 import { useSendingSource } from '@/hooks/useSendingSource'
 import { useSupportsBusinessNumber } from '@/lib/platform-capabilities'
+import { getNextAction } from '@/lib/lead-next-action'
 
 // Helper functions for consistent formatting
 const formatDate = (dateString: string | null | undefined): string => {
@@ -391,7 +392,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         automation: true,
         customerHealth: false,
         quickActions: true,
-        aiIntake: false, // Default to expanded - show current request immediately
+        aiIntake: true, // Default to expanded - show current request immediately
         payments: true, // Default to collapsed
         appointments: true, // Default to collapsed
       }
@@ -403,7 +404,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       automation: true,
       customerHealth: false,
       quickActions: true,
-      aiIntake: false,
+      aiIntake: true,
       payments: true,
       appointments: true,
     }
@@ -618,6 +619,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       localStorage.setItem('customerDetailsCollapsedSections', JSON.stringify(collapsedSections))
     }
   }, [collapsedSections])
+
+  // Smart expand payments section if there are pending payments
+  useEffect(() => {
+    if (!leadData) return
+
+    const paymentRequests = leadData.paymentRequests || []
+    const hasPendingPayments = paymentRequests.some((pr: any) => pr.status === 'pending' || pr.status === 'created')
+
+    if (hasPendingPayments) {
+      setCollapsedSections((prev: any) => ({ ...prev, payments: false }))
+    }
+  }, [leadData])
 
   // Prevent body scrolling when Customer Details modal is open
   useEffect(() => {
@@ -3073,24 +3086,36 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {paymentRequests.map((pr: any) => (
-                    <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
-                        <p className="text-xs text-muted-foreground/80">{formatDate(pr.created_at)}</p>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    {paymentRequests.map((pr: any) => (
+                      <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
+                          <p className="text-xs text-muted-foreground/80">{formatDate(pr.created_at)}</p>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 border ${
+                          pr.status === 'paid'
+                            ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
+                            : pr.status === 'pending'
+                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                            : 'bg-muted/80 text-muted-foreground/90 border-border/40'
+                        }`}>
+                          {formatPaymentStatus(pr.status).text}
+                        </span>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 border ${
-                        pr.status === 'paid'
-                          ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
-                          : pr.status === 'pending'
-                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                          : 'bg-muted/80 text-muted-foreground/90 border-border/40'
-                      }`}>
-                        {formatPaymentStatus(pr.status).text}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                    disabled={!business || getAvailableProviders(business).length === 0}
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Request Another Payment
+                  </button>
                 </div>
               )}
             </div>
@@ -3694,6 +3719,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     {getLeadDisplayName(leadData || lead)}
                   </h1>
                   {(() => {
+                    const rawStatus = leadData?.status || lead?.status || lead?.lead_status
+                    const normalizedStatus = normalizeCustomerStatus(rawStatus)
+                    const statusStyle = getCustomerStatusStyle(normalizedStatus)
+                    return rawStatus && (
+                      <span
+                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium border whitespace-nowrap flex-shrink-0 ${statusStyle.badgeClass}`}
+                      >
+                        {statusStyle.label}
+                      </span>
+                    )
+                  })()}
+                  {(() => {
                     const customerSourceInfo = getCustomerSourceInfo(leadData?.source || lead?.source)
                     return customerSourceInfo && (
                       <span
@@ -3711,9 +3748,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     )
                   })()}
                 </div>
-                <p className="text-[11px] text-muted-foreground/80 truncate">
-                  {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[11px] text-muted-foreground/80 truncate">
+                    {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
+                  </p>
+                  {(() => {
+                    const nextAction = getNextAction(leadData || lead)
+                    return nextAction && (
+                      <span className={`text-[10px] font-medium ${
+                        nextAction.urgency === 'high'
+                          ? 'text-blue-600 dark:text-blue-400'
+                          : nextAction.urgency === 'medium'
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-slate-500 dark:text-slate-400'
+                      }`}>
+                        • {nextAction.text}
+                      </span>
+                    )
+                  })()}
+                </div>
               </div>
               
               {/* Actions */}
@@ -4152,6 +4205,39 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   />
                 )}
               </div>
+              )}
+
+              {/* Desktop Quick Actions - Above Composer */}
+              {!isFullScreen && (
+                <div className="flex-shrink-0 px-6 py-2 border-t border-border/10 bg-muted/20">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowPaymentModal(true)}
+                      disabled={!business || getAvailableProviders(business).length === 0}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      <span>Request Payment</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAppointmentClick}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                    >
+                      <CalendarDays className="w-3.5 h-3.5" />
+                      <span>Schedule</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCreateJobClick}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                    >
+                      <ClipboardPlus className="w-3.5 h-3.5" />
+                      <span>Create Job</span>
+                    </button>
+                  </div>
+                </div>
               )}
 
               {/* Desktop Message Composer - Fixed to Bottom */}

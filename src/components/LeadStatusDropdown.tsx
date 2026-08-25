@@ -97,6 +97,20 @@ export default function LeadStatusDropdown({
 
   const allStatuses = getAllCustomerStatuses()
 
+  // Status descriptions for clarity
+  const statusDescriptions: Record<CustomerStatus, string> = {
+    new: 'Customer reached out and needs a response',
+    needs_reply: 'Waiting for your reply',
+    active: 'Conversation or work is in progress',
+    scheduled: 'Job is booked',
+    payment_requested: 'Waiting for customer payment',
+    paid: 'Payment received',
+    completed: 'Job finished',
+    cancelled: 'Job cancelled',
+    ignored: 'Temporarily hidden from list',
+    lost: 'Customer declined or no longer needs service'
+  }
+
   return (
     <DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
@@ -167,6 +181,9 @@ export default function LeadStatusDropdown({
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-foreground">
                       {statusStyle.label}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                      {statusDescriptions[status]}
                     </div>
                   </div>
                   {isSelected && (

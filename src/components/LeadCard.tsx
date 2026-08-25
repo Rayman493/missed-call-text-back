@@ -15,6 +15,7 @@ import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { getCustomerStatusStyle, normalizeCustomerStatus, CustomerStatus } from '@/lib/customer-status'
 import { memoryService } from '@/lib/business-memory/memory-service'
 import { getCustomerSourceInfoCanonical } from '@/lib/customer-source'
+import { getNextAction } from '@/lib/lead-next-action'
 import { Repeat, TrendingUp, Clock, DollarSign, PhoneIncoming, UserPlus } from 'lucide-react'
 
 // Helper to get structured AI data for lead card
@@ -117,6 +118,7 @@ export default function LeadCard({
   const requestTitle = React.useMemo(() => getLeadRequestTitle(lead), [lead])
   const customerIndicators = React.useMemo(() => getCustomerIndicators(lead, businessId), [lead, businessId])
   const customerSourceInfo = React.useMemo(() => getCustomerSourceInfoCanonical(lead), [lead])
+  const nextAction = React.useMemo(() => getNextAction(lead), [lead])
 
   // Hook must be called at the top level of the component
   const pressGuard = useMobilePressGuard({
@@ -177,25 +179,28 @@ export default function LeadCard({
               {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
             </p>
           </div>
-          <div 
-            className="flex-shrink-0 max-w-[45%] sm:max-w-none"
-            onPointerDown={(e) => e.stopPropagation()}
-            onPointerMove={(e) => e.stopPropagation()}
-            onPointerUp={(e) => e.stopPropagation()}
-            onPointerCancel={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {lead.deleted_at ? (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
-                Deleted
-              </span>
-            ) : (
-              <LeadStatusDropdown
-                currentStatus={rawStatus as CustomerStatus}
-                onStatusChange={(newStatus) => Promise.resolve(onStatusChange(lead.id, newStatus))}
-                size="sm"
-              />
-            )}
+          {/* Mobile: Move status to bottom, Desktop: Keep in header */}
+          <div className="hidden sm:block flex-shrink-0">
+            <div
+              className="flex-shrink-0"
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerMove={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
+              onPointerCancel={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {lead.deleted_at ? (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
+                  Deleted
+                </span>
+              ) : (
+                <LeadStatusDropdown
+                  currentStatus={rawStatus as CustomerStatus}
+                  onStatusChange={(newStatus) => Promise.resolve(onStatusChange(lead.id, newStatus))}
+                  size="sm"
+                />
+              )}
+            </div>
           </div>
         </div>
 
@@ -216,6 +221,17 @@ export default function LeadCard({
                 : 'text-muted-foreground'
             }`}>
               {sentenceCase(aiData.urgency)}
+            </p>
+          )}
+          {nextAction && (
+            <p className={`text-[10px] sm:text-[11px] font-medium ${
+              nextAction.urgency === 'high'
+                ? 'text-blue-600 dark:text-blue-400'
+                : nextAction.urgency === 'medium'
+                ? 'text-amber-600 dark:text-amber-400'
+                : 'text-slate-500 dark:text-slate-400'
+            }`}>
+              {nextAction.text}
             </p>
           )}
           {!aiData.reason && !aiData.urgency && (
@@ -242,12 +258,36 @@ export default function LeadCard({
         {/* Metadata */}
         <div className="flex items-center justify-between mb-1 sm:mb-2">
           <span className="text-[10px] sm:text-[11px] text-slate-600 dark:text-muted-foreground">
-            {formatRelativeTime(lead.created_at)}
+            {formatRelativeTime(lead.last_activity_at || lead.created_at)}
           </span>
         </div>
 
         {/* Action Buttons */}
         <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 border-t border-border/40 justify-between">
+          {/* Mobile: Status dropdown */}
+          <div className="sm:hidden flex-shrink-0">
+            <div
+              className="flex-shrink-0"
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerMove={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
+              onPointerCancel={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {lead.deleted_at ? (
+                <span className="inline-flex items-center px-2 py-1.5 rounded-lg text-[10px] font-medium bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
+                  Deleted
+                </span>
+              ) : (
+                <LeadStatusDropdown
+                  currentStatus={rawStatus as CustomerStatus}
+                  onStatusChange={(newStatus) => Promise.resolve(onStatusChange(lead.id, newStatus))}
+                  size="sm"
+                />
+              )}
+            </div>
+          </div>
+          {/* Desktop: Open customer button */}
           <button
             type="button"
             onClick={(e) => {
