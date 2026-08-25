@@ -523,48 +523,90 @@ export default function RequestPaymentModal({
             </label>
             {hasAnyPaymentMethod ? (
               <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentProvider('stripe')}
-                  disabled={!isStripeConfigured || isCreatingPayment}
-                  className={`px-3 py-2.5 text-sm font-medium rounded-lg border transition-all ${
-                    paymentProvider === 'stripe' && isStripeConfigured
-                      ? 'bg-blue-600 border-blue-500 text-white shadow-sm'
-                      : !isStripeConfigured
-                      ? 'bg-muted border-border text-muted-foreground cursor-not-allowed opacity-50'
-                      : 'bg-background border-border text-foreground hover:border-border/80'
-                  }`}
-                >
-                  Stripe
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentProvider('venmo')}
-                  disabled={!isVenmoConfigured || isCreatingPayment}
-                  className={`px-3 py-2.5 text-sm font-medium rounded-lg border transition-all ${
-                    paymentProvider === 'venmo' && isVenmoConfigured
-                      ? 'bg-blue-600 border-blue-500 text-white shadow-sm'
-                      : !isVenmoConfigured
-                      ? 'bg-muted border-border text-muted-foreground cursor-not-allowed opacity-50'
-                      : 'bg-background border-border text-foreground hover:border-border/80'
-                  }`}
-                >
-                  Venmo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentProvider('paypal')}
-                  disabled={!isPaypalConfigured || isCreatingPayment}
-                  className={`px-3 py-2.5 text-sm font-medium rounded-lg border transition-all ${
-                    paymentProvider === 'paypal' && isPaypalConfigured
-                      ? 'bg-blue-600 border-blue-500 text-white shadow-sm'
-                      : !isPaypalConfigured
-                      ? 'bg-muted border-border text-muted-foreground cursor-not-allowed opacity-50'
-                      : 'bg-background border-border text-foreground hover:border-border/80'
-                  }`}
-                >
-                  PayPal
-                </button>
+                <div className="relative pb-5">
+                  <button
+                    type="button"
+                    onClick={() => isStripeConfigured && setPaymentProvider('stripe')}
+                    disabled={isCreatingPayment}
+                    className={`w-full px-3 py-2.5 text-sm font-medium rounded-lg border transition-all ${
+                      paymentProvider === 'stripe' && isStripeConfigured
+                        ? 'bg-blue-600 border-blue-500 text-white shadow-sm'
+                        : !isStripeConfigured
+                        ? 'bg-muted border-border text-muted-foreground'
+                        : 'bg-background border-border text-foreground hover:border-border/80'
+                    }`}
+                  >
+                    Stripe
+                  </button>
+                  {!isStripeConfigured && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.location.href = '/dashboard/settings#payments'
+                        onClose()
+                      }}
+                      className="absolute bottom-0 left-0 right-0 text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-medium text-center"
+                    >
+                      Configure →
+                    </button>
+                  )}
+                </div>
+                <div className="relative pb-5">
+                  <button
+                    type="button"
+                    onClick={() => isVenmoConfigured && setPaymentProvider('venmo')}
+                    disabled={isCreatingPayment}
+                    className={`w-full px-3 py-2.5 text-sm font-medium rounded-lg border transition-all ${
+                      paymentProvider === 'venmo' && isVenmoConfigured
+                        ? 'bg-blue-600 border-blue-500 text-white shadow-sm'
+                        : !isVenmoConfigured
+                        ? 'bg-muted border-border text-muted-foreground'
+                        : 'bg-background border-border text-foreground hover:border-border/80'
+                    }`}
+                  >
+                    Venmo
+                  </button>
+                  {!isVenmoConfigured && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.location.href = '/dashboard/settings#payments-venmo'
+                        onClose()
+                      }}
+                      className="absolute bottom-0 left-0 right-0 text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-medium text-center"
+                    >
+                      Configure →
+                    </button>
+                  )}
+                </div>
+                <div className="relative pb-5">
+                  <button
+                    type="button"
+                    onClick={() => isPaypalConfigured && setPaymentProvider('paypal')}
+                    disabled={isCreatingPayment}
+                    className={`w-full px-3 py-2.5 text-sm font-medium rounded-lg border transition-all ${
+                      paymentProvider === 'paypal' && isPaypalConfigured
+                        ? 'bg-blue-600 border-blue-500 text-white shadow-sm'
+                        : !isPaypalConfigured
+                        ? 'bg-muted border-border text-muted-foreground'
+                        : 'bg-background border-border text-foreground hover:border-border/80'
+                    }`}
+                  >
+                    PayPal
+                  </button>
+                  {!isPaypalConfigured && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.location.href = '/dashboard/settings#payments-paypal'
+                        onClose()
+                      }}
+                      className="absolute bottom-0 left-0 right-0 text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-medium text-center"
+                    >
+                      Configure →
+                    </button>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="p-3 bg-muted/50 border border-border rounded-lg">

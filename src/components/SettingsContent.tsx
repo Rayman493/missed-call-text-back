@@ -177,6 +177,20 @@ export default function SettingsContent() {
       const hash = window.location.hash.replace('#', '')
       if (!hash) return
 
+      // Special handling for payment provider deep links
+      if (hash === 'payments-venmo' || hash === 'payments-paypal') {
+        setActiveSection('payments')
+        // Wait for section activation and then scroll
+        setTimeout(() => {
+          const element = document.getElementById(hash)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            console.log('[SETTINGS] Scrolled to payment provider:', hash)
+          }
+        }, 100)
+        return
+      }
+
       // Special handling for out-of-office deep link
       if (hash === 'out-of-office') {
         setActiveSection('automation')
@@ -4475,7 +4489,7 @@ export default function SettingsContent() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col h-full border border-border/30 rounded-lg p-4 sm:p-5">
+                  <div id="payments-venmo" className="flex flex-col h-full border border-border/30 rounded-lg p-4 sm:p-5">
                     <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -4510,7 +4524,7 @@ export default function SettingsContent() {
                   </div>
                 </div>
 
-                  <div className="flex flex-col h-full border border-border/30 rounded-lg p-4 sm:p-5">
+                  <div id="payments-paypal" className="flex flex-col h-full border border-border/30 rounded-lg p-4 sm:p-5">
                     <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-2">

@@ -1567,57 +1567,90 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                   </label>
                   {hasAnyPaymentMethod ? (
                     <div className="grid grid-cols-3 gap-2.5 pt-0.5">
-                      <button
-                        type="button"
-                        onClick={() => setPaymentProvider('stripe')}
-                        disabled={!isStripeConfigured || isCreatingPayment}
-                        className={`min-h-[44px] px-2 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
-                          paymentProvider === 'stripe' && isStripeConfigured
-                            ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
-                            : !isStripeConfigured
-                            ? 'bg-muted dark:bg-slate-800/60 border-border dark:border-slate-700 text-muted-foreground dark:text-slate-500 cursor-not-allowed opacity-50'
-                            : 'bg-background dark:bg-[#0f172a] border-border dark:border-slate-600 text-foreground dark:text-gray-300 hover:bg-muted dark:hover:border-slate-500'
-                        }`}
-                      >
-                        Stripe
+                      <div className="relative pb-5">
+                        <button
+                          type="button"
+                          onClick={() => isStripeConfigured && setPaymentProvider('stripe')}
+                          disabled={isCreatingPayment}
+                          className={`w-full min-h-[44px] px-2 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
+                            paymentProvider === 'stripe' && isStripeConfigured
+                              ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
+                              : !isStripeConfigured
+                              ? 'bg-muted dark:bg-slate-800/60 border-border dark:border-slate-700 text-muted-foreground dark:text-slate-500'
+                              : 'bg-background dark:bg-[#0f172a] border-border dark:border-slate-600 text-foreground dark:text-gray-300 hover:bg-muted dark:hover:border-slate-500'
+                          }`}
+                        >
+                          Stripe
+                        </button>
                         {!isStripeConfigured && (
-                          <div className="text-[10px] md:text-xs text-muted-foreground dark:text-slate-500 mt-0.5">Configure first</div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              router.push('/dashboard/settings#payments')
+                              setShowPaymentModal(false)
+                            }}
+                            className="absolute bottom-0 left-0 right-0 text-[10px] md:text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium text-center"
+                          >
+                            Configure →
+                          </button>
                         )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentProvider('venmo')}
-                        disabled={!isVenmoConfigured || isCreatingPayment}
-                        className={`min-h-[44px] px-2 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
-                          paymentProvider === 'venmo' && isVenmoConfigured
-                            ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
-                            : !isVenmoConfigured
-                            ? 'bg-muted dark:bg-slate-800/60 border-border dark:border-slate-700 text-muted-foreground dark:text-slate-500 cursor-not-allowed opacity-50'
-                            : 'bg-background dark:bg-[#0f172a] border-border dark:border-slate-600 text-foreground dark:text-gray-300 hover:bg-muted dark:hover:border-slate-500'
-                        }`}
-                      >
-                        Venmo
+                      </div>
+                      <div className="relative pb-5">
+                        <button
+                          type="button"
+                          onClick={() => isVenmoConfigured && setPaymentProvider('venmo')}
+                          disabled={isCreatingPayment}
+                          className={`w-full min-h-[44px] px-2 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
+                            paymentProvider === 'venmo' && isVenmoConfigured
+                              ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
+                              : !isVenmoConfigured
+                              ? 'bg-muted dark:bg-slate-800/60 border-border dark:border-slate-700 text-muted-foreground dark:text-slate-500'
+                              : 'bg-background dark:bg-[#0f172a] border-border dark:border-slate-600 text-foreground dark:text-gray-300 hover:bg-muted dark:hover:border-slate-500'
+                          }`}
+                        >
+                          Venmo
+                        </button>
                         {!isVenmoConfigured && (
-                          <div className="text-[10px] md:text-xs text-muted-foreground dark:text-slate-500 mt-0.5">Configure first</div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              router.push('/dashboard/settings#payments-venmo')
+                              setShowPaymentModal(false)
+                            }}
+                            className="absolute bottom-0 left-0 right-0 text-[10px] md:text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium text-center"
+                          >
+                            Configure →
+                          </button>
                         )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentProvider('paypal')}
-                        disabled={!isPaypalConfigured || isCreatingPayment}
-                        className={`min-h-[44px] px-2 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
-                          paymentProvider === 'paypal' && isPaypalConfigured
-                            ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
-                            : !isPaypalConfigured
-                            ? 'bg-muted dark:bg-slate-800/60 border-border dark:border-slate-700 text-muted-foreground dark:text-slate-500 cursor-not-allowed opacity-50'
-                            : 'bg-background dark:bg-[#0f172a] border-border dark:border-slate-600 text-foreground dark:text-gray-300 hover:bg-muted dark:hover:border-slate-500'
-                        }`}
-                      >
-                        PayPal
+                      </div>
+                      <div className="relative pb-5">
+                        <button
+                          type="button"
+                          onClick={() => isPaypalConfigured && setPaymentProvider('paypal')}
+                          disabled={isCreatingPayment}
+                          className={`w-full min-h-[44px] px-2 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
+                            paymentProvider === 'paypal' && isPaypalConfigured
+                              ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
+                              : !isPaypalConfigured
+                              ? 'bg-muted dark:bg-slate-800/60 border-border dark:border-slate-700 text-muted-foreground dark:text-slate-500'
+                              : 'bg-background dark:bg-[#0f172a] border-border dark:border-slate-600 text-foreground dark:text-gray-300 hover:bg-muted dark:hover:border-slate-500'
+                          }`}
+                        >
+                          PayPal
+                        </button>
                         {!isPaypalConfigured && (
-                          <div className="text-[10px] md:text-xs text-muted-foreground dark:text-slate-500 mt-0.5">Configure first</div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              router.push('/dashboard/settings#payments-paypal')
+                              setShowPaymentModal(false)
+                            }}
+                            className="absolute bottom-0 left-0 right-0 text-[10px] md:text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium text-center"
+                          >
+                            Configure →
+                          </button>
                         )}
-                      </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="p-3 md:p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 rounded-lg">
