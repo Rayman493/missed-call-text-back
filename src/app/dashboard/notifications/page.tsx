@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useNotifications } from '@/contexts/NotificationContext'
-import { notificationService, Notification, NotificationCount, resolveNotificationSubject } from '@/lib/notifications'
+import { notificationService, Notification, NotificationCount, getNotificationCustomerContext } from '@/lib/notifications'
 import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Settings, CreditCard, ExternalLink, PhoneMissed, Trash2, X } from 'lucide-react'
 import AppHeader from '@/components/AppHeader'
 import Navigation from '@/components/Navigation'
@@ -99,14 +99,7 @@ export default function NotificationsPage() {
   }
 
   const getLeadContext = (notification: Notification) => {
-    const subject = resolveNotificationSubject(notification)
-
-    // Don't show "Unknown Caller" - it adds noise
-    if (subject === 'Unknown Caller') {
-      return null
-    }
-
-    return subject
+    return getNotificationCustomerContext(notification)
   }
 
   const formatTime = (timestamp: string) => {

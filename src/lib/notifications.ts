@@ -98,6 +98,52 @@ export function resolveNotificationSubject(notification: Notification): string {
   return 'Unknown Caller'
 }
 
+/**
+ * Check if a notification already includes customer context in title or message
+ * This prevents duplicate customer names in the notification list
+ */
+export function notificationIncludesCustomerContext(notification: Notification): boolean {
+  const subject = resolveNotificationSubject(notification)
+  const title = notification.title || ''
+  const message = notification.message || ''
+
+  // If subject is "Unknown Caller", don't consider it as customer context
+  if (subject === 'Unknown Caller') {
+    return false
+  }
+
+  // Check if subject is already in title
+  if (title.includes(subject)) {
+    return true
+  }
+
+  // Check if subject is in message (with common prefixes)
+  if (message.includes(subject) ||
+      message.includes(`From ${subject}`) ||
+      message.includes(`to ${subject}`) ||
+      message.includes(`for ${subject}`) ||
+      message.includes(`${subject}:`)) {
+    return true
+  }
+
+  return false
+}
+
+/**
+ * Get customer context for notification display
+ * Returns null if context is already included in title/message
+ */
+export function getNotificationCustomerContext(notification: Notification): string | null {
+  // If notification already includes customer context, don't duplicate
+  if (notificationIncludesCustomerContext(notification)) {
+    return null
+  }
+
+  // Otherwise, return the subject
+  const subject = resolveNotificationSubject(notification)
+  return subject === 'Unknown Caller' ? null : subject
+}
+
 export interface Notification {
   id: string
   business_id: string
@@ -248,19 +294,28 @@ export const NOTIFICATION_TEMPLATES = {
     action_text: 'View Calendar'
   }),
 
-  appointment_created: (data: { title: string, date: string }) => ({
-    title: 'Appointment Scheduled',
-    message: `${data.title} · ${new Date(data.date).toLocaleDateString()}`,
-    action_url: '/dashboard/calendar',
-    action_text: 'View Calendar'
-  }),
+  appointment_created: (data: { title: string, date: string, leadName?: string, leadPhone?: string }) => {
+    const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
+    const formattedDate = new Date(data.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    return {
+      title: 'Appointment Scheduled',
+      message: displayName !== 'Customer' ? `${displayName}: ${data.title}` : data.title,
+      data: { ...data, leadName: data.leadName, leadPhone: data.leadPhone },
+      action_url: '/dashboard/calendar',
+      action_text: 'View Calendar'
+    }
+  },
 
-  appointment_deleted: (data: { title: string }) => ({
-    title: 'Appointment Cancelled',
-    message: data.title,
-    action_url: '/dashboard/calendar',
-    action_text: 'View Calendar'
-  }),
+  appointment_deleted: (data: { title: string, leadName?: string, leadPhone?: string }) => {
+    const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
+    return {
+      title: 'Appointment Cancelled',
+      message: displayName !== 'Customer' ? `${displayName}: ${data.title}` : data.title,
+      data: { ...data, leadName: data.leadName, leadPhone: data.leadPhone },
+      action_url: '/dashboard/calendar',
+      action_text: 'View Calendar'
+    }
+  },
 
   personal_voicemail: (data: { callerPhone: string; voicemailId: string }) => {
     const formattedPhone = formatPhoneNumber(data.callerPhone)
