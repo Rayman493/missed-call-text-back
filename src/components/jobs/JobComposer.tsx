@@ -382,9 +382,6 @@ export default function JobComposer({
                     className="w-full pl-8 pr-3 py-2.5 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground/70 mt-1.5">
-                  Optional. If provided, this job will automatically appear on your schedule.
-                </p>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
@@ -399,11 +396,11 @@ export default function JobComposer({
                     className="w-full pl-8 pr-3 py-2.5 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground/70 mt-1.5">
-                  Optional. Selecting a date and time automatically schedules this job.
-                </p>
               </div>
             </div>
+            <p className="text-[10px] text-muted-foreground/70">
+              Optional. Add a date and time to place this job on your schedule.
+            </p>
 
             {/* Status */}
             <div>

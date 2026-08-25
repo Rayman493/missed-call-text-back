@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Briefcase, User } from 'lucide-react'
+import { X, Briefcase, User, Plus } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
@@ -261,37 +261,55 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
     return getLeadDisplayName(lead)
   }
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px)] sm:max-h-[90vh] overflow-hidden flex flex-col sm:mb-0">
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
-            {taskToEdit ? 'Edit Task' : 'New Task'}
-          </h2>
-          <button
-            onClick={handleClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-              Task Title *
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Call customer about quote"
-              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white dark:bg-slate-800 text-slate-900 dark:text-foreground"
-              required
-            />
+    <>
+      <div
+        className="fixed inset-0 z-[60] flex sm:items-center sm:justify-center justify-end bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
+        style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
+        role="dialog"
+        aria-modal="true"
+        onClick={handleClose}
+        data-scroll-lock-allow
+      >
+        <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[calc(85dvh-var(--bottom-nav-height,80px)-32px-env(safe-area-inset-top))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4"
+             data-scroll-lock-allow>
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 sm:px-4 sm:py-3 border-b border-border/30 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10">
+                <Briefcase className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-foreground tracking-tight">
+                  {taskToEdit ? 'Edit Task' : 'New Task'}
+                </h2>
+              </div>
+            </div>
+            <button
+              onClick={handleClose}
+              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors"
+              aria-label="Close modal"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
+
+          {/* Body */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 sm:px-4 sm:py-3 overscroll-contain space-y-4" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
+                  Task Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g., Call customer about quote"
+                  className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  required
+                />
+              </div>
 
           <SelectPicker
             value={selectedLeadId}
@@ -338,7 +356,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+            <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
               Notes
             </label>
             <textarea
@@ -346,7 +364,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Add any details about this task..."
               rows={3}
-              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white dark:bg-slate-800 text-slate-900 dark:text-foreground resize-none"
+              className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-y"
               autoCapitalize="sentences"
               autoCorrect="on"
               spellCheck={true}
@@ -355,50 +373,61 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
 
           {/* Completion Toggle - Only in Edit Mode */}
           {taskToEdit && (
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={handleToggleComplete}
-                disabled={isTogglingComplete}
-                className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isTogglingComplete ? 'Updating...' : (taskToEdit.completed ? 'Reopen Task' : 'Mark as Complete')}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleToggleComplete}
+              disabled={isTogglingComplete}
+              className="w-full px-4 py-2.5 border border-border rounded-lg text-foreground bg-muted hover:bg-muted/80 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isTogglingComplete ? 'Updating...' : (taskToEdit.completed ? 'Reopen Task' : 'Mark as Complete')}
+            </button>
           )}
 
           {/* Delete Button - Only in Edit Mode */}
           {taskToEdit && (
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="w-full px-4 py-2 border border-red-200 dark:border-red-900/30 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete Task'}
-              </button>
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-2 pb-2">
             <button
               type="button"
-              onClick={handleClose}
-              className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="w-full px-4 py-2.5 border border-red-200 dark:border-red-900/30 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cancel
+              {isDeleting ? 'Deleting...' : 'Delete Task'}
             </button>
-            <button
-              type="submit"
-              disabled={isSaving || !title.trim()}
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? (taskToEdit ? 'Saving...' : 'Creating...') : (taskToEdit ? 'Save Changes' : 'Create Task')}
-            </button>
-          </div>
+          )}
         </form>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-5 py-4 sm:px-4 sm:py-3 border-t border-border/30 bg-card shrink-0" style={{ paddingBottom: 'max(16px, calc(16px + env(safe-area-inset-bottom)))' }}>
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={isSaving}
+            className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isSaving || !title.trim()}
+            className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isSaving ? (
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                <span>{taskToEdit ? 'Saving...' : 'Creating...'}</span>
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4" />
+                <span>{taskToEdit ? 'Save Changes' : 'Create Task'}</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
+    </div>
+    </>
   )
 }
