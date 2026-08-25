@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock } from 'lucide-react'
+import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Plus } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { getCustomerStatusStyle } from '@/lib/customer-status'
+import LeadPickerModal from '@/components/jobs/LeadPickerModal'
+import AddCustomerModal from '@/components/AddCustomerModal'
 
 export type JobStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
 
@@ -85,6 +87,12 @@ export default function JobComposer({
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
 
+  // Customer selector state
+  const [leadId, setLeadId] = useState<string | null>(null)
+  const [leadDisplay, setLeadDisplay] = useState<string | null>(null)
+  const [isLeadPickerOpen, setIsLeadPickerOpen] = useState(false)
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
+
   const locationInputRef = useRef<HTMLInputElement>(null)
 
   useBodyScrollLock(isOpen)
@@ -113,6 +121,8 @@ export default function JobComposer({
       setScheduledDate(editJob.scheduled_date || '')
       setScheduledTime(editJob.scheduled_time?.slice(0, 5) || '')
       setStatus(editJob.status)
+      setLeadId(editJob.lead_id || null)
+      setLeadDisplay(editJob.customer_name || editJob.service_address || 'Customer')
     } else {
       setTitle(prefill?.title || '')
       setCustomerName(prefill?.customer_name || '')
@@ -122,6 +132,8 @@ export default function JobComposer({
       setScheduledDate(prefill?.scheduled_date || (defaultDate ? defaultDate.toISOString().split('T')[0] : ''))
       setScheduledTime(prefill?.scheduled_time || '')
       setStatus('scheduled')
+      setLeadId(prefill?.lead_id || null)
+      setLeadDisplay(prefill?.customer_name || prefill?.service_address || null)
     }
   }, [isOpen, editJob, prefill, defaultDate])
 
@@ -134,8 +146,8 @@ export default function JobComposer({
     }
     
     // Require lead_id for new jobs (not edits)
-    if (!editJob && !prefill?.lead_id) {
-      setError('A customer must be selected to create a job. Please select a customer from the Customers page first.')
+    if (!editJob && !leadId) {
+      setError('Please select a customer to create this job')
       return
     }
     
@@ -151,8 +163,8 @@ export default function JobComposer({
         scheduled_date: scheduledDate || null,
         scheduled_time: scheduledTime || null,
         status,
-        source: prefill?.lead_id ? 'replyflow' : 'manual',
-        lead_id: prefill?.lead_id || editJob?.lead_id || null,
+        source: leadId ? 'replyflow' : 'manual',
+        lead_id: leadId || editJob?.lead_id || null,
         conversation_id: prefill?.conversation_id || editJob?.conversation_id || null,
       }
 
@@ -184,31 +196,38 @@ export default function JobComposer({
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+        className="fixed inset-0 z-[60] flex sm:items-center sm:justify-center justify-end bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
+        style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
+        role="dialog"
+        aria-modal="true"
         onClick={onClose}
-      />
-      <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 pb-[calc(var(--bottom-nav-height,72px)+env(safe-area-inset-bottom)+16px)] sm:pb-4" data-scroll-lock-allow>
-        <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg h-[min(82dvh,calc(100dvh-6rem-env(safe-area-inset-bottom)))] sm:h-auto sm:max-h-[90vh] flex flex-col overflow-hidden">
+        data-scroll-lock-allow
+      >
+        <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-lg max-h-[calc(85dvh-var(--bottom-nav-height,80px)-32px-env(safe-area-inset-top))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4"
+             data-scroll-lock-allow>
           {/* Header */}
-          <div className="flex items-center justify-between p-4 sm:p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-white dark:bg-slate-900">
+          <div className="flex items-center justify-between px-5 py-4 sm:px-4 sm:py-3 border-b border-border/30 shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <Briefcase className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10">
+                <Briefcase className="w-4 h-4 text-primary" />
               </div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">
-                {editJob ? 'Edit Job' : 'New Job'}
-              </h2>
+              <div>
+                <h2 className="text-base font-semibold text-foreground tracking-tight">
+                  {editJob ? 'Edit Job' : 'New Job'}
+                </h2>
+              </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
+              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors"
+              aria-label="Close modal"
             >
-              <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Body */}
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5 space-y-2.5 sm:space-y-4" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 sm:px-4 sm:py-3 overscroll-contain space-y-4" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
             {/* Source badge for ReplyFlow-linked jobs */}
             {(prefill?.lead_id || editJob?.lead_id) && (
               <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -221,7 +240,7 @@ export default function JobComposer({
 
             {/* Title */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
                 Job Title <span className="text-red-500">*</span>
               </label>
               <input
@@ -229,58 +248,100 @@ export default function JobComposer({
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="e.g. Tree removal, Roof repair, AC installation"
-                className="w-full px-3 py-2 sm:py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-foreground placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               />
             </div>
 
-            {/* Customer Name + Phone */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Customer Name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                  <input
-                    type="text"
-                    value={customerName}
-                    onChange={e => setCustomerName(e.target.value)}
-                    placeholder="John Smith"
-                    className="w-full pl-8 pr-3 py-2 sm:py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-foreground placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
+            {/* Customer */}
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
+                <User className="w-2.5 h-2.5 text-muted-foreground" />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Phone
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
+                  Customer <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                  <input
-                    type="tel"
-                    value={customerPhone}
-                    onChange={e => setCustomerPhone(e.target.value)}
-                    placeholder="(555) 000-0000"
-                    className="w-full pl-8 pr-3 py-2 sm:py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-foreground placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
+                {leadId ? (
+                  <div className="flex items-center gap-2">
+                    <div className="px-2 py-1 rounded bg-muted text-foreground text-xs">{leadDisplay || 'Selected customer'}</div>
+                    {!editJob && (
+                      <button
+                        type="button"
+                        onClick={() => { setLeadId(null); setLeadDisplay(null); setCustomerName(''); setCustomerPhone(''); setServiceAddress(''); }}
+                        className="text-xs text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 rounded"
+                      >Clear</button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsLeadPickerOpen(true)}
+                      aria-label="Select existing customer"
+                      className="px-4 py-2.5 sm:px-3 sm:py-2 bg-muted border border-border rounded-lg text-xs text-foreground hover:bg-muted/80 w-full sm:w-auto text-left sm:text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+                    >Select Existing</button>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddCustomerOpen(true)}
+                      aria-label="Add new customer"
+                      className="px-4 py-2.5 sm:px-3 sm:py-2 bg-muted border border-border rounded-lg text-xs text-foreground hover:bg-muted/80 w-full sm:w-auto text-left sm:text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 flex items-center justify-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Add New Customer
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
+            {/* Customer Name + Phone (read-only when customer selected) */}
+            {leadId && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
+                    Customer Name
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={customerName}
+                      readOnly
+                      className="w-full pl-8 pr-3 py-2.5 sm:py-2 text-sm bg-muted border border-border rounded-lg text-foreground"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
+                    Phone
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <input
+                      type="tel"
+                      value={customerPhone}
+                      readOnly
+                      className="w-full pl-8 pr-3 py-2.5 sm:py-2 text-sm bg-muted border border-border rounded-lg text-foreground"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Service Address */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
                 Service Address
               </label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <input
                   type="text"
                   ref={locationInputRef}
                   value={serviceAddress}
                   onChange={e => setServiceAddress(e.target.value)}
                   placeholder="123 Main St, City, State"
-                  className="w-full pl-8 pr-3 py-2 sm:py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-foreground placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-8 pr-3 py-2.5 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 />
               </div>
             </div>
@@ -307,38 +368,38 @@ export default function JobComposer({
             )}
 
             {/* Date + Time */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
                   Date
                 </label>
                 <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                   <input
                     type="date"
                     value={scheduledDate}
                     onChange={e => setScheduledDate(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 sm:py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-8 pr-3 py-2.5 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                <p className="text-[10px] text-muted-foreground/70 mt-1.5">
                   Optional. If provided, this job will automatically appear on your schedule.
                 </p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
                   Time
                 </label>
                 <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                   <input
                     type="time"
                     value={scheduledTime}
                     onChange={e => setScheduledTime(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 sm:py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-8 pr-3 py-2.5 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                <p className="text-[10px] text-muted-foreground/70 mt-1.5">
                   Optional. Selecting a date and time automatically schedules this job.
                 </p>
               </div>
@@ -346,19 +407,19 @@ export default function JobComposer({
 
             {/* Status */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
                 Status
               </label>
-              <div className="flex gap-1.5 sm:gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap">
                 {STATUS_OPTIONS.map(opt => (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => setStatus(opt.value)}
-                    className={`px-3 py-1.5 sm:py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                    className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
                       status === opt.value
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted text-foreground border-border hover:bg-muted/80'
                     }`}
                   >
                     {opt.label}
@@ -369,18 +430,18 @@ export default function JobComposer({
 
             {/* Notes */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
                 Notes
               </label>
               <div className="relative">
-                <FileText className="absolute left-3 top-3 w-3.5 h-3.5 text-slate-400" />
+                <FileText className="absolute left-3 top-3 w-3.5 h-3.5 text-muted-foreground" />
                 <textarea
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   rows={3}
                   placeholder="Any additional notes about this job..."
                   data-scroll-lock-allow
-                  className="w-full max-h-40 overflow-y-auto overscroll-contain pl-8 pr-3 py-2 sm:py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-foreground placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+                  className="w-full max-h-40 overflow-y-auto overscroll-contain pl-8 pr-3 py-2.5 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-y"
                   style={{ WebkitOverflowScrolling: 'touch' }}
                 />
               </div>
@@ -392,30 +453,64 @@ export default function JobComposer({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-5 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex-shrink-0">
+          <div className="flex items-center justify-end gap-3 px-5 py-4 sm:px-4 sm:py-3 border-t border-border/30 bg-card shrink-0" style={{ paddingBottom: 'max(16px, calc(16px + env(safe-area-inset-bottom)))' }}>
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              disabled={isSaving}
+              className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="px-5 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isSaving ? (
                 <>
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                   <span>Saving...</span>
                 </>
               ) : (
-                <span>{editJob ? 'Save Changes' : 'Create Job'}</span>
+                <>
+                  <Plus className="w-4 h-4" />
+                  <span>{editJob ? 'Save Changes' : 'Create Job'}</span>
+                </>
               )}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Customer selectors */}
+      <LeadPickerModal
+        isOpen={isLeadPickerOpen}
+        onClose={() => setIsLeadPickerOpen(false)}
+        onSelect={(prefill) => {
+          setIsLeadPickerOpen(false)
+          if (prefill.lead_id) {
+            setLeadId(prefill.lead_id)
+            setLeadDisplay(prefill.customer_name || prefill.service_address || 'Customer')
+            setCustomerName(prefill.customer_name || '')
+            setCustomerPhone(prefill.customer_phone || '')
+            setServiceAddress(prefill.service_address || '')
+          }
+        }}
+        title="Select Customer"
+        subtitle="Search your customers"
+      />
+      <AddCustomerModal
+        isOpen={isAddCustomerOpen}
+        onClose={() => setIsAddCustomerOpen(false)}
+        returnTo="calendar"
+        onLeadCreated={(newLeadId) => {
+          setIsAddCustomerOpen(false)
+          if (newLeadId) {
+            setLeadId(newLeadId)
+            setLeadDisplay('New Customer')
+          }
+        }}
+      />
     </>
   )
 }

@@ -23,7 +23,6 @@ import JobComposer from '@/components/jobs/JobComposer'
 import JobPill from '@/components/jobs/JobPill'
 import JobDetailsModal from '@/components/jobs/JobDetailsModal'
 import TodaySchedule from '@/components/jobs/TodaySchedule'
-import NewJobModal from '@/components/jobs/NewJobModal'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
@@ -254,9 +253,6 @@ export default function SchedulePage() {
 
   // Tasks state
   const [tasks, setTasks] = useState<any[]>([])
-  const [isNewJobModalOpen, setIsNewJobModalOpen] = useState(false)
-  const [newJobWorkflowTitle, setNewJobWorkflowTitle] = useState('Create Job')
-  const [newJobWorkflowPrompt, setNewJobWorkflowPrompt] = useState('Select a customer to create a job for')
   const [newJobDefaultDate, setNewJobDefaultDate] = useState<Date | undefined>(undefined)
   const [isLeadPickerOpen, setIsLeadPickerOpen] = useState(false)
   const [isJobComposerOpen, setIsJobComposerOpen] = useState(false)
@@ -915,9 +911,7 @@ export default function SchedulePage() {
     setEditingJob(null)
     setJobPrefill(undefined)
     setNewJobDefaultDate(undefined)
-    setNewJobWorkflowTitle('Create Job')
-    setNewJobWorkflowPrompt('Select a customer to create a job for')
-    setIsNewJobModalOpen(true)
+    setIsJobComposerOpen(true)
   }
 
   const handleJobSaved = (job: Job) => {
@@ -1873,19 +1867,9 @@ export default function SchedulePage() {
                   )}
 
 
-                  {/* Lead Selection Modal */}
-                  <NewJobModal
-                    title={newJobWorkflowTitle}
-                    prompt={newJobWorkflowPrompt}
-                    isOpen={isNewJobModalOpen}
-                    onClose={() => setIsNewJobModalOpen(false)}
-                    onSelectLead={() => setIsLeadPickerOpen(true)}
-                    onCreateCustomer={() => setIsAddCustomerModalOpen(true)}
-                  />
-
                   {/* Lead Picker Modal */}
                   <LeadPickerModal
-                    title={newJobWorkflowTitle}
+                    title="Select Customer"
                     subtitle="Select a customer to continue"
                     isOpen={isLeadPickerOpen}
                     onClose={() => setIsLeadPickerOpen(false)}
