@@ -394,8 +394,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         customerHealth: false,
         quickActions: false,
         aiIntake: false,
-        payments: false,
-        appointments: false,
       }
     }
 
@@ -406,8 +404,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       customerHealth: false,
       quickActions: false,
       aiIntake: false,
-      payments: false,
-      appointments: false,
     }
   })
 
@@ -620,18 +616,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       localStorage.setItem('customerDetailsCollapsedSections', JSON.stringify(collapsedSections))
     }
   }, [collapsedSections])
-
-  // Smart expand payments section if there are pending payments
-  useEffect(() => {
-    if (!leadData) return
-
-    const paymentRequests = leadData.paymentRequests || []
-    const hasPendingPayments = paymentRequests.some((pr: any) => pr.status === 'pending' || pr.status === 'created')
-
-    if (hasPendingPayments) {
-      setCollapsedSections((prev: any) => ({ ...prev, payments: false }))
-    }
-  }, [leadData])
 
   // Prevent body scrolling when Customer Details modal is open
   useEffect(() => {
@@ -3050,18 +3034,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* Payment Requests - Collapsible - Compact on mobile */}
+        {/* Payment Requests */}
         <div className="bg-background dark:bg-background rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <button
-              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
-              className="flex items-center gap-2 group"
-            >
-              <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Payments</h3>
-              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.payments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+            <h3 className="text-sm font-medium text-foreground">Payments</h3>
             <Link
               href="/dashboard/payments"
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -3072,23 +3048,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </svg>
             </Link>
           </div>
-          {!collapsedSections.payments && (
-            <div className="transition-all duration-200">
-              {paymentRequests.length === 0 ? (
-                <div className="text-center py-2 sm:py-4">
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">You haven't requested payment from this customer yet.</p>
-                  <button
-                    onClick={() => setShowPaymentModal(true)}
-                    disabled={!business || getAvailableProviders(business).length === 0}
-                    className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span className="hidden sm:inline">Request Payment</span>
-                    <span className="sm:hidden">Request</span>
-                  </button>
-                </div>
+          <div className="transition-all duration-200">
+            {paymentRequests.length === 0 ? (
+              <div className="text-center py-2 sm:py-4">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">You haven't requested payment from this customer yet.</p>
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  disabled={!business || getAvailableProviders(business).length === 0}
+                  className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span className="hidden sm:inline">Request Payment</span>
+                  <span className="sm:hidden">Request</span>
+                </button>
+              </div>
               ) : (
                 <div className="space-y-3">
                   <div className="space-y-2">
@@ -3123,21 +3098,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               )}
             </div>
-          )}
         </div>
 
-        {/* Appointments - Collapsible */}
+        {/* Appointments */}
         <div className="bg-background dark:bg-background rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <button
-              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, appointments: !prev.appointments }))}
-              className="flex items-center gap-2 group"
-            >
-              <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Appointments</h3>
-              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.appointments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+            <h3 className="text-sm font-medium text-foreground">Appointments</h3>
             <button
               type="button"
               onClick={handleAppointmentClick}
@@ -3150,12 +3116,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <span className="sm:hidden">Add</span>
             </button>
           </div>
-          {!collapsedSections.appointments && (
-            <div className="transition-all duration-200">
-              {loadingAppointments ? (
-                <div className="flex items-center justify-center py-4">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                </div>
+          <div className="transition-all duration-200">
+            {loadingAppointments ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+              </div>
               ) : appointments.length === 0 ? (
                 <div className="text-center py-2 sm:py-4">
                   <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No appointments scheduled yet.</p>
@@ -3211,7 +3176,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               )}
             </div>
-          )}
         </div>
 
         {/* Internal Notes - Standalone Section */}
@@ -4773,192 +4737,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
 
-          {/* Jobs */}
-          <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                </div>
-                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Jobs</span>
-                {leadJobs.length > 0 && (
-                  <span className="text-xs text-muted-foreground">({leadJobs.length})</span>
-                )}
-              </div>
-            </div>
-            <div className="mt-2">
-              {leadJobs.length === 0 ? (
-                <button
-                  onClick={handleCreateJobClick}
-                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Create Job
-                </button>
-              ) : (
-                <div className="space-y-1">
-                  {leadJobs.slice(0, 3).map((job: any) => (
-                    <div key={job.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-foreground truncate">{job.title || 'Job'}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
-                          {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
-                        </p>
-                      </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2 border border-border/50">
-                        {formatJobStatus(job.status).text}
-                      </span>
-                    </div>
-                  ))}
-                  {leadJobs.length > 3 && (
-                    <button
-                      onClick={handleAppointmentClick}
-                      className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                    >
-                      View all {leadJobs.length} jobs
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Payments - Collapsible */}
-          <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
-            <button
-              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
-              className="flex items-center justify-between w-full"
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  </svg>
-                </div>
-                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Payments</span>
-              </div>
-              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.payments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {!collapsedSections.payments && (
-              <div className="mt-2">
-                {(leadData?.paymentRequests || []).length === 0 ? (
-                  <button
-                    onClick={() => setShowPaymentModal(true)}
-                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Request Payment
-                  </button>
-                ) : (
-                  <div className="space-y-1.5">
-                    {(leadData?.paymentRequests || []).slice(0, 3).map((pr: any) => (
-                      <div key={pr.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-foreground">${(pr.amount_cents / 100).toFixed(2)}</p>
-                          <p className="text-[10px] text-muted-foreground">{formatRelativeTime(pr.created_at)}</p>
-                        </div>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 ${
-                          pr.status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300'
-                        }`}>
-                          {formatPaymentStatus(pr.status).text}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-        <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
-          <button
-            onClick={() => setCollapsedSections((prev: any) => ({ ...prev, appointments: !prev.appointments }))}
-            className="flex items-center justify-between w-full"
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 flex items-center justify-center">
-                <CalendarDays className="w-4 h-4 text-muted-foreground" />
-              </div>
-              <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Appointments</span>
-              {appointments.length > 0 && (
-                <span className="text-xs text-muted-foreground">{appointments.length}</span>
-              )}
-            </div>
-            <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.appointments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          {!collapsedSections.appointments && (
-            <div className="mt-2">
-              {loadingAppointments ? (
-                <div className="flex items-center justify-center py-4">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                </div>
-              ) : appointments.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-2">No appointments</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {(() => {
-                    const now = new Date()
-                    const sorted = [...appointments].sort((a: any, b: any) => {
-                      const dateA = new Date(a.start?.dateTime || a.start?.date)
-                      const dateB = new Date(b.start?.dateTime || b.start?.date)
-                      const isAPast = dateA < now
-                      const isBPast = dateB < now
-
-                      // Upcoming events always before past events
-                      if (isAPast && !isBPast) return 1
-                      if (!isAPast && isBPast) return -1
-
-                      // Within same group, sort by date
-                      // For upcoming: earliest first
-                      // For past: newest first
-                      if (isAPast && isBPast) {
-                        return dateB.getTime() - dateA.getTime() // newest past first
-                      }
-                      return dateA.getTime() - dateB.getTime() // earliest upcoming first
-                    })
-                    return sorted.slice(0, 3).map((event: any) => {
-                      const startDate = new Date(event.start?.dateTime || event.start?.date)
-                      const isPast = startDate < now
-                      const isAllDay = !!(event.start?.date && !event.start?.dateTime)
-                      let timeStr = ''
-                      if (isAllDay) {
-                        timeStr = 'All day'
-                      } else if (event.start?.dateTime) {
-                        timeStr = new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-                      }
-                      const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                      return (
-                        <div key={event.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-medium text-foreground truncate">{event.summary}</p>
-                            <p className="text-[10px] text-muted-foreground">{dateStr} {timeStr ? '• ' + timeStr : ''}</p>
-                          </div>
-                          {isPast && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2">
-                              Past
-                            </span>
-                          )}
-                        </div>
-                      )
-                    })
-                  })()}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
           {/* Tasks */}
           <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
             <div className="flex items-center justify-between mb-2">
@@ -5013,6 +4791,189 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
+          {/* Schedule */}
+          <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Schedule</span>
+                {leadJobs.length > 0 && (
+                  <span className="text-xs text-muted-foreground">({leadJobs.length})</span>
+                )}
+              </div>
+              <button
+                onClick={handleCreateJobClick}
+                className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add
+              </button>
+            </div>
+            <div className="mt-2">
+              {leadJobs.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-2">No scheduled jobs</p>
+              ) : (
+                <div className="space-y-1">
+                  {leadJobs.slice(0, 3).map((job: any) => (
+                    <div key={job.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-foreground truncate">{job.title || 'Job'}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
+                          {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
+                        </p>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2 border border-border/50">
+                        {formatJobStatus(job.status).text}
+                      </span>
+                    </div>
+                  ))}
+                  {leadJobs.length > 3 && (
+                    <button
+                      onClick={handleAppointmentClick}
+                      className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                    >
+                      View all {leadJobs.length} jobs
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Payments */}
+          <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Payments</span>
+              </div>
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                disabled={!business || getAvailableProviders(business).length === 0}
+                className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add
+              </button>
+            </div>
+            <div className="mt-2">
+              {(leadData?.paymentRequests || []).length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-2">No payments yet</p>
+              ) : (
+                <div className="space-y-1">
+                  {(leadData?.paymentRequests || []).slice(0, 3).map((pr: any) => (
+                    <div key={pr.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-foreground">${(pr.amount_cents / 100).toFixed(2)}</p>
+                        <p className="text-[10px] text-muted-foreground">{formatRelativeTime(pr.created_at)}</p>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 ${
+                        pr.status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300'
+                      }`}>
+                        {formatPaymentStatus(pr.status).text}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Appointments */}
+          <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 flex items-center justify-center">
+                  <CalendarDays className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Appointments</span>
+                {appointments.length > 0 && (
+                  <span className="text-xs text-muted-foreground">{appointments.length}</span>
+                )}
+              </div>
+              <button
+                onClick={handleAppointmentClick}
+                className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add
+              </button>
+            </div>
+            <div className="mt-2">
+              {loadingAppointments ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                </div>
+              ) : appointments.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-2">No appointments</p>
+              ) : (
+                <div className="space-y-1">
+                  {(() => {
+                    const now = new Date()
+                    const sorted = [...appointments].sort((a: any, b: any) => {
+                      const dateA = new Date(a.start?.dateTime || a.start?.date)
+                      const dateB = new Date(b.start?.dateTime || b.start?.date)
+                      const isAPast = dateA < now
+                      const isBPast = dateB < now
+
+                      // Upcoming events always before past events
+                      if (isAPast && !isBPast) return 1
+                      if (!isAPast && isBPast) return -1
+
+                      // Within same group, sort by date
+                      // For upcoming: earliest first
+                      // For past: newest first
+                      if (isAPast && isBPast) {
+                        return dateB.getTime() - dateA.getTime() // newest past first
+                      }
+                      return dateA.getTime() - dateB.getTime() // earliest upcoming first
+                    })
+                    return sorted.slice(0, 3).map((event: any) => {
+                      const startDate = new Date(event.start?.dateTime || event.start?.date)
+                      const isPast = startDate < now
+                      const isAllDay = !!(event.start?.date && !event.start?.dateTime)
+                      let timeStr = ''
+                      if (isAllDay) {
+                        timeStr = 'All day'
+                      } else if (event.start?.dateTime) {
+                        timeStr = new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                      }
+                      const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      return (
+                        <div key={event.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium text-foreground truncate">{event.summary}</p>
+                            <p className="text-[10px] text-muted-foreground">{dateStr} {timeStr ? '• ' + timeStr : ''}</p>
+                          </div>
+                          {isPast && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2">
+                              Past
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Internal Notes */}
           <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
             <div className="flex items-center justify-between mb-2">
@@ -5022,7 +4983,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </div>
-                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Notes</span>
+                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Internal Notes</span>
               </div>
               <button
                 onClick={() => {
