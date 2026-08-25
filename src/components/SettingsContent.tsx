@@ -3515,7 +3515,7 @@ export default function SettingsContent() {
                               setFollowUpEnabled(newValue)
                               // Save to API
                               fetch('/api/settings/follow-ups', {
-                                method: 'POST',
+                                method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ enabled: newValue, followUps })
                               }).catch(err => console.error('Failed to save follow-up settings:', err))
@@ -3587,7 +3587,7 @@ export default function SettingsContent() {
                                   setFollowUpEnabled(newValue)
                                   // Save to API
                                   fetch('/api/settings/follow-ups', {
-                                    method: 'POST',
+                                    method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ enabled: newValue, followUps })
                                   }).catch(err => console.error('Failed to save follow-up settings:', err))
