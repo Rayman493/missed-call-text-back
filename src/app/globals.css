@@ -391,6 +391,57 @@ html.light::-webkit-scrollbar-thumb:hover {
   }
 }
 
+/* Thin scrollbar for mobile/touch devices - subtle and unobtrusive */
+@media (hover: none) and (pointer: coarse) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(96, 165, 250, 0.3) rgba(15, 23, 42, 0.3);
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.3);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(96, 165, 250, 0.4), rgba(34, 211, 238, 0.3));
+    border: 1px solid rgba(15, 23, 42, 0.5);
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(96, 165, 250, 0.5), rgba(34, 211, 238, 0.4));
+  }
+
+  /* Light mode mobile scrollbar */
+  html.light * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.8) transparent;
+  }
+
+  html.light *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  html.light *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  html.light *::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.8);
+    border-radius: 999px;
+  }
+
+  html.light *::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.9);
+  }
+}
+
 html.light body::-webkit-scrollbar {
   width: 12px;
   height: 12px;

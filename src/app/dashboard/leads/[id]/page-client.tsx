@@ -1200,6 +1200,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }, [loading, messagesArray.length, hasScrolledToBottomOnLoad])
 
+  // Reset scroll state when navigating to a different customer
+  useEffect(() => {
+    setHasScrolledToBottomOnLoad(false)
+    setInitialScrollReady(false)
+    isInitialAutoScrollingRef.current = false
+    initialScrollDoneRef.current = null
+  }, [params.id])
+
   // App-resume refresh for Business Number payment handoff
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) {
@@ -4481,9 +4489,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Message Area - Scrollable viewport with flex-1 */}
-            <div className="flex-1 overflow-y-auto scroll-smooth overscroll-contain bg-muted/20 min-h-0" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
+            <div ref={mobileConversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth overscroll-contain bg-muted/20 min-h-0" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
             {/* Mobile Message Thread */}
-            <div ref={mobileConversationContainerRef} className="px-3 py-2 flex flex-col justify-end min-h-0">
+            <div className="px-3 py-2 flex flex-col justify-end min-h-0">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
