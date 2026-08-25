@@ -287,10 +287,10 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
       }}
       data-scroll-lock-allow
     >
-      <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px-env(safe-area-inset-top))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4"
+      <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[calc(85dvh-var(--bottom-nav-height,80px)-32px-env(safe-area-inset-top))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4"
            data-scroll-lock-allow>
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 sm:px-4 sm:py-3 border-b border-border/30 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 sm:px-4 sm:py-3 border-b border-border/30 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10">
               <Plus className="w-4 h-4 text-primary" />
@@ -310,8 +310,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
         </div>
 
         {/* Form (scrollable body) */}
-        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto px-4 py-3 sm:px-4 sm:py-3 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <div className="space-y-3 sm:space-y-4">
+        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto px-5 py-4 sm:px-4 sm:py-3 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="space-y-4 sm:space-y-4">
             {/* Customer */}
             <div className="flex items-start gap-3">
               <div className="w-5 h-5 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -336,14 +336,14 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                       type="button"
                       onClick={() => setIsLeadPickerOpen(true)}
                       aria-label="Select existing customer"
-                      className="px-3 py-2 bg-muted border border-border rounded-lg text-xs text-foreground hover:bg-muted/80 w-full sm:w-auto text-left sm:text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+                      className="px-4 py-2.5 sm:px-3 sm:py-2 bg-muted border border-border rounded-lg text-xs text-foreground hover:bg-muted/80 w-full sm:w-auto text-left sm:text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
                     >Select Existing</button>
                     {addCustomerAllowed && (
                       <button
                         type="button"
                         onClick={() => setIsAddCustomerOpen(true)}
                         aria-label="Add new customer"
-                        className="px-3 py-2 bg-muted border border-border rounded-lg text-xs text-foreground hover:bg-muted/80 w-full sm:w-auto text-left sm:text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+                        className="px-4 py-2.5 sm:px-3 sm:py-2 bg-muted border border-border rounded-lg text-xs text-foreground hover:bg-muted/80 w-full sm:w-auto text-left sm:text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
                       >+ Add New Customer</button>
                     )}
                   </div>
@@ -366,7 +366,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                   autoCapitalize="sentences"
                   autoComplete="on"
                   spellCheck={true}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 />
               </div>
             </div>
@@ -474,7 +474,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                   autoCapitalize="sentences"
                   autoComplete="on"
                   spellCheck={true}
-                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 />
               </div>
             </div>
@@ -492,7 +492,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                     value={customMeetingUrl}
                     onChange={(e) => setCustomMeetingUrl(e.target.value)}
                     placeholder="https://zoom.us/... or https://teams.microsoft.com/..."
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
               </div>
@@ -513,7 +513,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                   autoCapitalize="sentences"
                   autoComplete="on"
                   spellCheck={true}
-                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+                  className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
                 />
               </div>
             </div>
@@ -521,7 +521,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-3 sm:px-4 sm:py-3 border-t border-border/30 bg-card shrink-0" style={{ paddingBottom: 'max(12px, calc(12px + env(safe-area-inset-bottom)))' }}>
+        <div className="px-5 py-4 sm:px-4 sm:py-3 border-t border-border/30 bg-card shrink-0" style={{ paddingBottom: 'max(16px, calc(16px + env(safe-area-inset-bottom)))' }}>
           {error && (
             <div className="mb-3">
               <div className="p-2.5 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
@@ -541,18 +541,18 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
             </div>
           )}
           
-          <div className="flex gap-2">
+          <div className="flex gap-3 sm:gap-2">
             <button
               onClick={handleCancel}
               disabled={isCreating}
-              className="flex-1 px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               onClick={handleCreate}
               disabled={isCreating}
-              className="flex-1 px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isCreating ? (
                 <>
