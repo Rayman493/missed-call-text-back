@@ -920,9 +920,6 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <span className="text-sm font-semibold text-foreground">
                   Call Transcript
                 </span>
-                <span className="ml-2 text-xs text-muted-foreground">
-                  ({normalizedTranscript.length} message{normalizedTranscript.length !== 1 ? 's' : ''})
-                </span>
               </div>
             </div>
             <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${transcriptExpanded ? 'rotate-180' : 'rotate-0'}`} />

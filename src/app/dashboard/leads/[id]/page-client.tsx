@@ -28,7 +28,7 @@ import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName, getInitialsFromName } from '@/lib/utils'
 import { getCustomerSourceInfo } from '@/lib/customer-source'
-import { PhoneIncoming, UserPlus, RefreshCw } from 'lucide-react'
+import { PhoneIncoming, UserPlus, RefreshCw, Plus } from 'lucide-react'
 import { getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus, getAIIntakeStatusLabel, getAIIntakeStatusColor } from '@/lib/ai-field-mapping'
 import { deriveJobSchedulingPrefill } from '@/lib/job-scheduling-prefill'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
@@ -4419,11 +4419,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             }}
                             className="inline-flex items-center gap-2 px-3 py-2 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                           >
-                            {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add'}
+                            <Plus className="w-3.5 h-3.5" />
                           </button>
                         }
                       >
-                        <div className="text-[10px] text-muted-foreground/70 mb-2">Private</div>
                         {Boolean((leadData?.notes || '').trim()) ? (
                           <div className="text-xs text-muted-foreground line-clamp-3 break-words">
                             {(leadData?.notes || '').trim()}
@@ -4451,23 +4450,33 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="px-4 py-3 border-b border-border/30 bg-muted/50 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-semibold text-foreground">Conversation</h2>
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
-                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
-                    <span>AI answered</span>
-                  )}
-                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && leadData?.messages?.some((m: any) => m.direction === 'inbound') && (
-                    <span>•</span>
-                  )}
-                  {leadData?.messages?.some((m: any) => m.direction === 'inbound') && (
-                    <span>Customer replied</span>
-                  )}
-                  {(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 || leadData?.messages?.some((m: any) => m.direction === 'inbound')) && (followUpJobs && followUpJobs.length > 0 || followUpSettings?.enabled) && (
-                    <span>•</span>
-                  )}
-                  {(followUpJobs && followUpJobs.length > 0 || followUpSettings?.enabled) && (
-                    <span>Follow-ups available</span>
-                  )}
-                </div>
+                <button
+                  ref={fullScreenToggleBtnRef}
+                  type="button"
+                  onClick={() => setIsFullScreen(true)}
+                  className="p-1.5 rounded-md hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
+                  aria-label="Open conversation in full screen"
+                  title="Open in full screen"
+                >
+                  <Maximize2 className="w-4 h-4 text-foreground/70 hover:text-foreground" />
+                </button>
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60 mt-1">
+                {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
+                  <span>AI answered</span>
+                )}
+                {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && leadData?.messages?.some((m: any) => m.direction === 'inbound') && (
+                  <span>•</span>
+                )}
+                {leadData?.messages?.some((m: any) => m.direction === 'inbound') && (
+                  <span>Customer replied</span>
+                )}
+                {(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 || leadData?.messages?.some((m: any) => m.direction === 'inbound')) && (followUpJobs && followUpJobs.length > 0 || followUpSettings?.enabled) && (
+                  <span>•</span>
+                )}
+                {(followUpJobs && followUpJobs.length > 0 || followUpSettings?.enabled) && (
+                  <span>Follow-ups available</span>
+                )}
               </div>
             </div>
 
@@ -4908,13 +4917,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   setInternalNotesValue(leadData?.notes || '')
                   setShowInternalNotesModal(true)
                 }}
-                className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors"
+                className="inline-flex items-center justify-center w-5 h-5 rounded-md hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
+                aria-label="Add internal note"
               >
-                {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add'}
+                <Plus className="w-3.5 h-3.5 text-foreground/70 hover:text-foreground" />
               </button>
             </div>
             <div className="mt-2">
-              <div className="text-[9px] text-muted-foreground/70 mb-1">Private</div>
               {Boolean((leadData?.notes || '').trim()) ? (
                 <div className="text-xs text-muted-foreground line-clamp-2 break-words">
                   {(leadData?.notes || '').trim()}
