@@ -1364,7 +1364,9 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
   messagingServiceError?: string;
   fromWarmInventory?: boolean; // Flag to indicate if number came from warm inventory
 } | null> {
+  console.log('[PROVISIONING_LIFECYCLE] ========== provisioning_started ==========');
   console.log('[Provision Path] ========== provisionTwilioNumber HIT ==========');
+  console.log(`[PROVISIONING_LIFECYCLE] user_id=${correlationId} business_id=${businessId}`);
   console.log(`[Provision Path] businessId=${businessId} correlation_id=${correlationId}`);
 
   // Use provided correlation ID or generate one for backwards compatibility
@@ -1575,23 +1577,44 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
         console.error(`[Warm Inventory] ========== BUSINESS UPDATE FAILED ========== correlation_id=${correlationId}`);
         console.error(`[Warm Inventory] Failed to update business with warm number correlation_id=${correlationId}`, updateBusinessError);
         console.error(`[Warm Inventory] ERROR Details: ${JSON.stringify(updateBusinessError, null, 2)} correlation_id=${correlationId}`);
-        console.log(`[Warm Inventory] Fallback to live provisioning due to business update failure correlation_id=${correlationId}`);
-      } else {
-        console.log(`[Warm Inventory] ========== BUSINESS UPDATE SUCCESS ========== correlation_id=${correlationId}`);
-        console.log(`[Warm Inventory] ✓ Business updated with warm number correlation_id=${correlationId}`);
+        console.error(`[Warm Inventory] CRITICAL: Number was assigned to business in twilio_numbers but businesses update failed`);
+        console.error(`[Warm Inventory] This creates a split-brain state that must be reconciled`);
+        console.error(`[Warm Inventory] Rolling back twilio_numbers assignment to maintain consistency`);
 
-        console.log(`[Warm Inventory] Triggering background replenishment... correlation_id=${correlationId}`);
-        await triggerBackgroundReplenishment()
-        console.log(`[Warm Inventory] Background replenishment triggered correlation_id=${correlationId}`);
+        // Rollback: Remove the assignment from twilio_numbers to prevent split-brain
+        try {
+          const { error: rollbackError } = await supabase
+            .from('twilio_numbers')
+            .update({
+              business_id: null,
+              status: 'available',
+              assigned_at: null,
+              detached_at: null,
+              detached_reason: 'business_update_failure_rollback'
+            })
+            .eq('business_id', businessId)
+            .eq('twilio_sid', warmNumberResult.phoneNumberSid!);
 
-        console.log(`[Warm Inventory] ========== WARM NUMBER ASSIGNMENT COMPLETE ========== correlation_id=${correlationId}`);
-        console.log(`[Warm Inventory] Warm number assignment complete, skipping live purchase correlation_id=${correlationId}`);
-        return {
-          phoneNumber: warmNumberResult.phoneNumber,
-          phoneNumberSid: warmNumberResult.phoneNumberSid,
-          messagingServiceAttached: true,
-          fromWarmInventory: true, // Flag to indicate this came from warm inventory
+          if (rollbackError) {
+            console.error(`[Warm Inventory] ========== ROLLBACK FAILED ========== correlation_id=${correlationId}`);
+            console.error(`[Warm Inventory] Failed to rollback twilio_numbers assignment correlation_id=${correlationId}`, rollbackError);
+            console.error(`[Warm Inventory] MANUAL INTERVENTION REQUIRED: Split-brain state exists`);
+            console.error(`[Warm Inventory] Number ${warmNumberResult.phoneNumber} (${warmNumberResult.phoneNumberSid}) is assigned to business ${businessId} in twilio_numbers but not in businesses table`);
+          } else {
+            console.log(`[Warm Inventory] ========== ROLLBACK SUCCESS ========== correlation_id=${correlationId}`);
+            console.log(`[Warm Inventory] Successfully rolled back twilio_numbers assignment correlation_id=${correlationId}`);
+          }
+        } catch (rollbackException) {
+          console.error(`[Warm Inventory] Exception during rollback correlation_id=${correlationId}`, rollbackException);
+          console.error(`[Warm Inventory] MANUAL INTERVENTION REQUIRED: Split-brain state exists`);
         }
+
+        // Return null to indicate failure - do NOT fall through to live provisioning
+        // This prevents duplicate number purchases and maintains consistency
+        console.log(`[Warm Inventory] ========== WARM INVENTORY ASSIGNMENT FAILED ========== correlation_id=${correlationId}`);
+        console.log(`[Warm Inventory] Aborting provisioning to prevent duplicate purchases`);
+        console.log('[PROVISIONING_LIFECYCLE] ========== provisioning_failed ==========');
+        return null;
       }
     } else {
       console.log(`[Warm Inventory] ========== NO WARM NUMBER AVAILABLE ========== correlation_id=${correlationId}`);
@@ -1607,6 +1630,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
         console.error(`[Warm Inventory] errorType: ${warmNumberResult.errorType} correlation_id=${correlationId}`);
         console.error(`[Warm Inventory] Only errorType='NO_INVENTORY' may authorize live purchase - blocking to prevent unintended purchase`);
         console.log(`[Warm Inventory] ========== ABORTING PROVISIONING ========== correlation_id=${correlationId}`);
+        console.log('[PROVISIONING_LIFECYCLE] ========== provisioning_failed ==========');
         return null;
       }
     }
@@ -1693,6 +1717,8 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
   console.log(`[PROVISION_LIVE_PURCHASE_REQUIRED] business_id=${businessId} correlation_id=${correlationId}`);
 
   try {
+    console.log('[PROVISIONING_LIFECYCLE] ========== twilio_purchase_started ==========');
+    console.log(`[PROVISIONING_LIFECYCLE] business_id=${businessId}`);
     const client = Twilio(accountSid, authToken)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com'
 
@@ -1733,6 +1759,8 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
     console.log(`[Provisioning] Active account SID=${accountSid} correlation_id=${correlationId}`)
     console.log(`[Provisioning] Purchased number is SINGLE SOURCE OF TRUTH correlation_id=${correlationId}`)
 
+    console.log('[PROVISIONING_LIFECYCLE] ========== twilio_purchase_completed ==========');
+
     // Check for account mismatch
     if (purchasedNumber.accountSid !== accountSid) {
       console.error(`[MessagingService] Account mismatch detected correlation_id=${correlationId}`)
@@ -1767,6 +1795,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
 
     // Attach number to Messaging Service sender pool if available
     if (messagingServiceSid) {
+      console.log('[PROVISIONING_LIFECYCLE] ========== messaging_service_assignment_started ==========');
       console.log(`[SenderAttach] ========== START ATTACH ========== correlation_id=${correlationId}`)
       console.log(`[SenderAttach] phoneNumber=${purchasedPhoneNumber} correlation_id=${correlationId}`)
       console.log(`[SenderAttach] phoneNumberSid=${purchasedPhoneNumberSid} correlation_id=${correlationId}`)
@@ -1910,6 +1939,8 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
     console.log(`[Provisioning] FINAL assigned number SID=${purchasedPhoneNumberSid} correlation_id=${correlationId}`)
     console.log(`[Provisioning] Messaging Service attached=${messagingServiceAttached} correlation_id=${correlationId}`)
 
+    console.log('[PROVISIONING_LIFECYCLE] ========== provisioning_completed ==========');
+
     // Final validation: ensure only ONE number was purchased and attached
     if (messagingServiceAttached && messagingServiceSid) {
       console.log(`[Provisioning] Final validation: checking for multiple number purchases correlation_id=${correlationId}`)
@@ -2035,6 +2066,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
     }
   } catch (error) {
     console.error(`[Twilio Provisioning] Failed to provision number correlation_id=${correlationId}`, error)
+    console.log('[PROVISIONING_LIFECYCLE] ========== provisioning_failed ==========');
     return null
   }
 }
