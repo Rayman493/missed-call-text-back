@@ -576,8 +576,10 @@ export default function LeadsPage() {
     (updatedLead) => {
       setLeads(prev => {
         // Update lead when it changes and re-deduplicate
+        // Merge the update into existing lead to preserve all fields
+        // PostgreSQL realtime notifications only send changed fields
         const updatedLeads = prev.map(lead => 
-          lead.id === updatedLead.id ? updatedLead : lead
+          lead.id === updatedLead.id ? { ...lead, ...updatedLead } : lead
         )
         const deduplicated = mergeDuplicateLeads(updatedLeads)
         // Sort by latest activity
