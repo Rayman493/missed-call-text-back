@@ -388,26 +388,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Guard against SSR
     if (typeof window === 'undefined') {
       return {
-        photos: true,
-        activity: true,
-        automation: true,
+        photos: false,
+        activity: false,
+        automation: false,
         customerHealth: false,
-        quickActions: true,
-        aiIntake: true, // Default to expanded - show current request immediately
-        payments: true, // Default to collapsed
-        appointments: true, // Default to collapsed
+        quickActions: false,
+        aiIntake: false,
+        payments: false,
+        appointments: false,
       }
     }
 
     return {
-      photos: true,
-      activity: true,
-      automation: true,
+      photos: false,
+      activity: false,
+      automation: false,
       customerHealth: false,
-      quickActions: true,
-      aiIntake: true,
-      payments: true,
-      appointments: true,
+      quickActions: false,
+      aiIntake: false,
+      payments: false,
+      appointments: false,
     }
   })
 
@@ -4958,6 +4958,93 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
         </div>
+
+          {/* Tasks */}
+          <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Tasks</span>
+                {leadTasks.length > 0 && (
+                  <span className="text-xs text-muted-foreground">({leadTasks.length})</span>
+                )}
+              </div>
+              <button
+                onClick={() => setShowTaskModal(true)}
+                className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add
+              </button>
+            </div>
+            <div className="mt-2">
+              {leadTasks.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-2">No open tasks</p>
+              ) : (
+                <div className="space-y-1">
+                  {leadTasks.slice(0, 3).map((task: any) => (
+                    <div key={task.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-foreground truncate">{task.title || 'Task'}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {task.due_date ? formatDate(task.due_date) : 'No due date'}
+                          {task.due_time ? ` • ${task.due_time}` : ''}
+                        </p>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2 border border-border/50">
+                        {task.completed ? 'Done' : 'Open'}
+                      </span>
+                    </div>
+                  ))}
+                  {leadTasks.length > 3 && (
+                    <button
+                      onClick={() => setShowTaskModal(true)}
+                      className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                    >
+                      View all {leadTasks.length} tasks
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Internal Notes */}
+          <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Notes</span>
+              </div>
+              <button
+                onClick={() => {
+                  setInternalNotesValue(leadData?.notes || '')
+                  setShowInternalNotesModal(true)
+                }}
+                className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors"
+              >
+                {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add'}
+              </button>
+            </div>
+            <div className="mt-2">
+              <div className="text-[9px] text-muted-foreground/70 mb-1">Private</div>
+              {Boolean((leadData?.notes || '').trim()) ? (
+                <div className="text-xs text-muted-foreground line-clamp-2 break-words">
+                  {(leadData?.notes || '').trim()}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-2">No notes yet</p>
+              )}
+            </div>
+          </div>
         </div>
         )}
 
