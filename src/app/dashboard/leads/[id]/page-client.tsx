@@ -3806,14 +3806,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       avoidCollisions
                       className="z-[10000] w-[260px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-lg border border-border/60 bg-popover ring-1 ring-border/40 shadow-[0_4px_16px_rgb(0,0,0,0.12),0_2px_6px_rgb(0,0,0,0.08)]"
                     >
-                      {/* Section Label */}
-                      <div className="px-3 py-2">
-                        <div className="px-0.5 py-1 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
-                          Conversation Actions
-                        </div>
-                      </div>
-
-                      {/* Primary Actions Group */}
+                      {/* Secondary Actions Group */}
                       <div className="px-1.5 py-1 space-y-0.5">
                         {canDialPhone && (
                           <DropdownMenuItem
@@ -3824,37 +3817,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             <span>Call Customer</span>
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem
-                          onSelect={() => handleCreateJobClick()}
-                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
-                        >
-                          <ClipboardPlus className="w-4 h-4" />
-                          <span>Create Job</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onSelect={() => setShowPaymentModal(true)}
-                          disabled={!business || getAvailableProviders(business).length === 0}
-                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
-                        >
-                          <CreditCard className="w-4 h-4" />
-                          <span>Request Payment</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onSelect={() => handleAppointmentClick()}
-                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
-                        >
-                          <CalendarDays className="w-4 h-4" />
-                          <span>Schedule Appointment</span>
-                        </DropdownMenuItem>
-                      </div>
-
-                      {/* Divider - Workflow actions vs Internal Notes */}
-                      <div className="px-3 py-1">
-                        <div className="h-px bg-border/20"></div>
-                      </div>
-
-                      {/* Secondary Actions Group */}
-                      <div className="px-1.5 py-1 space-y-0.5">
                         <DropdownMenuItem
                           onSelect={() => {
                             setInternalNotesValue(leadData?.notes || '')
@@ -4085,6 +4047,52 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
+          {/* Primary Action Bar - Desktop Only */}
+          <div className="hidden md:block border-b border-border/20 bg-muted/10 dark:bg-slate-900/30">
+            <div className="max-w-7xl mx-auto px-6 lg:px-8 py-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(true)}
+                  disabled={!business || getAvailableProviders(business).length === 0}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CreditCard className="w-3.5 h-3.5" />
+                  <span>Request Payment</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateJobClick}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                >
+                  <ClipboardPlus className="w-3.5 h-3.5" />
+                  <span>Create Job</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAppointmentClick}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                >
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  <span>Schedule Appointment</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInternalNotesValue(leadData?.notes || '')
+                    setShowInternalNotesModal(true)
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  <span>Internal Note</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
             {successMessage && (
               <SuccessBanner
                 message={successMessage}
@@ -4161,39 +4169,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   />
                 )}
               </div>
-              )}
-
-              {/* Desktop Quick Actions - Above Composer */}
-              {!isFullScreen && (
-                <div className="flex-shrink-0 px-6 py-2 border-t border-border/10 bg-muted/20">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowPaymentModal(true)}
-                      disabled={!business || getAvailableProviders(business).length === 0}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <CreditCard className="w-3.5 h-3.5" />
-                      <span>Request Payment</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleAppointmentClick}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                    >
-                      <CalendarDays className="w-3.5 h-3.5" />
-                      <span>Schedule</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCreateJobClick}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                    >
-                      <ClipboardPlus className="w-3.5 h-3.5" />
-                      <span>Create Job</span>
-                    </button>
-                  </div>
-                </div>
               )}
 
               {/* Desktop Message Composer - Fixed to Bottom */}
@@ -4285,6 +4260,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <SidebarSection
                         title="Schedule"
                         className="mb-3"
+                        headerAction={
+                          <button
+                            type="button"
+                            onClick={handleCreateJobClick}
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                          >
+                            Add
+                          </button>
+                        }
                       >
                         {leadJobs.length === 0 && leadTasks.length === 0 ? (
                           <p className="text-sm text-muted-foreground">No scheduled work</p>
@@ -4338,6 +4322,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <SidebarSection
                         title="Payments"
                         className="mb-3"
+                        headerAction={
+                          <button
+                            type="button"
+                            onClick={() => setShowPaymentModal(true)}
+                            disabled={!business || getAvailableProviders(business).length === 0}
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Add
+                          </button>
+                        }
                       >
                         {paymentRequests.length === 0 ? (
                           <div>
@@ -4373,6 +4367,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <SidebarSection
                         title="Appointments"
                         className="mb-3"
+                        headerAction={
+                          <button
+                            type="button"
+                            onClick={handleAppointmentClick}
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                          >
+                            Add
+                          </button>
+                        }
                       >
                         {loadingAppointments ? (
                           <div className="flex items-center justify-center py-4">
@@ -4440,6 +4443,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       {/* Internal Notes */}
                       <SidebarSection
                         title="Internal Notes"
+                        headerAction={
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setInternalNotesValue(leadData?.notes || '')
+                              setShowInternalNotesModal(true)
+                            }}
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                          >
+                            {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add'}
+                          </button>
+                        }
                       >
                         <div className="text-[10px] text-muted-foreground/70 mb-2">Private</div>
                         {Boolean((leadData?.notes || '').trim()) ? (
