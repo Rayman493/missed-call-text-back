@@ -855,30 +855,82 @@ export default function SettingsContent() {
     }
   }
 
-  // Helper to convert our timezone-less ISO string to a Date object interpreted as local time
-  const isoToLocalDate = (isoString: string | null | undefined): Date | null => {
-    if (!isoString) return null
+  // Helper to compare timezone-less ISO strings directly without Date conversion
+  // Returns -1 if a < b, 0 if a == b, 1 if a > b, or null if invalid
+  const compareISOStrings = (a: string | null | undefined, b: string | null | undefined): number | null => {
+    if (!a || !b) return null
 
     try {
-      // Parse the ISO string directly without timezone conversion
-      const match = isoString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
-      if (!match) {
-        return null
-      }
+      const matchA = a.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
+      const matchB = b.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
 
-      const [, year, month, day, hours, minutes, seconds] = match
+      if (!matchA || !matchB) return null
 
-      // Create a Date object using local time components
-      return new Date(
-        parseInt(year),
-        parseInt(month) - 1, // Month is 0-indexed in Date constructor
-        parseInt(day),
-        parseInt(hours),
-        parseInt(minutes),
-        parseInt(seconds)
+      const [, yearA, monthA, dayA, hoursA, minutesA, secondsA] = matchA
+      const [, yearB, monthB, dayB, hoursB, minutesB, secondsB] = matchB
+
+      const dateA = new Date(
+        parseInt(yearA),
+        parseInt(monthA) - 1,
+        parseInt(dayA),
+        parseInt(hoursA),
+        parseInt(minutesA),
+        parseInt(secondsA)
       )
+
+      const dateB = new Date(
+        parseInt(yearB),
+        parseInt(monthB) - 1,
+        parseInt(dayB),
+        parseInt(hoursB),
+        parseInt(minutesB),
+        parseInt(secondsB)
+      )
+
+      if (dateA < dateB) return -1
+      if (dateA > dateB) return 1
+      return 0
     } catch (error) {
-      console.error('[Settings] Error converting ISO to local Date:', error)
+      console.error('[Settings] Error comparing ISO strings:', error)
+      return null
+    }
+  }
+
+  // Helper to check if current time is within ISO date range
+  const isNowBetweenISOStrings = (start: string | null | undefined, end: string | null | undefined): boolean | null => {
+    if (!start || !end) return null
+
+    try {
+      const matchStart = start.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
+      const matchEnd = end.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
+
+      if (!matchStart || !matchEnd) return null
+
+      const [, yearStart, monthStart, dayStart, hoursStart, minutesStart, secondsStart] = matchStart
+      const [, yearEnd, monthEnd, dayEnd, hoursEnd, minutesEnd, secondsEnd] = matchEnd
+
+      const startDate = new Date(
+        parseInt(yearStart),
+        parseInt(monthStart) - 1,
+        parseInt(dayStart),
+        parseInt(hoursStart),
+        parseInt(minutesStart),
+        parseInt(secondsStart)
+      )
+
+      const endDate = new Date(
+        parseInt(yearEnd),
+        parseInt(monthEnd) - 1,
+        parseInt(dayEnd),
+        parseInt(hoursEnd),
+        parseInt(minutesEnd),
+        parseInt(secondsEnd)
+      )
+
+      const now = new Date()
+      return now >= startDate && now <= endDate
+    } catch (error) {
+      console.error('[Settings] Error checking if now is between ISO strings:', error)
       return null
     }
   }
@@ -3244,18 +3296,23 @@ export default function SettingsContent() {
                                 )
                               }
 
-                              const now = new Date()
-                              const start = isoToLocalDate(formBusiness.out_of_office_start)
-                              const end = isoToLocalDate(formBusiness.out_of_office_end)
+                              const isActive = isNowBetweenISOStrings(
+                                formBusiness.out_of_office_start,
+                                formBusiness.out_of_office_end
+                              )
+                              const comparison = compareISOStrings(
+                                new Date().toISOString().slice(0, 19).replace('T', 'T'),
+                                formBusiness.out_of_office_start
+                              )
 
-                              if (start && end && now >= start && now <= end) {
+                              if (isActive === true) {
                                 return (
                                   <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                                     <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                                     Active
                                   </span>
                                 )
-                              } else if (start && now < start) {
+                              } else if (comparison === 1) {
                                 return (
                                   <span className="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
                                     Scheduled
@@ -3272,23 +3329,38 @@ export default function SettingsContent() {
                           </div>
                           {formBusiness.out_of_office_enabled && formBusiness.out_of_office_start && formBusiness.out_of_office_end ? (
                             (() => {
-                              const now = new Date()
-                              const start = isoToLocalDate(formBusiness.out_of_office_start)
-                              const end = isoToLocalDate(formBusiness.out_of_office_end)
+                              const isActive = isNowBetweenISOStrings(
+                                formBusiness.out_of_office_start,
+                                formBusiness.out_of_office_end
+                              )
 
-                              if (start && end && now >= start && now <= end) {
-                                return (
-                                  <p className="text-xs text-muted-foreground">
-                                    Back {end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                  </p>
-                                )
-                              } else if (start && end) {
-                                return (
-                                  <p className="text-xs text-muted-foreground">
-                                    {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                  </p>
-                                )
+                              if (isActive === true) {
+                                const matchEnd = formBusiness.out_of_office_end.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
+                                if (matchEnd) {
+                                  const [, year, month, day] = matchEnd
+                                  const endDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+                                  return (
+                                    <p className="text-xs text-muted-foreground">
+                                      Back {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    </p>
+                                  )
+                                }
+                              } else if (isActive === false) {
+                                const matchStart = formBusiness.out_of_office_start.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
+                                const matchEnd = formBusiness.out_of_office_end.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
+                                if (matchStart && matchEnd) {
+                                  const [, yearStart, monthStart, dayStart] = matchStart
+                                  const [, yearEnd, monthEnd, dayEnd] = matchEnd
+                                  const startDate = new Date(parseInt(yearStart), parseInt(monthStart) - 1, parseInt(dayStart))
+                                  const endDate = new Date(parseInt(yearEnd), parseInt(monthEnd) - 1, parseInt(dayEnd))
+                                  return (
+                                    <p className="text-xs text-muted-foreground">
+                                      {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    </p>
+                                  )
+                                }
                               }
+                              return null
                             })()
                           ) : (
                             <p className="text-xs text-muted-foreground">
