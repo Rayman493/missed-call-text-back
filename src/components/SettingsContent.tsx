@@ -3175,13 +3175,52 @@ export default function SettingsContent() {
                             </p>
                           )}
                         </div>
-                        <button
-                          onClick={handleBusinessHoursExpand}
-                          className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors flex-shrink-0"
-                          aria-label="Expand Business Hours"
-                        >
-                          <ChevronDown className="w-5 h-5" />
-                        </button>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              // If enabling, validate configuration is complete
+                              if (!formBusiness.business_hours_enabled) {
+                                const hasValidConfig =
+                                  formBusiness.business_hours_timezone &&
+                                  formBusiness.business_hours_start &&
+                                  formBusiness.business_hours_end &&
+                                  formBusiness.after_hours_message
+
+                                if (!hasValidConfig) {
+                                  showToast('Please configure timezone, hours, and after-hours message before enabling Business Hours', 'error')
+                                  return
+                                }
+                              }
+
+                              const nextBusiness = {
+                                ...formBusiness,
+                                business_hours_enabled: !formBusiness.business_hours_enabled
+                              }
+                              updateBusiness(nextBusiness)
+                            }}
+                            className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                            formBusiness.business_hours_enabled
+                              ? 'bg-blue-600'
+                              : 'bg-slate-300 dark:bg-slate-600'
+                          }`}
+                            type="button"
+                            aria-label={formBusiness.business_hours_enabled ? 'Disable Business Hours' : 'Enable Business Hours'}
+                          >
+                            <span
+                              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${
+                                formBusiness.business_hours_enabled ? 'translate-x-5' : 'translate-x-0.5'
+                              }`}
+                            />
+                          </button>
+                          <button
+                            onClick={handleBusinessHoursExpand}
+                            className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                            aria-label="Expand Business Hours"
+                          >
+                            <ChevronDown className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
                     
                     ) : (
@@ -3206,7 +3245,8 @@ export default function SettingsContent() {
                               Send different replies inside and outside business hours.
                             </p>
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation()
                                 // If enabling, validate configuration is complete
                                 if (!formBusiness.business_hours_enabled) {
                                   const hasValidConfig =
@@ -3446,13 +3486,38 @@ export default function SettingsContent() {
                             </p>
                           )}
                         </div>
-                        <button
-                          onClick={() => setOutOfOfficeExpanded(true)}
-                          className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors flex-shrink-0"
-                          aria-label="Expand Out of Office"
-                        >
-                          <ChevronDown className="w-5 h-5" />
-                        </button>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const nextBusiness = {
+                                ...formBusiness,
+                                out_of_office_enabled: !formBusiness.out_of_office_enabled
+                              }
+                              updateBusiness(nextBusiness)
+                            }}
+                            className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                            formBusiness.out_of_office_enabled
+                              ? 'bg-blue-600'
+                              : 'bg-slate-300 dark:bg-slate-600'
+                          }`}
+                            type="button"
+                            aria-label={formBusiness.out_of_office_enabled ? 'Disable Out of Office' : 'Enable Out of Office'}
+                          >
+                            <span
+                              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${
+                                formBusiness.out_of_office_enabled ? 'translate-x-5' : 'translate-x-0.5'
+                              }`}
+                            />
+                          </button>
+                          <button
+                            onClick={() => setOutOfOfficeExpanded(true)}
+                            className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                            aria-label="Expand Out of Office"
+                          >
+                            <ChevronDown className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
 
                     ) : (
@@ -3477,7 +3542,8 @@ export default function SettingsContent() {
                               Automatically reply while you're away.
                             </p>
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation()
                                 const nextBusiness = {
                                   ...formBusiness,
                                   out_of_office_enabled: !formBusiness.out_of_office_enabled
@@ -3490,6 +3556,7 @@ export default function SettingsContent() {
                                 : 'bg-slate-300 dark:bg-slate-600'
                             }`}
                               type="button"
+                              aria-label={formBusiness.out_of_office_enabled ? 'Disable Out of Office' : 'Enable Out of Office'}
                             >
                               <span
                                 className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${
@@ -3588,11 +3655,15 @@ export default function SettingsContent() {
                             Schedule follow-up texts for quiet leads.
                           </p>
                           <button
-                            onClick={() => updateFollowUpSettings({ enabled: !getFollowUpSettings().enabled })}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              updateFollowUpSettings({ enabled: !getFollowUpSettings().enabled })
+                            }}
                             className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
                               getFollowUpSettings().enabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'
                             }`}
                             type="button"
+                            aria-label={getFollowUpSettings().enabled ? 'Disable Automatic Follow-Ups' : 'Enable Automatic Follow-Ups'}
                           >
                             <span
                               className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${
@@ -3651,11 +3722,15 @@ export default function SettingsContent() {
                                 </p>
                               </div>
                               <button
-                                onClick={() => updateFollowUpSettings({ enabled: !getFollowUpSettings().enabled })}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateFollowUpSettings({ enabled: !getFollowUpSettings().enabled })
+                                }}
                                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
                                   getFollowUpSettings().enabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'
                                 }`}
                                 type="button"
+                                aria-label={getFollowUpSettings().enabled ? 'Disable Automatic Follow-Ups' : 'Enable Automatic Follow-Ups'}
                               >
                                 <span
                                   className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${
