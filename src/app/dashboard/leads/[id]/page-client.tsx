@@ -3258,8 +3258,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="text-[10px] text-muted-foreground/70">Private to your business</div>
               </div>
               {Boolean((leadData?.notes || '').trim()) ? (
-                <div className="mt-2 text-xs text-muted-foreground line-clamp-3 break-words">
-                  {(leadData?.notes || '').trim()}
+                <div className="mt-2 p-2.5 bg-muted/50 border border-border/40 rounded-lg">
+                  <p className="text-xs text-foreground leading-relaxed break-words">
+                    {(leadData?.notes || '').trim()}
+                  </p>
                 </div>
               ) : (
                 <div className="mt-2 text-xs text-muted-foreground/70">
@@ -3793,7 +3795,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </p>
                   {(() => {
                     const nextAction = getNextAction(leadData || lead)
-                    return nextAction && (
+                    const rawStatus = leadData?.status || lead?.status || lead?.lead_status
+                    const normalizedStatus = rawStatus ? normalizeCustomerStatus(rawStatus) : null
+                    // Skip showing next action when it's redundant with the status pill
+                    // (e.g., "Payment Requested" status + "Awaiting payment" action)
+                    const isRedundant = normalizedStatus === 'payment_requested'
+                    return nextAction && !isRedundant && (
                       <span className={`text-[10px] font-medium ${
                         nextAction.urgency === 'high'
                           ? 'text-blue-600 dark:text-blue-400'
@@ -3862,13 +3869,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <span>Create Job</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onSelect={() => handleAppointmentClick()}
-                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
-                        >
-                          <CalendarDays className="w-4 h-4" />
-                          <span>Schedule Appointment</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
                           onSelect={() => setShowTaskModal(true)}
                           className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                         >
@@ -3882,6 +3882,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         >
                           <CreditCard className="w-4 h-4" />
                           <span>Request Payment</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => handleAppointmentClick()}
+                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
+                        >
+                          <CalendarDays className="w-4 h-4" />
+                          <span>Schedule Appointment</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={() => {
@@ -4061,14 +4068,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </button>
                 <button
                   type="button"
-                  onClick={handleAppointmentClick}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                >
-                  <CalendarDays className="w-3.5 h-3.5" />
-                  <span>Schedule Appointment</span>
-                </button>
-                <button
-                  type="button"
                   onClick={() => setShowTaskModal(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                 >
@@ -4083,6 +4082,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 >
                   <CreditCard className="w-3.5 h-3.5" />
                   <span>Request Payment</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAppointmentClick}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                >
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  <span>Schedule Appointment</span>
                 </button>
                 <button
                   type="button"
