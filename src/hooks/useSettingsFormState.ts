@@ -36,6 +36,14 @@ export function useSettingsFormState({
   // Update business when initialBusiness changes (e.g., from server refresh)
   useEffect(() => {
     if (initialBusiness && initialBusiness !== prevBusinessRef.current) {
+      console.log('[useSettingsFormState] Initializing form state from business:', {
+        businessId: initialBusiness.id,
+        out_of_office_enabled: initialBusiness.out_of_office_enabled,
+        out_of_office_start: initialBusiness.out_of_office_start,
+        out_of_office_end: initialBusiness.out_of_office_end,
+        out_of_office_message: initialBusiness.out_of_office_message
+      })
+
       // Apply default messages if empty to ensure UI shows the actual value that will be saved
       const businessWithDefaults = {
         ...initialBusiness,

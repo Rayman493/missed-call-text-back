@@ -748,6 +748,20 @@ export default function SettingsContent() {
         'out_of_office_message' in updatePayload
       )
 
+      console.log('[Settings] Out of Office Save Attempt:', {
+        businessId: businessData.id,
+        out_of_office_enabled: businessData.out_of_office_enabled,
+        out_of_office_start: businessData.out_of_office_start,
+        out_of_office_end: businessData.out_of_office_end,
+        out_of_office_message: businessData.out_of_office_message,
+        updatePayload: {
+          out_of_office_enabled: updatePayload.out_of_office_enabled,
+          out_of_office_start: updatePayload.out_of_office_start,
+          out_of_office_end: updatePayload.out_of_office_end,
+          out_of_office_message: updatePayload.out_of_office_message
+        }
+      })
+
       const { data, error } = await supabase
         .from('businesses')
         .update(updatePayload)
@@ -763,6 +777,15 @@ export default function SettingsContent() {
         })
         throw new Error(`Failed to save settings: ${error.message} (code: ${error.code})`)
       }
+
+      // Log Out of Office save result
+      console.log('[Settings] Out of Office Save Result:', {
+        businessId: businessData.id,
+        saved_out_of_office_enabled: data.out_of_office_enabled,
+        saved_out_of_office_start: data.out_of_office_start,
+        saved_out_of_office_end: data.out_of_office_end,
+        saved_out_of_office_message: data.out_of_office_message
+      })
 
       // Return the confirmed database record
       return data
@@ -3288,10 +3311,19 @@ export default function SettingsContent() {
                           <div className="flex items-center gap-2 mb-1.5">
                             <h3 className="text-sm font-semibold text-foreground">Out of Office</h3>
                             {(() => {
-                              if (!formBusiness.out_of_office_enabled || !formBusiness.out_of_office_start || !formBusiness.out_of_office_end) {
+                              if (!formBusiness.out_of_office_enabled) {
                                 return (
                                   <span className="text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
                                     Disabled
+                                  </span>
+                                )
+                              }
+
+                              // If enabled but dates are missing, show "Needs dates" instead of "Ended"
+                              if (!formBusiness.out_of_office_start || !formBusiness.out_of_office_end) {
+                                return (
+                                  <span className="text-xs px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full font-medium">
+                                    Needs dates
                                   </span>
                                 )
                               }
