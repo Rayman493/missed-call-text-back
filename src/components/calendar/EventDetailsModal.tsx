@@ -735,7 +735,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
             </div>
           ) : (
             // Normal details/edit mode
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
             {/* Title */}
             {!lead?.name && !job?.customer_name && (
               <div>
@@ -755,7 +755,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
             {/* Two-column metadata grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
               {/* Date & Time */}
-              <div className="space-y-1">
+              <div className="space-y-1.5 md:space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Date & Time</label>
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -793,7 +793,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
 
               {/* Duration */}
               {!isEditing && calculateDuration() && (
-                <div className="space-y-1">
+                <div className="space-y-1.5 md:space-y-2">
                   <label className="text-xs font-medium text-muted-foreground">Duration</label>
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -803,7 +803,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               )}
 
               {/* Location */}
-              <div className="space-y-1">
+              <div className="space-y-1.5 md:space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Location</label>
                 <div className="flex items-start gap-2 text-sm">
                   <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
@@ -824,7 +824,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               </div>
 
               {/* Status */}
-              <div className="space-y-1">
+              <div className="space-y-1.5 md:space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Status</label>
                 <div className="flex items-center gap-2">
                   {meetingStatus === 'completed' ? (
@@ -863,7 +863,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
             )}
 
             {/* Customer */}
-            <div className="space-y-2">
+            <div className="space-y-2.5 md:space-y-3">
               <label className="text-xs font-medium text-muted-foreground">Customer</label>
               <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -872,12 +872,12 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                     {currentLeadName || 'No customer'}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
                   {currentLeadId && (
                     <>
                       <button
                         onClick={(e) => { e.stopPropagation(); (onViewCustomer ? onViewCustomer(currentLeadId) : window.location.assign(`/dashboard/leads/${currentLeadId}`)) }}
-                        className="text-xs px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+                        className="text-xs px-2.5 md:px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
                       >
                         View
                       </button>
@@ -897,7 +897,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                   <button
                     onClick={() => setIsLeadPickerOpen(true)}
                     disabled={isSavingCustomer}
-                    className="text-xs px-3 py-1.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    className="text-xs px-2.5 md:px-3 py-1.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                   >
                     {isSavingCustomer ? (
                       <>
@@ -917,7 +917,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
 
             {/* Related Job */}
             {job?.id && (
-              <div className="space-y-2">
+              <div className="space-y-2.5 md:space-y-3">
                 <label className="text-xs font-medium text-muted-foreground">Related Job</label>
                 <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -936,7 +936,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
 
             {/* Description - only show if has content or editing */}
             {(normalizeDisplayText(event.description) || isEditing) && (
-              <div className="space-y-2">
+              <div className="pt-2 md:pt-3 border-t border-border/50 space-y-2 md:space-y-2.5">
                 <label className="text-xs font-medium text-muted-foreground">Description</label>
                 {isEditing ? (
                   <textarea
@@ -954,7 +954,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
 
             {/* Meeting Notes - collapsible */}
             {!event.isHoliday && (
-              <div className="space-y-2">
+              <div className="pt-4 md:pt-5 border-t border-border/50 space-y-2 md:space-y-2.5">
                 <button
                   onClick={() => setIsNotesOpen(!isNotesOpen)}
                   className="flex items-center justify-between w-full text-left"
@@ -986,7 +986,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               const hasAiContent = event.meetingUrl?.includes('meet.google.com') || transcriptStatus || aiSummary || aiSummaryStructured
               return hasAiContent && !event.isHoliday
             })() && (
-              <div className="pt-3 border-t border-border/50">
+              <div className="pt-4 md:pt-5 border-t border-border/50">
                 <button
                   onClick={() => setIsTranscriptOpen(!isTranscriptOpen)}
                   className="flex items-center justify-between w-full text-left"
@@ -1087,7 +1087,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
 
             {/* Meeting Complete Action */}
             {!event.isHoliday && meetingStatus !== 'completed' && (
-              <div className="pt-4 mt-6 border-t border-border/50">
+              <div className="pt-3 md:pt-4 mt-4 md:mt-6 border-t border-border/50">
                 <button
                   onClick={() => setShowCompleteConfirm(true)}
                   className="w-full px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
@@ -1171,7 +1171,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 md:space-y-4">
               {/* Primary actions */}
               {(event.meetingUrl || (!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)))) && (
                 <div className="grid grid-cols-2 gap-3">
