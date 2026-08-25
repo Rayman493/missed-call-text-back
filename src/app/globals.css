@@ -338,55 +338,55 @@ html.light::-webkit-scrollbar-thumb:hover {
   background: rgba(100, 116, 139, 1);
 }
 
-/* Enhanced scrollbar for Dashboard/Home page body - more visible and easier to grab
+/* Enhanced scrollbar for desktop - more visible and easier to grab
  * Only applies on desktop/pointer environments to avoid chunky scrollbars on mobile */
 @media (hover: hover) and (pointer: fine) {
-  body.dashboard-route {
+  body {
     scrollbar-width: auto;
     scrollbar-color: rgba(96, 165, 250, 0.6) rgba(15, 23, 42, 0.6);
   }
 
-  body.dashboard-route::-webkit-scrollbar {
+  body::-webkit-scrollbar {
     width: 14px;
     height: 14px;
   }
 
-  body.dashboard-route::-webkit-scrollbar-track {
+  body::-webkit-scrollbar-track {
     background: rgba(15, 23, 42, 0.5);
   }
 
-  body.dashboard-route::-webkit-scrollbar-thumb {
+  body::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, rgba(96, 165, 250, 0.6), rgba(34, 211, 238, 0.45));
     border: 3px solid rgba(15, 23, 42, 0.9);
     border-radius: 999px;
   }
 
-  body.dashboard-route::-webkit-scrollbar-thumb:hover {
+  body::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(180deg, rgba(96, 165, 250, 0.8), rgba(34, 211, 238, 0.6));
   }
 
-  /* Light mode enhanced scrollbar for Dashboard/Home body */
-  html.light body.dashboard-route {
+  /* Light mode enhanced scrollbar */
+  html.light body {
     scrollbar-width: auto;
     scrollbar-color: rgba(148, 163, 184, 1) rgba(226, 232, 240, 0.5);
   }
 
-  html.light body.dashboard-route::-webkit-scrollbar {
+  html.light body::-webkit-scrollbar {
     width: 14px;
     height: 14px;
   }
 
-  html.light body.dashboard-route::-webkit-scrollbar-track {
+  html.light body::-webkit-scrollbar-track {
     background: rgba(226, 232, 240, 0.5);
   }
 
-  html.light body.dashboard-route::-webkit-scrollbar-thumb {
+  html.light body::-webkit-scrollbar-thumb {
     background: rgba(148, 163, 184, 1);
     border: 3px solid rgba(226, 232, 240, 0.8);
     border-radius: 999px;
   }
 
-  html.light body.dashboard-route::-webkit-scrollbar-thumb:hover {
+  html.light body::-webkit-scrollbar-thumb:hover {
     background: rgba(100, 116, 139, 1);
   }
 }
