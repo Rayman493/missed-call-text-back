@@ -320,6 +320,7 @@ export async function getInventoryMetrics(): Promise<InventoryMetrics> {
 /**
  * Provision a new warm number for the inventory
  * Purchases a new Twilio number, configures it, and stores it as available
+ * Includes retry logic with exponential backoff for transient failures
  */
 export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNumber?: string; error?: string }> {
   console.log('[Warm Inventory] ========== provisionWarmNumber HIT ==========');
@@ -340,15 +341,30 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
     return { success: false, error: 'Missing Twilio credentials' };
   }
 
+  // Configure Twilio client
   const client = Twilio(accountSid, authToken);
   let purchasedNumber: any = null;
 
   try {
-    // Step 1: Search for available local numbers
+    // Step 1: Search for available local numbers (with retry)
     console.log('[Warm Inventory] Searching for available local numbers...');
-    const availableNumbers = await client.availablePhoneNumbers('US').local.list({
-      limit: 10,
-    });
+    const searchResult = await retryWithBackoff(
+      async () => {
+        const result = await client.availablePhoneNumbers('US').local.list({
+          limit: 10,
+        });
+        return result;
+      },
+      3,
+      1000
+    );
+
+    if (!searchResult.success || !searchResult.result) {
+      console.error('[Warm Inventory] Number search failed after retries:', searchResult.error);
+      return { success: false, error: searchResult.error || 'Number search failed' };
+    }
+
+    const availableNumbers = searchResult.result;
 
     if (!availableNumbers || availableNumbers.length === 0) {
       console.error('[Warm Inventory] No available local numbers found');
@@ -358,57 +374,111 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
     const numberToPurchase = availableNumbers[0];
     console.log(`[Warm Inventory] Selected number: ${numberToPurchase.phoneNumber}`);
 
-    // Step 2: Purchase the number with webhooks
+    // Step 2: Purchase the number with webhooks (with retry)
     console.log('[Warm Inventory] Purchasing number with webhooks...');
-    purchasedNumber = await client.incomingPhoneNumbers.create({
-      phoneNumber: numberToPurchase.phoneNumber,
-      voiceUrl: `${appUrl}/api/twilio/voice`,
-      statusCallback: `${appUrl}/api/twilio/voice-status`,
-      statusCallbackMethod: 'POST',
-      smsUrl: `${appUrl}/api/twilio/incoming-sms`,
-      smsMethod: 'POST',
-    });
+    const purchaseResult = await retryWithBackoff(
+      async () => {
+        const result = await client.incomingPhoneNumbers.create({
+          phoneNumber: numberToPurchase.phoneNumber,
+          voiceUrl: `${appUrl}/api/twilio/voice`,
+          statusCallback: `${appUrl}/api/twilio/voice-status`,
+          statusCallbackMethod: 'POST',
+          smsUrl: `${appUrl}/api/twilio/incoming-sms`,
+          smsMethod: 'POST',
+        });
+        return result;
+      },
+      3,
+      1000
+    );
 
+    if (!purchaseResult.success || !purchaseResult.result) {
+      console.error('[Warm Inventory] Number purchase failed after retries:', purchaseResult.error);
+      return { success: false, error: purchaseResult.error || 'Number purchase failed' };
+    }
+
+    purchasedNumber = purchaseResult.result;
     console.log(`[Warm Inventory] Purchased number: ${purchasedNumber.phoneNumber}, SID: ${purchasedNumber.sid}`);
 
-    // Step 3: Add to Messaging Service if configured
+    // Step 3: Add to Messaging Service if configured (with retry)
     let senderPoolAttachedAt: string | null = null;
     let messagingServiceError: string | null = null;
     if (messagingServiceSid) {
       console.log(`[Warm Inventory] Adding number to Messaging Service: ${messagingServiceSid}`);
 
       try {
-        const existingPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
-          .phoneNumbers
-          .list({ limit: 100 });
+        const listResult = await retryWithBackoff(
+          async () => {
+            const result = await client.messaging.v1.services(messagingServiceSid)
+              .phoneNumbers
+              .list({ limit: 100 });
+            return result;
+          },
+          2,
+          1000
+        );
 
-        const alreadyAttached = existingPhoneNumbers.some(pn => pn.sid === purchasedNumber.sid);
-
-        if (!alreadyAttached) {
-          await client.messaging.v1.services(messagingServiceSid)
-            .phoneNumbers
-            .create({
-              phoneNumberSid: purchasedNumber.sid,
-            });
-          console.log('[Warm Inventory] Added to sender pool');
+        if (!listResult.success || !listResult.result) {
+          console.error('[Warm Inventory] Failed to list Messaging Service phone numbers after retries:', listResult.error);
+          messagingServiceError = listResult.error || 'Failed to list Messaging Service phone numbers';
         } else {
-          console.log('[Warm Inventory] Number already in sender pool');
-        }
+          const existingPhoneNumbers = listResult.result;
 
-        // Verify sender pool membership
-        const updatedPhoneNumbers = await client.messaging.v1.services(messagingServiceSid)
-          .phoneNumbers
-          .list({ limit: 100 });
+          const alreadyAttached = existingPhoneNumbers.some(pn => pn.sid === purchasedNumber.sid);
 
-        const isAttached = updatedPhoneNumbers.some(pn => pn.sid === purchasedNumber.sid);
+          if (!alreadyAttached) {
+            const addResult = await retryWithBackoff(
+              async () => {
+                const result = await client.messaging.v1.services(messagingServiceSid)
+                  .phoneNumbers
+                  .create({
+                    phoneNumberSid: purchasedNumber.sid,
+                  });
+                return result;
+              },
+              2,
+              1000
+            );
 
-        if (!isAttached) {
-          console.error('[Warm Inventory] Failed to verify sender pool membership');
-          messagingServiceError = 'Failed to verify sender pool membership';
-          // Do NOT release the number - it's purchased and we'll track it as needing repair
-        } else {
-          senderPoolAttachedAt = new Date().toISOString();
-          console.log('[Warm Inventory] Sender pool membership verified');
+            if (!addResult.success) {
+              console.error('[Warm Inventory] Failed to add to Messaging Service after retries:', addResult.error);
+              messagingServiceError = addResult.error || 'Failed to add to Messaging Service';
+            } else {
+              console.log('[Warm Inventory] Added to sender pool');
+            }
+          } else {
+            console.log('[Warm Inventory] Number already in sender pool');
+          }
+
+          // Verify sender pool membership (with retry)
+          const verifyResult = await retryWithBackoff(
+            async () => {
+              const result = await client.messaging.v1.services(messagingServiceSid)
+                .phoneNumbers
+                .list({ limit: 100 });
+              return result;
+            },
+            2,
+            1000
+          );
+
+          if (!verifyResult.success || !verifyResult.result) {
+            console.error('[Warm Inventory] Failed to verify sender pool membership after retries:', verifyResult.error);
+            messagingServiceError = verifyResult.error || 'Failed to verify sender pool membership';
+          } else {
+            const updatedPhoneNumbers = verifyResult.result;
+
+            const isAttached = updatedPhoneNumbers.some(pn => pn.sid === purchasedNumber.sid);
+
+            if (!isAttached) {
+              console.error('[Warm Inventory] Failed to verify sender pool membership');
+              messagingServiceError = 'Failed to verify sender pool membership';
+              // Do NOT release the number - it's purchased and we'll track it as needing repair
+            } else {
+              senderPoolAttachedAt = new Date().toISOString();
+              console.log('[Warm Inventory] Sender pool membership verified');
+            }
+          }
         }
       } catch (error: any) {
         console.error('[Warm Inventory] Failed to add to Messaging Service:', error);
@@ -461,6 +531,13 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
 
   } catch (error: any) {
     console.error('[Warm Inventory] Exception during provisioning:', error);
+    console.error('[Warm Inventory] Error details:', {
+      message: error.message,
+      code: error.code,
+      status: error.status,
+      moreInfo: error.moreInfo,
+      isTransient: isTransientError(error)
+    });
     return { success: false, error: error.message || 'Unknown error' };
   }
 }
@@ -541,21 +618,47 @@ export async function ensureWarmNumberMinimumWith(deps: {
 
   let numbersAdded = 0;
   let lastError: string | undefined;
+  let lastErrorType: string | undefined;
 
   for (let i = 0; i < numbersNeeded; i++) {
+    console.log(`[PURCHASE] Starting purchase ${i + 1}/${numbersNeeded}`);
     const result = await deps.provisionWarmNumber();
 
     if (result.success) {
       numbersAdded++;
-      console.log(`[PURCHASE] Purchased new Twilio number: ${result.phoneNumber}`);
+      console.log(`[PURCHASE] ✓ Successfully purchased new Twilio number: ${result.phoneNumber}`);
     } else {
       lastError = result.error;
-      console.error(`[PURCHASE] Failed to purchase number ${i + 1}/${numbersNeeded}:`, lastError);
+      // Categorize error type for better logging
+      if (lastError?.includes('timeout') || lastError?.includes('ETIMEDOUT') || lastError?.includes('ECONNABORTED')) {
+        lastErrorType = 'timeout';
+      } else if (lastError?.includes('No available local numbers')) {
+        lastErrorType = 'no_numbers_available';
+      } else if (lastError?.includes('Missing Twilio credentials')) {
+        lastErrorType = 'credentials';
+      } else {
+        lastErrorType = 'unknown';
+      }
+
+      console.error(`[PURCHASE] ✗ Failed to purchase number ${i + 1}/${numbersNeeded}:`, {
+        error: lastError,
+        errorType: lastErrorType,
+        numbersRemaining: numbersNeeded - (i + 1)
+      });
     }
   }
 
   const availableAfter = await deps.getAvailableWarmNumberCount();
-  console.log(`[INVENTORY] Inventory restored: ${availableAfter}/${metrics.desiredAvailableBuffer}`);
+  console.log(`[INVENTORY] Inventory restoration complete: ${availableAfter}/${metrics.desiredAvailableBuffer}`);
+  console.log(`[INVENTORY] Numbers added: ${numbersAdded}/${numbersNeeded}`);
+
+  if (numbersAdded < numbersNeeded) {
+    console.error(`[INVENTORY] Replenishment incomplete - ${numbersNeeded - numbersAdded} number(s) failed to purchase`, {
+      lastError,
+      lastErrorType,
+      willRetry: 'Next scheduled cron job will attempt to replenish remaining gap'
+    });
+  }
 
   // Non-blocking: trigger cleanup of excess inventory after replenishment
   // using real production path (no-op if already exactly at target post-purchase).
