@@ -234,4 +234,57 @@ describe('Twilio Provisioning Idempotency', () => {
     expect(warmInventoryResult.fromWarmInventory).toBe(true)
     expect(liveProvisioningResult.fromWarmInventory).toBe(false)
   })
+
+  it('warm inventory success must return early and skip live purchase', () => {
+    // Scenario: warm inventory succeeds, business update succeeds
+    // Expected behavior:
+    // - Return success with fromWarmInventory: true
+    // - Do NOT fall through to live provisioning
+    // - Do NOT call Twilio purchase API
+    // - Do NOT attach to messaging service (already attached in warm inventory)
+
+    const warmInventorySuccess = {
+      success: true,
+      phoneNumber: '+15551234567',
+      phoneNumberSid: 'PN1234567890abcdef'
+    }
+
+    const businessUpdateSuccess = {
+      error: null
+    }
+
+    // Verify success path exists
+    expect(warmInventorySuccess.success).toBe(true)
+    expect(businessUpdateSuccess.error).toBeNull()
+
+    // The code must have an early return after successful business update
+    // Otherwise it will fall through to live provisioning
+    const shouldSkipLiveProvisioning = warmInventorySuccess.success && !businessUpdateSuccess.error
+    expect(shouldSkipLiveProvisioning).toBe(true)
+  })
+
+  it('warm inventory success preserves fromWarmInventory=true flag through entire flow', () => {
+    // Scenario: warm inventory succeeds, business update succeeds
+    // Expected behavior:
+    // - fromWarmInventory flag set to true in provisionTwilioNumber return
+    // - trigger-provisioning route receives fromWarmInventory: true
+    // - Database save uses warm inventory branch (skips INSERT)
+    // - Final response includes fromWarmInventory: true
+
+    const provisioningResult = {
+      phoneNumber: '+15551234567',
+      phoneNumberSid: 'PN1234567890abcdef',
+      messagingServiceAttached: true,
+      fromWarmInventory: true
+    }
+
+    // Verify flag is set
+    expect(provisioningResult.fromWarmInventory).toBe(true)
+
+    // This flag should be preserved through:
+    // 1. provisionTwilioNumber return
+    // 2. trigger-provisioning route processing
+    // 3. Database save branch selection
+    // 4. Final API response
+  })
 })

@@ -1616,6 +1616,23 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
         console.log('[PROVISIONING_LIFECYCLE] ========== provisioning_failed ==========');
         return null;
       }
+
+      // Business update succeeded - return success and skip live provisioning
+      console.log(`[Warm Inventory] ========== BUSINESS UPDATE SUCCESS ========== correlation_id=${correlationId}`);
+      console.log(`[Warm Inventory] ✓ Business updated with warm number correlation_id=${correlationId}`);
+
+      console.log(`[Warm Inventory] Triggering background replenishment... correlation_id=${correlationId}`);
+      await triggerBackgroundReplenishment()
+      console.log(`[Warm Inventory] Background replenishment triggered correlation_id=${correlationId}`);
+
+      console.log(`[Warm Inventory] ========== WARM NUMBER ASSIGNMENT COMPLETE ========== correlation_id=${correlationId}`);
+      console.log(`[Warm Inventory] Warm number assignment complete, skipping live purchase correlation_id=${correlationId}`);
+      return {
+        phoneNumber: warmNumberResult.phoneNumber,
+        phoneNumberSid: warmNumberResult.phoneNumberSid,
+        messagingServiceAttached: true,
+        fromWarmInventory: true, // Flag to indicate this came from warm inventory
+      }
     } else {
       console.log(`[Warm Inventory] ========== NO WARM NUMBER AVAILABLE ========== correlation_id=${correlationId}`);
       console.log(`[Warm Inventory] Warm inventory result: success=${warmNumberResult.success} error=${warmNumberResult.error} errorType=${warmNumberResult.errorType} correlation_id=${correlationId}`);
