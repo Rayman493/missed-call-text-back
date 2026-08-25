@@ -285,8 +285,10 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
           handleCancel()
         }
       }}
+      data-scroll-lock-allow
     >
-      <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px-env(safe-area-inset-top))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4">
+      <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px-env(safe-area-inset-top))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4"
+           data-scroll-lock-allow>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 sm:px-4 sm:py-3 border-b border-border/30 shrink-0">
           <div className="flex items-center gap-2.5">
