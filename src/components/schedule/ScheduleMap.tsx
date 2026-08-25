@@ -256,7 +256,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   const [showAllMode, setShowAllMode] = useState(true)
   const [previousDateKey, setPreviousDateKey] = useState<string | null>(null)
   const [lastAutoFitDateKey, setLastAutoFitDateKey] = useState<string | null>(null) // Track when we last auto-fitted to prevent repeated fits
-  const leadCacheRef = useRef<Map<string, { name: string | null; phone: string | null }>>(new Map()) // Cache for lead data to avoid N+1 queries (ref to avoid circular dependency)
+  const [leadCache, setLeadCache] = useState<Map<string, { name: string | null; phone: string | null }>>(new Map()) // Cache for lead data to avoid N+1 queries
 
   // Derive selectedListItem from selectedMapItemId and mapItems (prevents stale object risk)
   const selectedListItem = useMemo(() =>
@@ -769,8 +769,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     if (leadIds.length === 0) return new Map()
 
     // Filter out already cached leads
-    const uncachedIds = leadIds.filter(id => !leadCacheRef.current.has(id))
-    if (uncachedIds.length === 0) return leadCacheRef.current
+    const uncachedIds = leadIds.filter(id => !leadCache.has(id))
+    if (uncachedIds.length === 0) return leadCache
 
     try {
       const { data, error } = await supabase
@@ -780,23 +780,23 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
       if (error) {
         console.error('[ScheduleMap] Failed to fetch leads:', error)
-        return leadCacheRef.current
+        return leadCache
       }
 
-      const newCache = new Map(leadCacheRef.current)
+      const newCache = new Map(leadCache)
       data?.forEach((lead: any) => {
         const meta = lead.raw_metadata || {}
         const name = meta.customerName || meta.callerName || meta.name || null
         newCache.set(lead.id, { name, phone: lead.caller_phone })
       })
 
-      leadCacheRef.current = newCache
+      setLeadCache(newCache)
       return newCache
     } catch (error) {
       console.error('[ScheduleMap] Exception fetching leads:', error)
-      return leadCacheRef.current
+      return leadCache
     }
-  }, [])
+  }, [leadCache])
 
   // Helper function to resolve customer information from calendar event
   const getCustomerFromCalendarEvent = useCallback((event: any): { customerName: string | null; customerPhone: string | null; leadId: string | null } => {
@@ -805,8 +805,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     if (linkedJob) {
       // Use job.customer_name as primary, but fall back to lead metadata if needed
       let customerName = linkedJob.customer_name
-      if (!customerName && linkedJob.lead_id && leadCacheRef.current.has(linkedJob.lead_id)) {
-        customerName = leadCacheRef.current.get(linkedJob.lead_id)?.name || null
+      if (!customerName && linkedJob.lead_id && leadCache.has(linkedJob.lead_id)) {
+        customerName = leadCache.get(linkedJob.lead_id)?.name || null
       }
       return {
         customerName,
@@ -823,8 +823,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       const jobWithLead = jobs.find(job => job.lead_id === replyLeadId)
       if (jobWithLead) {
         let customerName = jobWithLead.customer_name
-        if (!customerName && leadCacheRef.current.has(replyLeadId)) {
-          customerName = leadCacheRef.current.get(replyLeadId)?.name || null
+        if (!customerName && leadCache.has(replyLeadId)) {
+          customerName = leadCache.get(replyLeadId)?.name || null
         }
         return {
           customerName,
@@ -833,8 +833,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         }
       }
       // Use cached lead data if available
-      if (leadCacheRef.current.has(replyLeadId)) {
-        const leadData = leadCacheRef.current.get(replyLeadId)!
+      if (leadCache.has(replyLeadId)) {
+        const leadData = leadCache.get(replyLeadId)!
         return {
           customerName: leadData.name,
           customerPhone: leadData.phone,
@@ -854,7 +854,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       customerPhone: null,
       leadId: null
     }
-  }, [jobs])
+  }, [jobs, leadCache])
 
   // Get all items for the selected date (jobs, events, tasks) for the list view
   const getSelectedDayItems = useCallback((): Array<{
@@ -979,8 +979,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       let customerPhone: string | null = null
 
       // Resolve customer from lead cache if task has lead_id
-      if (task.lead_id && leadCacheRef.current.has(task.lead_id)) {
-        const leadData = leadCacheRef.current.get(task.lead_id)
+      if (task.lead_id && leadCache.has(task.lead_id)) {
+        const leadData = leadCache.get(task.lead_id)
         customerName = leadData?.name || null
         customerPhone = leadData?.phone || null
       }
@@ -1013,7 +1013,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     })
 
     return items
-  }, [jobs, calendarEvents, tasks, selectedDate, getCustomerAddressFromLead])
+  }, [jobs, calendarEvents, tasks, selectedDate, getCustomerAddressFromLead, leadCache])
 
   // Geocode addresses and prepare map items
   const prepareMapItems = useCallback(async (preparationId: number) => {
@@ -1049,8 +1049,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         if (!customerName && job.leads?.raw_metadata) {
           customerName = getCustomerNameFromLead(job.leads)
         }
-        if (!customerName && job.lead_id && leadCacheRef.current.has(job.lead_id)) {
-          customerName = leadCacheRef.current.get(job.lead_id)?.name || null
+        if (!customerName && job.lead_id && leadCache.has(job.lead_id)) {
+          customerName = leadCache.get(job.lead_id)?.name || null
         }
 
         items.push({
@@ -1099,8 +1099,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
               if (!customerName && job.leads?.raw_metadata) {
                 customerName = getCustomerNameFromLead(job.leads)
               }
-              if (!customerName && job.lead_id && leadCacheRef.current.has(job.lead_id)) {
-                customerName = leadCacheRef.current.get(job.lead_id)?.name || null
+              if (!customerName && job.lead_id && leadCache.has(job.lead_id)) {
+                customerName = leadCache.get(job.lead_id)?.name || null
               }
 
               items.push({
@@ -1135,7 +1135,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
     // Check jobs for missing customer data
     for (const job of filteredJobs) {
-      if (job.lead_id && !job.customer_name && !job.leads?.raw_metadata && !leadCacheRef.current.has(job.lead_id)) {
+      if (job.lead_id && !job.customer_name && !job.leads?.raw_metadata && !leadCache.has(job.lead_id)) {
         leadIdsToFetch.push(job.lead_id)
       }
     }
@@ -1146,7 +1146,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       if (!hasLinkedJob) {
         // @ts-ignore
         const replyLeadId = event?.extendedProperties?.private?.replyflow_lead_id as string | undefined
-        if (replyLeadId && !leadCacheRef.current.has(replyLeadId)) {
+        if (replyLeadId && !leadCache.has(replyLeadId)) {
           leadIdsToFetch.push(replyLeadId)
         }
       }
@@ -1154,7 +1154,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
     // Check tasks for missing customer data
     for (const task of filteredTasks) {
-      if (task.lead_id && !leadCacheRef.current.has(task.lead_id)) {
+      if (task.lead_id && !leadCache.has(task.lead_id)) {
         leadIdsToFetch.push(task.lead_id)
       }
     }
@@ -1306,7 +1306,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
     setMapItems(items)
     setIsLoading(false)
-  }, [getItemsForDate, fetchLeadsByIds, jobs, getCustomerNameFromLead])
+  }, [getItemsForDate, fetchLeadsByIds, leadCache, jobs, getCustomerNameFromLead])
 
   // Group items by location (for clustering)
   const groupItemsByLocation = useCallback((items: MapItem[]): MarkerInfo[] => {
