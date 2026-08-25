@@ -6,11 +6,12 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from 'next-themes'
-import { Home, Users, Calendar, CreditCard, Settings, LogOut, MessageCircle, ExternalLink, Sun, Moon, Monitor, HelpCircle } from 'lucide-react'
+import { Home, Users, Calendar, CreditCard, Settings, LogOut, MessageCircle, ExternalLink, Sun, Moon, Monitor, HelpCircle, Mail } from 'lucide-react'
 import { primaryNavItems, accountMenuItems } from '@/lib/navigation-config'
 import { handleBillingAction } from '@/lib/billing'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 import AssistantMobileShell from '@/components/AssistantMobileShell'
+import ContactSupportModal from '@/components/ContactSupportModal'
 
 interface BottomNavigationProps {
   onLogout?: () => void
@@ -23,6 +24,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const { theme, setTheme } = useTheme()
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
+  const [isContactSupportOpen, setIsContactSupportOpen] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null)
   const moreButtonRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -351,6 +353,21 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 ReplyFlow Assistant
               </button>
 
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsMoreMenuOpen(false)
+                  queueMicrotask(() => {
+                    setIsContactSupportOpen(true)
+                  })
+                }}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-popover-foreground transition-colors duration-150 hover:bg-accent"
+              >
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                Contact Support
+              </button>
+
               <Link
                 href="/faq"
                 onClick={(e) => {
@@ -436,6 +453,15 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
           onClose={() => setIsAssistantOpen(false)}
         />
       )}
+
+      <ContactSupportModal
+        isOpen={isContactSupportOpen}
+        onClose={() => setIsContactSupportOpen(false)}
+        onOpenAssistant={() => {
+          setIsContactSupportOpen(false)
+          setIsAssistantOpen(true)
+        }}
+      />
     </>
   )
 }
