@@ -128,7 +128,7 @@ export default function LeadCard({
 
   return (
     <div
-      className={`w-full max-w-2xl h-full flex flex-col relative overflow-hidden rounded-xl p-2 sm:p-3.5 pl-3 sm:pl-4 transition-colors cursor-pointer hover:-translate-y-0.5 ${statusStyle.cardClass} active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
+      className={`w-full max-w-2xl h-full flex flex-col relative overflow-hidden rounded-xl p-2 sm:p-3.5 pl-3 sm:pl-4 transition-all duration-200 cursor-pointer hover:-translate-y-px ${statusStyle.cardClass} active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
       onClick={() => onOpen(lead.id)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -156,7 +156,7 @@ export default function LeadCard({
         <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-0.5">
-              <h3 className="text-sm sm:text-base font-semibold text-foreground truncate tracking-tight leading-tight">
+              <h3 className="text-sm sm:text-base font-bold text-foreground truncate tracking-tight leading-tight">
                 <span className="text-foreground">{getLeadDisplayName(lead)}</span>
               </h3>
               {customerSourceInfo && (
@@ -297,11 +297,11 @@ export default function LeadCard({
             onDoubleClick={(e) => {
               e.stopPropagation()
             }}
-            className="hidden sm:inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-foreground hover:bg-muted/50 active:bg-muted/70 px-2 py-1.5 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-card group"
+            className="hidden sm:inline-flex items-center gap-2 text-xs font-medium text-foreground hover:text-foreground/80 bg-muted/50 hover:bg-muted/70 active:bg-muted/80 px-3 py-1.5 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-card group"
             aria-label={`Open ${getLeadDisplayName(lead)}`}
           >
             <span className="whitespace-nowrap">Open customer</span>
-            <svg className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
