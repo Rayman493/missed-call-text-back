@@ -2429,15 +2429,15 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         
         {/* Selected Item Info Card */}
         {selectedItem && (
-          <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 z-20">
-            <div className="flex items-start justify-between mb-3">
+          <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-3 md:p-4 z-20">
+            <div className="flex items-start justify-between mb-2 md:mb-3">
               <div className="flex items-center gap-2">
                 {selectedItem.type === 'business' ? (
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                  <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center text-sm bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
                     🏠
                   </div>
                 ) : (
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
+                  <div className={`w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
                     selectedItem.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                   }`}>
                     {selectedItem.stopNumber}
@@ -2446,18 +2446,18 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                 <div>
                   {selectedItem.type === 'business' ? (
                     <>
-                      <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                      <p className="text-[11px] md:text-xs font-medium text-slate-600 dark:text-slate-400">
                         Business Location
                       </p>
-                      <h3 className="font-semibold text-slate-900 dark:text-foreground">{selectedItem.title}</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Home Base</p>
+                      <h3 className="font-semibold text-sm md:text-base text-slate-900 dark:text-foreground">{selectedItem.title}</h3>
+                      <p className="text-[11px] md:text-xs text-slate-500 dark:text-slate-400 mt-0.5 md:mt-1">Home Base</p>
                     </>
                   ) : (
                     <>
-                      <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                      <p className="text-[11px] md:text-xs font-medium text-slate-600 dark:text-slate-400">
                         Stop {selectedItem.stopNumber} · {selectedItem.scheduledTime ? formatTime(selectedItem.scheduledTime) : 'No time'}
                       </p>
-                      <h3 className="font-semibold text-slate-900 dark:text-foreground">{selectedItem.customerName || 'No customer'}</h3>
+                      <h3 className="font-semibold text-sm md:text-base text-slate-900 dark:text-foreground">{selectedItem.customerName || 'No customer'}</h3>
                     </>
                   )}
                 </div>
@@ -2472,14 +2472,14 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 dark:text-slate-500 mb-2">
+            <p className="text-[11px] md:text-xs text-slate-500 dark:text-slate-500 mb-1.5 md:mb-2">
               {selectedItem.address}
             </p>
 
             {/* Appointment/Job specific UI */}
             {selectedItem.type !== 'business' && (
               <>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-2 md:mb-3">
                   <span className={`px-2 py-0.5 text-[10px] font-medium rounded ${
                     selectedItem.type === 'job'
                       ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
@@ -2487,14 +2487,14 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                   }`}>
                     {selectedItem.type === 'job' ? 'Job' : 'Appointment'}
                   </span>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 truncate flex-1">
+                  <p className="text-[11px] md:text-xs text-slate-400 dark:text-slate-500 truncate flex-1">
                     {selectedItem.title}
                   </p>
                 </div>
 
                 {/* Next/Previous Navigation */}
                 {sortedItems.filter(item => item.type !== 'business').length > 1 && (
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-2 md:mb-3">
                     <button
                       onClick={() => navigateToStop('previous')}
                       className="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
@@ -2525,9 +2525,9 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
         {/* Legacy selected marker info card (for clustered items) */}
         {selectedMarker && !selectedItem && (
-          <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 z-20">
-            <div className="flex items-start justify-between mb-3">
-              <h3 className="font-semibold text-slate-900 dark:text-foreground">
+          <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-3 md:p-4 z-20">
+            <div className="flex items-start justify-between mb-2 md:mb-3">
+              <h3 className="font-semibold text-sm md:text-base text-slate-900 dark:text-foreground">
                 {selectedMarker.items.length} stops at this location
               </h3>
               <button
@@ -2540,7 +2540,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
               </button>
             </div>
 
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+            <div className="space-y-1.5 md:space-y-2 max-h-64 overflow-y-auto">
               {selectedMarker.items.map((item, index) => (
                 <button
                   key={`${item.type}-${item.id}-${index}`}
