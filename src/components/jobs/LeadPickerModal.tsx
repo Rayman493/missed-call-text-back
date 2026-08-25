@@ -139,8 +139,8 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-in fade-in duration-200" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] animate-in fade-in duration-200" onClick={onClose} />
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-4">
         <div className="relative bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md flex flex-col max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px)] sm:max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200">
 
           {/* Header */}

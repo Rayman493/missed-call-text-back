@@ -275,7 +275,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
   return (
     <>
     <div
-      className="fixed inset-0 z-50 flex sm:items-center sm:justify-center justify-end bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-[60] flex sm:items-center sm:justify-center justify-end bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
       style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
       role="dialog"
       aria-modal="true"

@@ -366,7 +366,7 @@ export default function RequestPaymentModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200 md:items-center md:justify-center">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200 md:items-center md:justify-center">
       <div className="bg-card rounded-xl shadow-xl shadow-black/8 dark:shadow-black/20 max-w-md w-full max-h-[calc(100dvh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom)-20px)] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 border border-border/30 animate-in zoom-in-95 duration-200">
         {/* Header - shrink-0 */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 shrink-0">

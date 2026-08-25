@@ -263,7 +263,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px)] sm:max-h-[90vh] overflow-hidden flex flex-col sm:mb-0">
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
