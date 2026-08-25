@@ -1126,8 +1126,8 @@ export default function LeadsPage() {
                   <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
                     Customers
                   </h2>
-                  <p className="text-sm text-muted-foreground mt-2 leading-relaxed hidden sm:block">
-                    Manage conversations, requests, jobs and customer history.
+                  <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                    Customers appear here as they connect with your business. You can add someone manually anytime, too.
                   </p>
                 </div>
               </div>
