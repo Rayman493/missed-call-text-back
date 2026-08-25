@@ -2,9 +2,10 @@ import { useEffect, useRef } from 'react'
 
 // Reference count for nested modal support
 let lockCount = 0
-const previousScrollPosition = useRef<number>(0)
 
 export function useBodyScrollLock(isLocked: boolean) {
+  const previousScrollPosition = useRef<number>(0)
+
   useEffect(() => {
     const preventTouchMove = (e: TouchEvent) => {
       if (e.target instanceof Element && e.target.closest('[data-scroll-lock-allow]')) {
