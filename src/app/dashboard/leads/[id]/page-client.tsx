@@ -3997,50 +3997,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         avoidCollisions
                         className="z-[10000] w-[240px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-lg border border-border/60 bg-popover ring-1 ring-border/40 shadow-[0_4px_16px_rgb(0,0,0,0.12),0_2px_6px_rgb(0,0,0,0.08)]"
                       >
-                        {/* CREATE Section */}
+                        {/* CUSTOMER Section */}
                         <div className="px-2.5 py-1.5">
                           <div className="px-0.5 py-0.5 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
-                            Create
+                            Customer
                           </div>
-                        </div>
-
-                        {/* Create Job */}
-                        <div className="px-1 py-0.5">
-                          <DropdownMenuItem
-                            onSelect={handleCreateJobClick}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
-                          >
-                            <ClipboardPlus className="w-3.5 h-3.5" />
-                            <span>Create Job</span>
-                          </DropdownMenuItem>
-                        </div>
-
-                        {/* Request Payment */}
-                        <div className="px-1 py-0.5">
-                          <DropdownMenuItem
-                            onSelect={() => setShowPaymentModal(true)}
-                            disabled={!business || getAvailableProviders(business).length === 0}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
-                          >
-                            <CreditCard className="w-3.5 h-3.5" />
-                            <span>Request Payment</span>
-                          </DropdownMenuItem>
-                        </div>
-
-                        {/* Schedule Appointment */}
-                        <div className="px-1 py-0.5">
-                          <DropdownMenuItem
-                            onSelect={handleAppointmentClick}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
-                          >
-                            <CalendarDays className="w-3.5 h-3.5" />
-                            <span>Schedule Appointment</span>
-                          </DropdownMenuItem>
-                        </div>
-
-                        {/* Divider - Workflow actions vs Internal Notes */}
-                        <div className="px-2.5 py-1">
-                          <div className="h-px bg-border/20"></div>
                         </div>
 
                         {/* Internal Notes */}
@@ -4059,7 +4020,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </DropdownMenuItem>
                         </div>
 
-                        {/* Divider - Workflow vs Settings */}
+                        {/* Divider - Customer vs Settings */}
                         <div className="px-2.5 py-1">
                           <div className="h-px bg-border/20"></div>
                         </div>
@@ -4089,12 +4050,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </DropdownMenuItem>
                         </div>
 
-                        {/* Divider */}
-                        <div className="px-2.5 py-1">
-                          <div className="h-px bg-border/20"></div>
-                        </div>
-
-                        {/* Divider - Settings vs Utility */}
+                        {/* Divider - Settings vs Other */}
                         <div className="px-2.5 py-1">
                           <div className="h-px bg-border/20"></div>
                         </div>
@@ -4329,15 +4285,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <SidebarSection
                         title="Schedule"
                         className="mb-3"
-                        headerAction={
-                          <button
-                            type="button"
-                            onClick={handleCreateJobClick}
-                            className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                          >
-                            Add
-                          </button>
-                        }
                       >
                         {leadJobs.length === 0 && leadTasks.length === 0 ? (
                           <p className="text-sm text-muted-foreground">No scheduled work</p>
@@ -4391,16 +4338,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <SidebarSection
                         title="Payments"
                         className="mb-3"
-                        headerAction={
-                          <button
-                            type="button"
-                            onClick={() => setShowPaymentModal(true)}
-                            disabled={!business || getAvailableProviders(business).length === 0}
-                            className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Add
-                          </button>
-                        }
                       >
                         {paymentRequests.length === 0 ? (
                           <div>
@@ -4436,15 +4373,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <SidebarSection
                         title="Appointments"
                         className="mb-3"
-                        headerAction={
-                          <button
-                            type="button"
-                            onClick={handleAppointmentClick}
-                            className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                          >
-                            Add
-                          </button>
-                        }
                       >
                         {loadingAppointments ? (
                           <div className="flex items-center justify-center py-4">
@@ -4512,18 +4440,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       {/* Internal Notes */}
                       <SidebarSection
                         title="Internal Notes"
-                        headerAction={
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setInternalNotesValue(leadData?.notes || '')
-                              setShowInternalNotesModal(true)
-                            }}
-                            className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                          >
-                            {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add'}
-                          </button>
-                        }
                       >
                         <div className="text-[10px] text-muted-foreground/70 mb-2">Private</div>
                         {Boolean((leadData?.notes || '').trim()) ? (
