@@ -4633,7 +4633,7 @@ export default function SettingsContent() {
                         <div className="flex items-center gap-2.5">
                           <div className={`w-2.5 h-2.5 rounded-full ${
                             isInTrialPeriod(business?.subscription_status)
-                              ? 'bg-blue-500'
+                              ? 'bg-green-500'
                               : hasActiveSubscription(business)
                                 ? 'bg-green-500'
                                 : 'bg-amber-500'
@@ -4646,7 +4646,7 @@ export default function SettingsContent() {
                       </div>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium self-start sm:self-center ${
                       isInTrialPeriod(business?.subscription_status)
-                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                         : hasActiveSubscription(business)
                           ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                           : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
@@ -4671,14 +4671,18 @@ export default function SettingsContent() {
                                   ? 'bg-green-500'
                                   : manualStatus.hasManualAccess && accessInfo.status === 'expired'
                                     ? 'bg-red-500'
-                                    : 'bg-slate-400'
+                                    : hasActiveSubscription(business)
+                                      ? 'bg-green-500'
+                                      : 'bg-slate-400'
                               }`}></div>
                               <span className={`text-sm font-medium ${
                                 manualStatus.hasManualAccess && accessInfo.status === 'active'
                                   ? 'text-green-600 dark:text-green-400'
                                   : manualStatus.hasManualAccess && accessInfo.status === 'expired'
                                     ? 'text-red-600 dark:text-red-400'
-                                    : 'text-foreground'
+                                    : hasActiveSubscription(business)
+                                      ? 'text-green-600 dark:text-green-400'
+                                      : 'text-foreground'
                               }`}>
                                 Access Status
                               </span>
@@ -4693,7 +4697,9 @@ export default function SettingsContent() {
                                 ? 'text-green-900 dark:text-green-100'
                                 : manualStatus.hasManualAccess && accessInfo.status === 'expired'
                                   ? 'text-red-900 dark:text-red-100'
-                                  : 'text-foreground'
+                                  : hasActiveSubscription(business)
+                                    ? 'text-green-900 dark:text-green-100'
+                                    : 'text-foreground'
                             }`}>
                               {manualStatus.hasManualAccess
                                 ? (accessInfo.status === 'active'
