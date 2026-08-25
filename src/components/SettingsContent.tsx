@@ -2388,21 +2388,54 @@ export default function SettingsContent() {
     const urlParams = new URLSearchParams(window.location.search)
     const section = urlParams.get('section')
 
-    if (section === 'contacts' && business && formBusiness) {
-      // Settings content is rendered, use the canonical scrollToSection helper
-      requestAnimationFrame(() => {
-        scrollToSection(section)
-        // Clean up the section parameter after successful scroll
-        const url = new URL(window.location.href)
-        url.searchParams.delete('section')
-        window.history.replaceState({}, '', url.toString())
-        // Mark as handled to prevent re-scrolling on subsequent rerenders
-        sectionScrollHandledRef.current = true
-      })
-      // If element doesn't exist yet, effect will rerun when business/formBusiness change
-      // and the element becomes available
+    if (section === 'contacts') {
+      const tryScroll = () => {
+        const dividerId = `${section}-divider`
+        const element = document.getElementById(dividerId)
+        if (element) {
+          scrollToSection(section)
+          // Clean up the section parameter after successful scroll
+          const url = new URL(window.location.href)
+          url.searchParams.delete('section')
+          window.history.replaceState({}, '', url.toString())
+          // Mark as handled to prevent re-scrolling on subsequent rerenders
+          sectionScrollHandledRef.current = true
+          if (observer) {
+            observer.disconnect()
+          }
+        }
+      }
+
+      // Try immediately
+      tryScroll()
+
+      // If element doesn't exist yet, observe DOM changes
+      let observer: MutationObserver | null = null
+      if (!sectionScrollHandledRef.current) {
+        observer = new MutationObserver(() => {
+          tryScroll()
+        })
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        })
+      }
+
+      // Cleanup observer after 5 seconds (timeout)
+      const timeout = setTimeout(() => {
+        if (observer) {
+          observer.disconnect()
+        }
+      }, 5000)
+
+      return () => {
+        if (observer) {
+          observer.disconnect()
+        }
+        clearTimeout(timeout)
+      }
     }
-  }, [business, formBusiness, scrollToSection])
+  }, [scrollToSection])
 
   // Load ignored contacts
 
