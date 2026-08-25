@@ -55,7 +55,7 @@ export default function DatePicker({
           onChange={(e) => onChange(e.target.value)}
           required={required}
           disabled={disabled}
-          className={`w-full px-3 py-2 border rounded-lg transition-colors pr-10 ${
+          className={`w-full px-3 py-2 border rounded-lg transition-colors pr-12 ${
             disabled
               ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30'
               : 'bg-card text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60'
