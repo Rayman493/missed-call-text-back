@@ -733,6 +733,46 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     return null
   }
 
+  // Helper function to resolve customer information from calendar event
+  const getCustomerFromCalendarEvent = (event: any): { customerName: string | null; customerPhone: string | null; leadId: string | null } => {
+    // First try to find a linked job
+    const linkedJob = jobs.find(job => job.google_calendar_event_id === event.id)
+    if (linkedJob) {
+      return {
+        customerName: linkedJob.customer_name,
+        customerPhone: linkedJob.customer_phone,
+        leadId: linkedJob.lead_id
+      }
+    }
+
+    // Fallback: check for replyflow_lead_id in extended properties
+    // @ts-ignore
+    const replyLeadId = event?.extendedProperties?.private?.replyflow_lead_id as string | undefined
+    if (replyLeadId) {
+      // Find the job that has this lead_id
+      const jobWithLead = jobs.find(job => job.lead_id === replyLeadId)
+      if (jobWithLead) {
+        return {
+          customerName: jobWithLead.customer_name,
+          customerPhone: jobWithLead.customer_phone,
+          leadId: replyLeadId
+        }
+      }
+      // Return leadId even if we don't have the job (customer name will be null)
+      return {
+        customerName: null,
+        customerPhone: null,
+        leadId: replyLeadId
+      }
+    }
+
+    return {
+      customerName: null,
+      customerPhone: null,
+      leadId: null
+    }
+  }
+
   // Get all items for the selected date (jobs, events, tasks) for the list view
   const getSelectedDayItems = useCallback((): Array<{
     id: string
@@ -827,20 +867,21 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
     // Process events
     deduplicatedEvents.forEach(event => {
+      const customer = getCustomerFromCalendarEvent(event)
       const hasLocation = Boolean(event.location)
 
       items.push({
         id: `appointment:${event.id}`,
         type: 'appointment',
         title: event.summary,
-        customerName: null,
-        customerPhone: null,
+        customerName: customer.customerName,
+        customerPhone: customer.customerPhone,
         address: event.location,
         scheduledDate: (event.start.dateTime || event.start.date)?.split('T')[0] || null,
         scheduledTime: event.start.dateTime ? event.start.dateTime.split('T')[1]?.substring(0, 5) || null : null,
         status: null,
         hasLocation,
-        leadId: null,
+        leadId: customer.leadId,
         jobId: null,
         taskId: null,
         eventId: event.id,
@@ -1002,17 +1043,18 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
         const dateTime = event.start.dateTime
         const dateOnly = event.start.date
+        const customer = getCustomerFromCalendarEvent(event)
         items.push({
           id: `appointment:${event.id}`,
           type: 'appointment',
           title: event.summary,
-          customerName: null,
-          customerPhone: null,
+          customerName: customer.customerName,
+          customerPhone: customer.customerPhone,
           address: cached.formattedAddress,
           scheduledDate: dateTime ? dateTime.split('T')[0] : (dateOnly || null),
           scheduledTime: dateTime ? (dateTime.split('T')[1]?.slice(0, 5) || null) : null,
           status: null,
-          leadId: null,
+          leadId: customer.leadId,
           jobId: null,
           taskId: null,
           eventId: event.id,
@@ -1046,17 +1088,18 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
             const dateTime = event.start.dateTime
             const dateOnly = event.start.date
+            const customer = getCustomerFromCalendarEvent(event)
             items.push({
               id: `appointment:${event.id}`,
               type: 'appointment',
               title: event.summary,
-              customerName: null,
-              customerPhone: null,
+              customerName: customer.customerName,
+              customerPhone: customer.customerPhone,
               address: result.formattedAddress || normalizedLocation,
               scheduledDate: dateTime ? dateTime.split('T')[0] : (dateOnly || null),
               scheduledTime: dateTime ? (dateTime.split('T')[1]?.slice(0, 5) || null) : null,
               status: null,
-              leadId: null,
+              leadId: customer.leadId,
               jobId: null,
               taskId: null,
               eventId: event.id,

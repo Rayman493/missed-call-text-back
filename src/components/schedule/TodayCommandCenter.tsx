@@ -66,6 +66,16 @@ export default function TodayCommandCenter({
 
   const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local timezone
 
+  // Helper function to resolve customer information from calendar event
+  const getCustomerFromCalendarEvent = (event: CalendarEvent): string | null => {
+    // Try to find a linked job
+    const linkedJob = jobs.find(job => job.google_calendar_event_id === event.id)
+    if (linkedJob && linkedJob.customer_name) {
+      return linkedJob.customer_name
+    }
+    return null
+  }
+
   useEffect(() => {
     fetchTasks()
   }, [taskRefreshTrigger])
@@ -273,11 +283,12 @@ export default function TodayCommandCenter({
     // Add today's appointments
     todayAppointments.forEach(event => {
       const eventTime = event.start.dateTime || event.start.date
+      const customer = getCustomerFromCalendarEvent(event)
       items.push({
         type: 'appointment',
         id: event.id,
         title: event.summary,
-        customer: null,
+        customer: customer,
         time: event.start.dateTime ? new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : null,
         date: eventTime ? eventTime.split('T')[0] : null,
         icon: <Calendar className="w-4 h-4 text-blue-500" />,
