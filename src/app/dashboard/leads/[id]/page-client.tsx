@@ -56,8 +56,9 @@ import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skelet
 import EmptyState from '@/components/ui/EmptyState'
 import Modal from '@/components/ui/Modal'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
-import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip } from 'lucide-react'
+import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
+import NewTaskModal from '@/components/schedule/NewTaskModal'
 import { SidebarSection } from '@/components/SidebarSection'
 import SuccessBanner from '@/components/SuccessBanner'
 import BusinessPhoneModal from '@/components/BusinessPhoneModal'
@@ -1429,6 +1430,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
   const [isLaunchingSMS, setIsLaunchingSMS] = useState(false)
   const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false)
+
+  // State for task modal
+  const [showTaskModal, setShowTaskModal] = useState(false)
   const [paymentLinkData, setPaymentLinkData] = useState<{ paymentLink: string; amount: string; description: string; paymentRequestId?: string; message?: string; dialNumber?: string; customerName?: string } | null>(null)
   const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
   const paymentAmountRef = useRef<HTMLInputElement>(null)
@@ -4078,6 +4082,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </button>
                 <button
                   type="button"
+                  onClick={() => setShowTaskModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                >
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  <span>Add Task</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     setInternalNotesValue(leadData?.notes || '')
                     setShowInternalNotesModal(true)
@@ -5622,6 +5634,20 @@ If you have questions, reply to this message.`
       allowAddCustomer={false}
       requireCustomer={true}
       lockCustomer={true}
+    />
+
+    {/* New Task Modal */}
+    <NewTaskModal
+      isOpen={showTaskModal}
+      onClose={() => setShowTaskModal(false)}
+      onTaskCreated={async (isNew, task) => {
+        await fetchLeadTasks()
+      }}
+      onShowToast={(message, type) => {
+        if (type === 'success') {
+          setSuccessMessage(message)
+        }
+      }}
     />
 
     {/* Job Composer Modal */}
