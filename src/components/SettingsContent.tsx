@@ -826,8 +826,25 @@ export default function SettingsContent() {
     return { ...defaults, ...sourceSettings }
   }
 
+  // Helper to get safe business name for follow-up templates
+  // Never returns undefined, null, empty string, or whitespace-only values
+  const getSafeBusinessName = () => {
+    const name1 = formBusiness?.name?.trim()
+    const name2 = business?.name?.trim()
+    
+    if (name1 && name1.length > 0) {
+      return name1
+    }
+    if (name2 && name2.length > 0) {
+      return name2
+    }
+    return 'our team'
+  }
+
   // Helper to get follow-up settings with defaults
   const getFollowUpSettings = () => {
+    const safeBusinessName = getSafeBusinessName()
+    
     const defaults = {
       enabled: true,
       followUps: [
@@ -836,21 +853,21 @@ export default function SettingsContent() {
           enabled: true,
           delayDays: 1,
           delayUnit: 'days' as const,
-          message: `Just checking in from ${formBusiness?.name || business?.name || 'your business'} - would you still like help?`
+          message: `Just checking in from ${safeBusinessName} - would you still like help?`
         },
         {
           step: 2,
           enabled: true,
           delayDays: 3,
           delayUnit: 'days' as const,
-          message: `Hi, this is ${formBusiness?.name || business?.name || 'your business'}. We wanted to follow up one more time. Reply here if you still need anything.`
+          message: `Hi, this is ${safeBusinessName}. We wanted to follow up one more time. Reply here if you still need anything.`
         },
         {
           step: 3,
           enabled: false,
           delayDays: 7,
           delayUnit: 'days' as const,
-          message: `Final follow-up from ${formBusiness?.name || business?.name || 'your business'}. Let us know if we can help with anything!`
+          message: `Final follow-up from ${safeBusinessName}. Let us know if we can help with anything!`
         }
       ]
     }

@@ -157,4 +157,76 @@ describe('Follow-Up Settings Persistence Regression Tests', () => {
       expect(mockBusinessWithSettings).toHaveProperty('manual_access_expires_at')
     })
   })
+
+  describe('Test 10: Default message templates should not contain undefined or null', () => {
+    // Mock business with undefined name
+    const mockBusinessWithUndefinedName = {
+      ...mockBusinessWithoutSettings,
+      name: undefined as any
+    }
+
+    // Mock business with null name
+    const mockBusinessWithNullName = {
+      ...mockBusinessWithoutSettings,
+      name: null
+    }
+
+    // Mock business with empty string name
+    const mockBusinessWithEmptyName = {
+      ...mockBusinessWithoutSettings,
+      name: ''
+    }
+
+    // Mock business with whitespace-only name
+    const mockBusinessWithWhitespaceName = {
+      ...mockBusinessWithoutSettings,
+      name: '   '
+    }
+
+    it('should not contain "undefined" when business name is undefined', () => {
+      const safeName = mockBusinessWithUndefinedName.name?.trim() || 'our team'
+      const defaultMessage = `Just checking in from ${safeName} - would you still like help?`
+      
+      expect(defaultMessage).not.toContain('undefined')
+      expect(defaultMessage).not.toContain('null')
+      expect(defaultMessage).toContain('our team')
+    })
+
+    it('should not contain "undefined" when business name is null', () => {
+      const safeName = mockBusinessWithNullName.name?.trim() || 'our team'
+      const defaultMessage = `Just checking in from ${safeName} - would you still like help?`
+      
+      expect(defaultMessage).not.toContain('undefined')
+      expect(defaultMessage).not.toContain('null')
+      expect(defaultMessage).toContain('our team')
+    })
+
+    it('should not contain "undefined" when business name is empty string', () => {
+      const safeName = mockBusinessWithEmptyName.name?.trim() || 'our team'
+      const defaultMessage = `Just checking in from ${safeName} - would you still like help?`
+      
+      expect(defaultMessage).not.toContain('undefined')
+      expect(defaultMessage).not.toContain('null')
+      expect(defaultMessage).toContain('our team')
+    })
+
+    it('should not contain "undefined" when business name is whitespace-only', () => {
+      const safeName = mockBusinessWithWhitespaceName.name?.trim() || 'our team'
+      const defaultMessage = `Just checking in from ${safeName} - would you still like help?`
+      
+      expect(defaultMessage).not.toContain('undefined')
+      expect(defaultMessage).not.toContain('null')
+      expect(defaultMessage).toContain('our team')
+    })
+
+    it('should use actual business name when it is valid', () => {
+      const safeName = mockBusinessWithSettings.name?.trim() || 'our team'
+      const defaultMessage = `Just checking in from ${safeName} - would you still like help?`
+      
+      expect(defaultMessage).toContain('Test Business')
+      expect(defaultMessage).not.toContain('our team')
+      expect(defaultMessage).not.toContain('undefined')
+      expect(defaultMessage).not.toContain('null')
+    })
+  })
 })

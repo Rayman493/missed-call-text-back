@@ -4,6 +4,16 @@ import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-g
 
 export const dynamic = 'force-dynamic'
 
+// Helper to get safe business name for follow-up templates
+// Never returns undefined, null, empty string, or whitespace-only values
+function getSafeBusinessName(businessName: string | null | undefined): string {
+  const trimmedName = businessName?.trim()
+  if (trimmedName && trimmedName.length > 0) {
+    return trimmedName
+  }
+  return 'our team'
+}
+
 // GET /api/settings/follow-ups - Retrieve follow-up settings
 export async function GET() {
   try {
@@ -34,6 +44,9 @@ export async function GET() {
       name: business.name
     })
 
+    // Get safe business name for default templates
+    const safeBusinessName = getSafeBusinessName(business.name)
+
     // Get current follow-up settings or return defaults
     const automationSettings = business.automation_settings || {}
     const followUpSettings = automationSettings.followUps || {
@@ -44,21 +57,21 @@ export async function GET() {
           enabled: true,
           delayDays: 1,
           delayUnit: 'days' as const,
-          message: `Just checking in from ${business.name} - would you still like help?`
+          message: `Just checking in from ${safeBusinessName} - would you still like help?`
         },
         {
           step: 2,
           enabled: true,
           delayDays: 3,
           delayUnit: 'days' as const,
-          message: `Hi, this is ${business.name}. We wanted to follow up one more time. Reply here if you still need anything.`
+          message: `Hi, this is ${safeBusinessName}. We wanted to follow up one more time. Reply here if you still need anything.`
         },
         {
           step: 3,
           enabled: false,
           delayDays: 7,
           delayUnit: 'days' as const,
-          message: `Final follow-up from ${business.name}. Let us know if we can help with anything!`
+          message: `Final follow-up from ${safeBusinessName}. Let us know if we can help with anything!`
         }
       ]
     }
