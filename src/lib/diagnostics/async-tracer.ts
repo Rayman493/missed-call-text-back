@@ -8,6 +8,11 @@
 
 const DEBUG = process.env.NODE_ENV === 'development'
 
+// Type-safe Error.cause support for ES2022 compatibility
+interface ErrorWithCause extends Error {
+  cause?: unknown
+}
+
 export interface TraceOptions {
   name: string
   captureOrigin?: boolean
@@ -55,12 +60,13 @@ export async function traceAsync<T>(
     }
   } catch (error) {
     const duration = Date.now() - startTime
-    const errorLike = error instanceof Error ? error : new Error(String(error))
+    const errorLike = error instanceof Error ? error as ErrorWithCause : new Error(String(error))
+    const errorCause = (errorLike as ErrorWithCause).cause
 
     console.error(`[ASYNC_TRACE] REJECTED: ${name} (${duration}ms)`, {
       error: errorLike.message,
       stack: errorLike.stack,
-      cause: errorLike.cause,
+      cause: errorCause,
       origin,
       pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
       timestamp: Date.now()

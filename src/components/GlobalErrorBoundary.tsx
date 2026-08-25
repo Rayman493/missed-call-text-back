@@ -12,6 +12,11 @@ interface State {
   error?: Error
 }
 
+// Type-safe Error.cause support for ES2022 compatibility
+interface ErrorWithCause extends Error {
+  cause?: unknown
+}
+
 const isDebugMode = () => {
   if (typeof window === 'undefined') return false
   const urlParams = new URLSearchParams(window.location.search)
@@ -32,14 +37,15 @@ if (typeof window !== 'undefined') {
 
   window.addEventListener('unhandledrejection', (event) => {
     const reason = event.reason
-    const errorLike = reason instanceof Error ? reason : null
+    const errorLike = reason instanceof Error ? reason as ErrorWithCause : null
+    const errorCause = errorLike ? (errorLike as ErrorWithCause).cause : undefined
 
     console.error('[GLOBAL UNHANDLED REJECTION]', {
       reason: reason,
       reasonType: typeof reason,
       errorMessage: errorLike?.message,
       errorStack: errorLike?.stack,
-      errorCause: errorLike?.cause,
+      errorCause: errorCause,
       promise: event.promise,
       // Capture React-specific diagnostics
       isReactError: reason?.message?.includes('Minified React error') || reason?.message?.includes('Invalid hook call'),
