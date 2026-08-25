@@ -4225,25 +4225,28 @@ export default function SettingsContent() {
 
               {/* Contacts Section */}
               <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
-                  <div className="flex-1">
-                    <h2 className="text-base font-semibold text-foreground mb-1">Personal Contacts</h2>
-                    <p className="text-sm text-muted-foreground leading-relaxed">Add your own phone number, friends, family, employees, or other personal callers. Calls from these numbers stay out of your customer workflow and their voicemails appear in ReplyFlow's Personal section.</p>
+                <div className="flex flex-col gap-4 mb-8">
+                  {/* Header row with title, description, and actions */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex-1">
+                      <h2 className="text-base font-semibold text-foreground mb-1">Personal Contacts</h2>
+                      <p className="text-sm text-muted-foreground leading-relaxed">Add your own phone number, friends, family, employees, or other personal callers. Calls from these numbers stay out of your customer workflow and their voicemails appear in ReplyFlow's Personal section.</p>
+                    </div>
+                    <div className="flex items-center gap-2 sm:flex-shrink-0">
+                      <button
+                        onClick={() => setShowAddModal(true)}
+                        className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] text-sm inline-flex items-center justify-center"
+                      >
+                        Add
+                      </button>
+                      <button
+                        onClick={() => setShowImportModal(true)}
+                        className="h-10 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-colors duration-200 text-sm inline-flex items-center justify-center"
+                      >
+                        Import
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 sm:flex-shrink-0">
-                  <button
-                    onClick={() => setShowAddModal(true)}
-                    className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] text-sm inline-flex items-center justify-center"
-                  >
-                    Add
-                  </button>
-                  <button
-                    onClick={() => setShowImportModal(true)}
-                    className="h-10 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-colors duration-200 text-sm inline-flex items-center justify-center"
-                  >
-                    Import
-                  </button>
-                </div>
                 </div>
                 <div className="space-y-3 sm:space-y-5">
                   {isLoadingIgnored ? (
