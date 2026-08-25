@@ -3810,7 +3810,71 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       avoidCollisions
                       className="z-[10000] w-[260px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-lg border border-border/60 bg-popover ring-1 ring-border/40 shadow-[0_4px_16px_rgb(0,0,0,0.12),0_2px_6px_rgb(0,0,0,0.08)]"
                     >
-                      {/* Secondary Actions Group */}
+                      {/* CREATE Section */}
+                      <div className="px-2.5 py-1.5">
+                        <div className="px-0.5 py-0.5 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
+                          Create
+                        </div>
+                      </div>
+
+                      {/* Primary Actions Group */}
+                      <div className="px-1.5 py-1 space-y-0.5">
+                        <DropdownMenuItem
+                          onSelect={() => setShowPaymentModal(true)}
+                          disabled={!business || getAvailableProviders(business).length === 0}
+                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
+                        >
+                          <CreditCard className="w-4 h-4" />
+                          <span>Request Payment</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => handleCreateJobClick()}
+                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
+                        >
+                          <ClipboardPlus className="w-4 h-4" />
+                          <span>Create Job</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => handleAppointmentClick()}
+                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
+                        >
+                          <CalendarDays className="w-4 h-4" />
+                          <span>Schedule Appointment</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => setShowTaskModal(true)}
+                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Add Task</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => {
+                            setInternalNotesValue(leadData?.notes || '')
+                            setShowInternalNotesModal(true)
+                          }}
+                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          <span>Internal Note</span>
+                        </DropdownMenuItem>
+                      </div>
+
+                      {/* Divider - Create vs Other */}
+                      <div className="px-3 py-1">
+                        <div className="h-px bg-border/20"></div>
+                      </div>
+
+                      {/* OTHER Section */}
+                      <div className="px-2.5 py-1.5">
+                        <div className="px-0.5 py-0.5 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
+                          Other
+                        </div>
+                      </div>
+
+                      {/* Utility Actions Group */}
                       <div className="px-1.5 py-1 space-y-0.5">
                         {canDialPhone && (
                           <DropdownMenuItem
@@ -3823,25 +3887,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         )}
                         <DropdownMenuItem
                           onSelect={() => {
-                            setInternalNotesValue(leadData?.notes || '')
-                            setShowInternalNotesModal(true)
+                            window.location.href = '/dashboard/settings#automation'
                           }}
                           className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          <span>Internal Notes</span>
+                          <MessageSquare className="w-4 h-4" />
+                          <span>Messaging & Availability</span>
                         </DropdownMenuItem>
-                      </div>
-
-                      {/* Divider - Internal Notes vs Refresh */}
-                      <div className="px-3 py-1">
-                        <div className="h-px bg-border/20"></div>
-                      </div>
-
-                      {/* Utility Actions Group */}
-                      <div className="px-1.5 py-1 space-y-0.5">
                         <DropdownMenuItem
                           onSelect={() => handleRefresh()}
                           disabled={refreshing}
