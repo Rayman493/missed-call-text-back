@@ -3051,84 +3051,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* Appointments */}
-        <div className="bg-background dark:bg-background rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <h3 className="text-sm font-medium text-foreground">Appointments</h3>
-            <button
-              type="button"
-              onClick={handleAppointmentClick}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-            >
-              <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span className="hidden sm:inline">Add</span>
-              <span className="sm:hidden">Add</span>
-            </button>
-          </div>
-          <div className="transition-all duration-200">
-            {loadingAppointments ? (
-              <div className="flex items-center justify-center py-4">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-              </div>
-              ) : appointments.length === 0 ? (
-                <div className="text-center py-2 sm:py-4">
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No appointments scheduled yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {(() => {
-                    const now = new Date()
-                    const sorted = [...appointments].sort((a: any, b: any) => {
-                      const dateA = new Date(a.start?.dateTime || a.start?.date)
-                      const dateB = new Date(b.start?.dateTime || b.start?.date)
-                      const isAPast = dateA < now
-                      const isBPast = dateB < now
-
-                      // Upcoming events always before past events
-                      if (isAPast && !isBPast) return 1
-                      if (!isAPast && isBPast) return -1
-
-                      // Within same group, sort by date
-                      if (isAPast && isBPast) {
-                        return dateB.getTime() - dateA.getTime() // newest past first
-                      }
-                      return dateA.getTime() - dateB.getTime() // earliest upcoming first
-                    })
-                    return sorted.slice(0, 3).map((event: any) => {
-                      const startDate = new Date(event.start?.dateTime || event.start?.date)
-                      const isPast = startDate < now
-                      const isAllDay = !!(event.start?.date && !event.start?.dateTime)
-                      let timeStr = ''
-                      if (isAllDay) {
-                        timeStr = 'All day'
-                      } else if (event.start?.dateTime) {
-                        timeStr = new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-                      }
-                      const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                      return (
-                        <div key={event.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-foreground truncate">{event.summary}</p>
-                            <p className="text-xs text-muted-foreground/80">
-                              {dateStr} • {timeStr}
-                            </p>
-                          </div>
-                          {isPast && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap ml-2 border border-border/40">
-                              Past
-                            </span>
-                          )}
-                        </div>
-                      )
-                    })
-                  })()}
-                </div>
-              )}
-          </div>
-        </div>
-
         {/* Tasks */}
         <div className="bg-background dark:bg-background rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
           <div className="flex items-center justify-between mb-2 sm:mb-3">
@@ -3247,6 +3169,84 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               )}
             </div>
+        </div>
+
+        {/* Appointments */}
+        <div className="bg-background dark:bg-background rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <h3 className="text-sm font-medium text-foreground">Appointments</h3>
+            <button
+              type="button"
+              onClick={handleAppointmentClick}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+            >
+              <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="hidden sm:inline">Add</span>
+              <span className="sm:hidden">Add</span>
+            </button>
+          </div>
+          <div className="transition-all duration-200">
+            {loadingAppointments ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+              </div>
+              ) : appointments.length === 0 ? (
+                <div className="text-center py-2 sm:py-4">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No appointments scheduled yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {(() => {
+                    const now = new Date()
+                    const sorted = [...appointments].sort((a: any, b: any) => {
+                      const dateA = new Date(a.start?.dateTime || a.start?.date)
+                      const dateB = new Date(b.start?.dateTime || b.start?.date)
+                      const isAPast = dateA < now
+                      const isBPast = dateB < now
+
+                      // Upcoming events always before past events
+                      if (isAPast && !isBPast) return 1
+                      if (!isAPast && isBPast) return -1
+
+                      // Within same group, sort by date
+                      if (isAPast && isBPast) {
+                        return dateB.getTime() - dateA.getTime() // newest past first
+                      }
+                      return dateA.getTime() - dateB.getTime() // earliest upcoming first
+                    })
+                    return sorted.slice(0, 3).map((event: any) => {
+                      const startDate = new Date(event.start?.dateTime || event.start?.date)
+                      const isPast = startDate < now
+                      const isAllDay = !!(event.start?.date && !event.start?.dateTime)
+                      let timeStr = ''
+                      if (isAllDay) {
+                        timeStr = 'All day'
+                      } else if (event.start?.dateTime) {
+                        timeStr = new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                      }
+                      const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      return (
+                        <div key={event.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground truncate">{event.summary}</p>
+                            <p className="text-xs text-muted-foreground/80">
+                              {dateStr} • {timeStr}
+                            </p>
+                          </div>
+                          {isPast && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap ml-2 border border-border/40">
+                              Past
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })
+                  })()}
+                </div>
+              )}
+          </div>
         </div>
 
         {/* Internal Notes - Standalone Section */}

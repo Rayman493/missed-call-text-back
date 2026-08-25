@@ -978,9 +978,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                       </div>
 
                       {/* Message bubble */}
-                      <div className={`flex-1 max-w-[80%] ${isAI ? 'text-left' : 'text-right'}`}>
+                      <div className={`flex ${isAI ? 'flex-row' : 'flex-row-reverse'}`}>
                         <div
-                          className={`inline-block px-3 py-2 rounded-2xl text-sm ${
+                          className={`px-3 py-2 rounded-2xl text-sm max-w-[85%] ${
                             isAI
                               ? 'bg-blue-50 dark:bg-blue-900/20 text-foreground'
                               : 'bg-slate-100 dark:bg-slate-800 text-foreground'
@@ -990,16 +990,16 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                             {turn.content}
                           </p>
                         </div>
-                        {turn.timestamp && (
-                          <p className="text-[10px] text-muted-foreground mt-1">
-                            {new Date(turn.timestamp).toLocaleTimeString('en-US', {
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              hour12: true
-                            })}
-                          </p>
-                        )}
                       </div>
+                      {turn.timestamp && (
+                        <p className={`text-[10px] text-muted-foreground mt-0.5 ${isAI ? 'text-left' : 'text-right'}`}>
+                          {new Date(turn.timestamp).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
+                        </p>
+                      )}
                     </div>
                     )
                   })
