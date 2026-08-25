@@ -30,8 +30,11 @@ export default function Dropdown({
   size = 'md'
 }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [menuPosition, setMenuPosition] = useState<'bottom' | 'top'>('bottom')
+  const [menuMaxHeight, setMenuMaxHeight] = useState<number | undefined>(undefined)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const selectedOption = options.find(opt => opt.value === value)
 
@@ -45,6 +48,32 @@ export default function Dropdown({
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // Calculate menu position when opened
+  useEffect(() => {
+    if (!isOpen || !triggerRef.current || !menuRef.current) return
+
+    const triggerRect = triggerRef.current.getBoundingClientRect()
+    const viewportHeight = window.visualViewport?.height || window.innerHeight
+    const safeAreaBottom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-bottom') || '0')
+    const bottomNavHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bottom-nav-height') || '80px')
+
+    // Calculate available space below trigger
+    const spaceBelow = viewportHeight - triggerRect.bottom - safeAreaBottom - 8 // 8px margin
+    const spaceAbove = triggerRect.top - safeAreaBottom - 8 // 8px margin
+
+    // Estimate menu height (each option ~40px, plus padding)
+    const estimatedMenuHeight = Math.min(options.length * 40 + 16, 240) // max-h-60 = 240px
+
+    // Open upward if not enough space below
+    if (spaceBelow < estimatedMenuHeight && spaceAbove > spaceBelow) {
+      setMenuPosition('top')
+      setMenuMaxHeight(Math.min(spaceAbove, 240))
+    } else {
+      setMenuPosition('bottom')
+      setMenuMaxHeight(Math.min(spaceBelow, 240))
+    }
+  }, [isOpen, options.length])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -98,7 +127,12 @@ export default function Dropdown({
 
       {isOpen && (
         <div
-          className="absolute z-50 w-full mt-1 rounded-xl border border-border dark:border-border/50 bg-card shadow-sm py-1 max-h-60 overflow-y-auto"
+          ref={menuRef}
+          className={`
+            absolute z-50 w-full rounded-xl border border-border dark:border-border/50 bg-card shadow-sm py-1 overflow-y-auto
+            ${menuPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'}
+          `}
+          style={{ maxHeight: menuMaxHeight ? `${menuMaxHeight}px` : undefined }}
           role="listbox"
         >
           {options.map((option) => (

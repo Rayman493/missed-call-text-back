@@ -880,7 +880,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             <div className="bg-card dark:bg-[#1e293b] rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-sm dark:shadow-[0_6px_18px_rgba(0,0,0,0.20)]">
               {/* Mobile card view */}
               <div className="md:hidden space-y-2.5 p-3">
-                {paymentRequests.length === 0 ? (
+                {paymentRequests.length === 0 && paymentFilter === 'all' ? (
                   <EmptyState
                     icon={<CreditCard className="w-6 h-6" strokeWidth={1.5} />}
                     title="No payment requests yet"
@@ -889,6 +889,18 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                       <Button onClick={handleStartPaymentRequest} size="sm">
                         <CreditCard className="h-4 w-4" />
                         New Payment Request
+                      </Button>
+                    }
+                    variant="payments"
+                  />
+                ) : paymentRequests.length > 0 && visiblePayments.length === 0 ? (
+                  <EmptyState
+                    icon={<CreditCard className="w-6 h-6" strokeWidth={1.5} />}
+                    title="No payments match this filter"
+                    description="Try a different filter to view other payments."
+                    primaryAction={
+                      <Button onClick={() => setPaymentFilter('all')} size="sm">
+                        Clear Filter
                       </Button>
                     }
                     variant="payments"
@@ -1215,7 +1227,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border [&_tr:nth-child(even)]:bg-muted/20 dark:[&_tr:nth-child(even)]:bg-slate-800/20">
-                    {paymentRequests.length === 0 ? (
+                    {paymentRequests.length === 0 && paymentFilter === 'all' ? (
                       <tr>
                         <td colSpan={9} className="px-4 py-12">
                           <EmptyState
@@ -1226,6 +1238,22 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                               <Button onClick={() => setShowPaymentModal(true)} size="sm">
                                 <CreditCard className="h-4 w-4" />
                                 New Payment Request
+                              </Button>
+                            }
+                            variant="payments"
+                          />
+                        </td>
+                      </tr>
+                    ) : paymentRequests.length > 0 && visiblePayments.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="px-4 py-12">
+                          <EmptyState
+                            icon={<CreditCard className="w-6 h-6" strokeWidth={1.5} />}
+                            title="No payments match this filter"
+                            description="Try a different filter to view other payments."
+                            primaryAction={
+                              <Button onClick={() => setPaymentFilter('all')} size="sm">
+                                Clear Filter
                               </Button>
                             }
                             variant="payments"
