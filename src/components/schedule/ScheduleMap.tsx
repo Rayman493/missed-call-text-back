@@ -6,6 +6,9 @@ import Link from 'next/link'
 import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import { isValidCoordinate } from '@/lib/map-utils'
+import { createBrowserClient } from '@/lib/supabase/browser'
+
+const supabase = createBrowserClient()
 
 // Check if Google Maps API is fully initialized
 function isGoogleMapsReady(): boolean {
@@ -253,6 +256,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   const [showAllMode, setShowAllMode] = useState(true)
   const [previousDateKey, setPreviousDateKey] = useState<string | null>(null)
   const [lastAutoFitDateKey, setLastAutoFitDateKey] = useState<string | null>(null) // Track when we last auto-fitted to prevent repeated fits
+  const [leadCache, setLeadCache] = useState<Map<string, { name: string | null; phone: string | null }>>(new Map()) // Cache for lead data to avoid N+1 queries
 
   // Derive selectedListItem from selectedMapItemId and mapItems (prevents stale object risk)
   const selectedListItem = useMemo(() =>
@@ -750,13 +754,62 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     return null
   }
 
+  // Helper function to extract customer name from lead metadata (canonical source)
+  const getCustomerNameFromLead = useCallback((lead: any): string | null => {
+    if (!lead) return null
+    const meta = lead.raw_metadata || {}
+    return meta.customerName || meta.callerName || meta.name || null
+  }, [])
+
+  // Type for lead cache data
+  type LeadCacheData = Map<string, { name: string | null; phone: string | null }>
+
+  // Batch fetch leads by IDs to avoid N+1 queries
+  const fetchLeadsByIds = useCallback(async (leadIds: string[]): Promise<LeadCacheData> => {
+    if (leadIds.length === 0) return new Map()
+
+    // Filter out already cached leads
+    const uncachedIds = leadIds.filter(id => !leadCache.has(id))
+    if (uncachedIds.length === 0) return leadCache
+
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, caller_phone, raw_metadata')
+        .in('id', uncachedIds)
+
+      if (error) {
+        console.error('[ScheduleMap] Failed to fetch leads:', error)
+        return leadCache
+      }
+
+      const newCache = new Map(leadCache)
+      data?.forEach((lead: any) => {
+        const meta = lead.raw_metadata || {}
+        const name = meta.customerName || meta.callerName || meta.name || null
+        newCache.set(lead.id, { name, phone: lead.caller_phone })
+      })
+
+      setLeadCache(newCache)
+      return newCache
+    } catch (error) {
+      console.error('[ScheduleMap] Exception fetching leads:', error)
+      return leadCache
+    }
+  }, [leadCache])
+
   // Helper function to resolve customer information from calendar event
-  const getCustomerFromCalendarEvent = (event: any): { customerName: string | null; customerPhone: string | null; leadId: string | null } => {
+  const getCustomerFromCalendarEvent = useCallback((event: any): { customerName: string | null; customerPhone: string | null; leadId: string | null } => {
     // First try to find a linked job
     const linkedJob = jobs.find(job => job.google_calendar_event_id === event.id)
     if (linkedJob) {
+      // Use job.customer_name as primary, but fall back to lead metadata if needed
+      let customerName = linkedJob.customer_name
+      if (!customerName && linkedJob.lead_id && leadCache.has(linkedJob.lead_id)) {
+        customerName = leadCache.get(linkedJob.lead_id)?.name || null
+      }
       return {
-        customerName: linkedJob.customer_name,
+        customerName,
         customerPhone: linkedJob.customer_phone,
         leadId: linkedJob.lead_id
       }
@@ -766,16 +819,29 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     // @ts-ignore
     const replyLeadId = event?.extendedProperties?.private?.replyflow_lead_id as string | undefined
     if (replyLeadId) {
-      // Find the job that has this lead_id
+      // Try to find a job with this lead_id
       const jobWithLead = jobs.find(job => job.lead_id === replyLeadId)
       if (jobWithLead) {
+        let customerName = jobWithLead.customer_name
+        if (!customerName && leadCache.has(replyLeadId)) {
+          customerName = leadCache.get(replyLeadId)?.name || null
+        }
         return {
-          customerName: jobWithLead.customer_name,
+          customerName,
           customerPhone: jobWithLead.customer_phone,
           leadId: replyLeadId
         }
       }
-      // Return leadId even if we don't have the job (customer name will be null)
+      // Use cached lead data if available
+      if (leadCache.has(replyLeadId)) {
+        const leadData = leadCache.get(replyLeadId)!
+        return {
+          customerName: leadData.name,
+          customerPhone: leadData.phone,
+          leadId: replyLeadId
+        }
+      }
+      // Return leadId even if we don't have the data yet (will be resolved in next render)
       return {
         customerName: null,
         customerPhone: null,
@@ -788,7 +854,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       customerPhone: null,
       leadId: null
     }
-  }
+  }, [jobs, leadCache])
 
   // Get all items for the selected date (jobs, events, tasks) for the list view
   const getSelectedDayItems = useCallback((): Array<{
@@ -961,11 +1027,20 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
       // Check if already geocoded with valid coordinates
       if (hasCoordinates && isValidCoordinate(job.latitude, job.longitude)) {
+        // Resolve customer name with precedence: job.customer_name > job.leads.raw_metadata > lead cache
+        let customerName = job.customer_name
+        if (!customerName && job.leads?.raw_metadata) {
+          customerName = getCustomerNameFromLead(job.leads)
+        }
+        if (!customerName && job.lead_id && leadCache.has(job.lead_id)) {
+          customerName = leadCache.get(job.lead_id)?.name || null
+        }
+
         items.push({
           id: job.id,
           type: 'job',
           title: job.title,
-          customerName: job.customer_name,
+          customerName,
           customerPhone: job.customer_phone,
           address: serviceAddress,
           scheduledDate: job.scheduled_date,
@@ -1002,11 +1077,20 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
             if (!isValidCoordinate(result.latitude, result.longitude)) {
               console.warn('[ScheduleMap] Geocoding returned invalid coordinates for job:', job.id, result)
             } else {
+              // Resolve customer name with precedence: job.customer_name > job.leads.raw_metadata > lead cache
+              let customerName = job.customer_name
+              if (!customerName && job.leads?.raw_metadata) {
+                customerName = getCustomerNameFromLead(job.leads)
+              }
+              if (!customerName && job.lead_id && leadCache.has(job.lead_id)) {
+                customerName = leadCache.get(job.lead_id)?.name || null
+              }
+
               items.push({
               id: job.id,
               type: 'job',
               title: job.title,
-              customerName: job.customer_name,
+              customerName,
               customerPhone: job.customer_phone,
               address: serviceAddress,
               scheduledDate: job.scheduled_date,
@@ -1027,6 +1111,34 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           console.error('[ScheduleMap] Geocoding exception for job:', job.id, error)
         }
       }
+    }
+
+    // Collect lead_ids that need to be fetched
+    const leadIdsToFetch: string[] = []
+
+    // Check jobs for missing customer data
+    for (const job of filteredJobs) {
+      if (job.lead_id && !job.customer_name && !job.leads?.raw_metadata && !leadCache.has(job.lead_id)) {
+        leadIdsToFetch.push(job.lead_id)
+      }
+    }
+
+    // Check events for replyflow_lead_id without linked job
+    for (const event of filteredEvents) {
+      const hasLinkedJob = jobs.some(job => job.google_calendar_event_id === event.id)
+      if (!hasLinkedJob) {
+        // @ts-ignore
+        const replyLeadId = event?.extendedProperties?.private?.replyflow_lead_id as string | undefined
+        if (replyLeadId && !leadCache.has(replyLeadId)) {
+          leadIdsToFetch.push(replyLeadId)
+        }
+      }
+    }
+
+    // Batch fetch unique leads if needed
+    const uniqueLeadIds = Array.from(new Set(leadIdsToFetch))
+    if (uniqueLeadIds.length > 0) {
+      await fetchLeadsByIds(uniqueLeadIds)
     }
 
     // Process calendar events
@@ -1170,7 +1282,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
     setMapItems(items)
     setIsLoading(false)
-  }, [getItemsForDate])
+  }, [getItemsForDate, fetchLeadsByIds, leadCache, jobs, getCustomerNameFromLead])
 
   // Group items by location (for clustering)
   const groupItemsByLocation = useCallback((items: MapItem[]): MarkerInfo[] => {
