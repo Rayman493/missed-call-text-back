@@ -4461,7 +4461,14 @@ export default function SettingsContent() {
                       <div className="flex items-center gap-2 sm:gap-3">
                         <span className="text-sm font-medium text-foreground truncate max-w-[150px] sm:max-w-[200px]">{user?.email}</span>
                         <button
-                          onClick={() => setShowChangeEmailModal(true)}
+                          onClick={() => {
+                            setNewEmail('')
+                            setConfirmNewEmail('')
+                            setEmailPassword('')
+                            setEmailError('')
+                            setEmailSuccess(false)
+                            setShowChangeEmailModal(true)
+                          }}
                           className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
                         >
                           Change Email
@@ -4602,7 +4609,13 @@ export default function SettingsContent() {
                       <div className="flex items-center gap-2 sm:gap-3">
                         <span className="text-sm font-medium text-foreground">•••••••••</span>
                         <button
-                          onClick={() => setShowChangePasswordModal(true)}
+                          onClick={() => {
+                            setCurrentPassword('')
+                            setNewPassword('')
+                            setConfirmNewPassword('')
+                            setPasswordError('')
+                            setShowChangePasswordModal(true)
+                          }}
                           className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
                         >
                           Change Password
@@ -4724,7 +4737,12 @@ export default function SettingsContent() {
                   </div>
                   <div className="flex-shrink-0">
                     <button
-                      onClick={() => setShowDeleteModal(true)}
+                      onClick={() => {
+                        setDeleteConfirmText('')
+                        setDeletePassword('')
+                        setDeletePasswordError('')
+                        setShowDeleteModal(true)
+                      }}
                       className="px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150 bg-red-600 hover:bg-red-700 text-white focus:outline-none focus:ring-2 focus:ring-red-500/40 whitespace-nowrap"
                     >
                       Delete Account
@@ -4848,6 +4866,7 @@ export default function SettingsContent() {
                       value={deleteConfirmText}
                       onChange={(e) => setDeleteConfirmText(e.target.value)}
                       placeholder="Type DELETE"
+                      autoComplete="off"
                       disabled={isDeleting}
                       className="w-full px-4 py-3 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground disabled:opacity-50"
                     />
@@ -4875,7 +4894,7 @@ export default function SettingsContent() {
                         }}
                         placeholder="Enter your current password"
                         required={false}
-                        autoComplete="current-password"
+                        autoComplete="new-password"
                         disabled={isDeleting}
                         className={`h-12 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all ${
                           deletePasswordError
