@@ -31,10 +31,29 @@ if (typeof window !== 'undefined') {
   })
 
   window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason
+    const errorLike = reason instanceof Error ? reason : null
+
     console.error('[GLOBAL UNHANDLED REJECTION]', {
-      reason: event.reason,
-      promise: event.promise
+      reason: reason,
+      reasonType: typeof reason,
+      errorMessage: errorLike?.message,
+      errorStack: errorLike?.stack,
+      errorCause: errorLike?.cause,
+      promise: event.promise,
+      // Capture React-specific diagnostics
+      isReactError: reason?.message?.includes('Minified React error') || reason?.message?.includes('Invalid hook call'),
+      reactErrorCode: reason?.message?.match(/\d+/)?.[0],
+      // Capture context
+      pathname: window.location.pathname,
+      href: window.location.href,
+      timestamp: Date.now()
     })
+
+    // If this is a React error, try to get more detailed stack
+    if (errorLike?.stack) {
+      console.error('[GLOBAL UNHANDLED REJECTION] Stack trace:', errorLike.stack)
+    }
   })
 }
 
