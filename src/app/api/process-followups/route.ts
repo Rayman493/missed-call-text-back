@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendSms } from "@/lib/twilio";
+import { normalizeBrokenTemplates, substituteTemplatePlaceholders } from "@/lib/template-utils";
 import crypto from "crypto";
 
 // Helper function to validate environment variables
@@ -154,6 +155,12 @@ export async function POST(request: Request) {
 
         // Fetch business OOO settings
         let finalMessageBody = job.message_body;
+
+        // Normalize broken template patterns before sending
+        finalMessageBody = normalizeBrokenTemplates(finalMessageBody);
+
+        // Substitute template placeholders with safe values
+        finalMessageBody = substituteTemplatePlaceholders(finalMessageBody, business.name);
 
         // Validate business has messaging service SID
         if (!business.twilio_messaging_service_sid) {

@@ -1,6 +1,7 @@
 import { db, supabaseAdmin } from '@/lib/supabase/admin'
 import { timelineEvents } from '@/lib/event-timeline'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
+import { substituteTemplatePlaceholders, normalizeBrokenTemplates } from '@/lib/template-utils'
 
 // Helper function to check if a date is during business hours
 function isDuringBusinessHours(date: Date, timezone: string): boolean {
@@ -84,7 +85,7 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
         const result = {
           step: fu.step,
           delayMinutes,
-          message: fu.message.replace('{{business_name}}', business.name || 'My Business')
+          message: substituteTemplatePlaceholders(fu.message, business.name)
         }
 
         return result

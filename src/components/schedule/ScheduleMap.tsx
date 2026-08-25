@@ -975,12 +975,22 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
     // Process tasks
     filteredTasks.forEach(task => {
+      let customerName: string | null = null
+      let customerPhone: string | null = null
+
+      // Resolve customer from lead cache if task has lead_id
+      if (task.lead_id && leadCache.has(task.lead_id)) {
+        const leadData = leadCache.get(task.lead_id)
+        customerName = leadData?.name || null
+        customerPhone = leadData?.phone || null
+      }
+
       items.push({
         id: `task:${task.id}`,
         type: 'task',
         title: task.title,
-        customerName: null,
-        customerPhone: null,
+        customerName,
+        customerPhone,
         address: null,
         scheduledDate: task.due_date,
         scheduledTime: task.due_time,
@@ -1003,12 +1013,19 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     })
 
     return items
-  }, [jobs, calendarEvents, tasks, selectedDate, getCustomerAddressFromLead])
+  }, [jobs, calendarEvents, tasks, selectedDate, getCustomerAddressFromLead, leadCache])
 
   // Geocode addresses and prepare map items
   const prepareMapItems = useCallback(async (preparationId: number) => {
     const { filteredJobs, filteredEvents } = getItemsForDate()
     const items: MapItem[] = []
+
+    // Filter tasks for selected date
+    const dateStr = selectedDate.toISOString().split('T')[0]
+    const filteredTasks = tasks.filter(task => {
+      if (!task.due_date) return false
+      return task.due_date === dateStr && !task.completed
+    })
 
     // Process jobs
     for (const job of filteredJobs) {
@@ -1132,6 +1149,13 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         if (replyLeadId && !leadCache.has(replyLeadId)) {
           leadIdsToFetch.push(replyLeadId)
         }
+      }
+    }
+
+    // Check tasks for missing customer data
+    for (const task of filteredTasks) {
+      if (task.lead_id && !leadCache.has(task.lead_id)) {
+        leadIdsToFetch.push(task.lead_id)
       }
     }
 
