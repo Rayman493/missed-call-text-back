@@ -650,17 +650,17 @@ export default function LeadsPage() {
   // Filter leads
   const filteredLeads = leads.filter(lead => {
     const intake = getLeadAIIntake(lead)
-    const q = searchQuery.toLowerCase()
+    const q = searchQuery.toLowerCase().trim()
     const matchesSearch = !searchQuery ||
-      lead.caller_phone.includes(searchQuery) ||
+      (lead.caller_phone && lead.caller_phone.includes(searchQuery)) ||
       ((lead.name && lead.name !== 'Not collected') ? lead.name.toLowerCase().includes(q) : false) ||
       ((lead.email && lead.email !== 'Not collected') ? lead.email.toLowerCase().includes(q) : false) ||
       ((intake.customerName && intake.customerName !== 'Not collected') ? intake.customerName.toLowerCase().includes(q) : false) ||
-      (intake.serviceRequested?.toLowerCase().includes(q)) ||
-      (intake.serviceAddress?.toLowerCase().includes(q)) ||
+      (intake.serviceRequested && typeof intake.serviceRequested === 'string' && intake.serviceRequested.toLowerCase().includes(q)) ||
+      (intake.serviceAddress && typeof intake.serviceAddress === 'string' && intake.serviceAddress.toLowerCase().includes(q)) ||
       normalizePhoneNumberForSearch(lead.caller_phone).includes(normalizePhoneNumberForSearch(searchQuery)) ||
       (lead.messages && lead.messages.some((m: any) =>
-        m.content.toLowerCase().includes(searchQuery.toLowerCase())
+        m.content && typeof m.content === 'string' && m.content.toLowerCase().includes(q)
       ))
 
     const leadStatus = getLeadLifecycleStatus(lead)
@@ -1501,6 +1501,7 @@ export default function LeadsPage() {
               <EmptyState
                 variant="customers"
                 title={
+                  searchQuery ? 'No customers match your search' :
                   quickFilter === 'new' ? 'No customers need a reply' :
                   quickFilter === 'active' ? 'No active customers' :
                   quickFilter === 'completed' ? 'No completed customers yet' :
@@ -1508,13 +1509,14 @@ export default function LeadsPage() {
                   'No customers yet'
                 }
                 description={
+                  searchQuery ? 'Try a different name, phone number, or request.' :
                   quickFilter === 'new' ? 'All customers have been responded to or are in other stages.' :
                   quickFilter === 'active' ? 'No conversations are currently in progress.' :
                   quickFilter === 'completed' ? 'Completed customers will appear here when jobs are finished.' :
                   quickFilter === 'ignored' ? 'No customers are currently blocked from automation.' :
                   'Customers from missed calls, messages, and manual entries will appear here.'
                 }
-                primaryAction={quickFilter === 'all' ? (
+                primaryAction={!searchQuery && quickFilter === 'all' ? (
                   <button
                     onClick={() => setShowAddCustomerModal(true)}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
