@@ -45,11 +45,10 @@ import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
-import FollowUpSettings from '@/components/FollowUpSettings'
 import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate } from '@/lib/out-of-office'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
-import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, RefreshCw } from 'lucide-react'
+import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
@@ -472,12 +471,10 @@ export default function SettingsContent() {
     showToast(message, 'success')
   }
 
-  // Follow-up settings modal state
-  const [showFollowUpSettings, setShowFollowUpSettings] = useState(false)
-
   // Automation section collapsed/expanded states
   const [businessHoursExpanded, setBusinessHoursExpanded] = useState(false)
   const [outOfOfficeExpanded, setOutOfOfficeExpanded] = useState(false)
+  const [followUpExpanded, setFollowUpExpanded] = useState(false)
 
   // Initialize Business Hours with defaults when first expanded
   const handleBusinessHoursExpand = () => {
@@ -550,6 +547,11 @@ export default function SettingsContent() {
   const [ignoreBlockedPrivateNumbers, setIgnoreBlockedPrivateNumbers] = useState(false)
   const [ignoreSuspectedSpamCallers, setIgnoreSuspectedSpamCallers] = useState(false)
 
+  // Follow-up settings local state
+  const [followUpEnabled, setFollowUpEnabled] = useState(false)
+  const [followUps, setFollowUps] = useState<any[]>([])
+  const [loadingFollowUps, setLoadingFollowUps] = useState(false)
+
   // Save success state for SettingsActionBar
   const [saveSuccess, setSaveSuccess] = useState(false)
 
@@ -576,7 +578,7 @@ export default function SettingsContent() {
 
   const supabase = createBrowserClient()
 
-  useBodyScrollLock(showAddModal || showDeleteModal || showChangePasswordModal || showChangeEmailModal || showFollowUpSettings)
+  useBodyScrollLock(showAddModal || showDeleteModal || showChangePasswordModal || showChangeEmailModal)
 
   // Time input refs for better UX
   const openTimeInputRef = useRef<HTMLInputElement>(null)
@@ -1999,6 +2001,28 @@ export default function SettingsContent() {
     }
   }, [business, user, hasUnsavedChanges, fetchCalendarStatus])
 
+  // Load follow-up settings
+  useEffect(() => {
+    const loadFollowUpSettings = async () => {
+      try {
+        setLoadingFollowUps(true)
+        const response = await fetch('/api/settings/follow-ups')
+        if (!response.ok) {
+          throw new Error('Failed to load follow-up settings')
+        }
+        const data = await response.json()
+        setFollowUpEnabled(data.enabled || false)
+        setFollowUps(data.followUps || [])
+      } catch (error) {
+        console.error('Failed to load follow-up settings:', error)
+      } finally {
+        setLoadingFollowUps(false)
+      }
+    }
+
+    loadFollowUpSettings()
+  }, [])
+
   // Check URL params for calendar connection status
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -2970,7 +2994,7 @@ export default function SettingsContent() {
                               </span>
                             ) : (
                               <span className="text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
-                                Inactive
+                                Disabled
                               </span>
                             )}
                           </div>
@@ -2987,9 +3011,10 @@ export default function SettingsContent() {
                         </div>
                         <button
                           onClick={handleBusinessHoursExpand}
-                          className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                          className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors flex-shrink-0"
+                          aria-label="Expand Business Hours"
                         >
-                          Edit
+                          <ChevronDown className="w-5 h-5" />
                         </button>
                       </div>
                     
@@ -3054,9 +3079,10 @@ export default function SettingsContent() {
                               await saveChanges(nextBusiness)
                               setBusinessHoursExpanded(false)
                             }}
-                            className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                            className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors flex-shrink-0"
+                            aria-label="Collapse Business Hours"
                           >
-                            Done
+                            <ChevronUp className="w-5 h-5" />
                           </button>
                         </div>
                         
@@ -3170,7 +3196,7 @@ export default function SettingsContent() {
                               if (!formBusiness.out_of_office_enabled || !formBusiness.out_of_office_start || !formBusiness.out_of_office_end) {
                                 return (
                                   <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
-                                    Inactive
+                                    Disabled
                                   </span>
                                 )
                               }
@@ -3229,9 +3255,10 @@ export default function SettingsContent() {
                         </div>
                         <button
                           onClick={() => setOutOfOfficeExpanded(true)}
-                          className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                          className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors flex-shrink-0"
+                          aria-label="Expand Out of Office"
                         >
-                          Edit
+                          <ChevronDown className="w-5 h-5" />
                         </button>
                       </div>
 
@@ -3273,9 +3300,10 @@ export default function SettingsContent() {
 
                               setOutOfOfficeExpanded(false)
                             }}
-                            className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                            className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors flex-shrink-0"
+                            aria-label="Collapse Out of Office"
                           >
-                            Done
+                            <ChevronUp className="w-5 h-5" />
                           </button>
                         </div>
 
@@ -3340,25 +3368,139 @@ export default function SettingsContent() {
 
                   {/* Automatic Follow-Ups */}
                   <div className="p-3 rounded-lg border border-border/30">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 pr-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Automatic Follow-Ups</h3>
-                          <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
-                            New
-                          </span>
+                    {!followUpExpanded ? (
+                      // Collapsed state
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 pr-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Automatic Follow-Ups</h3>
+                            <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
+                              New
+                            </span>
+                            {followUpEnabled && (
+                              <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
+                                <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                                Active
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mb-1.5">
+                            Schedule follow-up texts for quiet leads.
+                          </p>
                         </div>
-                        <p className="text-xs text-slate-600 dark:text-slate-400">
-                          Schedule follow-up texts for quiet leads.
-                        </p>
+                        <button
+                          onClick={() => setFollowUpExpanded(true)}
+                          className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors flex-shrink-0"
+                          aria-label="Expand Automatic Follow-Ups"
+                        >
+                          <ChevronDown className="w-5 h-5" />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => setShowFollowUpSettings(true)}
-                        className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                      >
-                        Edit
-                      </button>
-                    </div>
+                    ) : (
+                      // Expanded state
+                      <>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1 pr-4">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <h3 className="text-sm font-medium text-foreground">Automatic Follow-Ups</h3>
+                              <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
+                                New
+                              </span>
+                              {followUpEnabled && (
+                                <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
+                                  <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                                  Active
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground leading-relaxed mb-1.5">
+                              Schedule follow-up texts for quiet leads.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => setFollowUpExpanded(false)}
+                            className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors flex-shrink-0"
+                            aria-label="Collapse Automatic Follow-Ups"
+                          >
+                            <ChevronUp className="w-5 h-5" />
+                          </button>
+                        </div>
+
+                        {/* Follow-up configuration */}
+                        <div className="space-y-4">
+                          {/* Global Toggle */}
+                          <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-900/50 dark:to-slate-800/30 border border-slate-200/60 dark:border-slate-700/50 rounded-xl p-3 shadow-sm">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-semibold text-foreground leading-tight">Enable Automatic Follow-Ups</h4>
+                                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                                  Turn on to automatically send follow-up messages to customers who haven't completed intake
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  const newValue = !followUpEnabled
+                                  setFollowUpEnabled(newValue)
+                                  // Save to API
+                                  fetch('/api/settings/follow-ups', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ enabled: newValue, followUps })
+                                  }).catch(err => console.error('Failed to save follow-up settings:', err))
+                                }}
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+                                  followUpEnabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'
+                                }`}
+                                type="button"
+                              >
+                                <span
+                                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${
+                                    followUpEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                                  }`}
+                                />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Safety Banner */}
+                          <div className="bg-emerald-50/90 dark:bg-emerald-900/20 border border-emerald-200/70 dark:border-emerald-800/50 rounded-lg p-2.5 shadow-sm">
+                            <div className="flex items-start gap-2">
+                              <div className="flex-shrink-0 mt-0.5">
+                                <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                              </div>
+                              <p className="text-xs text-emerald-800/90 dark:text-emerald-300/90 leading-relaxed">
+                                Automatic follow-ups stop immediately when a customer replies to any message.
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Sequence Overview */}
+                          <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-900/50 dark:to-slate-800/30 border border-slate-200/60 dark:border-slate-700/50 rounded-lg p-3 shadow-sm">
+                            <h4 className="text-xs font-semibold text-foreground mb-2 uppercase tracking-wider">Follow-Up Sequence</h4>
+                            <div className="space-y-1.5">
+                              {followUps.filter((fu: any) => fu.enabled).map((followUp: any) => (
+                                <div key={followUp.step} className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
+                                  <span className="font-medium w-16">Day {followUp.delayDays}</span>
+                                  <span>
+                                    {followUp.step === 1 ? 'First follow-up' : followUp.step === 2 ? 'Second follow-up' : 'Final follow-up'}
+                                  </span>
+                                </div>
+                              ))}
+                              {followUps.filter((fu: any) => fu.enabled).length === 0 && (
+                                <p className="text-xs text-slate-500 dark:text-slate-400 italic">No follow-ups enabled</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {loadingFollowUps && (
+                            <div className="text-center py-3">
+                              <div className="inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                              <p className="text-xs text-muted-foreground mt-2">Loading follow-up settings...</p>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Automation Status Summary - REMOVED */}
@@ -4998,15 +5140,6 @@ export default function SettingsContent() {
             isOpen={showImportModal}
             onClose={() => setShowImportModal(false)}
             onImportSuccess={handleImportSuccess}
-          />
-
-          {/* Follow-Up Settings Modal */}
-          <FollowUpSettings
-            isOpen={showFollowUpSettings}
-            onClose={() => setShowFollowUpSettings(false)}
-            onSave={() => {
-              showToast('Settings saved', 'success')
-            }}
           />
 
           {/* Tap to Pay Awareness Modal */}
