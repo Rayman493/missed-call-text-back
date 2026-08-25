@@ -52,7 +52,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   new: {
     label: 'New',
     cardClass: 'border-border/30 bg-background dark:bg-slate-900/60 hover:border-border/50 dark:hover:border-border/40 shadow-sm hover:shadow-md',
-    gradientClass: 'bg-gradient-to-br from-slate-50/50 via-blue-500/[0.02] to-slate-50/50 dark:from-slate-900/60 dark:via-blue-500/[0.04] dark:to-slate-900/60',
+    gradientClass: 'bg-gradient-to-br from-slate-50/90 via-blue-500/[0.04] to-slate-50/90 dark:from-slate-900/60 dark:via-blue-500/[0.04] dark:to-slate-900/60',
     accentStripClass: 'bg-blue-500',
     badgeClass: 'border-blue-500/40 bg-blue-500/12 text-blue-400',
     iconClass: 'bg-blue-500/20 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400',
@@ -63,7 +63,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   needs_reply: {
     label: 'Needs Reply',
     cardClass: 'border-border/30 bg-background dark:bg-slate-900/60 hover:border-border/50 dark:hover:border-border/40 shadow-sm hover:shadow-md',
-    gradientClass: 'bg-gradient-to-br from-slate-50/50 via-cyan-500/[0.02] to-slate-50/50 dark:from-slate-900/60 dark:via-cyan-500/[0.04] dark:to-slate-900/60',
+    gradientClass: 'bg-gradient-to-br from-slate-50/90 via-cyan-500/[0.04] to-slate-50/90 dark:from-slate-900/60 dark:via-cyan-500/[0.04] dark:to-slate-900/60',
     accentStripClass: 'bg-cyan-500',
     badgeClass: 'border-cyan-500/40 bg-cyan-500/12 text-cyan-400',
     iconClass: 'bg-cyan-500/20 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-400',
@@ -74,7 +74,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   active: {
     label: 'Active',
     cardClass: 'border-border/30 bg-background dark:bg-slate-900/60 hover:border-border/50 dark:hover:border-border/40 shadow-sm hover:shadow-md',
-    gradientClass: 'bg-gradient-to-br from-slate-50/50 via-green-500/[0.02] to-slate-50/50 dark:from-slate-900/60 dark:via-green-500/[0.04] dark:to-slate-900/60',
+    gradientClass: 'bg-gradient-to-br from-slate-50/90 via-green-500/[0.04] to-slate-50/90 dark:from-slate-900/60 dark:via-green-500/[0.04] dark:to-slate-900/60',
     accentStripClass: 'bg-green-500',
     badgeClass: 'border-green-500/40 bg-green-500/12 text-green-400',
     iconClass: 'bg-green-500/20 text-green-600 dark:bg-green-500/15 dark:text-green-400',
@@ -85,7 +85,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   scheduled: {
     label: 'Scheduled',
     cardClass: 'border-border/30 bg-background dark:bg-slate-900/60 hover:border-border/50 dark:hover:border-border/40 shadow-sm hover:shadow-md',
-    gradientClass: 'bg-gradient-to-br from-slate-50/50 via-purple-500/[0.02] to-slate-50/50 dark:from-slate-900/60 dark:via-purple-500/[0.04] dark:to-slate-900/60',
+    gradientClass: 'bg-gradient-to-br from-slate-50/90 via-purple-500/[0.04] to-slate-50/90 dark:from-slate-900/60 dark:via-purple-500/[0.04] dark:to-slate-900/60',
     accentStripClass: 'bg-purple-500',
     badgeClass: 'border-purple-500/40 bg-purple-500/12 text-purple-400',
     iconClass: 'bg-purple-500/20 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400',
@@ -96,7 +96,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   payment_requested: {
     label: 'Payment Requested',
     cardClass: 'border-border/30 bg-background dark:bg-slate-900/60 hover:border-border/50 dark:hover:border-border/40 shadow-sm hover:shadow-md',
-    gradientClass: 'bg-gradient-to-br from-slate-50/50 via-amber-500/[0.02] to-slate-50/50 dark:from-slate-900/60 dark:via-amber-500/[0.04] dark:to-slate-900/60',
+    gradientClass: 'bg-gradient-to-br from-slate-50/90 via-amber-500/[0.04] to-slate-50/90 dark:from-slate-900/60 dark:via-amber-500/[0.04] dark:to-slate-900/60',
     accentStripClass: 'bg-amber-500',
     badgeClass: 'border-amber-500/40 bg-amber-500/12 text-amber-400',
     iconClass: 'bg-amber-500/20 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400',
@@ -107,7 +107,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   paid: {
     label: 'Paid',
     cardClass: 'border-border/30 bg-background dark:bg-slate-900/60 hover:border-border/50 dark:hover:border-border/40 shadow-sm hover:shadow-md',
-    gradientClass: 'bg-gradient-to-br from-slate-50/50 via-emerald-500/[0.02] to-slate-50/50 dark:from-slate-900/60 dark:via-emerald-500/[0.04] dark:to-slate-900/60',
+    gradientClass: 'bg-gradient-to-br from-slate-50/90 via-emerald-500/[0.04] to-slate-50/90 dark:from-slate-900/60 dark:via-emerald-500/[0.04] dark:to-slate-900/60',
     accentStripClass: 'bg-emerald-500',
     badgeClass: 'border-emerald-500/40 bg-emerald-500/12 text-emerald-400',
     iconClass: 'bg-emerald-500/20 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400',
@@ -118,7 +118,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   completed: {
     label: 'Completed',
     cardClass: 'border-border/30 bg-background dark:bg-slate-900/60 hover:border-border/50 dark:hover:border-border/40 shadow-sm hover:shadow-md',
-    gradientClass: 'bg-gradient-to-br from-slate-50/50 via-slate-400/[0.02] to-slate-50/50 dark:from-slate-900/60 dark:via-slate-400/[0.04] dark:to-slate-900/60',
+    gradientClass: 'bg-gradient-to-br from-slate-50/90 via-slate-400/[0.04] to-slate-50/90 dark:from-slate-900/60 dark:via-slate-400/[0.04] dark:to-slate-900/60',
     accentStripClass: 'bg-slate-400',
     badgeClass: 'border-slate-400/40 bg-slate-400/12 text-slate-400',
     iconClass: 'bg-slate-400/20 text-slate-600 dark:bg-slate-400/15 dark:text-slate-400',
@@ -129,7 +129,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   cancelled: {
     label: 'Cancelled',
     cardClass: 'border-border/30 bg-background dark:bg-slate-900/60 hover:border-border/50 dark:hover:border-border/40 shadow-sm hover:shadow-md',
-    gradientClass: 'bg-gradient-to-br from-slate-50/50 via-amber-400/[0.02] to-slate-50/50 dark:from-slate-900/60 dark:via-amber-400/[0.04] dark:to-slate-900/60',
+    gradientClass: 'bg-gradient-to-br from-slate-50/90 via-amber-400/[0.04] to-slate-50/90 dark:from-slate-900/60 dark:via-amber-400/[0.04] dark:to-slate-900/60',
     accentStripClass: 'bg-amber-400',
     badgeClass: 'border-amber-400/40 bg-amber-400/12 text-amber-400',
     iconClass: 'bg-amber-400/20 text-amber-600 dark:bg-amber-400/15 dark:text-amber-400',
@@ -140,7 +140,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   ignored: {
     label: 'Ignored',
     cardClass: 'border-border/30 bg-background dark:bg-slate-900/60 hover:border-border/50 dark:hover:border-border/40 shadow-sm hover:shadow-md',
-    gradientClass: 'bg-gradient-to-br from-slate-50/50 via-orange-500/[0.02] to-slate-50/50 dark:from-slate-900/60 dark:via-orange-500/[0.04] dark:to-slate-900/60',
+    gradientClass: 'bg-gradient-to-br from-slate-50/90 via-orange-500/[0.04] to-slate-50/90 dark:from-slate-900/60 dark:via-orange-500/[0.04] dark:to-slate-900/60',
     accentStripClass: 'bg-orange-500',
     badgeClass: 'border-orange-500/40 bg-orange-500/12 text-orange-400',
     iconClass: 'bg-orange-500/20 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400',
@@ -151,7 +151,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   lost: {
     label: 'Lost',
     cardClass: 'border-border/30 bg-background dark:bg-slate-900/60 hover:border-border/50 dark:hover:border-border/40 shadow-sm hover:shadow-md',
-    gradientClass: 'bg-gradient-to-br from-slate-50/50 via-red-500/[0.02] to-slate-50/50 dark:from-slate-900/60 dark:via-red-500/[0.04] dark:to-slate-900/60',
+    gradientClass: 'bg-gradient-to-br from-slate-50/90 via-red-500/[0.04] to-slate-50/90 dark:from-slate-900/60 dark:via-red-500/[0.04] dark:to-slate-900/60',
     accentStripClass: 'bg-red-500',
     badgeClass: 'border-red-500/40 bg-red-500/12 text-red-400',
     iconClass: 'bg-red-500/20 text-red-600 dark:bg-red-500/15 dark:text-red-400',
