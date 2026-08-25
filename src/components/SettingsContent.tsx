@@ -541,6 +541,9 @@ export default function SettingsContent() {
   const [followUpEnabled, setFollowUpEnabled] = useState(false)
   const [followUps, setFollowUps] = useState<any[]>([])
   const [loadingFollowUps, setLoadingFollowUps] = useState(false)
+  const [savingFollowUps, setSavingFollowUps] = useState(false)
+  const [followUpError, setFollowUpError] = useState<string | null>(null)
+  const [followUpSuccess, setFollowUpSuccess] = useState(false)
 
   // Save success state for SettingsActionBar
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -3650,22 +3653,138 @@ export default function SettingsContent() {
                             </div>
                           </div>
 
-                          {/* Sequence Overview */}
-                          <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-900/50 dark:to-slate-800/30 border border-slate-200/60 dark:border-slate-700/50 rounded-lg p-3 shadow-sm">
-                            <h4 className="text-xs font-semibold text-foreground mb-2 uppercase tracking-wider">Follow-Up Sequence</h4>
-                            <div className="space-y-1.5">
-                              {followUps.filter((fu: any) => fu.enabled).map((followUp: any) => (
-                                <div key={followUp.step} className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
-                                  <span className="font-medium w-16">Day {followUp.delayDays}</span>
-                                  <span>
-                                    {followUp.step === 1 ? 'First follow-up' : followUp.step === 2 ? 'Second follow-up' : 'Final follow-up'}
-                                  </span>
+                          {/* Editable Follow-up Cards */}
+                          <div className="space-y-3">
+                            {followUps.map((followUp: any) => (
+                              <div key={followUp.step} className="bg-white dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/50 rounded-lg p-3 shadow-sm">
+                                <div className="flex items-start justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-semibold text-foreground">Follow-up #{followUp.step}</span>
+                                    <button
+                                      onClick={() => {
+                                        const updatedFollowUps = followUps.map((fu: any) =>
+                                          fu.step === followUp.step ? { ...fu, enabled: !fu.enabled } : fu
+                                        )
+                                        setFollowUps(updatedFollowUps)
+                                      }}
+                                      className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors duration-200 ${
+                                        followUp.enabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'
+                                      }`}
+                                      type="button"
+                                    >
+                                      <span
+                                        className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform duration-200 ${
+                                          followUp.enabled ? 'translate-x-3.5' : 'translate-x-0.5'
+                                        }`}
+                                      />
+                                    </button>
+                                  </div>
                                 </div>
-                              ))}
-                              {followUps.filter((fu: any) => fu.enabled).length === 0 && (
-                                <p className="text-xs text-slate-500 dark:text-slate-400 italic">No follow-ups enabled</p>
-                              )}
-                            </div>
+
+                                <div className="space-y-3">
+                                  {/* Delay Configuration */}
+                                  <div>
+                                    <label className="block text-xs font-medium text-foreground mb-1.5">
+                                      Send after
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        value={followUp.delayDays}
+                                        onChange={(e) => {
+                                          const updatedFollowUps = followUps.map((fu: any) =>
+                                            fu.step === followUp.step ? { ...fu, delayDays: parseInt(e.target.value) || 1 } : fu
+                                          )
+                                          setFollowUps(updatedFollowUps)
+                                        }}
+                                        disabled={!followUp.enabled}
+                                        className="w-20 px-2 py-1.5 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white dark:bg-slate-800/40 text-foreground text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                      />
+                                      <select
+                                        value={followUp.delayUnit}
+                                        onChange={(e) => {
+                                          const updatedFollowUps = followUps.map((fu: any) =>
+                                            fu.step === followUp.step ? { ...fu, delayUnit: e.target.value } : fu
+                                          )
+                                          setFollowUps(updatedFollowUps)
+                                        }}
+                                        disabled={!followUp.enabled}
+                                        className="px-2 py-1.5 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white dark:bg-slate-800/40 text-foreground text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        <option value="minutes">Minutes</option>
+                                        <option value="hours">Hours</option>
+                                        <option value="days">Days</option>
+                                      </select>
+                                    </div>
+                                  </div>
+
+                                  {/* Message Template */}
+                                  <div>
+                                    <label className="block text-xs font-medium text-foreground mb-1.5">
+                                      Message
+                                    </label>
+                                    <textarea
+                                      value={followUp.message}
+                                      onChange={(e) => {
+                                        const updatedFollowUps = followUps.map((fu: any) =>
+                                          fu.step === followUp.step ? { ...fu, message: e.target.value } : fu
+                                        )
+                                        setFollowUps(updatedFollowUps)
+                                      }}
+                                      disabled={!followUp.enabled}
+                                      rows={2}
+                                      className="w-full px-2 py-1.5 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground text-sm disabled:opacity-50 disabled:cursor-not-allowed resize-none"
+                                      placeholder="Enter follow-up message..."
+                                    />
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                                      Use <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{business_name}}"}</code> for business name
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Save Button */}
+                          <div className="flex items-center justify-between pt-2">
+                            {followUpError && (
+                              <p className="text-xs text-red-600 dark:text-red-400">{followUpError}</p>
+                            )}
+                            {followUpSuccess && (
+                              <p className="text-xs text-green-600 dark:text-green-400">Follow-up settings saved</p>
+                            )}
+                            <button
+                              onClick={async () => {
+                                setSavingFollowUps(true)
+                                setFollowUpError(null)
+                                setFollowUpSuccess(false)
+
+                                try {
+                                  const response = await fetch('/api/settings/follow-ups', {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ enabled: followUpEnabled, followUps })
+                                  })
+
+                                  if (!response.ok) {
+                                    throw new Error('Failed to save follow-up settings')
+                                  }
+
+                                  setFollowUpSuccess(true)
+                                  setTimeout(() => setFollowUpSuccess(false), 3000)
+                                } catch (error) {
+                                  console.error('Error saving follow-up settings:', error)
+                                  setFollowUpError('Failed to save follow-up settings')
+                                } finally {
+                                  setSavingFollowUps(false)
+                                }
+                              }}
+                              disabled={savingFollowUps}
+                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {savingFollowUps ? 'Saving...' : 'Save Follow-ups'}
+                            </button>
                           </div>
 
                           {loadingFollowUps && (
