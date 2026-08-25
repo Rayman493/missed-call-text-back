@@ -4268,7 +4268,48 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </div>
                       </div>
 
-                      {/* Schedule - Unified Jobs + Tasks */}
+                      {/* Tasks */}
+                      <SidebarSection
+                        title="Tasks"
+                        className="mb-3"
+                        headerAction={
+                          <button
+                            type="button"
+                            onClick={() => setShowTaskModal(true)}
+                            className="inline-flex items-center gap-2 px-3 py-2 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                          >
+                            Add
+                          </button>
+                        }
+                      >
+                        {leadTasks.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No open tasks</p>
+                        ) : (
+                          <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
+                            {leadTasks.map((task: any) => (
+                              <div key={task.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200">
+                                <div className="flex-shrink-0 w-6 h-6 rounded bg-purple-500/10 flex items-center justify-center">
+                                  <svg className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-medium text-foreground truncate">{task.title || 'Task'}</p>
+                                  <p className="text-xs text-muted-foreground/80">
+                                    {task.due_date ? formatDate(task.due_date) : 'No due date'}
+                                    {task.due_time ? ` • ${task.due_time}` : ''}
+                                  </p>
+                                </div>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-slate-200/60 dark:border-border/30">
+                                  {task.completed ? 'Done' : 'Open'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </SidebarSection>
+
+                      {/* Schedule - Jobs Only */}
                       <SidebarSection
                         title="Schedule"
                         className="mb-3"
@@ -4282,8 +4323,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </button>
                         }
                       >
-                        {leadJobs.length === 0 && leadTasks.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">No scheduled work</p>
+                        {leadJobs.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No scheduled jobs</p>
                         ) : (
                           <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
                             {/* Jobs */}
@@ -4303,26 +4344,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 </div>
                                 <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-slate-200/60 dark:border-border/30">
                                   {formatJobStatus(job.status).text}
-                                </span>
-                              </div>
-                            ))}
-                            {/* Tasks */}
-                            {leadTasks.map((task: any) => (
-                              <div key={task.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200">
-                                <div className="flex-shrink-0 w-6 h-6 rounded bg-purple-500/10 flex items-center justify-center">
-                                  <svg className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-medium text-foreground truncate">{task.title || 'Task'}</p>
-                                  <p className="text-xs text-muted-foreground/80">
-                                    {task.due_date ? formatDate(task.due_date) : 'No due date'}
-                                    {task.due_time ? ` • ${task.due_time}` : ''}
-                                  </p>
-                                </div>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-slate-200/60 dark:border-border/30">
-                                  {task.completed ? 'Done' : 'Open'}
                                 </span>
                               </div>
                             ))}
