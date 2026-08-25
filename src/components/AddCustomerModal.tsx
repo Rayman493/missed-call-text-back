@@ -177,9 +177,19 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
     }
   }
 
-  // Reset duplicateLead when modal closes
+  // Reset form state when modal closes
   useEffect(() => {
     if (!isOpen) {
+      setFormData({
+        customerName: '',
+        phoneNumber: '',
+        email: '',
+        address: '',
+        notes: '',
+        reasonForCalling: '',
+        desiredCompletionTime: '',
+        preferredCallbackTime: ''
+      })
       setDuplicateLead(null)
       setError(null)
     }
