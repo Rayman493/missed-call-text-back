@@ -3058,10 +3058,14 @@ export default function SettingsContent() {
                           <div className="flex-1 pr-4">
                             <div className="flex items-center gap-2 mb-0.5">
                               <h3 className="text-sm font-medium text-foreground">Business Hours</h3>
-                              {formBusiness.business_hours_enabled && (
+                              {formBusiness.business_hours_enabled ? (
                                 <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
                                   <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                                   Active
+                                </span>
+                              ) : (
+                                <span className="text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
+                                  Disabled
                                 </span>
                               )}
                             </div>
@@ -3300,39 +3304,46 @@ export default function SettingsContent() {
                       <>
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1 pr-4">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-0.5">
                               <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Out of Office</h3>
-                              {formBusiness.out_of_office_enabled && (
+                              {formBusiness.out_of_office_enabled ? (
                                 <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
                                   <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                                   Active
                                 </span>
+                              ) : (
+                                <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
+                                  Disabled
+                                </span>
                               )}
                             </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-1.5">
                               Automatically reply while you're away.
                             </p>
+                            <button
+                              onClick={() => {
+                                const nextBusiness = {
+                                  ...formBusiness,
+                                  out_of_office_enabled: !formBusiness.out_of_office_enabled
+                                }
+                                updateBusiness(nextBusiness)
+                              }}
+                              className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                              formBusiness.out_of_office_enabled
+                                ? 'bg-blue-600'
+                                : 'bg-slate-300 dark:bg-slate-600'
+                            }`}
+                              type="button"
+                            >
+                              <span
+                                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${
+                                  formBusiness.out_of_office_enabled ? 'translate-x-5' : 'translate-x-0.5'
+                                }`}
+                              />
+                            </button>
                           </div>
                           <button
-                            onClick={async () => {
-                              // Auto-enable/disable Out of Office based on configuration
-                              const hasValidConfig =
-                                formBusiness.out_of_office_start &&
-                                formBusiness.out_of_office_end
-
-                              // Construct the complete next state to avoid stale React state
-                              const nextBusiness = {
-                                ...formBusiness,
-                                out_of_office_enabled: hasValidConfig ? true : false
-                              }
-
-                              // Update local state and persist in one operation
-                              // Pass nextBusiness directly to saveChanges to avoid stale closure bug
-                              updateBusiness(nextBusiness)
-                              await saveChanges(nextBusiness)
-
-                              setOutOfOfficeExpanded(false)
-                            }}
+                            onClick={() => setOutOfOfficeExpanded(false)}
                             className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors flex-shrink-0"
                             aria-label="Collapse Out of Office"
                           >
@@ -3405,7 +3416,7 @@ export default function SettingsContent() {
                       // Collapsed state
                       <div className="flex items-start justify-between">
                         <div className="flex-1 pr-4">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-0.5">
                             <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Automatic Follow-Ups</h3>
                             <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
                               New
@@ -3420,6 +3431,28 @@ export default function SettingsContent() {
                           <p className="text-xs text-slate-600 dark:text-slate-400 mb-1.5">
                             Schedule follow-up texts for quiet leads.
                           </p>
+                          <button
+                            onClick={() => {
+                              const newValue = !followUpEnabled
+                              setFollowUpEnabled(newValue)
+                              // Save to API
+                              fetch('/api/settings/follow-ups', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ enabled: newValue, followUps })
+                              }).catch(err => console.error('Failed to save follow-up settings:', err))
+                            }}
+                            className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+                              followUpEnabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'
+                            }`}
+                            type="button"
+                          >
+                            <span
+                              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${
+                                followUpEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                              }`}
+                            />
+                          </button>
                         </div>
                         <button
                           onClick={() => setFollowUpExpanded(true)}
