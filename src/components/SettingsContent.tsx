@@ -707,7 +707,8 @@ export default function SettingsContent() {
         if (!businessData.out_of_office_start || !businessData.out_of_office_end) {
           throw new Error('Out of Office requires both start and end dates')
         }
-        if (new Date(businessData.out_of_office_start) >= new Date(businessData.out_of_office_end)) {
+        // Compare ISO strings directly to avoid timezone conversion issues
+        if (businessData.out_of_office_start >= businessData.out_of_office_end) {
           throw new Error('Out of Office end time must be after start time')
         }
       }
@@ -812,22 +813,17 @@ export default function SettingsContent() {
     if (!dateTimeLocal) return null
 
     try {
-      // Parse the datetime-local value as local time by appending timezone offset
-      const date = new Date(dateTimeLocal)
-      if (isNaN(date.getTime())) {
+      // Parse the datetime-local value directly as local time without timezone conversion
+      // datetime-local format is always "yyyy-MM-ddThh:mm" in the user's local timezone
+      const match = dateTimeLocal.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/)
+      if (!match) {
         return null
       }
 
-      // Create ISO string that preserves local time by using the local components
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      const hours = String(date.getHours()).padStart(2, '0')
-      const minutes = String(date.getMinutes()).padStart(2, '0')
-      const seconds = String(date.getSeconds()).padStart(2, '0')
-      
+      const [, year, month, day, hours, minutes] = match
+
       // Format as ISO without timezone indicator to preserve local time
-      const result = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
+      const result = `${year}-${month}-${day}T${hours}:${minutes}:00`
       return result
     } catch (error) {
       console.error('[Settings] Error converting from datetime-local:', error)
@@ -841,23 +837,49 @@ export default function SettingsContent() {
     if (!isoString) return ''
 
     try {
-      const date = new Date(isoString)
-      if (isNaN(date.getTime())) {
+      // Parse the ISO string directly without timezone conversion
+      // Expected format: "yyyy-MM-ddThh:mm:ss" or "yyyy-MM-ddThh:mm:ss.sss"
+      const match = isoString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
+      if (!match) {
         return ''
       }
 
-      // Format: yyyy-MM-ddThh:mm using local time components
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      const hours = String(date.getHours()).padStart(2, '0')
-      const minutes = String(date.getMinutes()).padStart(2, '0')
+      const [, year, month, day, hours, minutes] = match
 
+      // Format: yyyy-MM-ddThh:mm using local time components
       const result = `${year}-${month}-${day}T${hours}:${minutes}`
       return result
     } catch (error) {
       console.error('[Settings] Error converting datetime:', error)
       return ''
+    }
+  }
+
+  // Helper to convert our timezone-less ISO string to a Date object interpreted as local time
+  const isoToLocalDate = (isoString: string | null | undefined): Date | null => {
+    if (!isoString) return null
+
+    try {
+      // Parse the ISO string directly without timezone conversion
+      const match = isoString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
+      if (!match) {
+        return null
+      }
+
+      const [, year, month, day, hours, minutes, seconds] = match
+
+      // Create a Date object using local time components
+      return new Date(
+        parseInt(year),
+        parseInt(month) - 1, // Month is 0-indexed in Date constructor
+        parseInt(day),
+        parseInt(hours),
+        parseInt(minutes),
+        parseInt(seconds)
+      )
+    } catch (error) {
+      console.error('[Settings] Error converting ISO to local Date:', error)
+      return null
     }
   }
 
@@ -3223,17 +3245,17 @@ export default function SettingsContent() {
                               }
 
                               const now = new Date()
-                              const start = new Date(formBusiness.out_of_office_start)
-                              const end = new Date(formBusiness.out_of_office_end)
+                              const start = isoToLocalDate(formBusiness.out_of_office_start)
+                              const end = isoToLocalDate(formBusiness.out_of_office_end)
 
-                              if (now >= start && now <= end) {
+                              if (start && end && now >= start && now <= end) {
                                 return (
                                   <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                                     <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                                     Active
                                   </span>
                                 )
-                              } else if (now < start) {
+                              } else if (start && now < start) {
                                 return (
                                   <span className="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
                                     Scheduled
@@ -3251,16 +3273,16 @@ export default function SettingsContent() {
                           {formBusiness.out_of_office_enabled && formBusiness.out_of_office_start && formBusiness.out_of_office_end ? (
                             (() => {
                               const now = new Date()
-                              const start = new Date(formBusiness.out_of_office_start)
-                              const end = new Date(formBusiness.out_of_office_end)
+                              const start = isoToLocalDate(formBusiness.out_of_office_start)
+                              const end = isoToLocalDate(formBusiness.out_of_office_end)
 
-                              if (now >= start && now <= end) {
+                              if (start && end && now >= start && now <= end) {
                                 return (
                                   <p className="text-xs text-muted-foreground">
                                     Back {end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                   </p>
                                 )
-                              } else {
+                              } else if (start && end) {
                                 return (
                                   <p className="text-xs text-muted-foreground">
                                     {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -3363,8 +3385,8 @@ export default function SettingsContent() {
                           </div>
 
                           {/* Validation Error */}
-                          {formBusiness.out_of_office_start && formBusiness.out_of_office_end && 
-                           new Date(formBusiness.out_of_office_start) >= new Date(formBusiness.out_of_office_end) && (
+                          {formBusiness.out_of_office_start && formBusiness.out_of_office_end &&
+                           formBusiness.out_of_office_start >= formBusiness.out_of_office_end && (
                             <div className="flex items-start gap-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                               <svg className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
