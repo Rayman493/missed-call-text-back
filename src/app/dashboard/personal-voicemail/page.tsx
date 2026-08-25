@@ -209,7 +209,7 @@ export default function PersonalVoicemailPage() {
                   variant="messages"
                   primaryAction={
                     <Link
-                      href="/dashboard/settings?section=contacts"
+                      href="/dashboard/settings#contacts"
                       className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors active:scale-[0.98]"
                     >
                       Add Personal Contact
