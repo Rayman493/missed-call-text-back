@@ -478,16 +478,6 @@ export default function SettingsContent() {
 
   // Initialize Business Hours with defaults when first expanded
   const handleBusinessHoursExpand = () => {
-    if (!businessHoursExpanded && formBusiness) {
-      // Initialize with defaults if not already set
-      const defaults = {
-        business_hours_timezone: formBusiness.business_hours_timezone || 'America/New_York',
-        business_hours_start: formBusiness.business_hours_start || '09:00',
-        business_hours_end: formBusiness.business_hours_end || '18:00',
-        after_hours_message: formBusiness.after_hours_message || DEFAULT_AFTER_HOURS_MESSAGE
-      }
-      updateBusiness(defaults)
-    }
     setBusinessHoursExpanded(true)
   }
 
@@ -3013,15 +3003,15 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Business Hours */}
-                  <div className="border border-border/30 rounded-lg p-3">
+                  <div className="border border-border/30 rounded-lg p-3 hover:border-border/50 transition-colors">
                     {!businessHoursExpanded ? (
                       // Collapsed state
                       <div className="flex items-start justify-between">
-                        <div className="flex-1 pr-4">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-sm font-medium text-foreground">Business Hours</h3>
+                        <div className="flex-1 pr-4 min-w-0">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <h3 className="text-sm font-semibold text-foreground">Business Hours</h3>
                             {formBusiness.business_hours_enabled ? (
-                              <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
+                              <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                                 <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                                 Active
                               </span>
@@ -3032,12 +3022,12 @@ export default function SettingsContent() {
                             )}
                           </div>
                           {formBusiness.business_hours_enabled ? (
-                            <div className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
-                              <p className="font-medium text-slate-700 dark:text-slate-300">Monday–Friday · {formBusiness.business_hours_start || '9:00 AM'}–{formBusiness.business_hours_end || '6:00 PM'}</p>
+                            <div className="text-xs text-muted-foreground space-y-0.5">
+                              <p className="font-medium text-foreground">Monday–Friday · {formBusiness.business_hours_start || '9:00 AM'}–{formBusiness.business_hours_end || '6:00 PM'}</p>
                               <p>{formBusiness.business_hours_timezone === 'America/New_York' ? 'Eastern Time' : formBusiness.business_hours_timezone === 'America/Chicago' ? 'Central Time' : formBusiness.business_hours_timezone === 'America/Denver' ? 'Mountain Time' : formBusiness.business_hours_timezone === 'America/Los_Angeles' ? 'Pacific Time' : formBusiness.business_hours_timezone}</p>
                             </div>
                           ) : (
-                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                            <p className="text-xs text-muted-foreground">
                               Business hours not configured.
                             </p>
                           )}
@@ -3109,13 +3099,7 @@ export default function SettingsContent() {
                             </button>
                           </div>
                           <button
-                            onClick={async () => {
-                              // Save the current state without auto-enabling/disabling
-                              const nextBusiness = { ...formBusiness }
-                              updateBusiness(nextBusiness)
-                              await saveChanges(nextBusiness)
-                              setBusinessHoursExpanded(false)
-                            }}
+                            onClick={() => setBusinessHoursExpanded(false)}
                             className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors flex-shrink-0"
                             aria-label="Collapse Business Hours"
                           >
@@ -3222,17 +3206,17 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Out of Office Mode */}
-                  <div className="p-3 rounded-lg border border-border/30">
+                  <div className="p-3 rounded-lg border border-border/30 hover:border-border/50 transition-colors">
                     {!outOfOfficeExpanded ? (
                       // Collapsed state
                       <div className="flex items-start justify-between">
-                        <div className="flex-1 pr-4">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Out of Office</h3>
+                        <div className="flex-1 pr-4 min-w-0">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <h3 className="text-sm font-semibold text-foreground">Out of Office</h3>
                             {(() => {
                               if (!formBusiness.out_of_office_enabled || !formBusiness.out_of_office_start || !formBusiness.out_of_office_end) {
                                 return (
-                                  <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
+                                  <span className="text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
                                     Disabled
                                   </span>
                                 )
@@ -3244,20 +3228,20 @@ export default function SettingsContent() {
 
                               if (now >= start && now <= end) {
                                 return (
-                                  <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
+                                  <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                                     <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                                     Active
                                   </span>
                                 )
                               } else if (now < start) {
                                 return (
-                                  <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
+                                  <span className="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
                                     Scheduled
                                   </span>
                                 )
                               } else {
                                 return (
-                                  <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
+                                  <span className="text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
                                     Ended
                                   </span>
                                 )
@@ -3272,20 +3256,20 @@ export default function SettingsContent() {
 
                               if (now >= start && now <= end) {
                                 return (
-                                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                                  <p className="text-xs text-muted-foreground">
                                     Back {end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                   </p>
                                 )
                               } else {
                                 return (
-                                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                                  <p className="text-xs text-muted-foreground">
                                     {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                   </p>
                                 )
                               }
                             })()
                           ) : (
-                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                            <p className="text-xs text-muted-foreground">
                               No automatic away message scheduled.
                             </p>
                           )}
@@ -3411,24 +3395,24 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Automatic Follow-Ups */}
-                  <div className="p-3 rounded-lg border border-border/30">
+                  <div className="p-3 rounded-lg border border-border/30 hover:border-border/50 transition-colors">
                     {!followUpExpanded ? (
                       // Collapsed state
                       <div className="flex items-start justify-between">
-                        <div className="flex-1 pr-4">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Automatic Follow-Ups</h3>
-                            <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
+                        <div className="flex-1 pr-4 min-w-0">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <h3 className="text-sm font-semibold text-foreground">Automatic Follow-Ups</h3>
+                            <span className="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
                               New
                             </span>
                             {followUpEnabled && (
-                              <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
+                              <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                                 <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                                 Active
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 mb-1.5">
+                          <p className="text-xs text-muted-foreground mb-1.5">
                             Schedule follow-up texts for quiet leads.
                           </p>
                           <button
