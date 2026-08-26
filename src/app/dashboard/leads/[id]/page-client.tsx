@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
 import {
@@ -1425,6 +1425,51 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // State for task modal
   const [showTaskModal, setShowTaskModal] = useState(false)
+  const taskModalOpenSourceRef = useRef<string | null>(null)
+
+  // Diagnostic wrapper for task modal open
+  const openTaskModal = useCallback((source: string) => {
+    taskModalOpenSourceRef.current = source
+    console.log('[TASK_MODAL_OPEN]', {
+      source,
+      pathname: window.location.pathname,
+      customerId: params.id,
+      previousOpenState: showTaskModal,
+      timestamp: Date.now(),
+      stackTrace: new Error().stack?.split('\n').slice(1, 5).join('\n')
+    })
+    setShowTaskModal(true)
+  }, [params.id, showTaskModal])
+
+  // Diagnostic: detect unexpected modal state changes
+  useEffect(() => {
+    if (showTaskModal && !taskModalOpenSourceRef.current) {
+      console.error('[TASK_MODAL_UNEXPECTED_OPEN]', {
+        pathname: window.location.pathname,
+        customerId: params.id,
+        timestamp: Date.now(),
+        stackTrace: new Error().stack?.split('\n').slice(1, 5).join('\n')
+      })
+    }
+  }, [showTaskModal, params.id])
+
+  // Diagnostic: log page mount and initial modal state
+  useEffect(() => {
+    console.log('[CUSTOMER_CONVERSATION_MOUNT]', {
+      pathname: window.location.pathname,
+      customerId: params.id,
+      initialModalState: showTaskModal,
+      timestamp: Date.now()
+    })
+    return () => {
+      console.log('[CUSTOMER_CONVERSATION_UNMOUNT]', {
+        pathname: window.location.pathname,
+        customerId: params.id,
+        modalStateAtUnmount: showTaskModal,
+        timestamp: Date.now()
+      })
+    }
+  }, [params.id])
   const [paymentLinkData, setPaymentLinkData] = useState<{ paymentLink: string; amount: string; description: string; paymentRequestId?: string; message?: string; dialNumber?: string; customerName?: string } | null>(null)
   const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
   const paymentAmountRef = useRef<HTMLInputElement>(null)
@@ -3057,7 +3102,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <h3 className="text-sm font-medium text-foreground">Tasks</h3>
             <button
               type="button"
-              onClick={() => setShowTaskModal(true)}
+              onClick={() => openTaskModal('tasks_section_add_button')}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
             >
               <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3869,7 +3914,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <span>Create Job</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onSelect={() => setShowTaskModal(true)}
+                          onSelect={() => openTaskModal('more_actions_dropdown_add_task')}
                           className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                         >
                           <CheckCircle className="w-4 h-4" />
@@ -4068,7 +4113,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowTaskModal(true)}
+                  onClick={() => openTaskModal('header_add_task_button')}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                 >
                   <CheckCircle className="w-3.5 h-3.5" />
@@ -4320,7 +4365,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         headerAction={
                           <button
                             type="button"
-                            onClick={() => setShowTaskModal(true)}
+                            onClick={() => openTaskModal('sidebar_tasks_add_button')}
                             className="inline-flex items-center gap-2 px-3 py-2 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                           >
                             Add
@@ -4802,7 +4847,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 )}
               </div>
               <button
-                onClick={() => setShowTaskModal(true)}
+                onClick={() => openTaskModal('task_list_add_button')}
                 className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4832,7 +4877,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   ))}
                   {leadTasks.length > 3 && (
                     <button
-                      onClick={() => setShowTaskModal(true)}
+                      onClick={() => openTaskModal('task_list_view_all_button')}
                       className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                     >
                       View all {leadTasks.length} tasks
@@ -5756,7 +5801,10 @@ If you have questions, reply to this message.`
     {/* New Task Modal */}
     <NewTaskModal
       isOpen={showTaskModal}
-      onClose={() => setShowTaskModal(false)}
+      onClose={() => {
+        setShowTaskModal(false)
+        taskModalOpenSourceRef.current = null
+      }}
       onTaskCreated={async (isNew, task) => {
         await fetchLeadTasks()
       }}
