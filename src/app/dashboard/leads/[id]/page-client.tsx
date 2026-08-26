@@ -3771,8 +3771,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Standard App Header */}
       <AppHeader />
 
-      {/* Customer Identity Header - Distinct from global navigation */}
-      <div className="flex-shrink-0 border-y border-border/35 dark:border-slate-700/35">
+      {/* Customer Identity Header - Page-integrated */}
+      <div className="flex-shrink-0 border-b border-border/35 dark:border-slate-700/35">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 md:py-4">
           {/* Mobile Layout: Compact Information Header */}
           <div className="md:hidden">
