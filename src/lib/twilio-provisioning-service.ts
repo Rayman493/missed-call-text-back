@@ -150,7 +150,84 @@ const MAX_RECOVERY_ATTEMPTS = 5;
 const BATCH_SIZE = 20; // Process max 20 numbers per run to avoid timeout
 const STUCK_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
 const STALE_CLAIM_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour
+const BUSINESS_LOCK_STUCK_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour for business-level locks
 const BASE_RETRY_DELAY_MS = 60 * 60 * 1000; // 1 hour base delay
+
+/**
+ * Recover stuck business-level provisioning locks
+ *
+ * Businesses can get stuck in 'provisioning' status if the provisioning process crashes
+ * after acquiring the lock but before releasing it. This function recovers those businesses.
+ *
+ * Recovery strategy:
+ * - If stuck > 1 hour in 'provisioning' status: mark as failed with error
+ * - This allows manual retry or admin intervention
+ */
+export async function recoverStuckBusinessLocks(): Promise<{
+  success: boolean;
+  recovered: number;
+  failed: number;
+}> {
+  console.log('[BUSINESS LOCK RECOVERY] ========== START ==========');
+
+  const now = new Date();
+  const stuckTime = new Date(now.getTime() - BUSINESS_LOCK_STUCK_THRESHOLD_MS).toISOString();
+
+  try {
+    // Find businesses stuck in 'provisioning' status for > 1 hour
+    // Treat null last_provisioning_attempt_at as very old (should be recovered)
+    const { data: stuckBusinesses, error: stuckError } = await supabase
+      .from('businesses')
+      .select('id, name, provisioning_status, provisioning_lock_id, last_provisioning_attempt_at')
+      .eq('provisioning_status', 'provisioning')
+      .or(`last_provisioning_attempt_at.is.null,last_provisioning_attempt_at.lt.${stuckTime}`);
+
+    if (stuckError) {
+      console.error('[BUSINESS LOCK RECOVERY] Failed to query stuck businesses:', stuckError);
+      return { success: false, recovered: 0, failed: 0 };
+    }
+
+    if (!stuckBusinesses || stuckBusinesses.length === 0) {
+      console.log('[BUSINESS LOCK RECOVERY] No stuck businesses found');
+      return { success: true, recovered: 0, failed: 0 };
+    }
+
+    console.log(`[BUSINESS LOCK RECOVERY] Found ${stuckBusinesses.length} stuck businesses`);
+
+    let recovered = 0;
+    let failed = 0;
+
+    for (const business of stuckBusinesses) {
+      console.log(`[BUSINESS LOCK RECOVERY] Recovering business: ${business.id} (${business.name})`);
+
+      const { error: updateError } = await supabase
+        .from('businesses')
+        .update({
+          provisioning_status: 'failed',
+          provisioning_lock_id: null,
+          provisioning_error: `Business-level provisioning lock stuck - recovered by automated recovery at ${now.toISOString()}`,
+        })
+        .eq('id', business.id);
+
+      if (updateError) {
+        console.error(`[BUSINESS LOCK RECOVERY] Failed to recover business ${business.id}:`, updateError);
+        failed++;
+      } else {
+        console.log(`[BUSINESS LOCK RECOVERY] ✓ Recovered business ${business.id}`);
+        recovered++;
+      }
+    }
+
+    console.log('[BUSINESS LOCK RECOVERY] Recovery complete:', { recovered, failed });
+    console.log('[BUSINESS LOCK RECOVERY] ========== END ==========');
+
+    return { success: true, recovered, failed };
+  } catch (error: any) {
+    console.error('[BUSINESS LOCK RECOVERY] Exception:', error);
+    console.log('[BUSINESS LOCK RECOVERY] ========== END (EXCEPTION) ==========');
+    return { success: false, recovered: 0, failed: 0 };
+  }
+}
 
 export async function recoverStuckProvisioning(recoveryRunId?: string): Promise<{
   success: boolean;
@@ -161,6 +238,11 @@ export async function recoverStuckProvisioning(recoveryRunId?: string): Promise<
   recoveryRunId: string;
 }> {
   console.log('[RECOVERY] ========== START STUCK PROVISIONING RECOVERY ==========');
+
+  // First, recover stuck business-level provisioning locks
+  console.log('[RECOVERY] STEP 0: Recovering stuck business-level locks');
+  const businessLockRecovery = await recoverStuckBusinessLocks();
+  console.log('[RECOVERY] Business lock recovery result:', businessLockRecovery);
 
   // Generate or use provided recovery run ID for overlap protection
   const runId = recoveryRunId || crypto.randomUUID();
@@ -1031,6 +1113,13 @@ async function purchaseNumber(
         previousBusinessPhone: reservedNumber.reserved_business_phone,
       });
 
+      // Configure voice URL on the reclaimed number before assignment
+      const voiceConfigResult = await configureVoiceUrlOnExistingNumber(reservedNumber.twilio_sid, correlationId);
+      if (!voiceConfigResult.success) {
+        console.error('[PURCHASE NUMBER] Failed to configure voice URL on reclaimed number:', voiceConfigResult.error);
+        return { success: false, error: `Failed to configure voice URL: ${voiceConfigResult.error}` };
+      }
+
       // Reclaim the reserved number for the business
       const { error: reclaimError } = await supabase
         .from('twilio_numbers')
@@ -1112,6 +1201,13 @@ async function purchaseNumber(
         console.log('[PURCHASE NUMBER] Found available number in inventory:', availableNumber.phone_number);
         console.log('[PURCHASE NUMBER] Assigning existing number to business instead of purchasing new');
 
+        // Configure voice URL on the existing number before assignment
+        const voiceConfigResult = await configureVoiceUrlOnExistingNumber(availableNumber.twilio_sid, correlationId);
+        if (!voiceConfigResult.success) {
+          console.error('[PURCHASE NUMBER] Failed to configure voice URL on inventory number:', voiceConfigResult.error);
+          return { success: false, error: `Failed to configure voice URL: ${voiceConfigResult.error}` };
+        }
+
         // Assign the available number to the business
         const { error: assignError } = await supabase
           .from('twilio_numbers')
@@ -1172,7 +1268,12 @@ async function purchaseNumber(
     console.log('[PURCHASE NUMBER] No available numbers in inventory, purchasing new from Twilio');
 
     const client = Twilio(accountSid, authToken);
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com';
+    let appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com';
+
+    // Ensure appUrl has a scheme (https://)
+    if (!appUrl.startsWith('http://') && !appUrl.startsWith('https://')) {
+      appUrl = `https://${appUrl}`;
+    }
 
     console.log('[PURCHASE NUMBER] Using appUrl:', appUrl);
 
@@ -1634,6 +1735,54 @@ async function updateProvisioningStatus(
 }
 
 /**
+ * Configure voice webhook URL on an existing Twilio number
+ * Used when assigning numbers from warm inventory or reclaiming reserved numbers
+ */
+async function configureVoiceUrlOnExistingNumber(phoneNumberSid: string, correlationId: string): Promise<{ success: boolean; error?: string }> {
+  console.log('[CONFIGURE VOICE URL] ========== START ==========');
+  console.log('[CONFIGURE VOICE URL] phoneNumberSid:', phoneNumberSid);
+  console.log('[CONFIGURE VOICE URL] correlation_id:', correlationId);
+
+  const client = Twilio(accountSid, authToken);
+  let appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com';
+
+  // Ensure appUrl has a scheme (https://)
+  if (!appUrl.startsWith('http://') && !appUrl.startsWith('https://')) {
+    appUrl = `https://${appUrl}`;
+  }
+
+  console.log('[CONFIGURE VOICE URL] Using appUrl:', appUrl);
+
+  try {
+    const number = await client.incomingPhoneNumbers(phoneNumberSid).fetch();
+    console.log('[CONFIGURE VOICE URL] Fetched existing number:', number.phoneNumber);
+
+    // Update voice and SMS configuration
+    await client.incomingPhoneNumbers(phoneNumberSid).update({
+      voiceUrl: `${appUrl}/api/twilio/voice`,
+      voiceMethod: 'POST',
+      statusCallback: `${appUrl}/api/twilio/voice-status`,
+      statusCallbackMethod: 'POST',
+      smsUrl: `${appUrl}/api/twilio/incoming-sms`,
+      smsMethod: 'POST',
+    });
+
+    console.log('[CONFIGURE VOICE URL] ✓ Voice URL configured successfully');
+    console.log('[CONFIGURE VOICE URL] ========== COMPLETE ==========');
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[CONFIGURE VOICE URL] Failed to configure voice URL:', error);
+    console.log('[CONFIGURE VOICE URL] ========== FAILED ==========');
+
+    return {
+      success: false,
+      error: error.message || 'Failed to configure voice URL'
+    };
+  }
+}
+
+/**
  * Check if a number is ready for use (fail-safe check)
  */
 export async function isNumberReadyForUse(businessId: string): Promise<boolean> {
@@ -1755,10 +1904,54 @@ export async function isNumberReadyForUse(businessId: string): Promise<boolean> 
     }
 
     const client = Twilio(accountSid, authToken);
+    let appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com';
+
+    // Ensure appUrl has a scheme (https://)
+    if (!appUrl.startsWith('http://') && !appUrl.startsWith('https://')) {
+      appUrl = `https://${appUrl}`;
+    }
+
+    const expectedVoiceUrl = `${appUrl}/api/twilio/voice`;
 
     try {
-      await client.incomingPhoneNumbers(business.twilio_phone_number_sid).fetch();
+      const twilioNumber = await client.incomingPhoneNumbers(business.twilio_phone_number_sid).fetch();
       console.log('[FAIL-SAFE] ✓ Twilio ownership verified');
+
+      // Verify voice URL configuration
+      if (!twilioNumber.voiceUrl) {
+        console.error('[FAIL-SAFE] Voice URL not configured on Twilio number');
+        console.log('[FAIL-SAFE FAILED because VOICE_URL_MISSING]', { businessId, sid: business.twilio_phone_number_sid });
+        return false;
+      }
+
+      // Normalize URLs for comparison (remove trailing slashes)
+      const normalizeUrl = (url: string) => url.replace(/\/$/, '');
+      const actualVoiceUrl = normalizeUrl(twilioNumber.voiceUrl);
+      const normalizedExpectedUrl = normalizeUrl(expectedVoiceUrl);
+
+      if (actualVoiceUrl !== normalizedExpectedUrl) {
+        console.error('[FAIL-SAFE] Voice URL mismatch');
+        console.log('[FAIL-SAFE FAILED because VOICE_URL_MISMATCH]', {
+          businessId,
+          sid: business.twilio_phone_number_sid,
+          expected: normalizedExpectedUrl,
+          actual: actualVoiceUrl
+        });
+        return false;
+      }
+
+      // Verify voice method is POST
+      if (twilioNumber.voiceMethod !== 'POST') {
+        console.error('[FAIL-SAFE] Voice method is not POST');
+        console.log('[FAIL-SAFE FAILED because VOICE_METHOD_WRONG]', {
+          businessId,
+          sid: business.twilio_phone_number_sid,
+          actualMethod: twilioNumber.voiceMethod
+        });
+        return false;
+      }
+
+      console.log('[FAIL-SAFE] ✓ Voice URL configuration verified');
     } catch (ownershipError: any) {
       console.error('[FAIL-SAFE] Twilio ownership verification failed:', ownershipError);
       console.log('[FAIL-SAFE FAILED because TWILIO_OWNERSHIP_VERIFICATION_FAILED]', { businessId, status: ownershipError?.status, code: ownershipError?.code, message: ownershipError?.message });

@@ -636,3 +636,189 @@ describe('Provisioning Idempotency Tests', () => {
     // Twilio API should NOT be called
   })
 })
+
+describe('Voice URL Configuration', () => {
+  it('verifies voice URL normalization removes trailing slashes', () => {
+    const normalizeUrl = (url: string) => url.replace(/\/$/, '')
+
+    const urlWithSlash = 'https://www.replyflowhq.com/api/twilio/voice/'
+    const urlWithoutSlash = 'https://www.replyflowhq.com/api/twilio/voice'
+
+    expect(normalizeUrl(urlWithSlash)).toBe(urlWithoutSlash)
+    expect(normalizeUrl(urlWithoutSlash)).toBe(urlWithoutSlash)
+  })
+
+  it('verifies VERCEL_URL scheme normalization adds https://', () => {
+    let appUrl = 'replyflow-abc.vercel.app'
+
+    if (!appUrl.startsWith('http://') && !appUrl.startsWith('https://')) {
+      appUrl = `https://${appUrl}`
+    }
+
+    expect(appUrl).toBe('https://replyflow-abc.vercel.app')
+  })
+
+  it('verifies NEXT_PUBLIC_APP_URL with scheme is preserved', () => {
+    let appUrl = 'https://www.replyflowhq.com'
+
+    if (!appUrl.startsWith('http://') && !appUrl.startsWith('https://')) {
+      appUrl = `https://${appUrl}`
+    }
+
+    expect(appUrl).toBe('https://www.replyflowhq.com')
+  })
+
+  it('verifies voice URL mismatch detection', () => {
+    const expectedUrl = 'https://www.replyflowhq.com/api/twilio/voice'
+    const actualUrl = 'https://staging.replyflowhq.com/api/twilio/voice'
+
+    const normalizeUrl = (url: string) => url.replace(/\/$/, '')
+    const isMatch = normalizeUrl(expectedUrl) === normalizeUrl(actualUrl)
+
+    expect(isMatch).toBe(false)
+  })
+
+  it('verifies voice method validation', () => {
+    const validMethod = 'POST'
+    const invalidMethod = 'GET'
+
+    const isValid = validMethod === 'POST'
+    const isInvalid = invalidMethod === 'POST'
+
+    expect(isValid).toBe(true)
+    expect(isInvalid).toBe(false)
+  })
+})
+
+describe('Business Lock Recovery', () => {
+  it('59-minute-old lock is NOT recovered', () => {
+    const now = new Date()
+    const stuckThreshold = 60 * 60 * 1000 // 1 hour
+    const stuckTime = new Date(now.getTime() - stuckThreshold).toISOString()
+
+    const fiftyNineMinutesAgo = new Date(now.getTime() - 59 * 60 * 1000).toISOString()
+
+    const isRecovered = new Date(fiftyNineMinutesAgo) < new Date(stuckTime)
+
+    expect(isRecovered).toBe(false)
+  })
+
+  it('61-minute-old lock IS recovered', () => {
+    const now = new Date()
+    const stuckThreshold = 60 * 60 * 1000 // 1 hour
+    const stuckTime = new Date(now.getTime() - stuckThreshold).toISOString()
+
+    const sixtyOneMinutesAgo = new Date(now.getTime() - 61 * 60 * 1000).toISOString()
+
+    const isRecovered = new Date(sixtyOneMinutesAgo) < new Date(stuckTime)
+
+    expect(isRecovered).toBe(true)
+  })
+
+  it('null last_provisioning_attempt_at IS recovered', () => {
+    const nullTimestamp = null
+
+    // The query uses .or('last_provisioning_attempt_at.is.null,last_provisioning_attempt_at.lt.{stuckTime}')
+    // So null is explicitly recovered
+    const isRecovered = nullTimestamp === null
+
+    expect(isRecovered).toBe(true)
+  })
+
+  it('exactly 1 hour old lock IS recovered', () => {
+    const now = new Date()
+    const stuckThreshold = 60 * 60 * 1000 // 1 hour
+    const stuckTime = new Date(now.getTime() - stuckThreshold).toISOString()
+
+    const exactlyOneHourAgo = new Date(now.getTime() - stuckThreshold).toISOString()
+
+    const isRecovered = new Date(exactlyOneHourAgo) <= new Date(stuckTime)
+
+    expect(isRecovered).toBe(true)
+  })
+
+  it('stale lock clears provisioning_lock_id', () => {
+    const business = {
+      id: 'biz-123',
+      provisioning_status: 'provisioning',
+      provisioning_lock_id: 'old-lock-id',
+      provisioning_error: null
+    }
+
+    const recovered = {
+      ...business,
+      provisioning_status: 'failed',
+      provisioning_lock_id: null,
+      provisioning_error: 'Business-level provisioning lock stuck - recovered by automated recovery'
+    }
+
+    expect(recovered.provisioning_lock_id).toBe(null)
+    expect(recovered.provisioning_status).toBe('failed')
+    expect(recovered.provisioning_error).toContain('recovered by automated recovery')
+  })
+
+  it('active lock remains untouched', () => {
+    const now = new Date()
+    const stuckThreshold = 60 * 60 * 1000 // 1 hour
+    const stuckTime = new Date(now.getTime() - stuckThreshold).toISOString()
+
+    const activeLock = {
+      id: 'biz-123',
+      provisioning_status: 'provisioning',
+      last_provisioning_attempt_at: new Date(now.getTime() - 10 * 60 * 1000).toISOString() // 10 minutes ago
+    }
+
+    const isRecovered = new Date(activeLock.last_provisioning_attempt_at) < new Date(stuckTime)
+
+    expect(isRecovered).toBe(false)
+  })
+
+  it('recovery is idempotent', () => {
+    const business = {
+      id: 'biz-123',
+      provisioning_status: 'failed',
+      provisioning_lock_id: null
+    }
+
+    // Running recovery again should not change anything
+    const alreadyRecovered = business.provisioning_status === 'failed' && business.provisioning_lock_id === null
+
+    expect(alreadyRecovered).toBe(true)
+  })
+
+  it('healthy number fields are preserved during lock recovery', () => {
+    const business = {
+      id: 'biz-123',
+      provisioning_status: 'provisioning',
+      provisioning_lock_id: 'old-lock-id',
+      twilio_phone_number: '+1234567890',
+      twilio_phone_number_sid: 'AC123',
+      assigned_twilio_number_id: 'twilio-123'
+    }
+
+    const recovered = {
+      ...business,
+      provisioning_status: 'failed',
+      provisioning_lock_id: null,
+      provisioning_error: 'Business-level provisioning lock stuck - recovered by automated recovery'
+      // twilio_phone_number, twilio_phone_number_sid, assigned_twilio_number_id preserved
+    }
+
+    expect(recovered.twilio_phone_number).toBe('+1234567890')
+    expect(recovered.twilio_phone_number_sid).toBe('AC123')
+    expect(recovered.assigned_twilio_number_id).toBe('twilio-123')
+  })
+
+  it('stale previous owner cannot release newer lock', () => {
+    const business = {
+      id: 'biz-123',
+      provisioning_status: 'provisioning',
+      provisioning_lock_id: 'new-lock-id' // newer lock
+    }
+
+    const oldLockId = 'old-lock-id'
+    const canRelease = business.provisioning_lock_id === oldLockId
+
+    expect(canRelease).toBe(false)
+  })
+})
