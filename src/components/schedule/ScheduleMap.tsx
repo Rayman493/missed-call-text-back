@@ -582,6 +582,13 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   const fitBoundsWithMaxZoom = useCallback((bounds: any, maxZoom: number = 15, padding?: { top: number; right: number; bottom: number; left: number }, reason: string = 'unknown') => {
     if (!googleMapRef.current) return
 
+    // PREVENT CAMERA FIGHTING: Block automatic movements during user drag, but allow explicit user actions
+    const isExplicitUserAction = reason === 'show_all_markers' || reason === 'recenter'
+    if (userIsDraggingRef.current && !isExplicitUserAction) {
+      logCameraCommand('fitBoundsWithMaxZoom', 'fitBounds', { reason, result: 'skipped_user_dragging' })
+      return
+    }
+
     logCameraCommand('fitBoundsWithMaxZoom', 'fitBounds', { reason, maxZoom, padding })
 
     // Check if bounds would actually change viewport (avoid no-op calls)
@@ -624,6 +631,13 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   // Pan to marker without resetting bounds
   const panToMarker = useCallback((lat: number, lng: number, options?: { zoom?: number; setCameraOwnerToUser?: boolean; checkVisibility?: boolean }, reason: string = 'unknown') => {
     if (!googleMapRef.current) return
+
+    // PREVENT CAMERA FIGHTING: Block automatic movements during user drag, but allow explicit user actions
+    const isExplicitUserAction = reason === 'navigate_to_stop' || reason === 'select_map_item'
+    if (userIsDraggingRef.current && !isExplicitUserAction) {
+      logCameraCommand('panToMarker', 'panTo', { reason, result: 'skipped_user_dragging' })
+      return
+    }
 
     const { zoom, setCameraOwnerToUser = false, checkVisibility = false } = options || {}
 
@@ -1653,36 +1667,46 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       // Restore viewport immediately if map is ready and saved viewport exists
       // This prevents race condition with marker rendering effect
       if (mapReady && googleMapRef.current && savedState.center && savedState.zoom) {
-        // Check if this is actually a camera change (avoid no-op calls)
-        const currentCenter = googleMapRef.current.getCenter()
-        const currentZoom = googleMapRef.current.getZoom()
-        const currentLat = currentCenter.lat()
-        const currentLng = currentCenter.lng()
-        const savedLat = savedState.center.lat
-        const savedLng = savedState.center.lng
-        const isSameCenter = Math.abs(currentLat - savedLat) < 0.000001 &&
-                             Math.abs(currentLng - savedLng) < 0.000001
-        const isSameZoom = Math.abs(currentZoom - savedState.zoom) < 0.01
-
-        if (!isSameCenter || !isSameZoom) {
-          logCameraCommand('date_state_restoration', 'setCenter+setZoom', {
-            center: savedState.center,
-            zoom: savedState.zoom,
-            reason: 'restore_saved_viewport'
+        // PREVENT CAMERA FIGHTING: Do not restore viewport while user is dragging
+        if (userIsDraggingRef.current) {
+          console.log('[SCHEDULE_MAP_STATE_RESTORE]', {
+            result: 'skipped_user_dragging',
+            dateKey
           })
-          programmaticCameraChangeRef.current = true
-          pendingProgrammaticMoveRef.current = true
-          cameraOwnerRef.current = CameraOwner.APP_OWNED
-          googleMapRef.current.setCenter(savedState.center)
-          googleMapRef.current.setZoom(savedState.zoom)
-          viewportRestoredRef.current = true
-          // If user had previously owned this view, restore that ownership
-          if (savedState.userOwned) {
+          // Still restore ownership state so user maintains control
+          cameraOwnerRef.current = CameraOwner.USER_OWNED
+        } else {
+          // Check if this is actually a camera change (avoid no-op calls)
+          const currentCenter = googleMapRef.current.getCenter()
+          const currentZoom = googleMapRef.current.getZoom()
+          const currentLat = currentCenter.lat()
+          const currentLng = currentCenter.lng()
+          const savedLat = savedState.center.lat
+          const savedLng = savedState.center.lng
+          const isSameCenter = Math.abs(currentLat - savedLat) < 0.000001 &&
+                               Math.abs(currentLng - savedLng) < 0.000001
+          const isSameZoom = Math.abs(currentZoom - savedState.zoom) < 0.01
+
+          if (!isSameCenter || !isSameZoom) {
+            logCameraCommand('date_state_restoration', 'setCenter+setZoom', {
+              center: savedState.center,
+              zoom: savedState.zoom,
+              reason: 'restore_saved_viewport'
+            })
+            programmaticCameraChangeRef.current = true
+            pendingProgrammaticMoveRef.current = true
+            cameraOwnerRef.current = CameraOwner.APP_OWNED
+            googleMapRef.current.setCenter(savedState.center)
+            googleMapRef.current.setZoom(savedState.zoom)
+            viewportRestoredRef.current = true
+            // If user had previously owned this view, restore that ownership
+            if (savedState.userOwned) {
+              cameraOwnerRef.current = CameraOwner.USER_OWNED
+            }
+          } else if (savedState.userOwned) {
+            // Camera already in place, restore ownership
             cameraOwnerRef.current = CameraOwner.USER_OWNED
           }
-        } else if (savedState.userOwned) {
-          // Camera already in place, restore ownership
-          cameraOwnerRef.current = CameraOwner.USER_OWNED
         }
       } else if (savedState.userOwned) {
         // Map not ready yet, but will restore ownership when ready
