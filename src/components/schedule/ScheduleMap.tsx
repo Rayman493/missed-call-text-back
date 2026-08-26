@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import { isValidCoordinate } from '@/lib/map-utils'
+import { formatEventTimeRange } from '@/lib/calendar-date-utils'
 import { createBrowserClient } from '@/lib/supabase/browser'
 
 const supabase = createBrowserClient()
@@ -132,6 +133,7 @@ interface MapItem {
   address: string
   scheduledDate: string | null
   scheduledTime: string | null
+  scheduledEndTime: string | null
   status: string | null
   leadId: string | null
   jobId: string | null
@@ -881,6 +883,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     address: string | null
     scheduledDate: string | null
     scheduledTime: string | null
+    scheduledEndTime: string | null
     status: string | null
     hasLocation: boolean
     leadId: string | null
@@ -900,6 +903,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     address: string | null
     scheduledDate: string | null
     scheduledTime: string | null
+    scheduledEndTime: string | null
     status: string | null
     hasLocation: boolean
     leadId: string | null
@@ -953,6 +957,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         address: serviceAddress,
         scheduledDate: job.scheduled_date,
         scheduledTime: job.scheduled_time,
+        scheduledEndTime: null,
         status: job.status,
         hasLocation,
         leadId: job.lead_id,
@@ -978,6 +983,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         address: event.location,
         scheduledDate: (event.start.dateTime || event.start.date)?.split('T')[0] || null,
         scheduledTime: event.start.dateTime ? event.start.dateTime.split('T')[1]?.substring(0, 5) || null : null,
+        scheduledEndTime: event.end.dateTime ? event.end.dateTime.split('T')[1]?.substring(0, 5) || null : null,
         status: null,
         hasLocation,
         leadId: customer.leadId,
@@ -1010,6 +1016,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         address: null,
         scheduledDate: task.due_date,
         scheduledTime: task.due_time,
+        scheduledEndTime: null,
         status: task.completed ? 'completed' : 'pending',
         hasLocation: false,
         leadId: task.lead_id,
@@ -1078,6 +1085,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           address: serviceAddress,
           scheduledDate: job.scheduled_date,
           scheduledTime: job.scheduled_time,
+          scheduledEndTime: null,
           status: job.status,
           leadId: job.lead_id,
           jobId: job.id,
@@ -1128,6 +1136,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
               address: serviceAddress,
               scheduledDate: job.scheduled_date,
               scheduledTime: job.scheduled_time,
+              scheduledEndTime: null,
               status: job.status,
               leadId: job.lead_id,
               jobId: job.id,
@@ -1212,6 +1221,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
         const dateTime = event.start.dateTime
         const dateOnly = event.start.date
+        const endDateTime = event.end.dateTime
         const customer = getCustomerFromCalendarEvent(event)
         items.push({
           id: `appointment:${event.id}`,
@@ -1222,6 +1232,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           address: cached.formattedAddress,
           scheduledDate: dateTime ? dateTime.split('T')[0] : (dateOnly || null),
           scheduledTime: dateTime ? (dateTime.split('T')[1]?.slice(0, 5) || null) : null,
+          scheduledEndTime: endDateTime ? (endDateTime.split('T')[1]?.slice(0, 5) || null) : null,
           status: null,
           leadId: customer.leadId,
           jobId: null,
@@ -1257,6 +1268,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
             const dateTime = event.start.dateTime
             const dateOnly = event.start.date
+            const endDateTime = event.end.dateTime
             const customer = getCustomerFromCalendarEvent(event)
             items.push({
               id: `appointment:${event.id}`,
@@ -1267,6 +1279,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
               address: result.formattedAddress || normalizedLocation,
               scheduledDate: dateTime ? dateTime.split('T')[0] : (dateOnly || null),
               scheduledTime: dateTime ? (dateTime.split('T')[1]?.slice(0, 5) || null) : null,
+              scheduledEndTime: endDateTime ? (endDateTime.split('T')[1]?.slice(0, 5) || null) : null,
               status: null,
               leadId: customer.leadId,
               jobId: null,
@@ -1304,6 +1317,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         address: businessCoords.formattedAddress,
         scheduledDate: null,
         scheduledTime: null,
+        scheduledEndTime: null,
         status: 'business',
         leadId: null,
         jobId: null,
@@ -2696,7 +2710,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
-                    {selectedItem.type === 'business' ? 'Business' : `Stop ${selectedItem.stopNumber} · ${selectedItem.scheduledTime ? formatTime(selectedItem.scheduledTime) : 'No time'}`}
+                    {selectedItem.type === 'business' ? 'Business' : `Stop ${selectedItem.stopNumber} · ${formatEventTimeRange(selectedItem.scheduledTime, selectedItem.scheduledEndTime, null)}`}
                   </p>
                   <p className="text-xs font-medium text-foreground truncate">
                     {selectedItem.type === 'business' ? selectedItem.title : (selectedItem.customerName || selectedItem.title)}
@@ -2789,7 +2803,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                     ) : (
                       <>
                         <p className="text-[11px] md:text-xs font-medium text-slate-600 dark:text-slate-400">
-                          Stop {selectedItem.stopNumber} · {selectedItem.scheduledTime ? formatTime(selectedItem.scheduledTime) : 'No time'}
+                          Stop {selectedItem.stopNumber} · {formatEventTimeRange(selectedItem.scheduledTime, selectedItem.scheduledEndTime, null)}
                         </p>
                         <h3 className="font-semibold text-sm md:text-base text-slate-900 dark:text-foreground">{selectedItem.customerName || 'No customer'}</h3>
                       </>
