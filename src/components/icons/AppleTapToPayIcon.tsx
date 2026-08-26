@@ -123,8 +123,9 @@ export default function AppleTapToPayIcon({ className = '', size = 24, color }: 
       className={className}
       aria-hidden="true"
     >
-      <circle cx="12" cy="12" r="10" fill="currentColor"/>
-      <path d="M8 12C8 12 9 8 12 8C15 8 15 14 15 14C15 14 13 16 13 16M13 16L15 14M13 16L15 18" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M12 8C14.21 8 16 9.79 16 12C16 14.21 14.21 16 12 16C9.79 16 8 14.21 8 12C8 9.79 9.79 8 12 8Z" fill="currentColor"/>
+      <path d="M12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M12 0C18.63 0 24 5.37 24 12C24 18.63 18.63 24 12 24C5.37 24 0 18.63 0 12C0 5.37 5.37 0 12 0Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   )
 }
