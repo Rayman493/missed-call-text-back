@@ -3095,9 +3095,9 @@ export default function SettingsContent() {
                 
                 <div className="space-y-3">
                   {/* Spam & Repeat Call Filtering */}
-                  <div className="border border-border/30 rounded-lg p-3">
-                    <div className="flex items-start justify-between mb-1.5">
-                      <div className="flex-1 pr-4">
+                  <div className="border border-border/30 rounded-lg p-3 hover:border-border/50 transition-colors">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 pr-4 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <h3 className="text-sm font-semibold text-foreground">Spam & Repeat Filtering</h3>
                         </div>
@@ -3108,14 +3108,14 @@ export default function SettingsContent() {
                       <button
                         onClick={handleToggleSpamFiltering}
                         disabled={isSavingSpamFiltering}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 flex-shrink-0 ${
-                          spamFilteringEnabled ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-600 hover:bg-slate-500'
+                        className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                          spamFilteringEnabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'
                         } ${isSavingSpamFiltering ? 'opacity-50 cursor-not-allowed' : ''}`}
                         aria-label={spamFilteringEnabled ? 'Disable spam filtering' : 'Enable spam filtering'}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-all duration-200 shadow-sm ${
-                            spamFilteringEnabled ? 'translate-x-6' : 'translate-x-1'
+                          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${
+                            spamFilteringEnabled ? 'translate-x-5' : 'translate-x-0.5'
                           }`}
                         />
                       </button>
@@ -3223,7 +3223,7 @@ export default function SettingsContent() {
                       // Collapsed state
                       <div className="flex items-start justify-between">
                         <div className="flex-1 pr-4 min-w-0">
-                          <div className="flex items-center gap-2 mb-1.5">
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                             <h3 className="text-sm font-semibold text-foreground">Business Hours</h3>
                             {formBusiness.business_hours_enabled ? (
                               <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
@@ -3247,7 +3247,7 @@ export default function SettingsContent() {
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex items-center gap-1 flex-shrink-0">
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
@@ -3299,11 +3299,11 @@ export default function SettingsContent() {
                       // Expanded state
                       <>
                         <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1 pr-4">
-                            <div className="flex items-center gap-2 mb-0.5">
+                          <div className="flex-1 pr-4 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                               <h3 className="text-sm font-medium text-foreground">Business Hours</h3>
                               {formBusiness.business_hours_enabled ? (
-                                <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
+                                <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                                   <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                                   Active
                                 </span>
@@ -3461,7 +3461,7 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Out of Office Mode */}
-                  <div id="out-of-office" className="p-3 rounded-lg border border-border/30 hover:border-border/50 transition-colors">
+                  <div id="out-of-office" className="p-3 rounded-lg border border-border/30 hover:border-border/50 transition-colors scroll-mt-24 sm:scroll-mt-20">
                     {!outOfOfficeExpanded ? (
                       // Collapsed state
                       <div className="flex items-start justify-between">
@@ -3558,7 +3558,7 @@ export default function SettingsContent() {
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex items-center gap-1 flex-shrink-0">
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
@@ -3711,7 +3711,7 @@ export default function SettingsContent() {
                       // Collapsed state
                       <div className="flex items-start justify-between">
                         <div className="flex-1 pr-4 min-w-0">
-                          <div className="flex items-center gap-2 mb-1.5">
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                             <h3 className="text-sm font-semibold text-foreground">Automatic Follow-Ups</h3>
                             <span className="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
                               New
@@ -3723,15 +3723,17 @@ export default function SettingsContent() {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground mb-1.5">
+                          <p className="text-xs text-muted-foreground leading-relaxed">
                             Schedule follow-up texts for quiet leads.
                           </p>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               updateFollowUpSettings({ enabled: !getFollowUpSettings().enabled })
                             }}
-                            className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+                            className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                               getFollowUpSettings().enabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'
                             }`}
                             type="button"
@@ -3743,27 +3745,27 @@ export default function SettingsContent() {
                               }`}
                             />
                           </button>
+                          <button
+                            onClick={() => setFollowUpExpanded(true)}
+                            className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                            aria-label="Expand Automatic Follow-Ups"
+                          >
+                            <ChevronDown className="w-5 h-5" />
+                          </button>
                         </div>
-                        <button
-                          onClick={() => setFollowUpExpanded(true)}
-                          className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors flex-shrink-0"
-                          aria-label="Expand Automatic Follow-Ups"
-                        >
-                          <ChevronDown className="w-5 h-5" />
-                        </button>
                       </div>
                     ) : (
                       // Expanded state
                       <>
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 pr-4 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
+                            <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                               <h3 className="text-sm font-medium text-foreground">Automatic Follow-Ups</h3>
                               <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
                                 New
                               </span>
                               {getFollowUpSettings().enabled && (
-                                <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
+                                <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                                   <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                                   Active
                                 </span>
@@ -3779,7 +3781,7 @@ export default function SettingsContent() {
                                 e.stopPropagation()
                                 updateFollowUpSettings({ enabled: !getFollowUpSettings().enabled })
                               }}
-                              className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+                              className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                                 getFollowUpSettings().enabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'
                               }`}
                               type="button"
@@ -3793,7 +3795,7 @@ export default function SettingsContent() {
                             </button>
                             <button
                               onClick={() => setFollowUpExpanded(false)}
-                              className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors flex-shrink-0"
+                              className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                               aria-label="Collapse Automatic Follow-Ups"
                             >
                               <ChevronUp className="w-5 h-5" />

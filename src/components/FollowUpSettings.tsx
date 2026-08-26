@@ -400,7 +400,7 @@ export default function FollowUpSettings({ isOpen, onClose, onSave, businessName
                             <textarea
                               value={followUp.message}
                               onChange={(e) => updateFollowUp(followUp.step, { message: e.target.value })}
-                              rows={3}
+                              rows={5}
                               className="w-full px-3 py-2.5 border border-slate-200/60 dark:border-slate-700/50 rounded-lg bg-white dark:bg-slate-800/50 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40 resize-none text-sm leading-relaxed shadow-sm"
                               placeholder="Enter your follow-up message..."
                               disabled={!followUp.enabled}

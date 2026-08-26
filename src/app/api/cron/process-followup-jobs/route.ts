@@ -5,6 +5,7 @@ import { isIgnoredContact } from "@/lib/ignored-contacts";
 import { hasBillingAccess } from "@/lib/manual-access";
 import { isCompleteAIIntake } from "@/lib/ai-intake-completion";
 import { verifyCronRequest } from "@/lib/cron-auth";
+import { normalizeBrokenTemplates } from "@/lib/template-utils";
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -273,7 +274,7 @@ export async function POST(request: Request) {
         });
 
         // Check if business is currently Out of Office and append notice
-        let messageBody = job.message_body;
+        let messageBody = normalizeBrokenTemplates(job.message_body);
 
         const smsOptions: any = {
           lead_id: job.lead_id,

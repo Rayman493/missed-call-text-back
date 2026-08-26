@@ -196,8 +196,8 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
             priority: 'medium',
             group: 'Recommended',
             icon: CalendarOff,
-            color: 'text-blue-700 dark:text-blue-400',
-            bgColor: 'bg-blue-200 dark:bg-blue-900/20',
+            color: 'text-blue-800 dark:text-blue-300',
+            bgColor: 'bg-blue-200 dark:bg-blue-900/30',
             actionUrl: '/dashboard/settings#out-of-office'
           })
         }

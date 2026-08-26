@@ -1,66 +1,12 @@
 /**
- * Settings Utility Functions Tests
+ * Template Utility Functions Tests
  *
- * Tests utility functions for Settings/Automation features.
+ * Tests for canonical template normalization and safe business name resolution.
+ * These are shared utilities used in both client and server contexts.
  */
 
 import { describe, it, expect } from 'vitest'
-import { normalizeBrokenTemplates, getSafeBusinessName } from '@/lib/template-utils'
-
-// Copy of the formatTime12Hour function from SettingsContent
-function formatTime12Hour(time24: string | null | undefined): string {
-  if (!time24) return ''
-  const [hours, minutes] = time24.split(':')
-  if (!hours || !minutes) return time24
-
-  const hour = parseInt(hours, 10)
-  const period = hour >= 12 ? 'PM' : 'AM'
-  const hour12 = hour % 12 || 12 // Convert 0 to 12
-
-  return `${hour12}:${minutes} ${period}`
-}
-
-describe('formatTime12Hour', () => {
-  it('should convert 09:00 to 9:00 AM', () => {
-    expect(formatTime12Hour('09:00')).toBe('9:00 AM')
-  })
-
-  it('should convert 17:00 to 5:00 PM', () => {
-    expect(formatTime12Hour('17:00')).toBe('5:00 PM')
-  })
-
-  it('should convert 12:00 to 12:00 PM', () => {
-    expect(formatTime12Hour('12:00')).toBe('12:00 PM')
-  })
-
-  it('should convert 00:00 to 12:00 AM', () => {
-    expect(formatTime12Hour('00:00')).toBe('12:00 AM')
-  })
-
-  it('should handle minutes correctly', () => {
-    expect(formatTime12Hour('09:30')).toBe('9:30 AM')
-    expect(formatTime12Hour('17:45')).toBe('5:45 PM')
-  })
-
-  it('should return empty string for null', () => {
-    expect(formatTime12Hour(null)).toBe('')
-  })
-
-  it('should return empty string for undefined', () => {
-    expect(formatTime12Hour(undefined)).toBe('')
-  })
-
-  it('should handle afternoon hours correctly', () => {
-    expect(formatTime12Hour('13:00')).toBe('1:00 PM')
-    expect(formatTime12Hour('14:00')).toBe('2:00 PM')
-    expect(formatTime12Hour('23:00')).toBe('11:00 PM')
-  })
-
-  it('should handle morning hours correctly', () => {
-    expect(formatTime12Hour('01:00')).toBe('1:00 AM')
-    expect(formatTime12Hour('11:00')).toBe('11:00 AM')
-  })
-})
+import { normalizeBrokenTemplates, getSafeBusinessName, substituteTemplatePlaceholders } from '@/lib/template-utils'
 
 describe('normalizeBrokenTemplates', () => {
   it('should replace "from undefined" with "from our team"', () => {
@@ -78,8 +24,18 @@ describe('normalizeBrokenTemplates', () => {
       .toBe('Hi, this is our team. We wanted to follow up.')
   })
 
+  it('should replace "this is null" with "this is our team"', () => {
+    expect(normalizeBrokenTemplates('Hi, this is null. We wanted to follow up.'))
+      .toBe('Hi, this is our team. We wanted to follow up.')
+  })
+
   it('should replace "Final follow-up from undefined"', () => {
     expect(normalizeBrokenTemplates('Final follow-up from undefined. Let us know if we can help!'))
+      .toBe('Final follow-up from our team. Let us know if we can help!')
+  })
+
+  it('should replace "Final follow-up from null"', () => {
+    expect(normalizeBrokenTemplates('Final follow-up from null. Let us know if we can help!'))
       .toBe('Final follow-up from our team. Let us know if we can help!')
   })
 
@@ -88,17 +44,22 @@ describe('normalizeBrokenTemplates', () => {
     expect(normalizeBrokenTemplates(customMessage)).toBe(customMessage)
   })
 
+  it('should preserve messages with {{business_name}} placeholder', () => {
+    const template = 'Just checking in from {{business_name}} - would you still like help?'
+    expect(normalizeBrokenTemplates(template)).toBe(template)
+  })
+
+  it('should preserve messages with {{return_date}} placeholder', () => {
+    const template = 'We will be back on {{return_date}}'
+    expect(normalizeBrokenTemplates(template)).toBe(template)
+  })
+
   it('should return empty string for null', () => {
     expect(normalizeBrokenTemplates(null)).toBe('')
   })
 
   it('should return empty string for undefined', () => {
     expect(normalizeBrokenTemplates(undefined)).toBe('')
-  })
-
-  it('should handle messages with {{business_name}} placeholder', () => {
-    const template = 'Just checking in from {{business_name}} - would you still like help?'
-    expect(normalizeBrokenTemplates(template)).toBe(template)
   })
 
   it('should normalize multiple occurrences', () => {
@@ -136,6 +97,10 @@ describe('getSafeBusinessName', () => {
     expect(getSafeBusinessName(null, 'undefined')).toBe('our team')
   })
 
+  it('should return "our team" when businessName is literal "null"', () => {
+    expect(getSafeBusinessName(null, 'null')).toBe('our team')
+  })
+
   it('should trim whitespace from names', () => {
     expect(getSafeBusinessName('  Test Business  ', null)).toBe('Test Business')
   })
@@ -154,5 +119,49 @@ describe('getSafeBusinessName', () => {
 
   it('should handle undefined input', () => {
     expect(getSafeBusinessName(undefined, undefined)).toBe('our team')
+  })
+})
+
+describe('substituteTemplatePlaceholders', () => {
+  it('should substitute {{business_name}} with valid business name', () => {
+    const template = 'Just checking in from {{business_name}}'
+    expect(substituteTemplatePlaceholders(template, 'Ryan\'s Landscaping'))
+      .toBe('Just checking in from Ryan\'s Landscaping')
+  })
+
+  it('should substitute {{business_name}} with "our team" when name is invalid', () => {
+    const template = 'Just checking in from {{business_name}}'
+    expect(substituteTemplatePlaceholders(template, null))
+      .toBe('Just checking in from our team')
+  })
+
+  it('should substitute {{business_name}} with "our team" when name is literal "undefined"', () => {
+    const template = 'Just checking in from {{business_name}}'
+    expect(substituteTemplatePlaceholders(template, 'undefined'))
+      .toBe('Just checking in from our team')
+  })
+
+  it('should substitute {{return_date}} when provided', () => {
+    const template = 'We will be back on {{return_date}}'
+    expect(substituteTemplatePlaceholders(template, 'Test Business', 'January 15, 2025'))
+      .toBe('We will be back on January 15, 2025')
+  })
+
+  it('should remove {{return_date}} when not provided', () => {
+    const template = 'We will be back on {{return_date}}'
+    expect(substituteTemplatePlaceholders(template, 'Test Business'))
+      .toBe('We will be back on ')
+  })
+
+  it('should substitute both placeholders', () => {
+    const template = 'Just checking in from {{business_name}}. We will be back on {{return_date}}'
+    expect(substituteTemplatePlaceholders(template, 'Ryan\'s Landscaping', 'January 15, 2025'))
+      .toBe('Just checking in from Ryan\'s Landscaping. We will be back on January 15, 2025')
+  })
+
+  it('should preserve text without placeholders', () => {
+    const template = 'Thanks for your interest!'
+    expect(substituteTemplatePlaceholders(template, 'Test Business'))
+      .toBe('Thanks for your interest!')
   })
 })

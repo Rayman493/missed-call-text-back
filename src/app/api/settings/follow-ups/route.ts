@@ -1,18 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
+import { getSafeBusinessName } from '@/lib/template-utils'
 
 export const dynamic = 'force-dynamic'
-
-// Helper to get safe business name for follow-up templates
-// Never returns undefined, null, empty string, or whitespace-only values
-function getSafeBusinessName(businessName: string | null | undefined): string {
-  const trimmedName = businessName?.trim()
-  if (trimmedName && trimmedName.length > 0) {
-    return trimmedName
-  }
-  return 'our team'
-}
 
 // GET /api/settings/follow-ups - Retrieve follow-up settings
 export async function GET() {
@@ -45,7 +36,7 @@ export async function GET() {
     })
 
     // Get safe business name for default templates
-    const safeBusinessName = getSafeBusinessName(business.name)
+    const safeBusinessName = getSafeBusinessName(null, business.name)
 
     // Get current follow-up settings or return defaults
     const automationSettings = business.automation_settings || {}

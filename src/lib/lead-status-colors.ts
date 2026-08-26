@@ -80,7 +80,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
     badgeBorder: 'ring-1 ring-inset ring-amber-500/20 dark:ring-amber-500/20',
     text: 'text-amber-400',
     iconBg: 'bg-amber-500/10 dark:bg-amber-400/10',
-    gradient: 'from-amber-500/5 via-amber-500/10 to-slate-50/50 dark:to-slate-900/50'
+    gradient: 'from-amber-500/10 via-amber-500/15 to-slate-50/50 dark:from-amber-500/8 dark:via-amber-500/12 dark:to-slate-900/50'
   },
   'paid': {
     accent: 'bg-teal-400',
@@ -91,7 +91,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
     badgeBorder: 'ring-1 ring-inset ring-teal-500/20 dark:ring-teal-400/20',
     text: 'text-teal-400',
     iconBg: 'bg-teal-500/10 dark:bg-teal-400/10',
-    gradient: 'from-teal-500/5 via-teal-500/5 to-slate-50/50 dark:to-slate-900/50'
+    gradient: 'from-teal-500/10 via-teal-500/10 to-slate-50/50 dark:from-teal-500/8 dark:via-teal-500/8 dark:to-slate-900/50'
   },
   'completed': {
     accent: 'bg-slate-400',
