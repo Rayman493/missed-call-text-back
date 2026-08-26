@@ -412,8 +412,11 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               const nextFollowUp = getNextFollowUp(lead)
 
               // Filter out placeholder values from request title
-              const placeholderValues = ['N/A', 'n/a', 'N / A', 'Not Available', 'Not Provided', 'Not Collected', 'General Service', 'Unknown', 'Unknown Customer', 'null', 'undefined']
+              const placeholderValues = ['N/A', 'n/a', 'N / A', 'Not Available', 'Not Provided', 'General Service', 'Unknown', 'Unknown Customer', 'null', 'undefined']
               const hasMeaningfulRequestTitle = requestTitle && !placeholderValues.includes(requestTitle.trim())
+
+              // Display title or "Not Collected" for consistent card anatomy
+              const displayRequestTitle = hasMeaningfulRequestTitle ? requestTitle : 'Not Collected'
 
               // Get canonical status style for card surface
               const normalizedStatus = normalizeCustomerStatus(lead.status)
@@ -437,11 +440,9 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                       <p className="text-sm font-medium text-slate-900 dark:text-foreground truncate mb-0.5">
                         {displayName}
                       </p>
-                      {hasMeaningfulRequestTitle && (
-                        <p className="text-xs text-slate-700 dark:text-slate-400 truncate mb-0.5">
-                          {requestTitle}
-                        </p>
-                      )}
+                      <p className={`text-xs truncate mb-0.5 ${displayRequestTitle === 'Not Collected' ? 'text-slate-500 dark:text-slate-500 italic' : 'text-slate-700 dark:text-slate-400'}`}>
+                        {displayRequestTitle}
+                      </p>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${statusDisplay.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : statusDisplay.color === 'green' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : statusDisplay.color === 'amber' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
                           {statusDisplay.text}
