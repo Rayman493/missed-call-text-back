@@ -2,7 +2,7 @@
  * Tests for QuickTapToPayModal one-tap flow
  * 
  * Tests:
- * - First Start Tap to Pay tap calls native orchestration once
+ * - First Tap to Pay on iPhone tap calls native orchestration once
  * - Duplicate payment-entry modal does not mount
  * - Amount and job/customer context are preserved
  * - Payment states show inline instead of second modal
@@ -63,7 +63,7 @@ describe('QuickTapToPayModal one-tap flow', () => {
     )
 
     expect(screen.getByText('Enter amount')).toBeInTheDocument()
-    expect(screen.getByText('Start Tap to Pay')).toBeInTheDocument()
+    expect(screen.getByText('Tap to Pay on iPhone')).toBeInTheDocument()
   })
 
   it('should preserve amount when starting payment', async () => {
@@ -93,7 +93,7 @@ describe('QuickTapToPayModal one-tap flow', () => {
     const amountInput = screen.getByPlaceholderText('0.00')
     fireEvent.change(amountInput, { target: { value: '10.00' } })
 
-    const startButton = screen.getByText('Start Tap to Pay')
+    const startButton = screen.getByText('Tap to Pay on iPhone')
     fireEvent.click(startButton)
 
     // Should show inline payment state, not second modal

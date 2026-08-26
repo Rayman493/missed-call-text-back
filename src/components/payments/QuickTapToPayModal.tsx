@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Smartphone, User, Briefcase, Loader2, ChevronRight, CheckCircle2, AlertCircle, XCircle, MapPin, BookOpen } from 'lucide-react'
+import { X, User, Briefcase, Loader2, ChevronRight, CheckCircle2, AlertCircle, XCircle, MapPin, BookOpen } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { TerminalBridgeService } from '@/lib/terminal/service'
+import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 import { useTapToPayOrchestration } from '@/hooks/useTapToPayOrchestration'
 import { useTapToPayReaderPresentation } from '@/hooks/useTapToPayReaderPresentation'
@@ -874,7 +875,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 bg-green-500/10 rounded-lg flex items-center justify-center select-none">
-                  <Smartphone className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                  <AppleTapToPayIcon size={14} className="text-green-600 dark:text-green-400" />
                 </div>
                 <h3 ref={titleRef} className="text-base font-semibold text-foreground select-none" tabIndex={-1}>
                   {showPaymentSetup ? 'Tap to Pay' :
@@ -966,7 +967,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                             {paymentAssociation.type !== 'quick' ? (
                               <User className="w-4.5 h-4.5 text-foreground" />
                             ) : (
-                              <Smartphone className="w-4.5 h-4.5 text-muted-foreground" />
+                              <AppleTapToPayIcon size={18} className="text-muted-foreground" />
                             )}
                           </div>
                           <div className="text-left">
@@ -1162,7 +1163,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                            <Smartphone className="w-5 h-5 text-muted-foreground" />
+                            <AppleTapToPayIcon size={20} className="text-muted-foreground" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-foreground text-sm">Quick Payment</p>
@@ -1481,7 +1482,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                   {visiblePhase === 'waiting_for_card' && (
                     <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
                       <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center animate-pulse">
-                        <Smartphone className="w-8 h-8 text-green-600 dark:text-green-400" />
+                        <AppleTapToPayIcon size={32} className="text-green-600 dark:text-green-400" />
                       </div>
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-foreground">Ready for payment</p>
@@ -1628,7 +1629,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                     disabled={amountCents <= 0 || !isAmountValid || !isNativeSupported || isPaymentInProgress || showLocationPermissionCard || showLocationServicesCard || showLocationBlockedCard}
                     className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-600 flex items-center justify-center gap-2 active:scale-95"
                   >
-                    {showLocationPermissionCard || showLocationServicesCard || showLocationBlockedCard ? 'Complete Location Setup' : isAmountBelowMinimum ? 'Minimum $0.50 Required' : 'Start Tap to Pay'}
+                    {showLocationPermissionCard || showLocationServicesCard || showLocationBlockedCard ? 'Complete Location Setup' : isAmountBelowMinimum ? 'Minimum $0.50 Required' : 'Tap to Pay on iPhone'}
                   </button>
                 </>
               ) : (
@@ -1649,7 +1650,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                         className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 active:scale-95"
                         style={{ minHeight: '44px' }}
                       >
-                        <Smartphone className="w-4 h-4" />
+                        <AppleTapToPayIcon size={16} />
                         Try Again
                       </button>
                     </>

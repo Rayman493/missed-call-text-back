@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X, CreditCard, Smartphone, Loader2, CheckCircle2, AlertCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, CreditCard, Loader2, CheckCircle2, AlertCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import TapToPayDiagnosticsPanel from '@/components/TapToPayDiagnosticsPanel'
 import { TerminalBridgeService } from '@/lib/terminal/service'
@@ -13,6 +13,7 @@ import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 import { useTapToPayReaderPresentation } from '@/hooks/useTapToPayReaderPresentation'
 import { Capacitor } from '@capacitor/core'
 import { SHOW_TAP_TO_PAY_DIAGNOSTICS } from './tapToPayUiConfig'
+import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 
 interface TapToPayModalProps {
   isOpen: boolean
@@ -1122,7 +1123,7 @@ export default function TapToPayModal({
             {/* NFC Icon with breathing animation */}
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-                <Smartphone className="w-12 h-12 text-primary" />
+                <AppleTapToPayIcon size={48} className="text-primary" />
               </div>
               <div className="absolute inset-0 rounded-full border-2 border-primary/20 motion-safe:animate-pulse" />
               <div className="absolute inset-0 rounded-full border-2 border-primary/10 motion-safe:animate-ping" style={{ animationDuration: '2s' }} />

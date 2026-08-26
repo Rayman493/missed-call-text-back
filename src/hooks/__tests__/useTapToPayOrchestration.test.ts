@@ -2,7 +2,7 @@
  * Tests for useTapToPayOrchestration hook
  * 
  * Tests for one-tap flow:
- * - First Start Tap to Pay tap calls native orchestration once
+ * - First Tap to Pay on iPhone tap calls native orchestration once
  * - Duplicate payment-entry modal does not mount
  * - Native initialization is not called twice
  * - Double-tapping does not create duplicate PaymentIntents

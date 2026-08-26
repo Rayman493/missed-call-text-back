@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { CreditCard, Copy, ExternalLink, User, X, Smartphone, AlertCircle, Info, ChevronDown, MessageSquare, Link, Filter, Edit, RefreshCw } from 'lucide-react'
+import { CreditCard, Copy, ExternalLink, User, X, AlertCircle, Info, ChevronDown, MessageSquare, Link, Filter, Edit, RefreshCw } from 'lucide-react'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
+import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { getPaymentStatusStyle } from '@/lib/payment-status'
@@ -68,7 +69,7 @@ function getPaymentMethodBadge(methodType: string | null, provider: string | nul
   if (methodType === 'card_present') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
-        <Smartphone className="h-3 w-3" />
+        <AppleTapToPayIcon size={12} className="h-3 w-3" />
         Tap to Pay
       </span>
     )
@@ -712,7 +713,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                 >
                   <div className="flex items-center gap-3.5 mb-2.5">
                     <div className="w-10 h-10 rounded-xl bg-green-500/20 dark:bg-green-500/15 ring-1 ring-inset ring-green-600/40 dark:ring-green-600/30 shadow-[0_0_20px_rgba(34,197,94,0.18)] dark:shadow-[0_0_20px_rgba(34,197,94,0.18)] flex items-center justify-center">
-                      <Smartphone className="w-5 h-5 text-green-700 dark:text-green-400" />
+                      <AppleTapToPayIcon size={20} className="text-green-700 dark:text-green-400" />
                     </div>
                     <div>
                       <h3 className="text-foreground dark:text-white font-semibold text-base sm:text-lg leading-tight">Tap to Pay</h3>
@@ -730,7 +731,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                 <div className="rounded-2xl p-4 sm:p-5 border border-slate-200/60 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/50 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.18)]">
                   <div className="flex items-center gap-3.5 mb-2.5">
                     <div className="w-10 h-10 rounded-xl bg-slate-200/60 dark:bg-slate-700/60 ring-1 ring-inset ring-slate-300/40 dark:ring-slate-600/40 flex items-center justify-center">
-                      <Smartphone className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                      <AppleTapToPayIcon size={20} className="text-slate-500 dark:text-slate-400" />
                     </div>
                     <div>
                       <h3 className="text-foreground dark:text-slate-200 font-semibold text-sm sm:text-base leading-tight">Tap to Pay</h3>
@@ -773,7 +774,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               >
                 <div className="flex items-center gap-3.5 mb-2.5">
                   <div className="w-10 h-10 rounded-xl bg-green-500/20 dark:bg-green-500/15 ring-1 ring-inset ring-green-600/40 dark:ring-green-600/30 flex items-center justify-center">
-                    <Smartphone className="w-5 h-5 text-green-700 dark:text-green-400" />
+                    <AppleTapToPayIcon size={20} className="text-green-700 dark:text-green-400" />
                   </div>
                   <div>
                     <h3 className="text-foreground dark:text-white font-semibold text-sm sm:text-base leading-tight">Tap to Pay</h3>

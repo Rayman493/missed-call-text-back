@@ -89,5 +89,12 @@ class CustomBridgeViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(stripeConnectPlugin)
         print("[STRIPE CONNECT] plugin_registered=true")
         print("[STRIPE CONNECT] plugin_initialized=true")
+
+        // Register SF Symbol renderer plugin for Apple HIG compliance
+        // This provides access to UIImage(systemName:) for genuine SF Symbols
+        let sfSymbolPlugin = SFSymbolRendererPlugin()
+        bridge?.registerPluginInstance(sfSymbolPlugin)
+        print("[SF SYMBOL] plugin_registered=true")
+        print("[SF SYMBOL] plugin_initialized=true")
     }
 }
