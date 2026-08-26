@@ -256,6 +256,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   const [showAllMode, setShowAllMode] = useState(true)
   const [previousDateKey, setPreviousDateKey] = useState<string | null>(null)
   const [lastAutoFitDateKey, setLastAutoFitDateKey] = useState<string | null>(null) // Track when we last auto-fitted to prevent repeated fits
+  const initialFramingPendingRef = useRef(false) // Track if initial framing is pending for current date (markers still hydrating)
+  const expectedMarkerCountRef = useRef<number>(0) // Expected marker count to detect complete hydration
   const [leadCache, setLeadCache] = useState<Map<string, { name: string | null; phone: string | null }>>(new Map()) // Cache for lead data to avoid N+1 queries
 
   // Derive selectedListItem from selectedMapItemId and mapItems (prevents stale object risk)
@@ -1479,6 +1481,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         logCameraState('dragend', 'user_drag_end')
         userIsDraggingRef.current = false
         cameraOwnerRef.current = CameraOwner.USER_OWNED
+        // User has taken manual control - cancel pending initial framing
+        initialFramingPendingRef.current = false
       })
 
       // Track manual zoom as user ownership
@@ -1486,6 +1490,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         // Only treat as user interaction if not currently in programmatic move
         if (!programmaticCameraChangeRef.current && cameraOwnerRef.current !== CameraOwner.DRAGGING) {
           cameraOwnerRef.current = CameraOwner.USER_OWNED
+          // User has taken manual control - cancel pending initial framing
+          initialFramingPendingRef.current = false
         }
       })
 
@@ -1938,6 +1944,33 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     // Only reset if viewport wasn't restored (restored viewport already handled ownership)
     if (dateChanged && !viewportRestoredRef.current) {
       cameraOwnerRef.current = CameraOwner.INITIALIZING
+
+      // Calculate expected marker count: filtered jobs + filtered events + business (if geocoded)
+      const { filteredJobs, filteredEvents } = getItemsForDate()
+      const expectedCount = filteredJobs.length + filteredEvents.length + (businessCoordsCacheRef.current ? 1 : 0)
+      expectedMarkerCountRef.current = expectedCount
+
+      // If expected marker count is zero, we know this is a zero-marker date
+      // (source data is complete and has no stops/business)
+      // Clear initial framing pending immediately without issuing a camera command
+      if (expectedCount === 0) {
+        initialFramingPendingRef.current = false
+      } else {
+        initialFramingPendingRef.current = true
+      }
+    }
+
+    // Update expected marker count if business geocoding completes mid-date
+    // (businessCoordsCacheRef changes from null to having coordinates)
+    const { filteredJobs, filteredEvents } = getItemsForDate()
+    const expectedCount = filteredJobs.length + filteredEvents.length + (businessCoordsCacheRef.current ? 1 : 0)
+    if (expectedCount > expectedMarkerCountRef.current) {
+      expectedMarkerCountRef.current = expectedCount
+      // If we were in a zero-stop state and business just arrived, we need to refit
+      // Set initialFramingPending to true to allow the business marker to be framed
+      if (markersRef.current.size > 0) {
+        initialFramingPendingRef.current = true
+      }
     }
 
     // Track filter changes (do NOT reset camera ownership)
@@ -1954,7 +1987,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       cameraOwner: cameraOwnerRef.current,
       dateChanged,
       signatureChanged,
-      lastAutoFitDateKey
+      lastAutoFitDateKey,
+      initialFramingPending: initialFramingPendingRef.current
     })
 
     // If no markers, keep camera at fallback
@@ -1972,10 +2006,13 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     } else if (showAllMode && (dateChanged || signatureChanged)) {
       // Auto-fit should happen when:
       // - Date changes (new context, camera ownership already reset to INITIALIZING)
-      // - Signature changes AND camera is not USER_OWNED and not DRAGGING
+      // - Signature changes AND (camera is not USER_OWNED AND not DRAGGING OR initial framing is still pending)
       // Filter changes do NOT trigger auto-fit (preserve user viewport)
       // Note: Business geocoding no longer blocks auto-fit - business marker can arrive asynchronously
-      const shouldAutoFit = dateChanged || (signatureChanged && cameraOwnerRef.current !== CameraOwner.USER_OWNED && cameraOwnerRef.current !== CameraOwner.DRAGGING)
+      const shouldAutoFit = dateChanged || (signatureChanged && (
+        (cameraOwnerRef.current !== CameraOwner.USER_OWNED && cameraOwnerRef.current !== CameraOwner.DRAGGING) ||
+        initialFramingPendingRef.current
+      ))
 
       console.log('[SCHEDULE_MAP_EFFECT]', {
         effect: 'auto_fit_decision',
@@ -1986,12 +2023,23 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         cameraOwner: cameraOwnerRef.current,
         businessGeocodingInProgress: businessGeocodingInProgressRef.current,
         lastAutoFitDateKey,
-        currentDateKey
+        currentDateKey,
+        initialFramingPending: initialFramingPendingRef.current
       })
 
       if (shouldAutoFit) {
         markerSetSignatureRef.current = signature
         setLastAutoFitDateKey(currentDateKey)
+
+        // Only clear initialFramingPending when marker hydration is complete
+        // (actual marker count matches expected count)
+        const actualMarkerCount = markersRef.current.size
+        const expectedCount = expectedMarkerCountRef.current
+        const hydrationComplete = actualMarkerCount >= expectedCount && expectedCount > 0
+
+        if (hydrationComplete) {
+          initialFramingPendingRef.current = false
+        }
 
         // Build viewport marker set: business + valid scheduled markers for selected day
         // This ensures the business location is always shown as a reference point
@@ -2596,18 +2644,6 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         
         {/* Map Controls Stack */}
         <div className="flex absolute top-3 right-3 z-10 flex-col gap-2">
-          {/* Recenter Button - visible when user has moved away from auto-fit */}
-          {cameraOwnerRef.current === CameraOwner.USER_OWNED && markersRef.current.size > 0 && (
-            <button
-              onClick={recenterMap}
-              className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center backdrop-blur-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-              title="Recenter to show all stops"
-              aria-label="Recenter map"
-            >
-              <Crosshair className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-            </button>
-          )}
-
           {/* Map Type Toggle - Desktop only */}
           <div className="flex bg-white/95 dark:bg-slate-800/95 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700/60 overflow-hidden backdrop-blur-sm">
             <button
@@ -2631,11 +2667,23 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
               Satellite
             </button>
           </div>
+
+          {/* Recenter Button - visible when user has moved away from auto-fit */}
+          {cameraOwnerRef.current === CameraOwner.USER_OWNED && markersRef.current.size > 0 && (
+            <button
+              onClick={recenterMap}
+              className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center backdrop-blur-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+              title="Recenter to show all stops"
+              aria-label="Recenter map"
+            >
+              <Crosshair className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+            </button>
+          )}
         </div>
         
         {/* Selected Item Info Card */}
         {selectedItem && (
-          <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-20">
+          <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-6 md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-20">
             {/* Mobile: Compact row layout */}
             <div className="md:hidden">
               {/* Row 1: Stop info + summary + close */}
