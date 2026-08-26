@@ -751,10 +751,29 @@ export default function SchedulePage() {
     return events.filter(event => {
       const eventDateRaw = event.start?.dateTime || event.start?.date
       if (!eventDateRaw) return false
-      const eventDayKey = eventDateRaw.includes('T')
+
+      const eventStartDayKey = eventDateRaw.includes('T')
         ? eventDateRaw.split('T')[0]
         : eventDateRaw
-      return eventDayKey === dayKey
+
+      const eventEndRaw = event.end?.dateTime || event.end?.date
+      if (eventEndRaw) {
+        const eventEndDayKey = eventEndRaw.includes('T')
+          ? eventEndRaw.split('T')[0]
+          : eventEndRaw
+
+        const isAllDay = !event.start?.dateTime && !!event.start?.date
+        const effectiveEndDate = isAllDay
+          ? new Date(eventEndDayKey).getTime() - 86400000
+          : new Date(eventEndDayKey).getTime()
+
+        const dayTimestamp = new Date(dayKey).getTime()
+        const startTimestamp = new Date(eventStartDayKey).getTime()
+
+        return dayTimestamp >= startTimestamp && dayTimestamp <= effectiveEndDate
+      }
+
+      return eventStartDayKey === dayKey
     })
   }
 
