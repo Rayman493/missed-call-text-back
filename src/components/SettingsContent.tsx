@@ -574,7 +574,7 @@ export default function SettingsContent() {
 
   // Google Calendar integration state
   const [calendarConnected, setCalendarConnected] = useState(false)
-  const [isLoadingCalendar, setIsLoadingCalendar] = useState(false)
+  const [isLoadingCalendar, setIsLoadingCalendar] = useState(true) // Start loading to prevent initial Connect flash
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false)
   const [isDisconnectingCalendar, setIsDisconnectingCalendar] = useState(false)
   const [calendarEmail, setCalendarEmail] = useState<string | null>(null)
@@ -1384,7 +1384,10 @@ export default function SettingsContent() {
 
   // Google Calendar handlers
   const fetchCalendarStatus = useCallback(async (): Promise<{ connected: boolean }> => {
-    if (!business || !user) return { connected: false }
+    if (!business || !user) {
+      setIsLoadingCalendar(false)
+      return { connected: false }
+    }
 
     setIsLoadingCalendar(true)
     try {
@@ -1393,6 +1396,7 @@ export default function SettingsContent() {
 
       if (!token) {
         setCalendarConnected(false)
+        setIsLoadingCalendar(false)
         return { connected: false }
       }
 
@@ -1405,12 +1409,15 @@ export default function SettingsContent() {
       if (!response.ok) {
         if (response.status === 401) {
           setCalendarConnected(false)
+          setIsLoadingCalendar(false)
           return { connected: false }
         }
         throw new Error('Failed to fetch calendar status')
       }
 
       const data = await response.json()
+      // Only update state when we have an authoritative response
+      // Preserve last known state on errors to avoid UI flicker
       setCalendarConnected(data.connected || false)
       setCalendarEmail(data.calendarEmail || null)
       if (data.connectedAt) {
@@ -1420,7 +1427,9 @@ export default function SettingsContent() {
       return { connected: data.connected || false }
     } catch (error) {
       console.error('[Settings] Error fetching calendar status:', error)
-      setCalendarConnected(false)
+      // Preserve last known connected state on transient errors
+      // Only set to false if we have definitive evidence of disconnection from API response
+      // This prevents Disconnect button flicker during network errors or BusinessContext refreshes
       return { connected: false }
     } finally {
       setIsLoadingCalendar(false)
