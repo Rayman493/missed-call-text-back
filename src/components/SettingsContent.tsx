@@ -12,6 +12,7 @@ import SettingsActionBar from '@/components/SettingsActionBar'
 import Toast, { ToastContainer } from '@/components/Toast'
 import PasswordInput from '@/components/PasswordInput'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import AppBackButton from '@/components/AppBackButton'
 import { useSettingsFormState } from '@/hooks/useSettingsFormState'
 import { useTapToPayAwareness } from '@/hooks/useTapToPayAwareness'
 import { useTapToPayReaderPresentation } from '@/hooks/useTapToPayReaderPresentation'
@@ -2658,14 +2659,15 @@ export default function SettingsContent() {
 
             {/* Page Header - normal flow */}
             <div className="pt-8 pb-6">
-              <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-3 mb-1">
+                <AppBackButton fallbackHref="/dashboard" />
                 <h1 className="text-3xl font-bold text-foreground tracking-tight">
                   Settings
                 </h1>
-                <p className="text-base text-muted-foreground leading-relaxed">
-                  Manage your business settings, integrations, and preferences.
-                </p>
               </div>
+              <p className="text-base text-muted-foreground leading-relaxed">
+                Manage your business settings, integrations, and preferences.
+              </p>
             </div>
 
             {/* Settings Navigation Tabs - sticky only */}
