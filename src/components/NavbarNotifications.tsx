@@ -449,7 +449,7 @@ export default function NavbarNotifications() {
                                 onMouseDown={handleMouseDown}
                                 onMouseMove={handleMouseMove}
                                 onMouseUp={() => handleMouseUp(notification)}
-                                className={`flex items-start gap-3 py-3 px-3 sm:px-4 rounded-xl transition-all duration-200 cursor-pointer group relative ${!notification.read ? 'bg-blue-500/5 dark:bg-blue-500/10 hover:bg-blue-500/10 dark:hover:bg-blue-500/15' : 'hover:bg-muted'} ${!isLast ? 'border-b border-border/40 ml-3 sm:ml-4' : ''}`}
+                                className={`flex items-start gap-3 py-3 px-3 sm:px-4 rounded-xl transition-all duration-200 cursor-pointer group relative ml-3 sm:ml-4 ${!notification.read ? 'bg-blue-500/5 dark:bg-blue-500/10 hover:bg-blue-500/10 dark:hover:bg-blue-500/15' : 'hover:bg-muted'} ${!isLast ? 'border-b border-border/40' : ''}`}
                               >
                                 {/* Icon */}
                                 <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${getNotificationColor(notification.type)} flex items-center justify-center ring-1 ring-black/5 dark:ring-white/5 group-hover:ring-black/10 dark:group-hover:ring-white/10 transition-all`}>
