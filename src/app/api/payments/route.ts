@@ -47,7 +47,12 @@ export async function GET(request: Request) {
         leads:lead_id (
           id,
           caller_phone,
-          raw_metadata
+          raw_metadata,
+          ai_call_records (
+            id,
+            created_at,
+            extracted_info
+          )
         ),
         jobs:job_id (
           id,

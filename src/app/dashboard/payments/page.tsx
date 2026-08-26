@@ -45,6 +45,11 @@ interface PaymentRequest {
     id: string
     caller_phone: string
     raw_metadata: any
+    ai_call_records?: Array<{
+      id: string
+      created_at: string
+      extracted_info: any
+    }>
   } | null
   jobs: {
     id: string
