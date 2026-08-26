@@ -3773,7 +3773,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Customer Identity Header - Distinct from global navigation */}
       <div className="flex-shrink-0 border-y border-border/35 dark:border-slate-700/35">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 md:py-4">
           {/* Mobile Layout: Compact Information Header */}
           <div className="md:hidden">
             <div className="flex items-center gap-2">
@@ -3811,7 +3811,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     const statusStyle = getCustomerStatusStyle(normalizedStatus)
                     return rawStatus && (
                       <span
-                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium border whitespace-nowrap flex-shrink-0 ${statusStyle.badgeClass}`}
+                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium border whitespace-nowrap flex-shrink-0 ${statusStyle.badgeClass}`}
                       >
                         {statusStyle.label}
                       </span>
@@ -3821,7 +3821,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     const customerSourceInfo = getCustomerSourceInfo(leadData?.source || lead?.source)
                     return customerSourceInfo && (
                       <span
-                        className="inline-flex items-center gap-1 px-1 py-0.5 rounded-full text-[9px] font-medium border whitespace-nowrap flex-shrink-0"
+                        className="inline-flex items-center gap-1 px-1 py-0.5 rounded-full text-[10px] font-medium border whitespace-nowrap flex-shrink-0"
                         title={customerSourceInfo.description}
                         style={{
                           backgroundColor: customerSourceInfo.type === 'replyflow' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(100, 116, 139, 0.1)',
@@ -4101,7 +4101,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Primary Action Bar - Desktop Only */}
-          <div className="hidden md:block border-b border-border/20 bg-muted/10 dark:bg-slate-900/30">
+          <div className="hidden md:block">
             <div className="max-w-7xl mx-auto px-6 lg:px-8 py-3">
               <div className="flex items-center gap-2">
                 <button
