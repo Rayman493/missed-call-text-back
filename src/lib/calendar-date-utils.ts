@@ -40,6 +40,65 @@ export function formatTime12Hour(timeStr: string | null): string {
 }
 
 /**
+ * Formats a calendar event's time range for display.
+ * Handles all-day events, missing end times, and malformed data defensively.
+ *
+ * @param startDateTime - Start dateTime string (ISO format) or null
+ * @param endDateTime - End dateTime string (ISO format) or null
+ * @param startDate - Start date string (for all-day events) or null
+ * @returns Formatted time range (e.g., "7:00 PM – 8:00 PM", "7:00 PM", "All day")
+ */
+export function formatEventTimeRange(
+  startDateTime: string | null | undefined,
+  endDateTime: string | null | undefined,
+  startDate: string | null | undefined
+): string {
+  // Handle all-day events
+  if (startDate && !startDateTime) {
+    return 'All day'
+  }
+
+  // If no start time, return empty
+  if (!startDateTime) {
+    return ''
+  }
+
+  // Parse start time
+  const startDateObj = new Date(startDateTime)
+  if (isNaN(startDateObj.getTime())) {
+    return '' // Malformed start time
+  }
+
+  // Format start time
+  const startTimeStr = startDateObj.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  })
+
+  // If no end time, return start time only
+  if (!endDateTime) {
+    return startTimeStr
+  }
+
+  // Parse end time
+  const endDateObj = new Date(endDateTime)
+  if (isNaN(endDateObj.getTime())) {
+    return startTimeStr // Malformed end time, return start only
+  }
+
+  // Format end time
+  const endTimeStr = endDateObj.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  })
+
+  // Return time range
+  return `${startTimeStr} – ${endTimeStr}`
+}
+
+/**
  * Filters calendar events to only those in the specified month (local timezone).
  *
  * @param events - Array of calendar events

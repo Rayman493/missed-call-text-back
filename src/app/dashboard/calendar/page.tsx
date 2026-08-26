@@ -36,6 +36,7 @@ import TasksTab from '@/components/schedule/TasksTab'
 import type { Job, JobStatus, JobPrefill } from '@/components/jobs/JobComposer'
 import { openOAuthFlow } from '@/capacitor/oauth'
 import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
+import { formatEventTimeRange } from '@/lib/calendar-date-utils'
 
 interface CalendarEvent {
   id: string
@@ -115,7 +116,7 @@ function MeetingsTab({
     if (!d) return ''
     const date = new Date(d)
     const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-    const timeStr = ev.start.date ? '' : date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    const timeStr = formatEventTimeRange(ev.start.dateTime, ev.end.dateTime, ev.start.date)
     return ev.start.date ? dateStr : `${dateStr} • ${timeStr}`
   }
 

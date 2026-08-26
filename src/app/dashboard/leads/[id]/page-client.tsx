@@ -36,6 +36,7 @@ import { CustomerStatus, normalizeCustomerStatus, getCustomerStatusStyle } from 
 import { formatJobStatus, formatPaymentStatus } from '@/lib/status-formatter'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
 import { isProviderAvailable, getAvailableProviders, PaymentProvider } from '@/lib/payment-links'
+import { formatEventTimeRange } from '@/lib/calendar-date-utils'
 import Link from 'next/link'
 import { Lead, Message, Conversation } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -3268,8 +3269,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       let timeStr = ''
                       if (isAllDay) {
                         timeStr = 'All day'
-                      } else if (event.start?.dateTime) {
-                        timeStr = new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                      } else {
+                        timeStr = formatEventTimeRange(event.start?.dateTime, event.end?.dateTime, event.start?.date)
                       }
                       const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                       return (
@@ -4991,8 +4992,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       let timeStr = ''
                       if (isAllDay) {
                         timeStr = 'All day'
-                      } else if (event.start?.dateTime) {
-                        timeStr = new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                      } else {
+                        timeStr = formatEventTimeRange(event.start?.dateTime, event.end?.dateTime, event.start?.date)
                       }
                       const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                       return (

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getLocalDateKey, getTodayLocalDateKey, formatTime12Hour } from './calendar-date-utils'
+import { getLocalDateKey, getTodayLocalDateKey, formatTime12Hour, formatEventTimeRange } from './calendar-date-utils'
 
 describe('getLocalDateKey', () => {
   it('should return YYYY-MM-DD format', () => {
@@ -112,5 +112,79 @@ describe('formatTime12Hour', () => {
 
   it('should handle single-digit minutes correctly', () => {
     expect(formatTime12Hour('09:05:00')).toBe('9:05 AM')
+  })
+})
+
+describe('formatEventTimeRange', () => {
+  it('should format 7:00 PM – 8:00 PM range correctly', () => {
+    const start = '2024-01-15T19:00:00'
+    const end = '2024-01-15T20:00:00'
+    expect(formatEventTimeRange(start, end, null)).toBe('7:00 PM – 8:00 PM')
+  })
+
+  it('should preserve minutes in 7:30 PM – 8:45 PM range', () => {
+    const start = '2024-01-15T19:30:00'
+    const end = '2024-01-15T20:45:00'
+    expect(formatEventTimeRange(start, end, null)).toBe('7:30 PM – 8:45 PM')
+  })
+
+  it('should return start time only when end time is missing', () => {
+    const start = '2024-01-15T19:00:00'
+    expect(formatEventTimeRange(start, null, null)).toBe('7:00 PM')
+  })
+
+  it('should return start time only when end time is malformed', () => {
+    const start = '2024-01-15T19:00:00'
+    const end = 'invalid-date'
+    expect(formatEventTimeRange(start, end, null)).toBe('7:00 PM')
+  })
+
+  it('should return start time only when end time is null', () => {
+    const start = '2024-01-15T19:00:00'
+    expect(formatEventTimeRange(start, null, null)).toBe('7:00 PM')
+  })
+
+  it('should return empty string when start time is missing', () => {
+    expect(formatEventTimeRange(null, null, null)).toBe('')
+  })
+
+  it('should return empty string when start time is malformed', () => {
+    expect(formatEventTimeRange('invalid-date', '2024-01-15T20:00:00', null)).toBe('')
+  })
+
+  it('should return "All day" for all-day events', () => {
+    expect(formatEventTimeRange(null, null, '2024-01-15')).toBe('All day')
+  })
+
+  it('should handle noon correctly (12:00 PM)', () => {
+    const start = '2024-01-15T12:00:00'
+    const end = '2024-01-15T13:00:00'
+    expect(formatEventTimeRange(start, end, null)).toBe('12:00 PM – 1:00 PM')
+  })
+
+  it('should handle midnight correctly (12:00 AM)', () => {
+    const start = '2024-01-15T00:00:00'
+    const end = '2024-01-15T01:00:00'
+    expect(formatEventTimeRange(start, end, null)).toBe('12:00 AM – 1:00 AM')
+  })
+
+  it('should handle cross-midnight range', () => {
+    const start = '2024-01-15T23:00:00'
+    const end = '2024-01-16T01:00:00'
+    expect(formatEventTimeRange(start, end, null)).toBe('11:00 PM – 1:00 AM')
+  })
+
+  it('should handle undefined start time', () => {
+    expect(formatEventTimeRange(undefined, '2024-01-15T20:00:00', null)).toBe('')
+  })
+
+  it('should handle undefined end time', () => {
+    const start = '2024-01-15T19:00:00'
+    expect(formatEventTimeRange(start, undefined, null)).toBe('7:00 PM')
+  })
+
+  it('should handle undefined start date for all-day check', () => {
+    const start = '2024-01-15T19:00:00'
+    expect(formatEventTimeRange(start, null, undefined)).toBe('7:00 PM')
   })
 })
