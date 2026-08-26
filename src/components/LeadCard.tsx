@@ -202,14 +202,12 @@ export default function LeadCard({
 
         {/* Compact Preview */}
         <div className="mb-1 sm:mb-2 space-y-0.5 sm:space-y-1">
-          {requestTitle && (
-            <div>
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider mb-1 font-medium hidden sm:block">Latest Request</p>
-              <p className="line-clamp-1 text-xs sm:text-sm font-semibold text-foreground leading-relaxed">
-                {requestTitle}
-              </p>
-            </div>
-          )}
+          <div>
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider mb-1 font-medium hidden sm:block">Latest Request</p>
+            <p className={`line-clamp-1 text-xs sm:text-sm font-semibold leading-relaxed ${requestTitle ? 'text-foreground' : 'text-slate-500 dark:text-slate-500 italic'}`}>
+              {requestTitle || 'Not Collected'}
+            </p>
+          </div>
           {aiData.urgency && (
             <p className={`text-[11px] sm:text-xs font-medium ${
               aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
