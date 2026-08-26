@@ -261,6 +261,10 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
     return getLeadDisplayName(lead)
   }
 
+  // Early return if modal is closed to prevent rendering
+  // Must be after all hooks to satisfy React's Rules of Hooks
+  if (!isOpen) return null
+
   return (
     <>
       <div
