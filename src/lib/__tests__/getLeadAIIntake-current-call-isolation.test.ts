@@ -406,4 +406,145 @@ describe('getLeadAIIntake Current-Call Isolation', () => {
       expect(title).not.toBe('Plumbing')
     })
   })
+
+  describe('Most recent call record selection', () => {
+    it('two call records out of order → selects newest by created_at', () => {
+      const lead = {
+        id: 'lead-1',
+        name: 'Alex Johnson',
+        raw_metadata: {},
+        aiCallRecords: [
+          {
+            id: 'call-2',
+            call_sid: 'CA456',
+            created_at: '2024-02-01T10:00:00Z', // Newer
+            extracted_info: {
+              reasonForCalling: 'Lawn Mowing',
+              callerName: 'Alex',
+              importantDetails: 'half-acre yard'
+            }
+          },
+          {
+            id: 'call-1',
+            call_sid: 'CA123',
+            created_at: '2024-01-01T10:00:00Z', // Older
+            extracted_info: {
+              reasonForCalling: 'Plumbing',
+              callerName: 'Alex',
+              importantDetails: 'kitchen sink leak'
+            }
+          }
+        ]
+      }
+
+      const intake = getLeadAIIntake(lead)
+
+      // Should select the newer record (Lawn Mowing)
+      expect(intake.serviceRequested).toBe('Lawn Mowing')
+      expect(intake.additionalDetails?.toLowerCase()).toContain('half-acre yard')
+    })
+
+    it('two call records in correct order → still selects newest', () => {
+      const lead = {
+        id: 'lead-1',
+        name: 'Alex Johnson',
+        raw_metadata: {},
+        aiCallRecords: [
+          {
+            id: 'call-1',
+            call_sid: 'CA123',
+            created_at: '2024-01-01T10:00:00Z', // Older
+            extracted_info: {
+              reasonForCalling: 'Plumbing',
+              callerName: 'Alex',
+              importantDetails: 'kitchen sink leak'
+            }
+          },
+          {
+            id: 'call-2',
+            call_sid: 'CA456',
+            created_at: '2024-02-01T10:00:00Z', // Newer
+            extracted_info: {
+              reasonForCalling: 'Lawn Mowing',
+              callerName: 'Alex',
+              importantDetails: 'half-acre yard'
+            }
+          }
+        ]
+      }
+
+      const intake = getLeadAIIntake(lead)
+
+      // Should still select the newer record (Lawn Mowing)
+      expect(intake.serviceRequested).toBe('Lawn Mowing')
+    })
+
+    it('single call record → selects that record', () => {
+      const lead = {
+        id: 'lead-1',
+        name: 'Alex Johnson',
+        raw_metadata: {},
+        aiCallRecords: [{
+          id: 'call-1',
+          call_sid: 'CA123',
+          created_at: '2024-01-01T10:00:00Z',
+          extracted_info: {
+            reasonForCalling: 'Plumbing',
+            callerName: 'Alex',
+            importantDetails: 'kitchen sink leak'
+          }
+        }]
+      }
+
+      const intake = getLeadAIIntake(lead)
+
+      expect(intake.serviceRequested).toBe('Plumbing')
+    })
+
+    it('no call records → returns "Not collected" for intake fields', () => {
+      const lead = {
+        id: 'lead-1',
+        name: 'Alex Johnson',
+        raw_metadata: {},
+        aiCallRecords: []
+      }
+
+      const intake = getLeadAIIntake(lead)
+
+      // When no call records exist, normalizeExtractedInfo returns "Not collected" for missing fields
+      expect(intake.serviceRequested).toBe('Not collected')
+      expect(intake.customerName).toBe('Alex Johnson') // Falls back to lead profile
+    })
+
+    it('equal timestamps → deterministic selection (first in array)', () => {
+      const lead = {
+        id: 'lead-1',
+        name: 'Alex Johnson',
+        raw_metadata: {},
+        aiCallRecords: [
+          {
+            id: 'call-1',
+            call_sid: 'CA123',
+            created_at: '2024-01-01T10:00:00Z', // Same time
+            extracted_info: {
+              reasonForCalling: 'Plumbing'
+            }
+          },
+          {
+            id: 'call-2',
+            call_sid: 'CA456',
+            created_at: '2024-01-01T10:00:00Z', // Same time
+            extracted_info: {
+              reasonForCalling: 'Lawn Mowing'
+            }
+          }
+        ]
+      }
+
+      const intake = getLeadAIIntake(lead)
+
+      // When timestamps are equal, sort is stable so first wins
+      expect(intake.serviceRequested).toBe('Plumbing')
+    })
+  })
 })

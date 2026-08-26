@@ -330,9 +330,16 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
   const rawMetadata = lead?.raw_metadata || {}
 
   // Extracted info from CURRENT ai_call_record only - NO historical fallback
+  // Sort by created_at descending to get the most recent call record
+  const sortedAiCallRecords = [...(lead?.aiCallRecords || lead?.ai_call_records || [])]
+    .sort((a: any, b: any) => {
+      const aTime = new Date(a?.created_at || 0).getTime()
+      const bTime = new Date(b?.created_at || 0).getTime()
+      return bTime - aTime // Descending order (newest first)
+    })
+
   const extractedInfoRaw =
-    lead?.aiCallRecords?.[0]?.extracted_info ||
-    lead?.ai_call_records?.[0]?.extracted_info ||
+    sortedAiCallRecords[0]?.extracted_info ||
     {}
 
   const normalized = normalizeExtractedInfo(extractedInfoRaw)
