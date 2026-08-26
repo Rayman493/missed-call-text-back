@@ -457,7 +457,7 @@ export default function NavbarNotifications() {
                                 </div>
 
                                 {/* Content */}
-                                <div className="flex-1 min-w-0 pt-0.5">
+                                <div className="flex-1 min-w-0">
                                   {/* Title */}
                                   <p className="text-sm font-semibold text-foreground mb-1 leading-tight tracking-tight">
                                     {notification.title || 'Notification'}

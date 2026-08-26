@@ -284,7 +284,7 @@ export default function NotificationsPage() {
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 min-w-0 pt-0.5">
+                  <div className="flex-1 min-w-0">
                     {/* Title with timestamp */}
                     <div className="flex items-start justify-between mb-1">
                       <h3 className={`font-semibold text-foreground leading-tight tracking-tight ${notification.read ? 'text-muted-foreground' : ''}`}>
