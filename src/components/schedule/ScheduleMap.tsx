@@ -6,10 +6,20 @@ import Link from 'next/link'
 import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import { isValidCoordinate } from '@/lib/map-utils'
-import { formatEventTimeRange } from '@/lib/calendar-date-utils'
+import { formatEventTimeRange, formatTime12Hour } from '@/lib/calendar-date-utils'
 import { createBrowserClient } from '@/lib/supabase/browser'
 
 const supabase = createBrowserClient()
+
+// Helper to format time range from HH:MM format strings
+function formatTimeRangeHHMM(startTime: string | null, endTime: string | null): string {
+  const formattedStart = formatTime12Hour(startTime)
+  if (!endTime) {
+    return formattedStart
+  }
+  const formattedEnd = formatTime12Hour(endTime)
+  return `${formattedStart} – ${formattedEnd}`
+}
 
 // Check if Google Maps API is fully initialized
 function isGoogleMapsReady(): boolean {
@@ -2329,7 +2339,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   const firstStop = customerDestinations[0]
   const lastStop = customerDestinations[customerDestinations.length - 1]
   const routeSummary = mappedStopsCount > 0
-    ? `${mappedStopsCount} stop${mappedStopsCount > 1 ? 's' : ''}${firstStop?.scheduledTime && lastStop?.scheduledTime ? ` · ${formatTime(firstStop.scheduledTime)} – ${formatTime(lastStop.scheduledTime)}` : ''}`
+    ? `${mappedStopsCount} stop${mappedStopsCount > 1 ? 's' : ''}${firstStop?.scheduledTime && lastStop?.scheduledTime ? ` · ${formatTime12Hour(firstStop.scheduledTime)} – ${formatTime12Hour(lastStop.scheduledTime)}` : ''}`
     : 'No mapped stops'
 
   return (
@@ -2606,7 +2616,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                 onClick={() => selectMapItem(item.id, item.latitude, item.longitude)}
                 className={`flex-shrink-0 snap-start px-2 md:px-3 py-2 rounded-lg border transition-colors min-w-[120px] md:min-w-[140px] max-w-[160px] ${
                   selectedMapItemId === item.id
-                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 ring-2 ring-green-300 dark:ring-green-700'
+                    ? 'bg-blue-50 dark:bg-blue-900/25 border-blue-300 dark:border-blue-700 ring-2 ring-blue-200 dark:ring-blue-800/50 shadow-sm'
                     : item.type === 'business'
                       ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/30'
                       : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'
@@ -2637,7 +2647,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                     ) : (
                       <>
                         <p className="text-[10px] md:text-xs font-medium text-foreground truncate">
-                          {item.scheduledTime ? formatTime(item.scheduledTime) : 'No time'}
+                          {item.scheduledTime ? formatTime12Hour(item.scheduledTime) : 'No time'}
                         </p>
                         <p className="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 truncate">
                           {item.customerName || 'No customer'}
@@ -2682,8 +2692,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
             </button>
           </div>
 
-          {/* Recenter Button - visible when user has moved away from auto-fit */}
-          {cameraOwnerRef.current === CameraOwner.USER_OWNED && markersRef.current.size > 0 && (
+          {/* Recenter Button - visible when markers exist and not initializing */}
+          {cameraOwnerRef.current !== CameraOwner.INITIALIZING && markersRef.current.size > 0 && (
             <button
               onClick={recenterMap}
               className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center backdrop-blur-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
@@ -2697,7 +2707,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         
         {/* Selected Item Info Card */}
         {selectedItem && (
-          <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-6 md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-20">
+          <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-6 md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-20 p-4">
             {/* Mobile: Compact row layout */}
             <div className="md:hidden">
               {/* Row 1: Stop info + summary + close */}
@@ -2710,7 +2720,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
-                    {selectedItem.type === 'business' ? 'Business' : `Stop ${selectedItem.stopNumber} · ${formatEventTimeRange(selectedItem.scheduledTime, selectedItem.scheduledEndTime, null)}`}
+                    {selectedItem.type === 'business' ? 'Business' : `Stop ${selectedItem.stopNumber} · ${formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime)}`}
                   </p>
                   <p className="text-xs font-medium text-foreground truncate">
                     {selectedItem.type === 'business' ? selectedItem.title : (selectedItem.customerName || selectedItem.title)}
@@ -2803,7 +2813,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                     ) : (
                       <>
                         <p className="text-[11px] md:text-xs font-medium text-slate-600 dark:text-slate-400">
-                          Stop {selectedItem.stopNumber} · {formatEventTimeRange(selectedItem.scheduledTime, selectedItem.scheduledEndTime, null)}
+                          Stop {selectedItem.stopNumber} · {formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime)}
                         </p>
                         <h3 className="font-semibold text-sm md:text-base text-slate-900 dark:text-foreground">{selectedItem.customerName || 'No customer'}</h3>
                       </>
@@ -2905,7 +2915,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-foreground truncate">{item.title}</p>
                       <p className="text-[10px] text-slate-500 truncate">
-                        {item.scheduledTime ? formatTime(item.scheduledTime) : 'No time'}
+                        {item.scheduledTime ? formatTime12Hour(item.scheduledTime) : 'No time'}
                       </p>
                     </div>
                   </div>
