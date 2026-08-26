@@ -7,6 +7,7 @@ import { renderSFSymbol, getSFSymbolDataUrl } from '@/lib/sf-symbol-renderer'
 export interface AppleTapToPayIconProps {
   className?: string
   size?: number
+  color?: string // Explicit hex color for iOS native rendering
 }
 
 /**
@@ -16,8 +17,12 @@ export interface AppleTapToPayIconProps {
  * On Android/Web: Renders a fallback SVG approximation
  *
  * The iOS implementation ensures Apple HIG compliance for Tap to Pay on iPhone.
+ *
+ * Color handling:
+ * - iOS: Uses native UIImage tinting with explicit color from props or theme detection
+ * - Android/Web: Uses CSS currentColor (responds to className)
  */
-export default function AppleTapToPayIcon({ className = '', size = 24 }: AppleTapToPayIconProps) {
+export default function AppleTapToPayIcon({ className = '', size = 24, color }: AppleTapToPayIconProps) {
   const [dataUrl, setDataUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const isIOS = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
@@ -33,11 +38,31 @@ export default function AppleTapToPayIcon({ className = '', size = 24 }: AppleTa
 
     const renderSymbol = async () => {
       try {
+        // Determine color for iOS native rendering
+        // If explicit color is provided, use it
+        // Otherwise, detect dark mode and use appropriate default
+        let iosColor = color
+
+        if (!iosColor) {
+          // Detect dark mode
+          const isDarkMode = document.documentElement.classList.contains('dark')
+
+          // Default colors for Tap to Pay context
+          // Light mode: dark green/gray for visibility
+          // Dark mode: white/light for visibility
+          if (isDarkMode) {
+            iosColor = '#ffffff' // White for dark mode
+          } else {
+            iosColor = '#16a34a' // Green-600 equivalent for light mode
+          }
+        }
+
         const result = await getSFSymbolDataUrl({
           symbolName: 'wave.3.right.circle',
           size: size,
           weight: 'regular',
-          scale: 'default'
+          scale: 'default',
+          tintColor: iosColor
         })
 
         if (mounted && result) {
@@ -57,7 +82,7 @@ export default function AppleTapToPayIcon({ className = '', size = 24 }: AppleTa
     return () => {
       mounted = false
     }
-  }, [isIOS, size])
+  }, [isIOS, size, color])
 
   // iOS: Use genuine SF Symbol
   if (isIOS) {
@@ -87,7 +112,7 @@ export default function AppleTapToPayIcon({ className = '', size = 24 }: AppleTa
     }
   }
 
-  // Android/Web: Fallback SVG approximation
+  // Android/Web: Fallback SVG approximation (uses currentColor from className)
   return (
     <svg
       width={size}

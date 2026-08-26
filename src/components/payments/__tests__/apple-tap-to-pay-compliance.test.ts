@@ -26,6 +26,13 @@ describe('Apple Tap to Pay Entitlement Compliance', () => {
       expect(content).toContain('symbolName')
     })
 
+    it('SFSymbolRendererPlugin should support tintColor parameter', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('ios/App/App/SFSymbolRendererPlugin.swift', 'utf8')
+      expect(content).toContain('tintColor')
+      expect(content).toContain('withTintColor')
+    })
+
     it('SFSymbolRendererPlugin should be registered in AppDelegate', () => {
       const fs = require('fs')
       const content = fs.readFileSync('ios/App/App/AppDelegate.swift', 'utf8')
@@ -52,6 +59,86 @@ describe('Apple Tap to Pay Entitlement Compliance', () => {
       expect(content).toContain('renderSFSymbol')
       expect(content).toContain('getSFSymbolDataUrl')
       expect(content).toContain('wave.3.right.circle')
+    })
+
+    it('AppleTapToPayIcon should support dark mode detection', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/icons/AppleTapToPayIcon.tsx', 'utf8')
+      expect(content).toContain('isDarkMode')
+      expect(content).toContain('document.documentElement.classList.contains')
+    })
+
+    it('AppleTapToPayIcon should use white color for dark mode on iOS', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/icons/AppleTapToPayIcon.tsx', 'utf8')
+      expect(content).toContain('#ffffff')
+    })
+  })
+
+  describe('Settings Tap to Pay Surface', () => {
+    it('SettingsContent should import AppleTapToPayIcon', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/SettingsContent.tsx', 'utf8')
+      expect(content).toContain('import AppleTapToPayIcon')
+    })
+
+    it('Settings tap-to-pay-card should use AppleTapToPayIcon', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/SettingsContent.tsx', 'utf8')
+      // Find the tap-to-pay-card div and check it uses AppleTapToPayIcon
+      expect(content).toContain('id="tap-to-pay-card"')
+      // After tap-to-pay-card, should have AppleTapToPayIcon
+      const tapToPayCardIndex = content.indexOf('id="tap-to-pay-card"')
+      const appleIconAfterCard = content.indexOf('AppleTapToPayIcon', tapToPayCardIndex)
+      expect(appleIconAfterCard).toBeGreaterThan(tapToPayCardIndex)
+    })
+
+    it('Settings tap-to-pay-card should NOT use Smartphone icon', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/SettingsContent.tsx', 'utf8')
+      const tapToPayCardIndex = content.indexOf('id="tap-to-pay-card"')
+      // Find the next 500 characters after tap-to-pay-card
+      const sectionAfterCard = content.substring(tapToPayCardIndex, tapToPayCardIndex + 500)
+      // Should not have Smartphone in this section
+      expect(sectionAfterCard).not.toContain('<Smartphone')
+    })
+  })
+
+  describe('Education and Awareness Modals', () => {
+    it('TapToPayAwarenessModal should import AppleTapToPayIcon', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/TapToPayAwarenessModal.tsx', 'utf8')
+      expect(content).toContain('import AppleTapToPayIcon')
+    })
+
+    it('TapToPayAwarenessModal should NOT import Smartphone icon', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/TapToPayAwarenessModal.tsx', 'utf8')
+      expect(content).not.toContain('Smartphone')
+    })
+
+    it('TapToPayEducationModal should import AppleTapToPayIcon', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/TapToPayEducationModal.tsx', 'utf8')
+      expect(content).toContain('import AppleTapToPayIcon')
+    })
+
+    it('TapToPayEducationModal should NOT import Smartphone icon', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/TapToPayEducationModal.tsx', 'utf8')
+      expect(content).not.toContain('Smartphone')
+    })
+
+    it('TapToPaySetupModal should import AppleTapToPayIcon', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/payments/TapToPaySetupModal.tsx', 'utf8')
+      expect(content).toContain('import AppleTapToPayIcon')
+    })
+
+    it('TapToPaySetupModal should NOT import Smartphone icon', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/payments/TapToPaySetupModal.tsx', 'utf8')
+      expect(content).not.toContain('Smartphone')
     })
   })
 

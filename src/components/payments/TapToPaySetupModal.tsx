@@ -1,8 +1,9 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Smartphone, CreditCard, CheckCircle, X } from 'lucide-react'
+import { CreditCard, CheckCircle, X } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 
 interface TapToPaySetupModalProps {
   isOpen: boolean
@@ -32,7 +33,7 @@ export default function TapToPaySetupModal({
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
-              <Smartphone className="w-4 h-4 text-green-600 dark:text-green-400" />
+              <AppleTapToPayIcon size={16} />
             </div>
             <h3 className="text-lg font-semibold text-foreground">Set up Tap to Pay</h3>
           </div>
@@ -50,7 +51,7 @@ export default function TapToPaySetupModal({
             <>
               <div className="text-center py-4">
                 <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Smartphone className="w-8 h-8 text-green-600 dark:text-green-400" />
+                  <AppleTapToPayIcon size={32} />
                 </div>
                 <h4 className="text-xl font-semibold text-foreground mb-2">Accept contactless payments</h4>
                 <p className="text-sm text-muted-foreground">
