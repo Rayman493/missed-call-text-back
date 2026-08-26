@@ -2329,23 +2329,41 @@ export const db = {
           // Block premature onboarding_status: "completed" if subscription is not active
           if (businessData.onboarding_status === 'completed') {
             // BETA/COMPED ACCESS: Allow beta and comped users to complete onboarding without Stripe
-            const subscriptionActive = existingBusiness.subscription_status === 'active' || 
+            const subscriptionActive = existingBusiness.subscription_status === 'active' ||
                                     existingBusiness.subscription_status === 'trialing' ||
                                     existingBusiness.subscription_status === 'beta' ||
                                     existingBusiness.subscription_status === 'comped'
-            
+
+            // PROVISIONING GUARD: Block onboarding completion if Twilio provisioning is not ready
+            // A functioning ReplyFlow number is required for onboarding completion
+            const provisioningReady = existingBusiness.provisioning_status === 'ready' ||
+                                     existingBusiness.provisioning_status === 'completed'
+
             if (!subscriptionActive) {
               console.log('[getOrCreateBusiness] BLOCKED premature onboarding_status completed', {
                 reason: 'Subscription is not active',
                 subscription_status: existingBusiness.subscription_status,
                 twilio_phone_number: existingBusiness.twilio_phone_number,
+                provisioning_status: existingBusiness.provisioning_status,
                 requested_onboarding_status: businessData.onboarding_status
               })
               console.log('[getOrCreateBusiness] Using safe status "started" instead')
               updates.onboarding_status = 'started'
-            } else {
-              console.log('[getOrCreateBusiness] Allowing onboarding_status completed - subscription is active', {
+            } else if (!provisioningReady) {
+              console.log('[getOrCreateBusiness] BLOCKED onboarding_status completed - Twilio provisioning not ready', {
+                reason: 'Twilio number is not ready',
                 subscription_status: existingBusiness.subscription_status,
+                provisioning_status: existingBusiness.provisioning_status,
+                twilio_phone_number: existingBusiness.twilio_phone_number,
+                twilio_phone_number_sid: existingBusiness.twilio_phone_number_sid,
+                requested_onboarding_status: businessData.onboarding_status
+              })
+              console.log('[getOrCreateBusiness] Using status "started" - Twilio provisioning must complete first')
+              updates.onboarding_status = 'started'
+            } else {
+              console.log('[getOrCreateBusiness] Allowing onboarding_status completed - subscription active and provisioning ready', {
+                subscription_status: existingBusiness.subscription_status,
+                provisioning_status: existingBusiness.provisioning_status,
                 twilio_phone_number: existingBusiness.twilio_phone_number
               })
               updates.onboarding_status = businessData.onboarding_status

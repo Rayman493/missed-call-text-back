@@ -418,6 +418,20 @@ export default function DashboardContent() {
       // Update business record to persist completion
       const persistCompletion = async () => {
         try {
+          // PROVISIONING GUARD: Only mark onboarding as completed if Twilio provisioning is ready
+          // A functioning ReplyFlow number is required for onboarding completion
+          const provisioningReady = business.provisioning_status === 'ready' || business.provisioning_status === 'completed'
+
+          if (!provisioningReady) {
+            console.warn('[SETUP AUTO COMPLETED] Blocked - Twilio provisioning not ready', {
+              businessId: business.id,
+              provisioning_status: business.provisioning_status,
+              completionReason
+            })
+            autoCompleteInProgress.current = false
+            return
+          }
+
           const supabase = createBrowserClient()
           const updateData: any = {
             forwarding_verified: true,
