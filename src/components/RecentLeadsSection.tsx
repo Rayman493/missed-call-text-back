@@ -411,6 +411,10 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               const currentJob = getCurrentJob(lead)
               const nextFollowUp = getNextFollowUp(lead)
 
+              // Filter out placeholder values from request title
+              const placeholderValues = ['N/A', 'n/a', 'N / A', 'Not Available', 'Not Provided', 'Not Collected', 'General Service', 'Unknown', 'Unknown Customer', 'null', 'undefined']
+              const hasMeaningfulRequestTitle = requestTitle && !placeholderValues.includes(requestTitle.trim())
+
               // Get canonical status style for card surface
               const normalizedStatus = normalizeCustomerStatus(lead.status)
               const statusStyle = getCustomerStatusStyle(normalizedStatus)
@@ -433,9 +437,9 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                       <p className="text-sm font-medium text-slate-900 dark:text-foreground truncate mb-0.5">
                         {displayName}
                       </p>
-                      {(isPhoneOnly ? true : !!requestTitle) && (
+                      {hasMeaningfulRequestTitle && (
                         <p className="text-xs text-slate-700 dark:text-slate-400 truncate mb-0.5">
-                          {isPhoneOnly ? 'Not Collected' : requestTitle}
+                          {requestTitle}
                         </p>
                       )}
                       <div className="flex items-center gap-1.5 flex-wrap">
