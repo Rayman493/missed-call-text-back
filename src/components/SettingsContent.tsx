@@ -3461,7 +3461,7 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Out of Office Mode */}
-                  <div id="out-of-office" className="p-3 rounded-lg border border-border/30 hover:border-border/50 transition-colors scroll-mt-24 sm:scroll-mt-20">
+                  <div id="out-of-office" className="p-3 rounded-lg border border-border/30 hover:border-border/50 transition-colors scroll-mt-28 sm:scroll-mt-24">
                     {!outOfOfficeExpanded ? (
                       // Collapsed state
                       <div className="flex items-start justify-between">
