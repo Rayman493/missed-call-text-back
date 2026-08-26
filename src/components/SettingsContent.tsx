@@ -49,6 +49,7 @@ import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate } from '@/l
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
 import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
@@ -4043,7 +4044,7 @@ export default function SettingsContent() {
                     <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
-                          <Smartphone className="h-5 w-auto text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                          <AppleTapToPayIcon size={20} className="flex-shrink-0" />
                           <span className="text-sm font-semibold text-foreground">Tap to Pay on iPhone</span>
                           {(() => {
                             const status = tapToPayAwareness.state.tapToPaySupportStatus?.status

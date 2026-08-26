@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { X, Smartphone, CreditCard } from 'lucide-react'
+import { X, CreditCard } from 'lucide-react'
+import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 
 // NOTE: Awareness copy is PROVISIONAL until Apple-approved materials are available.
 // This copy follows Apple Tap to Pay on iPhone Marketing Guide guidelines but
@@ -87,7 +88,7 @@ export function TapToPayAwarenessModal({
         {/* Icon */}
         <div className="flex justify-center mb-6">
           <div className="w-16 h-16 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-            <Smartphone className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            <AppleTapToPayIcon size={32} />
           </div>
         </div>
 
@@ -120,7 +121,7 @@ export function TapToPayAwarenessModal({
           </div>
 
           <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <AppleTapToPayIcon size={20} className="flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-gray-900 dark:text-white text-sm">Apple Pay & Digital Wallets</p>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">

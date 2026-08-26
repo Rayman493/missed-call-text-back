@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, CreditCard, Smartphone, AlertCircle, CheckCircle, HelpCircle } from 'lucide-react'
+import { X, CreditCard, AlertCircle, CheckCircle, HelpCircle } from 'lucide-react'
+import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 
 // NOTE: Education copy is PROVISIONAL pending Apple-approved materials from Tap to Pay review guide and Marketing Toolkit.
 // This copy follows Apple Tap to Pay on iPhone Marketing Guide guidelines but should be replaced with officially approved copy/assets when available.
@@ -49,7 +50,7 @@ export function TapToPayEducationModal({
             </div>
           </div>
           <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-lg">
-            <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <AppleTapToPayIcon size={20} className="flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-slate-900 dark:text-white text-sm">Digital Wallets</p>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
@@ -141,7 +142,7 @@ export function TapToPayEducationModal({
             </div>
           </div>
           <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-lg">
-            <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <AppleTapToPayIcon size={20} className="flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-slate-900 dark:text-white text-sm">Keep Your iPhone Steady</p>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
