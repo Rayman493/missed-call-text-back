@@ -17,7 +17,7 @@ import { Capacitor } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
 
 export type PendingStripeOperation = 'connect_onboarding' | 'checkout' | 'portal' | null
-export type PendingGoogleOperation = 'calendar_connect' | null
+export type PendingGoogleOperation = 'calendar_connect' | 'auth_oauth' | null
 
 const PENDING_STRIPE_OPERATION_KEY = 'pending_stripe_operation'
 const PENDING_STRIPE_OPERATION_TIMESTAMP_KEY = 'pending_stripe_operation_timestamp'
@@ -109,6 +109,42 @@ const EXTERNAL_RETURN_FLOWS: ExternalReturnFlow[] = [
         console.log('[GOOGLE CALENDAR RETURN] Clearing pending Google operation')
         await setPendingGoogleOperation(null)
       }
+    }
+  },
+  {
+    name: 'AUTH_OAUTH',
+    matcher: (url) => {
+      // Check if this is an auth callback with OAuth code
+      // Matches: /auth/callback?code=...&provider=google
+      if (url.pathname === '/auth/callback') {
+        const code = url.searchParams.get('code')
+        const provider = url.searchParams.get('provider')
+        const error = url.searchParams.get('error')
+        const errorDescription = url.searchParams.get('error_description')
+
+        // Handle OAuth errors
+        if (error) {
+          console.log('[AUTH OAUTH RETURN] OAuth error:', error, errorDescription)
+          // Store error for display
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('oauth_error', errorDescription || error)
+          }
+          return true
+        }
+
+        // Handle successful OAuth callback
+        if (code && (provider === 'google' || provider === 'apple')) {
+          console.log('[AUTH OAUTH RETURN] Recognized OAuth callback for provider:', provider)
+          return true
+        }
+      }
+      return false
+    },
+    internalDestination: '/dashboard',
+    reconcile: async () => {
+      // OAuth reconciliation is handled by the auth callback route
+      // This just ensures we don't treat it as a generic deep link
+      console.log('[AUTH OAUTH RETURN] OAuth callback will be processed by auth callback route')
     }
   }
 ]

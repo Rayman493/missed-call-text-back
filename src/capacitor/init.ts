@@ -143,7 +143,7 @@ export async function initializeCapacitor() {
       // Only handle deep links if the URL was not already handled by external return
       if (!handled) {
         console.log('[NAV_SOURCE] source=APP_URL_OPEN_HANDLE_DEEP_LINK url=' + data.url);
-        handleDeepLink(data.url);
+        await handleDeepLink(data.url);
       } else {
         console.log('[NAV_SOURCE] source=APP_URL_OPEN_SKIP_DEEP_LINK handled=true');
       }
@@ -166,7 +166,7 @@ export async function initializeCapacitor() {
       // Only handle deep links if the URL was not already handled by external return
       if (!handled) {
         console.log('[NAV_SOURCE] source=GET_LAUNCH_URL_HANDLE_DEEP_LINK url=' + launchUrl.url);
-        handleDeepLink(launchUrl.url);
+        await handleDeepLink(launchUrl.url);
       } else {
         console.log('[NAV_SOURCE] source=GET_LAUNCH_URL_SKIP_DEEP_LINK handled=true');
       }
@@ -312,7 +312,7 @@ const DEEP_LINK_DEDUP_WINDOW_MS = 2000; // Ignore same URL within 2 seconds
  * - Custom scheme: replyflow://dashboard/leads/123
  * - Universal/App Links: https://www.replyflowhq.com/dashboard/leads/123
  */
-function handleDeepLink(url: string) {
+async function handleDeepLink(url: string) {
   console.log('[NAV_SOURCE] source=HANDLE_DEEP_LINK_ENTER url=' + url);
   console.log('[APP URL OPEN] Received deep link:', url);
 
@@ -326,6 +326,13 @@ function handleDeepLink(url: string) {
   lastProcessedTime = now;
 
   try {
+    // Check if this is an OAuth callback first
+    const isOAuthCallback = await handleOAuthCallback(url)
+    if (isOAuthCallback) {
+      console.log('[APP URL OPEN] URL handled as OAuth callback, skipping generic deep-link handling')
+      return
+    }
+
     const urlObj = new URL(url);
 
     // Log context for diagnostics
@@ -423,6 +430,69 @@ function handleDeepLink(url: string) {
     window.location.href = url;
   } catch (error) {
     console.error('[Capacitor] Error handling deep link:', error);
+  }
+}
+
+/**
+ * Handle OAuth callback from deep link
+ * Extracts authorization code and exchanges it for session
+ */
+async function handleOAuthCallback(url: string): Promise<boolean> {
+  try {
+    const urlObj = new URL(url)
+
+    // Check if this is an auth callback with OAuth code
+    if (urlObj.pathname === '/auth/callback') {
+      const code = urlObj.searchParams.get('code')
+      const provider = urlObj.searchParams.get('provider')
+      const error = urlObj.searchParams.get('error')
+      const errorDescription = urlObj.searchParams.get('error_description')
+
+      // Handle OAuth errors
+      if (error) {
+        console.log('[OAUTH CALLBACK] OAuth error:', error, errorDescription)
+        // Store error for display on auth page
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('oauth_error', errorDescription || error)
+        }
+        // Navigate back to auth page
+        window.location.href = '/auth'
+        return true
+      }
+
+      // Handle successful OAuth callback
+      if (code && (provider === 'google' || provider === 'apple')) {
+        console.log('[OAUTH CALLBACK] Processing OAuth callback for provider:', provider)
+
+        const supabase = createBrowserClient()
+
+        // Exchange code for session
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+
+        if (exchangeError) {
+          console.error('[OAUTH CALLBACK] Failed to exchange code for session:', exchangeError)
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('oauth_error', exchangeError.message || 'Authentication failed')
+          }
+          window.location.href = '/auth'
+          return true
+        }
+
+        console.log('[OAUTH CALLBACK] Session established successfully')
+
+        // Get the next parameter to determine where to redirect
+        const next = urlObj.searchParams.get('next') || '/dashboard'
+
+        // Navigate to the next destination
+        window.location.href = next
+        return true
+      }
+    }
+
+    return false
+  } catch (error) {
+    console.error('[OAUTH CALLBACK] Error processing OAuth callback:', error)
+    return false
   }
 }
 
@@ -538,7 +608,7 @@ export async function processPendingReturnAfterAuth(): Promise<void> {
   const handled = await handleExternalReturn(pendingReturnUrl)
   if (!handled) {
     console.log('[AUTH_RETURN] Processing as deep link:', pendingReturnUrl)
-    handleDeepLink(pendingReturnUrl)
+    await handleDeepLink(pendingReturnUrl)
   }
 
   pendingReturnUrl = null
