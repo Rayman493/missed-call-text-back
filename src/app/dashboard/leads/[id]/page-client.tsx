@@ -4214,7 +4214,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </div>
                       <h3 className="text-lg font-semibold text-foreground mb-2">Start the conversation</h3>
                       <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                        Send a message to {getLeadDisplayName(leadData || lead).split(' ')[0]} to begin the conversation.
+                        Send a message to {formatPhoneNumber(leadData?.caller_phone || lead?.caller_phone || '')} to begin the conversation.
                       </p>
                     </div>
                   </div>
@@ -4613,7 +4613,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </div>
                     <h3 className="text-base font-semibold text-foreground mb-2">Start the conversation</h3>
                     <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                      Send a message to {getLeadDisplayName(leadData || lead).split(' ')[0]} to begin the conversation.
+                      Send a message to {formatPhoneNumber(leadData?.caller_phone || lead?.caller_phone || '')} to begin the conversation.
                     </p>
                   </div>
                 </div>
@@ -6077,7 +6077,7 @@ If you have questions, reply to this message.`
                     </div>
                     <h3 className="text-base font-semibold text-foreground mb-2">Start the conversation</h3>
                     <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                      Send a message to {getLeadDisplayName(leadData || lead).split(' ')[0]} to begin the conversation.
+                      Send a message to {formatPhoneNumber(leadData?.caller_phone || lead?.caller_phone || '')} to begin the conversation.
                     </p>
                   </div>
                 </div>
@@ -6106,7 +6106,7 @@ If you have questions, reply to this message.`
                     </div>
                     <h3 className="text-lg font-semibold text-foreground mb-2">Start the conversation</h3>
                     <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                      Send a message to {getLeadDisplayName(leadData || lead).split(' ')[0]} to begin the conversation.
+                      Send a message to {formatPhoneNumber(leadData?.caller_phone || lead?.caller_phone || '')} to begin the conversation.
                     </p>
                   </div>
                 </div>
