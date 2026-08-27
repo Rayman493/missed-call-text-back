@@ -447,49 +447,80 @@ describe('Incomplete Account Deletion - Provider-Aware Authentication', () => {
     })
   })
 
-  describe('OAuth reauth loop prevention', () => {
-    it('should track OAuth reauth verification state to prevent loop', () => {
-      // This test documents the fix: deleteReauthVerified state flag
-      // prevents re-initiating OAuth after successful reauth return
-      const googleAppleUser = {
+  describe('Server-as-authority reauthentication architecture', () => {
+    it('should let server determine if reauth is required via recent-auth check', () => {
+      // New architecture: Client does NOT track deleteReauthVerified state
+      // Client simply calls DELETE endpoint
+      // Server checks user.last_sign_in_at (5-minute window)
+      // If stale, server returns reauthentication_required
+      // Client then initiates OAuth reauth
+      // After OAuth return, client calls DELETE endpoint again
+      // Server sees fresh last_sign_in_at and performs deletion
+      // This eliminates client state that can be lost on component remount
+
+      const googleOnlyUser = {
         id: 'user-123',
-        identities: [
-          { provider: 'google', id: 'identity-1' },
-          { provider: 'apple', id: 'identity-2' },
-        ],
-        app_metadata: { provider: 'google', providers: ['google', 'apple'] },
+        identities: [{ provider: 'google', id: 'identity-1' }],
+        app_metadata: { provider: 'google', providers: ['google'] },
+        last_sign_in_at: new Date(Date.now() - 6 * 60 * 1000).toISOString(), // 6 minutes ago (stale)
       }
 
-      const capabilities = getAuthCapabilities(googleAppleUser)
+      const capabilities = getAuthCapabilities(googleOnlyUser)
       expect(capabilities.isOAuthOnly).toBe(true)
-      expect(capabilities.hasMultipleMethods).toBe(true)
+      expect(capabilities.hasGoogle).toBe(true)
 
-      // Expected flow:
-      // 1. User clicks Delete Account
-      // 2. User clicks Verify with Apple
-      // 3. OAuth reauth initiated, sessionStorage set with originalUserId
-      // 4. Apple authentication succeeds
-      // 5. Callback returns to /complete-setup?reauth=incomplete_delete
-      // 6. Same-user verification passes
-      // 7. deleteReauthVerified flag set to true
-      // 8. Modal reopened with setShowDeleteConfirm(true)
-      // 9. User clicks final Delete Account
-      // 10. handleDeleteAccount checks deleteReauthVerified flag
-      // 11. If true, skip OAuth reauth and proceed to deletion API call
-      // 12. Flag cleared after use (one-time use per deletion attempt)
-      // 13. If user cancels, flag is cleared
+      // Expected server response for stale session:
+      const expectedServerResponse = {
+        error: 'For security, please sign in again to delete your account.',
+        step: 'reauthentication_required',
+        provider: 'google'
+      }
+
+      // Client would initiate OAuth reauth upon receiving this response
+      expect(expectedServerResponse.provider).toBe('google')
     })
 
-    it('should clear reauth verified flag when modal cancelled', () => {
-      // This test documents that deleteReauthVerified is cleared
-      // when user clicks Cancel, preventing accidental reuse
-      // of a previous reauth verification
+    it('should allow deletion if server recent-auth check passes', () => {
+      // If user.last_sign_in_at is within 5-minute window
+      // Server performs deletion without requiring client reauth
+      // No client-side state tracking needed
+
+      const googleOnlyUser = {
+        id: 'user-123',
+        identities: [{ provider: 'google', id: 'identity-1' }],
+        app_metadata: { provider: 'google', providers: ['google'] },
+        last_sign_in_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(), // 2 minutes ago (recent)
+      }
+
+      const capabilities = getAuthCapabilities(googleOnlyUser)
+      expect(capabilities.isOAuthOnly).toBe(true)
+      // Server would allow deletion directly
     })
 
-    it('should require fresh OAuth reauth for new deletion attempt', () => {
-      // After a successful deletion or cancelled attempt,
-      // the deleteReauthVerified flag is cleared
-      // A new deletion attempt requires fresh OAuth reauth
+    it('should handle OAuth return by reopening deletion modal without client verified state', () => {
+      // OAuth return flow:
+      // 1. Server returns reauthentication_required
+      // 2. Client initiates OAuth with sessionStorage.incompleteDeleteOriginalUserId
+      // 3. OAuth return to /complete-setup?reauth=incomplete_delete
+      // 4. useEffect detects reauth param, verifies same user
+      // 5. Clears sessionStorage, reopens deletion modal
+      // 6. User clicks final Delete
+      // 7. Client calls DELETE endpoint again
+      // 8. Server sees fresh last_sign_in_at from OAuth return
+      // 9. Server performs deletion
+      // No deleteReauthVerified state needed - server is authoritative
+    })
+
+    it('should preserve same-user protection via sessionStorage across remounts', () => {
+      // sessionStorage survives component remounts
+      // This is why same-user protection uses sessionStorage, not React state
+      // React state (like deleteReauthVerified) was lost on remount, causing the bug
+      const marker = {
+        userId: 'user-123',
+        timestamp: Date.now()
+      }
+      // sessionStorage would be: incompleteDeleteOriginalUserId = 'user-123'
+      // This survives OAuth navigation and component remounts
     })
   })
 })

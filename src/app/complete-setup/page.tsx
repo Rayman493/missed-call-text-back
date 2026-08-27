@@ -31,7 +31,6 @@ export default function CompleteSetupPage() {
   const [error, setError] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [authCapabilities, setAuthCapabilities] = useState<any>(null)
-  const [deleteReauthVerified, setDeleteReauthVerified] = useState(false) // Track if OAuth reauth completed for this deletion attempt
   const [deleteReauthProvider, setDeleteReauthProvider] = useState<string | null>(null)
   const [appResumeTrigger, setAppResumeTrigger] = useState(0) // Increment on app resume to trigger retry loop
   const pollingStartedRef = useRef(false)
@@ -148,14 +147,12 @@ export default function CompleteSetupPage() {
       if (originalUserId && user.id) {
         // Verify same user
         if (originalUserId === user.id) {
-          console.log('[CompleteSetup] Same user verified, marking reauth complete and showing deletion modal')
+          console.log('[CompleteSetup] Same user verified, clearing reauth state and showing deletion modal')
           // Clear the reauth state
           sessionStorage.removeItem('incompleteDeleteOriginalUserId')
           sessionStorage.removeItem('incompleteDeleteReturnTarget')
           setPassword('')
           setError(null)
-          // Mark that OAuth reauth has been verified for this deletion attempt
-          setDeleteReauthVerified(true)
           // Reopen deletion modal for explicit confirmation
           setShowDeleteConfirm(true)
           // Remove reauth param from URL
@@ -870,20 +867,10 @@ export default function CompleteSetupPage() {
         return
       }
     } else if (authCapabilities?.isOAuthOnly) {
-      // OAuth-only users: require recent authentication
-      // If OAuth reauth has already been verified for this deletion attempt, proceed directly to deletion
-      if (deleteReauthVerified) {
-        console.log('[CompleteSetup] OAuth reauth already verified, proceeding to deletion')
-        // Clear the verified flag after using it (one-time use per deletion attempt)
-        setDeleteReauthVerified(false)
-      } else {
-        // Initiate OAuth reauthentication for deletion
-        // If user has both providers, show UI with choice (handled in render)
-        // If user has only one provider, use that directly for backward compatibility with direct button click
-        const provider = authCapabilities.primaryProvider || 'google'
-        await handleOAuthReauth(provider as 'google' | 'apple')
-        return
-      }
+      // OAuth-only users: server will verify recent authentication
+      // If auth is stale (> 5 minutes), server returns reauthentication_required
+      // Client then initiates OAuth reauth
+      // No client-side state tracking required - server is authoritative
     } else {
       setError('Unable to verify authentication. Please try again.')
       return
@@ -1180,7 +1167,6 @@ export default function CompleteSetupPage() {
                     setShowDeleteConfirm(false)
                     setPassword('')
                     setError(null)
-                    setDeleteReauthVerified(false) // Clear reauth verified flag when cancelling
                   }}
                   disabled={isDeleting}
                   className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
