@@ -629,29 +629,6 @@ export default function OnboardingPage() {
             </button>
             <p className="text-xs text-slate-400 text-center mt-3">Takes about 2 minutes</p>
           </form>
-
-          {/* Live Preview Section */}
-          <div className="mt-8 pt-6 border-t border-slate-700">
-            <h3 className="text-sm font-medium text-slate-300 mb-3">Your auto-reply message</h3>
-            <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-800">
-              <p className="text-sm text-slate-200">
-                {getDefaultAutoReplyMessageWithFallback(businessName)}
-              </p>
-            </div>
-            <p className="text-xs text-slate-400 mt-2">
-              This message goes out automatically when you miss a call
-            </p>
-          </div>
-
-          {/* Trust Messaging */}
-          <div className="mt-6 space-y-2">
-            <p className="text-xs text-slate-400 text-center leading-relaxed">
-              ✓ You'll still receive all your normal calls
-            </p>
-            <p className="text-xs text-slate-400 text-center leading-relaxed">
-              ✓ ReplyFlow only responds when a call is missed
-            </p>
-          </div>
         </div>
       </div>
       <RoutingDebugBanner />
