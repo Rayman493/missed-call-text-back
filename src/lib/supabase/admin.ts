@@ -2323,7 +2323,39 @@ export const db = {
           updates.business_type_other = businessData.business_type_other.trim() || null
           console.log('[getOrCreateBusiness] Updating business_type_other:', updates.business_type_other)
         }
-        
+
+        // Update service_location_type if provided
+        if (businessData.service_location_type) {
+          updates.service_location_type = businessData.service_location_type
+          console.log('[getOrCreateBusiness] Updating service_location_type:', updates.service_location_type)
+        }
+
+        // Update business address fields if provided
+        if (businessData.business_address_line1) {
+          updates.business_address_line1 = businessData.business_address_line1
+          console.log('[getOrCreateBusiness] Updating business_address_line1')
+        }
+        if (businessData.business_address_line2 !== undefined) {
+          updates.business_address_line2 = businessData.business_address_line2 || null
+          console.log('[getOrCreateBusiness] Updating business_address_line2')
+        }
+        if (businessData.business_address_city) {
+          updates.business_address_city = businessData.business_address_city
+          console.log('[getOrCreateBusiness] Updating business_address_city')
+        }
+        if (businessData.business_address_state) {
+          updates.business_address_state = businessData.business_address_state
+          console.log('[getOrCreateBusiness] Updating business_address_state')
+        }
+        if (businessData.business_address_postal_code) {
+          updates.business_address_postal_code = businessData.business_address_postal_code
+          console.log('[getOrCreateBusiness] Updating business_address_postal_code')
+        }
+        if (businessData.business_address_country) {
+          updates.business_address_country = businessData.business_address_country
+          console.log('[getOrCreateBusiness] Updating business_address_country')
+        }
+
         // Update onboarding_status if provided - with server-side validation
         if (businessData.onboarding_status) {
           // Block premature onboarding_status: "completed" if subscription is not active
@@ -2462,10 +2494,42 @@ export const db = {
       newBusinessData.business_type = businessData.business_type.trim()
       console.log('[getOrCreateBusiness] Including business_type:', newBusinessData.business_type)
     }
-    
+
     if (businessData?.business_type_other !== undefined && businessData.business_type_other !== null) {
       newBusinessData.business_type_other = businessData.business_type_other.trim() || null
       console.log('[getOrCreateBusiness] Including business_type_other:', newBusinessData.business_type_other)
+    }
+
+    // Include service location type if provided
+    if (businessData?.service_location_type) {
+      newBusinessData.service_location_type = businessData.service_location_type
+      console.log('[getOrCreateBusiness] Including service_location_type:', newBusinessData.service_location_type)
+    }
+
+    // Include business address fields if provided
+    if (businessData?.business_address_line1) {
+      newBusinessData.business_address_line1 = businessData.business_address_line1
+      console.log('[getOrCreateBusiness] Including business_address_line1')
+    }
+    if (businessData?.business_address_line2 !== undefined && businessData.business_address_line2 !== null) {
+      newBusinessData.business_address_line2 = businessData.business_address_line2 || null
+      console.log('[getOrCreateBusiness] Including business_address_line2')
+    }
+    if (businessData?.business_address_city) {
+      newBusinessData.business_address_city = businessData.business_address_city
+      console.log('[getOrCreateBusiness] Including business_address_city')
+    }
+    if (businessData?.business_address_state) {
+      newBusinessData.business_address_state = businessData.business_address_state
+      console.log('[getOrCreateBusiness] Including business_address_state')
+    }
+    if (businessData?.business_address_postal_code) {
+      newBusinessData.business_address_postal_code = businessData.business_address_postal_code
+      console.log('[getOrCreateBusiness] Including business_address_postal_code')
+    }
+    if (businessData?.business_address_country) {
+      newBusinessData.business_address_country = businessData.business_address_country
+      console.log('[getOrCreateBusiness] Including business_address_country')
     }
     
     // Log critical subscription state for verification

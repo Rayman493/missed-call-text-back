@@ -109,11 +109,16 @@ export async function GET(request: Request) {
         
         // If business query fails, log error but don't assume no business
         if (businessError) {
-          console.error('[Auth Callback] Business query error:', businessError)
-          console.error('[Auth Callback] Error code:', businessError?.code)
-          console.error('[Auth Callback] Error message:', businessError?.message)
-          
           const isPGRST116 = businessError?.code === 'PGRST116'
+          // PGRST116 is expected for new users with no business row - log at INFO level
+          if (isPGRST116) {
+            console.log('[Auth Callback] No business row found for new user (expected PGRST116)')
+          } else {
+            console.error('[Auth Callback] Business query error:', businessError)
+          }
+          console.log('[Auth Callback] Error code:', businessError?.code)
+          console.log('[Auth Callback] Error message:', businessError?.message)
+
           const redirectTarget = isPGRST116 ? '/onboarding' : '/dashboard'
           const reason = isPGRST116 ? 'No business row (PGRST116 confirmed)' : 'Business query error (non-PGRST116)'
           
