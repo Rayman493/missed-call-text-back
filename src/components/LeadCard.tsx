@@ -126,7 +126,7 @@ export default function LeadCard({
 
   return (
     <div
-      className={`w-full max-w-2xl h-full flex flex-col relative overflow-hidden rounded-xl p-2 sm:p-3.5 pl-3 sm:pl-4 transition-all duration-200 cursor-pointer hover:-translate-y-px ${statusStyle.gradientClass} ${statusStyle.cardClass.replace(/bg-background|dark:bg-slate-900\/60/g, '')} active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
+      className={`w-full max-w-2xl h-full flex flex-col relative overflow-hidden rounded-xl p-2 sm:p-3.5 pl-3 sm:pl-4 transition-all duration-200 cursor-pointer hover:-translate-y-px border border-slate-200 dark:border-slate-700 ${statusStyle.gradientClass} ${statusStyle.cardClass.replace(/bg-background|dark:bg-slate-900\/60/g, '')} active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
       onClick={() => onOpen(lead.id)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
