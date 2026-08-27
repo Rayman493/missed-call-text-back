@@ -64,7 +64,7 @@ export default function Loading() {
 
         {/* Status line */}
         <p className={`text-sm mb-6 ${isPublicRoute ? 'text-zinc-400' : 'text-muted-foreground'}`}>
-          Preparing your workspace…
+          Loading…
         </p>
 
         {/* Loading indicator - three dots with staggered animation */}

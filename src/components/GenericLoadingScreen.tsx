@@ -41,7 +41,7 @@ export default function GenericLoadingScreen() {
 
         {/* Status line */}
         <p className="text-sm text-muted-foreground dark:text-slate-400 mb-6">
-          Preparing your workspace…
+          Loading…
         </p>
 
         {/* Loading indicator - three dots with staggered animation */}
