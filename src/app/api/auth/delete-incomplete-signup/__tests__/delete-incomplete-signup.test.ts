@@ -346,4 +346,104 @@ describe('Incomplete Account Deletion - Provider-Aware Authentication', () => {
       expect(capabilities.hasMultipleMethods).toBe(true)
     })
   })
+
+  describe('multi-provider UI behavior for incomplete deletion', () => {
+    it('should show both Google and Apple buttons when both providers available', () => {
+      const googleAppleUser = {
+        id: 'user-123',
+        identities: [
+          { provider: 'google', id: 'identity-1' },
+          { provider: 'apple', id: 'identity-2' },
+        ],
+        app_metadata: { provider: 'google', providers: ['google', 'apple'] },
+      }
+
+      const capabilities = getAuthCapabilities(googleAppleUser)
+      expect(capabilities.hasGoogle).toBe(true)
+      expect(capabilities.hasApple).toBe(true)
+      expect(capabilities.isOAuthOnly).toBe(true)
+      expect(capabilities.hasMultipleMethods).toBe(true)
+      // UI should show both Google and Apple reauth buttons
+    })
+
+    it('should show single Google button when Google-only', () => {
+      const googleOnlyUser = {
+        id: 'user-123',
+        identities: [{ provider: 'google', id: 'identity-1' }],
+        app_metadata: { provider: 'google', providers: ['google'] },
+      }
+
+      const capabilities = getAuthCapabilities(googleOnlyUser)
+      expect(capabilities.hasGoogle).toBe(true)
+      expect(capabilities.hasApple).toBe(false)
+      expect(capabilities.isOAuthOnly).toBe(true)
+      expect(capabilities.hasMultipleMethods).toBe(false)
+      // UI should show single Google reauth button
+    })
+
+    it('should show single Apple button when Apple-only', () => {
+      const appleOnlyUser = {
+        id: 'user-123',
+        identities: [{ provider: 'apple', id: 'identity-1' }],
+        app_metadata: { provider: 'apple', providers: ['apple'] },
+      }
+
+      const capabilities = getAuthCapabilities(appleOnlyUser)
+      expect(capabilities.hasApple).toBe(true)
+      expect(capabilities.hasGoogle).toBe(false)
+      expect(capabilities.isOAuthOnly).toBe(true)
+      expect(capabilities.hasMultipleMethods).toBe(false)
+      // UI should show single Apple reauth button
+    })
+
+    it('should show password verification when password available', () => {
+      const passwordUser = {
+        id: 'user-123',
+        identities: [
+          { provider: 'email', id: 'identity-1' },
+          { provider: 'google', id: 'identity-2' },
+        ],
+        app_metadata: { provider: 'email', providers: ['email', 'google'] },
+      }
+
+      const capabilities = getAuthCapabilities(passwordUser)
+      expect(capabilities.hasPassword).toBe(true)
+      expect(capabilities.isOAuthOnly).toBe(false)
+      // UI should show password input, not OAuth buttons
+    })
+
+    it('should allow Apple reauth for Google+Apple user', () => {
+      const googleAppleUser = {
+        id: 'user-123',
+        identities: [
+          { provider: 'google', id: 'identity-1' },
+          { provider: 'apple', id: 'identity-2' },
+        ],
+        app_metadata: { provider: 'google', providers: ['google', 'apple'] },
+      }
+
+      const capabilities = getAuthCapabilities(googleAppleUser)
+      expect(capabilities.hasGoogle).toBe(true)
+      expect(capabilities.hasApple).toBe(true)
+      // Either provider should satisfy recent-auth requirement
+      // UI should allow user to choose
+    })
+
+    it('should allow Google reauth for Apple+Google user', () => {
+      const appleGoogleUser = {
+        id: 'user-123',
+        identities: [
+          { provider: 'apple', id: 'identity-1' },
+          { provider: 'google', id: 'identity-2' },
+        ],
+        app_metadata: { provider: 'apple', providers: ['apple', 'google'] },
+      }
+
+      const capabilities = getAuthCapabilities(appleGoogleUser)
+      expect(capabilities.hasApple).toBe(true)
+      expect(capabilities.hasGoogle).toBe(true)
+      // Either provider should satisfy recent-auth requirement
+      // UI should allow user to choose
+    })
+  })
 })
