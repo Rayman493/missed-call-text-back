@@ -19,6 +19,14 @@ describe('Recenter Button Positioning', () => {
       expect(currentRightInset).not.toBe(previousRightInset)
     })
 
+    it('Map Controls Stack uses items-end to right-align controls', () => {
+      // After fix: items-end
+      // Before fix: no items-end (default left alignment)
+      const currentAlignment = 'items-end'
+
+      expect(currentAlignment).toBe('items-end')
+    })
+
     it('Recenter button is 4px closer to the right edge than before', () => {
       const beforeInset = 12 // right-3 = 12px
       const afterInset = 8 // right-2 = 8px

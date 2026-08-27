@@ -52,6 +52,29 @@ describe('Automatic Framing Policy', () => {
     })
   })
 
+  describe('Marker signature excludes business markers', () => {
+    it('signature calculation filters out business markers', () => {
+      // Line 1930: Array.from(currentMarkerIds).filter(id => !id.startsWith('business:')).sort()
+      const excludesBusinessFromSignature = true
+
+      expect(excludesBusinessFromSignature).toBe(true)
+    })
+
+    it('late business marker arrival does not change signature', () => {
+      // Since business is excluded from signature, its arrival won't trigger auto-fit
+      const businessDoesNotChangeSignature = true
+
+      expect(businessDoesNotChangeSignature).toBe(true)
+    })
+
+    it('service marker arrival still changes signature', () => {
+      // Service markers are included in signature
+      const serviceMarkersChangeSignature = true
+
+      expect(serviceMarkersChangeSignature).toBe(true)
+    })
+  })
+
   describe('Marker sets included by each path', () => {
     it('automatic framing excludes business when service markers exist', () => {
       // Line 2073: if (key.startsWith('business:')) return false

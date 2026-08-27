@@ -1927,7 +1927,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
     // Create signature from sorted marker IDs and mapItems coordinates (not Google Maps marker positions)
     // This prevents signature changes due to floating-point precision differences in Google Maps marker positions
-    const sortedMarkerIds = Array.from(currentMarkerIds).sort()
+    // AUTOMATIC FRAMING POLICY: Exclude business marker from signature to prevent late business arrival from retriggering auto-fit
+    const sortedMarkerIds = Array.from(currentMarkerIds).filter(id => !id.startsWith('business:')).sort()
     const signature = sortedMarkerIds.map(id => {
       const item = filteredItems.find(i => i.id === id)
       if (!item) return ''
@@ -2671,7 +2672,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         <div ref={mapRef} className="w-full h-full" />
         
         {/* Map Controls Stack */}
-        <div className="flex absolute top-3 right-2 z-10 flex-col gap-2">
+        <div className="flex absolute top-3 right-2 z-10 flex-col gap-2 items-end">
           {/* Map Type Toggle - Desktop only */}
           <div className="flex bg-white/95 dark:bg-slate-800/95 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700/60 overflow-hidden backdrop-blur-sm">
             <button
