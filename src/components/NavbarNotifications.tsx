@@ -158,10 +158,16 @@ export default function NavbarNotifications() {
     await deleteNotification(notificationId)
   }
 
-  const handleNotificationClick = (notification: Notification) => {
-    // Mark as read when clicking
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read when clicking - await to ensure persistence before navigation
+    // If markAsRead fails, still allow navigation to prevent dead notification clicks
     if (!notification.read) {
-      handleMarkAsRead(notification.id)
+      try {
+        await handleMarkAsRead(notification.id)
+      } catch (error) {
+        console.error('[NavbarNotifications] Failed to mark notification as read:', error)
+        // Continue with navigation despite failure
+      }
     }
 
     // Navigate if there's a link
