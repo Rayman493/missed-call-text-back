@@ -2339,7 +2339,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   const firstStop = customerDestinations[0]
   const lastStop = customerDestinations[customerDestinations.length - 1]
   const routeSummary = mappedStopsCount > 0
-    ? `${mappedStopsCount} stop${mappedStopsCount > 1 ? 's' : ''}${firstStop?.scheduledTime && lastStop?.scheduledTime ? ` · ${formatTime12Hour(firstStop.scheduledTime)} – ${formatTime12Hour(lastStop.scheduledTime)}` : ''}`
+    ? `${mappedStopsCount} stop${mappedStopsCount > 1 ? 's' : ''}${firstStop?.scheduledTime && lastStop?.scheduledEndTime ? ` · ${formatTime12Hour(firstStop.scheduledTime)} – ${formatTime12Hour(lastStop.scheduledEndTime)}` : firstStop?.scheduledTime ? ` · ${formatTime12Hour(firstStop.scheduledTime)}` : ''}`
     : 'No mapped stops'
 
   return (
