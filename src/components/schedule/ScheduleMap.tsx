@@ -246,6 +246,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   const newlyMappableEventIdRef = useRef<string | null>(null) // Track newly mappable event for one-time camera adjustment
   const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter to detect changes
   const resizeLastSizeRef = useRef<{ width: number; height: number } | null>(null) // Move ref to top level
+  const autoSelectDateRef = useRef<string | null>(null) // Track date for which we've auto-selected Stop 1
+  const userClosedDateRef = useRef<string | null>(null) // Track date where user explicitly closed the card
   const [businessGeocodeTrigger, setBusinessGeocodeTrigger] = useState(0) // Counter to trigger map items refresh when business geocoding completes
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [mapReady, setMapReady] = useState(false)
@@ -705,6 +707,13 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     const padding = getResponsivePadding()
     fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'show_all_markers')
   }, [fitBoundsWithMaxZoom, getResponsivePadding])
+
+  // Close selected item detail card
+  const closeSelectedItem = useCallback(() => {
+    setSelectedMapItemId(null)
+    const currentDateKey = selectedDate.toLocaleDateString('en-CA')
+    userClosedDateRef.current = currentDateKey
+  }, [selectedDate])
 
   // Navigate to next/previous stop
   const navigateToStop = useCallback((direction: 'next' | 'previous') => {
@@ -1567,6 +1576,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         } else if (cameraOwnerRef.current === CameraOwner.DRAGGING) {
           // Transition from DRAGGING to USER_OWNED after drag settles
           cameraOwnerRef.current = CameraOwner.USER_OWNED
+          // User has taken manual control - cancel pending initial framing
+          initialFramingPendingRef.current = false
           console.log('[SCHEDULE_MAP_CAMERA_OWNERSHIP]', {
             event: 'drag_completed',
             cameraOwner: cameraOwnerRef.current,
@@ -1705,6 +1716,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           })
           // Still restore ownership state so user maintains control
           cameraOwnerRef.current = CameraOwner.USER_OWNED
+          initialFramingPendingRef.current = false
         } else {
           // Check if this is actually a camera change (avoid no-op calls)
           const currentCenter = googleMapRef.current.getCenter()
@@ -1732,15 +1744,18 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
             // If user had previously owned this view, restore that ownership
             if (savedState.userOwned) {
               cameraOwnerRef.current = CameraOwner.USER_OWNED
+              initialFramingPendingRef.current = false
             }
           } else if (savedState.userOwned) {
             // Camera already in place, restore ownership
             cameraOwnerRef.current = CameraOwner.USER_OWNED
+            initialFramingPendingRef.current = false
           }
         }
       } else if (savedState.userOwned) {
         // Map not ready yet, but will restore ownership when ready
         cameraOwnerRef.current = CameraOwner.USER_OWNED
+        initialFramingPendingRef.current = false
       }
     } else {
       // First visit - no saved state, let marker update effect handle initial camera
@@ -1983,6 +1998,30 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       } else {
         initialFramingPendingRef.current = true
       }
+
+      // Reset user-closed state on date change
+      userClosedDateRef.current = null
+    }
+
+    // Auto-select first stop on initial load or date change
+    // Only if user hasn't explicitly closed the card for this date
+    const shouldAutoSelect = (dateChanged || autoSelectDateRef.current === null) &&
+                            userClosedDateRef.current !== currentDateKey &&
+                            selectedMapItemId === null
+
+    if (shouldAutoSelect) {
+      const sortedItems = getSortedMappedItems(filteredItems)
+      const firstStop = sortedItems.find(item => item.type !== 'business')
+
+      if (firstStop) {
+        setSelectedMapItemId(firstStop.id)
+        autoSelectDateRef.current = currentDateKey
+        console.log('[SCHEDULE_MAP_AUTO_SELECT]', {
+          selectedStop: firstStop.id,
+          stopNumber: firstStop.stopNumber,
+          date: currentDateKey
+        })
+      }
     }
 
     // Update expected marker count if business geocoding completes mid-date
@@ -1993,7 +2032,10 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       expectedMarkerCountRef.current = expectedCount
       // If we were in a zero-stop state and business just arrived, we need to refit
       // Set initialFramingPending to true to allow the business marker to be framed
-      if (markersRef.current.size > 0) {
+      // ONLY if camera is still eligible for automatic initial framing
+      if (markersRef.current.size > 0 &&
+          cameraOwnerRef.current !== CameraOwner.USER_OWNED &&
+          cameraOwnerRef.current !== CameraOwner.DRAGGING) {
         initialFramingPendingRef.current = true
       }
     }
@@ -2031,13 +2073,11 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     } else if (showAllMode && (dateChanged || signatureChanged)) {
       // Auto-fit should happen when:
       // - Date changes (new context, camera ownership already reset to INITIALIZING)
-      // - Signature changes AND (camera is not USER_OWNED AND not DRAGGING OR initial framing is still pending)
+      // - Camera is not USER_OWNED and not DRAGGING AND (signature changed OR initial framing is pending)
       // Filter changes do NOT trigger auto-fit (preserve user viewport)
-      // Note: Business geocoding no longer blocks auto-fit - business marker can arrive asynchronously
-      const shouldAutoFit = dateChanged || (signatureChanged && (
-        (cameraOwnerRef.current !== CameraOwner.USER_OWNED && cameraOwnerRef.current !== CameraOwner.DRAGGING) ||
-        initialFramingPendingRef.current
-      ))
+      const shouldAutoFit = dateChanged ||
+        (cameraOwnerRef.current !== CameraOwner.USER_OWNED && cameraOwnerRef.current !== CameraOwner.DRAGGING &&
+        (signatureChanged || initialFramingPendingRef.current))
 
       console.log('[SCHEDULE_MAP_EFFECT]', {
         effect: 'auto_fit_decision',
@@ -2067,46 +2107,32 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         }
 
         // Build viewport marker set for automatic framing
-        // AUTOMATIC FRAMING POLICY: Prioritize service markers (jobs, appointments)
-        // Business marker is context, not primary operational target
+        // AUTOMATIC FRAMING POLICY: Include service markers + business marker for geographic context
         const viewportMarkers = Array.from(markersRef.current.entries())
           .filter(([key, marker]) => {
-            // Exclude business marker from automatic framing if service markers exist
-            if (key.startsWith('business:')) return false
-            // Include all service markers (jobs, appointments)
+            // Include service markers (jobs, appointments)
+            if (!key.startsWith('business:')) return true
+            // Include business marker for geographic context
             return true
           })
 
         if (viewportMarkers.length === 0) {
-          // No service markers - fall back to business-only framing
-          const businessMarkers = Array.from(markersRef.current.entries())
-            .filter(([key, marker]) => key.startsWith('business:'))
-
-          if (businessMarkers.length === 0) {
-            // No markers at all - use fallback
-            console.log('[SCHEDULE_MAP_EFFECT] No markers available for auto-fit')
-          } else {
-            // Business only - center on business
-            const [, businessMarker] = businessMarkers[0]
-            if (businessMarker) {
-              const pos = businessMarker.getPosition()
-              panToMarker(pos.lat(), pos.lng(), { zoom: HOME_BASE_ONLY_ZOOM }, 'business_only_auto_fit')
-            }
-          }
+          // No markers at all - use fallback
+          console.log('[SCHEDULE_MAP_EFFECT] No markers available for auto-fit')
         } else if (viewportMarkers.length === 1) {
-          // Single service marker - center on it
+          // Single marker (could be business only, or single stop)
           const [, singleMarker] = viewportMarkers[0]
           if (singleMarker) {
             const pos = singleMarker.getPosition()
-            panToMarker(pos.lat(), pos.lng(), { zoom: SINGLE_STOP_ZOOM }, 'single_service_marker_auto_fit')
+            panToMarker(pos.lat(), pos.lng(), { zoom: HOME_BASE_ONLY_ZOOM }, 'single_marker_auto_fit')
           }
         } else {
-          // Multiple service markers - fit service markers only (exclude distant business)
+          // Multiple markers - fit all (service + business)
           const bounds = new (window as any).google.maps.LatLngBounds()
           viewportMarkers.forEach(([, marker]) => {
             bounds.extend(marker.getPosition()!)
           })
-          fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'service_markers_auto_fit')
+          fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'multi_marker_auto_fit')
         }
       } else {
         markerSetSignatureRef.current = signature
@@ -2732,7 +2758,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                   </p>
                 </div>
                 <button
-                  onClick={() => setSelectedMapItemId(null)}
+                  onClick={closeSelectedItem}
                   className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors flex-shrink-0"
                   aria-label="Close"
                 >
@@ -2826,7 +2852,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                   </div>
                 </div>
                 <button
-                  onClick={() => setSelectedMapItemId(null)}
+                  onClick={closeSelectedItem}
                   className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
