@@ -7,6 +7,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
+import { getAuthCapabilities } from '@/lib/auth/get-auth-capabilities'
 import BrandIcon from '@/components/BrandIcon'
 import PasswordInput from '@/components/PasswordInput'
 import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
@@ -29,6 +30,9 @@ export default function CompleteSetupPage() {
   const [isInitialMount, setIsInitialMount] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [authCapabilities, setAuthCapabilities] = useState<any>(null)
+  const [deleteReauthRequired, setDeleteReauthRequired] = useState(false)
+  const [deleteReauthProvider, setDeleteReauthProvider] = useState<string | null>(null)
   const [appResumeTrigger, setAppResumeTrigger] = useState(0) // Increment on app resume to trigger retry loop
   const pollingStartedRef = useRef(false)
 
@@ -133,6 +137,59 @@ export default function CompleteSetupPage() {
     }
   }, [authLoading, user, router])
 
+  // Handle OAuth reauth return for deletion
+  useEffect(() => {
+    const reauthParam = searchParams?.get('reauth')
+    if (reauthParam === 'incomplete_delete' && user) {
+      console.log('[CompleteSetup] OAuth reauth return detected for incomplete deletion')
+
+      const originalUserId = sessionStorage.getItem('incompleteDeleteOriginalUserId')
+
+      if (originalUserId && user.id) {
+        // Verify same user
+        if (originalUserId === user.id) {
+          console.log('[CompleteSetup] Same user verified, clearing reauth state and showing deletion modal')
+          // Clear the reauth state
+          sessionStorage.removeItem('incompleteDeleteOriginalUserId')
+          sessionStorage.removeItem('incompleteDeleteReturnTarget')
+          setPassword('')
+          setError(null)
+          // Reopen deletion modal for explicit confirmation
+          setShowDeleteConfirm(true)
+          // Remove reauth param from URL
+          router.replace('/complete-setup')
+        } else {
+          // Different user - sign out and show clear message
+          const signOutAndCleanup = async () => {
+            try {
+              await supabase.auth.signOut()
+            } catch (error) {
+              console.error('[CompleteSetup] SignOut error after wrong-account reauth:', error)
+            }
+            // Clear reauth state
+            sessionStorage.removeItem('incompleteDeleteOriginalUserId')
+            sessionStorage.removeItem('incompleteDeleteReturnTarget')
+            setPassword('')
+            setError('You authenticated with a different Google account. Please verify with the Google account associated with this ReplyFlow account.')
+            setShowDeleteConfirm(false)
+            // Clean up URL and redirect to signin
+            window.location.href = '/auth/signin?error=wrong_account_reauth'
+          }
+          signOutAndCleanup()
+        }
+      } else {
+        // No original user ID - abort safely
+        console.log('[CompleteSetup] No original user ID found, aborting reauth')
+        sessionStorage.removeItem('incompleteDeleteOriginalUserId')
+        sessionStorage.removeItem('incompleteDeleteReturnTarget')
+        setPassword('')
+        setError(null)
+        setShowDeleteConfirm(false)
+        router.replace('/complete-setup')
+      }
+    }
+  }, [searchParams, user, router])
+
   // If business has active subscription AND provisioning is complete, redirect to dashboard
   useEffect(() => {
     if (!businessLoading && business) {
@@ -169,6 +226,38 @@ export default function CompleteSetupPage() {
       router.replace('/onboarding')
     }
   }, [businessLoading, business, user, router])
+
+  // Determine auth capabilities for provider-aware deletion UI
+  useEffect(() => {
+    if (user) {
+      const capabilities = getAuthCapabilities(user)
+      setAuthCapabilities(capabilities)
+      console.log('[CompleteSetup] Auth capabilities determined:', {
+        hasPassword: capabilities.hasPassword,
+        isOAuthOnly: capabilities.isOAuthOnly,
+        primaryProvider: capabilities.primaryProvider,
+      })
+    }
+  }, [user])
+
+  // Cleanup stale reauth state on mount (in case of cancelled OAuth)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+    const reauth = urlParams.get('reauth')
+
+    // Only clear if we're not currently processing a reauth return
+    if (!reauth) {
+      const originalUserId = sessionStorage.getItem('incompleteDeleteOriginalUserId')
+      if (originalUserId) {
+        // Stale reauth state from cancelled OAuth - clean it up
+        console.log('[CompleteSetup] Cleaning up stale reauth state')
+        sessionStorage.removeItem('incompleteDeleteOriginalUserId')
+        sessionStorage.removeItem('incompleteDeleteReturnTarget')
+        setPassword('')
+        setError(null)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     setIsInitialMount(false)
@@ -746,8 +835,18 @@ export default function CompleteSetupPage() {
   }
 
   const handleDeleteAccount = async () => {
-    if (!password) {
-      setError('Please enter your password to confirm account deletion.')
+    // Provider-aware verification
+    if (authCapabilities?.hasPassword) {
+      // Password-capable users: require current password verification
+      if (!password) {
+        setError('Please enter your password to confirm account deletion.')
+        return
+      }
+    } else if (authCapabilities?.isOAuthOnly) {
+      // OAuth-only users: proceed without password (server checks recent auth)
+      console.log('[CompleteSetup] OAuth-only user, proceeding with deletion (server will verify recent auth)')
+    } else {
+      setError('Unable to verify authentication. Please try again.')
       return
     }
 
@@ -760,14 +859,14 @@ export default function CompleteSetupPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify(authCapabilities?.hasPassword ? { password } : {}),
       })
 
       const data = await response.json()
 
       if (response.ok) {
         console.log('[CompleteSetup] Account deleted, signing out and clearing caches')
-        
+
         // Sign out from Supabase client to clear local session state
         try {
           await supabase.auth.signOut()
@@ -775,16 +874,41 @@ export default function CompleteSetupPage() {
         } catch (signOutError) {
           console.error('[CompleteSetup] Supabase sign out error:', signOutError)
         }
-        
+
         // Clear all ReplyFlow onboarding/business cached state so a fresh signup
         // in the same browser cannot inherit stale data.
         if (typeof window !== 'undefined') {
           clearAnonymousAppState()
         }
-        
+
         // Redirect to homepage
         window.location.href = '/'
       } else {
+        // Check for reauthentication_required response
+        if (data.step === 'reauthentication_required' && data.provider === 'google') {
+          console.log('[CompleteSetup] Google reauthentication required')
+          // Store the original user ID in sessionStorage for verification after OAuth return
+          if (user?.id) {
+            sessionStorage.setItem('incompleteDeleteOriginalUserId', user.id)
+            sessionStorage.setItem('incompleteDeleteReturnTarget', '/complete-setup?reauth=incomplete_delete')
+          }
+          // Initiate Google OAuth reauth
+          const returnTarget = '/complete-setup?reauth=incomplete_delete'
+          const { error: oauthError } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnTarget)}&reauthContext=incomplete_delete`,
+            },
+          })
+
+          if (oauthError) {
+            setError('Failed to initiate Google verification. Please try again.')
+            sessionStorage.removeItem('incompleteDeleteOriginalUserId')
+            sessionStorage.removeItem('incompleteDeleteReturnTarget')
+          }
+          return
+        }
+
         setError(data.error || 'Could not delete account. Please try again.')
         setIsDeleting(false)
       }
@@ -935,30 +1059,50 @@ export default function CompleteSetupPage() {
                 </p>
               </div>
 
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1">
-                  Enter your password to confirm account deletion
-                </label>
-                <PasswordInput
-                  id="password"
-                  name="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                  disabled={isDeleting}
-                  className="h-12 px-4 py-3 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-950"
-                />
-                <div className="mt-2">
-                  <Link
-                    href="/forgot-password"
-                    className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
-                  >
-                    Forgot your password?
-                  </Link>
+              {/* Provider-aware verification */}
+              {authCapabilities?.hasPassword ? (
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1">
+                    Enter your password to confirm account deletion
+                  </label>
+                  <PasswordInput
+                    id="password"
+                    name="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    placeholder="Enter your password"
+                    disabled={isDeleting}
+                    className="h-12 px-4 py-3 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-950"
+                  />
+                  <div className="mt-2">
+                    <Link
+                      href="/forgot-password"
+                      className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
+                    >
+                      Forgot your password?
+                    </Link>
+                  </div>
                 </div>
-              </div>
+              ) : authCapabilities?.isOAuthOnly ? (
+                <div>
+                  <p className="text-sm text-slate-300 mb-3">
+                    For security, verify with Google before deleting this incomplete account.
+                  </p>
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={isDeleting}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isDeleting ? 'Verifying...' : 'Verify with Google'}
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">
+                  Unable to verify authentication. Please refresh the page.
+                </p>
+              )}
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
@@ -972,13 +1116,15 @@ export default function CompleteSetupPage() {
                 >
                   Cancel
                 </button>
-                <button
-                  onClick={handleDeleteAccount}
-                  disabled={isDeleting || !password}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isDeleting ? 'Deleting...' : 'Delete Account'}
-                </button>
+                {authCapabilities?.hasPassword && (
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={isDeleting || !password}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isDeleting ? 'Deleting...' : 'Delete Account'}
+                  </button>
+                )}
               </div>
             </div>
           )}

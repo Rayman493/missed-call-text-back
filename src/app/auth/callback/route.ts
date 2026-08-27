@@ -10,7 +10,8 @@ const SAFE_REDIRECT_PATHS = [
   '/onboarding/new-onboarding',
   '/setup/forwarding',
   '/auth/signin',
-  '/dashboard/settings' // Added for account deletion reauth
+  '/dashboard/settings', // Added for account deletion reauth
+  '/complete-setup', // Added for incomplete account deletion reauth
 ]
 
 function isValidRedirectPath(path: string): boolean {
@@ -152,6 +153,24 @@ export async function GET(request: Request) {
               businessFound: false,
               businessErrorCode: businessError?.code,
               businessErrorMessage: businessError?.message,
+              reason,
+              timestamp: new Date().toISOString()
+            })
+
+            return NextResponse.redirect(new URL(redirectTarget, requestUrl.origin))
+          }
+
+          // If this is incomplete deletion reauth and user has no business, route to complete-setup
+          if (reauthContext === 'incomplete_delete' && isPGRST116) {
+            const redirectTarget = '/complete-setup?reauth=incomplete_delete'
+            const reason = 'Incomplete deletion reauth: no business for new account'
+
+            console.log('[AUTH REAUTH INCOMPLETE]', {
+              location: 'src/app/auth/callback/route.ts',
+              userId: user.id,
+              reauthContext,
+              businessFound: false,
+              redirectTarget,
               reason,
               timestamp: new Date().toISOString()
             })
