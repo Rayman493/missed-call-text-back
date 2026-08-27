@@ -127,9 +127,7 @@ function MeetingsTab({
         {list.map(ev => {
           // Resolve job/lead for quick labels (client-side best-effort)
           const job = jobs.find(j => j.google_calendar_event_id === ev.id)
-          // @ts-ignore
-          const rfLead = ev?.extendedProperties?.private?.replyflow_lead_id as string | undefined
-          const customerName = job?.customer_name || (job?.lead_id ? 'Customer' : null)
+          const customerName = job?.customer_name || null
           return (
             <div key={ev.id} className="rounded-xl border border-border/50 bg-card p-3 cursor-pointer hover:bg-muted/50 dark:hover:bg-slate-900 shadow-sm hover:shadow-md transition-all duration-200" onClick={() => onOpenEvent(ev)}>
               <div className="flex items-start justify-between gap-3">
@@ -157,8 +155,8 @@ function MeetingsTab({
                     {ev.meetingUrl && (
                       <a href={ev.meetingUrl} target="_blank" rel="noreferrer" className="text-[10px] px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Join</a>
                     )}
-                    {rfLead && (
-                      <button className="text-[10px] px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => onViewCustomer(rfLead)}>View</button>
+                    {job?.lead_id && (
+                      <button className="text-[10px] px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => onViewCustomer(job.lead_id)}>View</button>
                     )}
                   </div>
                 </div>
@@ -1722,13 +1720,11 @@ export default function SchedulePage() {
                                   {allItems.map((item) => {
                                     if (item.type === 'event') {
                                       const event = item.data as CalendarEvent
-                                      const time = event.start.dateTime
-                                        ? new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-                                        : 'All day'
+                                      const time = formatEventTimeRange(event.start.dateTime, event.end.dateTime, event.start.date)
                                       // @ts-ignore
                                       const rfLead = event?.extendedProperties?.private?.replyflow_lead_id as string | undefined
                                       const job = jobs.find(j => j.google_calendar_event_id === event.id)
-                                      const customerName = job?.title || (rfLead ? 'Customer' : null)
+                                      const customerName = job?.customer_name || null
 
                                       return (
                                         <div
@@ -1750,6 +1746,12 @@ export default function SchedulePage() {
                                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                               {time}
                                             </p>
+                                            {event.location && (
+                                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
+                                                <MapPin className="w-3 h-3 flex-shrink-0" />
+                                                <span className="truncate">{event.location}</span>
+                                              </p>
+                                            )}
                                           </div>
                                         </div>
                                       )
