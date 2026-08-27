@@ -963,9 +963,9 @@ export default function CompleteSetupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4 py-12" style={{ paddingTop: 'calc(3rem + env(safe-area-inset-top))' }}>
       <div className="max-w-md w-full">
-        <div className="mb-4">
+        <div className="mb-6">
           <AppBackButton fallbackHref="/dashboard" label="Back" className="text-slate-400 hover:bg-slate-900 hover:text-white" />
         </div>
         {/* Brand header */}
