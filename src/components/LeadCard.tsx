@@ -15,7 +15,6 @@ import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { getCustomerStatusStyle, normalizeCustomerStatus, CustomerStatus } from '@/lib/customer-status'
 import { memoryService } from '@/lib/business-memory/memory-service'
 import { getCustomerSourceInfoCanonical } from '@/lib/customer-source'
-import { getNextAction } from '@/lib/lead-next-action'
 import { Repeat, TrendingUp, Clock, DollarSign, PhoneIncoming, UserPlus } from 'lucide-react'
 
 // Helper to get structured AI data for lead card
@@ -118,7 +117,6 @@ export default function LeadCard({
   const requestTitle = React.useMemo(() => getLeadRequestTitle(lead), [lead])
   const customerIndicators = React.useMemo(() => getCustomerIndicators(lead, businessId), [lead, businessId])
   const customerSourceInfo = React.useMemo(() => getCustomerSourceInfoCanonical(lead), [lead])
-  const nextAction = React.useMemo(() => getNextAction(lead), [lead])
 
   // Hook must be called at the top level of the component
   const pressGuard = useMobilePressGuard({
@@ -215,17 +213,6 @@ export default function LeadCard({
                 : 'text-muted-foreground'
             }`}>
               {sentenceCase(aiData.urgency)}
-            </p>
-          )}
-          {nextAction && (
-            <p className={`text-[10px] sm:text-[11px] font-medium ${
-              nextAction.urgency === 'high'
-                ? 'text-blue-600 dark:text-blue-400'
-                : nextAction.urgency === 'medium'
-                ? 'text-amber-600 dark:text-amber-400'
-                : 'text-slate-500 dark:text-slate-400'
-            }`}>
-              {nextAction.text}
             </p>
           )}
           {!aiData.reason && !aiData.urgency && (
