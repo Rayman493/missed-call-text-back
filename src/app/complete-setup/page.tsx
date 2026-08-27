@@ -965,14 +965,14 @@ export default function CompleteSetupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4 py-12" style={{ paddingTop: 'calc(3rem + env(safe-area-inset-top))' }}>
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4 py-12" style={{ paddingTop: 'calc(5rem + env(safe-area-inset-top))' }}>
       <div className="max-w-md w-full">
-        <div className="mb-6">
+        <div className="mb-8">
           <AppBackButton fallbackHref="/dashboard" label="Back" className="text-slate-400 hover:bg-slate-900 hover:text-white" />
         </div>
         {/* Brand header */}
-        <div className="flex justify-center mb-8">
-          <BrandIcon size={48} />
+        <div className="flex justify-center mb-10">
+          <BrandIcon size={72} />
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-xl p-6 sm:p-8">
