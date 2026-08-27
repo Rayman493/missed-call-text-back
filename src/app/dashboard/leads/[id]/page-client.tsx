@@ -4021,8 +4021,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Layout: Premium Profile Header */}
           <div className="hidden md:block flex-shrink-0">
             {/* Workspace Header Surface */}
-            <div className="border-y border-border/20 bg-muted/20 dark:border-slate-800/20 dark:bg-slate-900/20">
-              <div className="max-w-7xl mx-auto px-6 lg:px-8 py-3">
+            <div className="max-w-7xl mx-auto px-6 lg:px-8 py-3">
                 {/* Back Link Row */}
                 <div className="mb-1">
                   <AppBackButton fallbackHref="/dashboard/leads" label="Back to Customers" />
@@ -4086,7 +4085,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     </div>
                 </div>
-              </div>
             </div>
           </div>
 
