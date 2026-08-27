@@ -2692,8 +2692,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
             </button>
           </div>
 
-          {/* Recenter Button - visible when markers exist and not initializing */}
-          {cameraOwnerRef.current !== CameraOwner.INITIALIZING && markersRef.current.size > 0 && (
+          {/* Recenter Button - visible when markers exist */}
+          {markersRef.current.size > 0 && (
             <button
               onClick={recenterMap}
               className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center backdrop-blur-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
