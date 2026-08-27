@@ -2154,10 +2154,11 @@ export default function SettingsContent() {
       sessionStorage.setItem('deleteReauthReturnTarget', '/dashboard/settings?section=account')
 
       // Initiate Google OAuth with specific redirectTo
+      // Include reauthContext=delete to allow callback to detect this is deletion reauth
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?returnTo=/dashboard/settings?section=account&reauth=delete`,
+          redirectTo: `${window.location.origin}/auth/callback?returnTo=/dashboard/settings?section=account&reauth=delete&reauthContext=delete`,
         },
       })
 
@@ -2369,6 +2370,33 @@ export default function SettingsContent() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const reauth = urlParams.get('reauth')
+    const reauthError = urlParams.get('reauthError')
+
+    // Handle wrong-account error from auth callback
+    if (reauthError === 'wrong_account') {
+      // Sign out the wrong account immediately
+      const signOutAndCleanup = async () => {
+        try {
+          await supabase.auth.signOut()
+        } catch (error) {
+          console.error('[Settings] SignOut error after wrong-account reauth:', error)
+        }
+        // Clear reauth state
+        sessionStorage.removeItem('deleteReauthOriginalUserId')
+        sessionStorage.removeItem('deleteReauthReturnTarget')
+        setDeleteReauthRequired(false)
+        setOriginalDeleteUserId(null)
+        setDeleteReauthProvider(null)
+        setShowDeleteModal(false)
+        setDeleteConfirmText('')
+        // Show clear wrong-account message
+        showToast('You authenticated with a different Google account. Sign in with the Google account associated with this ReplyFlow account to continue.', 'error')
+        // Clean up URL
+        window.history.replaceState({}, '', '/auth/signin?error=wrong_account_reauth')
+      }
+      signOutAndCleanup()
+      return
+    }
 
     if (reauth === 'delete') {
       const originalUserId = sessionStorage.getItem('deleteReauthOriginalUserId')
@@ -2392,16 +2420,27 @@ export default function SettingsContent() {
           // Clean up URL
           window.history.replaceState({}, '', '/dashboard/settings?section=account')
         } else {
-          // Different user - abort
-          sessionStorage.removeItem('deleteReauthOriginalUserId')
-          sessionStorage.removeItem('deleteReauthReturnTarget')
-          setDeleteReauthRequired(false)
-          setOriginalDeleteUserId(null)
-          setDeleteReauthProvider(null)
-          setShowDeleteModal(false)
-          setDeleteConfirmText('')
-          showToast('Authentication failed. Please try again.', 'error')
-          window.history.replaceState({}, '', '/dashboard/settings?section=account')
+          // Different user - sign out and show clear message
+          const signOutAndCleanup = async () => {
+            try {
+              await supabase.auth.signOut()
+            } catch (error) {
+              console.error('[Settings] SignOut error after wrong-account reauth:', error)
+            }
+            // Clear reauth state
+            sessionStorage.removeItem('deleteReauthOriginalUserId')
+            sessionStorage.removeItem('deleteReauthReturnTarget')
+            setDeleteReauthRequired(false)
+            setOriginalDeleteUserId(null)
+            setDeleteReauthProvider(null)
+            setShowDeleteModal(false)
+            setDeleteConfirmText('')
+            // Show clear wrong-account message
+            showToast('You authenticated with a different Google account. Sign in with the Google account associated with this ReplyFlow account to continue.', 'error')
+            // Clean up URL and redirect to sign-in
+            window.history.replaceState({}, '', '/auth/signin?error=wrong_account_reauth')
+          }
+          signOutAndCleanup()
         }
       } else {
         // No original user ID - abort safely

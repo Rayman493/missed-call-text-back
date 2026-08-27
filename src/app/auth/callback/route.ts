@@ -25,7 +25,8 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const nextParam = requestUrl.searchParams.get('next')
-  
+  const reauthContext = requestUrl.searchParams.get('reauthContext') // 'delete' if this is deletion reauth
+
   // Validate and sanitize the next parameter
   const next = (nextParam && isValidRedirectPath(nextParam)) ? nextParam : null
 
@@ -121,6 +122,42 @@ export async function GET(request: Request) {
           }
           console.log('[Auth Callback] Error code:', businessError?.code)
           console.log('[Auth Callback] Error message:', businessError?.message)
+
+          // If this is deletion reauth and user has no business, route to safe error page
+          // This prevents wrong-account selection from entering normal onboarding
+          if (reauthContext === 'delete' && isPGRST116) {
+            const redirectTarget = '/dashboard/settings?section=account&reauthError=wrong_account'
+            const reason = 'Deletion reauth: wrong account selected (no business for new account)'
+
+            console.log('[AUTH REAUTH MISMATCH]', {
+              location: 'src/app/auth/callback/route.ts',
+              userId: user.id,
+              reauthContext,
+              businessFound: false,
+              redirectTarget,
+              reason
+            })
+
+            console.log('[ONBOARDING REDIRECT SOURCE]', {
+              file: 'src/app/auth/callback/route.ts',
+              functionName: 'GET handler',
+              currentPath: '/auth/callback',
+              redirectTarget,
+              userId: user.id,
+              sessionExists: true,
+              authLoading: false,
+              businessLoading: 'complete',
+              businessFetchComplete: true,
+              businessId: null,
+              businessFound: false,
+              businessErrorCode: businessError?.code,
+              businessErrorMessage: businessError?.message,
+              reason,
+              timestamp: new Date().toISOString()
+            })
+
+            return NextResponse.redirect(new URL(redirectTarget, requestUrl.origin))
+          }
 
           const redirectTarget = isPGRST116 ? '/onboarding' : '/dashboard'
           const reason = isPGRST116 ? 'No business row (PGRST116 confirmed)' : 'Business query error (non-PGRST116)'

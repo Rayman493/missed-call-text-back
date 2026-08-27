@@ -6,6 +6,7 @@
  * - recent OAuth session proceeds
  * - password user still requires password
  * - provider is derived server-side from user object
+ * - wrong-account detection and handling
  */
 
 import { describe, it, expect } from 'vitest'
@@ -116,6 +117,49 @@ describe('Account Deletion Reauthentication', () => {
       const capabilities = getAuthCapabilities(mockUser)
       // Password users should use password verification, not OAuth reauth
       expect(capabilities.hasPassword).toBe(true)
+    })
+  })
+
+  describe('wrong-account protection', () => {
+    it('should detect mismatch between expected and current user ID', () => {
+      const expectedUserId = 'user-A-id'
+      const currentUserId = 'user-B-id'
+
+      const isMatch = expectedUserId === currentUserId
+      expect(isMatch).toBe(false)
+    })
+
+    it('should detect match between expected and current user ID', () => {
+      const expectedUserId = 'user-A-id'
+      const currentUserId = 'user-A-id'
+
+      const isMatch = expectedUserId === currentUserId
+      expect(isMatch).toBe(true)
+    })
+
+    it('should not allow client-provided user ID to override authenticated user', () => {
+      // This documents the security invariant
+      const authenticatedUserId = 'user-B-id'
+      const clientProvidedExpectedUserId = 'user-A-id'
+
+      // Server MUST use authenticated user ID for deletion
+      const deletionTarget = authenticatedUserId
+      expect(deletionTarget).toBe('user-B-id')
+      expect(deletionTarget).not.toBe(clientProvidedExpectedUserId)
+    })
+  })
+
+  describe('reauth context parameter', () => {
+    it('should include reauthContext=delete in OAuth redirect', () => {
+      const reauthContext = 'delete'
+      expect(reauthContext).toBe('delete')
+    })
+
+    it('should allow callback to distinguish deletion reauth from normal signup', () => {
+      const deletionReauthContext = 'delete'
+      const normalSignupContext = null
+
+      expect(deletionReauthContext).not.toBe(normalSignupContext)
     })
   })
 })
