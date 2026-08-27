@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { deleteAccountLifecycle, DeletionResult } from '@/lib/account-deletion-service'
+import { getAuthCapabilities, canUsePasswordVerification } from '@/lib/auth/get-auth-capabilities'
 
 interface DeleteResult extends DeletionResult {}
 
@@ -68,8 +69,9 @@ export async function POST(request: NextRequest) {
 
     console.log('[delete-account] Server client created, attempting to get user')
 
-    // Get authenticated user
+    // Get authenticated user and session
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
 
     console.log('[delete-account] User retrieval result:', {
       hasUser: !!user,
@@ -89,42 +91,93 @@ export async function POST(request: NextRequest) {
 
     console.log('[delete-account] Authenticated user:', user.id)
 
-    // Verify password before any deletion logic
-    if (!password || typeof password !== 'string' || !password.trim()) {
-      console.error('[delete-account] Password not provided')
-      return NextResponse.json(
-        { ok: false, step: 'password_verification', error: 'Password is required' },
-        { status: 400 }
-      )
-    }
-
-    console.log('[delete-account] Verifying password for user:', user.id)
-
-    // Verify password by attempting to sign in
-    // This is the standard way to verify credentials in Supabase
-    const { data: signInData, error: signInError } = await supabaseAdmin.auth.signInWithPassword({
-      email: user.email || '',
-      password: password.trim(),
+    // Determine auth capabilities from canonical user object
+    const capabilities = getAuthCapabilities(user)
+    console.log('[delete-account] Auth capabilities:', {
+      hasPassword: capabilities.hasPassword,
+      oauthProviders: capabilities.oauthProviders,
+      isOAuthOnly: capabilities.isOAuthOnly,
+      primaryProvider: capabilities.primaryProvider,
     })
 
-    if (signInError || !signInData.user) {
-      console.error('[delete-account] Password verification failed:', signInError)
-      return NextResponse.json(
-        { ok: false, step: 'password_verification', error: 'Incorrect password. Please try again.' },
-        { status: 401 }
-      )
-    }
+    // Provider-aware verification
+    if (capabilities.hasPassword) {
+      // Password-capable users: require current password verification
+      console.log('[delete-account] User has password, requiring password verification')
 
-    // Verify the authenticated user matches the signed-in user
-    if (signInData.user.id !== user.id) {
-      console.error('[delete-account] User ID mismatch during password verification')
-      return NextResponse.json(
-        { ok: false, step: 'password_verification', error: 'Authentication failed' },
-        { status: 401 }
-      )
-    }
+      if (!password || typeof password !== 'string' || !password.trim()) {
+        console.error('[delete-account] Password not provided')
+        return NextResponse.json(
+          { ok: false, step: 'password_verification', error: 'Password is required' },
+          { status: 400 }
+        )
+      }
 
-    console.log('[delete-account] Password verified successfully')
+      console.log('[delete-account] Verifying password for user:', user.id)
+
+      // Verify password by attempting to sign in
+      const { data: signInData, error: signInError } = await supabaseAdmin.auth.signInWithPassword({
+        email: user.email || '',
+        password: password.trim(),
+      })
+
+      if (signInError || !signInData.user) {
+        console.error('[delete-account] Password verification failed:', signInError)
+        return NextResponse.json(
+          { ok: false, step: 'password_verification', error: 'Incorrect password. Please try again.' },
+          { status: 401 }
+        )
+      }
+
+      // Verify the authenticated user matches the signed-in user
+      if (signInData.user.id !== user.id) {
+        console.error('[delete-account] User ID mismatch during password verification')
+        return NextResponse.json(
+          { ok: false, step: 'password_verification', error: 'Authentication failed' },
+          { status: 401 }
+        )
+      }
+
+      console.log('[delete-account] Password verified successfully')
+    } else {
+      // OAuth-only users: require recent authentication instead of password
+      console.log('[delete-account] User is OAuth-only, requiring recent authentication check')
+
+      if (!session) {
+        console.error('[delete-account] No session found for OAuth-only user')
+        return NextResponse.json(
+          { ok: false, step: 'auth', error: 'Authentication required' },
+          { status: 401 }
+        )
+      }
+
+      // Check session age - require recent authentication (5 minutes)
+      // Use user.last_sign_in_at as the most reliable timestamp for when user last authenticated
+      const lastSignInAt = user.last_sign_in_at
+      const sessionAge = lastSignInAt
+        ? Date.now() - new Date(lastSignInAt).getTime()
+        : Infinity
+
+      const RECENT_AUTH_WINDOW_MS = 5 * 60 * 1000 // 5 minutes
+
+      if (sessionAge > RECENT_AUTH_WINDOW_MS) {
+        console.error('[delete-account] OAuth-only user session too old:', {
+          sessionAgeMs: sessionAge,
+          sessionAgeMinutes: sessionAge / (60 * 1000),
+          maxAgeMinutes: RECENT_AUTH_WINDOW_MS / (60 * 1000),
+        })
+        return NextResponse.json(
+          {
+            ok: false,
+            step: 'recent_auth_required',
+            error: 'For security, please sign in again to delete your account.',
+          },
+          { status: 401 }
+        )
+      }
+
+      console.log('[delete-account] OAuth-only user session is recent, verification passed')
+    }
 
     // EXPLICIT CONFIRMATION CHECK: Require DELETE confirmation for self-service deletion
     if (!dryRun) {

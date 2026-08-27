@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { getAuthCapabilities, type AuthCapabilities } from '@/lib/auth/get-auth-capabilities'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
@@ -49,7 +50,7 @@ import ImportContactsModal from '@/components/ImportContactsModal'
 import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate } from '@/lib/out-of-office'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
-import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, RefreshCw, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react'
 import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
@@ -100,6 +101,7 @@ export default function SettingsContent() {
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [activeSection, setActiveSection] = useState('general')
   const [showBusinessNumberWarning, setShowBusinessNumberWarning] = useState(false)
+  const [authCapabilities, setAuthCapabilities] = useState<AuthCapabilities | null>(null)
 
   // Default out of office message (use canonical template)
   const DEFAULT_OUT_OF_OFFICE_MESSAGE = getDefaultOutOfOfficeTemplate()
@@ -109,6 +111,18 @@ export default function SettingsContent() {
 
   // Use centralized onboarding state machine
   const onboardingState = getBusinessOnboardingState(business, {})
+
+  // Fetch auth capabilities when user changes
+  useEffect(() => {
+    if (!user) {
+      setAuthCapabilities(null)
+      return
+    }
+
+    const capabilities = getAuthCapabilities(user)
+    setAuthCapabilities(capabilities)
+    console.log('[Settings] Auth capabilities:', capabilities)
+  }, [user])
 
   // Ignored contacts state
   const [ignoredContacts, setIgnoredContacts] = useState<any[]>([])
@@ -2021,27 +2035,33 @@ export default function SettingsContent() {
 
   // Delete account handler
   const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== 'DELETE' || !deletePassword.trim()) return
+    if (deleteConfirmText !== 'DELETE') return
+    if (authCapabilities?.hasPassword && !deletePassword.trim()) return
 
     setIsDeleting(true)
     setDeletePasswordError('')
-    
+
     try {
       // Starting account deletion process
-      
+
       // Clear local storage and session storage BEFORE deletion to prevent stale state
       if (typeof window !== 'undefined') {
         localStorage.clear()
         sessionStorage.clear()
       }
 
+      // Only send password if user has one
+      const body: any = {
+        deleteConfirmation: deleteConfirmText
+      }
+      if (authCapabilities?.hasPassword) {
+        body.password = deletePassword
+      }
+
       const response = await fetch('/api/account/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          password: deletePassword,
-          deleteConfirmation: deleteConfirmText
-        }),
+        body: JSON.stringify(body),
       })
 
       const result = await response.json().catch(() => ({}))
@@ -4735,19 +4755,21 @@ export default function SettingsContent() {
                       </div>
                       <div className="flex items-center gap-2 sm:gap-3">
                         <span className="text-sm font-medium text-foreground truncate max-w-[150px] sm:max-w-[200px]">{user?.email}</span>
-                        <button
-                          onClick={() => {
-                            setNewEmail('')
-                            setConfirmNewEmail('')
-                            setEmailPassword('')
-                            setEmailError('')
-                            setEmailSuccess(false)
-                            setShowChangeEmailModal(true)
-                          }}
-                          className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
-                        >
-                          Change Email
-                        </button>
+                        {authCapabilities?.hasPassword && (
+                          <button
+                            onClick={() => {
+                              setNewEmail('')
+                              setConfirmNewEmail('')
+                              setEmailPassword('')
+                              setEmailError('')
+                              setEmailSuccess(false)
+                              setShowChangeEmailModal(true)
+                            }}
+                            className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
+                          >
+                            Change Email
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -4889,25 +4911,51 @@ export default function SettingsContent() {
                       </div>
                       <div className="flex items-center gap-2 sm:gap-3">
                         <span className="text-sm font-medium text-foreground">•••••••••</span>
-                        <button
-                          onClick={() => {
-                            setCurrentPassword('')
-                            setNewPassword('')
-                            setConfirmNewPassword('')
-                            setPasswordError('')
-                            setShowChangePasswordModal(true)
-                          }}
-                          className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
-                        >
-                          Change Password
-                        </button>
+                        {authCapabilities?.hasPassword && (
+                          <button
+                            onClick={() => {
+                              setCurrentPassword('')
+                              setNewPassword('')
+                              setConfirmNewPassword('')
+                              setPasswordError('')
+                              setShowChangePasswordModal(true)
+                            }}
+                            className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
+                          >
+                            Change Password
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Subscription & Billing Section */}
+                  {/* Auth Method Indicator */}
+                  {authCapabilities && (
+                    <div className="flex flex-col gap-3 bg-slate-50 dark:bg-slate-800/30 p-4">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2.5">
+                          <ShieldCheck className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-foreground">Sign-in method</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          How you sign in to your account.
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                          {authCapabilities.isPasswordOnly && 'Password'}
+                          {authCapabilities.isOAuthOnly && authCapabilities.hasGoogle && 'Google'}
+                          {authCapabilities.isOAuthOnly && authCapabilities.hasApple && 'Apple'}
+                          {authCapabilities.hasMultipleMethods && authCapabilities.hasGoogle && authCapabilities.hasPassword && 'Google · Password'}
+                          {authCapabilities.hasMultipleMethods && !authCapabilities.hasPassword && authCapabilities.oauthProviders.join(' · ')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Subscription & Billing Section */}
               <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
                 <div className="mb-4">
                   <h2 className="text-base font-semibold text-foreground mb-1">Subscription & Billing</h2>
@@ -5159,36 +5207,40 @@ export default function SettingsContent() {
                       Final Confirmation
                     </h3>
                     <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
-                      Enter your current password to permanently delete your ReplyFlow account.
+                      {authCapabilities?.hasPassword
+                        ? 'Enter your current password to permanently delete your ReplyFlow account.'
+                        : 'To permanently delete your ReplyFlow account, please type DELETE below.'}
                     </p>
-                    <div>
-                      <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
-                        Current Password
-                      </label>
-                      <PasswordInput
-                        id="delete-password"
-                        name="delete-password"
-                        value={deletePassword}
-                        onChange={(e) => {
-                          setDeletePassword(e.target.value)
-                          setDeletePasswordError('')
-                        }}
-                        placeholder="Enter your current password"
-                        required={false}
-                        autoComplete="new-password"
-                        disabled={isDeleting}
-                        className={`h-12 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all ${
-                          deletePasswordError
-                            ? 'border-red-500 focus:ring-red-500'
-                            : 'border-slate-200/70 dark:border-slate-700/50 focus:ring-red-500/40 focus:border-red-500/80'
-                        }`}
-                      />
-                      {deletePasswordError && (
-                        <p className="mt-2 text-xs text-red-600 dark:text-red-400">
-                          {deletePasswordError}
-                        </p>
-                      )}
-                    </div>
+                    {authCapabilities?.hasPassword && (
+                      <div>
+                        <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
+                          Current Password
+                        </label>
+                        <PasswordInput
+                          id="delete-password"
+                          name="delete-password"
+                          value={deletePassword}
+                          onChange={(e) => {
+                            setDeletePassword(e.target.value)
+                            setDeletePasswordError('')
+                          }}
+                          placeholder="Enter your current password"
+                          required={false}
+                          autoComplete="new-password"
+                          disabled={isDeleting}
+                          className={`h-12 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all ${
+                            deletePasswordError
+                              ? 'border-red-500 focus:ring-red-500'
+                              : 'border-slate-200/70 dark:border-slate-700/50 focus:ring-red-500/40 focus:border-red-500/80'
+                          }`}
+                        />
+                        {deletePasswordError && (
+                          <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                            {deletePasswordError}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -5209,7 +5261,11 @@ export default function SettingsContent() {
                     </button>
                     <button
                       onClick={handleDeleteAccount}
-                      disabled={deleteConfirmText !== 'DELETE' || !deletePassword.trim() || isDeleting}
+                      disabled={
+                        deleteConfirmText !== 'DELETE' ||
+                        (authCapabilities?.hasPassword && !deletePassword.trim()) ||
+                        isDeleting
+                      }
                       className="px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {isDeleting ? (

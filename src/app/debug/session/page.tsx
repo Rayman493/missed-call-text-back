@@ -38,9 +38,11 @@ export default function SessionDebugPage() {
       // Get cookie names
       const cookieNames = document.cookie.split(';').map(c => c.trim().split('=')[0])
 
-      // Check auth provider
+      // Check auth provider and full user structure
       const provider = sessionData?.session?.user?.app_metadata?.provider || 'email'
       const emailConfirmed = sessionData?.session?.user?.email_confirmed_at || false
+      const identities = sessionData?.session?.user?.identities || []
+      const appMetadataProviders = sessionData?.session?.user?.app_metadata?.providers
 
       setDebugInfo({
         currentUrl: window.location.href,
@@ -54,6 +56,12 @@ export default function SessionDebugPage() {
         userError: userError?.message,
         localStorageKeys,
         cookieNames,
+        // Auth capability debug info (safe, no secrets)
+        identities: identities.map((id: any) => ({
+          provider: id.provider,
+          identityId: id.id ? 'exists' : 'missing',
+        })),
+        appMetadataProviders,
         sessionData: {
           access_token: sessionData?.session?.access_token ? 'exists' : 'missing',
           refresh_token: sessionData?.session?.refresh_token ? 'exists' : 'missing',
@@ -111,9 +119,28 @@ export default function SessionDebugPage() {
           <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-lg p-6 shadow-sm">
             <h2 className="text-xl font-semibold mb-4 text-foreground">Auth Provider & Email Confirmation</h2>
             <div className="space-y-2 font-mono text-sm text-slate-700 dark:text-muted-foreground">
-              <p><strong>Auth Provider:</strong> {debugInfo.authProvider}</p>
+              <p><strong>Auth Provider (app_metadata.provider):</strong> {debugInfo.authProvider}</p>
               <p><strong>Email Confirmed:</strong> {debugInfo.emailConfirmed ? '✅ YES' : '❌ NO'}</p>
               <p><strong>Email Confirmed At:</strong> {debugInfo.userData?.email_confirmed_at || 'N/A'}</p>
+              <p><strong>app_metadata.providers:</strong> {debugInfo.appMetadataProviders ? JSON.stringify(debugInfo.appMetadataProviders) : 'missing'}</p>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4 text-foreground">User Identities</h2>
+            <div className="space-y-2 font-mono text-sm text-slate-700 dark:text-muted-foreground">
+              <p><strong>Identities Count:</strong> {debugInfo.identities?.length || 0}</p>
+              {debugInfo.identities && debugInfo.identities.length > 0 ? (
+                <ul className="list-disc list-inside space-y-1">
+                  {debugInfo.identities.map((id: any, idx: number) => (
+                    <li key={idx}>
+                      <strong>Identity {idx + 1}:</strong> provider={id.provider}, id={id.identityId}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No identities found</p>
+              )}
             </div>
           </div>
 

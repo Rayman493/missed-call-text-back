@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getAuthCapabilities } from '@/lib/auth/get-auth-capabilities'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
 
     // STAGE 1: current-user lookup
     const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
 
     if (userError || !user) {
       console.error('[delete-incomplete-signup] No authenticated user found', {
@@ -51,44 +53,90 @@ export async function POST(request: Request) {
 
     console.log('[delete-incomplete-signup] User:', user.id, 'Email:', user.email)
 
+    // Determine auth capabilities from canonical user object
+    const capabilities = getAuthCapabilities(user)
+    console.log('[delete-incomplete-signup] Auth capabilities:', {
+      hasPassword: capabilities.hasPassword,
+      oauthProviders: capabilities.oauthProviders,
+      isOAuthOnly: capabilities.isOAuthOnly,
+    })
+
     // Parse request body
     const body = await request.json().catch(() => ({}))
     const { password } = body
 
-    if (!password) {
-      return NextResponse.json(
-        { error: 'Password is required to confirm account deletion' },
-        { status: 400 }
-      )
-    }
+    // Provider-aware verification
+    if (capabilities.hasPassword) {
+      // Password-capable users: require current password verification
+      if (!password) {
+        return NextResponse.json(
+          { error: 'Password is required to confirm account deletion' },
+          { status: 400 }
+        )
+      }
 
-    // Verify password by attempting sign-in
-    if (!user.email) {
-      return NextResponse.json(
-        { error: 'User email not found' },
-        { status: 400 }
-      )
-    }
+      if (!user.email) {
+        return NextResponse.json(
+          { error: 'User email not found' },
+          { status: 400 }
+        )
+      }
 
-    // STAGE 2: password verification
-    console.log('[delete-incomplete-signup] Verifying password')
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email,
-      password,
-    })
-
-    if (signInError) {
-      console.error('[delete-incomplete-signup] Password verification failed:', {
-        code: (signInError as any)?.code,
-        message: (signInError as any)?.message
+      // STAGE 2: password verification
+      console.log('[delete-incomplete-signup] Verifying password')
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password,
       })
-      return NextResponse.json(
-        { error: 'Incorrect password' },
-        { status: 403 }
-      )
-    }
 
-    console.log('[delete-incomplete-signup] Password verified')
+      if (signInError) {
+        console.error('[delete-incomplete-signup] Password verification failed:', {
+          code: (signInError as any)?.code,
+          message: (signInError as any)?.message
+        })
+        return NextResponse.json(
+          { error: 'Incorrect password' },
+          { status: 403 }
+        )
+      }
+
+      console.log('[delete-incomplete-signup] Password verified')
+    } else {
+      // OAuth-only users: require recent authentication instead of password
+      console.log('[delete-incomplete-signup] User is OAuth-only, requiring recent authentication check')
+
+      if (!session) {
+        console.error('[delete-incomplete-signup] No session found for OAuth-only user')
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 }
+        )
+      }
+
+      // Check session age - require recent authentication (5 minutes)
+      // Use user.last_sign_in_at as the most reliable timestamp for when user last authenticated
+      const lastSignInAt = user.last_sign_in_at
+      const sessionAge = lastSignInAt
+        ? Date.now() - new Date(lastSignInAt).getTime()
+        : Infinity
+
+      const RECENT_AUTH_WINDOW_MS = 5 * 60 * 1000 // 5 minutes
+
+      if (sessionAge > RECENT_AUTH_WINDOW_MS) {
+        console.error('[delete-incomplete-signup] OAuth-only user session too old:', {
+          sessionAgeMs: sessionAge,
+          sessionAgeMinutes: sessionAge / (60 * 1000),
+        })
+        return NextResponse.json(
+          {
+            error: 'For security, please sign in again to delete your account.',
+          },
+          { status: 401 }
+        )
+      }
+
+      console.log('[delete-incomplete-signup] OAuth-only user session is recent, verification passed')
+    }
 
     // Find the optional business row for this user. Use maybeSingle so a missing
     // business is treated as "nothing to clean up", not as a server error.
