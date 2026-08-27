@@ -2155,10 +2155,12 @@ export default function SettingsContent() {
 
       // Initiate Google OAuth with specific redirectTo
       // Include reauthContext=delete to allow callback to detect this is deletion reauth
+      // Use 'next' parameter (not 'returnTo') as that's what auth callback reads
+      const returnTarget = '/dashboard/settings?section=account&reauth=delete'
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?returnTo=/dashboard/settings?section=account&reauth=delete&reauthContext=delete`,
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnTarget)}&reauthContext=delete`,
         },
       })
 

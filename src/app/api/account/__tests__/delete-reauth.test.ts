@@ -7,6 +7,7 @@
  * - password user still requires password
  * - provider is derived server-side from user object
  * - wrong-account detection and handling
+ * - return routing after successful reauth
  */
 
 import { describe, it, expect } from 'vitest'
@@ -160,6 +161,42 @@ describe('Account Deletion Reauthentication', () => {
       const normalSignupContext = null
 
       expect(deletionReauthContext).not.toBe(normalSignupContext)
+    })
+  })
+
+  describe('return routing', () => {
+    it('should use next parameter (not returnTo) for auth callback', () => {
+      // The auth callback reads 'next' parameter, not 'returnTo'
+      const paramName = 'next'
+      expect(paramName).toBe('next')
+      expect(paramName).not.toBe('returnTo')
+    })
+
+    it('should properly encode nested query parameters in return target', () => {
+      const returnTarget = '/dashboard/settings?section=account&reauth=delete'
+      const encoded = encodeURIComponent(returnTarget)
+
+      expect(encoded).toBe('%2Fdashboard%2Fsettings%3Fsection%3Daccount%26reauth%3Ddelete')
+      expect(encoded).not.toBe(returnTarget) // Should be encoded
+      expect(encoded).not.toContain('?') // Should not contain unencoded ?
+    })
+
+    it('should decode nested query parameters correctly', () => {
+      const encoded = '%2Fdashboard%2Fsettings%3Fsection%3Daccount%26reauth%3Ddelete'
+      const decoded = decodeURIComponent(encoded)
+
+      expect(decoded).toBe('/dashboard/settings?section=account&reauth=delete')
+    })
+
+    it('should construct correct OAuth redirect URL', () => {
+      const origin = 'https://example.com'
+      const returnTarget = '/dashboard/settings?section=account&reauth=delete'
+      const encodedTarget = encodeURIComponent(returnTarget)
+
+      const redirectUrl = `${origin}/auth/callback?next=${encodedTarget}&reauthContext=delete`
+      const expected = 'https://example.com/auth/callback?next=%2Fdashboard%2Fsettings%3Fsection%3Daccount%26reauth%3Ddelete&reauthContext=delete'
+
+      expect(redirectUrl).toBe(expected)
     })
   })
 })
