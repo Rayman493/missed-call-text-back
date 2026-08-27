@@ -490,21 +490,15 @@ export async function POST(request: Request) {
           console.log('[MMS API] Inserting media record:', {
             messageId,
             mediaUrl: mediaUrl.substring(0, 50) + '...',
-            storagePath: storagePath?.substring(0, 50) + '...',
             mimeType: detectedMimeType
           })
 
           const insertData: any = {
             message_id: messageId,
             media_url: mediaUrl,
-            mime_type: detectedMimeType, // Use detected MIME type
-            filename: file.name, // Store original filename for documents
-            size: file.size, // Store file size for display
+            mime_type: detectedMimeType,
             created_at: new Date().toISOString(),
           }
-
-          // Note: storage_path is not included because production schema doesn't have this column yet
-          // Storage path can be derived from media_url when needed for recovery
           const { error: mediaError } = await supabaseAdmin
             .from('message_media')
             .insert(insertData)
