@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { getAuthCapabilities, type AuthCapabilities } from '@/lib/auth/get-auth-capabilities'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
@@ -101,10 +100,6 @@ export default function SettingsContent() {
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [activeSection, setActiveSection] = useState('general')
   const [showBusinessNumberWarning, setShowBusinessNumberWarning] = useState(false)
-  const [authCapabilities, setAuthCapabilities] = useState<AuthCapabilities | null>(null)
-  const [deleteReauthRequired, setDeleteReauthRequired] = useState(false)
-  const [deleteReauthProvider, setDeleteReauthProvider] = useState<string | null>(null)
-  const [originalDeleteUserId, setOriginalDeleteUserId] = useState<string | null>(null)
 
   // Default out of office message (use canonical template)
   const DEFAULT_OUT_OF_OFFICE_MESSAGE = getDefaultOutOfOfficeTemplate()
@@ -114,38 +109,6 @@ export default function SettingsContent() {
 
   // Use centralized onboarding state machine
   const onboardingState = getBusinessOnboardingState(business, {})
-
-  // Fetch auth capabilities when user changes
-  useEffect(() => {
-    if (!user) {
-      setAuthCapabilities(null)
-      return
-    }
-
-    const capabilities = getAuthCapabilities(user)
-    setAuthCapabilities(capabilities)
-    console.log('[Settings] Auth capabilities:', capabilities)
-  }, [user])
-
-  // Cleanup stale reauth state on mount (in case of cancelled OAuth)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const reauth = urlParams.get('reauth')
-
-    // Only clear if we're not currently processing a reauth return
-    if (!reauth) {
-      const originalUserId = sessionStorage.getItem('deleteReauthOriginalUserId')
-      if (originalUserId) {
-        // Stale reauth state from cancelled OAuth - clean it up
-        console.log('[Settings] Cleaning up stale reauth state')
-        sessionStorage.removeItem('deleteReauthOriginalUserId')
-        sessionStorage.removeItem('deleteReauthReturnTarget')
-        setDeleteReauthRequired(false)
-        setOriginalDeleteUserId(null)
-        setDeleteReauthProvider(null)
-      }
-    }
-  }, [])
 
   // Ignored contacts state
   const [ignoredContacts, setIgnoredContacts] = useState<any[]>([])
@@ -2059,7 +2022,7 @@ export default function SettingsContent() {
   // Delete account handler
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== 'DELETE') return
-    if (authCapabilities?.hasPassword && !deletePassword.trim()) return
+    if (!deletePassword.trim()) return
 
     setIsDeleting(true)
     setDeletePasswordError('')
@@ -2073,18 +2036,13 @@ export default function SettingsContent() {
         sessionStorage.clear()
       }
 
-      // Only send password if user has one
-      const body: any = {
-        deleteConfirmation: deleteConfirmText
-      }
-      if (authCapabilities?.hasPassword) {
-        body.password = deletePassword
-      }
-
       const response = await fetch('/api/account/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          deleteConfirmation: deleteConfirmText,
+          password: deletePassword,
+        }),
       })
 
       const result = await response.json().catch(() => ({}))
@@ -2094,15 +2052,6 @@ export default function SettingsContent() {
 
         if (result?.step === 'password_verification') {
           setDeletePasswordError(result?.error || 'Incorrect password. Please try again.')
-          setIsDeleting(false)
-          return
-        }
-
-        if (result?.step === 'reauthentication_required') {
-          // Store the original user ID for security verification after reauth
-          setOriginalDeleteUserId(user?.id || null)
-          setDeleteReauthProvider(result?.provider || null)
-          setDeleteReauthRequired(true)
           setIsDeleting(false)
           return
         }
@@ -2119,7 +2068,7 @@ export default function SettingsContent() {
       }
 
       // Account deleted successfully, redirecting to homepage
-      
+
       // Explicitly sign out from Supabase to clear auth state
       try {
         const { error: signOutError } = await supabase.auth.signOut()
@@ -2131,50 +2080,13 @@ export default function SettingsContent() {
         console.error('[Settings] SignOut exception:', signOutError)
         // Continue anyway - account is deleted
       }
-      
+
       // Force redirect to homepage
       window.location.href = '/'
     } catch (error) {
       console.error('[Settings] Delete account network error:', error)
       showToast('Failed to delete account. Please try again.', 'error')
       setIsDeleting(false)
-    }
-  }
-
-  // Handle OAuth reauthentication for deletion
-  const handleReauthForDeletion = async () => {
-    if (!user?.id) {
-      showToast('Authentication error. Please try again.', 'error')
-      return
-    }
-
-    try {
-      // Determine which OAuth provider to use based on user's auth capabilities
-      const provider = authCapabilities?.primaryProvider || 'google'
-
-      // Store the original user ID in sessionStorage for verification after OAuth return
-      sessionStorage.setItem('deleteReauthOriginalUserId', user.id)
-      sessionStorage.setItem('deleteReauthReturnTarget', '/dashboard/settings?section=account')
-
-      // Initiate OAuth with specific redirectTo
-      // Include reauthContext=delete to allow callback to detect this is deletion reauth
-      // Use 'next' parameter (not 'returnTo') as that's what auth callback reads
-      const returnTarget = '/dashboard/settings?section=account&reauth=delete'
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: provider as any,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnTarget)}&reauthContext=delete`,
-        },
-      })
-
-      if (error) {
-        console.error('[Settings] OAuth reauth error:', error)
-        const providerName = provider === 'apple' ? 'Apple' : 'Google'
-        showToast(`Failed to initiate ${providerName} verification. Please try again.`, 'error')
-      }
-    } catch (error) {
-      console.error('[Settings] OAuth reauth exception:', error)
-      showToast('Failed to initiate verification. Please try again.', 'error')
     }
   }
 
@@ -2371,95 +2283,6 @@ export default function SettingsContent() {
       window.history.replaceState({}, '', url.toString())
     }
   }, [])
-
-  // Check for reauth return from OAuth
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const reauth = urlParams.get('reauth')
-    const reauthError = urlParams.get('reauthError')
-
-    // Handle wrong-account error from auth callback
-    if (reauthError === 'wrong_account') {
-      // Sign out the wrong account immediately
-      const signOutAndCleanup = async () => {
-        try {
-          await supabase.auth.signOut()
-        } catch (error) {
-          console.error('[Settings] SignOut error after wrong-account reauth:', error)
-        }
-        // Clear reauth state
-        sessionStorage.removeItem('deleteReauthOriginalUserId')
-        sessionStorage.removeItem('deleteReauthReturnTarget')
-        setDeleteReauthRequired(false)
-        setOriginalDeleteUserId(null)
-        setDeleteReauthProvider(null)
-        setShowDeleteModal(false)
-        setDeleteConfirmText('')
-        // Show clear wrong-account message
-        showToast('You authenticated with a different account. Please sign in with the account associated with this ReplyFlow account to continue.', 'error')
-        // Clean up URL
-        window.history.replaceState({}, '', '/auth/signin?error=wrong_account_reauth')
-      }
-      signOutAndCleanup()
-      return
-    }
-
-    if (reauth === 'delete') {
-      const originalUserId = sessionStorage.getItem('deleteReauthOriginalUserId')
-
-      if (originalUserId && user?.id) {
-        // Verify same user
-        if (originalUserId === user.id) {
-          // Clear the reauth state
-          sessionStorage.removeItem('deleteReauthOriginalUserId')
-          sessionStorage.removeItem('deleteReauthReturnTarget')
-          setDeleteReauthRequired(false)
-          setOriginalDeleteUserId(null)
-          setDeleteReauthProvider(null)
-
-          // Clear DELETE confirmation for security - require user to retype
-          setDeleteConfirmText('')
-
-          // Show success message
-          showToast('Identity verified. Please type DELETE to confirm.', 'success')
-
-          // Clean up URL
-          window.history.replaceState({}, '', '/dashboard/settings?section=account')
-        } else {
-          // Different user - sign out and show clear message
-          const signOutAndCleanup = async () => {
-            try {
-              await supabase.auth.signOut()
-            } catch (error) {
-              console.error('[Settings] SignOut error after wrong-account reauth:', error)
-            }
-            // Clear reauth state
-            sessionStorage.removeItem('deleteReauthOriginalUserId')
-            sessionStorage.removeItem('deleteReauthReturnTarget')
-            setDeleteReauthRequired(false)
-            setOriginalDeleteUserId(null)
-            setDeleteReauthProvider(null)
-            setShowDeleteModal(false)
-            setDeleteConfirmText('')
-            // Show clear wrong-account message
-            showToast('You authenticated with a different Google account. Sign in with the Google account associated with this ReplyFlow account to continue.', 'error')
-            // Clean up URL and redirect to sign-in
-            window.history.replaceState({}, '', '/auth/signin?error=wrong_account_reauth')
-          }
-          signOutAndCleanup()
-        }
-      } else {
-        // No original user ID - abort safely
-        sessionStorage.removeItem('deleteReauthOriginalUserId')
-        sessionStorage.removeItem('deleteReauthReturnTarget')
-        setDeleteReauthRequired(false)
-        setOriginalDeleteUserId(null)
-        setDeleteReauthProvider(null)
-        setDeleteConfirmText('')
-        window.history.replaceState({}, '', '/dashboard/settings?section=account')
-      }
-    }
-  }, [user?.id])
 
   // App resume reconciliation for Stripe Connect
   useEffect(() => {
@@ -4913,21 +4736,19 @@ export default function SettingsContent() {
                       </div>
                       <div className="flex items-center gap-2 sm:gap-3">
                         <span className="text-sm font-medium text-foreground truncate max-w-[150px] sm:max-w-[200px]">{user?.email}</span>
-                        {authCapabilities?.hasPassword && (
-                          <button
-                            onClick={() => {
-                              setNewEmail('')
-                              setConfirmNewEmail('')
-                              setEmailPassword('')
-                              setEmailError('')
-                              setEmailSuccess(false)
-                              setShowChangeEmailModal(true)
-                            }}
-                            className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
-                          >
-                            Change Email
-                          </button>
-                        )}
+                        <button
+                          onClick={() => {
+                            setNewEmail('')
+                            setConfirmNewEmail('')
+                            setEmailPassword('')
+                            setEmailError('')
+                            setEmailSuccess(false)
+                            setShowChangeEmailModal(true)
+                          }}
+                          className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
+                        >
+                          Change Email
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -5069,20 +4890,18 @@ export default function SettingsContent() {
                       </div>
                       <div className="flex items-center gap-2 sm:gap-3">
                         <span className="text-sm font-medium text-foreground">•••••••••</span>
-                        {authCapabilities?.hasPassword && (
-                          <button
-                            onClick={() => {
-                              setCurrentPassword('')
-                              setNewPassword('')
-                              setConfirmNewPassword('')
-                              setPasswordError('')
-                              setShowChangePasswordModal(true)
-                            }}
-                            className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
-                          >
-                            Change Password
-                          </button>
-                        )}
+                        <button
+                          onClick={() => {
+                            setCurrentPassword('')
+                            setNewPassword('')
+                            setConfirmNewPassword('')
+                            setPasswordError('')
+                            setShowChangePasswordModal(true)
+                          }}
+                          className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
+                        >
+                          Change Password
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -5090,28 +4909,22 @@ export default function SettingsContent() {
               </div>
 
                   {/* Auth Method Indicator */}
-                  {authCapabilities && (
-                    <div className="flex flex-col gap-3 bg-slate-50 dark:bg-slate-800/30 p-4">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2.5">
-                          <ShieldCheck className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm font-medium text-foreground">Sign-in method</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          How you sign in to your account.
-                        </span>
+                  <div className="flex flex-col gap-3 bg-slate-50 dark:bg-slate-800/30 p-4">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2.5">
+                        <ShieldCheck className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-foreground">Sign-in method</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-slate-600 dark:text-slate-400">
-                          {authCapabilities.isPasswordOnly && 'Password'}
-                          {authCapabilities.isOAuthOnly && authCapabilities.hasGoogle && 'Google'}
-                          {authCapabilities.isOAuthOnly && authCapabilities.hasApple && 'Apple'}
-                          {authCapabilities.hasMultipleMethods && authCapabilities.hasGoogle && authCapabilities.hasPassword && 'Google · Password'}
-                          {authCapabilities.hasMultipleMethods && !authCapabilities.hasPassword && authCapabilities.oauthProviders.join(' · ')}
-                        </span>
-                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        How you sign in to your account.
+                      </span>
                     </div>
-                  )}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        Password
+                      </span>
+                    </div>
+                  </div>
 
                   {/* Subscription & Billing Section */}
               <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
@@ -5365,78 +5178,37 @@ export default function SettingsContent() {
                       Final Confirmation
                     </h3>
                     <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
-                      {deleteReauthRequired
-                        ? 'For security, please verify your identity before permanently deleting your account.'
-                        : authCapabilities?.hasPassword
-                          ? 'Enter your current password to permanently delete your ReplyFlow account.'
-                          : 'To permanently delete your ReplyFlow account, please type DELETE below.'}
+                      Enter your current password to permanently delete your ReplyFlow account.
                     </p>
 
-                    {deleteReauthRequired && (deleteReauthProvider === 'google' || deleteReauthProvider === 'apple') && (
-                      <div>
-                        <button
-                          onClick={handleReauthForDeletion}
-                          disabled={isDeleting}
-                          className="w-full h-12 px-4 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 flex items-center justify-center gap-2"
-                        >
-                          {deleteReauthProvider === 'google' ? (
-                            <>
-                              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                              </svg>
-                              Verify with Google
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-5 h-5" viewBox="-16 -16 416 544" fill="currentColor">
-                                <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-74-26.2-92.3z"/>
-                              </svg>
-                              Verify with Apple
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    )}
-
-                    {authCapabilities?.hasApple && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
-                        After deleting your ReplyFlow account, you can also revoke ReplyFlow's access from your Apple ID settings.
-                      </p>
-                    )}
-
-                    {authCapabilities?.hasPassword && !deleteReauthRequired && (
-                      <div>
-                        <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
-                          Current Password
-                        </label>
-                        <PasswordInput
-                          id="delete-password"
-                          name="delete-password"
-                          value={deletePassword}
-                          onChange={(e) => {
-                            setDeletePassword(e.target.value)
-                            setDeletePasswordError('')
-                          }}
-                          placeholder="Enter your current password"
-                          required={false}
-                          autoComplete="new-password"
-                          disabled={isDeleting}
-                          className={`h-12 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all ${
-                            deletePasswordError
-                              ? 'border-red-500 focus:ring-red-500'
-                              : 'border-slate-200/70 dark:border-slate-700/50 focus:ring-red-500/40 focus:border-red-500/80'
-                          }`}
-                        />
-                        {deletePasswordError && (
-                          <p className="mt-2 text-xs text-red-600 dark:text-red-400">
-                            {deletePasswordError}
-                          </p>
-                        )}
-                      </div>
-                    )}
+                    <div>
+                      <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
+                        Current Password
+                      </label>
+                      <PasswordInput
+                        id="delete-password"
+                        name="delete-password"
+                        value={deletePassword}
+                        onChange={(e) => {
+                          setDeletePassword(e.target.value)
+                          setDeletePasswordError('')
+                        }}
+                        placeholder="Enter your current password"
+                        required={false}
+                        autoComplete="new-password"
+                        disabled={isDeleting}
+                        className={`h-12 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all ${
+                          deletePasswordError
+                            ? 'border-red-500 focus:ring-red-500'
+                            : 'border-slate-200/70 dark:border-slate-700/50 focus:ring-red-500/40 focus:border-red-500/80'
+                        }`}
+                      />
+                      {deletePasswordError && (
+                        <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                          {deletePasswordError}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -5449,9 +5221,6 @@ export default function SettingsContent() {
                         setDeleteConfirmText('')
                         setDeletePassword('')
                         setDeletePasswordError('')
-                        setDeleteReauthRequired(false)
-                        setDeleteReauthProvider(null)
-                        setOriginalDeleteUserId(null)
                       }}
                       disabled={isDeleting}
                       className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors duration-150 disabled:opacity-50"
@@ -5461,9 +5230,8 @@ export default function SettingsContent() {
                     <button
                       onClick={handleDeleteAccount}
                       disabled={
-                        deleteReauthRequired ||
                         deleteConfirmText !== 'DELETE' ||
-                        (authCapabilities?.hasPassword && !deletePassword.trim()) ||
+                        !deletePassword.trim() ||
                         isDeleting
                       }
                       className="px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
