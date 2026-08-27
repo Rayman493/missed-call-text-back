@@ -76,7 +76,7 @@ const isIOS = () => {
   }
 }
 
-export default function SettingsContent() {
+export default function SettingsContent({ section }: { section?: string } = {}) {
   const router = useRouter()
   const { business, setBusiness, refreshBusiness, invalidateBusinessCache } = useBusiness()
   const { user, signOut } = useAuth()
@@ -87,6 +87,16 @@ export default function SettingsContent() {
   const [success, setSuccess] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+
+  // Scroll to section when specified
+  useEffect(() => {
+    if (section) {
+      const element = document.getElementById(section)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }
+  }, [section])
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deletePassword, setDeletePassword] = useState('')
   const [deletePasswordError, setDeletePasswordError] = useState('')
