@@ -170,7 +170,7 @@ export default function CompleteSetupPage() {
             sessionStorage.removeItem('incompleteDeleteOriginalUserId')
             sessionStorage.removeItem('incompleteDeleteReturnTarget')
             setPassword('')
-            setError('You authenticated with a different Google account. Please verify with the Google account associated with this ReplyFlow account.')
+            setError('You authenticated with a different account. Please verify with the account associated with this ReplyFlow account.')
             setShowDeleteConfirm(false)
             // Clean up URL and redirect to signin
             window.location.href = '/auth/signin?error=wrong_account_reauth'
@@ -843,8 +843,32 @@ export default function CompleteSetupPage() {
         return
       }
     } else if (authCapabilities?.isOAuthOnly) {
-      // OAuth-only users: proceed without password (server checks recent auth)
-      console.log('[CompleteSetup] OAuth-only user, proceeding with deletion (server will verify recent auth)')
+      // OAuth-only users: initiate OAuth reauthentication for deletion
+      const provider = authCapabilities.primaryProvider || 'google'
+
+      // Store the original user ID in sessionStorage for verification after OAuth return
+      sessionStorage.setItem('incompleteDeleteOriginalUserId', user.id)
+      sessionStorage.setItem('incompleteDeleteReturnTarget', '/complete-setup?reauth=incomplete_delete')
+
+      // Initiate OAuth with specific redirectTo
+      // Include reauthContext=incomplete_delete to allow callback to detect this is incomplete deletion reauth
+      const returnTarget = '/complete-setup?reauth=incomplete_delete'
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnTarget)}&reauthContext=incomplete_delete`
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: provider as any,
+        options: {
+          redirectTo,
+        },
+      })
+
+      if (error) {
+        console.error('[CompleteSetup] OAuth reauth error:', error)
+        setError('Failed to initiate verification. Please try again.')
+        return
+      }
+
+      return // OAuth redirect initiated, deletion will continue after callback
     } else {
       setError('Unable to verify authentication. Please try again.')
       return
@@ -885,24 +909,25 @@ export default function CompleteSetupPage() {
         window.location.href = '/'
       } else {
         // Check for reauthentication_required response
-        if (data.step === 'reauthentication_required' && data.provider === 'google') {
-          console.log('[CompleteSetup] Google reauthentication required')
+        if (data.step === 'reauthentication_required' && (data.provider === 'google' || data.provider === 'apple')) {
+          console.log('[CompleteSetup] OAuth reauthentication required')
           // Store the original user ID in sessionStorage for verification after OAuth return
           if (user?.id) {
             sessionStorage.setItem('incompleteDeleteOriginalUserId', user.id)
             sessionStorage.setItem('incompleteDeleteReturnTarget', '/complete-setup?reauth=incomplete_delete')
           }
-          // Initiate Google OAuth reauth
+          // Initiate OAuth reauth using the provider from the response
           const returnTarget = '/complete-setup?reauth=incomplete_delete'
           const { error: oauthError } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
+            provider: data.provider as any,
             options: {
               redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnTarget)}&reauthContext=incomplete_delete`,
             },
           })
 
           if (oauthError) {
-            setError('Failed to initiate Google verification. Please try again.')
+            const providerName = data.provider === 'apple' ? 'Apple' : 'Google'
+            setError(`Failed to initiate ${providerName} verification. Please try again.`)
             sessionStorage.removeItem('incompleteDeleteOriginalUserId')
             sessionStorage.removeItem('incompleteDeleteReturnTarget')
           }
@@ -1088,14 +1113,14 @@ export default function CompleteSetupPage() {
               ) : authCapabilities?.isOAuthOnly ? (
                 <div>
                   <p className="text-sm text-slate-300 mb-3">
-                    For security, verify with Google before deleting this incomplete account.
+                    For security, verify with {authCapabilities.primaryProvider === 'apple' ? 'Apple' : 'Google'} before deleting this incomplete account.
                   </p>
                   <button
                     onClick={handleDeleteAccount}
                     disabled={isDeleting}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isDeleting ? 'Verifying...' : 'Verify with Google'}
+                    {isDeleting ? 'Verifying...' : authCapabilities.primaryProvider === 'apple' ? 'Verify with Apple' : 'Verify with Google'}
                   </button>
                 </div>
               ) : (

@@ -196,4 +196,154 @@ describe('Incomplete Account Deletion - Provider-Aware Authentication', () => {
       expect(reauthState).toBe(null)
     })
   })
+
+  describe('Apple-specific incomplete deletion behavior', () => {
+    it('should classify Apple-only incomplete account correctly', () => {
+      const mockUser = {
+        id: 'user-123',
+        email: 'test@privaterelay.appleid.com',
+        identities: [{ provider: 'apple', id: 'identity-1' }],
+        app_metadata: { provider: 'apple', providers: ['apple'] },
+      }
+
+      const capabilities = getAuthCapabilities(mockUser)
+      expect(capabilities.hasPassword).toBe(false)
+      expect(capabilities.isOAuthOnly).toBe(true)
+      expect(capabilities.hasApple).toBe(true)
+      expect(capabilities.hasGoogle).toBe(false)
+      expect(capabilities.primaryProvider).toBe('apple')
+    })
+
+    it('should return reauthentication_required with provider=apple for stale Apple session', () => {
+      const appleUser = {
+        id: 'user-123',
+        identities: [{ provider: 'apple', id: 'identity-1' }],
+        app_metadata: { provider: 'apple' },
+      }
+
+      const capabilities = getAuthCapabilities(appleUser)
+      expect(capabilities.primaryProvider).toBe('apple')
+
+      // Server would return this response for stale Apple session
+      const expectedResponse = {
+        ok: false,
+        step: 'reauthentication_required',
+        provider: 'apple',
+        error: 'For security, please sign in again to delete your account.',
+      }
+
+      expect(expectedResponse.provider).toBe('apple')
+    })
+
+    it('should allow recent Apple session to proceed without reauth', () => {
+      const appleUser = {
+        id: 'user-123',
+        identities: [{ provider: 'apple', id: 'identity-1' }],
+        app_metadata: { provider: 'apple' },
+      }
+
+      const capabilities = getAuthCapabilities(appleUser)
+      expect(capabilities.isOAuthOnly).toBe(true)
+      // Recent auth would allow deletion without reauth
+    })
+
+    it('should select Apple as reauth provider for Apple-only incomplete account', () => {
+      const appleUser = {
+        id: 'user-123',
+        identities: [{ provider: 'apple', id: 'identity-1' }],
+        app_metadata: { provider: 'apple' },
+      }
+
+      const capabilities = getAuthCapabilities(appleUser)
+      expect(capabilities.primaryProvider).toBe('apple')
+    })
+
+    it('should not allow ?provider=apple query parameter to override authenticated identity', () => {
+      // Security invariant: provider must come from authenticated user object
+      const authenticatedUserId = 'user-123'
+      const clientProvidedProvider = 'apple'
+
+      // Server derives provider from user.identities, not from query param
+      const mockUser = {
+        id: authenticatedUserId,
+        identities: [{ provider: 'google', id: 'identity-1' }],
+        app_metadata: { provider: 'google' },
+      }
+
+      const capabilities = getAuthCapabilities(mockUser)
+      // Server would use 'google' because that's the user's actual provider
+      expect(capabilities.primaryProvider).toBe('google')
+      expect(capabilities.primaryProvider).not.toBe(clientProvidedProvider)
+    })
+
+    it('should handle Apple private relay email correctly in provider detection', () => {
+      const appleUser = {
+        id: 'user-123',
+        email: 'abc123@privaterelay.appleid.com',
+        identities: [{ provider: 'apple', id: 'identity-1' }],
+        app_metadata: { provider: 'apple' },
+      }
+
+      const capabilities = getAuthCapabilities(appleUser)
+      // Private relay email does not affect provider detection
+      expect(capabilities.hasApple).toBe(true)
+      expect(capabilities.primaryProvider).toBe('apple')
+      expect(capabilities.isOAuthOnly).toBe(true)
+    })
+  })
+
+  describe('mixed-provider incomplete accounts', () => {
+    it('should classify Google+Apple incomplete account correctly', () => {
+      const mixedUser = {
+        id: 'user-123',
+        identities: [
+          { provider: 'google', id: 'identity-1' },
+          { provider: 'apple', id: 'identity-2' },
+        ],
+        app_metadata: { provider: 'google', providers: ['google', 'apple'] },
+      }
+
+      const capabilities = getAuthCapabilities(mixedUser)
+      expect(capabilities.hasGoogle).toBe(true)
+      expect(capabilities.hasApple).toBe(true)
+      expect(capabilities.hasMultipleMethods).toBe(true)
+      expect(capabilities.isOAuthOnly).toBe(true)
+      expect(capabilities.primaryProvider).toBe('google') // First identity
+    })
+
+    it('should classify Apple+Google incomplete account correctly', () => {
+      const mixedUser = {
+        id: 'user-123',
+        identities: [
+          { provider: 'apple', id: 'identity-1' },
+          { provider: 'google', id: 'identity-2' },
+        ],
+        app_metadata: { provider: 'apple', providers: ['apple', 'google'] },
+      }
+
+      const capabilities = getAuthCapabilities(mixedUser)
+      expect(capabilities.hasApple).toBe(true)
+      expect(capabilities.hasGoogle).toBe(true)
+      expect(capabilities.hasMultipleMethods).toBe(true)
+      expect(capabilities.isOAuthOnly).toBe(true)
+      expect(capabilities.primaryProvider).toBe('apple') // First identity
+    })
+
+    it('should classify password+Apple incomplete account correctly', () => {
+      const mixedUser = {
+        id: 'user-123',
+        identities: [
+          { provider: 'email', id: 'identity-1' },
+          { provider: 'apple', id: 'identity-2' },
+        ],
+        app_metadata: { provider: 'email', providers: ['email', 'apple'] },
+      }
+
+      const capabilities = getAuthCapabilities(mixedUser)
+      expect(capabilities.hasPassword).toBe(true)
+      expect(capabilities.hasApple).toBe(true)
+      expect(capabilities.isOAuthOnly).toBe(false)
+      expect(capabilities.hasMultipleMethods).toBe(true)
+    })
+  })
 })

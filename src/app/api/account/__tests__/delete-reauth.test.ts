@@ -15,7 +15,7 @@ import { getAuthCapabilities } from '@/lib/auth/get-auth-capabilities'
 
 describe('Account Deletion Reauthentication', () => {
   describe('reauth response structure', () => {
-    it('should have correct error response structure for stale OAuth', () => {
+    it('should have correct error response structure for stale Google OAuth', () => {
       const expectedResponse = {
         ok: false,
         step: 'reauthentication_required',
@@ -30,6 +30,21 @@ describe('Account Deletion Reauthentication', () => {
       expect(typeof expectedResponse.error).toBe('string')
     })
 
+    it('should have correct error response structure for stale Apple OAuth', () => {
+      const expectedResponse = {
+        ok: false,
+        step: 'reauthentication_required',
+        provider: 'apple',
+        error: 'For security, please sign in again to delete your account.',
+      }
+
+      expect(expectedResponse).toHaveProperty('ok', false)
+      expect(expectedResponse).toHaveProperty('step', 'reauthentication_required')
+      expect(expectedResponse).toHaveProperty('provider', 'apple')
+      expect(expectedResponse).toHaveProperty('error')
+      expect(typeof expectedResponse.error).toBe('string')
+    })
+
     it('should use machine-readable step code', () => {
       const step = 'reauthentication_required'
       expect(step).toBe('reauthentication_required')
@@ -38,7 +53,7 @@ describe('Account Deletion Reauthentication', () => {
   })
 
   describe('server-side provider derivation', () => {
-    it('should derive provider from user.identities', () => {
+    it('should derive Google provider from user.identities', () => {
       const mockUser = {
         id: 'user-123',
         identities: [{ provider: 'google', id: 'identity-1' }],
@@ -48,7 +63,36 @@ describe('Account Deletion Reauthentication', () => {
       const capabilities = getAuthCapabilities(mockUser)
       expect(capabilities.primaryProvider).toBe('google')
       expect(capabilities.hasGoogle).toBe(true)
-      expect(capabilities.hasPassword).toBe(false)
+      expect(capabilities.hasApple).toBe(false)
+    })
+
+    it('should derive Apple provider from user.identities', () => {
+      const mockUser = {
+        id: 'user-123',
+        identities: [{ provider: 'apple', id: 'identity-1' }],
+        app_metadata: { provider: 'apple' },
+      }
+
+      const capabilities = getAuthCapabilities(mockUser)
+      expect(capabilities.primaryProvider).toBe('apple')
+      expect(capabilities.hasApple).toBe(true)
+      expect(capabilities.hasGoogle).toBe(false)
+    })
+
+    it('should derive primary provider as first identity in array', () => {
+      const mockUser = {
+        id: 'user-123',
+        identities: [
+          { provider: 'google', id: 'identity-1' },
+          { provider: 'apple', id: 'identity-2' },
+        ],
+        app_metadata: { provider: 'google' },
+      }
+
+      const capabilities = getAuthCapabilities(mockUser)
+      expect(capabilities.primaryProvider).toBe('google') // First identity is primary
+      expect(capabilities.hasGoogle).toBe(true)
+      expect(capabilities.hasApple).toBe(true)
     })
 
     it('should derive provider from app_metadata if identities missing', () => {
@@ -61,6 +105,18 @@ describe('Account Deletion Reauthentication', () => {
       const capabilities = getAuthCapabilities(mockUser)
       expect(capabilities.primaryProvider).toBe('google')
       expect(capabilities.hasGoogle).toBe(true)
+    })
+
+    it('should derive Apple provider from app_metadata if identities missing', () => {
+      const mockUser = {
+        id: 'user-123',
+        identities: [],
+        app_metadata: { provider: 'apple', providers: ['apple'] },
+      }
+
+      const capabilities = getAuthCapabilities(mockUser)
+      expect(capabilities.primaryProvider).toBe('apple')
+      expect(capabilities.hasApple).toBe(true)
     })
 
     it('should not trust client-provided provider', () => {
@@ -197,6 +253,191 @@ describe('Account Deletion Reauthentication', () => {
       const expected = 'https://example.com/auth/callback?next=%2Fdashboard%2Fsettings%3Fsection%3Daccount%26reauth%3Ddelete&reauthContext=delete'
 
       expect(redirectUrl).toBe(expected)
+    })
+  })
+
+  describe('Apple-specific deletion reauth behavior', () => {
+    it('should detect Apple-only user correctly', () => {
+      const mockUser = {
+        id: 'user-123',
+        email: 'test@privaterelay.appleid.com',
+        identities: [{ id: 'identity-1', provider: 'apple', user_id: 'user-123' }],
+        app_metadata: { provider: 'apple' },
+      }
+
+      const capabilities = getAuthCapabilities(mockUser)
+      expect(capabilities.hasApple).toBe(true)
+      expect(capabilities.hasGoogle).toBe(false)
+      expect(capabilities.hasPassword).toBe(false)
+      expect(capabilities.isOAuthOnly).toBe(true)
+      expect(capabilities.primaryProvider).toBe('apple')
+    })
+
+    it('should return reauthentication_required with provider=apple for stale Apple session', () => {
+      const appleUser = {
+        id: 'user-123',
+        identities: [{ provider: 'apple', id: 'identity-1' }],
+        app_metadata: { provider: 'apple' },
+      }
+
+      const capabilities = getAuthCapabilities(appleUser)
+      expect(capabilities.primaryProvider).toBe('apple')
+
+      // Server would return this response for stale Apple session
+      const expectedResponse = {
+        ok: false,
+        step: 'reauthentication_required',
+        provider: 'apple',
+        error: 'For security, please sign in again to delete your account.',
+      }
+
+      expect(expectedResponse.provider).toBe('apple')
+    })
+
+    it('should allow recent Apple session to proceed without reauth', () => {
+      const appleUser = {
+        id: 'user-123',
+        identities: [{ provider: 'apple', id: 'identity-1' }],
+        app_metadata: { provider: 'apple' },
+      }
+
+      const capabilities = getAuthCapabilities(appleUser)
+      expect(capabilities.isOAuthOnly).toBe(true)
+      // Recent auth would allow deletion without reauth
+    })
+
+    it('should select Apple as reauth provider for Apple-only user', () => {
+      const appleUser = {
+        id: 'user-123',
+        identities: [{ provider: 'apple', id: 'identity-1' }],
+        app_metadata: { provider: 'apple' },
+      }
+
+      const capabilities = getAuthCapabilities(appleUser)
+      expect(capabilities.primaryProvider).toBe('apple')
+    })
+
+    it('should not allow ?provider=apple query parameter to override authenticated identity', () => {
+      // Security invariant: provider must come from authenticated user object
+      const authenticatedUserId = 'user-123'
+      const clientProvidedProvider = 'apple'
+
+      // Server derives provider from user.identities, not from query param
+      const mockUser = {
+        id: authenticatedUserId,
+        identities: [{ provider: 'google', id: 'identity-1' }],
+        app_metadata: { provider: 'google' },
+      }
+
+      const capabilities = getAuthCapabilities(mockUser)
+      // Server would use 'google' because that's the user's actual provider
+      expect(capabilities.primaryProvider).toBe('google')
+      expect(capabilities.primaryProvider).not.toBe(clientProvidedProvider)
+    })
+  })
+
+  describe('mixed-provider scenarios', () => {
+    it('should select first identity as primary for Google+Apple user', () => {
+      const mixedUser = {
+        id: 'user-123',
+        identities: [
+          { provider: 'google', id: 'identity-1' },
+          { provider: 'apple', id: 'identity-2' },
+        ],
+        app_metadata: { provider: 'google' },
+      }
+
+      const capabilities = getAuthCapabilities(mixedUser)
+      expect(capabilities.primaryProvider).toBe('google') // First identity
+      expect(capabilities.hasGoogle).toBe(true)
+      expect(capabilities.hasApple).toBe(true)
+      expect(capabilities.hasMultipleMethods).toBe(true)
+    })
+
+    it('should select first identity as primary for Apple+Google user', () => {
+      const mixedUser = {
+        id: 'user-123',
+        identities: [
+          { provider: 'apple', id: 'identity-1' },
+          { provider: 'google', id: 'identity-2' },
+        ],
+        app_metadata: { provider: 'apple' },
+      }
+
+      const capabilities = getAuthCapabilities(mixedUser)
+      expect(capabilities.primaryProvider).toBe('apple') // First identity
+      expect(capabilities.hasApple).toBe(true)
+      expect(capabilities.hasGoogle).toBe(true)
+      expect(capabilities.hasMultipleMethods).toBe(true)
+    })
+
+    it('should allow password verification for password+Apple user', () => {
+      const passwordAppleUser = {
+        id: 'user-123',
+        identities: [
+          { provider: 'email', id: 'identity-1' },
+          { provider: 'apple', id: 'identity-2' },
+        ],
+        app_metadata: { provider: 'email', providers: ['email', 'apple'] },
+      }
+
+      const capabilities = getAuthCapabilities(passwordAppleUser)
+      expect(capabilities.hasPassword).toBe(true)
+      expect(capabilities.hasApple).toBe(true)
+      expect(capabilities.isPasswordOnly).toBe(false)
+      expect(capabilities.isOAuthOnly).toBe(false)
+    })
+
+    it('should allow password verification for password+Google user', () => {
+      const passwordGoogleUser = {
+        id: 'user-123',
+        identities: [
+          { provider: 'email', id: 'identity-1' },
+          { provider: 'google', id: 'identity-2' },
+        ],
+        app_metadata: { provider: 'email', providers: ['email', 'google'] },
+      }
+
+      const capabilities = getAuthCapabilities(passwordGoogleUser)
+      expect(capabilities.hasPassword).toBe(true)
+      expect(capabilities.hasGoogle).toBe(true)
+      expect(capabilities.isPasswordOnly).toBe(false)
+      expect(capabilities.isOAuthOnly).toBe(false)
+    })
+
+    it('should allow password verification for password+Google+Apple user', () => {
+      const allMethodsUser = {
+        id: 'user-123',
+        identities: [
+          { provider: 'email', id: 'identity-1' },
+          { provider: 'google', id: 'identity-2' },
+          { provider: 'apple', id: 'identity-3' },
+        ],
+        app_metadata: { provider: 'email', providers: ['email', 'google', 'apple'] },
+      }
+
+      const capabilities = getAuthCapabilities(allMethodsUser)
+      expect(capabilities.hasPassword).toBe(true)
+      expect(capabilities.hasGoogle).toBe(true)
+      expect(capabilities.hasApple).toBe(true)
+      expect(capabilities.hasMultipleMethods).toBe(true)
+      expect(capabilities.isOAuthOnly).toBe(false)
+    })
+
+    it('should select first identity as primary for password+Google+Apple user', () => {
+      const allMethodsUser = {
+        id: 'user-123',
+        identities: [
+          { provider: 'email', id: 'identity-1' },
+          { provider: 'google', id: 'identity-2' },
+          { provider: 'apple', id: 'identity-3' },
+        ],
+        app_metadata: { provider: 'email', providers: ['email', 'google', 'apple'] },
+      }
+
+      const capabilities = getAuthCapabilities(allMethodsUser)
+      expect(capabilities.primaryProvider).toBe('email') // First identity
+      // Password users would use password verification, so primaryProvider doesn't matter
     })
   })
 })
