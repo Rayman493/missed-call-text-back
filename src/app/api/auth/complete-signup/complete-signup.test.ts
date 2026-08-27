@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { getDefaultAutoReplyMessage } from '@/lib/sms-templates'
 
 describe('complete-signup route - service_location_type persistence', () => {
   
@@ -51,7 +52,7 @@ describe('complete-signup route - service_location_type persistence', () => {
         user_id: userId,
         name: businessName,
         business_phone_number: normalizedPhone,
-        auto_reply_message: `Hi, this is ${businessName}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
+        auto_reply_message: getDefaultAutoReplyMessage(businessName),
         sms_type: 'local_a2p',
         messaging_status: 'active',
         onboarding_status: 'profile_created',
@@ -100,7 +101,7 @@ describe('complete-signup route - service_location_type persistence', () => {
         name: 'Test Business',
         business_phone_number: '5551234567',
         service_location_type: 'onsite',
-        auto_reply_message: 'Hi, this is Test Business. Sorry we missed your call—how can we help? Reply STOP to opt out.',
+        auto_reply_message: getDefaultAutoReplyMessage('Test Business'),
         sms_type: 'local_a2p',
         messaging_status: 'active',
         onboarding_status: 'profile_created',

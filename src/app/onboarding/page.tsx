@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { getDefaultAutoReplyMessageWithFallback } from '@/lib/sms-templates'
 import Link from 'next/link'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { normalizePhoneNumber } from '@/lib/utils'
@@ -293,6 +294,7 @@ export default function OnboardingPage() {
       }
 
       // Use centralized getOrCreateBusiness API - backend will provision dedicated local number
+      const autoReplyMessage = getDefaultAutoReplyMessageWithFallback(businessName)
       const response = await fetch('/api/business/get-or-create', {
         method: 'POST',
         headers: {
@@ -302,7 +304,7 @@ export default function OnboardingPage() {
           businessData: {
             name: businessName,
             business_phone_number: normalizedPhone,
-            auto_reply_message: `Hi, this is ${businessName}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
+            auto_reply_message: autoReplyMessage,
             sms_type: 'local_a2p',
             messaging_status: 'active',
             onboarding_status: 'profile_created', // Safe status before trial activation
@@ -633,7 +635,7 @@ export default function OnboardingPage() {
             <h3 className="text-sm font-medium text-slate-300 mb-3">Your auto-reply message</h3>
             <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-800">
               <p className="text-sm text-slate-200">
-                "Hi, this is {businessName || 'Your Business'}. Sorry we missed your call — how can we help?"
+                {getDefaultAutoReplyMessageWithFallback(businessName)}
               </p>
             </div>
             <p className="text-xs text-slate-400 mt-2">
@@ -648,9 +650,6 @@ export default function OnboardingPage() {
             </p>
             <p className="text-xs text-slate-400 text-center leading-relaxed">
               ✓ ReplyFlow only responds when a call is missed
-            </p>
-            <p className="text-xs text-slate-400 text-center leading-relaxed">
-              ✓ You can turn this off anytime
             </p>
           </div>
         </div>

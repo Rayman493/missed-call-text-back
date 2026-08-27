@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { analyticsService } from '@/lib/analytics/analytics-service'
 import { validateBusinessAddress } from '@/lib/validation/business-address'
+import { getDefaultAutoReplyMessage } from '@/lib/sms-templates'
 
 export const dynamic = 'force-dynamic'
 
@@ -182,7 +183,7 @@ export async function POST(request: Request) {
         user_id: userId,
         name: businessName,
         business_phone_number: normalizedPhone,
-        auto_reply_message: `Hi, this is ${businessName}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
+        auto_reply_message: getDefaultAutoReplyMessage(businessName),
         sms_type: 'local_a2p',
         messaging_status: 'active',
         onboarding_status: 'profile_created',

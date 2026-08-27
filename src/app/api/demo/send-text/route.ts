@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { db, normalizePhoneNumberForStorage } from '@/lib/supabase/admin'
 import { sendSms } from '@/lib/twilio'
 import { demoSmsRateLimiter, isValidPhoneNumber, sanitizeMessageContent } from '@/lib/security'
+import { getDefaultAutoReplyMessageWithFallback } from '@/lib/sms-templates'
 
 export const dynamic = 'force-dynamic'
 
@@ -201,8 +202,7 @@ export async function POST(request: Request) {
     }
 
     // Prepare auto-reply message
-    const autoReplyMessage = business.auto_reply_message || 
-      `Hi, this is ${business.name || 'Your Business'}. Sorry we missed your call — how can we help? Reply STOP to opt out.`
+    const autoReplyMessage = business.auto_reply_message || getDefaultAutoReplyMessageWithFallback(business.name)
 
     // Send SMS using Twilio
     let smsSuccess = false

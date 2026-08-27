@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendSms } from "@/lib/twilio";
 import { checkTestSetupRateLimit } from '@/lib/rate-limit';
+import { getDefaultAutoReplyMessageWithFallback } from '@/lib/sms-templates';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,7 +83,7 @@ export async function GET(request: Request) {
     }
 
     const to = business.personal_phone_number;
-    const body = business.auto_reply_message || `Hi, this is ${business.name || 'ReplyFlow'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`;
+    const body = business.auto_reply_message || getDefaultAutoReplyMessageWithFallback(business.name);
 
     console.log('[Test SMS] Sending to saved personal_phone_number only for user', user.id);
 
