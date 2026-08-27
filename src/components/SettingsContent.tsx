@@ -2370,13 +2370,13 @@ export default function SettingsContent() {
     }
   }, [refreshBusiness])
 
-  // Refresh Stripe Connect status when Payments section becomes active
-  useEffect(() => {
-    if (activeSection === 'payments' && business?.stripe_connect_account_id && !stripeStatusChecking) {
-      console.log('[STRIPE_CONNECT_STATUS] section_active=payments refreshing_status')
-      refreshStripeStatus()
-    }
-  }, [activeSection, business?.stripe_connect_account_id, stripeStatusChecking, refreshStripeStatus])
+  // Note: Removed scroll-triggered Stripe status refresh (was causing visual flash)
+  // Stripe status is refreshed by:
+  // - Initial load via business context
+  // - Post-onboarding return via dedicated refresh
+  // - App resume via visibility change effect
+  // - Explicit user actions (Connect, Continue Setup, etc.)
+  // Scrolling through Settings should not trigger unnecessary network requests
 
   useEffect(() => {
     const activeTab = sectionTabRefs.current[activeSection]
