@@ -318,48 +318,77 @@ export async function deleteAccountLifecycle(context: DeletionContext): Promise<
 
   // Send offboarding email before deletion (with idempotency check)
   let confirmationToken = null
+  let offboardingEmailSkipped = false
+  let offboardingEmailSkippedReason = ''
   console.log('[OFFBOARDING SMS ORDER] trackingCreationStarted')
   if (!dryRun && businesses && businesses.length > 0 && !skipOffboardingEmails) {
     const business = businesses[0] // Use first business for email
     const targetUserEmail = userEmail || business.user_id
 
-    // Create offboarding tracking record
+    // Check if offboarding tracking record already exists (idempotency for retries)
+    let existingTrackingRecord = null
     try {
-      if (!process.env.INTERNAL_API_SECRET) {
-        console.warn('[delete-account-lifecycle] INTERNAL_API_SECRET not configured, skipping offboarding tracking record')
-        throw new Error('Internal API secret not configured')
-      }
+      const { data: existingRecords } = await supabaseAdmin
+        .from('offboarding_tracking')
+        .select('*')
+        .eq('business_id', business.id)
+        .order('deletion_timestamp', { ascending: false })
+        .limit(1)
 
-      const offboardingResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/offboarding/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.INTERNAL_API_SECRET}`,
-        },
-        body: JSON.stringify({
-          businessPhone: business.business_phone_number,
-          businessEmail: targetUserEmail,
-          businessId: business.id,
-          userId,
-          twilioPhoneNumber: business.twilio_phone_number,
-        }),
-      })
-
-      const offboardingData = await offboardingResponse.json()
-      if (offboardingData.success) {
-        confirmationToken = offboardingData.confirmationToken
-        console.log('[OFFBOARDING SMS ORDER] trackingCreated=true')
-        console.log('[delete-account-lifecycle] Offboarding tracking record created:', offboardingData.trackingId)
-      } else {
-        console.log('[OFFBOARDING SMS ORDER] trackingCreated=false')
-        console.warn('[delete-account-lifecycle] Failed to create offboarding tracking record:', offboardingData.error)
+      if (existingRecords && existingRecords.length > 0) {
+        existingTrackingRecord = existingRecords[0]
+        console.log('[delete-account-lifecycle] Found existing offboarding tracking record:', {
+          trackingId: existingTrackingRecord.id,
+          deletionTimestamp: existingTrackingRecord.deletion_timestamp,
+        })
       }
-    } catch (offboardingError) {
-      console.log('[OFFBOARDING SMS ORDER] trackingCreated=false')
-      console.warn('[delete-account-lifecycle] Failed to create offboarding tracking record:', offboardingError)
+    } catch (checkError) {
+      console.warn('[delete-account-lifecycle] Failed to check for existing offboarding tracking record:', checkError)
     }
 
-    if (targetUserEmail) {
+    // Only create new tracking record if one doesn't already exist
+    if (!existingTrackingRecord) {
+      try {
+        if (!process.env.INTERNAL_API_SECRET) {
+          console.warn('[delete-account-lifecycle] INTERNAL_API_SECRET not configured, skipping offboarding tracking record')
+          throw new Error('Internal API secret not configured')
+        }
+
+        const offboardingResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/offboarding/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.INTERNAL_API_SECRET}`,
+          },
+          body: JSON.stringify({
+            businessPhone: business.business_phone_number,
+            businessEmail: targetUserEmail,
+            businessId: business.id,
+            userId,
+            twilioPhoneNumber: business.twilio_phone_number,
+          }),
+        })
+
+        const offboardingData = await offboardingResponse.json()
+        if (offboardingData.success) {
+          confirmationToken = offboardingData.confirmationToken
+          console.log('[OFFBOARDING SMS ORDER] trackingCreated=true')
+          console.log('[delete-account-lifecycle] Offboarding tracking record created:', offboardingData.trackingId)
+        } else {
+          console.log('[OFFBOARDING SMS ORDER] trackingCreated=false')
+          console.warn('[delete-account-lifecycle] Failed to create offboarding tracking record:', offboardingData.error)
+        }
+      } catch (offboardingError) {
+        console.log('[OFFBOARDING SMS ORDER] trackingCreated=false')
+        console.warn('[delete-account-lifecycle] Failed to create offboarding tracking record:', offboardingError)
+      }
+    } else {
+      console.log('[delete-account-lifecycle] Skipping offboarding tracking record creation (already exists)')
+      confirmationToken = existingTrackingRecord.confirmation_token
+    }
+
+    // Only send offboarding email if no existing tracking record found (avoid duplicate emails on retry)
+    if (targetUserEmail && !existingTrackingRecord) {
       console.log('[OFFBOARDING SMS ORDER] emailSendStarted')
       console.log('[delete-account-lifecycle] Sending offboarding email', {
         businessId: business.id,
@@ -390,11 +419,20 @@ export async function deleteAccountLifecycle(context: DeletionContext): Promise<
         summary.offboardingEmailSent = false
         summary.offboardingEmailError = emailResult.error
       }
+    } else if (existingTrackingRecord) {
+      console.log('[delete-account-lifecycle] Skipping offboarding email (already sent for this deletion)')
+      summary.offboardingEmailSent = false
+      summary.offboardingEmailSkipped = true
+      summary.offboardingEmailSkippedReason = 'already_sent'
+      offboardingEmailSkipped = true
+      offboardingEmailSkippedReason = 'already_sent'
     } else {
       console.warn('[delete-account-lifecycle] No user email available, skipping offboarding email')
       summary.offboardingEmailSent = false
       summary.offboardingEmailSkipped = true
       summary.offboardingEmailSkippedReason = 'no_email'
+      offboardingEmailSkipped = true
+      offboardingEmailSkippedReason = 'no_email'
     }
   }
 
@@ -656,96 +694,82 @@ export async function deleteAccountLifecycle(context: DeletionContext): Promise<
     summary.tablesDeleted.call_events = callEventsCount || 0
     console.log('[delete-account-lifecycle] Step 13 completed: deleted call_events:', callEventsCount)
 
-    // Step 14: Delete ai_call_transcripts linked to businesses
-    console.log('[delete-account-lifecycle] Step 14: delete ai_call_transcripts')
+    // Step 14: Delete calendar_integrations linked to businesses
+    console.log('[delete-account-lifecycle] Step 14: delete calendar_integrations')
 
-    const { error: transcriptsError, count: transcriptsCount } = await supabaseAdmin
-      .from('ai_call_transcripts')
+    const { error: calendarIntegrationsError, count: calendarIntegrationsCount } = await supabaseAdmin
+      .from('calendar_integrations')
       .delete()
       .in('business_id', businessIds)
       .select()
 
-    if (transcriptsError) {
-      console.error('[delete-account-lifecycle] Step 14 failed:', transcriptsError)
+    if (calendarIntegrationsError) {
+      console.error('[delete-account-lifecycle] Step 14 failed:', calendarIntegrationsError)
       return {
         ok: false,
-        step: 'delete_ai_call_transcripts',
-        error: transcriptsError.message,
-        details: transcriptsError,
+        step: 'delete_calendar_integrations',
+        error: calendarIntegrationsError.message,
+        details: calendarIntegrationsError,
         dryRun,
       }
     }
-    summary.tablesDeleted.ai_call_transcripts = transcriptsCount || 0
-    console.log('[delete-account-lifecycle] Step 14 completed: deleted ai_call_transcripts:', transcriptsCount)
+    summary.tablesDeleted.calendar_integrations = calendarIntegrationsCount || 0
+    console.log('[delete-account-lifecycle] Step 14 completed: deleted calendar_integrations:', calendarIntegrationsCount)
 
-    // Step 15: Delete appointments linked to businesses
-    console.log('[delete-account-lifecycle] Step 15: delete appointments')
+    // Step 15: Delete ignored_contacts linked to businesses
+    console.log('[delete-account-lifecycle] Step 15: delete ignored_contacts')
 
-    const { error: appointmentsError, count: appointmentsCount } = await supabaseAdmin
-      .from('appointments')
+    const { error: ignoredContactsError, count: ignoredContactsCount } = await supabaseAdmin
+      .from('ignored_contacts')
       .delete()
       .in('business_id', businessIds)
       .select()
 
-    if (appointmentsError) {
-      console.error('[delete-account-lifecycle] Step 15 failed:', appointmentsError)
+    if (ignoredContactsError) {
+      console.error('[delete-account-lifecycle] Step 15 failed:', ignoredContactsError)
       return {
         ok: false,
-        step: 'delete_appointments',
-        error: appointmentsError.message,
-        details: appointmentsError,
+        step: 'delete_ignored_contacts',
+        error: ignoredContactsError.message,
+        details: ignoredContactsError,
         dryRun,
       }
     }
-    summary.tablesDeleted.appointments = appointmentsCount || 0
-    console.log('[delete-account-lifecycle] Step 15 completed: deleted appointments:', appointmentsCount)
+    summary.tablesDeleted.ignored_contacts = ignoredContactsCount || 0
+    console.log('[delete-account-lifecycle] Step 15 completed: deleted ignored_contacts:', ignoredContactsCount)
 
-    // Step 16: Delete payment_intents linked to businesses
-    console.log('[delete-account-lifecycle] Step 16: delete payment_intents')
+    // Step 16: Delete stripe_webhook_events linked to businesses (if table exists)
+    // This table may not exist in all environments, so we handle PGRST205 gracefully
+    console.log('[delete-account-lifecycle] Step 16: delete stripe_webhook_events')
 
-    const { error: paymentIntentsError, count: paymentIntentsCount } = await supabaseAdmin
-      .from('payment_intents')
+    const { error: stripeWebhookEventsError, count: stripeWebhookEventsCount } = await supabaseAdmin
+      .from('stripe_webhook_events')
       .delete()
       .in('business_id', businessIds)
       .select()
 
-    if (paymentIntentsError) {
-      console.error('[delete-account-lifecycle] Step 16 failed:', paymentIntentsError)
-      return {
-        ok: false,
-        step: 'delete_payment_intents',
-        error: paymentIntentsError.message,
-        details: paymentIntentsError,
-        dryRun,
+    if (stripeWebhookEventsError) {
+      // PGRST205 means table doesn't exist in schema cache - treat as optional
+      if (stripeWebhookEventsError.code === 'PGRST205') {
+        console.warn('[delete-account-lifecycle] stripe_webhook_events table not found (PGRST205), skipping')
+        summary.tablesDeleted.stripe_webhook_events = 0
+      } else {
+        console.error('[delete-account-lifecycle] Step 16 failed:', stripeWebhookEventsError)
+        return {
+          ok: false,
+          step: 'delete_stripe_webhook_events',
+          error: stripeWebhookEventsError.message,
+          details: stripeWebhookEventsError,
+          dryRun,
+        }
       }
+    } else {
+      summary.tablesDeleted.stripe_webhook_events = stripeWebhookEventsCount || 0
+      console.log('[delete-account-lifecycle] Step 16 completed: deleted stripe_webhook_events:', stripeWebhookEventsCount)
     }
-    summary.tablesDeleted.payment_intents = paymentIntentsCount || 0
-    console.log('[delete-account-lifecycle] Step 16 completed: deleted payment_intents:', paymentIntentsCount)
 
-    // Step 17: Delete terminal_connections linked to businesses
-    console.log('[delete-account-lifecycle] Step 17: delete terminal_connections')
-
-    const { error: terminalConnectionsError, count: terminalConnectionsCount } = await supabaseAdmin
-      .from('terminal_connections')
-      .delete()
-      .in('business_id', businessIds)
-      .select()
-
-    if (terminalConnectionsError) {
-      console.error('[delete-account-lifecycle] Step 17 failed:', terminalConnectionsError)
-      return {
-        ok: false,
-        step: 'delete_terminal_connections',
-        error: terminalConnectionsError.message,
-        details: terminalConnectionsError,
-        dryRun,
-      }
-    }
-    summary.tablesDeleted.terminal_connections = terminalConnectionsCount || 0
-    console.log('[delete-account-lifecycle] Step 17 completed: deleted terminal_connections:', terminalConnectionsCount)
-
-    // Step 18: Delete tasks linked to businesses
-    console.log('[delete-account-lifecycle] Step 18: delete tasks')
+    // Step 17: Delete tasks linked to businesses
+    console.log('[delete-account-lifecycle] Step 17: delete tasks')
 
     const { error: tasksError, count: tasksCount } = await supabaseAdmin
       .from('tasks')
@@ -754,7 +778,7 @@ export async function deleteAccountLifecycle(context: DeletionContext): Promise<
       .select()
 
     if (tasksError) {
-      console.error('[delete-account-lifecycle] Step 18 failed:', tasksError)
+      console.error('[delete-account-lifecycle] Step 17 failed:', tasksError)
       return {
         ok: false,
         step: 'delete_tasks',
@@ -764,7 +788,29 @@ export async function deleteAccountLifecycle(context: DeletionContext): Promise<
       }
     }
     summary.tablesDeleted.tasks = tasksCount || 0
-    console.log('[delete-account-lifecycle] Step 18 completed: deleted tasks:', tasksCount)
+    console.log('[delete-account-lifecycle] Step 17 completed: deleted tasks:', tasksCount)
+
+    // Step 18: Delete jobs linked to businesses (must be before leads due to RESTRICT constraint)
+    console.log('[delete-account-lifecycle] Step 18: delete jobs')
+
+    const { error: jobsError, count: jobsCount } = await supabaseAdmin
+      .from('jobs')
+      .delete()
+      .in('business_id', businessIds)
+      .select()
+
+    if (jobsError) {
+      console.error('[delete-account-lifecycle] Step 18 failed:', jobsError)
+      return {
+        ok: false,
+        step: 'delete_jobs',
+        error: jobsError.message,
+        details: jobsError,
+        dryRun,
+      }
+    }
+    summary.tablesDeleted.jobs = jobsCount || 0
+    console.log('[delete-account-lifecycle] Step 18 completed: deleted jobs:', jobsCount)
 
     // Step 19: Delete leads linked to businesses
     console.log('[delete-account-lifecycle] Step 19: delete leads')
