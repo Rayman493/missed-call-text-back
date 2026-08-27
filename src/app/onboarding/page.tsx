@@ -393,7 +393,7 @@ export default function OnboardingPage() {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 sm:p-10">
-        <div className="max-w-md w-full bg-slate-800 rounded-xl shadow-lg p-6 sm:p-10">
+        <div className="max-w-md sm:max-w-lg w-full bg-slate-800 rounded-xl shadow-lg p-6 sm:p-10">
           {/* Progress indicator */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
