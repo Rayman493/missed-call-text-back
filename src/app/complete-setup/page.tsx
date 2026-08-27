@@ -31,7 +31,7 @@ export default function CompleteSetupPage() {
   const [error, setError] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [authCapabilities, setAuthCapabilities] = useState<any>(null)
-  const [deleteReauthRequired, setDeleteReauthRequired] = useState(false)
+  const [deleteReauthVerified, setDeleteReauthVerified] = useState(false) // Track if OAuth reauth completed for this deletion attempt
   const [deleteReauthProvider, setDeleteReauthProvider] = useState<string | null>(null)
   const [appResumeTrigger, setAppResumeTrigger] = useState(0) // Increment on app resume to trigger retry loop
   const pollingStartedRef = useRef(false)
@@ -148,12 +148,14 @@ export default function CompleteSetupPage() {
       if (originalUserId && user.id) {
         // Verify same user
         if (originalUserId === user.id) {
-          console.log('[CompleteSetup] Same user verified, clearing reauth state and showing deletion modal')
+          console.log('[CompleteSetup] Same user verified, marking reauth complete and showing deletion modal')
           // Clear the reauth state
           sessionStorage.removeItem('incompleteDeleteOriginalUserId')
           sessionStorage.removeItem('incompleteDeleteReturnTarget')
           setPassword('')
           setError(null)
+          // Mark that OAuth reauth has been verified for this deletion attempt
+          setDeleteReauthVerified(true)
           // Reopen deletion modal for explicit confirmation
           setShowDeleteConfirm(true)
           // Remove reauth param from URL
@@ -868,12 +870,20 @@ export default function CompleteSetupPage() {
         return
       }
     } else if (authCapabilities?.isOAuthOnly) {
-      // OAuth-only users: initiate OAuth reauthentication for deletion
-      // If user has both providers, show UI with choice (handled in render)
-      // If user has only one provider, use that directly for backward compatibility with direct button click
-      const provider = authCapabilities.primaryProvider || 'google'
-      await handleOAuthReauth(provider as 'google' | 'apple')
-      return
+      // OAuth-only users: require recent authentication
+      // If OAuth reauth has already been verified for this deletion attempt, proceed directly to deletion
+      if (deleteReauthVerified) {
+        console.log('[CompleteSetup] OAuth reauth already verified, proceeding to deletion')
+        // Clear the verified flag after using it (one-time use per deletion attempt)
+        setDeleteReauthVerified(false)
+      } else {
+        // Initiate OAuth reauthentication for deletion
+        // If user has both providers, show UI with choice (handled in render)
+        // If user has only one provider, use that directly for backward compatibility with direct button click
+        const provider = authCapabilities.primaryProvider || 'google'
+        await handleOAuthReauth(provider as 'google' | 'apple')
+        return
+      }
     } else {
       setError('Unable to verify authentication. Please try again.')
       return
@@ -1126,7 +1136,7 @@ export default function CompleteSetupPage() {
                       <button
                         onClick={() => handleOAuthReauth('google')}
                         disabled={isDeleting}
-                        className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-900 py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 font-medium flex items-center justify-center gap-2"
+                        className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-white py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 font-medium flex items-center justify-center gap-2"
                       >
                         <svg className="w-5 h-5" viewBox="0 0 24 24">
                           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -1170,6 +1180,7 @@ export default function CompleteSetupPage() {
                     setShowDeleteConfirm(false)
                     setPassword('')
                     setError(null)
+                    setDeleteReauthVerified(false) // Clear reauth verified flag when cancelling
                   }}
                   disabled={isDeleting}
                   className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

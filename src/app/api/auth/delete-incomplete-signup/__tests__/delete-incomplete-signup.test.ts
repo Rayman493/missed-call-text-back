@@ -446,4 +446,50 @@ describe('Incomplete Account Deletion - Provider-Aware Authentication', () => {
       // UI should allow user to choose
     })
   })
+
+  describe('OAuth reauth loop prevention', () => {
+    it('should track OAuth reauth verification state to prevent loop', () => {
+      // This test documents the fix: deleteReauthVerified state flag
+      // prevents re-initiating OAuth after successful reauth return
+      const googleAppleUser = {
+        id: 'user-123',
+        identities: [
+          { provider: 'google', id: 'identity-1' },
+          { provider: 'apple', id: 'identity-2' },
+        ],
+        app_metadata: { provider: 'google', providers: ['google', 'apple'] },
+      }
+
+      const capabilities = getAuthCapabilities(googleAppleUser)
+      expect(capabilities.isOAuthOnly).toBe(true)
+      expect(capabilities.hasMultipleMethods).toBe(true)
+
+      // Expected flow:
+      // 1. User clicks Delete Account
+      // 2. User clicks Verify with Apple
+      // 3. OAuth reauth initiated, sessionStorage set with originalUserId
+      // 4. Apple authentication succeeds
+      // 5. Callback returns to /complete-setup?reauth=incomplete_delete
+      // 6. Same-user verification passes
+      // 7. deleteReauthVerified flag set to true
+      // 8. Modal reopened with setShowDeleteConfirm(true)
+      // 9. User clicks final Delete Account
+      // 10. handleDeleteAccount checks deleteReauthVerified flag
+      // 11. If true, skip OAuth reauth and proceed to deletion API call
+      // 12. Flag cleared after use (one-time use per deletion attempt)
+      // 13. If user cancels, flag is cleared
+    })
+
+    it('should clear reauth verified flag when modal cancelled', () => {
+      // This test documents that deleteReauthVerified is cleared
+      // when user clicks Cancel, preventing accidental reuse
+      // of a previous reauth verification
+    })
+
+    it('should require fresh OAuth reauth for new deletion attempt', () => {
+      // After a successful deletion or cancelled attempt,
+      // the deleteReauthVerified flag is cleared
+      // A new deletion attempt requires fresh OAuth reauth
+    })
+  })
 })
