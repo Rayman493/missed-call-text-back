@@ -102,6 +102,9 @@ export default function SettingsContent() {
   const [activeSection, setActiveSection] = useState('general')
   const [showBusinessNumberWarning, setShowBusinessNumberWarning] = useState(false)
   const [authCapabilities, setAuthCapabilities] = useState<AuthCapabilities | null>(null)
+  const [deleteReauthRequired, setDeleteReauthRequired] = useState(false)
+  const [deleteReauthProvider, setDeleteReauthProvider] = useState<string | null>(null)
+  const [originalDeleteUserId, setOriginalDeleteUserId] = useState<string | null>(null)
 
   // Default out of office message (use canonical template)
   const DEFAULT_OUT_OF_OFFICE_MESSAGE = getDefaultOutOfOfficeTemplate()
@@ -123,6 +126,26 @@ export default function SettingsContent() {
     setAuthCapabilities(capabilities)
     console.log('[Settings] Auth capabilities:', capabilities)
   }, [user])
+
+  // Cleanup stale reauth state on mount (in case of cancelled OAuth)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const reauth = urlParams.get('reauth')
+
+    // Only clear if we're not currently processing a reauth return
+    if (!reauth) {
+      const originalUserId = sessionStorage.getItem('deleteReauthOriginalUserId')
+      if (originalUserId) {
+        // Stale reauth state from cancelled OAuth - clean it up
+        console.log('[Settings] Cleaning up stale reauth state')
+        sessionStorage.removeItem('deleteReauthOriginalUserId')
+        sessionStorage.removeItem('deleteReauthReturnTarget')
+        setDeleteReauthRequired(false)
+        setOriginalDeleteUserId(null)
+        setDeleteReauthProvider(null)
+      }
+    }
+  }, [])
 
   // Ignored contacts state
   const [ignoredContacts, setIgnoredContacts] = useState<any[]>([])
@@ -2068,13 +2091,22 @@ export default function SettingsContent() {
 
       if (!response.ok || !result?.ok) {
         console.error('[Settings] Delete account server error:', result)
-        
+
         if (result?.step === 'password_verification') {
           setDeletePasswordError(result?.error || 'Incorrect password. Please try again.')
           setIsDeleting(false)
           return
         }
-        
+
+        if (result?.step === 'reauthentication_required') {
+          // Store the original user ID for security verification after reauth
+          setOriginalDeleteUserId(user?.id || null)
+          setDeleteReauthProvider(result?.provider || null)
+          setDeleteReauthRequired(true)
+          setIsDeleting(false)
+          return
+        }
+
         const friendly =
           result?.step === 'stripe_cancel'
             ? (result?.error || 'We could not cancel your subscription. Your account was not deleted. Please try again or contact support.')
@@ -2106,6 +2138,36 @@ export default function SettingsContent() {
       console.error('[Settings] Delete account network error:', error)
       showToast('Failed to delete account. Please try again.', 'error')
       setIsDeleting(false)
+    }
+  }
+
+  // Handle OAuth reauthentication for deletion
+  const handleReauthForDeletion = async () => {
+    if (!user?.id) {
+      showToast('Authentication error. Please try again.', 'error')
+      return
+    }
+
+    try {
+      // Store the original user ID in sessionStorage for verification after OAuth return
+      sessionStorage.setItem('deleteReauthOriginalUserId', user.id)
+      sessionStorage.setItem('deleteReauthReturnTarget', '/dashboard/settings?section=account')
+
+      // Initiate Google OAuth with specific redirectTo
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?returnTo=/dashboard/settings?section=account&reauth=delete`,
+        },
+      })
+
+      if (error) {
+        console.error('[Settings] OAuth reauth error:', error)
+        showToast('Failed to initiate Google verification. Please try again.', 'error')
+      }
+    } catch (error) {
+      console.error('[Settings] OAuth reauth exception:', error)
+      showToast('Failed to initiate Google verification. Please try again.', 'error')
     }
   }
 
@@ -2302,6 +2364,57 @@ export default function SettingsContent() {
       window.history.replaceState({}, '', url.toString())
     }
   }, [])
+
+  // Check for reauth return from OAuth
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const reauth = urlParams.get('reauth')
+
+    if (reauth === 'delete') {
+      const originalUserId = sessionStorage.getItem('deleteReauthOriginalUserId')
+
+      if (originalUserId && user?.id) {
+        // Verify same user
+        if (originalUserId === user.id) {
+          // Clear the reauth state
+          sessionStorage.removeItem('deleteReauthOriginalUserId')
+          sessionStorage.removeItem('deleteReauthReturnTarget')
+          setDeleteReauthRequired(false)
+          setOriginalDeleteUserId(null)
+          setDeleteReauthProvider(null)
+
+          // Clear DELETE confirmation for security - require user to retype
+          setDeleteConfirmText('')
+
+          // Show success message
+          showToast('Identity verified. Please type DELETE to confirm.', 'success')
+
+          // Clean up URL
+          window.history.replaceState({}, '', '/dashboard/settings?section=account')
+        } else {
+          // Different user - abort
+          sessionStorage.removeItem('deleteReauthOriginalUserId')
+          sessionStorage.removeItem('deleteReauthReturnTarget')
+          setDeleteReauthRequired(false)
+          setOriginalDeleteUserId(null)
+          setDeleteReauthProvider(null)
+          setShowDeleteModal(false)
+          setDeleteConfirmText('')
+          showToast('Authentication failed. Please try again.', 'error')
+          window.history.replaceState({}, '', '/dashboard/settings?section=account')
+        }
+      } else {
+        // No original user ID - abort safely
+        sessionStorage.removeItem('deleteReauthOriginalUserId')
+        sessionStorage.removeItem('deleteReauthReturnTarget')
+        setDeleteReauthRequired(false)
+        setOriginalDeleteUserId(null)
+        setDeleteReauthProvider(null)
+        setDeleteConfirmText('')
+        window.history.replaceState({}, '', '/dashboard/settings?section=account')
+      }
+    }
+  }, [user?.id])
 
   // App resume reconciliation for Stripe Connect
   useEffect(() => {
@@ -5207,11 +5320,32 @@ export default function SettingsContent() {
                       Final Confirmation
                     </h3>
                     <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
-                      {authCapabilities?.hasPassword
-                        ? 'Enter your current password to permanently delete your ReplyFlow account.'
-                        : 'To permanently delete your ReplyFlow account, please type DELETE below.'}
+                      {deleteReauthRequired
+                        ? 'For security, please verify your identity before permanently deleting your account.'
+                        : authCapabilities?.hasPassword
+                          ? 'Enter your current password to permanently delete your ReplyFlow account.'
+                          : 'To permanently delete your ReplyFlow account, please type DELETE below.'}
                     </p>
-                    {authCapabilities?.hasPassword && (
+
+                    {deleteReauthRequired && deleteReauthProvider === 'google' && (
+                      <div>
+                        <button
+                          onClick={handleReauthForDeletion}
+                          disabled={isDeleting}
+                          className="w-full h-12 px-4 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-5 h-5" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                          </svg>
+                          Verify with Google
+                        </button>
+                      </div>
+                    )}
+
+                    {authCapabilities?.hasPassword && !deleteReauthRequired && (
                       <div>
                         <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
                           Current Password
@@ -5253,6 +5387,9 @@ export default function SettingsContent() {
                         setDeleteConfirmText('')
                         setDeletePassword('')
                         setDeletePasswordError('')
+                        setDeleteReauthRequired(false)
+                        setDeleteReauthProvider(null)
+                        setOriginalDeleteUserId(null)
                       }}
                       disabled={isDeleting}
                       className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors duration-150 disabled:opacity-50"
@@ -5262,6 +5399,7 @@ export default function SettingsContent() {
                     <button
                       onClick={handleDeleteAccount}
                       disabled={
+                        deleteReauthRequired ||
                         deleteConfirmText !== 'DELETE' ||
                         (authCapabilities?.hasPassword && !deletePassword.trim()) ||
                         isDeleting

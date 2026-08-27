@@ -169,7 +169,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             ok: false,
-            step: 'recent_auth_required',
+            step: 'reauthentication_required',
+            provider: capabilities.primaryProvider,
             error: 'For security, please sign in again to delete your account.',
           },
           { status: 401 }

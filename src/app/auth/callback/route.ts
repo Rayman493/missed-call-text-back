@@ -9,13 +9,16 @@ const SAFE_REDIRECT_PATHS = [
   '/onboarding',
   '/onboarding/new-onboarding',
   '/setup/forwarding',
-  '/auth/signin'
+  '/auth/signin',
+  '/dashboard/settings' // Added for account deletion reauth
 ]
 
 function isValidRedirectPath(path: string): boolean {
   if (!path) return false
+  // Strip query parameters and hash for validation
+  const pathWithoutQuery = path.split('?')[0].split('#')[0]
   // Check if path starts with / and is in our safe list
-  return SAFE_REDIRECT_PATHS.some(safePath => path === safePath || path.startsWith(safePath + '/'))
+  return SAFE_REDIRECT_PATHS.some(safePath => pathWithoutQuery === safePath || pathWithoutQuery.startsWith(safePath + '/'))
 }
 
 export async function GET(request: Request) {
