@@ -268,13 +268,45 @@ export async function GET(request: Request) {
           reason
         })
         
-        // Use the next parameter if provided and valid, otherwise use business-based routing
-        const finalRedirect = next ? next : redirectTarget
+        // Canonical routing: business state takes priority over stale next parameter
+        // Reauth contexts preserve their specific return targets
+        // Existing business users always go to dashboard (not onboarding)
+        let finalRedirect: string
+        if (reauthContext === 'delete' || reauthContext === 'incomplete_delete') {
+          // Reauth contexts preserve their specific return targets from next parameter
+          finalRedirect = next || redirectTarget
+          console.log('[Auth Callback] Using reauth context routing:', {
+            reauthContext,
+            finalRedirect,
+            hasBusiness: !!business
+          })
+        } else if (business) {
+          // Existing business takes priority over stale next parameter
+          // This prevents users with completed businesses from being sent to /onboarding
+          finalRedirect = '/dashboard'
+          console.log('[Auth Callback] Business exists, overriding next parameter:', {
+            hasBusiness: true,
+            businessId: business.id,
+            nextParam: next,
+            overriddenNext: next,
+            finalRedirect
+          })
+        } else {
+          // No business, use next parameter or default to onboarding
+          finalRedirect = next || redirectTarget
+          console.log('[Auth Callback] No business, using next parameter:', {
+            hasBusiness: false,
+            nextParam: next,
+            finalRedirect
+          })
+        }
+
         console.log('[Auth Callback] Redirecting to:', finalRedirect, {
           hasBusiness: !!business,
           businessId: business?.id,
           nextParam: next,
-          finalRedirect
+          finalRedirect,
+          reauthContext
         })
         return NextResponse.redirect(new URL(finalRedirect, requestUrl.origin))
       }
