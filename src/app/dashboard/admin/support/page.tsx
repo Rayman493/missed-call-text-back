@@ -80,6 +80,11 @@ export default function AdminSupportPage() {
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  // Delete full account state
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false)
+  const [deleteAccountConfirmation, setDeleteAccountConfirmation] = useState('')
+  const [deleteAccountLoading, setDeleteAccountLoading] = useState(false)
+
   // Metrics state
   const [metrics, setMetrics] = useState<any>(null)
   const [metricsLoading, setMetricsLoading] = useState(true)
@@ -671,6 +676,66 @@ export default function AdminSupportPage() {
     setDeleteConfirmPhase('dry-run')
     setDeleteDryRunResult(null)
     setDeleteConfirmation('')
+  }
+
+  const handleOpenDeleteAccountModal = () => {
+    if (selectedBusiness?.is_protected_account) {
+      setActionResult({ success: false, message: 'Cannot delete protected account' })
+      return
+    }
+    setShowDeleteAccountModal(true)
+    setDeleteAccountConfirmation('')
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!selectedBusiness) {
+      console.error('[DELETE ACCOUNT] No selected business')
+      return
+    }
+
+    if (!session || !session.access_token) {
+      console.error('[DELETE ACCOUNT] No session or access token')
+      setActionResult({ success: false, message: 'Authentication required. Please log in again.' })
+      return
+    }
+
+    setDeleteAccountLoading(true)
+    try {
+      const token = session.access_token
+      const response = await fetch('/api/admin/delete-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          targetUserId: selectedBusiness.user_id,
+          targetBusinessId: selectedBusiness.id,
+          deleteConfirmation: deleteAccountConfirmation,
+          dryRun: false,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.ok) {
+        const message = 'Account deleted successfully'
+        setActionResult({ success: true, message })
+        setShowDeleteAccountModal(false)
+        setDeleteAccountConfirmation('')
+        // Refresh search results
+        if (searchQuery) {
+          await handleSearch()
+        }
+      } else {
+        setActionResult({ success: false, message: data.error || 'Failed to delete account' })
+      }
+    } catch (error) {
+      console.error('[DELETE ACCOUNT] Exception:', error)
+      setActionResult({ success: false, message: 'Failed to delete account' })
+    } finally {
+      setDeleteAccountLoading(false)
+    }
   }
 
   const handleCopyUserId = () => {
@@ -1655,9 +1720,16 @@ export default function AdminSupportPage() {
                         <button
                           onClick={handleOpenDeleteModal}
                           disabled={actionLoading || selectedBusiness.is_protected_account === true}
-                          className="px-3 py-2 bg-red-700 text-white text-sm font-medium rounded-lg hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           Delete Test Data
+                        </button>
+                        <button
+                          onClick={handleOpenDeleteAccountModal}
+                          disabled={actionLoading || selectedBusiness.is_protected_account === true}
+                          className="px-3 py-2 bg-red-900 text-white text-sm font-medium rounded-lg hover:bg-red-950 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Delete Account
                         </button>
                       </div>
                     </div>
@@ -2335,6 +2407,67 @@ export default function AdminSupportPage() {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Delete Account Modal */}
+            {showDeleteAccountModal && selectedBusiness && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
+                    Delete Account
+                  </h3>
+
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+                    <h4 className="text-sm font-semibold text-red-900 dark:text-red-400 mb-2">Warning: Complete Account Deletion</h4>
+                    <p className="text-sm text-red-800 dark:text-red-300 mb-2">
+                      This will permanently delete the entire account for:
+                    </p>
+                    <div className="text-sm text-red-900 dark:text-red-200 font-medium mb-2">
+                      {selectedBusiness.business_name}
+                    </div>
+                    <div className="text-xs text-red-700 dark:text-red-400 space-y-1">
+                      <p>• Cancel Stripe subscription</p>
+                      <p>• Recycle ReplyFlow number</p>
+                      <p>• Delete all business/customer data</p>
+                      <p>• Delete login/auth account</p>
+                      <p>• This action cannot be undone</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Type <code className="bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded">DELETE</code> to confirm
+                    </label>
+                    <input
+                      type="text"
+                      value={deleteAccountConfirmation}
+                      onChange={(e) => setDeleteAccountConfirmation(e.target.value)}
+                      placeholder="Type DELETE to confirm"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3 mt-4">
+                    <button
+                      onClick={() => {
+                        setShowDeleteAccountModal(false)
+                        setDeleteAccountConfirmation('')
+                      }}
+                      disabled={deleteAccountLoading}
+                      className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={deleteAccountLoading || deleteAccountConfirmation !== 'DELETE'}
+                      className="px-4 py-2 bg-red-900 text-white font-medium rounded-lg hover:bg-red-950 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {deleteAccountLoading ? 'Deleting...' : 'Confirm Delete Account'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
