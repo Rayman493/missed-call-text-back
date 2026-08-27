@@ -344,6 +344,17 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
 
   const normalized = normalizeExtractedInfo(extractedInfoRaw)
 
+  // For manual customers (no ai_call_record), fall back to raw_metadata.extracted_info
+  // This ensures manually entered data is displayed correctly
+  const hasAiCallRecord = sortedAiCallRecords.length > 0
+  const isManualCustomer = lead?.source === 'manual' || rawMetadata?.creation_source === 'manual'
+  const manualExtractedInfo = (!hasAiCallRecord && isManualCustomer) ? (rawMetadata.extracted_info || {}) : {}
+  const manualNormalized = normalizeExtractedInfo(manualExtractedInfo)
+
+  // Merge manual extracted info with AI extracted info (manual takes precedence for manual customers)
+  const effectiveExtractedInfo = isManualCustomer ? { ...extractedInfoRaw, ...manualExtractedInfo } : extractedInfoRaw
+  const effectiveNormalized = isManualCustomer ? { ...normalized, ...manualNormalized } : normalized
+
   // Customer corrections override extracted info when present
   const corrected = rawMetadata.corrected_fields || {}
 
@@ -395,8 +406,8 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
     corrected.serviceRequested,
     corrected.reason,
     corrected.reasonForCalling,
-    normalized.reasonForCalling,
-    extractedInfoRaw.serviceRequested
+    effectiveNormalized.reasonForCalling,
+    effectiveExtractedInfo.serviceRequested
   ], pick));
 
   const result = {
@@ -408,8 +419,8 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       corrected.callerName,
       corrected.customerName,
       corrected.caller_name,
-      normalized.callerName,
-      extractedInfoRaw.customerName,
+      effectiveNormalized.callerName,
+      effectiveExtractedInfo.customerName,
       lead?.name,
       lead?.contact_name
     ], pickNotPhone)),
@@ -419,9 +430,9 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       rawMetadata.callbackNumber,
       rawMetadata.phone,
       rawMetadata.caller_phone,
-      extractedInfoRaw.callbackNumber,
-      extractedInfoRaw.phone,
-      extractedInfoRaw.customerPhone
+      effectiveExtractedInfo.callbackNumber,
+      effectiveExtractedInfo.phone,
+      effectiveExtractedInfo.customerPhone
     ),
     serviceRequested: serviceRequestedValue,
     // Additional details: current-call only, preserve multi-part facts
@@ -431,8 +442,8 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       corrected.details,
       corrected.issueDescription,
       corrected.importantDetails,
-      normalized.importantDetails,
-      extractedInfoRaw.additionalDetails
+      effectiveNormalized.importantDetails,
+      effectiveExtractedInfo.additionalDetails
     )),
     // Service address: current-call only
     // Priority: manual corrections > current-call normalized > current-call raw
@@ -441,8 +452,8 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       corrected.address,
       corrected.serviceAddress,
       corrected.addressOrLocation,
-      normalized.addressOrLocation,
-      extractedInfoRaw.serviceAddress
+      effectiveNormalized.addressOrLocation,
+      effectiveExtractedInfo.serviceAddress
     )),
     // Desired completion time: current-call only
     // Priority: manual corrections > current-call normalized > current-call raw
@@ -452,8 +463,8 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       corrected.urgency,
       corrected.urgencyLevel,
       corrected.desiredCompletionTime,
-      normalized.desiredCompletionTime,
-      extractedInfoRaw.desiredCompletion
+      effectiveNormalized.desiredCompletionTime,
+      effectiveExtractedInfo.desiredCompletion
     )),
     // Callback time: current-call only
     // Priority: manual corrections > current-call normalized > current-call raw
@@ -462,16 +473,16 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       corrected.callbackTime,
       corrected.callback_time,
       corrected.preferredCallbackTime,
-      normalized.preferredCallbackTime,
-      extractedInfoRaw.callbackTime
+      effectiveNormalized.preferredCallbackTime,
+      effectiveExtractedInfo.callbackTime
     )),
     conciseRequestTitle: generateConciseRequestTitle(
       serviceRequestedValue ||
       corrected.serviceRequested ||
       corrected.reason ||
       corrected.reasonForCalling ||
-      normalized.reasonForCalling ||
-      extractedInfoRaw.serviceRequested
+      effectiveNormalized.reasonForCalling ||
+      effectiveExtractedInfo.serviceRequested
     ),
   }
 
@@ -480,14 +491,20 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
     console.log('[getLeadAIIntake debug]', {
       leadId: lead?.id,
       leadName: lead?.name,
+      isManualCustomer,
+      hasAiCallRecord,
       rawMetadataKeys: Object.keys(rawMetadata),
       extractedInfoSource: lead?.aiCallRecords?.[0]?.extracted_info
         ? 'aiCallRecords[0].extracted_info (current call)'
         : lead?.ai_call_records?.[0]?.extracted_info
           ? 'ai_call_records[0].extracted_info (current call)'
-          : 'none (no current call record)',
+          : isManualCustomer
+            ? 'raw_metadata.extracted_info (manual customer fallback)'
+            : 'none (no current call record)',
       extractedInfoRaw,
       normalized,
+      manualExtractedInfo: isManualCustomer ? manualExtractedInfo : undefined,
+      effectiveExtractedInfo,
       result,
     })
   }

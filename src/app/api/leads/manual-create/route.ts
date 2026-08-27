@@ -75,6 +75,8 @@ export async function POST(request: NextRequest) {
       const newLead = await LeadService.createLead({
         business_id: businessId,
         caller_phone: normalizedPhone,
+        name: customerName || null, // Set canonical name field
+        email: email || null, // Set canonical email field
         status: 'new',
         source: 'manual',
         raw_metadata: {
@@ -128,6 +130,8 @@ export async function POST(request: NextRequest) {
       const updatedLead = await LeadService.updateLead({
         lead_id: leadId,
         updates: {
+          name: customerName || existingLead.name, // Update canonical name field
+          email: email || existingLead.email, // Update canonical email field
           raw_metadata: {
             ...existingMetadata,
             extracted_info: mergedExtractedInfo,
