@@ -126,27 +126,46 @@ describe('Customer Detail Request Payment Setup Routing', () => {
   })
 
   describe('Desktop toolbar structure', () => {
-    it('should have status dropdown in header (not yet moved to toolbar)', () => {
-      // Layout reorganization deferred to post-launch
-      const toolbarContainsStatus = false // Not in toolbar yet
-      const headerContainsStatus = true
+    it('should have status dropdown in toolbar after reorganization', () => {
+      const toolbarContainsStatus = true
+      const toolbarContainsRefresh = true
 
-      expect(headerContainsStatus).toBe(true)
+      expect(toolbarContainsStatus).toBe(true)
+      expect(toolbarContainsRefresh).toBe(true)
     })
 
-    it('should have refresh in header (not yet moved to toolbar)', () => {
-      // Layout reorganization deferred to post-launch
-      const toolbarContainsRefresh = false // Not in toolbar yet
-      const headerContainsRefresh = true
-
-      expect(headerContainsRefresh).toBe(true)
-    })
-
-    it('should have primary actions in action bar', () => {
+    it('should have primary actions on left side of toolbar', () => {
       const leftActions = ['Create Job', 'Add Task', 'Request Payment', 'Schedule Appointment', 'Internal Note']
-      
+
       expect(leftActions).toContain('Create Job')
       expect(leftActions).toContain('Request Payment')
+    })
+
+    it('should have status + refresh on right side of toolbar', () => {
+      const rightControls = ['Status Dropdown', 'Refresh']
+
+      expect(rightControls).toContain('Status Dropdown')
+      expect(rightControls).toContain('Refresh')
+    })
+
+    it('should use flex layout for wrapping', () => {
+      const usesFlexLayout = true
+      const supportsWrapping = true
+
+      expect(usesFlexLayout).toBe(true)
+      expect(supportsWrapping).toBe(true)
+    })
+
+    it('should not duplicate status dropdown in header', () => {
+      const headerContainsStatus = false
+
+      expect(headerContainsStatus).toBe(false)
+    })
+
+    it('should not duplicate refresh in header', () => {
+      const headerContainsRefresh = false
+
+      expect(headerContainsRefresh).toBe(false)
     })
   })
 

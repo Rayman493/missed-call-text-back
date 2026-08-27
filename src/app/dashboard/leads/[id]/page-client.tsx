@@ -4029,7 +4029,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
 
                 {/* Main Row */}
-                <div className="flex items-center justify-between gap-6">
+                <div className="flex items-center gap-6">
                   {/* Customer Identity - Horizontal */}
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     {/* Avatar */}
@@ -4085,28 +4085,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </p>
                       </div>
                     </div>
-
-                  {/* Right Action Cluster - Status + Refresh */}
-                  <div className="flex items-center gap-2">
-                    <LeadStatusDropdown
-                      currentStatus={normalizeCustomerStatus((leadData || lead).status || (leadData || lead).lead_status)}
-                      onStatusChange={handleStatusUpdate}
-                      size="sm"
-                    />
-                    {/* Refresh button */}
-                    <button
-                      type="button"
-                      onClick={handleRefresh}
-                      disabled={refreshing}
-                      className="h-9 w-9 inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-slate-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      aria-label="Refresh"
-                      title="Refresh"
-                    >
-                      <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
@@ -4115,8 +4093,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Primary Action Bar - Desktop Only */}
           <div className="hidden md:block">
             <div className="max-w-7xl mx-auto px-6 lg:px-8 py-3">
-              <div className="flex items-center gap-2">
-                <button
+              <div className="flex items-center justify-between gap-4">
+                {/* Left: Primary Actions */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
                   type="button"
                   onClick={handleCreateJobClick}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
@@ -4161,6 +4141,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </svg>
                   <span>Internal Note</span>
                 </button>
+                </div>
+
+                {/* Right: Status + Refresh */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <LeadStatusDropdown
+                    currentStatus={normalizeCustomerStatus((leadData || lead).status || (leadData || lead).lead_status)}
+                    onStatusChange={handleStatusUpdate}
+                    size="sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    className="h-9 w-9 inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-slate-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Refresh"
+                    title="Refresh"
+                  >
+                    <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
