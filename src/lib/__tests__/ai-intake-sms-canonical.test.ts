@@ -249,4 +249,75 @@ describe('AI Intake SMS - Polished Format', () => {
       expect(sms).not.toContain('Hi undefined')
     })
   })
+  describe('Canonical importantDetails field (production data shape)', () => {
+    it('should include Details when importantDetails is present (canonical normalized field)', () => {
+      const extractedInfo = {
+        customerName: 'Ryan',
+        reasonForCalling: 'Lawn Mowing',
+        importantDetails: 'Lawn mowing service for quarter acre yard',
+        addressOrLocation: '1632 South Pine Drive',
+        desiredCompletionTime: 'Sometime in the next two weeks',
+        preferredCallbackTime: 'In the mornings',
+      }
+      const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
+      expect(sms).toContain('Hi Ryan, thanks for reaching out to Desktop Final Testing.')
+      expect(sms).toContain('• Request: Lawn Mowing')
+      expect(sms).toContain('• Details: Lawn mowing service for quarter acre yard')
+      expect(sms).toContain('• Address: 1632 South Pine Drive')
+      expect(sms).toContain('• Desired completion: Next two weeks')
+      expect(sms).toContain('• Preferred callback: In the mornings')
+      expect(sms).toContain("We've shared this with the team")
+    })
+
+    it('should include Details when additionalDetails is present (alias for backward compatibility)', () => {
+      const extractedInfo = {
+        customerName: 'Ryan',
+        reasonForCalling: 'Lawn Mowing',
+        additionalDetails: 'Lawn mowing service for quarter acre yard',
+        addressOrLocation: '1632 South Pine Drive',
+        desiredCompletionTime: 'Sometime in the next two weeks',
+        preferredCallbackTime: 'In the mornings',
+      }
+      const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
+      expect(sms).toContain('• Details: Lawn mowing service for quarter acre yard')
+    })
+
+    it('should include Details when both importantDetails and additionalDetails are present (importantDetails wins)', () => {
+      const extractedInfo = {
+        customerName: 'Ryan',
+        reasonForCalling: 'Lawn Mowing',
+        importantDetails: 'Primary details from canonical field',
+        additionalDetails: 'Secondary details from alias field',
+        addressOrLocation: '1632 South Pine Drive',
+      }
+      const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
+      expect(sms).toContain('• Details: Primary details from canonical field')
+      expect(sms).not.toContain('Secondary details from alias field')
+    })
+
+    it('should omit Details when no details field is present', () => {
+      const extractedInfo = {
+        customerName: 'Ryan',
+        reasonForCalling: 'Lawn Mowing',
+        addressOrLocation: '1632 South Pine Drive',
+        desiredCompletionTime: 'Sometime in the next two weeks',
+      }
+      const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
+      expect(sms).toContain('• Request: Lawn Mowing')
+      expect(sms).not.toContain('• Details:')
+    })
+
+    it('should handle distinct Request and Details without duplication', () => {
+      const extractedInfo = {
+        customerName: 'Ryan',
+        reasonForCalling: 'Lawn Mowing',
+        importantDetails: 'Quarter acre yard with privacy fence',
+        addressOrLocation: '1632 South Pine Drive',
+      }
+      const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
+      expect(sms).toContain('• Request: Lawn Mowing')
+      expect(sms).toContain('• Details: Quarter acre yard with privacy fence')
+      // Both should appear as they are meaningfully different
+    })
+  })
 })
