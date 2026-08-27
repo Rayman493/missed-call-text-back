@@ -2647,7 +2647,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                     ) : (
                       <>
                         <p className="text-[10px] md:text-xs font-medium text-foreground truncate">
-                          {item.scheduledTime ? formatTime12Hour(item.scheduledTime) : 'No time'}
+                          {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime) || 'No time'}
                         </p>
                         <p className="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 truncate">
                           {item.customerName || 'No customer'}
@@ -2707,7 +2707,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         
         {/* Selected Item Info Card */}
         {selectedItem && (
-          <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-6 md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-20 p-4">
+          <div className="absolute bottom-4 left-4 right-4 md:left-6 md:right-auto md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-20 p-4">
             {/* Mobile: Compact row layout */}
             <div className="md:hidden">
               {/* Row 1: Stop info + summary + close */}
@@ -2884,7 +2884,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
         {/* Legacy selected marker info card (for clustered items) */}
         {selectedMarker && !selectedItem && (
-          <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-3 md:p-4 z-20">
+          <div className="absolute bottom-4 left-4 right-4 md:left-4 md:right-auto md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-3 md:p-4 z-20">
             <div className="flex items-start justify-between mb-2 md:mb-3">
               <h3 className="font-semibold text-sm md:text-base text-slate-900 dark:text-foreground">
                 {selectedMarker.items.length} stops at this location
@@ -2915,7 +2915,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-foreground truncate">{item.title}</p>
                       <p className="text-[10px] text-slate-500 truncate">
-                        {item.scheduledTime ? formatTime12Hour(item.scheduledTime) : 'No time'}
+                        {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime) || 'No time'}
                       </p>
                     </div>
                   </div>
