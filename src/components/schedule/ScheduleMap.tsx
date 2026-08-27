@@ -2384,8 +2384,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* Date Navigation Header - Compact on mobile */}
-      <div className="flex items-center justify-between mb-2 md:mb-4 px-1 z-10">
+      {/* Date Navigation Header - Compact on mobile, Today button inline on desktop */}
+      <div className="flex items-center justify-between mb-2 md:mb-3 px-1 z-10">
         <button
           onClick={onPreviousDay}
           className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
@@ -2404,27 +2404,26 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
             Today
           </button>
         </div>
-        <button
-          onClick={onNextDay}
-          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-          aria-label="Next day"
-        >
-          <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-        </button>
-      </div>
-
-      {/* Desktop Today button - hidden on mobile */}
-      <div className="hidden md:flex justify-center mb-4 z-10">
-        <button
-          onClick={onGoToToday}
-          className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors"
-        >
-          Today
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Desktop Today button - inline on right */}
+          <button
+            onClick={onGoToToday}
+            className="hidden md:block px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors"
+          >
+            Today
+          </button>
+          <button
+            onClick={onNextDay}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            aria-label="Next day"
+          >
+            <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+          </button>
+        </div>
       </div>
 
       {/* Filter and Show All Controls - Compact on mobile */}
-      <div className="flex items-center justify-between mb-3 md:mb-4 px-1 z-10">
+      <div className="flex items-center justify-between mb-2 md:mb-3 px-1 z-10">
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-slate-500" />
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 md:p-1">
@@ -2473,7 +2472,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       </div>
 
       {/* Selected-Day Item List (All items: jobs, appointments, tasks) - Compact on mobile */}
-      <div className="mb-2 md:mb-4 z-10">
+      <div className="mb-2 md:mb-3 z-10">
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
           <div className="px-3 md:px-4 py-2 md:py-3 border-b border-slate-100 dark:border-slate-700">
             <h3 className="text-sm font-semibold text-foreground">Today's Schedule</h3>
@@ -2628,7 +2627,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
       {/* Today's Stops - Horizontal strip, visible on all screen sizes */}
       {sortedItems.filter(item => item.type !== 'business').length > 0 && (
-        <div className="mb-3 md:mb-4 z-10">
+        <div className="mb-2 md:mb-3 z-10">
           <div className="flex items-center justify-between mb-2 px-1">
             <h3 className="text-xs md:text-sm font-semibold text-foreground">Today's Stops</h3>
             <span className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">{routeSummary}</span>
