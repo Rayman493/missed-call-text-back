@@ -1985,9 +1985,12 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     if (dateChanged && !viewportRestoredRef.current) {
       cameraOwnerRef.current = CameraOwner.INITIALIZING
 
-      // Calculate expected marker count: filtered jobs + filtered events + business (if geocoded)
+      // Calculate expected marker count: filtered jobs + filtered events + business (if business has address)
+      // Use business address presence instead of geocoding completion to ensure Home Base is included in expected count
       const { filteredJobs, filteredEvents } = getItemsForDate()
-      const expectedCount = filteredJobs.length + filteredEvents.length + (businessCoordsCacheRef.current ? 1 : 0)
+      const businessAddress = business ? formatBusinessAddress(business) : null
+      const hasBusinessAddress = !!businessAddress
+      const expectedCount = filteredJobs.length + filteredEvents.length + (hasBusinessAddress ? 1 : 0)
       expectedMarkerCountRef.current = expectedCount
 
       // If expected marker count is zero, we know this is a zero-marker date
@@ -2027,13 +2030,15 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     // Update expected marker count if business geocoding completes mid-date
     // (businessCoordsCacheRef changes from null to having coordinates)
     const { filteredJobs, filteredEvents } = getItemsForDate()
-    const expectedCount = filteredJobs.length + filteredEvents.length + (businessCoordsCacheRef.current ? 1 : 0)
-    if (expectedCount > expectedMarkerCountRef.current) {
+    const businessAddress = business ? formatBusinessAddress(business) : null
+    const hasBusinessAddress = !!businessAddress
+    const expectedCount = filteredJobs.length + filteredEvents.length + (hasBusinessAddress ? 1 : 0)
+    if (expectedCount !== expectedMarkerCountRef.current) {
       expectedMarkerCountRef.current = expectedCount
-      // If we were in a zero-stop state and business just arrived, we need to refit
-      // Set initialFramingPending to true to allow the business marker to be framed
+      // If expected marker count increases and markers exist, allow completion frame
+      // Set initialFramingPending to true to trigger re-fit
       // ONLY if camera is still eligible for automatic initial framing
-      if (markersRef.current.size > 0 &&
+      if (expectedCount > expectedMarkerCountRef.current && markersRef.current.size > 0 &&
           cameraOwnerRef.current !== CameraOwner.USER_OWNED &&
           cameraOwnerRef.current !== CameraOwner.DRAGGING) {
         initialFramingPendingRef.current = true
