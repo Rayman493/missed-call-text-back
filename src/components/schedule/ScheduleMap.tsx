@@ -2065,34 +2065,47 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           initialFramingPendingRef.current = false
         }
 
-        // Build viewport marker set: business + valid scheduled markers for selected day
-        // This ensures the business location is always shown as a reference point
+        // Build viewport marker set for automatic framing
+        // AUTOMATIC FRAMING POLICY: Prioritize service markers (jobs, appointments)
+        // Business marker is context, not primary operational target
         const viewportMarkers = Array.from(markersRef.current.entries())
           .filter(([key, marker]) => {
-            // Include business marker
-            if (key.startsWith('business:')) return true
-            // Include all non-business markers (already filtered by date in mapItems)
+            // Exclude business marker from automatic framing if service markers exist
+            if (key.startsWith('business:')) return false
+            // Include all service markers (jobs, appointments)
             return true
           })
 
         if (viewportMarkers.length === 0) {
-          // No markers at all - use fallback
-          console.log('[SCHEDULE_MAP_EFFECT] No markers available for auto-fit')
+          // No service markers - fall back to business-only framing
+          const businessMarkers = Array.from(markersRef.current.entries())
+            .filter(([key, marker]) => key.startsWith('business:'))
+
+          if (businessMarkers.length === 0) {
+            // No markers at all - use fallback
+            console.log('[SCHEDULE_MAP_EFFECT] No markers available for auto-fit')
+          } else {
+            // Business only - center on business
+            const [, businessMarker] = businessMarkers[0]
+            if (businessMarker) {
+              const pos = businessMarker.getPosition()
+              panToMarker(pos.lat(), pos.lng(), { zoom: HOME_BASE_ONLY_ZOOM }, 'business_only_auto_fit')
+            }
+          }
         } else if (viewportMarkers.length === 1) {
-          // Single marker (could be business only, or single job with no business)
+          // Single service marker - center on it
           const [, singleMarker] = viewportMarkers[0]
           if (singleMarker) {
             const pos = singleMarker.getPosition()
-            panToMarker(pos.lat(), pos.lng(), { zoom: HOME_BASE_ONLY_ZOOM }, 'single_marker_auto_fit')
+            panToMarker(pos.lat(), pos.lng(), { zoom: SINGLE_STOP_ZOOM }, 'single_service_marker_auto_fit')
           }
         } else {
-          // Multiple markers - fit all including business
-          // Business is important reference point and should always be visible
+          // Multiple service markers - fit service markers only (exclude distant business)
           const bounds = new (window as any).google.maps.LatLngBounds()
           viewportMarkers.forEach(([, marker]) => {
             bounds.extend(marker.getPosition()!)
           })
-          fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'multi_marker_auto_fit')
+          fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'service_markers_auto_fit')
         }
       } else {
         markerSetSignatureRef.current = signature
