@@ -2492,15 +2492,6 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                   }
                 }
 
-                const formatItemTime = (time: string | null) => {
-                  if (!time) return 'No time'
-                  const [hours, minutes] = time.split(':')
-                  const hour = parseInt(hours, 10)
-                  const ampm = hour >= 12 ? 'PM' : 'AM'
-                  const hour12 = hour % 12 || 12
-                  return `${hour12}:${minutes} ${ampm}`
-                }
-
                 const getItemIcon = () => {
                   if (item.type === 'job') return <Briefcase className="w-4 h-4" />
                   if (item.type === 'appointment') return <Calendar className="w-4 h-4" />
@@ -2541,7 +2532,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                     <div className="flex-1 min-w-0 text-left">
                       <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-1">
                         <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                          {formatItemTime(item.scheduledTime)}
+                          {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime)}
                         </p>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${getTypeLabelColor()}`}>
                           {getTypeLabel()}
@@ -2667,7 +2658,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         <div ref={mapRef} className="w-full h-full" />
         
         {/* Map Controls Stack */}
-        <div className="flex absolute top-3 right-3 z-10 flex-col gap-2">
+        <div className="flex absolute top-3 right-2 z-10 flex-col gap-2">
           {/* Map Type Toggle - Desktop only */}
           <div className="flex bg-white/95 dark:bg-slate-800/95 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700/60 overflow-hidden backdrop-blur-sm">
             <button
