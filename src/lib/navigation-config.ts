@@ -1,4 +1,4 @@
-import { Home, Users, Calendar, CreditCard, Settings, ExternalLink, LogOut, CreditCard as BillingIcon, Voicemail, Activity } from 'lucide-react'
+import { Home, Users, Calendar, CreditCard, Settings, ExternalLink, LogOut, CreditCard as BillingIcon, Voicemail, Activity, HelpCircle } from 'lucide-react'
 import { LucideIcon } from 'lucide-react'
 
 export interface NavItem {
@@ -67,6 +67,11 @@ export const accountMenuItems: AccountMenuItem[] = [
     label: 'Billing',
     icon: BillingIcon,
     action: 'billing',
+  },
+  {
+    label: 'FAQ',
+    icon: HelpCircle,
+    href: '/faq',
   },
   {
     label: 'View Homepage',

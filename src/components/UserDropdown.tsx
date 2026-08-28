@@ -9,7 +9,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { handleBillingAction } from '@/lib/billing'
 import { useTheme } from 'next-themes'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, ReceiptText, Settings, User, Home, X, Monitor, Sun, Moon, Mail } from 'lucide-react'
+import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, ReceiptText, Settings, User, Home, X, Monitor, Sun, Moon, Mail, HelpCircle } from 'lucide-react'
 import { accountMenuItems } from '@/lib/navigation-config'
 import { isAdmin } from '@/lib/admin'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
@@ -405,6 +405,15 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
                 <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 Contact Support
               </button>
+              <Link
+                href="/faq"
+                role="menuitem"
+                onClick={() => setIsOpen(false)}
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <HelpCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                FAQ
+              </Link>
               <button
                 type="button"
                 role="menuitem"

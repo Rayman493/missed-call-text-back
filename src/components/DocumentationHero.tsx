@@ -59,28 +59,28 @@ export default function DocumentationHero({
       </div>
 
       {/* Hero Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-4 sm:pb-8">
         <div className="text-center">
           {/* Icon */}
           {icon && (
-            <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${iconColors[iconColor]} mb-4`}>
+            <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${iconColors[iconColor]} mb-3 sm:mb-4`}>
               {icon}
             </div>
           )}
 
           {/* Title */}
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+          <h1 className="text-2xl sm:text-4xl font-bold text-foreground mb-3 sm:mb-4">
             {title}
           </h1>
 
           {/* Subtitle */}
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+          <p className="text-base sm:text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
             {subtitle}
           </p>
 
           {/* Last Updated */}
           {lastUpdated && (
-            <p className="text-sm text-muted-foreground mt-3">
+            <p className="text-sm text-muted-foreground mt-2 sm:mt-3">
               Last updated: {lastUpdated}
             </p>
           )}

@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from 'next-themes'
-import { Home, Users, Calendar, CreditCard, Settings, LogOut, MessageCircle, ExternalLink, Sun, Moon, Monitor, HelpCircle, Mail } from 'lucide-react'
+import { Home, Users, Calendar, CreditCard, Settings, LogOut, MessageCircle, ExternalLink, Sun, Moon, Monitor, HelpCircle, Mail, ReceiptText } from 'lucide-react'
 import { primaryNavItems, accountMenuItems } from '@/lib/navigation-config'
 import { handleBillingAction } from '@/lib/billing'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
@@ -26,6 +26,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
   const [isContactSupportOpen, setIsContactSupportOpen] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null)
+  const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' }[]>([])
   const moreButtonRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -246,6 +247,31 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
     setIsMoreMenuOpen(false)
   }
 
+  const showToast = (message: string, type: 'success' | 'error') => {
+    const id = Date.now().toString()
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => {
+      setToasts(prev => prev.filter(toast => toast.id !== id))
+    }, 3000)
+  }
+
+  const handleBilling = async () => {
+    try {
+      const result = await handleBillingAction()
+      if (result.success && result.url) {
+        if (typeof window !== 'undefined' && window.location) {
+          window.location.href = result.url
+        }
+      } else if (result.error) {
+        showToast(result.error, 'error')
+      }
+      setIsMoreMenuOpen(false)
+    } catch (error) {
+      console.error('[MOBILE BILLING ERROR] Billing action error:', error)
+      showToast('Unable to open billing right now. Please try again.', 'error')
+    }
+  }
+
   return (
     <>
       {!hideNav && (
@@ -340,6 +366,18 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation()
+                  handleBilling()
+                }}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-popover-foreground transition-colors duration-150 hover:bg-accent"
+              >
+                <ReceiptText className="h-4 w-4 text-muted-foreground" />
+                Billing
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
                   // Close More first so its z-[1000] portal/backdrop unmounts,
                   // then open Assistant so it cannot be blocked underneath.
                   setIsMoreMenuOpen(false)
@@ -377,7 +415,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-popover-foreground transition-colors duration-150 hover:bg-accent"
               >
                 <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                Help & Support
+                FAQ
               </Link>
 
               {/* Appearance Selector */}
@@ -462,6 +500,25 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
           setIsAssistantOpen(true)
         }}
       />
+
+      {/* Toast notifications */}
+      {toasts.length > 0 && typeof document !== 'undefined' && createPortal(
+        <div className="fixed top-4 right-4 z-[10000] flex flex-col gap-2">
+          {toasts.map(toast => (
+            <div
+              key={toast.id}
+              className={`px-4 py-3 rounded-lg shadow-lg text-sm font-medium ${
+                toast.type === 'success'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-red-500 text-white'
+              }`}
+            >
+              {toast.message}
+            </div>
+          ))}
+        </div>,
+        document.body
+      )}
     </>
   )
 }
