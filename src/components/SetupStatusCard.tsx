@@ -12,6 +12,7 @@ import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 import AssistantMobileShell from '@/components/AssistantMobileShell'
 import CallForwardingInstructions from '@/components/CallForwardingInstructions'
+import TestYourSetupModal from '@/components/TestYourSetupModal'
 
 interface SetupStatusCardProps {
   business: Business | null
@@ -41,6 +42,7 @@ export default function SetupStatusCard({
   const [billingError, setBillingError] = useState<string | null>(null)
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
   const [showForwardingInstructions, setShowForwardingInstructions] = useState(false)
+  const [showTestYourSetup, setShowTestYourSetup] = useState(false)
   const [expandedStep, setExpandedStep] = useState<number | null>(null)
   const { user } = useAuth()
   const { refreshBusiness } = useBusiness()
@@ -250,24 +252,30 @@ export default function SetupStatusCard({
   }, [cardState, business?.twilio_phone_number, hasConfirmedForwardingInstructions])
   
   // Shared forwarding instructions modal portal available for all render branches
-  const modalPortal = showForwardingInstructions ? (
-    <CallForwardingInstructions
-      phoneNumber={business?.twilio_phone_number || ''}
-      isOpen={showForwardingInstructions}
-      onClose={() => setShowForwardingInstructions(false)}
-      businessId={business?.id}
-      onConfirm={async () => {
-        // Refresh authoritative business state from BusinessContext after a successful
-        // forwarding confirmation. A refresh failure must not reverse the confirmed UI state.
-        try {
-          await refreshBusiness(true)
-        } catch (error) {
-          console.error('[SetupStatusCard] Business refresh after forwarding confirmation failed, continuing with confirmed state:', error)
-        }
-        setExpandedStep(3)
-      }}
-    />
-  ) : null
+  const modalPortal = (
+    <>
+      <CallForwardingInstructions
+        phoneNumber={business?.twilio_phone_number || ''}
+        isOpen={showForwardingInstructions}
+        onClose={() => setShowForwardingInstructions(false)}
+        businessId={business?.id}
+        onConfirm={async () => {
+          // Refresh authoritative business state from BusinessContext after a successful
+          // forwarding confirmation. A refresh failure must not reverse the confirmed UI state.
+          try {
+            await refreshBusiness(true)
+          } catch (error) {
+            console.error('[SetupStatusCard] Business refresh after forwarding confirmation failed, continuing with confirmed state:', error)
+          }
+        }}
+      />
+      <TestYourSetupModal
+        isOpen={showTestYourSetup}
+        onClose={() => setShowTestYourSetup(false)}
+        businessPhoneNumber={business?.business_phone_number}
+      />
+    </>
+  )
   
   // Collapsed overview for setup-incomplete (user may manually collapse)
   if (!isExpanded && cardState === 'setup-incomplete') {
@@ -447,8 +455,8 @@ export default function SetupStatusCard({
       if (!hasConfirmedForwardingInstructions) {
         setShowForwardingInstructions(true)
       } else if (!hasCompletedTestCall) {
-        // Forwarding is confirmed; surface test guidance.
-        setExpandedStep(3)
+        // Forwarding is confirmed; open Test Your Setup modal instead of inline guidance
+        setShowTestYourSetup(true)
       }
     }
 
@@ -602,20 +610,6 @@ export default function SetupStatusCard({
               {forwardingStep2Complete ? 'Test Your Setup' : 'Continue Setup'}
               <ArrowRight className="w-4 h-4 ml-2" />
             </button>
-          )}
-
-          {/* Inline test guidance when forwarding is verified but test not complete */}
-          {forwardingStep2Complete && !hasCompletedTestCall && expandedStep === 3 && (
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-4">
-              <p className="text-green-100 text-sm">
-                Want to verify everything works? Call your business number from another phone and let it go to voicemail. ReplyFlow will capture the missed call and send a test text.
-              </p>
-              {business?.business_phone_number && (
-                <p className="text-white font-mono text-base mt-2">
-                  {formatPhoneNumber(business.business_phone_number)}
-                </p>
-              )}
-            </div>
           )}
         </div>
       </div>
@@ -784,69 +778,6 @@ export default function SetupStatusCard({
                 )}
               </div>
 
-              {/* Recommended: Test Setup - Accordion */}
-              {hasConfirmedForwardingInstructions && (
-                <div className={`border rounded-xl overflow-hidden transition-all duration-200 ${
-                  !hasCompletedTestCall && expandedStep === 3
-                    ? 'bg-muted/40 border-border/60 shadow-sm'
-                    : 'bg-muted/30 border-border/50'
-                }`}>
-                  <button
-                    type="button"
-                    aria-label="Toggle test setup details"
-                    aria-expanded={expandedStep === 3}
-                    onClick={() => setExpandedStep(expandedStep === 3 ? null : 3)}
-                    className="w-full flex items-center gap-3 p-3 sm:p-4 text-left hover:bg-muted/40 transition-colors"
-                  >
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      hasCompletedTestCall
-                        ? 'bg-green-500/20'
-                        : 'bg-blue-500/10 border border-blue-500/30'
-                    }`}>
-                      {hasCompletedTestCall ? (
-                        <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <Phone className="w-3.5 h-3.5 text-blue-500" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-foreground text-sm font-medium">
-                          {hasCompletedTestCall ? 'Test completed' : 'Test your setup'}
-                        </span>
-                        {!hasCompletedTestCall && (
-                          <span className="text-xs text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">Recommended</span>
-                        )}
-                      </div>
-                    </div>
-                    {expandedStep === 3 ? (
-                      <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    )}
-                  </button>
-                  {expandedStep === 3 && (
-                    <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
-                      <p className="text-muted-foreground text-sm mb-2">
-                        ReplyFlow is ready to handle calls. Want to verify everything works? Call your business number from another phone and let it go to voicemail.
-                      </p>
-                      {business?.business_phone_number && (
-                        <div className="flex items-center gap-3 mb-2">
-                          <Phone className="w-5 h-5 text-foreground flex-shrink-0" />
-                          <span className="text-foreground font-mono text-lg font-semibold tabular-nums tracking-tight">
-                            {formatPhoneNumber(business.business_phone_number)}
-                          </span>
-                        </div>
-                      )}
-                      <p className="text-muted-foreground text-xs">
-                        This optional test confirms your call forwarding is working correctly.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Help button - always accessible */}
