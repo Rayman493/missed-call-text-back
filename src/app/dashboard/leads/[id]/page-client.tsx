@@ -4117,7 +4117,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Primary Action Bar - Desktop Only */}
           <div className="hidden md:block">
             <div className="max-w-7xl mx-auto px-6 lg:px-8 py-3">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start justify-between gap-4">
                 {/* Left: Primary Actions */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
