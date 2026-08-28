@@ -1985,12 +1985,25 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     if (dateChanged && !viewportRestoredRef.current) {
       cameraOwnerRef.current = CameraOwner.INITIALIZING
 
-      // Calculate expected marker count: filtered jobs + filtered events + business (if business has address)
-      // Use business address presence instead of geocoding completion to ensure Home Base is included in expected count
+      // Calculate expected marker count based on EXPECTED markers, not just currently renderable
+      // Include business if: it has coordinates OR geocoding is in progress
+      // This prevents premature hydration completion while async geocoding is pending
       const { filteredJobs, filteredEvents } = getItemsForDate()
+      const businessCoords = businessCoordsCacheRef.current
       const businessAddress = business ? formatBusinessAddress(business) : null
       const hasBusinessAddress = !!businessAddress
-      const expectedCount = filteredJobs.length + filteredEvents.length + (hasBusinessAddress ? 1 : 0)
+      const hasBusinessCoords = !!(businessCoords && businessCoords.lat && businessCoords.lng)
+      const businessGeocodingPending = businessGeocodingInProgressRef.current
+
+      const renderableJobs = filteredJobs.filter(job =>
+        job.latitude && job.longitude || job.geocoded_address
+      ).length
+      // For events, count those with location (they'll be geocoded to coordinates in the map items pipeline)
+      const renderableEvents = filteredEvents.filter(event => event.location).length
+
+      // Include business in expected count if it has address (will geocode) OR has coords OR geocoding is pending
+      const expectedBusinessMarker = (hasBusinessAddress || hasBusinessCoords || businessGeocodingPending) ? 1 : 0
+      const expectedCount = renderableJobs + renderableEvents + expectedBusinessMarker
       expectedMarkerCountRef.current = expectedCount
 
       // If expected marker count is zero, we know this is a zero-marker date
@@ -2030,9 +2043,22 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     // Update expected marker count if business geocoding completes mid-date
     // (businessCoordsCacheRef changes from null to having coordinates)
     const { filteredJobs, filteredEvents } = getItemsForDate()
+    const businessCoords = businessCoordsCacheRef.current
     const businessAddress = business ? formatBusinessAddress(business) : null
     const hasBusinessAddress = !!businessAddress
-    const expectedCount = filteredJobs.length + filteredEvents.length + (hasBusinessAddress ? 1 : 0)
+    const hasBusinessCoords = !!(businessCoords && businessCoords.lat && businessCoords.lng)
+    const businessGeocodingPending = businessGeocodingInProgressRef.current
+
+    const renderableJobs = filteredJobs.filter(job =>
+      job.latitude && job.longitude || job.geocoded_address
+    ).length
+    // For events, count those with location (they'll be geocoded to coordinates in the map items pipeline)
+    const renderableEvents = filteredEvents.filter(event => event.location).length
+
+    // Include business in expected count if it has address (will geocode) OR has coords OR geocoding is pending
+    const expectedBusinessMarker = (hasBusinessAddress || hasBusinessCoords || businessGeocodingPending) ? 1 : 0
+    const expectedCount = renderableJobs + renderableEvents + expectedBusinessMarker
+
     if (expectedCount !== expectedMarkerCountRef.current) {
       expectedMarkerCountRef.current = expectedCount
       // If expected marker count increases and markers exist, allow completion frame
@@ -2391,26 +2417,19 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     <div className="flex flex-col h-full relative">
       {/* Date Navigation Header - Compact on mobile, Today button inline on desktop */}
       <div className="flex items-center justify-between mb-2 md:mb-3 px-1 z-10">
-        <button
-          onClick={onPreviousDay}
-          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-          aria-label="Previous day"
-        >
-          <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-        </button>
-        <div className="text-center flex-1 flex flex-col items-center">
-          <h2 className="text-base md:text-lg font-semibold text-slate-900 dark:text-foreground">
-            {formatDate(selectedDate)}
-          </h2>
-          <button
-            onClick={onGoToToday}
-            className="mt-1 md:hidden px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors"
-          >
-            Today
-          </button>
-        </div>
         <div className="flex items-center gap-2">
-          {/* Desktop Today button - inline on right */}
+          <button
+            onClick={onPreviousDay}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            aria-label="Previous day"
+          >
+            <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+          </button>
+          <div className="text-center flex flex-col items-center">
+            <h2 className="text-base md:text-lg font-semibold text-slate-900 dark:text-foreground">
+              {formatDate(selectedDate)}
+            </h2>
+          </div>
           <button
             onClick={onGoToToday}
             className="hidden md:block px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors"
@@ -2425,6 +2444,12 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
             <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
           </button>
         </div>
+        <button
+          onClick={onGoToToday}
+          className="md:hidden px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors"
+        >
+          Today
+        </button>
       </div>
 
       {/* Filter and Show All Controls - Compact on mobile */}

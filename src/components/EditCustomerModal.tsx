@@ -288,22 +288,12 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
               disabled={isSubmitting}
             />
           </div>
-        </form>
 
-        {/* Actions */}
-        <div className="px-5 py-4 border-t border-border flex gap-3 justify-end bg-white dark:bg-slate-900 flex-shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            disabled={isSubmitting}
-          >
-            Cancel
-          </button>
+          {/* Save Button inside form */}
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="w-full px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
               <>
@@ -316,6 +306,18 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             ) : (
               'Save Changes'
             )}
+          </button>
+        </form>
+
+        {/* Cancel Button outside form */}
+        <div className="px-5 py-4 border-t border-border bg-white dark:bg-slate-900 flex-shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            disabled={isSubmitting}
+          >
+            Cancel
           </button>
         </div>
       </div>

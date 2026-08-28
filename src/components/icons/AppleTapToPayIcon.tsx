@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Capacitor } from '@capacitor/core'
-import { WavesHorizontal } from 'lucide-react'
+import { Smartphone } from 'lucide-react'
 import { renderSFSymbol, getSFSymbolDataUrl } from '@/lib/sf-symbol-renderer'
 
 export interface AppleTapToPayIconProps {
@@ -15,7 +15,7 @@ export interface AppleTapToPayIconProps {
  * Apple Tap to Pay Icon
  *
  * On iOS: Renders genuine wave.3.right.circle SF Symbol using native UIImage(systemName:)
- * On Android/Web: Renders WavesHorizontal icon from lucide-react (conventional contactless/NFC symbol)
+ * On Android/Web: Renders Smartphone icon from lucide-react (safe standard library icon)
  *
  * The iOS implementation ensures Apple HIG compliance for Tap to Pay on iPhone.
  *
@@ -113,9 +113,9 @@ export default function AppleTapToPayIcon({ className = '', size = 24, color }: 
     }
   }
 
-  // Android/Web: Use WavesHorizontal icon from lucide-react (conventional contactless/NFC symbol)
+  // Android/Web: Use Smartphone icon from lucide-react (safe standard library icon)
   return (
-    <WavesHorizontal
+    <Smartphone
       size={size}
       className={className}
       aria-hidden="true"
