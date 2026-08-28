@@ -27,12 +27,12 @@ export default function SettingsActionBar({
   const [keyboardOffset, setKeyboardOffset] = useState(0)
   const [bottomNavVisible, setBottomNavVisible] = useState(false)
 
-  // Auto-hide success state after 1 second
+  // Auto-hide success state after 3 seconds (increased from 1 second for mobile visibility)
   useEffect(() => {
     if (saveSuccess) {
       const timer = setTimeout(() => {
         clearSuccess()
-      }, 1000)
+      }, 3000)
       return () => clearTimeout(timer)
     }
   }, [saveSuccess, clearSuccess])
@@ -121,7 +121,9 @@ export default function SettingsActionBar({
   const mobileBottomOffset = keyboardOffset > 0 ? keyboardOffset + 8 : 16
   // Use CSS variable for actual bottom nav height, fallback to 0 if not set
   const bottomNavHeight = bottomNavVisible ? `var(--bottom-nav-height, 0px)` : '0px'
-  const bottomOffset = bottomNavVisible ? `calc(${mobileBottomOffset}px + ${bottomNavHeight} + 8px)` : `${mobileBottomOffset}px`
+  // Add safe-area-bottom for native iOS devices
+  const safeAreaBottom = showMobileBar ? 'env(safe-area-inset-bottom, 0px)' : '0px'
+  const bottomOffset = bottomNavVisible ? `calc(${mobileBottomOffset}px + ${bottomNavHeight} + 8px + ${safeAreaBottom})` : `calc(${mobileBottomOffset}px + ${safeAreaBottom})`
 
   // Sticky Bottom Action Bar (same for both desktop and mobile)
   return (
