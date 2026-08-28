@@ -172,7 +172,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
               type="text"
               value={formData.customerName}
               onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
               placeholder="Enter customer name"
               disabled={isSubmitting}
             />
@@ -187,7 +187,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
               type="text"
               value={formData.reasonForCalling}
               onChange={(e) => setFormData({ ...formData, reasonForCalling: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
               placeholder="What do they need?"
               disabled={isSubmitting}
             />
@@ -202,7 +202,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
               value={formData.details}
               onChange={(e) => setFormData({ ...formData, details: e.target.value })}
               rows={2}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none break-words"
+              className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none resize-none"
               placeholder="Enter details"
               disabled={isSubmitting}
             />
@@ -218,7 +218,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
               type="text"
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40 break-words"
+              className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
               placeholder="Enter address"
               disabled={isSubmitting}
             />
@@ -234,7 +234,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
               type="text"
               value={formData.desiredCompletionTime}
               onChange={(e) => setFormData({ ...formData, desiredCompletionTime: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
               placeholder="e.g., tomorrow, next week"
               disabled={isSubmitting}
             />
@@ -249,7 +249,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
               type="text"
               value={formData.preferredCallbackTime}
               onChange={(e) => setFormData({ ...formData, preferredCallbackTime: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
               placeholder="e.g., 3PM, morning"
               disabled={isSubmitting}
             />
@@ -283,7 +283,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40 break-words"
+              className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
               placeholder="customer@example.com"
               disabled={isSubmitting}
             />
