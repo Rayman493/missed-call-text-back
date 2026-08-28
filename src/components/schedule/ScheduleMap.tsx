@@ -544,9 +544,18 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     })
 
     const filteredEvents = calendarEvents.filter(event => {
-      const eventDate = event.start.dateTime || event.start.date
-      if (!eventDate) return false
-      return eventDate.startsWith(dateStr)
+      const eventDateRaw = event.start.dateTime || event.start.date
+      if (!eventDateRaw) return false
+
+      // All-day events (date only, no time) - use string comparison
+      if (!event.start.dateTime && event.start.date) {
+        return event.start.date === dateStr
+      }
+
+      // Timed events - parse as Date to handle timezone correctly
+      const eventDate = new Date(eventDateRaw)
+      const eventDateStr = eventDate.toLocaleDateString('en-CA')
+      return eventDateStr === dateStr
     })
 
     return { filteredJobs, filteredEvents }
@@ -1069,8 +1078,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     const { filteredJobs, filteredEvents } = getItemsForDate()
     const items: MapItem[] = []
 
-    // Filter tasks for selected date
-    const dateStr = selectedDate.toISOString().split('T')[0]
+    // Filter tasks for selected date - use local timezone for consistency with jobs/appointments
+    const dateStr = selectedDate.toLocaleDateString('en-CA')
     const filteredTasks = tasks.filter(task => {
       if (!task.due_date) return false
       return task.due_date === dateStr && !task.completed
@@ -2515,10 +2524,10 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         )}
       </div>
 
-      {/* Selected-Day Item List (All items: jobs, appointments, tasks) - Compact on mobile */}
-      <div className="mb-2 md:mb-3 z-10">
+      {/* Selected-Day Item List (All items: jobs, appointments, tasks) - Hidden on mobile Map mode to reduce crowding */}
+      <div className="hidden md:block mb-3 z-10">
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="px-3 md:px-4 py-2 md:py-3 border-b border-slate-100 dark:border-slate-700">
+          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
             <h3 className="text-sm font-semibold text-foreground">Today's Schedule</h3>
           </div>
           <div>
@@ -2779,9 +2788,9 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           )}
         </div>
         
-        {/* Selected Item Info Card */}
+        {/* Selected Item Info Card - Compact on mobile, anchored bottom-left */}
         {selectedItem && (
-          <div className="absolute bottom-4 left-4 right-4 md:left-6 md:right-auto md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-20 p-3 md:p-4">
+          <div className="absolute bottom-4 left-4 right-auto max-w-xs md:left-6 md:right-auto md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-20 p-3 md:p-4">
             {/* Mobile: Compact row layout */}
             <div className="md:hidden">
               {/* Row 1: Stop info + summary + close */}
@@ -2811,45 +2820,9 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                 </button>
               </div>
 
-              {/* Row 2: Address or type */}
-              <div className="flex items-center gap-1 mb-1.5">
-                {selectedItem.type === 'business' ? (
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Home Base</span>
-                ) : (
-                  <>
-                    <span className={`text-[10px] px-1 py-0.5 rounded font-medium ${
-                      selectedItem.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                    }`}>
-                      {selectedItem.type === 'job' ? 'Job' : 'Appt'}
-                    </span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate flex-1">
-                      {selectedItem.address || 'No location'}
-                    </span>
-                  </>
-                )}
-              </div>
-
-              {/* Row 3: Actions */}
+              {/* Row 2: Actions - Simplified on mobile */}
               {selectedItem.type !== 'business' && (
                 <div className="flex items-center gap-1.5">
-                  {sortedItems.filter(item => item.type !== 'business').length > 1 && (
-                    <>
-                      <button
-                        onClick={() => navigateToStop('previous')}
-                        className="flex items-center gap-0.5 px-2 py-1 text-[10px] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
-                      >
-                        <ArrowLeft className="w-2.5 h-2.5" />
-                        Prev
-                      </button>
-                      <button
-                        onClick={() => navigateToStop('next')}
-                        className="flex items-center gap-0.5 px-2 py-1 text-[10px] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
-                      >
-                        Next
-                        <ArrowRight className="w-2.5 h-2.5" />
-                      </button>
-                    </>
-                  )}
                   <button
                     onClick={() => handleViewItem(selectedItem)}
                     className="flex-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-medium rounded-lg transition-colors"
