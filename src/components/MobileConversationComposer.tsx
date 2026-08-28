@@ -284,7 +284,7 @@ export default function MobileConversationComposer({
                 autoComplete="on"
                 spellCheck={true}
                 data-testid="composer-textarea-mobile"
-                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-muted-foreground text-sm leading-relaxed py-2.5 px-1 max-h-32 text-foreground disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-muted-foreground text-sm leading-normal py-2.5 px-1 max-h-32 text-foreground disabled:opacity-50 disabled:cursor-not-allowed ${
                   isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
                 }`}
                 rows={1}
