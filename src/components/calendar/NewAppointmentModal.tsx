@@ -4,12 +4,12 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, Calendar, Clock, MapPin, FileText, AlertTriangle, Plus, Video, Users } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
-import { useModalBackButton } from '@/hooks/useModalBackButton'
+import Modal from '@/components/ui/Modal'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
 import AddCustomerModal from '@/components/AddCustomerModal'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 const supabase = createBrowserClient()
 
@@ -87,23 +87,6 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
     if (!justOpened) return
     setMeetingType(context === 'meetings' ? 'google_meet' : 'in_person')
   }, [isOpen, context])
-
-  // Handle Escape key to close modal
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose()
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape)
-      return () => document.removeEventListener('keydown', handleEscape)
-    }
-  }, [isOpen, onClose])
-
-  // Lock background scroll while open
-  useBodyScrollLock(isOpen)
 
   // Handle Android back button and browser back to close modal
   useModalBackButton({ isOpen, onClose })
@@ -252,44 +235,61 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
 
   return (
     <>
-    <div
-      className="fixed inset-0 z-[60] flex sm:items-center sm:justify-center justify-end bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
-      style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, calc(5.5rem + env(safe-area-inset-bottom)))' }}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="appointment-title"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          handleCancel()
+      <Modal
+        isOpen={isOpen}
+        onClose={handleCancel}
+        title="New Appointment"
+        footer={
+          <>
+            {error && (
+              <div className="mb-3">
+                <div className="p-2.5 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-xs text-red-400">{error}</p>
+                    {error.includes('Google Calendar not connected') && (
+                      <button
+                        onClick={() => router.push('/dashboard/settings?tab=integrations')}
+                        className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                      >
+                        Connect Google Calendar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="flex gap-3 sm:gap-2">
+              <button
+                onClick={handleCancel}
+                disabled={isCreating}
+                className="flex-1 px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={isCreating}
+                className="flex-1 px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isCreating ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                    <span>Creating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    <span>Create Appointment</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </>
         }
-      }}
-      data-scroll-lock-allow
-    >
-      <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[calc(80dvh-2rem-env(safe-area-inset-top))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4"
-           data-scroll-lock-allow>
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 sm:px-4 sm:py-3 border-b border-border/30 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10">
-              <Plus className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <h2 id="appointment-title" className="text-base font-semibold text-foreground tracking-tight">New Appointment</h2>
-              <p className="text-xs text-muted-foreground/70">Add something to your calendar without creating a customer job.</p>
-            </div>
-          </div>
-          <button
-            onClick={handleCancel}
-            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors"
-            aria-label="Close modal"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Form (scrollable body) */}
-        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto px-5 py-4 sm:px-4 sm:py-3 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <div className="space-y-4 sm:space-y-4">
+      >
+        <p className="text-xs text-muted-foreground/70 mb-4">Add something to your calendar without creating a customer job.</p>
+        <div className="space-y-4 sm:space-y-4">
             {/* Customer */}
             <div className="flex items-start gap-3">
               <div className="w-5 h-5 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -496,61 +496,10 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
               </div>
             </div>
           </div>
-        </div>
+      </Modal>
 
-        {/* Footer */}
-        <div className="px-5 py-4 sm:px-4 sm:py-3 border-t border-border/30 bg-card shrink-0" style={{ paddingBottom: 'max(16px, calc(16px + env(safe-area-inset-bottom)))' }}>
-          {error && (
-            <div className="mb-3">
-              <div className="p-2.5 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-xs text-red-400">{error}</p>
-                  {error.includes('Google Calendar not connected') && (
-                    <button
-                      onClick={() => router.push('/dashboard/settings?tab=integrations')}
-                      className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                    >
-                      Connect Google Calendar
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <div className="flex gap-3 sm:gap-2">
-            <button
-              onClick={handleCancel}
-              disabled={isCreating}
-              className="flex-1 px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleCreate}
-              disabled={isCreating}
-              className="flex-1 px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isCreating ? (
-                <>
-                  <div className="w-3 h-3 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                  <span>Creating...</span>
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4" />
-                  <span>Create Appointment</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Customer selectors */}
-    <LeadPickerModal
+      {/* Customer selectors */}
+      <LeadPickerModal
       isOpen={isLeadPickerOpen}
       onClose={() => setIsLeadPickerOpen(false)}
       onSelect={(prefill) => {

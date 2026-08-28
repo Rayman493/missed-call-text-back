@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { X } from 'lucide-react'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import Modal from '@/components/ui/Modal'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface Lead {
   id: string
@@ -54,33 +54,9 @@ export default function RequestPaymentModal({
   const [leads, setLeads] = useState<Lead[]>([])
   const [isLoadingLeads, setIsLoadingLeads] = useState(false)
   const [leadsError, setLeadsError] = useState<string | null>(null)
-  useBodyScrollLock(isOpen)
 
-  // Close on Android back and browser back while open
-  useEffect(() => {
-    if (!isOpen) return
-
-    try {
-      window.history.pushState({ rfPaymentRequest: true }, '')
-    } catch {}
-
-    const onPopState = () => onClose()
-    window.addEventListener('popstate', onPopState)
-
-    let capListener: { remove: () => void } | undefined
-    ;(async () => {
-      try {
-        const mod = await import('@capacitor/app')
-        const { App } = mod as any
-        capListener = await App.addListener('backButton', () => onClose())
-      } catch {}
-    })()
-
-    return () => {
-      window.removeEventListener('popstate', onPopState)
-      capListener?.remove?.()
-    }
-  }, [isOpen, onClose])
+  // Handle Android back button
+  useModalBackButton({ isOpen, onClose })
 
   // Determine which payment methods are configured
   const isStripeConfigured = business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled === true
@@ -366,26 +342,33 @@ export default function RequestPaymentModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200 md:items-center md:justify-center">
-      <div className="bg-card rounded-xl shadow-xl shadow-black/8 dark:shadow-black/20 max-w-md w-full max-h-[calc(100dvh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom)-20px)] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 border border-border/30 animate-in zoom-in-95 duration-200">
-        {/* Header - shrink-0 */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 shrink-0">
-          <div className="min-w-0 pr-3">
-            <h3 className="text-base font-semibold text-foreground leading-tight">
-              New Payment Request
-            </h3>
-            <p className="text-xs text-muted-foreground/70 mt-0.5">
-              Send a secure payment link by text.
-            </p>
-          </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="New Payment Request"
+      footer={
+        <div className="flex gap-3 justify-end">
           <button
             onClick={onClose}
-            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors"
-            aria-label="Close modal"
+            disabled={isCreatingPayment}
+            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <X className="w-4 h-4" />
+            Cancel
+          </button>
+          <button
+            onClick={handleCreatePayment}
+            disabled={isCreatingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0 || (recipientType === 'lead' && !selectedLeadId) || (recipientType === 'manual' && !manualPhone) || !hasAnyPaymentMethod}
+            className="px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isCreatingPayment ? 'Sending Request...' : 'Send Payment Request'}
           </button>
         </div>
+      }
+    >
+      <div className="space-y-4">
+        <p className="text-xs text-muted-foreground/70">
+          Send a secure payment link by text.
+        </p>
 
         {/* Content - single primary scroll container */}
         <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-4 py-4 md:px-4 md:py-4 space-y-4 pb-[env(safe-area-inset-bottom)]" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -646,25 +629,7 @@ export default function RequestPaymentModal({
             </div>
           )}
         </div>
-
-        {/* Footer/Actions - shrink-0 */}
-        <div className="flex gap-3 justify-end px-4 py-3 border-t border-border/30 shrink-0 pb-safe-bottom bg-card">
-          <button
-            onClick={onClose}
-            disabled={isCreatingPayment}
-            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleCreatePayment}
-            disabled={isCreatingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0 || (recipientType === 'lead' && !selectedLeadId) || (recipientType === 'manual' && !manualPhone) || !hasAnyPaymentMethod}
-            className="px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isCreatingPayment ? 'Sending Request...' : 'Send Payment Request'}
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   )
 }

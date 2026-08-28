@@ -57,6 +57,7 @@ import PhotoModal from '@/components/PhotoModal'
 import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import Modal from '@/components/ui/Modal'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle, Pencil } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
@@ -380,6 +381,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [showInternalNotesModal, setShowInternalNotesModal] = useState(false)
   const [internalNotesValue, setInternalNotesValue] = useState('')
   const [triggerEditCustomerDetails, setTriggerEditCustomerDetails] = useState(false)
+
+  // Handle Android back button for Internal Notes modal
+  useModalBackButton({ isOpen: showInternalNotesModal, onClose: () => {
+    setShowInternalNotesModal(false)
+    setInternalNotesValue('')
+  }})
+
   const [mobileCustomerExpanded, setMobileCustomerExpanded] = useState(true)
   const [mobileLeadDetailsExpanded, setMobileLeadDetailsExpanded] = useState(false)
   const [mobileActionsExpanded, setMobileActionsExpanded] = useState(false)
@@ -1430,6 +1438,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [showIgnoreModal, setShowIgnoreModal] = useState(false)
   const [isIgnoring, setIsIgnoring] = useState(false)
 
+  // Handle Android back button for Ignore Contact modal
+  useModalBackButton({ isOpen: showIgnoreModal, onClose: () => setShowIgnoreModal(false) })
+
   const [isCompleting, setIsCompleting] = useState(false)
 
   // State for payment modal
@@ -1438,7 +1449,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [paymentDescription, setPaymentDescription] = useState('')
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
   const [isLaunchingSMS, setIsLaunchingSMS] = useState(false)
-  const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false)
+
+  // Handle Android back button for Payment Request modal
+  useModalBackButton({ isOpen: showPaymentModal, onClose: () => {
+    setShowPaymentModal(false)
+    setPaymentAmount('')
+    setPaymentDescription('')
+  }})
 
   // State for task modal
   const [showTaskModal, setShowTaskModal] = useState(false)
@@ -1487,7 +1504,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       })
     }
   }, [params.id])
-  const [paymentLinkData, setPaymentLinkData] = useState<{ paymentLink: string; amount: string; description: string; paymentRequestId?: string; message?: string; dialNumber?: string; customerName?: string } | null>(null)
   const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
   const paymentAmountRef = useRef<HTMLInputElement>(null)
 
@@ -1521,6 +1537,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [selectedAppointmentJob, setSelectedAppointmentJob] = useState<any>(null)
   const [isSavingAppointment, setIsSavingAppointment] = useState(false)
   const [appointmentError, setAppointmentError] = useState('')
+
+  // Handle Android back button for Appointment Selection modal
+  useModalBackButton({ isOpen: showAppointmentSelection, onClose: () => setShowAppointmentSelection(false) })
 
   useEffect(() => {
     if (!isAppointmentModalOpen || typeof document === 'undefined') return
@@ -5261,118 +5280,119 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       )}
 
       {/* Ignore Contact Modal */}
-      {showIgnoreModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">
-              Ignore this contact?
-            </h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              ReplyFlow will stop creating customers, sending automatic messages, and scheduling follow-ups for this number.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowIgnoreModal(false)}
-                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleIgnoreContact}
-                disabled={isIgnoring}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {isIgnoring ? (
-                  <>
-                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
-                    Ignoring...
-                  </>
-                ) : (
-                  'Ignore Contact'
-                )}
-              </button>
-            </div>
+      <Modal
+        isOpen={showIgnoreModal}
+        onClose={() => setShowIgnoreModal(false)}
+        title="Ignore this contact?"
+        footer={
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => setShowIgnoreModal(false)}
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleIgnoreContact}
+              disabled={isIgnoring}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {isIgnoring ? (
+                <>
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
+                  Ignoring...
+                </>
+              ) : (
+                'Ignore Contact'
+              )}
+            </button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          ReplyFlow will stop creating customers, sending automatic messages, and scheduling follow-ups for this number.
+        </p>
+      </Modal>
 
       {/* Internal Notes Modal */}
-      {showInternalNotesModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">
-              {internalNotesValue?.trim() ? 'Edit Internal Notes' : 'Add Internal Notes'}
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs text-muted-foreground mb-2">Private — customers cannot see these notes.</p>
-                <textarea
-                  value={internalNotesValue}
-                  onChange={(e) => setInternalNotesValue(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-background resize-none"
-                  autoCapitalize="sentences"
-                  autoCorrect="on"
-                  spellCheck={true}
-                  inputMode="text"
-                  rows={5}
-                  placeholder="Enter notes about this customer"
-                  autoFocus
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 justify-end mt-6">
-              <button
-                onClick={() => {
-                  setShowInternalNotesModal(false)
-                  setInternalNotesValue('')
-                }}
-                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  const supabase = createBrowserClient()
-                  const { data: { session } } = await supabase.auth.getSession()
-                  const headers: HeadersInit = { 'Content-Type': 'application/json' }
-                  if (session?.access_token) {
-                    headers['Authorization'] = `Bearer ${session.access_token}`
-                  }
+      <Modal
+        isOpen={showInternalNotesModal}
+        onClose={() => {
+          setShowInternalNotesModal(false)
+          setInternalNotesValue('')
+        }}
+        title={internalNotesValue?.trim() ? 'Edit Internal Notes' : 'Add Internal Notes'}
+        footer={
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => {
+                setShowInternalNotesModal(false)
+                setInternalNotesValue('')
+              }}
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                const supabase = createBrowserClient()
+                const { data: { session } } = await supabase.auth.getSession()
+                const headers: HeadersInit = { 'Content-Type': 'application/json' }
+                if (session?.access_token) {
+                  headers['Authorization'] = `Bearer ${session.access_token}`
+                }
 
-                  try {
-                    const response = await fetch(`/api/leads/${lead?.id}`, {
-                      method: 'PATCH',
-                      headers,
-                      body: JSON.stringify({
-                        notes: internalNotesValue || null
-                      })
+                try {
+                  const response = await fetch(`/api/leads/${lead?.id}`, {
+                    method: 'PATCH',
+                    headers,
+                    body: JSON.stringify({
+                      notes: internalNotesValue || null
                     })
+                  })
 
-                    if (response.ok) {
-                      setShowInternalNotesModal(false)
-                      setInternalNotesValue('')
-                      // Refresh lead data
-                      const updatedData = await getLeadDetails(params.id)
-                      if (updatedData?.ok && updatedData.lead) {
-                        setLeadData({ ...updatedData.lead, messages: updatedData.lead.messages || updatedData.messages || [] })
-                      }
-                    } else {
-                      const errorData = await response.json()
-                      setError(errorData.error || 'Failed to save notes')
+                  if (response.ok) {
+                    setShowInternalNotesModal(false)
+                    setInternalNotesValue('')
+                    // Refresh lead data
+                    const updatedData = await getLeadDetails(params.id)
+                    if (updatedData?.ok && updatedData.lead) {
+                      setLeadData({ ...updatedData.lead, messages: updatedData.lead.messages || updatedData.messages || [] })
                     }
-                  } catch (error) {
-                    console.error('Error saving notes:', error)
-                    setError(error instanceof Error ? error.message : 'Failed to save notes')
+                  } else {
+                    const errorData = await response.json()
+                    setError(errorData.error || 'Failed to save notes')
                   }
-                }}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                Save
-              </button>
-            </div>
+                } catch (error) {
+                  console.error('Error saving notes:', error)
+                  setError(error instanceof Error ? error.message : 'Failed to save notes')
+                }
+              }}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            >
+              Save
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs text-muted-foreground mb-2">Private — customers cannot see these notes.</p>
+            <textarea
+              value={internalNotesValue}
+              onChange={(e) => setInternalNotesValue(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-background resize-none"
+              autoCapitalize="sentences"
+              autoCorrect="on"
+              spellCheck={true}
+              inputMode="text"
+              rows={5}
+              placeholder="Enter notes about this customer"
+              autoFocus
+            />
           </div>
         </div>
-      )}
+      </Modal>
     </main>
 
     {/* Payment Request Modal */}
@@ -5825,77 +5845,12 @@ If you have questions, reply to this message.`
     />
 
     {/* Appointment Selection Modal */}
-    {showAppointmentSelection && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-            Select Appointment
-          </h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-            Choose which appointment to send a confirmation for.
-          </p>
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {futureAppointments.map((job: any) => (
-              <div key={job.id} className="flex flex-col gap-2">
-                <button
-                  onClick={() => {
-                    handleSendConfirmation(job.id)
-                    setShowAppointmentSelection(false)
-                  }}
-                  className="w-full text-left p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <div className="font-medium text-slate-900 dark:text-white">
-                    {job.title || 'Appointment'}
-                  </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    {job.scheduled_date && formatDate(job.scheduled_date)}
-                    {job.scheduled_time && ` • ${job.scheduled_time}`}
-                  </div>
-                  {job.confirmation_sms_sent_at && (
-                    <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                      ✓ Confirmation sent
-                    </div>
-                  )}
-                </button>
-                {effectiveSource === 'business' && (
-                  <button
-                    onClick={async () => {
-                      const customerName = getCustomerName(lead, leadData)
-                      const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
-                      const message = `Appointment reminder: ${job.title || 'Appointment'} scheduled for ${job.scheduled_date} at ${job.scheduled_time}.`
-
-                      try {
-                        // Launch SMS using shared helper
-                        await openBusinessSms({ recipient: dialNumber, body: message, source: 'reminder' })
-                        
-                        // Record the Business Phone action only after successful launch
-                        await recordBusinessPhoneAction({
-                          actionType: 'appointment',
-                          leadId: params.id,
-                          customerName: customerName,
-                          customerPhone: dialNumber,
-                          message: message,
-                          relatedId: job.id,
-                          relatedType: 'job'
-                        })
-                        
-                        setShowAppointmentSelection(false)
-                        setSuccessMessage(`Reminder sent\nMessage opened in your messaging app.`)
-                      } catch (error) {
-                        console.error('[Appointment Reminder] Failed to launch SMS:', error)
-                        // Keep modal open for retry (shared helper handles fallback internally)
-                        setSuccessMessage(`Reminder sent\nCouldn't open your messaging app. Please try again.`)
-                      }
-                    }}
-                    className="w-full text-left p-2 rounded-lg border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm"
-                  >
-                    Send via Business Number
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-end mt-4">
+      <Modal
+        isOpen={showAppointmentSelection}
+        onClose={() => setShowAppointmentSelection(false)}
+        title="Select Appointment"
+        footer={
+          <div className="flex justify-end">
             <button
               onClick={() => setShowAppointmentSelection(false)}
               className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
@@ -5903,9 +5858,73 @@ If you have questions, reply to this message.`
               Cancel
             </button>
           </div>
+        }
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+          Choose which appointment to send a confirmation for.
+        </p>
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {futureAppointments.map((job: any) => (
+            <div key={job.id} className="flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  handleSendConfirmation(job.id)
+                  setShowAppointmentSelection(false)
+                }}
+                className="w-full text-left p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <div className="font-medium text-slate-900 dark:text-white">
+                  {job.title || 'Appointment'}
+                </div>
+                <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                  {job.scheduled_date && formatDate(job.scheduled_date)}
+                  {job.scheduled_time && ` • ${job.scheduled_time}`}
+                </div>
+                {job.confirmation_sms_sent_at && (
+                  <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                    ✓ Confirmation sent
+                  </div>
+                )}
+              </button>
+              {effectiveSource === 'business' && (
+                <button
+                  onClick={async () => {
+                    const customerName = getCustomerName(lead, leadData)
+                    const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
+                    const message = `Appointment reminder: ${job.title || 'Appointment'} scheduled for ${job.scheduled_date} at ${job.scheduled_time}.`
+
+                    try {
+                      // Launch SMS using shared helper
+                      await openBusinessSms({ recipient: dialNumber, body: message, source: 'reminder' })
+
+                      // Record the Business Phone action only after successful launch
+                      await recordBusinessPhoneAction({
+                        actionType: 'appointment',
+                        leadId: params.id,
+                        customerName: customerName,
+                        customerPhone: dialNumber,
+                        message: message,
+                        relatedId: job.id,
+                        relatedType: 'job'
+                      })
+
+                      setShowAppointmentSelection(false)
+                      setSuccessMessage(`Reminder sent\nMessage opened in your messaging app.`)
+                    } catch (error) {
+                      console.error('[Appointment Reminder] Failed to launch SMS:', error)
+                      // Keep modal open for retry (shared helper handles fallback internally)
+                      setSuccessMessage(`Reminder sent\nCouldn't open your messaging app. Please try again.`)
+                    }
+                  }}
+                  className="w-full text-left p-2 rounded-lg border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm"
+                >
+                  Send via Business Number
+                </button>
+              )}
+            </div>
+          ))}
         </div>
-      </div>
-    )}
+      </Modal>
 
     {/* Appointment Success Modal */}
     {showAppointmentSuccessModal && appointmentSuccessData && (

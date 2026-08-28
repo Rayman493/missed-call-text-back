@@ -6,8 +6,8 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import SelectPicker from '@/components/ui/SelectPicker'
+import Modal from '@/components/ui/Modal'
 import { getLeadDisplayName } from '@/lib/utils'
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface Task {
@@ -61,25 +61,10 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
   const [isDeleting, setIsDeleting] = useState(false)
   const supabase = createBrowserClient()
 
-  // Use shared body scroll lock hook
-  useBodyScrollLock(isOpen)
-
   // Handle Android back button and browser back to close modal
   useModalBackButton({ isOpen, onClose })
 
   // Handle Escape key to close modal
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        handleClose()
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape)
-      return () => document.removeEventListener('keydown', handleEscape)
-    }
-  }, [isOpen])
 
   useEffect(() => {
     if (isOpen) {
@@ -284,54 +269,56 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
   if (!isOpen) return null
 
   return (
-    <>
-      <div
-        className="fixed inset-0 z-[60] flex sm:items-center sm:justify-center justify-end bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
-        style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, calc(5.5rem + env(safe-area-inset-bottom)))' }}
-        role="dialog"
-        aria-modal="true"
-        onClick={handleClose}
-        data-scroll-lock-allow
-      >
-        <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[calc(80dvh-2rem-env(safe-area-inset-top))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4"
-             data-scroll-lock-allow>
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 sm:px-4 sm:py-3 border-b border-border/30 shrink-0">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10">
-                <Briefcase className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-base font-semibold text-foreground tracking-tight">
-                  {taskToEdit ? 'Edit Task' : 'New Task'}
-                </h2>
-              </div>
-            </div>
-            <button
-              onClick={handleClose}
-              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors"
-              aria-label="Close modal"
-            >
-              <X className="w-4 h-4" />
-            </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={taskToEdit ? 'Edit Task' : 'New Task'}
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={isSaving}
+            className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isSaving || !title.trim()}
+            className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isSaving ? (
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                <span>{taskToEdit ? 'Saving...' : 'Creating...'}</span>
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4" />
+                <span>{taskToEdit ? 'Save Changes' : 'Create Task'}</span>
+              </>
+            )}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
+              Task Title <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., Call customer about quote"
+              className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              required
+            />
           </div>
-
-          {/* Body */}
-          <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 sm:px-4 sm:py-3 overscroll-contain space-y-4" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
-                  Task Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Call customer about quote"
-                  className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                  required
-                />
-              </div>
 
           <SelectPicker
             value={selectedLeadId}
@@ -417,39 +404,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
             </button>
           )}
         </form>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-5 py-4 sm:px-4 sm:py-3 border-t border-border/30 bg-card shrink-0" style={{ paddingBottom: 'max(16px, calc(16px + env(safe-area-inset-bottom)))' }}>
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={isSaving}
-            className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSaving || !title.trim()}
-            className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {isSaving ? (
-              <>
-                <div className="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                <span>{taskToEdit ? 'Saving...' : 'Creating...'}</span>
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4" />
-                <span>{taskToEdit ? 'Save Changes' : 'Create Task'}</span>
-              </>
-            )}
-          </button>
-        </div>
       </div>
-    </div>
-    </div>
-    </>
+    </Modal>
   )
 }

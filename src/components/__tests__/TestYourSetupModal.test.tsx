@@ -90,14 +90,14 @@ describe('TestYourSetupModal', () => {
       />
     )
 
-    const closeButton = screen.getAllByLabelText('Close modal')[0]
+    const closeButton = screen.getAllByLabelText('Close')[0]
     fireEvent.click(closeButton)
     expect(onClose).toHaveBeenCalled()
   })
 
   it('should call onClose when backdrop is clicked', () => {
     const onClose = vi.fn()
-    const { container } = render(
+    render(
       <TestYourSetupModal
         isOpen={true}
         onClose={onClose}
@@ -105,8 +105,8 @@ describe('TestYourSetupModal', () => {
       />
     )
 
-    // Click the backdrop (first div with fixed inset-0)
-    const backdrop = container.querySelector('.fixed.inset-0')
+    // Click the backdrop (Modal uses createPortal, so query from document)
+    const backdrop = document.querySelector('.fixed.inset-0')
     expect(backdrop).toBeTruthy()
     if (backdrop) {
       fireEvent.click(backdrop)

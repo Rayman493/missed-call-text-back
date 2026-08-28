@@ -27,6 +27,7 @@ import { CardSkeleton } from '@/components/ui/Skeleton'
 import Dropdown from '@/components/ui/Dropdown'
 import type { DropdownOption } from '@/components/ui/Dropdown'
 import PaymentEditModal from '@/components/payments/PaymentEditModal'
+import PaymentsNewRequestModal from '@/components/payments/PaymentsNewRequestModal'
 
 interface PaymentRequest {
   id: string
@@ -168,7 +169,6 @@ export default function PaymentsPage() {
   const [editError, setEditError] = useState('')
   const [isReconciling, setIsReconciling] = useState(false)
   const [scrollPositionBeforeEdit, setScrollPositionBeforeEdit] = useState<number | null>(null)
-  useBodyScrollLock(showPaymentModal)
 
   // Lock background scroll when mark-paid confirm is open as well
   useBodyScrollLock(showMarkPaidConfirm)
@@ -235,14 +235,6 @@ export default function PaymentsPage() {
       olderPayments: filteredPayments.slice(VISIBLE_COUNT),
     }
   }, [filteredPayments])
-
-  // Auto-switch to first configured method if current selection is unavailable
-  // Auto-select first available method when modal opens
-  useEffect(() => {
-    if (showPaymentModal && configuredPaymentMethods.length > 0) {
-      setPaymentProvider(configuredPaymentMethods[0])
-    }
-  }, [showPaymentModal, configuredPaymentMethods])
 
   // Auto-switch if current selection becomes unavailable
   useEffect(() => {
@@ -352,8 +344,17 @@ export default function PaymentsPage() {
     }
   }
 
-  const handleCreatePayment = async () => {
-    if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+  const handleCreatePayment = async (values?: {
+    amount: string
+    description: string
+    paymentProvider: 'stripe' | 'venmo' | 'paypal'
+  }) => {
+    // Use submitted values if provided, otherwise fall back to state (for other callers)
+    const amount = values?.amount ?? paymentAmount
+    const description = values?.description ?? paymentDescription
+    const provider = values?.paymentProvider ?? paymentProvider
+
+    if (!amount || parseFloat(amount) <= 0) {
       setError('Please enter a valid amount')
       return
     }
@@ -364,17 +365,17 @@ export default function PaymentsPage() {
     }
 
     // Client-side validation for payment method configuration
-    if (paymentProvider === 'venmo' && !business?.venmo_username) {
+    if (provider === 'venmo' && !business?.venmo_username) {
       setError('Venmo hasn\'t been connected yet. Connect Venmo in Settings → Payments before sending Venmo payment requests.')
       return
     }
 
-    if (paymentProvider === 'paypal' && !business?.paypal_payment_link) {
+    if (provider === 'paypal' && !business?.paypal_payment_link) {
       setError('PayPal hasn\'t been connected yet. Connect PayPal in Settings → Payments before sending PayPal payment requests.')
       return
     }
 
-    if (paymentProvider === 'stripe' && (!business?.stripe_connect_account_id || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled)) {
+    if (provider === 'stripe' && (!business?.stripe_connect_account_id || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled)) {
       setError('Stripe hasn\'t been connected yet. Connect Stripe in Settings → Payments before sending Stripe payment requests.')
       return
     }
@@ -399,9 +400,9 @@ export default function PaymentsPage() {
         business_id: business?.id,
         lead_id: leadId,
         conversation_id: conversationId,
-        amount_cents: Math.round(parseFloat(paymentAmount) * 100),
-        description: paymentDescription || undefined,
-        payment_provider: paymentProvider,
+        amount_cents: Math.round(parseFloat(amount) * 100),
+        description: description || undefined,
+        payment_provider: provider,
       }
 
       const response = await fetch('/api/payments/create', {
@@ -427,8 +428,8 @@ export default function PaymentsPage() {
 
       // Track payment requested event
       if (business?.id) {
-        analyticsService.track('payment_requested', { 
-          amount: paymentAmount ? parseFloat(paymentAmount) : undefined,
+        analyticsService.track('payment_requested', {
+          amount: amount ? parseFloat(amount) : undefined,
           provider: 'stripe'
         }, business.id).catch(error => {
           console.error('[Analytics] Failed to track payment_requested:', error)
@@ -1489,243 +1490,32 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         )}
 
         {/* New Payment Request Modal */}
-        {showPaymentModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm md:items-center md:justify-center">
-            <div className="bg-card dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full max-h-[calc(100dvh-1rem)] md:max-h-[90vh] overflow-hidden flex flex-col border border-border dark:border-slate-700">
-              {/* Header - shrink-0 */}
-              <div className="flex items-center justify-between px-4 py-3.5 md:px-5 md:py-4 border-b border-border dark:border-slate-700 shrink-0">
-                <div className="min-w-0 pr-3">
-                  <h3 className="text-lg font-semibold text-foreground leading-tight">
-                    New Payment Request
-                  </h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    Send a secure payment link by text.
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowPaymentModal(false)
-                    setPaymentPrefill(undefined)
-                    setPaymentAmount('')
-                    setPaymentDescription('')
-                    setPaymentProvider('stripe')
-                    setError('')
-                  }}
-                  className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted dark:hover:bg-slate-700 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Content - flex-1 overflow-y-auto */}
-              <div data-scroll-lock-allow className="overflow-y-auto flex-1 overscroll-contain px-4 py-3 md:px-5 md:py-4 space-y-2.5 md:space-y-3" style={{ maxHeight: 'calc(100dvh-10rem-var(--bottom-nav-height,80px))', WebkitOverflowScrolling: 'touch', paddingBottom: 'var(--bottom-nav-height,80px)' }}>
-                {paymentPrefill && (
-                  <div className="p-3 bg-muted/50 dark:bg-[#0f172a] border border-border dark:border-slate-700 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Customer</p>
-                        <p className="text-sm font-medium text-foreground">
-                          {paymentPrefill.customer_name || 'Customer'}
-                        </p>
-                        {paymentPrefill.customer_phone && (
-                          <p className="text-xs text-muted-foreground">
-                            {formatPhoneNumber(paymentPrefill.customer_phone)}
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowPaymentModal(false)
-                          setIsLeadPickerOpen(true)
-                        }}
-                        disabled={isCreatingPayment}
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50"
-                      >
-                        Change
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5 md:mb-2">
-                    Amount (USD)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                    <input
-                      type="number"
-                      value={paymentAmount}
-                      onChange={(e) => setPaymentAmount(e.target.value)}
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0.01"
-                      disabled={isCreatingPayment}
-                      className="w-full pl-8 pr-3 py-2 border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background dark:bg-[#0f172a] text-foreground dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5 md:mb-2">
-                    Payment Method
-                  </label>
-                  {hasAnyPaymentMethod ? (
-                    <div className="grid grid-cols-3 gap-2.5 pt-0.5">
-                      <div className="relative pb-5">
-                        <button
-                          type="button"
-                          onClick={() => isStripeConfigured && setPaymentProvider('stripe')}
-                          disabled={isCreatingPayment}
-                          className={`w-full min-h-[44px] px-2 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
-                            paymentProvider === 'stripe' && isStripeConfigured
-                              ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
-                              : !isStripeConfigured
-                              ? 'bg-muted dark:bg-slate-800/60 border-border dark:border-slate-700 text-muted-foreground dark:text-slate-500'
-                              : 'bg-background dark:bg-[#0f172a] border-border dark:border-slate-600 text-foreground dark:text-gray-300 hover:bg-muted dark:hover:border-slate-500'
-                          }`}
-                        >
-                          Stripe
-                        </button>
-                        {!isStripeConfigured && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              router.push('/dashboard/settings#payments')
-                              setShowPaymentModal(false)
-                            }}
-                            className="absolute bottom-0 left-0 right-0 text-[10px] md:text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium text-center"
-                          >
-                            Configure →
-                          </button>
-                        )}
-                      </div>
-                      <div className="relative pb-5">
-                        <button
-                          type="button"
-                          onClick={() => isVenmoConfigured && setPaymentProvider('venmo')}
-                          disabled={isCreatingPayment}
-                          className={`w-full min-h-[44px] px-2 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
-                            paymentProvider === 'venmo' && isVenmoConfigured
-                              ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
-                              : !isVenmoConfigured
-                              ? 'bg-muted dark:bg-slate-800/60 border-border dark:border-slate-700 text-muted-foreground dark:text-slate-500'
-                              : 'bg-background dark:bg-[#0f172a] border-border dark:border-slate-600 text-foreground dark:text-gray-300 hover:bg-muted dark:hover:border-slate-500'
-                          }`}
-                        >
-                          Venmo
-                        </button>
-                        {!isVenmoConfigured && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              router.push('/dashboard/settings#payments-venmo')
-                              setShowPaymentModal(false)
-                            }}
-                            className="absolute bottom-0 left-0 right-0 text-[10px] md:text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium text-center"
-                          >
-                            Configure →
-                          </button>
-                        )}
-                      </div>
-                      <div className="relative pb-5">
-                        <button
-                          type="button"
-                          onClick={() => isPaypalConfigured && setPaymentProvider('paypal')}
-                          disabled={isCreatingPayment}
-                          className={`w-full min-h-[44px] px-2 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
-                            paymentProvider === 'paypal' && isPaypalConfigured
-                              ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
-                              : !isPaypalConfigured
-                              ? 'bg-muted dark:bg-slate-800/60 border-border dark:border-slate-700 text-muted-foreground dark:text-slate-500'
-                              : 'bg-background dark:bg-[#0f172a] border-border dark:border-slate-600 text-foreground dark:text-gray-300 hover:bg-muted dark:hover:border-slate-500'
-                          }`}
-                        >
-                          PayPal
-                        </button>
-                        {!isPaypalConfigured && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              router.push('/dashboard/settings#payments-paypal')
-                              setShowPaymentModal(false)
-                            }}
-                            className="absolute bottom-0 left-0 right-0 text-[10px] md:text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium text-center"
-                          >
-                            Configure →
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-3 md:p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 rounded-lg">
-                      <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2 md:mb-3">
-                        No payment methods have been configured yet.
-                      </p>
-                      <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2 md:mb-3">
-                        Connect Stripe, Venmo, or PayPal in your account settings to start accepting payments.
-                      </p>
-                      <button
-                        onClick={() => {
-                          router.push('/dashboard/settings#payments')
-                          setShowPaymentModal(false)
-                        }}
-                        className="px-3 py-1.5 md:px-4 md:py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                      >
-                        Configure Payment Methods
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5 md:mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={paymentDescription}
-                    onChange={(e) => setPaymentDescription(e.target.value)}
-                    placeholder="Service payment"
-                    rows={2}
-                    disabled={isCreatingPayment}
-                    className="w-full px-3 py-2 min-h-[76px] border border-border dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background dark:bg-[#0f172a] text-foreground dark:text-white resize-none disabled:opacity-60 disabled:cursor-not-allowed"
-                  />
-                </div>
-
-                {error && (
-                  <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg">
-                    <p className="text-sm text-red-700 dark:text-red-200">{error}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer/Actions - shrink-0 */}
-              <div className="flex gap-2.5 justify-end px-4 py-3 md:px-5 md:py-4 border-t border-border dark:border-slate-700 shrink-0 pb-safe bg-card dark:bg-[#1e293b]">
-                <button
-                  onClick={() => {
-                    setShowPaymentModal(false)
-                    setPaymentPrefill(undefined)
-                    setPaymentAmount('')
-                    setPaymentDescription('')
-                    setPaymentProvider('stripe')
-                    setError('')
-                  }}
-                  disabled={isCreatingPayment}
-                  className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted dark:text-gray-300 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreatePayment}
-                  disabled={isCreatingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0 || !paymentPrefill?.lead_id || !hasAnyPaymentMethod}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isCreatingPayment ? 'Sending Request...' : 'Send Payment Request'}
-                </button>
-              </div>
-            </div>
-          </div>
+        {business && (
+          <PaymentsNewRequestModal
+            isOpen={showPaymentModal}
+            onClose={() => {
+              setShowPaymentModal(false)
+              setPaymentPrefill(undefined)
+              setPaymentAmount('')
+              setPaymentDescription('')
+              setPaymentProvider('stripe')
+              setError('')
+            }}
+            business={business}
+            paymentPrefill={paymentPrefill}
+            onSubmit={async ({ amount, description, paymentProvider: provider }) => {
+              // Update parent state for UI consistency
+              setPaymentAmount(amount)
+              setPaymentDescription(description)
+              setPaymentProvider(provider)
+              // Call handleCreatePayment with submitted values directly (no stale state)
+              await handleCreatePayment({ amount, description, paymentProvider: provider })
+            }}
+            onChangeCustomer={() => {
+              setShowPaymentModal(false)
+              setIsLeadPickerOpen(true)
+            }}
+          />
         )}
 
         {/* Lead Picker Modal */}

@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Plus } from 'lucide-react'
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import Modal from '@/components/ui/Modal'
 import { getCustomerStatusStyle } from '@/lib/customer-status'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
 import AddCustomerModal from '@/components/AddCustomerModal'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 export type JobStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
 
@@ -95,7 +96,7 @@ export default function JobComposer({
 
   const locationInputRef = useRef<HTMLInputElement>(null)
 
-  useBodyScrollLock(isOpen)
+  useModalBackButton({ isOpen, onClose })
 
   // Autofocus location input when initialFocus is 'location'
   useEffect(() => {
@@ -195,39 +196,40 @@ export default function JobComposer({
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-[60] flex sm:items-center sm:justify-center justify-end bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
-        style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
-        role="dialog"
-        aria-modal="true"
-        onClick={onClose}
-        data-scroll-lock-allow
-      >
-        <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-lg max-h-[calc(85dvh-var(--bottom-nav-height,80px)-32px-env(safe-area-inset-top))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4"
-             data-scroll-lock-allow>
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 sm:px-4 sm:py-3 border-b border-border/30 shrink-0">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10">
-                <Briefcase className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-base font-semibold text-foreground tracking-tight">
-                  {editJob ? 'Edit Job' : 'New Job'}
-                </h2>
-              </div>
-            </div>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title={editJob ? 'Edit Job' : 'New Job'}
+        footer={
+          <>
             <button
               onClick={onClose}
-              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors"
-              aria-label="Close modal"
+              disabled={isSaving}
+              className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <X className="w-4 h-4" />
+              Cancel
             </button>
-          </div>
-
-          {/* Body */}
-          <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 sm:px-4 sm:py-3 overscroll-contain space-y-4" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isSaving ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  <span>{editJob ? 'Save Changes' : 'Create Job'}</span>
+                </>
+              )}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
             {/* Source badge for ReplyFlow-linked jobs */}
             {(prefill?.lead_id || editJob?.lead_id) && (
               <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -437,7 +439,6 @@ export default function JobComposer({
                   onChange={e => setNotes(e.target.value)}
                   rows={3}
                   placeholder="Any additional notes about this job..."
-                  data-scroll-lock-allow
                   className="w-full max-h-40 overflow-y-auto overscroll-contain pl-8 pr-3 py-2.5 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-y"
                   style={{ WebkitOverflowScrolling: 'touch' }}
                 />
@@ -447,37 +448,8 @@ export default function JobComposer({
             {error && (
               <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
             )}
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-5 py-4 sm:px-4 sm:py-3 border-t border-border/30 bg-card shrink-0" style={{ paddingBottom: 'max(16px, calc(16px + env(safe-area-inset-bottom)))' }}>
-            <button
-              onClick={onClose}
-              disabled={isSaving}
-              className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isSaving ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4" />
-                  <span>{editJob ? 'Save Changes' : 'Create Job'}</span>
-                </>
-              )}
-            </button>
-          </div>
         </div>
-      </div>
+      </Modal>
 
       {/* Customer selectors */}
       <LeadPickerModal

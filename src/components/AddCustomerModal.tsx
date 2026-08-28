@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import Modal from '@/components/ui/Modal'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface AddCustomerModalProps {
   isOpen: boolean
@@ -17,7 +18,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
   const router = useRouter()
   const { business } = useBusiness()
   const supabase = createBrowserClient()
-  useBodyScrollLock(isOpen)
+  useModalBackButton({ isOpen, onClose })
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -203,33 +204,42 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 pb-[calc(var(--bottom-nav-height,80px)+env(safe-area-inset-bottom)+16px)] md:pb-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px)] md:max-h-[90vh] overflow-hidden rounded-2xl border border-border/50 bg-card shadow-2xl shadow-black/10 dark:shadow-black/30 flex flex-col animate-in zoom-in-95 duration-200">
-        {/* Sticky Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 flex-shrink-0 bg-card">
-          <h2 className="text-lg font-semibold text-foreground tracking-tight">Add Customer</h2>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add Customer"
+      footer={
+        <>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-            aria-label="Close modal"
+            disabled={isSubmitting}
+            className="flex-1 px-4 py-2.5 border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            Cancel
           </button>
-        </div>
-
-        {/* Scrollable Form Body */}
-        <div
-          className="overflow-y-auto flex-1 overflow-x-hidden overscroll-contain"
-          data-scroll-lock-allow
-          style={{
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'rgba(148, 163, 184, 0.4) transparent'
-          }}
-        >
-          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 pb-4">
+          <button
+            type="submit"
+            onClick={(e) => {
+              e.preventDefault()
+              handleSubmit(e)
+            }}
+            disabled={isSubmitting}
+            className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
+                Adding...
+              </>
+            ) : (
+              'Add Customer'
+            )}
+          </button>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             {/* Customer Name */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">
@@ -405,38 +415,6 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
               </div>
             )}
           </form>
-        </div>
-
-        {/* Sticky Footer */}
-        <div className="flex gap-3 px-5 py-4 border-t border-border/50 flex-shrink-0 bg-card">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="flex-1 px-4 py-2.5 border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={(e) => {
-              e.preventDefault()
-              handleSubmit(e)
-            }}
-            disabled={isSubmitting}
-            className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
-          >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
-                Adding...
-              </>
-            ) : (
-              'Add Customer'
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
