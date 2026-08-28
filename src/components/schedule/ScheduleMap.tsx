@@ -1481,9 +1481,20 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         ? (window as any).google.maps.MapTypeId.HYBRID
         : (window as any).google.maps.MapTypeId.ROADMAP
 
-      const map = new (window as any).google.maps.Map(container, {
-        center: { lat: 39.8283, lng: -98.5795 }, // Default to US center (fallback, will be overridden by markers)
-        zoom: 4,
+      // Use business location as initial center if available, otherwise let Google Maps choose default
+      // This prevents showing continental US view when automatic framing is delayed
+      let initialCenter: { lat: number; lng: number } | undefined
+      let initialZoom = 4
+
+      if (businessCoordsCacheRef.current && businessCoordsCacheRef.current.lat && businessCoordsCacheRef.current.lng) {
+        initialCenter = {
+          lat: businessCoordsCacheRef.current.lat,
+          lng: businessCoordsCacheRef.current.lng
+        }
+        initialZoom = HOME_BASE_ONLY_ZOOM // Use regional zoom for business location
+      }
+
+      const mapOptions: any = {
         mapTypeId: initialMapTypeId,
         disableDefaultUI: false,
         zoomControl: true,
@@ -1512,7 +1523,15 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
             stylers: [{ visibility: 'simplified' }]
           }
         ]
-      })
+      }
+
+      // Only set center/zoom if we have a business location
+      if (initialCenter) {
+        mapOptions.center = initialCenter
+        mapOptions.zoom = initialZoom
+      }
+
+      const map = new (window as any).google.maps.Map(container, mapOptions)
 
       // Log map instance creation
       mapInstanceCounter++
@@ -2438,92 +2457,6 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* Date Navigation Header - Compact on mobile, Today button inline on desktop */}
-      <div className="flex items-center justify-between mb-2 md:mb-3 px-1 z-10">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onPreviousDay}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-            aria-label="Previous day"
-          >
-            <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-          </button>
-          <div className="text-center flex flex-col items-center">
-            <h2 className="text-base md:text-lg font-semibold text-slate-900 dark:text-foreground">
-              {formatDate(selectedDate)}
-            </h2>
-          </div>
-          <button
-            onClick={onGoToToday}
-            className="hidden md:block px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors"
-          >
-            Today
-          </button>
-          <button
-            onClick={onNextDay}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-            aria-label="Next day"
-          >
-            <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-          </button>
-        </div>
-        <button
-          onClick={onGoToToday}
-          className="md:hidden px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors"
-        >
-          Today
-        </button>
-      </div>
-
-      {/* Filter and Show All Controls - Compact on mobile */}
-      <div className="flex items-center justify-between mb-2 md:mb-3 px-1 z-10">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-slate-500" />
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 md:p-1">
-            <button
-              onClick={() => { setMapFilter('all') }}
-              className={`px-2 md:px-3 py-1 md:py-1 text-xs font-medium rounded-md transition-colors ${
-                mapFilter === 'all'
-                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => { setMapFilter('jobs') }}
-              className={`px-2 md:px-3 py-1 md:py-1 text-xs font-medium rounded-md transition-colors ${
-                mapFilter === 'jobs'
-                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-              }`}
-            >
-              Jobs
-            </button>
-            <button
-              onClick={() => { setMapFilter('appointments') }}
-              className={`px-2 md:px-3 py-1 md:py-1 text-xs font-medium rounded-md transition-colors ${
-                mapFilter === 'appointments'
-                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-              }`}
-            >
-              Appointments
-            </button>
-          </div>
-        </div>
-        {sortedItems.length > 0 && (
-          <button
-            onClick={showAllMarkers}
-            className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors"
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Show All Stops</span>
-            <span className="md:hidden">All</span>
-          </button>
-        )}
-      </div>
-
       {/* Selected-Day Item List (All items: jobs, appointments, tasks) - Hidden on mobile Map mode to reduce crowding */}
       <div className="hidden md:block mb-3 z-10">
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -2678,13 +2611,178 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         </div>
       </div>
 
+      {/* Unified Map Toolbar - Desktop: 3-region layout, Mobile: stacked rows */}
+      <div className="mb-2 md:mb-3 z-10">
+        {/* Desktop: 3-region toolbar */}
+        <div className="hidden md:grid grid-cols-[1fr_auto_1fr] gap-4 items-center px-1">
+          {/* LEFT: Today's Stops + count */}
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground">Today's Stops</h3>
+            <span className="text-xs text-slate-500 dark:text-slate-400">{routeSummary}</span>
+          </div>
+
+          {/* CENTER: Date navigation */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onPreviousDay}
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              aria-label="Previous day"
+            >
+              <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            </button>
+            <div className="text-center">
+              <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">
+                {formatDate(selectedDate)}
+              </h2>
+            </div>
+            <button
+              onClick={onGoToToday}
+              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors"
+            >
+              Today
+            </button>
+            <button
+              onClick={onNextDay}
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              aria-label="Next day"
+            >
+              <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            </button>
+          </div>
+
+          {/* RIGHT: Filter + Show All */}
+          <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+              <button
+                onClick={() => { setMapFilter('all') }}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  mapFilter === 'all'
+                    ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => { setMapFilter('jobs') }}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  mapFilter === 'jobs'
+                    ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                Jobs
+              </button>
+              <button
+                onClick={() => { setMapFilter('appointments') }}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  mapFilter === 'appointments'
+                    ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                Appointments
+              </button>
+            </div>
+            {sortedItems.length > 0 && (
+              <button
+                onClick={showAllMarkers}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                Show All Stops
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile: Stacked rows */}
+        <div className="md:hidden space-y-2 px-1">
+          {/* Row 1: Centered date navigation */}
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={onPreviousDay}
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              aria-label="Previous day"
+            >
+              <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            </button>
+            <div className="text-center">
+              <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">
+                {formatDate(selectedDate)}
+              </h2>
+            </div>
+            <button
+              onClick={onGoToToday}
+              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors"
+            >
+              Today
+            </button>
+            <button
+              onClick={onNextDay}
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              aria-label="Next day"
+            >
+              <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            </button>
+          </div>
+
+          {/* Row 2: Today's Stops + actions */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-xs font-semibold text-foreground">Today's Stops</h3>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">{routeSummary}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+                <button
+                  onClick={() => { setMapFilter('all') }}
+                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
+                    mapFilter === 'all'
+                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => { setMapFilter('jobs') }}
+                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
+                    mapFilter === 'jobs'
+                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  Jobs
+                </button>
+                <button
+                  onClick={() => { setMapFilter('appointments') }}
+                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
+                    mapFilter === 'appointments'
+                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  Appts
+                </button>
+              </div>
+              {sortedItems.length > 0 && (
+                <button
+                  onClick={showAllMarkers}
+                  className="flex items-center gap-1 px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-[10px] font-medium transition-colors"
+                >
+                  <Layers className="w-3 h-3" />
+                  All
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Today's Stops - Horizontal strip, visible on all screen sizes */}
       {sortedItems.filter(item => item.type !== 'business').length > 0 && (
         <div className="mb-2 md:mb-3 z-10">
-          <div className="flex items-center justify-between mb-2 px-1">
-            <h3 className="text-xs md:text-sm font-semibold text-foreground">Today's Stops</h3>
-            <span className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">{routeSummary}</span>
-          </div>
           <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {sortedItems.filter(item => item.type !== 'business').map((item, index) => (
               <button
