@@ -235,8 +235,8 @@ export async function sendPushForNotification(notification: {
     const iosFailed = Array.from(tokenState.values()).filter(s => s.platform === 'ios' && !s.success).length
 
     finalResult = {
-      android: { attempted: androidTokens.size, successful: androidSuccessful, failed: androidFailed },
-      ios: { attempted: iosTokens.size, successful: iosSuccessful, failed: iosFailed }
+      android: { attempted: retryAndroidTokens.length, successful: androidSuccessful, failed: androidFailed },
+      ios: { attempted: retryIosTokens.length, successful: iosSuccessful, failed: iosFailed }
     }
 
     // Log attempt results
@@ -250,8 +250,8 @@ export async function sendPushForNotification(notification: {
       iosAttempted: (ios as any).attempted,
       iosSuccessful: (ios as any).successful,
       iosFailed: (ios as any).failed,
-      newAndroidSuccess: androidSuccessful - finalResult.android.successful + (android as any).failed,
-      newIosSuccess: iosSuccessful - finalResult.ios.successful + (ios as any).failed,
+      newAndroidSuccess: androidSuccessful - finalResult.android.successful,
+      newIosSuccess: iosSuccessful - finalResult.ios.successful,
       remainingRetryTokens: Array.from(tokenState.values()).filter(s => !s.success && !s.permanentFailure).length,
       correlationId
     })
@@ -300,12 +300,26 @@ export async function sendPushForNotification(notification: {
       await new Promise(resolve => setTimeout(resolve, delay))
     } else {
       // Final attempt failed
-      console.error('[PUSH DELIVERY] All retry attempts exhausted', {
-        notificationId: notification.id,
-        businessId: notification.business_id,
-        totalFailed,
-        correlationId
-      })
+      const remainingRetryableTokens = Array.from(tokenState.values()).filter(s => !s.success && !s.permanentFailure).length
+
+      if (remainingRetryableTokens === 0) {
+        console.error('[PUSH DELIVERY] All retry attempts exhausted - no retryable tokens remain', {
+          notificationId: notification.id,
+          businessId: notification.business_id,
+          totalFailed,
+          maxAttempts: MAX_RETRY_ATTEMPTS,
+          correlationId
+        })
+      } else {
+        console.error('[PUSH DELIVERY] Maximum retry attempts reached with retryable tokens remaining', {
+          notificationId: notification.id,
+          businessId: notification.business_id,
+          totalFailed,
+          maxAttempts: MAX_RETRY_ATTEMPTS,
+          remainingRetryableTokens,
+          correlationId
+        })
+      }
 
       // Record final failed attempt
       if (userId) {
