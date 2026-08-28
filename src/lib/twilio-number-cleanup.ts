@@ -11,7 +11,7 @@
  * All operations are idempotent and safe for concurrent execution.
  */
 
-import { supabaseAdmin } from './supabase/admin'
+import { supabaseAdmin, normalizePhoneNumberForStorage } from './supabase/admin'
 import Twilio from 'twilio'
 import * as Sentry from '@sentry/nextjs'
 
@@ -156,11 +156,18 @@ export async function getEligibleNumbers(): Promise<CleanupCandidate[]> {
   // Check recent activity for each candidate
   const eligible: CleanupCandidate[] = []
   for (const candidate of candidates) {
-    const hasRecentActivity = await checkRecentActivity(candidate.phone_number, activityCutoff)
-    if (hasRecentActivity) {
-      console.log('[TWILIO CLEANUP] Skipping number with recent activity', {
-        maskedPhone: maskPhoneNumber(candidate.phone_number)
-      })
+    const activityCheck = await checkRecentActivity(candidate.phone_number, activityCutoff)
+    if (activityCheck.hasActivity) {
+      if (activityCheck.reason === 'confirmed_activity') {
+        console.log('[TWILIO CLEANUP] Skipping number with confirmed recent activity', {
+          maskedPhone: maskPhoneNumber(candidate.phone_number)
+        })
+      } else if (activityCheck.reason === 'query_error') {
+        console.log('[TWILIO CLEANUP] Skipping number because recent activity could not be verified', {
+          maskedPhone: maskPhoneNumber(candidate.phone_number),
+          error: activityCheck.error?.code || activityCheck.error?.message || 'unknown error'
+        })
+      }
       continue
     }
 
@@ -199,43 +206,57 @@ function getActivityCutoff(): Date {
 
 /**
  * Check if a phone number has recent activity
- * Checks both conversations and messages tables for comprehensive activity detection
- * A conversation is created when a lead receives an SMS or sends a message
- * Messages can be added to existing conversations, so we check both
- * 
- * Note: messages table does not have phone_number field, so we join through leads
+ * Checks the leads and messages tables for comprehensive activity detection
+ *
+ * Schema notes:
+ * - leads table has 'caller_phone' column (canonical normalized E.164 format)
+ * - leads table also has historical 'phone' column (legacy, not canonical)
+ * - messages table does not have phone_number, so we join through leads
+ * - conversations table does not have phone_number column
+ *
+ * Activity semantics:
+ * - Find ALL leads associated with the phone number (regardless of lead creation date)
+ * - Check if ANY of those leads have messages within the lookback window
+ * - This correctly handles old leads with recent message activity
+ *
+ * Returns object with:
+ * - hasActivity: boolean indicating if recent activity exists
+ * - reason: 'confirmed_activity' | 'no_activity' | 'query_error'
+ * - error: error details if reason is 'query_error'
  */
-async function checkRecentActivity(phoneNumber: string, cutoff: Date): Promise<boolean> {
+async function checkRecentActivity(phoneNumber: string, cutoff: Date): Promise<{
+  hasActivity: boolean
+  reason: 'confirmed_activity' | 'no_activity' | 'query_error'
+  error?: any
+}> {
   try {
-    // Check conversations table directly (has phone_number field)
-    const { count: conversationCount, error: conversationError } = await supabaseAdmin
-      .from('conversations')
-      .select('*', { count: 'exact', head: true })
-      .eq('phone_number', phoneNumber)
-      .gte('created_at', cutoff.toISOString())
+    // Normalize phone number to match stored format (E.164)
+    const normalizedPhone = normalizePhoneNumberForStorage(phoneNumber)
 
-    if (conversationError) {
-      console.error('[TWILIO CLEANUP] Failed to check recent conversation activity:', conversationError)
-      // Fail safe: assume activity to be conservative
-      return true
-    }
-
-    // Check messages table by joining through leads
-    // First get lead IDs for this phone number
+    // Check leads table for this phone number using canonical caller_phone field
+    // Do NOT filter by leads.created_at - we need to find ALL leads regardless of when they were created
     const { data: leads, error: leadsError } = await supabaseAdmin
       .from('leads')
       .select('id')
-      .eq('phone', phoneNumber)
+      .eq('caller_phone', normalizedPhone)
 
     if (leadsError) {
-      console.error('[TWILIO CLEANUP] Failed to fetch leads for activity check:', leadsError)
+      console.error('[TWILIO CLEANUP] Failed to fetch leads for activity check:', {
+        error: leadsError,
+        code: leadsError.code,
+        message: leadsError.message,
+        details: leadsError.details,
+        hint: leadsError.hint,
+        maskedPhone: maskPhoneNumber(phoneNumber),
+        normalizedPhone: maskPhoneNumber(normalizedPhone)
+      })
       // Fail safe: assume activity to be conservative
-      return true
+      return { hasActivity: true, reason: 'query_error', error: leadsError }
     }
 
-    // If no leads found, no message activity possible
+    // If no leads found, no activity possible
     if (!leads || leads.length === 0) {
-      return (conversationCount || 0) > 0
+      return { hasActivity: false, reason: 'no_activity' }
     }
 
     // Get lead IDs
@@ -249,27 +270,41 @@ async function checkRecentActivity(phoneNumber: string, cutoff: Date): Promise<b
       .in('lead_id', leadIds)
 
     if (messageError) {
-      console.error('[TWILIO CLEANUP] Failed to check recent message activity:', messageError)
+      console.error('[TWILIO CLEANUP] Failed to check recent message activity:', {
+        error: messageError,
+        code: messageError.code,
+        message: messageError.message,
+        details: messageError.details,
+        hint: messageError.hint,
+        maskedPhone: maskPhoneNumber(phoneNumber),
+        leadIdsCount: leadIds.length
+      })
       // Fail safe: assume activity to be conservative
-      return true
+      return { hasActivity: true, reason: 'query_error', error: messageError }
     }
 
-    // Consider activity if either conversations or messages exist within lookback
-    const hasActivity = ((conversationCount || 0) > 0) || ((messageCount || 0) > 0)
+    // Consider activity if messages exist within lookback
+    const hasActivity = (messageCount || 0) > 0
     
     if (hasActivity) {
       console.log('[TWILIO CLEANUP] Recent activity detected', {
         maskedPhone: maskPhoneNumber(phoneNumber),
-        conversationCount,
         messageCount
       })
     }
 
-    return hasActivity
-  } catch (error) {
-    console.error('[TWILIO CLEANUP] Exception checking recent activity:', error)
+    return { hasActivity, reason: hasActivity ? 'confirmed_activity' : 'no_activity' }
+  } catch (error: any) {
+    console.error('[TWILIO CLEANUP] Exception checking recent activity:', {
+      error,
+      message: error?.message,
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint,
+      maskedPhone: maskPhoneNumber(phoneNumber)
+    })
     // Fail safe: assume activity to be conservative
-    return true
+    return { hasActivity: true, reason: 'query_error', error }
   }
 }
 
