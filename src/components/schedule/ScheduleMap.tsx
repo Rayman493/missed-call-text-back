@@ -480,6 +480,21 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     const bounds = googleMapRef.current.getBounds()
     const container = mapRef.current
 
+    // Defensive: Guard against undefined center during map initialization
+    if (!center) {
+      console.log('[SCHEDULE_MAP_CAMERA_STATE]', {
+        event,
+        reason,
+        center: 'undefined',
+        zoom,
+        mapInstance: mapInstanceIdRef.current,
+        container: `${container?.offsetWidth || 0}x${container?.offsetHeight || 0}`,
+        cameraOwner: cameraOwnerRef.current,
+        timestamp: Date.now()
+      })
+      return
+    }
+
     const currentState = {
       center: { lat: center.lat(), lng: center.lng() },
       zoom
@@ -1481,9 +1496,9 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         ? (window as any).google.maps.MapTypeId.HYBRID
         : (window as any).google.maps.MapTypeId.ROADMAP
 
-      // Use business location as initial center if available, otherwise let Google Maps choose default
-      // This prevents showing continental US view when automatic framing is delayed
-      let initialCenter: { lat: number; lng: number } | undefined
+      // Use business location as initial center if available, otherwise use safe fallback
+      // Safe fallback prevents crash when getCenter() is called before map establishes valid center
+      let initialCenter: { lat: number; lng: number }
       let initialZoom = 4
 
       if (businessCoordsCacheRef.current && businessCoordsCacheRef.current.lat && businessCoordsCacheRef.current.lng) {
@@ -1492,9 +1507,14 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           lng: businessCoordsCacheRef.current.lng
         }
         initialZoom = HOME_BASE_ONLY_ZOOM // Use regional zoom for business location
+      } else {
+        // Safe fallback: US center (will be overridden by automatic framing when markers hydrate)
+        initialCenter = { lat: 39.8283, lng: -98.5795 }
       }
 
       const mapOptions: any = {
+        center: initialCenter,
+        zoom: initialZoom,
         mapTypeId: initialMapTypeId,
         disableDefaultUI: false,
         zoomControl: true,
@@ -1523,12 +1543,6 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
             stylers: [{ visibility: 'simplified' }]
           }
         ]
-      }
-
-      // Only set center/zoom if we have a business location
-      if (initialCenter) {
-        mapOptions.center = initialCenter
-        mapOptions.zoom = initialZoom
       }
 
       const map = new (window as any).google.maps.Map(container, mapOptions)
