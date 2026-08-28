@@ -714,18 +714,18 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                 <button
                   onClick={() => setShowQuickTapToPay(true)}
                   className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995]
-                  bg-gradient-to-br from-emerald-50 dark:from-emerald-900/40 to-emerald-100 dark:to-emerald-800/30 border-emerald-400 dark:border-emerald-600/50 hover:border-emerald-500 dark:hover:border-emerald-500/60 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+                  bg-emerald-600 dark:bg-emerald-500 border-emerald-700 dark:border-emerald-600 hover:bg-emerald-700 dark:hover:bg-emerald-600 shadow-[0_6px_18px_rgba(0,0,0,0.15)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
                 >
                   <div className="flex items-center gap-3.5 mb-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/25 dark:bg-emerald-500/20 ring-1 ring-inset ring-emerald-600/50 dark:ring-emerald-600/40 shadow-[0_0_20px_rgba(16,185,129,0.22)] dark:shadow-[0_0_20px_rgba(16,185,129,0.22)] flex items-center justify-center">
-                      <AppleTapToPayIcon size={20} className="text-emerald-700 dark:text-emerald-400" />
+                    <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-white/10 ring-1 ring-inset ring-white/30 dark:ring-white/20 flex items-center justify-center">
+                      <AppleTapToPayIcon size={20} className="text-white dark:text-white" />
                     </div>
                     <div>
-                      <h3 className="text-foreground dark:text-white font-semibold text-base sm:text-lg leading-tight">Tap to Pay</h3>
-                      <p className="text-emerald-800 dark:text-emerald-300/90 text-xs">Collect in-person</p>
+                      <h3 className="text-white dark:text-white font-semibold text-base sm:text-lg leading-tight">Tap to Pay</h3>
+                      <p className="text-emerald-100 dark:text-emerald-100 text-xs">Collect in-person</p>
                     </div>
                   </div>
-                  <p className="text-emerald-950/90 dark:text-emerald-200/80 text-xs sm:text-sm">Accept contactless payments now with your phone</p>
+                  <p className="text-emerald-50 dark:text-emerald-50 text-xs sm:text-sm">Accept contactless payments now with your phone</p>
                 </button>
               )
             }
@@ -795,18 +795,18 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           <button
             onClick={handleStartPaymentRequest}
             className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.995]
-            bg-gradient-to-br from-blue-50 dark:from-blue-900/40 to-blue-100 dark:to-blue-800/30 border-blue-400 dark:border-blue-600/50 hover:border-blue-500 dark:hover:border-blue-500/60 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.22)]"
+            bg-blue-600 dark:bg-blue-500 border-blue-700 dark:border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-600 shadow-[0_6px_18px_rgba(0,0,0,0.15)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
           >
             <div className="flex items-center gap-3.5 mb-2.5">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/25 dark:bg-blue-500/20 ring-1 ring-inset ring-blue-600/50 dark:ring-blue-600/40 flex items-center justify-center">
-                <CreditCard className="w-5 h-5 text-blue-700 dark:text-blue-400" />
+              <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-white/10 ring-1 ring-inset ring-white/30 dark:ring-white/20 flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-white dark:text-white" />
               </div>
               <div>
-                <h3 className="text-foreground dark:text-white font-semibold text-sm sm:text-base leading-tight">Request Payment</h3>
-                <p className="text-blue-800 dark:text-blue-300/90 text-xs">Send payment link</p>
+                <h3 className="text-white dark:text-white font-semibold text-sm sm:text-base leading-tight">Request Payment</h3>
+                <p className="text-blue-100 dark:text-blue-100 text-xs">Send payment link</p>
               </div>
             </div>
-            <p className="text-blue-950/90 dark:text-blue-200/80 text-xs sm:text-sm">Send a payment request via SMS to your customer</p>
+            <p className="text-blue-50 dark:text-blue-50 text-xs sm:text-sm">Send a payment request via SMS to your customer</p>
           </button>
         </div>
 

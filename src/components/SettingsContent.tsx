@@ -4379,8 +4379,8 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     </div>
                   </div>
 
-                  <div id="payments-venmo" className="flex flex-col h-full border border-border/30 rounded-lg p-4 sm:p-5">
-                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-3">
+                  <div id="payments-venmo" className="flex flex-col h-full border border-border/30 rounded-lg p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <img src="/brands/venmo.png" alt="Venmo" className="h-5 w-auto object-contain sm:h-6 max-w-20 flex-shrink-0 dark:invert-0 invert" />
@@ -4414,8 +4414,8 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   </div>
                 </div>
 
-                  <div id="payments-paypal" className="flex flex-col h-full border border-border/30 rounded-lg p-4 sm:p-5">
-                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-3">
+                  <div id="payments-paypal" className="flex flex-col h-full border border-border/30 rounded-lg p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <img src="/brands/paypal.png" alt="PayPal" className="h-5 w-auto object-contain sm:h-6 flex-shrink-0" />
@@ -4475,7 +4475,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
               </div>
 
               {/* Contacts Section */}
-              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
+              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-12">
                 <div className="flex flex-col gap-4 mb-8">
                   {/* Header row with title, description, and actions */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -4788,24 +4788,6 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   </div>
                 </div>
               </div>
-
-                  {/* Auth Method Indicator */}
-                  <div className="flex flex-col gap-3 bg-slate-50 dark:bg-slate-800/30 p-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2.5">
-                        <ShieldCheck className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm font-medium text-foreground">Sign-in method</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        How you sign in to your account.
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-slate-600 dark:text-slate-400">
-                        Password
-                      </span>
-                    </div>
-                  </div>
 
                   {/* Subscription & Billing Section */}
               <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
