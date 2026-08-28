@@ -220,7 +220,10 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   }
 
   const markAsRead = async (notificationId: string) => {
-    await notificationService.markAsRead(notificationId)
+    // Capture the notification's original read state before optimistic update
+    const notification = notifications.find(n => n.id === notificationId)
+    const wasUnread = notification ? !notification.read : false
+
     setNotifications(prev => {
       const updated = prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
       // Update displayedUnreadCount to match actual unread count
@@ -228,6 +231,16 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       return updated
     })
     setNotificationCount(prev => ({ ...prev, unread: Math.max(0, prev.unread - 1) }))
+
+    try {
+      await notificationService.markAsRead(notificationId)
+    } catch (error) {
+      console.error('[NOTIFICATION MARK READ] Failed to mark notification as read:', error)
+      // Targeted rollback: restore only the affected notification's read state
+      setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, read: !wasUnread } : n))
+      setNotificationCount(prev => ({ ...prev, unread: Math.max(0, prev.unread + (wasUnread ? 1 : 0)) }))
+      setDisplayedUnreadCount(prev => Math.max(0, prev + (wasUnread ? 1 : 0)))
+    }
   }
 
   const markAllAsRead = async () => {
@@ -254,14 +267,16 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   }
 
   const deleteNotification = async (notificationId: string) => {
-    // Optimistically remove from UI
+    // Capture the notification before optimistic deletion
     const deletedNotification = notifications.find(n => n.id === notificationId)
+    const wasUnread = deletedNotification ? !deletedNotification.read : false
+
     setNotifications(prev => prev.filter(n => n.id !== notificationId))
     setNotificationCount(prev => ({
-      unread: deletedNotification && !deletedNotification.read ? Math.max(0, prev.unread - 1) : prev.unread,
+      unread: wasUnread ? Math.max(0, prev.unread - 1) : prev.unread,
       total: Math.max(0, prev.total - 1)
     }))
-    if (deletedNotification && !deletedNotification.read) {
+    if (wasUnread) {
       setDisplayedUnreadCount(prev => Math.max(0, prev - 1))
     }
 
@@ -269,7 +284,23 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       await notificationService.deleteNotification(notificationId)
     } catch (error) {
       console.error('[NOTIFICATION DELETE] Failed to delete notification:', error)
-      // Could revert here if needed
+      // Targeted rollback: restore the deleted notification if not already present
+      if (deletedNotification) {
+        setNotifications(prev => {
+          // Only restore if not already in array (may have been re-added by realtime)
+          if (prev.some(n => n.id === notificationId)) {
+            return prev
+          }
+          return [...prev, deletedNotification]
+        })
+        setNotificationCount(prev => ({
+          unread: wasUnread ? prev.unread + 1 : prev.unread,
+          total: prev.total + 1
+        }))
+        if (wasUnread) {
+          setDisplayedUnreadCount(prev => prev + 1)
+        }
+      }
     }
   }
 

@@ -9,7 +9,7 @@
  * events remain in-app only.
  */
 
-export type NotificationType = 
+export type NotificationType =
   | 'new_lead'
   | 'customer_reply'
   | 'followup_completed'
@@ -19,15 +19,16 @@ export type NotificationType =
   | 'trial_ending'
   | 'subscription_issue'
   | 'voicemail_received'
+  | 'missed_call'
   | 'ai_intake_completed'
   | 'payment_requested'
+  | 'payment_created'
   | 'payment_completed'
   | 'calendar_connected'
   | 'calendar_disconnected'
   | 'appointment_created'
   | 'appointment_deleted'
   | 'personal_voicemail'
-  | 'missed_call'
 
 /**
  * Push priority levels for notification types
@@ -65,6 +66,7 @@ const PUSH_POLICY: Record<NotificationType, PushPriority> = {
   followup_completed: PushPriority.NONE,
   followup_sent: PushPriority.NONE,
   payment_requested: PushPriority.NONE,
+  payment_created: PushPriority.NONE,
   calendar_connected: PushPriority.NONE,
   calendar_disconnected: PushPriority.NONE,
   appointment_created: PushPriority.NONE,

@@ -71,7 +71,7 @@ function truncateMessage(message: string, maxLength: number): string {
 export interface Notification {
   id: string
   business_id: string
-  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'ai_intake_completed' | 'payment_requested' | 'payment_created' | 'payment_completed' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted' | 'personal_voicemail'
+  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'followup_sent' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'missed_call' | 'ai_intake_completed' | 'payment_requested' | 'payment_created' | 'payment_completed' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted' | 'personal_voicemail'
   title: string
   message: string
   data?: any
@@ -239,6 +239,27 @@ export const NOTIFICATION_TEMPLATES = {
       message: `From ${formattedPhone}`,
       action_url: '/dashboard/personal-voicemail',
       action_text: 'Listen'
+    }
+  },
+
+  // Legacy notification types for backward compatibility
+  followup_sent: (data: { leadName: string; leadId: string }) => {
+    const displayName = resolveCustomerDisplayName(data.leadName, null)
+    return {
+      title: displayName === 'Customer' ? 'Follow-Up Sent' : `${displayName}`,
+      message: 'Follow-up message sent',
+      action_url: `/dashboard/leads/${data.leadId}`,
+      action_text: 'View Lead'
+    }
+  },
+
+  missed_call: (data: { leadName: string; leadPhone: string; leadId: string }) => {
+    const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
+    return {
+      title: displayName === 'Customer' ? 'Missed Call' : `${displayName}`,
+      message: 'Missed call',
+      action_url: `/dashboard/leads/${data.leadId}`,
+      action_text: 'View Lead'
     }
   }
 }

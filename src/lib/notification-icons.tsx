@@ -24,6 +24,8 @@ export function getNotificationIcon(type: string): ReactElement {
       return <MessageSquare className="w-4 h-4" />
     case 'followup_completed':
       return <CheckCircle className="w-4 h-4" />
+    case 'followup_sent':
+      return <MessageSquare className="w-4 h-4" />
     case 'forwarding_disconnected':
       return <PhoneMissed className="w-4 h-4" />
     case 'sms_failed':
@@ -33,6 +35,8 @@ export function getNotificationIcon(type: string): ReactElement {
     case 'subscription_issue':
       return <AlertTriangle className="w-4 h-4" />
     case 'voicemail_received':
+      return <PhoneMissed className="w-4 h-4" />
+    case 'missed_call':
       return <PhoneMissed className="w-4 h-4" />
     case 'ai_intake_completed':
       return <User className="w-4 h-4" />
@@ -69,6 +73,8 @@ export function getNotificationColor(type: string): string {
       return 'bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400'
     case 'followup_completed':
       return 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
+    case 'followup_sent':
+      return 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
     case 'forwarding_disconnected':
       return 'bg-red-500/10 text-red-600 dark:bg-red-500/20 dark:text-red-400'
     case 'sms_failed':
@@ -78,6 +84,8 @@ export function getNotificationColor(type: string): string {
     case 'subscription_issue':
       return 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400'
     case 'voicemail_received':
+      return 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400'
+    case 'missed_call':
       return 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400'
     case 'ai_intake_completed':
       return 'bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400'
@@ -113,6 +121,8 @@ export function getNotificationDotColor(type: string): string {
       return 'bg-green-400'
     case 'followup_completed':
       return 'bg-emerald-400'
+    case 'followup_sent':
+      return 'bg-emerald-400'
     case 'forwarding_disconnected':
       return 'bg-red-400'
     case 'sms_failed':
@@ -122,6 +132,8 @@ export function getNotificationDotColor(type: string): string {
     case 'subscription_issue':
       return 'bg-amber-400'
     case 'voicemail_received':
+      return 'bg-purple-400'
+    case 'missed_call':
       return 'bg-purple-400'
     case 'ai_intake_completed':
       return 'bg-cyan-400'
