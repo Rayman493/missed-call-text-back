@@ -740,20 +740,27 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
   // Recenter camera to show all markers for current date
   const recenterMap = useCallback(() => {
-    if (!googleMapRef.current || markersRef.current.size === 0) return
+    if (!googleMapRef.current) return
 
     cameraOwnerRef.current = CameraOwner.APP_OWNED
     setSelectedMapItemId(null)
     setShowAllMode(true)
 
-    const bounds = new (window as any).google.maps.LatLngBounds()
-    markersRef.current.forEach(marker => {
-      bounds.extend(marker.getPosition()!)
-    })
+    // If there are markers, fit all markers
+    if (markersRef.current.size > 0) {
+      const bounds = new (window as any).google.maps.LatLngBounds()
+      markersRef.current.forEach(marker => {
+        bounds.extend(marker.getPosition()!)
+      })
 
-    const padding = getResponsivePadding()
-    fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'recenter')
-  }, [fitBoundsWithMaxZoom, getResponsivePadding])
+      const padding = getResponsivePadding()
+      fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'recenter')
+    } else if (businessCoordsCacheRef.current && businessCoordsCacheRef.current.lat && businessCoordsCacheRef.current.lng) {
+      // If no markers but business coords exist, center on business
+      const { lat, lng } = businessCoordsCacheRef.current
+      panToMarker(lat, lng, { zoom: HOME_BASE_ONLY_ZOOM }, 'recenter_business')
+    }
+  }, [fitBoundsWithMaxZoom, getResponsivePadding, panToMarker])
 
   // Select a specific map item (pass item data directly to avoid dependency on mapItems)
   const selectMapItem = useCallback((itemId: string, latitude: number, longitude: number) => {
@@ -2008,8 +2015,9 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
       // If expected marker count is zero, we know this is a zero-marker date
       // (source data is complete and has no stops/business)
-      // Clear initial framing pending immediately without issuing a camera command
-      if (expectedCount === 0) {
+      // Exception: If business has address but geocoding is pending, wait for geocoding
+      // Clear initial framing pending immediately only if truly no markers expected
+      if (expectedCount === 0 && !hasBusinessAddress) {
         initialFramingPendingRef.current = false
       } else {
         initialFramingPendingRef.current = true
@@ -2089,9 +2097,15 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       initialFramingPending: initialFramingPendingRef.current
     })
 
-    // If no markers, keep camera at fallback
-    // This allows auto-fit when first marker arrives
+    // If no markers, check if business coords exist for framing
+    // This handles the zero-stops case where business should be the geographic anchor
     if (markersRef.current.size === 0) {
+      if (businessCoordsCacheRef.current && businessCoordsCacheRef.current.lat && businessCoordsCacheRef.current.lng) {
+        // Frame on business location with local zoom
+        const { lat, lng } = businessCoordsCacheRef.current
+        panToMarker(lat, lng, { zoom: HOME_BASE_ONLY_ZOOM }, 'business_only_initial_framing')
+        initialFramingPendingRef.current = false
+      }
       markerSetSignatureRef.current = signature
       setLastAutoFitDateKey(null)
     } else if (selectedMapItemId && cameraOwnerRef.current === CameraOwner.INITIALIZING) {
@@ -2752,8 +2766,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
             </button>
           </div>
 
-          {/* Recenter Button - visible when markers exist */}
-          {markersRef.current.size > 0 && (
+          {/* Recenter Button - visible when markers exist or business coordinates exist */}
+          {(markersRef.current.size > 0 || (businessCoordsCacheRef.current && businessCoordsCacheRef.current.lat && businessCoordsCacheRef.current.lng)) && (
             <button
               onClick={recenterMap}
               className="w-10 h-10 bg-white/95 dark:bg-slate-800/95 rounded-lg shadow-sm border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center backdrop-blur-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"

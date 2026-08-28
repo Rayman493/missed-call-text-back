@@ -3331,13 +3331,13 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               After Hours Message
                             </label>
                             <textarea
-                              value={normalizeBrokenTemplates(formBusiness.after_hours_message || '')}
+                              value={normalizeBrokenTemplates(formBusiness.after_hours_message || getDefaultAfterHoursTemplate())}
                               onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
                               rows={4}
                               className="w-full px-3 py-2 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-xs sm:text-sm hover:border-border/80 dark:hover:border-border/60 resize-none min-h-[120px]"
                             />
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                              {`{{business_name}}`} inserts your business name.
+                              Use <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[11px] font-mono">{"{{business_name}}"}</code> to insert your business name.
                             </p>
                           </div>
                         </div>
@@ -3580,13 +3580,13 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               Custom Message (Optional)
                             </label>
                             <textarea
-                              value={normalizeBrokenTemplates(formBusiness.out_of_office_message || '')}
+                              value={normalizeBrokenTemplates(formBusiness.out_of_office_message || getDefaultOutOfOfficeTemplate())}
                               onChange={(e) => updateBusiness({ out_of_office_message: e.target.value })}
                               rows={4}
                               className="w-full px-3 py-2 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-xs sm:text-sm hover:border-border/80 dark:hover:border-border/60 resize-none min-h-[120px]"
                             />
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                              Use <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{business_name}}"}</code> and <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{return_date}}"}</code> placeholders.
+                              Use <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[11px] font-mono">{"{{business_name}}"}</code> to insert your business name and <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[11px] font-mono">{"{{return_date}}"}</code> to insert your return date.
                             </p>
                           </div>
                         </div>
