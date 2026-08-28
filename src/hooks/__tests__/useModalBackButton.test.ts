@@ -200,3 +200,128 @@ describe('useModalBackButton - Behavioral Tests', () => {
     expect(typeof useModalBackButton).toBe('function')
   })
 })
+
+describe('useModalBackButton - React Hook Regression Tests', () => {
+  const mockOnClose = vi.fn()
+
+  beforeEach(() => {
+    mockOnClose.mockReset()
+
+    // Clear modal stack
+    while (getModalStack().length > 0) {
+      getModalStack().pop()
+    }
+
+    window.history.pushState = vi.fn()
+    window.history.back = vi.fn()
+    window.history.addEventListener = vi.fn()
+    window.history.removeEventListener = vi.fn()
+  })
+
+  afterEach(() => {
+    // Clear modal stack
+    while (getModalStack().length > 0) {
+      getModalStack().pop()
+    }
+
+    window.history.pushState = originalPushState
+    window.history.back = originalBack
+    window.history.addEventListener = originalAddEventListener
+    window.history.removeEventListener = originalRemoveEventListener
+  })
+
+  it('REGRESSION TEST 1 — immediate modal open: history.back NOT called on mount', () => {
+    const { unmount } = renderHook(() => useModalBackButton({ isOpen: true, onClose: mockOnClose }))
+
+    // history.back should NOT be called during mount
+    expect(window.history.back).not.toHaveBeenCalled()
+
+    // history.pushState should be called
+    expect(window.history.pushState).toHaveBeenCalledWith({ modalOpen: true }, '')
+
+    // Modal should be registered
+    expect(getModalStack().length).toBe(1)
+
+    unmount()
+  })
+
+  it('REGRESSION TEST 2 — changed onClose identity while open: no cleanup, no history.back', () => {
+    const onCloseA = vi.fn()
+    const onCloseB = vi.fn()
+
+    const { rerender, unmount } = renderHook(() => useModalBackButton({ isOpen: true, onClose: onCloseA }))
+
+    // Initial mount with onCloseA
+    expect(window.history.pushState).toHaveBeenCalledTimes(1)
+    expect(window.history.back).not.toHaveBeenCalled()
+    expect(getModalStack().length).toBe(1)
+
+    // Rerender with DIFFERENT onClose identity (onCloseB)
+    rerender(() => useModalBackButton({ isOpen: true, onClose: onCloseB }))
+
+    // Should NOT call history.back on callback identity change
+    expect(window.history.back).not.toHaveBeenCalled()
+    expect(window.history.pushState).toHaveBeenCalledTimes(1) // Still 1, not 2
+    expect(getModalStack().length).toBe(1) // Modal still registered
+
+    // Invoke the registered modal close (simulating native Back or popstate)
+    handleCapacitorBackButton()
+
+    // Should invoke the LATEST callback (onCloseB), not the original (onCloseA)
+    expect(onCloseB).toHaveBeenCalledTimes(1)
+    expect(onCloseA).not.toHaveBeenCalled()
+
+    unmount()
+  })
+
+  it('REGRESSION TEST 3 — programmatic close: no unintended route navigation', () => {
+    const { unmount } = renderHook(() => useModalBackButton({ isOpen: true, onClose: mockOnClose }))
+
+    // Close programmatically
+    const { rerender } = renderHook(() => useModalBackButton({ isOpen: false, onClose: mockOnClose }))
+
+    // history.back should be called to cleanup the synthetic history entry
+    expect(window.history.back).toHaveBeenCalledTimes(1)
+
+    unmount()
+  })
+
+  it('REGRESSION TEST 4 — unmount while open: cleanup does not call history.back if modal was consumed', () => {
+    // Simulate modal being consumed by popstate before unmount
+    registerModal(mockOnClose)
+
+    const { unmount } = renderHook(() => useModalBackButton({ isOpen: true, onClose: mockOnClose }))
+
+    // Manually simulate popstate consumption (modal closed before unmount)
+    unregisterModal(mockOnClose)
+
+    // Unmount the component
+    unmount()
+
+    // history.back should NOT be called because stack is now empty and we already consumed the state
+    // (In reality, the history entry was consumed by the popstate that closed the modal)
+    expect(window.history.back).not.toHaveBeenCalled()
+  })
+
+  it('REGRESSION TEST 5 — modal stack: register/unregister maintains correct state', () => {
+    const mockOnClose1 = vi.fn()
+    const mockOnClose2 = vi.fn()
+
+    const { unmount: unmount1 } = renderHook(() => useModalBackButton({ isOpen: true, onClose: mockOnClose1 }))
+
+    expect(getModalStack().length).toBe(1)
+
+    const { unmount: unmount2 } = renderHook(() => useModalBackButton({ isOpen: true, onClose: mockOnClose2 }))
+
+    expect(getModalStack().length).toBe(2)
+
+    unmount1()
+
+    expect(getModalStack().length).toBe(1)
+    expect(getModalStack()[0]).toBe(mockOnClose2)
+
+    unmount2()
+
+    expect(getModalStack().length).toBe(0)
+  })
+})

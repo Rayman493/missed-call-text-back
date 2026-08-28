@@ -73,9 +73,11 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
   useEffect(() => {
     if (!isClient) return
 
-    const handlePopState = () => {
+    const handlePopState = (e: PopStateEvent) => {
       console.log('[POPSTATE_DIAGNOSTIC]', {
         pathname: window.location.pathname,
+        statePresent: !!e.state,
+        hasModalMarker: e.state && typeof e.state === 'object' && 'modalOpen' in e.state,
         timestamp: Date.now()
       })
     }
