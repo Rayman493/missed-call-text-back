@@ -372,6 +372,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [realtimeGeneration, setRealtimeGeneration] = useState(0)
   const [externalActionSuccess, setExternalActionSuccess] = useState<{ primary: string; secondary: string } | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [showMoreActions, setShowMoreActions] = useState(false)
@@ -1212,58 +1213,70 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     initialScrollDoneRef.current = null
   }, [params.id])
 
-  // App-resume refresh for Business Number payment handoff
+  // App-resume refresh for Business Number payment handoff and realtime subscription
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) {
       return
     }
 
     const handleAppResume = async () => {
-      console.log('[APP RESUME] App resumed, checking for pending payment refresh')
+      console.log('[APP RESUME] App resumed, checking for pending refresh')
       
       try {
         const pendingRefresh = localStorage.getItem('pendingPaymentRefresh')
         if (!pendingRefresh) {
           console.log('[APP RESUME] No pending payment refresh found')
-          return
-        }
-
-        const { leadId, conversationId, paymentRequestId } = JSON.parse(pendingRefresh)
-        console.log('[APP RESUME] Pending payment refresh found:', { leadId, conversationId, paymentRequestId })
-
-        // Only refresh if we're still on the same lead
-        if (leadId !== params.id) {
-          console.log('[APP RESUME] Lead ID mismatch, skipping refresh')
-          localStorage.removeItem('pendingPaymentRefresh')
-          return
-        }
-
-        console.log('[APP RESUME] Refreshing lead data')
-        const updatedData = await getLeadDetails(leadId)
-        console.log('[APP RESUME] Lead data refresh result:', {
-          leadId,
-          hasData: !!updatedData,
-          paymentRequestsCount: updatedData?.lead?.paymentRequests?.length || 0,
-          paymentRequests: updatedData?.lead?.paymentRequests?.map((pr: any) => ({
-            id: pr.id,
-            amount_cents: pr.amount_cents,
-            conversation_id: pr.conversation_id,
-            status: pr.status,
-            created_at: pr.created_at
-          }))
-        })
-
-        // Only update state if we got valid data - preserve existing state to prevent Unknown Caller
-        if (updatedData && updatedData.lead) {
-          setLeadData(updatedData)
-          console.log('[APP RESUME] Lead data state updated successfully')
         } else {
-          console.error('[APP RESUME] Failed to get valid lead data, preserving existing state')
+          const { leadId, conversationId, paymentRequestId } = JSON.parse(pendingRefresh)
+          console.log('[APP RESUME] Pending payment refresh found:', { leadId, conversationId, paymentRequestId })
+
+          // Only refresh if we're still on the same lead
+          if (leadId !== params.id) {
+            console.log('[APP RESUME] Lead ID mismatch, skipping refresh')
+            localStorage.removeItem('pendingPaymentRefresh')
+          } else {
+            console.log('[APP RESUME] Refreshing lead data')
+            const updatedData = await getLeadDetails(leadId)
+            console.log('[APP RESUME] Lead data refresh result:', {
+              leadId,
+              hasData: !!updatedData,
+              paymentRequestsCount: updatedData?.lead?.paymentRequests?.length || 0,
+              paymentRequests: updatedData?.lead?.paymentRequests?.map((pr: any) => ({
+                id: pr.id,
+                amount_cents: pr.amount_cents,
+                conversation_id: pr.conversation_id,
+                status: pr.status,
+                created_at: pr.created_at
+              }))
+            })
+
+            // Only update state if we got valid data - preserve existing state to prevent Unknown Caller
+            if (updatedData && updatedData.lead) {
+              setLeadData(updatedData)
+              console.log('[APP RESUME] Lead data state updated successfully')
+            } else {
+              console.error('[APP RESUME] Failed to get valid lead data, preserving existing state')
+            }
+
+            // Clear the pending refresh flag
+            localStorage.removeItem('pendingPaymentRefresh')
+            console.log('[APP RESUME] Pending payment refresh cleared')
+          }
         }
 
-        // Clear the pending refresh flag
-        localStorage.removeItem('pendingPaymentRefresh')
-        console.log('[APP RESUME] Pending payment refresh cleared')
+        // Re-establish realtime subscription on app resume
+        console.log('[APP RESUME] Re-establishing realtime subscription')
+        // Increment generation to force realtime effect to re-run
+        setRealtimeGeneration(prev => prev + 1)
+
+        // Lightweight refetch to catch any messages received while WebView was suspended
+        console.log('[APP RESUME] Performing lightweight conversation refetch')
+        const currentLeadId = params.id
+        const refetchData = await getLeadDetails(currentLeadId)
+        if (refetchData && refetchData.lead) {
+          setLeadData(refetchData)
+          console.log('[APP RESUME] Conversation refetch completed successfully')
+        }
       } catch (error) {
         console.error('[APP RESUME] Error during refresh:', error)
         // Clear the flag even on error to prevent retry loops
@@ -2460,7 +2473,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         stuckMessageCheckIntervalRef.current = null
       }
     }
-  }, [leadData?.id]) // Only depend on leadId, not supabase (which is now a ref)
+  }, [leadData?.id, realtimeGeneration]) // Depend on leadId and realtimeGeneration for resume-triggered re-subscription
 
   const handleSendMessage = async (e?: React.FormEvent | File[]) => {
     // Prevent form submission and page refresh
@@ -2537,13 +2550,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // This prevents the text from appearing in both the composer and thread
     setMessage('')
     
-    // Clear attachment previews immediately for MMS
-    if (isMMS) {
-      setMobileImages([])
-      if (clearComposerImagesRef.current) {
-        clearComposerImagesRef.current()
-      }
-    }
+    // Note: Attachments are NOT cleared here - they will be cleared after successful send
+    // to allow retry on failure
     
     setSending(true)
     setError('')
@@ -2802,6 +2810,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           }).catch(error => {
             console.error('[IntelligenceInvalidation] Failed:', error)
           })
+        }
+
+        // Clear attachments only after successful send
+        if (isMMS) {
+          setMobileImages([])
+          if (clearComposerImagesRef.current) {
+            clearComposerImagesRef.current()
+          }
         }
       }
 

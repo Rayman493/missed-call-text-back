@@ -259,8 +259,16 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
     try {
       const result = await handleBillingAction()
       if (result.success && result.url) {
-        if (typeof window !== 'undefined' && window.location) {
+        // For native platforms, the URL is opened by the native session helper
+        // For web, we need to navigate manually
+        const { isCapacitorNative } = await import('@/capacitor/init')
+        if (!isCapacitorNative()) {
           window.location.href = result.url
+        }
+        // Native platforms: loading will be cleared by external return handler listener
+        // unless user canceled
+        if (result.canceled) {
+          console.log('[BottomNav] Billing portal canceled')
         }
       } else if (result.error) {
         showToast(result.error, 'error')
@@ -269,6 +277,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
     } catch (error) {
       console.error('[MOBILE BILLING ERROR] Billing action error:', error)
       showToast('Unable to open billing right now. Please try again.', 'error')
+      setIsMoreMenuOpen(false)
     }
   }
 

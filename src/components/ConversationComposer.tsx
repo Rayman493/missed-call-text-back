@@ -28,6 +28,7 @@ interface AttachmentPreview {
   preview: string | null
   id: string
   fileType: 'image' | 'document' | 'video'
+  filename: string
 }
 
 export default function ConversationComposer({
@@ -174,7 +175,8 @@ export default function ConversationComposer({
         file,
         preview,
         id: Math.random().toString(36).substr(2, 9),
-        fileType
+        fileType,
+        filename: file.name
       })
     })
 
@@ -191,6 +193,11 @@ export default function ConversationComposer({
       totalAttachments: newAttachments.length,
       newAttachmentNames: newAttachments.map(att => att.file.name)
     })
+
+    // Clear the file input value to allow re-selection of the same file
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   const removeAttachment = (id: string) => {
@@ -263,7 +270,8 @@ export default function ConversationComposer({
         file,
         preview,
         id: Math.random().toString(36).substr(2, 9),
-        fileType
+        fileType,
+        filename: file.name
       })
     })
 
@@ -276,6 +284,11 @@ export default function ConversationComposer({
     }
 
     setAttachments(prev => [...prev, ...newAttachments])
+
+    // Clear the file input value to allow re-selection of the same file
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   const handleSend = () => {
@@ -362,7 +375,7 @@ export default function ConversationComposer({
                       <File className="w-8 h-8 text-muted-foreground/60 mb-1" />
                     )}
                     <span className="text-[10px] text-muted-foreground/70 text-center px-1 truncate w-full">
-                      {att.file.name.length > 15 ? att.file.name.substring(0, 12) + '...' : att.file.name}
+                      {att.filename.length > 15 ? att.filename.substring(0, 12) + '...' : att.filename}
                     </span>
                   </div>
                 )}
