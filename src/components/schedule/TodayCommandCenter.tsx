@@ -7,6 +7,11 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import type { Job } from '@/components/jobs/JobComposer'
 import { formatTime12Hour } from '@/lib/calendar-date-utils'
 
+// Mount/unmount diagnostics
+if (typeof window !== 'undefined') {
+  console.log('[TODAY_COMMAND_CENTER] Component file loaded', { timestamp: Date.now(), pathname: window.location.pathname })
+}
+
 interface Task {
   id: string
   title: string
@@ -65,6 +70,14 @@ export default function TodayCommandCenter({
   const supabase = createBrowserClient()
 
   const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local timezone
+
+  // Mount/unmount diagnostics
+  useEffect(() => {
+    console.log('[TODAY_COMMAND_CENTER] Component mounted', { timestamp: Date.now(), pathname: window.location.pathname })
+    return () => {
+      console.log('[TODAY_COMMAND_CENTER] Component unmounted', { timestamp: Date.now(), pathname: window.location.pathname })
+    }
+  }, [])
 
   // Helper function to resolve customer information from calendar event
   const getCustomerFromCalendarEvent = (event: CalendarEvent): string | null => {
@@ -506,7 +519,11 @@ export default function TodayCommandCenter({
             <div className="flex items-center gap-3">
               {onAddTask && (
                 <button
-                  onClick={onAddTask}
+                  type="button"
+                  onClick={(e) => {
+                    console.log('[TODAY_COMMAND_CENTER] + Task clicked', { timestamp: Date.now(), pathname: window.location.pathname })
+                    onAddTask()
+                  }}
                   className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
                   + Task
@@ -528,7 +545,11 @@ export default function TodayCommandCenter({
                 </p>
                 {onAddTask && (
                   <button
-                    onClick={onAddTask}
+                    type="button"
+                    onClick={(e) => {
+                      console.log('[TODAY_COMMAND_CENTER] + Add Task clicked', { timestamp: Date.now(), pathname: window.location.pathname })
+                      onAddTask()
+                    }}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
                   >
                     + Add Task
@@ -613,7 +634,11 @@ export default function TodayCommandCenter({
             <div className="flex items-center gap-3">
               {onAddJob && (
                 <button
-                  onClick={onAddJob}
+                  type="button"
+                  onClick={(e) => {
+                    console.log('[TODAY_COMMAND_CENTER] + Job clicked', { timestamp: Date.now(), pathname: window.location.pathname })
+                    onAddJob()
+                  }}
                   className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
                   + Job
@@ -621,6 +646,7 @@ export default function TodayCommandCenter({
               )}
               <Link
                 href="/dashboard/leads"
+                onClick={() => console.log('[TODAY_COMMAND_CENTER] Jobs View all clicked', { timestamp: Date.now(), pathname: window.location.pathname })}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
                 View all →
@@ -635,7 +661,11 @@ export default function TodayCommandCenter({
                 </p>
                 {onAddJob && (
                   <button
-                    onClick={onAddJob}
+                    type="button"
+                    onClick={(e) => {
+                      console.log('[TODAY_COMMAND_CENTER] + Create Job clicked', { timestamp: Date.now(), pathname: window.location.pathname })
+                      onAddJob()
+                    }}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
                   >
                     + Create Job
@@ -708,7 +738,11 @@ export default function TodayCommandCenter({
             <div className="flex items-center gap-3">
               {onAddAppointment && (
                 <button
-                  onClick={onAddAppointment}
+                  type="button"
+                  onClick={(e) => {
+                    console.log('[TODAY_COMMAND_CENTER] + Appointment clicked', { timestamp: Date.now(), pathname: window.location.pathname })
+                    onAddAppointment()
+                  }}
                   className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
                   + Appointment
@@ -716,6 +750,7 @@ export default function TodayCommandCenter({
               )}
               <Link
                 href="/dashboard/calendar"
+                onClick={() => console.log('[TODAY_COMMAND_CENTER] Appointments View all clicked', { timestamp: Date.now(), pathname: window.location.pathname })}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
                 View all →
@@ -730,7 +765,11 @@ export default function TodayCommandCenter({
                 </p>
                 {onAddAppointment && (
                   <button
-                    onClick={onAddAppointment}
+                    type="button"
+                    onClick={(e) => {
+                      console.log('[TODAY_COMMAND_CENTER] + Schedule Appointment clicked', { timestamp: Date.now(), pathname: window.location.pathname })
+                      onAddAppointment()
+                    }}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
                   >
                     + Schedule Appointment
