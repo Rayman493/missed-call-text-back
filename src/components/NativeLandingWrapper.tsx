@@ -60,6 +60,13 @@ export default function NativeLandingWrapper({ children }: { children: React.Rea
     // Redirect based on authentication state
     if (user) {
       console.log('[ACCOUNT_CREATION_STARTUP_TRACE] redirect_to_dashboard source=NativeLandingWrapper reason=user_present route=/')
+      console.log('[DASHBOARD_NAV]', {
+        source: 'NativeLandingWrapper',
+        pathname,
+        target: '/dashboard',
+        reason: 'native platform with authenticated user on root route',
+        timestamp: Date.now()
+      })
       router.replace('/dashboard')
     } else {
       if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {

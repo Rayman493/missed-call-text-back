@@ -105,7 +105,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           .from('messages')
           .select(`
             *,
-            leads(id, name, caller_phone)
+            leads(id, caller_phone)
           `)
           .or(`from_phone.eq.${businessPhone},to_phone.eq.${businessPhone}`)
           .gte('created_at', sevenDaysAgo)
@@ -115,7 +115,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         // Add voicemails through leads
         const { data: voicemailLeads } = await supabase
           .from('leads')
-          .select('id, voicemail_recordings (id, recording_url, recording_duration, recording_status, created_at), caller_phone, name')
+          .select('id, voicemail_recordings (id, recording_url, recording_duration, recording_status, created_at), caller_phone')
           .eq('business_id', business.id)
           .gte('created_at', sevenDaysAgo)
           .order('created_at', { ascending: false })
@@ -129,7 +129,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         // Add lead captures
         leads?.forEach((lead: any) => {
           const intake = getLeadAIIntake(lead)
-          const customerName = intake.customerName || lead.name || 'Unknown'
+          const customerName = intake.customerName || 'Unknown'
           const conciseTitle = getLeadRequestTitle(lead) || intake.serviceRequested || ''
           const displayName = getDisplayName(customerName, lead.caller_phone)
 

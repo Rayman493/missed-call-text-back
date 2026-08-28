@@ -3373,9 +3373,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   setInternalNotesValue(leadData?.notes || '')
                   setShowInternalNotesModal(true)
                 }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                className="inline-flex items-center justify-center w-8 h-8 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                aria-label={Boolean((leadData?.notes || '').trim()) ? 'Edit internal note' : 'Add internal note'}
+                title={Boolean((leadData?.notes || '').trim()) ? 'Edit internal note' : 'Add internal note'}
               >
-                {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add note'}
+                <Plus className="w-4 h-4" />
               </button>
             </div>
           </div>

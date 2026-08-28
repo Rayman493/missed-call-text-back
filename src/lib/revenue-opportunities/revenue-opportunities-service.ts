@@ -93,7 +93,7 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
   ): Promise<RevenueOpportunity[]> {
     const { data: allLeads } = await supabase
       .from('leads')
-      .select('id, phone, raw_metadata')
+      .select('id, caller_phone, raw_metadata')
       .eq('business_id', businessId)
 
     // Filter for leads with AI intake data (stored in raw_metadata)
@@ -173,7 +173,7 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
     const leadIds = jobsWithoutPayments.map((j: any) => j.lead_id)
     const { data: leads } = await supabase
       .from('leads')
-      .select('id, phone, raw_metadata')
+      .select('id, caller_phone, raw_metadata')
       .eq('business_id', businessId)
       .in('id', leadIds)
 
@@ -223,7 +223,7 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
     // Get leads with recent messages but no recent activity
     const { data: allLeads } = await supabase
       .from('leads')
-      .select('id, phone, raw_metadata, created_at')
+      .select('id, caller_phone, raw_metadata, created_at')
       .eq('business_id', businessId)
       .order('created_at', { ascending: false })
       .limit(50)
@@ -409,7 +409,7 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
     if (aiIntake?.customerName) {
       return aiIntake.customerName
     }
-    return lead.phone || 'Unknown'
+    return lead.caller_phone || 'Unknown'
   }
 
   /**

@@ -58,7 +58,7 @@ class CustomerReactivationService implements CustomerReactivationServiceInterfac
     const leadIds = Array.from(jobsByLead.keys())
     const { data: leads } = await supabase
       .from('leads')
-      .select('id, phone, raw_metadata')
+      .select('id, caller_phone, raw_metadata')
       .eq('business_id', context.businessId)
       .in('id', leadIds)
 
@@ -379,7 +379,7 @@ class CustomerReactivationService implements CustomerReactivationServiceInterfac
     if (aiIntake?.customerName) {
       return aiIntake.customerName
     }
-    return lead.phone || 'Unknown'
+    return lead.caller_phone || 'Unknown'
   }
 
   /**

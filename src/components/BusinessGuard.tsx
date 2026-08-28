@@ -125,6 +125,14 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       if (!user) {
         if (hasRedirectedRef.current === pathname) return
         hasRedirectedRef.current = pathname
+        console.log('[BUSINESS_GUARD_NAV]', {
+          pathname,
+          target: '/auth/signin?redirect=/dashboard',
+          reason: 'no user authenticated',
+          loading,
+          initialized,
+          timestamp: Date.now()
+        })
         router.push('/auth/signin?redirect=/dashboard')
         return
       }
@@ -136,11 +144,27 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
 
           if (!session) {
             hasRedirectedRef.current = pathname
+            console.log('[BUSINESS_GUARD_NAV]', {
+              pathname,
+              target: '/auth/signin?redirect=/dashboard',
+              reason: 'no business and no session',
+              loading,
+              initialized,
+              timestamp: Date.now()
+            })
             router.push('/auth/signin?redirect=/dashboard')
             return
           }
 
           hasRedirectedRef.current = pathname
+          console.log('[BUSINESS_GUARD_NAV]', {
+            pathname,
+            target: '/onboarding',
+            reason: 'no business after fetch complete',
+            loading,
+            initialized,
+            timestamp: Date.now()
+          })
           router.push('/onboarding')
           return
         }
@@ -156,6 +180,14 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         
         // Redirect to complete-setup page instead of immediately redirecting to Stripe
         // This gives users an escape hatch to delete their account if they abandon checkout
+        console.log('[BUSINESS_GUARD_NAV]', {
+          pathname,
+          target: '/complete-setup',
+          reason: 'subscription_status is null',
+          loading,
+          initialized,
+          timestamp: Date.now()
+        })
         router.push('/complete-setup')
         return
       }
@@ -165,6 +197,14 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
 
       // Forwarding not verified - redirect to test-setup (only on non-dashboard pages)
       if (business.call_forwarding_enabled && !business.forwarding_verified && !pathname?.startsWith('/dashboard/test-setup') && !pathname?.startsWith('/dashboard') && hasAccess) {
+        console.log('[BUSINESS_GUARD_NAV]', {
+          pathname,
+          target: '/dashboard/test-setup',
+          reason: 'forwarding enabled but not verified',
+          loading,
+          initialized,
+          timestamp: Date.now()
+        })
         router.replace('/dashboard/test-setup')
         return
       }
@@ -176,10 +216,26 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         } else {
           if (hasRedirectedRef.current === pathname) return
           if (!session) {
+            console.log('[BUSINESS_GUARD_NAV]', {
+              pathname,
+              target: '/auth/signin?redirect=/dashboard',
+              reason: 'no basic profile, no access, no session',
+              loading,
+              initialized,
+              timestamp: Date.now()
+            })
             router.push('/auth/signin?redirect=/dashboard')
             return
           }
           hasRedirectedRef.current = pathname
+          console.log('[BUSINESS_GUARD_NAV]', {
+            pathname,
+            target: '/onboarding',
+            reason: 'no basic profile, no access',
+            loading,
+            initialized,
+            timestamp: Date.now()
+          })
           router.push('/onboarding')
           return
         }
@@ -287,6 +343,14 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
     // This handles orphan auth users gracefully
     if (hasRedirectedRef.current === pathname) return
     hasRedirectedRef.current = pathname
+    console.log('[BUSINESS_GUARD_NAV]', {
+      pathname,
+      target: '/onboarding',
+      reason: 'no business after fetch complete',
+      loading,
+      initialized,
+      timestamp: Date.now()
+    })
     router.push('/onboarding')
     return <GenericLoadingScreen />
   }

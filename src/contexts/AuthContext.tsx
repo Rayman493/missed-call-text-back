@@ -169,6 +169,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('[Auth] Session restore failed:', error)
       } finally {
+        console.log('[AUTH_STATE_DIAGNOSTIC]', {
+          event: 'hydrationComplete',
+          previousUserPresent: !!user,
+          nextUserPresent: !!user,
+          loading: false,
+          authHydrated: true,
+          pathname,
+          timestamp: Date.now()
+        })
         console.log('[ACCOUNT_CREATION_STARTUP_TRACE] auth_hydrated_complete loading=false authHydrated=true userPresent=' + !!user + ' userId=' + (user?.id?.substring(0, 8) || null) + ' pathname=' + pathname)
         if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
           (window as any).__recordStartupEvent('loading_false', { pathname })
@@ -277,6 +286,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         if (session) {
+          console.log('[AUTH_STATE_DIAGNOSTIC]', {
+            event: 'setUser',
+            previousUserPresent: !!user,
+            nextUserPresent: !!(session?.user),
+            loading,
+            authHydrated,
+            pathname,
+            timestamp: Date.now()
+          })
           setSession(session)
           setUser(session.user)
           setAccessToken(session.access_token)
@@ -302,6 +320,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
         } else {
+          console.log('[AUTH_STATE_DIAGNOSTIC]', {
+            event: 'clearUser',
+            previousUserPresent: !!user,
+            nextUserPresent: false,
+            loading,
+            authHydrated,
+            pathname,
+            timestamp: Date.now()
+          })
           console.log('[ACCOUNT_CREATION_STARTUP_TRACE] auth_state_change_clearing_user_session event=' + event + ' pathname=' + pathname)
           if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
             (window as any).__recordStartupEvent('auth_state_change_clearing_user_session', {

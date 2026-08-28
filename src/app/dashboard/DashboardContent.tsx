@@ -241,18 +241,26 @@ export default function DashboardContent() {
   // Track dashboard routes for smart redirect
   useDashboardRouteTracking()
 
-  // Add enhanced scrollbar class for Home/Dashboard page
-  useEffect(() => {
-    document.body.classList.add('dashboard-route')
-    return () => {
-      document.body.classList.remove('dashboard-route')
-    }
-  }, [])
-
   const { business, loading: businessLoading, fetchComplete: businessFetchComplete, refreshBusiness } = useBusiness()
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
+
+  // Route transition observer - neutral observer that logs pathname changes
+  const previousPathnameRef = useRef<string | null>(null)
+  useEffect(() => {
+    const currentPathname = pathname
+    if (previousPathnameRef.current !== null && previousPathnameRef.current !== currentPathname) {
+      console.log('[ROUTE_TRANSITION_OBSERVED]', {
+        previousPathname: previousPathnameRef.current,
+        nextPathname: currentPathname,
+        timestamp: Date.now()
+      })
+    }
+    previousPathnameRef.current = currentPathname
+  }, [pathname])
+
+  // Add enhanced scrollbar class for Home/Dashboard page
   const searchParams = useSearchParams()
 
   // Setup mode detection - check if user came from billing success
@@ -309,6 +317,13 @@ export default function DashboardContent() {
       // Show user-friendly cancellation message
       showToast('Checkout Not Completed. You can try again when you\'re ready.', 'info')
       // Clean up URL to prevent stale message on refresh
+      console.log('[DASHBOARD_NAV]', {
+        source: 'DashboardContent.StripeCancel',
+        pathname,
+        target: '/dashboard',
+        reason: 'checkout=cancelled parameter detected',
+        timestamp: Date.now()
+      })
       router.replace('/dashboard')
     }
   }, [checkoutStatus, refreshBusiness, router])
@@ -535,6 +550,13 @@ export default function DashboardContent() {
       if (restored) {
         clearInterval(recoveryInterval)
         setIsRecoveringSession(false)
+        console.log('[DASHBOARD_NAV]', {
+          source: 'DashboardContent.SessionRecovery',
+          pathname,
+          target: '/dashboard',
+          reason: 'session recovery successful',
+          timestamp: Date.now()
+        })
         router.replace('/dashboard')
       }
     }, RETRY_INTERVAL)
@@ -548,6 +570,13 @@ export default function DashboardContent() {
         router.push('/auth/signin?redirect=/dashboard')
       } else {
         setIsRecoveringSession(false)
+        console.log('[DASHBOARD_NAV]', {
+          source: 'DashboardContent.SessionRecoveryFallback',
+          pathname,
+          target: '/dashboard',
+          reason: 'session recovery fallback timeout',
+          timestamp: Date.now()
+        })
         router.replace('/dashboard')
       }
     }, RECOVERY_TIMEOUT)

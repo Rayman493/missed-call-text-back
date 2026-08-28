@@ -176,6 +176,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         ? `/auth/signin?redirect=/dashboard&reason=session_restore_failed&session_id=${sessionId}`
         : `/auth/signin?redirect=/dashboard&reason=session_restore_failed`
 
+      console.log('[AUTH_GUARD_NAV]', {
+        pathname: pathnameRef.current,
+        target: signinUrl,
+        reason: 'billing grace timeout elapsed',
+        userPresent: !!user,
+        loading,
+        timestamp: Date.now()
+      })
       router.push(signinUrl)
     }, graceTimeoutMs)
 
@@ -234,6 +242,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             ? `/auth/recover-session?checkout=success&session_id=${sessionId}`
             : `/auth/recover-session?checkout=success`
           
+          console.log('[AUTH_GUARD_NAV]', {
+            pathname: pathnameRef.current,
+            target: recoveryUrl,
+            reason: 'checkout recovery timeout elapsed',
+            userPresent: !!user,
+            loading,
+            timestamp: Date.now()
+          })
           router.push(recoveryUrl)
         }
       })
@@ -307,6 +323,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     })
     if (!user && !loading) {
       const returnTo = encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/dashboard?setup=1')
+      console.log('[AUTH_GUARD_NAV]', {
+        pathname: pathnameRef.current,
+        target: `/auth/signin?returnTo=${returnTo}`,
+        reason: 'stripe setup return - no session',
+        userPresent: !!user,
+        loading,
+        timestamp: Date.now()
+      })
       router.push(`/auth/signin?returnTo=${returnTo}`)
       return <AppLoadingScreen />
     }
