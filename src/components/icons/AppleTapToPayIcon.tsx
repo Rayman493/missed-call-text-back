@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Capacitor } from '@capacitor/core'
+import { WavesHorizontal } from 'lucide-react'
 import { renderSFSymbol, getSFSymbolDataUrl } from '@/lib/sf-symbol-renderer'
 
 export interface AppleTapToPayIconProps {
@@ -14,7 +15,7 @@ export interface AppleTapToPayIconProps {
  * Apple Tap to Pay Icon
  *
  * On iOS: Renders genuine wave.3.right.circle SF Symbol using native UIImage(systemName:)
- * On Android/Web: Renders a fallback SVG approximation
+ * On Android/Web: Renders WavesHorizontal icon from lucide-react (conventional contactless/NFC symbol)
  *
  * The iOS implementation ensures Apple HIG compliance for Tap to Pay on iPhone.
  *
@@ -112,20 +113,12 @@ export default function AppleTapToPayIcon({ className = '', size = 24, color }: 
     }
   }
 
-  // Android/Web: Fallback SVG approximation (uses currentColor from className)
+  // Android/Web: Use WavesHorizontal icon from lucide-react (conventional contactless/NFC symbol)
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+    <WavesHorizontal
+      size={size}
       className={className}
       aria-hidden="true"
-    >
-      <path d="M12 8C14.21 8 16 9.79 16 12C16 14.21 14.21 16 12 16C9.79 16 8 14.21 8 12C8 9.79 9.79 8 12 8Z" fill="currentColor"/>
-      <path d="M12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M12 0C18.63 0 24 5.37 24 12C24 18.63 18.63 24 12 24C5.37 24 0 18.63 0 12C0 5.37 5.37 0 12 0Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    </svg>
+    />
   )
 }

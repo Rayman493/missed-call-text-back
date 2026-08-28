@@ -2742,12 +2742,12 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         
         {/* Selected Item Info Card */}
         {selectedItem && (
-          <div className="absolute bottom-4 left-4 right-4 md:left-6 md:right-auto md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-20 p-4">
+          <div className="absolute bottom-4 left-4 right-4 md:left-6 md:right-auto md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-20 p-3 md:p-4">
             {/* Mobile: Compact row layout */}
             <div className="md:hidden">
               {/* Row 1: Stop info + summary + close */}
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className={`w-5 h-5 rounded flex items-center justify-center font-bold text-[10px] flex-shrink-0 ${
                   selectedItem.type === 'business' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
                   selectedItem.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                 }`}>
@@ -2757,7 +2757,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                   <p className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
                     {selectedItem.type === 'business' ? 'Business' : `Stop ${selectedItem.stopNumber} · ${formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime)}`}
                   </p>
-                  <p className="text-xs font-medium text-foreground truncate">
+                  <p className="text-[11px] font-medium text-foreground truncate">
                     {selectedItem.type === 'business' ? selectedItem.title : (selectedItem.customerName || selectedItem.title)}
                   </p>
                 </div>
@@ -2766,22 +2766,22 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                   className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors flex-shrink-0"
                   aria-label="Close"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
 
               {/* Row 2: Address or type */}
-              <div className="flex items-center gap-1.5 mb-2">
+              <div className="flex items-center gap-1 mb-1.5">
                 {selectedItem.type === 'business' ? (
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Home Base</span>
                 ) : (
                   <>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                    <span className={`text-[10px] px-1 py-0.5 rounded font-medium ${
                       selectedItem.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                     }`}>
-                      {selectedItem.type === 'job' ? 'Job' : 'Appointment'}
+                      {selectedItem.type === 'job' ? 'Job' : 'Appt'}
                     </span>
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate flex-1">
                       {selectedItem.address || 'No location'}
@@ -2792,30 +2792,30 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
               {/* Row 3: Actions */}
               {selectedItem.type !== 'business' && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   {sortedItems.filter(item => item.type !== 'business').length > 1 && (
                     <>
                       <button
                         onClick={() => navigateToStop('previous')}
-                        className="flex items-center gap-1 px-2 py-1 text-[10px] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                        className="flex items-center gap-0.5 px-2 py-1 text-[10px] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
                       >
-                        <ArrowLeft className="w-3 h-3" />
+                        <ArrowLeft className="w-2.5 h-2.5" />
                         Prev
                       </button>
                       <button
                         onClick={() => navigateToStop('next')}
-                        className="flex items-center gap-1 px-2 py-1 text-[10px] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                        className="flex items-center gap-0.5 px-2 py-1 text-[10px] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
                       >
                         Next
-                        <ArrowRight className="w-3 h-3" />
+                        <ArrowRight className="w-2.5 h-2.5" />
                       </button>
                     </>
                   )}
                   <button
                     onClick={() => handleViewItem(selectedItem)}
-                    className="flex-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-medium rounded-lg transition-colors"
+                    className="flex-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-medium rounded-lg transition-colors"
                   >
-                    View Details
+                    View
                   </button>
                 </div>
               )}
