@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 
 interface ProvidersWrapperProps {
@@ -29,6 +29,61 @@ function normalizePathname(pathname: string | null): string {
 export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
   const pathname = usePathname()
   const [isClient, setIsClient] = useState(false)
+
+  // Route transition observer - neutral observer that logs pathname changes
+  const previousPathnameRef = useRef<string | null>(null)
+  useEffect(() => {
+    const currentPathname = pathname
+    if (previousPathnameRef.current !== null && previousPathnameRef.current !== currentPathname) {
+      console.log('[ROUTE_TRANSITION_OBSERVED]', {
+        previousPathname: previousPathnameRef.current,
+        nextPathname: currentPathname,
+        timestamp: Date.now()
+      })
+    }
+    previousPathnameRef.current = currentPathname
+  }, [pathname])
+
+  // Document-level click capture for navigation targets
+  useEffect(() => {
+    if (!isClient) return
+
+    const handleClick = (e: Event) => {
+      const target = e.target as HTMLElement
+      const anchor = target.closest('a[href]') as HTMLAnchorElement | null
+      if (anchor) {
+        const href = anchor.getAttribute('href')
+        // Only log navigation to /dashboard/leads or /dashboard/calendar
+        if (href === '/dashboard/leads' || href === '/dashboard/calendar' || href?.startsWith('/dashboard/leads/') || href?.startsWith('/dashboard/calendar/')) {
+          console.log('[CLICK_CAPTURE_DIAGNOSTIC]', {
+            targetTag: anchor.tagName.toLowerCase(),
+            nearestHref: href,
+            pathname,
+            timestamp: Date.now()
+          })
+        }
+      }
+    }
+
+    document.addEventListener('click', handleClick, true)
+    return () => document.removeEventListener('click', handleClick, true)
+  }, [isClient, pathname])
+
+  // Popstate observation
+  useEffect(() => {
+    if (!isClient) return
+
+    const handlePopState = () => {
+      console.log('[POPSTATE_DIAGNOSTIC]', {
+        pathname: window.location.pathname,
+        timestamp: Date.now()
+      })
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [isClient])
+
   const [providersLoaded, setProvidersLoaded] = useState(false)
   const [AuthProvider, setAuthProvider] = useState<any>(null)
   const [BusinessProvider, setBusinessProvider] = useState<any>(null)

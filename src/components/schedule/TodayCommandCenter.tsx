@@ -546,7 +546,29 @@ export default function TodayCommandCenter({
                 {onAddTask && (
                   <button
                     type="button"
-                    onClick={(e) => {
+                    onPointerDown={() => {
+                      console.log('[QUICK_CLICK_EVENT_TRACE]', {
+                        source: 'TodayCommandCenter.AddTask',
+                        eventType: 'pointerdown',
+                        pathname: window.location.pathname,
+                        timestamp: Date.now()
+                      })
+                    }}
+                    onPointerUp={() => {
+                      console.log('[QUICK_CLICK_EVENT_TRACE]', {
+                        source: 'TodayCommandCenter.AddTask',
+                        eventType: 'pointerup',
+                        pathname: window.location.pathname,
+                        timestamp: Date.now()
+                      })
+                    }}
+                    onClick={() => {
+                      console.log('[QUICK_CLICK_EVENT_TRACE]', {
+                        source: 'TodayCommandCenter.AddTask',
+                        eventType: 'click',
+                        pathname: window.location.pathname,
+                        timestamp: Date.now()
+                      })
                       console.log('[TODAY_COMMAND_CENTER] + Add Task clicked', { timestamp: Date.now(), pathname: window.location.pathname })
                       onAddTask()
                     }}
@@ -646,7 +668,38 @@ export default function TodayCommandCenter({
               )}
               <Link
                 href="/dashboard/leads"
-                onClick={() => console.log('[TODAY_COMMAND_CENTER] Jobs View all clicked', { timestamp: Date.now(), pathname: window.location.pathname })}
+                onPointerDown={() => {
+                  console.log('[QUICK_CLICK_EVENT_TRACE]', {
+                    source: 'TodayCommandCenter.JobsViewAll',
+                    eventType: 'pointerdown',
+                    pathname: window.location.pathname,
+                    timestamp: Date.now()
+                  })
+                }}
+                onPointerUp={() => {
+                  console.log('[QUICK_CLICK_EVENT_TRACE]', {
+                    source: 'TodayCommandCenter.JobsViewAll',
+                    eventType: 'pointerup',
+                    pathname: window.location.pathname,
+                    timestamp: Date.now()
+                  })
+                }}
+                onClick={(e) => {
+                  console.log('[QUICK_CLICK_EVENT_TRACE]', {
+                    source: 'TodayCommandCenter.JobsViewAll',
+                    eventType: 'click',
+                    pathname: window.location.pathname,
+                    timestamp: Date.now()
+                  })
+                  console.log('[LEADS_NAV_SOURCE]', {
+                    source: 'TodayCommandCenter.JobsViewAll',
+                    eventType: 'click',
+                    currentPathname: window.location.pathname,
+                    target: '/dashboard/leads',
+                    timestamp: Date.now()
+                  })
+                  console.log('[TODAY_COMMAND_CENTER] Jobs View all clicked', { timestamp: Date.now(), pathname: window.location.pathname })
+                }}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
                 View all →

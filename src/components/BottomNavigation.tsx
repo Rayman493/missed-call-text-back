@@ -295,6 +295,37 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onPointerDown={() => {
+                    console.log('[QUICK_CLICK_EVENT_TRACE]', {
+                      source: 'BottomNavigation.' + item.label,
+                      eventType: 'pointerdown',
+                      currentPathname: pathname,
+                      timestamp: Date.now()
+                    })
+                  }}
+                  onPointerUp={() => {
+                    console.log('[QUICK_CLICK_EVENT_TRACE]', {
+                      source: 'BottomNavigation.' + item.label,
+                      eventType: 'pointerup',
+                      currentPathname: pathname,
+                      timestamp: Date.now()
+                    })
+                  }}
+                  onClick={() => {
+                    console.log('[QUICK_CLICK_EVENT_TRACE]', {
+                      source: 'BottomNavigation.' + item.label,
+                      eventType: 'click',
+                      currentPathname: pathname,
+                      timestamp: Date.now()
+                    })
+                    console.log('[LEADS_NAV_SOURCE]', {
+                      source: 'BottomNavigation.' + item.label,
+                      eventType: 'click',
+                      currentPathname: pathname,
+                      target: item.href,
+                      timestamp: Date.now()
+                    })
+                  }}
                   className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-colors duration-150 ${
                     isActive(item.href)
                       ? 'text-foreground'

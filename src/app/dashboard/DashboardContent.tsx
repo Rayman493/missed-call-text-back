@@ -246,20 +246,6 @@ export default function DashboardContent() {
   const router = useRouter()
   const pathname = usePathname()
 
-  // Route transition observer - neutral observer that logs pathname changes
-  const previousPathnameRef = useRef<string | null>(null)
-  useEffect(() => {
-    const currentPathname = pathname
-    if (previousPathnameRef.current !== null && previousPathnameRef.current !== currentPathname) {
-      console.log('[ROUTE_TRANSITION_OBSERVED]', {
-        previousPathname: previousPathnameRef.current,
-        nextPathname: currentPathname,
-        timestamp: Date.now()
-      })
-    }
-    previousPathnameRef.current = currentPathname
-  }, [pathname])
-
   // Add enhanced scrollbar class for Home/Dashboard page
   const searchParams = useSearchParams()
 
