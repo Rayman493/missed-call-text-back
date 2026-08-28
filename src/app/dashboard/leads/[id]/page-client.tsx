@@ -57,9 +57,10 @@ import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skelet
 import EmptyState from '@/components/ui/EmptyState'
 import Modal from '@/components/ui/Modal'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
-import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle } from 'lucide-react'
+import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle, Pencil } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import NewTaskModal from '@/components/schedule/NewTaskModal'
+import EditCustomerModal from '@/components/EditCustomerModal'
 import { SidebarSection } from '@/components/SidebarSection'
 import SuccessBanner from '@/components/SuccessBanner'
 import BusinessPhoneModal from '@/components/BusinessPhoneModal'
@@ -493,6 +494,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [internalNotes, setInternalNotes] = useState(leadData?.notes || '')
   const [isSavingNotes, setIsSavingNotes] = useState(false)
   const [showLeadInfo, setShowLeadInfo] = useState(false)
+  const [showEditCustomer, setShowEditCustomer] = useState(false)
   const [internalNotesExpanded, setInternalNotesExpanded] = useState(false)
   const [autoFocusNotes, setAutoFocusNotes] = useState(false)
   const [highlightedTimelineItemId, setHighlightedTimelineItemId] = useState<string | null>(null)
@@ -3852,6 +3854,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <p className="text-[11px] text-muted-foreground/80 truncate">
                     {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                   </p>
+                  {leadData?.email && (
+                    <>
+                      <span className="text-muted-foreground/40">•</span>
+                      <p className="text-[11px] text-muted-foreground/80 truncate">
+                        {leadData.email}
+                      </p>
+                    </>
+                  )}
                   {(() => {
                     const nextAction = getNextAction(leadData || lead)
                     const rawStatus = leadData?.status || lead?.status || lead?.lead_status
@@ -4082,6 +4092,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <p className="text-sm text-muted-foreground/80 leading-tight">
                           {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                         </p>
+                        {leadData?.email && (
+                          <>
+                            <span className="text-muted-foreground/40">•</span>
+                            <p className="text-sm text-muted-foreground/80 leading-tight truncate">
+                              {leadData.email}
+                            </p>
+                          </>
+                        )}
                       </div>
                     </div>
                 </div>
@@ -5076,12 +5094,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-semibold text-slate-900 dark:text-white">Customer Details</h3>
                 <button
-                  onClick={() => setShowLeadInfo(false)}
-                  className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  onClick={() => {
+                    setShowLeadInfo(false)
+                    setShowEditCustomer(true)
+                  }}
+                  className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                  title="Edit customer"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <Pencil className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -5098,6 +5118,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
                   <div>
                     <h4 className="font-semibold text-slate-900 dark:text-white">{formatPhoneNumber(lead?.caller_phone || '')}</h4>
+                    {leadData?.email && (
+                      <p className="text-xs text-slate-600 dark:text-slate-400 truncate">{leadData.email}</p>
+                    )}
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
                       {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
                     </span>
@@ -5184,6 +5207,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </svg>
               Customer Information
             </h3>
+            <button
+              onClick={() => {
+                setShowLeadInfo(false)
+                setShowEditCustomer(true)
+              }}
+              className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors ml-auto"
+              title="Edit customer"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
             
             {/* Customer Information */}
             <div className="space-y-4">
@@ -5200,6 +5233,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <span className="text-muted-foreground">Phone:</span>
                     <span className="font-mono">{formatPhoneNumber(lead?.caller_phone || '')}</span>
                   </div>
+                  {leadData?.email && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Email:</span>
+                      <span className="truncate">{leadData.email}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Status:</span>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
@@ -5826,6 +5865,17 @@ If you have questions, reply to this message.`
         }
       }}
       preselectedLeadId={params.id}
+    />
+
+    {/* Edit Customer Modal */}
+    <EditCustomerModal
+      isOpen={showEditCustomer}
+      onClose={() => setShowEditCustomer(false)}
+      leadId={params.id}
+      leadData={leadData}
+      onCustomerUpdated={async () => {
+        await handleRefresh()
+      }}
     />
 
     {/* Job Composer Modal */}

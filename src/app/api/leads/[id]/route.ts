@@ -71,7 +71,68 @@ export async function PATCH(
 
     const leadId = id;
     const body = await request.json();
-    const { status, deleted_at, deleted_by, deletion_reason, raw_metadata, contact_name, company_name, tags, notes } = body;
+    const { status, deleted_at, deleted_by, deletion_reason, raw_metadata, contact_name, company_name, tags, notes, is_simple_update } = body;
+
+    // Handle simple customer profile update (from EditCustomer modal)
+    if (is_simple_update) {
+      const { data: currentLead, error: currentLeadError } = await supabase
+        .from('leads')
+        .select('id, raw_metadata, contact_name, company_name, notes')
+        .eq('id', leadId)
+        .eq('business_id', business.id!)
+        .single()
+
+      if (currentLeadError || !currentLead) {
+        console.error('Error loading lead before update:', currentLeadError)
+        return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
+      }
+
+      const currentMetadata = currentLead.raw_metadata || {}
+      const incomingMetadata = raw_metadata || {}
+      const incomingExtractedInfo = incomingMetadata.extracted_info || {}
+
+      // Safe metadata merge - preserve existing fields not being updated
+      const mergedExtractedInfo = {
+        ...(currentMetadata.extracted_info || {}),
+        ...incomingExtractedInfo
+      }
+
+      // Handle null/empty string as clearing the field
+      Object.keys(incomingExtractedInfo).forEach(key => {
+        if (incomingExtractedInfo[key] === null || incomingExtractedInfo[key] === '') {
+          delete mergedExtractedInfo[key]
+        }
+      })
+
+      const mergedRawMetadata = {
+        ...currentMetadata,
+        ...incomingMetadata,
+        extracted_info: mergedExtractedInfo
+      }
+
+      const updateData: Record<string, any> = {
+        raw_metadata: mergedRawMetadata
+      }
+
+      if (contact_name !== undefined) updateData.contact_name = contact_name
+      if (company_name !== undefined) updateData.company_name = company_name
+      if (notes !== undefined) updateData.notes = notes
+
+      const { data: updatedLead, error: updateError } = await supabase
+        .from('leads')
+        .update(updateData)
+        .eq('id', leadId)
+        .eq('business_id', business.id!)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating lead:', updateError);
+        return NextResponse.json({ error: 'Failed to update lead' }, { status: 500 });
+      }
+
+      return NextResponse.json({ lead: updatedLead });
+    }
 
     // Handle customer profile field updates (contact_name, company_name, tags, notes)
     if (contact_name !== undefined || company_name !== undefined || tags !== undefined || notes !== undefined) {
