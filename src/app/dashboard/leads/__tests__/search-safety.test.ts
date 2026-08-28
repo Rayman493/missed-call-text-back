@@ -1,13 +1,18 @@
 import { describe, it, expect } from 'vitest'
+import { normalizeLeadForApplication } from '@/lib/types'
 
 describe('Customers Page Search Safety Regression Tests', () => {
   describe('Test 1: Customer with complete fields', () => {
     it('should safely search customer with all fields present', () => {
-      const lead = {
+      const dbRow = {
         id: 'test-1',
         caller_phone: '(412) 253-3598',
-        name: 'Amber Johnson',
-        email: 'amber@example.com',
+        contact_name: 'Amber Johnson',
+        raw_metadata: {
+          extracted_info: {
+            email: 'amber@example.com'
+          }
+        },
         messages: [
           { content: 'Hi, I need help with plumbing', direction: 'inbound' }
         ],
@@ -20,10 +25,11 @@ describe('Customers Page Search Safety Regression Tests', () => {
         }
       }
 
+      const lead = normalizeLeadForApplication(dbRow)
+
       const searchQuery = 'amber'
       const q = searchQuery.toLowerCase().trim()
 
-      // Simulate the filtering logic
       const matchesSearch = !searchQuery ||
         (lead.caller_phone && lead.caller_phone.includes(searchQuery)) ||
         ((lead.name && lead.name !== 'Not collected') ? lead.name.toLowerCase().includes(q) : false) ||
@@ -35,13 +41,19 @@ describe('Customers Page Search Safety Regression Tests', () => {
 
   describe('Test 2: Customer missing optional fields', () => {
     it('should safely search customer with no phone', () => {
-      const lead = {
+      const dbRow = {
         id: 'test-2',
         caller_phone: null,
-        name: 'Ryan Smith',
-        email: 'ryan@example.com',
+        contact_name: 'Ryan Smith',
+        raw_metadata: {
+          extracted_info: {
+            email: 'ryan@example.com'
+          }
+        },
         messages: []
       }
+
+      const lead = normalizeLeadForApplication(dbRow)
 
       const searchQuery = 'ryan'
       const q = searchQuery.toLowerCase().trim()
@@ -55,13 +67,15 @@ describe('Customers Page Search Safety Regression Tests', () => {
     })
 
     it('should safely search customer with no email', () => {
-      const lead = {
+      const dbRow = {
         id: 'test-3',
         caller_phone: '(412) 253-3598',
-        name: 'Ryan Smith',
-        email: null,
+        contact_name: 'Ryan Smith',
+        raw_metadata: {},
         messages: []
       }
+
+      const lead = normalizeLeadForApplication(dbRow)
 
       const searchQuery = 'ryan'
       const q = searchQuery.toLowerCase().trim()
@@ -75,13 +89,19 @@ describe('Customers Page Search Safety Regression Tests', () => {
     })
 
     it('should safely search customer with no name', () => {
-      const lead = {
+      const dbRow = {
         id: 'test-4',
         caller_phone: '(412) 253-3598',
-        name: null,
-        email: 'ryan@example.com',
+        contact_name: null,
+        raw_metadata: {
+          extracted_info: {
+            email: 'ryan@example.com'
+          }
+        },
         messages: []
       }
+
+      const lead = normalizeLeadForApplication(dbRow)
 
       const searchQuery = 'ryan'
       const q = searchQuery.toLowerCase().trim()
@@ -97,11 +117,15 @@ describe('Customers Page Search Safety Regression Tests', () => {
 
   describe('Test 3: Customer with AI intake data', () => {
     it('should safely search customer with AI intake serviceRequested', () => {
-      const lead = {
+      const dbRow = {
         id: 'test-5',
         caller_phone: '(412) 253-3598',
-        name: 'Not collected',
-        email: 'customer@example.com',
+        contact_name: 'Not collected',
+        raw_metadata: {
+          extracted_info: {
+            email: 'customer@example.com'
+          }
+        },
         automation_settings: {
           ai_intake: {
             customerName: 'John Doe',
@@ -110,6 +134,8 @@ describe('Customers Page Search Safety Regression Tests', () => {
         },
         messages: []
       }
+
+      const lead = normalizeLeadForApplication(dbRow)
 
       const searchQuery = 'plumbing'
       const q = searchQuery.toLowerCase().trim()
@@ -125,11 +151,15 @@ describe('Customers Page Search Safety Regression Tests', () => {
     })
 
     it('should safely search customer with AI intake serviceAddress', () => {
-      const lead = {
+      const dbRow = {
         id: 'test-6',
         caller_phone: '(412) 253-3598',
-        name: 'Not collected',
-        email: 'customer@example.com',
+        contact_name: 'Not collected',
+        raw_metadata: {
+          extracted_info: {
+            email: 'customer@example.com'
+          }
+        },
         automation_settings: {
           ai_intake: {
             customerName: 'John Doe',
@@ -138,6 +168,8 @@ describe('Customers Page Search Safety Regression Tests', () => {
         },
         messages: []
       }
+
+      const lead = normalizeLeadForApplication(dbRow)
 
       const searchQuery = 'main'
       const q = searchQuery.toLowerCase().trim()
@@ -153,11 +185,15 @@ describe('Customers Page Search Safety Regression Tests', () => {
     })
 
     it('should safely handle null AI intake fields', () => {
-      const lead = {
+      const dbRow = {
         id: 'test-7',
         caller_phone: '(412) 253-3598',
-        name: 'Not collected',
-        email: 'customer@example.com',
+        contact_name: 'Not collected',
+        raw_metadata: {
+          extracted_info: {
+            email: 'customer@example.com'
+          }
+        },
         automation_settings: {
           ai_intake: {
             customerName: 'John Doe',
@@ -167,6 +203,8 @@ describe('Customers Page Search Safety Regression Tests', () => {
         },
         messages: []
       }
+
+      const lead = normalizeLeadForApplication(dbRow)
 
       const searchQuery = 'plumbing'
       const q = searchQuery.toLowerCase().trim()
@@ -185,13 +223,19 @@ describe('Customers Page Search Safety Regression Tests', () => {
 
   describe('Test 4: Customer with placeholder values', () => {
     it('should safely handle "Not collected" placeholder', () => {
-      const lead = {
+      const dbRow = {
         id: 'test-8',
         caller_phone: '(412) 253-3598',
-        name: 'Not collected',
-        email: 'Not collected',
+        contact_name: 'Not collected',
+        raw_metadata: {
+          extracted_info: {
+            email: 'Not collected'
+          }
+        },
         messages: []
       }
+
+      const lead = normalizeLeadForApplication(dbRow)
 
       const searchQuery = 'not collected'
       const q = searchQuery.toLowerCase().trim()
@@ -205,13 +249,19 @@ describe('Customers Page Search Safety Regression Tests', () => {
     })
 
     it('should safely handle empty string values', () => {
-      const lead = {
+      const dbRow = {
         id: 'test-9',
         caller_phone: '(412) 253-3598',
-        name: '',
-        email: '',
+        contact_name: '',
+        raw_metadata: {
+          extracted_info: {
+            email: ''
+          }
+        },
         messages: []
       }
+
+      const lead = normalizeLeadForApplication(dbRow)
 
       const searchQuery = 'test'
       const q = searchQuery.toLowerCase().trim()
@@ -227,15 +277,21 @@ describe('Customers Page Search Safety Regression Tests', () => {
 
   describe('Test 5: Message content search safety', () => {
     it('should safely search message content when present', () => {
-      const lead = {
+      const dbRow = {
         id: 'test-10',
         caller_phone: '(412) 253-3598',
-        name: 'Amber',
-        email: 'amber@example.com',
+        contact_name: 'Amber',
+        raw_metadata: {
+          extracted_info: {
+            email: 'amber@example.com'
+          }
+        },
         messages: [
           { content: 'I need help with plumbing repair', direction: 'inbound' }
         ]
       }
+
+      const lead = normalizeLeadForApplication(dbRow)
 
       const searchQuery = 'plumbing'
       const q = searchQuery.toLowerCase().trim()
@@ -249,15 +305,21 @@ describe('Customers Page Search Safety Regression Tests', () => {
     })
 
     it('should safely handle null message content', () => {
-      const lead = {
+      const dbRow = {
         id: 'test-11',
         caller_phone: '(412) 253-3598',
-        name: 'Amber',
-        email: 'amber@example.com',
+        contact_name: 'Amber',
+        raw_metadata: {
+          extracted_info: {
+            email: 'amber@example.com'
+          }
+        },
         messages: [
           { content: null, direction: 'inbound' }
         ]
       }
+
+      const lead = normalizeLeadForApplication(dbRow)
 
       const searchQuery = 'plumbing'
       const q = searchQuery.toLowerCase().trim()
@@ -271,15 +333,21 @@ describe('Customers Page Search Safety Regression Tests', () => {
     })
 
     it('should safely handle undefined message content', () => {
-      const lead = {
+      const dbRow = {
         id: 'test-12',
         caller_phone: '(412) 253-3598',
-        name: 'Amber',
-        email: 'amber@example.com',
+        contact_name: 'Amber',
+        raw_metadata: {
+          extracted_info: {
+            email: 'amber@example.com'
+          }
+        },
         messages: [
           { direction: 'inbound' }
         ]
       }
+
+      const lead = normalizeLeadForApplication(dbRow)
 
       const searchQuery = 'plumbing'
       const q = searchQuery.toLowerCase().trim()
@@ -293,15 +361,21 @@ describe('Customers Page Search Safety Regression Tests', () => {
     })
 
     it('should safely handle non-string message content', () => {
-      const lead = {
+      const dbRow = {
         id: 'test-13',
         caller_phone: '(412) 253-3598',
-        name: 'Amber',
-        email: 'amber@example.com',
+        contact_name: 'Amber',
+        raw_metadata: {
+          extracted_info: {
+            email: 'amber@example.com'
+          }
+        },
         messages: [
           { content: 12345, direction: 'inbound' }
         ]
       }
+
+      const lead = normalizeLeadForApplication(dbRow)
 
       const searchQuery = 'plumbing'
       const q = searchQuery.toLowerCase().trim()

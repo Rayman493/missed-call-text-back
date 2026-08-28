@@ -10,12 +10,17 @@
 
 import { supabaseAdmin, normalizePhoneNumberForStorage } from '@/lib/supabase/admin'
 import type { Lead } from '@/lib/types'
+import { normalizeLeadForApplication } from '@/lib/types'
 
 export interface CreateLeadOptions {
   business_id: string
   caller_phone: string
-  name?: string
-  email?: string
+  name?: string // Legacy: maps to contact_name
+  email?: string // Legacy: maps to raw_metadata.extracted_info.email
+  contact_name?: string // Production canonical
+  company_name?: string // Production canonical
+  notes?: string // Production canonical
+  tags?: string[] // Production canonical
   status?: string
   source?: string // Deprecated: stored in raw_metadata.creation_source
   raw_metadata?: Record<string, any>
@@ -46,22 +51,22 @@ export class LeadService {
    */
   static async findLead(options: FindLeadOptions): Promise<Lead | null> {
     const { business_id, caller_phone } = options
-    
+
     const normalizedPhone = normalizePhoneNumberForStorage(caller_phone)
-    
+
     const { data, error } = await supabaseAdmin
       .from('leads')
       .select('*')
       .eq('business_id', business_id)
       .eq('caller_phone', normalizedPhone)
       .maybeSingle()
-    
+
     if (error) {
       console.error('[LeadService.findLead] Error finding lead:', error)
       return null
     }
-    
-    return data
+
+    return data ? normalizeLeadForApplication(data) : null
   }
 
   /**
@@ -190,17 +195,26 @@ export class LeadService {
       callSid
     })
 
-    // Prepare lead data
-    const leadPayload: Omit<Lead, 'id' | 'created_at' | 'updated_at'> = {
+    // Prepare lead data - map legacy fields to production columns
+    const contact_name = leadData.contact_name || leadData.name // Legacy fallback
+    const email = leadData.email // Legacy field - store in metadata only
+
+    const leadPayload: Omit<Lead, 'id' | 'created_at'> = {
       business_id,
       caller_phone: normalizedPhone,
       status: leadData.status || 'new',
-      name: leadData.name,
-      email: leadData.email,
+      contact_name,
+      company_name: leadData.company_name,
+      notes: leadData.notes,
+      tags: leadData.tags,
       raw_metadata: {
         ...leadData.raw_metadata,
-        creation_source: leadData.source || 'ai_voice',
-        callSid: callSid
+        creation_source: leadData.source || leadData.raw_metadata?.source || 'ai_voice',
+        callSid: callSid,
+        extracted_info: {
+          ...leadData.raw_metadata?.extracted_info,
+          email: email || leadData.raw_metadata?.extracted_info?.email // Store email in metadata
+        }
       }
     }
 
@@ -218,7 +232,7 @@ export class LeadService {
         caller_phone: data.caller_phone,
         status: data.status
       })
-      return data
+      return normalizeLeadForApplication(data)
     }
 
     // Handle 23505 (unique constraint violation) as idempotent conflict
@@ -337,23 +351,78 @@ export class LeadService {
 
   /**
    * Update an existing lead
+   * Only allows production-compatible columns to prevent PGRST204 errors
    */
   static async updateLead(options: UpdateLeadOptions): Promise<Lead | null> {
     const { lead_id, updates } = options
-    
+
+    // Whitelist of production-compatible columns
+    const allowedColumns = [
+      'business_id',
+      'caller_phone',
+      'contact_name',
+      'company_name',
+      'notes',
+      'tags',
+      'status',
+      'source',
+      'raw_metadata',
+      'first_contact_at',
+      'last_message_at',
+      'last_activity_at',
+      'last_reply_at',
+      'opted_out',
+      'payment_status',
+      'last_payment_request_id',
+      'last_payment_amount_cents',
+      'last_payment_requested_at',
+      'last_payment_paid_at',
+      'deleted_at',
+      'deleted_by',
+      'deletion_reason',
+      'is_demo',
+      'conversation_id'
+    ]
+
+    // Map legacy fields to production columns
+    const sanitizedUpdates: Record<string, any> = {}
+    for (const [key, value] of Object.entries(updates)) {
+      if (key === 'name') {
+        // Legacy field - map to contact_name
+        sanitizedUpdates.contact_name = value
+      } else if (key === 'email') {
+        // Legacy field - store in metadata
+        if (!sanitizedUpdates.raw_metadata) {
+          sanitizedUpdates.raw_metadata = updates.raw_metadata || {}
+        }
+        sanitizedUpdates.raw_metadata.extracted_info = {
+          ...sanitizedUpdates.raw_metadata.extracted_info,
+          ...updates.raw_metadata?.extracted_info,
+          email: value
+        }
+      } else if (key === 'phone') {
+        // Legacy field - map to caller_phone
+        sanitizedUpdates.caller_phone = value
+      } else if (allowedColumns.includes(key)) {
+        // Production column - allow directly
+        sanitizedUpdates[key] = value
+      }
+      // Silently ignore unsupported columns to prevent PGRST204 errors
+    }
+
     const { data, error } = await supabaseAdmin
       .from('leads')
-      .update(updates)
+      .update(sanitizedUpdates)
       .eq('id', lead_id)
       .select()
       .single()
-    
+
     if (error) {
       console.error('[LeadService.updateLead] Error updating lead:', error)
       return null
     }
-    
-    return data
+
+    return normalizeLeadForApplication(data)
   }
 
   /**

@@ -162,7 +162,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
       }
     } catch (err: any) {
       // Provide user-friendly error messages
-      let errorMessage = 'Failed to add customer. Try again.'
+      let errorMessage = "We couldn't add this customer. Please try again."
       if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
         errorMessage = 'Network error. Check your connection and try again.'
       } else if (err.message?.includes('Not authenticated')) {

@@ -75,8 +75,8 @@ export async function POST(request: NextRequest) {
       const newLead = await LeadService.createLead({
         business_id: businessId,
         caller_phone: normalizedPhone,
-        name: customerName || null, // Set canonical name field
-        email: email || null, // Set canonical email field
+        name: customerName || undefined, // Compatibility getter maps to contact_name
+        email: email || undefined, // Compatibility getter maps to metadata
         status: 'new',
         source: 'manual',
         raw_metadata: {
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
             callerName: customerName || null,
             reasonForCalling: reasonForCalling || null,
             addressOrLocation: address || null,
-            email: email || null,
+            email: email || null, // Store in metadata (canonical in production)
             importantDetails: notes || null,
             desiredCompletionTime: desiredCompletionTime || null,
             preferredCallbackTime: preferredCallbackTime || null
@@ -130,8 +130,8 @@ export async function POST(request: NextRequest) {
       const updatedLead = await LeadService.updateLead({
         lead_id: leadId,
         updates: {
-          name: customerName || existingLead.name, // Update canonical name field
-          email: email || existingLead.email, // Update canonical email field
+          name: customerName || existingLead.name, // Legacy field - will map to contact_name
+          notes: notes || existingLead.notes, // Production field
           raw_metadata: {
             ...existingMetadata,
             extracted_info: mergedExtractedInfo,

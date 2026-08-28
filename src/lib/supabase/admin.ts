@@ -1,6 +1,6 @@
 import 'server-only'
 import { createClient } from '@supabase/supabase-js'
-import { Business, Lead, Message, CallEvent, Conversation, LeadWithMessages } from '../types'
+import { Business, Lead, Message, CallEvent, Conversation, LeadWithMessages, normalizeLeadForApplication } from '../types'
 import { LeadService } from '@/lib/services/LeadService'
 
 // Helper function to validate environment variables (server-side only)
@@ -1088,12 +1088,64 @@ export const db = {
       return null
     }
 
+    // Whitelist of production-compatible columns
+    const allowedColumns = [
+      'business_id',
+      'caller_phone',
+      'contact_name',
+      'company_name',
+      'notes',
+      'tags',
+      'status',
+      'source',
+      'raw_metadata',
+      'first_contact_at',
+      'last_message_at',
+      'last_activity_at',
+      'last_reply_at',
+      'opted_out',
+      'payment_status',
+      'last_payment_request_id',
+      'last_payment_amount_cents',
+      'last_payment_requested_at',
+      'last_payment_paid_at',
+      'deleted_at',
+      'deleted_by',
+      'deletion_reason',
+      'is_demo',
+      'conversation_id'
+    ]
+
+    // Map legacy fields to production columns
+    const sanitizedLead: Record<string, any> = {}
+    for (const [key, value] of Object.entries(lead)) {
+      if (key === 'name') {
+        // Legacy field - map to contact_name
+        sanitizedLead.contact_name = value
+      } else if (key === 'email') {
+        // Legacy field - store in metadata
+        sanitizedLead.raw_metadata = sanitizedLead.raw_metadata || {}
+        sanitizedLead.raw_metadata.extracted_info = {
+          ...sanitizedLead.raw_metadata.extracted_info,
+          ...lead.raw_metadata?.extracted_info,
+          email: value
+        }
+      } else if (key === 'phone') {
+        // Legacy field - map to caller_phone
+        sanitizedLead.caller_phone = value
+      } else if (allowedColumns.includes(key)) {
+        // Production column - allow directly
+        sanitizedLead[key] = value
+      }
+      // Silently ignore unsupported columns to prevent PGRST204 errors
+    }
+
     const normalizedLead = {
-      ...lead,
-      caller_phone: normalizePhoneNumberForStorage(lead.caller_phone || ''),
+      ...sanitizedLead,
+      caller_phone: normalizePhoneNumberForStorage(sanitizedLead.caller_phone || ''),
       raw_metadata: {
-        ...lead.raw_metadata,
-        creation_source: lead.source || lead.raw_metadata?.source || 'ai_voice',
+        ...sanitizedLead.raw_metadata,
+        creation_source: sanitizedLead.source || sanitizedLead.raw_metadata?.source || 'ai_voice',
         callSid: callSid
       }
     }
@@ -1148,7 +1200,7 @@ export const db = {
           status: data.status,
           timestamp: new Date().toISOString()
         })
-        return data
+        return normalizeLeadForApplication(data)
       }
 
       // Check if this is a transient error worth retrying
@@ -1477,13 +1529,13 @@ export const db = {
       .select('*')
       .eq('business_id', businessId)
       .order('created_at', { ascending: false })
-    
+
     if (error) {
       console.error('Error fetching leads:', error)
       return []
     }
-    
-    return data || []
+
+    return (data || []).map(normalizeLeadForApplication)
   },
 
   async getLeadWithMessages(leadId: string): Promise<LeadWithMessages | null> {
@@ -2087,13 +2139,13 @@ export const db = {
       .select('*')
       .eq('id', leadId)
       .single()
-    
+
     if (error) {
       console.error('Error fetching lead:', error)
       return null
     }
-    
-    return data
+
+    return data ? normalizeLeadForApplication(data) : null
   },
 
   /**

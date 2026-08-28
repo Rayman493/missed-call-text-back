@@ -2,13 +2,21 @@
  * Manual Customer Canonical Fields Regression Tests
  *
  * Regression tests to verify that manually created customers populate
- * canonical lead table fields (name, email) correctly, not just raw_metadata.
+ * canonical lead table fields correctly.
+ *
+ * Current contract (production schema):
+ * - Customer Name → contact_name (canonical)
+ * - Phone → caller_phone (canonical)
+ * - Email → raw_metadata.extracted_info.email (canonical in metadata)
+ * - Notes → notes (canonical)
+ * - Other fields → raw_metadata.extracted_info (metadata)
  *
  * This ensures manual customers are first-class citizens in the same
  * canonical data model as AI-created customers.
  */
 
 import { describe, it, expect } from 'vitest'
+import { normalizeLeadForApplication } from '@/lib/types'
 
 describe('Manual Customer Canonical Fields', () => {
   describe('API request payload before fix', () => {
@@ -57,22 +65,22 @@ describe('Manual Customer Canonical Fields', () => {
   })
 
   describe('Database persistence after fix', () => {
-    it('should persist name to canonical leads.name column', () => {
+    it('should persist name to canonical leads.contact_name column', () => {
       const leadRow = {
         id: 'lead-123',
         business_id: 'business-123',
         caller_phone: '14122533598',
-        name: 'Ryan', // Canonical field - MUST be populated
-        email: 'ryan@example.com', // Canonical field - MUST be populated
+        contact_name: 'Ryan', // Canonical field - MUST be populated
+        notes: 'The yard is a quarter acre.', // Canonical field - MUST be populated
         status: 'new',
         source: 'manual',
         raw_metadata: {
           extracted_info: {
             callerName: 'Ryan', // Supplemental - preserved for context
+            email: 'ryan@example.com', // Canonical in metadata - MUST be populated
             reasonForCalling: 'Get Grass Cut',
             importantDetails: 'The yard is a quarter acre.',
             addressOrLocation: '1632 Southpine Drive',
-            email: 'ryan@example.com',
             desiredCompletionTime: 'tomorrow',
             preferredCallbackTime: '3PM'
           },
@@ -80,13 +88,14 @@ describe('Manual Customer Canonical Fields', () => {
         }
       }
 
-      expect(leadRow.name).toBe('Ryan')
-      expect(leadRow.email).toBe('ryan@example.com')
+      expect(leadRow.contact_name).toBe('Ryan')
+      expect(leadRow.notes).toBe('The yard is a quarter acre.')
+      expect(leadRow.raw_metadata.extracted_info.email).toBe('ryan@example.com')
     })
 
     it('should preserve raw_metadata.extracted_info for Customer Context', () => {
       const leadRow = {
-        name: 'Ryan',
+        contact_name: 'Ryan',
         raw_metadata: {
           extracted_info: {
             callerName: 'Ryan',
@@ -106,8 +115,9 @@ describe('Manual Customer Canonical Fields', () => {
 
   describe('Display name resolution after fix', () => {
     it('should return canonical name when available', () => {
-      const lead = {
-        name: 'Ryan',
+      const dbRow = {
+        id: 'lead-123',
+        contact_name: 'Ryan',
         caller_phone: '14122533598',
         raw_metadata: {
           extracted_info: {
@@ -116,27 +126,54 @@ describe('Manual Customer Canonical Fields', () => {
         }
       }
 
-      // getLeadDisplayName should return 'Ryan' from canonical name field
-      // not fall back to phone number
+      const lead = normalizeLeadForApplication(dbRow)
+
+      // Normalization should populate lead.name from contact_name
       expect(lead.name).toBe('Ryan')
+      expect(lead.contact_name).toBe('Ryan') // Original field preserved
     })
 
     it('should not fall back to phone when canonical name exists', () => {
-      const lead = {
-        name: 'Ryan',
+      const dbRow = {
+        id: 'lead-123',
+        contact_name: 'Ryan',
         caller_phone: '14122533598'
       }
+
+      const lead = normalizeLeadForApplication(dbRow)
 
       // Priority: canonical name > formatted phone
       expect(lead.name).toBe('Ryan')
       expect(lead.name).not.toBe('(412) 253-3598')
     })
 
-    it('should fall back to phone when canonical name is null', () => {
-      const lead = {
-        name: null,
-        caller_phone: '14122533598'
+    it('should fall back to metadata callerName when contact_name is null', () => {
+      const dbRow = {
+        id: 'lead-123',
+        contact_name: null,
+        caller_phone: '14122533598',
+        raw_metadata: {
+          extracted_info: {
+            callerName: 'Fallback Name'
+          }
+        }
       }
+
+      const lead = normalizeLeadForApplication(dbRow)
+
+      // Fallback to metadata callerName
+      expect(lead.name).toBe('Fallback Name')
+    })
+
+    it('should return null when no name source exists', () => {
+      const dbRow = {
+        id: 'lead-123',
+        contact_name: null,
+        caller_phone: '14122533598',
+        raw_metadata: {}
+      }
+
+      const lead = normalizeLeadForApplication(dbRow)
 
       // Safe fallback behavior preserved
       expect(lead.name).toBeNull()
@@ -191,37 +228,31 @@ describe('Manual Customer Canonical Fields', () => {
 
   describe('AI customer regression', () => {
     it('should not break AI-created customer resolution', () => {
-      const aiLead = {
+      const dbRow = {
+        id: 'lead-123',
         source: 'ai_voice',
-        name: 'John Doe',
+        contact_name: 'John Doe',
         caller_phone: '14125551234',
-        ai_call_records: [
-          {
-            extracted_info: {
-              callerName: 'John Doe',
-              serviceRequested: 'Plumbing Repair'
-            }
+        raw_metadata: {
+          extracted_info: {
+            callerName: 'John Doe',
+            serviceRequested: 'Plumbing Repair'
           }
-        ]
+        }
       }
+
+      const aiLead = normalizeLeadForApplication(dbRow)
 
       // AI customers should continue to work correctly
       expect(aiLead.name).toBe('John Doe')
-      expect(aiLead.ai_call_records).toBeDefined()
-      expect(aiLead.ai_call_records.length).toBeGreaterThan(0)
+      expect(aiLead.contact_name).toBe('John Doe')
     })
 
-    it('should prioritize ai_call_record over raw_metadata for AI customers', () => {
-      const aiLead = {
+    it('should prioritize contact_name over raw_metadata for AI customers', () => {
+      const dbRow = {
+        id: 'lead-123',
         source: 'ai_voice',
-        ai_call_records: [
-          {
-            extracted_info: {
-              callerName: 'AI Captured Name',
-              serviceRequested: 'AI Service'
-            }
-          }
-        ],
+        contact_name: 'AI Captured Name',
         raw_metadata: {
           extracted_info: {
             callerName: 'Historical Name',
@@ -230,24 +261,26 @@ describe('Manual Customer Canonical Fields', () => {
         }
       }
 
-      // Current call AI intake should take precedence
-      expect(aiLead.ai_call_records[0].extracted_info.callerName).toBe('AI Captured Name')
+      const aiLead = normalizeLeadForApplication(dbRow)
+
+      // contact_name takes precedence over metadata callerName
+      expect(aiLead.name).toBe('AI Captured Name')
     })
   })
 
   describe('Duplicate customer behavior', () => {
     it('should preserve existing canonical name on update', () => {
-      const existingLead = {
+      const existingLead = normalizeLeadForApplication({
         id: 'lead-123',
-        name: 'Existing Name',
-        email: 'existing@example.com',
+        contact_name: 'Existing Name',
         caller_phone: '14122533598',
         raw_metadata: {
           extracted_info: {
-            callerName: 'Existing Name'
+            callerName: 'Existing Name',
+            email: 'existing@example.com'
           }
         }
-      }
+      })
 
       const updateData = {
         customerName: 'Ryan',
@@ -260,10 +293,10 @@ describe('Manual Customer Canonical Fields', () => {
     })
 
     it('should preserve existing name if new name not provided', () => {
-      const existingLead = {
-        name: 'Existing Name',
+      const existingLead = normalizeLeadForApplication({
+        contact_name: 'Existing Name',
         caller_phone: '14122533598'
-      }
+      })
 
       const updateData = {
         customerName: null // Not provided
@@ -277,22 +310,27 @@ describe('Manual Customer Canonical Fields', () => {
 
   describe('Immediate UI freshness', () => {
     it('should return canonical fields in API response', () => {
-      const apiResponse = {
-        success: true,
-        leadId: 'lead-123',
-        lead: {
-          id: 'lead-123',
-          name: 'Ryan', // Canonical field in response
-          caller_phone: '14122533598',
-          raw_metadata: {
-            extracted_info: {
-              callerName: 'Ryan'
-            }
+      const dbRow = {
+        id: 'lead-123',
+        contact_name: 'Ryan',
+        caller_phone: '14122533598',
+        raw_metadata: {
+          extracted_info: {
+            callerName: 'Ryan',
+            email: 'ryan@example.com'
           }
         }
       }
 
+      const apiResponse = {
+        success: true,
+        leadId: 'lead-123',
+        lead: normalizeLeadForApplication(dbRow)
+      }
+
+      // UI can read from compatibility aliases
       expect(apiResponse.lead.name).toBe('Ryan')
+      expect(apiResponse.lead.contact_name).toBe('Ryan') // Production field preserved
     })
 
     it('should not require refresh to see canonical name', () => {
@@ -308,8 +346,8 @@ describe('Manual Customer Canonical Fields', () => {
 
   describe('Customer Context preservation', () => {
     it('should continue to show manual context correctly', () => {
-      const lead = {
-        name: 'Ryan',
+      const dbRow = {
+        contact_name: 'Ryan',
         raw_metadata: {
           extracted_info: {
             callerName: 'Ryan',
@@ -320,6 +358,8 @@ describe('Manual Customer Canonical Fields', () => {
           }
         }
       }
+
+      const lead = normalizeLeadForApplication(dbRow)
 
       const context = {
         name: lead.raw_metadata.extracted_info.callerName,

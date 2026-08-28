@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 import { normalizeMessagesForDisplay } from '@/lib/legacy-message-mapper'
+import { normalizeLeadForApplication } from '@/lib/types'
 
 export const dynamic = 'force-dynamic';
 
@@ -292,7 +293,7 @@ export async function GET(request: NextRequest) {
       conversationId: conversation?.id ?? null,
       conversation,
       messages: messagesWithMedia,
-      lead: {
+      lead: normalizeLeadForApplication({
         ...lead,
         conversation_id: conversation?.id ?? null,
         conversationId: conversation?.id ?? null,
@@ -301,7 +302,7 @@ export async function GET(request: NextRequest) {
         followUpJobs: followUpJobs || [],
         aiCallRecords: aiCallRecords || [],
         paymentRequests: paymentRequests || []
-      }
+      })
     }
 
     return NextResponse.json(responseData)

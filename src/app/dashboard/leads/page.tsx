@@ -323,7 +323,10 @@ export default function LeadsPage() {
       // Normalize ai_call_records to aiCallRecords for UI compatibility
       const normalizedLeads = (data || []).map((lead: any) => ({
         ...lead,
-        aiCallRecords: lead.ai_call_records || []
+        aiCallRecords: lead.ai_call_records || [],
+        name: lead.contact_name ?? lead.raw_metadata?.extracted_info?.callerName ?? null,
+        email: lead.raw_metadata?.extracted_info?.email ?? null,
+        phone: lead.caller_phone
       }))
 
       // Sort by latest activity

@@ -158,26 +158,52 @@ export interface Lead {
   id: string;
   business_id: string;
   caller_phone: string;
-  phone?: string | null;
-  name?: string | null;
-  email?: string | null;
+  contact_name?: string | null;
+  company_name?: string | null;
+  notes?: string | null;
+  tags?: string[] | null;
   source?: string;
   status: string;
   raw_metadata: any;
   created_at: string;
-  // Optional fields that may be added by backend or derived
+  // Legacy fields for backward compatibility - populated by read normalization
+  name?: string | null; // Legacy: populated from contact_name
+  email?: string | null; // Legacy: populated from raw_metadata.extracted_info.email
+  phone?: string | null; // Legacy: populated from caller_phone
+  // Activity timestamps
   first_contact_at?: string | null;
   last_message_at?: string | null;
   last_activity_at?: string | null;
   last_reply_at?: string | null;
   opted_out?: boolean;
-  
   // Payment status fields
   payment_status?: 'none' | 'pending' | 'paid' | 'failed' | 'cancelled' | string | null;
   last_payment_request_id?: string | null;
   last_payment_amount_cents?: number | null;
   last_payment_requested_at?: string | null;
   last_payment_paid_at?: string | null;
+  // Deletion fields
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  deletion_reason?: string | null;
+  is_demo?: boolean | null;
+  // Conversation reference
+  conversation_id?: string | null;
+}
+
+/**
+ * Normalize a lead row from the database for application use.
+ * Adds backward compatibility aliases (name, email, phone) from production columns.
+ * Preserves all production fields unchanged.
+ */
+export function normalizeLeadForApplication(dbRow: Lead): Lead {
+  // Return a new object with compatibility aliases populated
+  return {
+    ...dbRow,
+    name: dbRow.contact_name ?? dbRow.raw_metadata?.extracted_info?.callerName ?? null,
+    email: dbRow.raw_metadata?.extracted_info?.email ?? null,
+    phone: dbRow.caller_phone
+  };
 }
 
 export interface Message {
