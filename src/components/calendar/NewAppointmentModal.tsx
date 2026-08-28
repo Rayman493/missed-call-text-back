@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { X, Calendar, Clock, MapPin, FileText, AlertTriangle, Plus, Video, Users } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
@@ -104,31 +105,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
   // Lock background scroll while open
   useBodyScrollLock(isOpen)
 
-  // Intercept Android Back / browser Back to close modal first
-  useEffect(() => {
-    if (!isOpen) return
-
-    try {
-      window.history.pushState({ rfNewAppointment: true }, '')
-    } catch {}
-
-    const onPopState = () => onClose()
-    window.addEventListener('popstate', onPopState)
-
-    let capListener: { remove: () => void } | undefined
-    ;(async () => {
-      try {
-        const mod = await import('@capacitor/app')
-        const { App } = mod as any
-        capListener = await App.addListener('backButton', () => onClose())
-      } catch {}
-    })()
-
-    return () => {
-      window.removeEventListener('popstate', onPopState)
-      capListener?.remove?.()
-    }
-  }, [isOpen, onClose])
+  // Handle Android back button and browser back to close modal
+  useModalBackButton({ isOpen, onClose })
 
   if (!isOpen) return null
 
@@ -276,7 +254,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
     <>
     <div
       className="fixed inset-0 z-[60] flex sm:items-center sm:justify-center justify-end bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
-      style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
+      style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, calc(5.5rem + env(safe-area-inset-bottom)))' }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="appointment-title"
@@ -287,7 +265,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
       }}
       data-scroll-lock-allow
     >
-      <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[calc(75dvh-2rem-env(safe-area-inset-top))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4"
+      <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[calc(80dvh-2rem-env(safe-area-inset-top))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4"
            data-scroll-lock-allow>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 sm:px-4 sm:py-3 border-b border-border/30 shrink-0">

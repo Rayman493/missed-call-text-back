@@ -8,6 +8,7 @@ import TimePicker from '@/components/ui/TimePicker'
 import SelectPicker from '@/components/ui/SelectPicker'
 import { getLeadDisplayName } from '@/lib/utils'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface Task {
   id: string
@@ -62,6 +63,23 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
 
   // Use shared body scroll lock hook
   useBodyScrollLock(isOpen)
+
+  // Handle Android back button and browser back to close modal
+  useModalBackButton({ isOpen, onClose })
+
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        handleClose()
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape)
+      return () => document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (isOpen) {
@@ -269,13 +287,13 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
     <>
       <div
         className="fixed inset-0 z-[60] flex sm:items-center sm:justify-center justify-end bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
-        style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
+        style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, calc(5.5rem + env(safe-area-inset-bottom)))' }}
         role="dialog"
         aria-modal="true"
         onClick={handleClose}
         data-scroll-lock-allow
       >
-        <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[calc(75dvh-2rem-env(safe-area-inset-top))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4"
+        <div className="bg-card rounded-t-xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[calc(80dvh-2rem-env(safe-area-inset-top))] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 sm:duration-200 mx-auto sm:my-4"
              data-scroll-lock-allow>
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 sm:px-4 sm:py-3 border-b border-border/30 shrink-0">

@@ -175,6 +175,23 @@ export async function initializeCapacitor() {
     // Set up back button listener for Android
     App.addListener('backButton', (data) => {
       console.log('[Capacitor] Back button pressed, canGoBack:', data.canGoBack);
+
+      // Check if there are any open modals - if so, let the modal handler take precedence
+      // Dynamic import to avoid requiring this in non-native environments
+      try {
+        const modalBack = require('@/lib/modalBackButton')
+        if (modalBack && modalBack.hasOpenModal && modalBack.hasOpenModal()) {
+          console.log('[Capacitor] Modal is open, deferring to modal back handler');
+          const consumed = modalBack.handleCapacitorBackButton();
+          if (consumed) {
+            return; // Modal handler consumed this event
+          }
+        }
+      } catch (e) {
+        // Module not available or error checking - continue with normal handling
+        console.log('[Capacitor] Could not check modal state:', e);
+      }
+
       handleBackButton(data.canGoBack);
     });
 

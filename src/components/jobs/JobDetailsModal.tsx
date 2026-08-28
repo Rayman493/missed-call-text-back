@@ -11,31 +11,11 @@ import RequestPaymentModal from '@/components/payments/RequestPaymentModal'
 import TapToPayModal from '@/components/payments/TapToPayModal'
 import { isNativeCapacitor } from '@/lib/terminal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 function NestedCancelConfirm({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
-  // Intercept Android Back and browser Back so the nested confirm closes first
-  useEffect(() => {
-    try {
-      window.history.pushState({ rfNestedCancelConfirm: true }, '')
-    } catch {}
-
-    const onPopState = () => onClose()
-    window.addEventListener('popstate', onPopState)
-
-    let capListener: { remove: () => void } | undefined
-    ;(async () => {
-      try {
-        const mod = await import('@capacitor/app')
-        const { App } = mod as any
-        capListener = await App.addListener('backButton', () => onClose())
-      } catch {}
-    })()
-
-    return () => {
-      window.removeEventListener('popstate', onPopState)
-      capListener?.remove?.()
-    }
-  }, [onClose])
+  // Handle Android back button and browser back to close nested confirm
+  useModalBackButton({ isOpen: true, onClose })
 
   return (
     <>
@@ -129,31 +109,8 @@ export default function JobDetailsModal({
   // Lock background scroll when main modal is open
   useBodyScrollLock(isOpen)
 
-  // Intercept Android Back / browser Back to close main modal first
-  useEffect(() => {
-    if (!isOpen) return
-
-    try {
-      window.history.pushState({ rfJobDetails: true }, '')
-    } catch {}
-
-    const onPopState = () => onClose()
-    window.addEventListener('popstate', onPopState)
-
-    let capListener: { remove: () => void } | undefined
-    ;(async () => {
-      try {
-        const mod = await import('@capacitor/app')
-        const { App } = mod as any
-        capListener = await App.addListener('backButton', () => onClose())
-      } catch {}
-    })()
-
-    return () => {
-      window.removeEventListener('popstate', onPopState)
-      capListener?.remove?.()
-    }
-  }, [isOpen, onClose])
+  // Handle Android back button and browser back to close modal
+  useModalBackButton({ isOpen, onClose })
 
   // Fetch payment request when modal opens or job changes
   useEffect(() => {

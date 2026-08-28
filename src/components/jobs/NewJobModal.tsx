@@ -1,7 +1,9 @@
 'use client'
 
 import { X, Users, ArrowRight } from 'lucide-react'
+import { useEffect } from 'react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 import Link from 'next/link'
 
 interface NewJobModalProps {
@@ -22,6 +24,23 @@ export default function NewJobModal({
   prompt = 'Choose a customer for this job',
 }: NewJobModalProps) {
   useBodyScrollLock(isOpen)
+
+// Handle Android back button and browser back to close modal
+useModalBackButton({ isOpen, onClose })
+
+// Handle Escape key to close modal
+useEffect(() => {
+  const handleEscape = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && isOpen) {
+      onClose()
+    }
+  }
+
+  if (isOpen) {
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }
+}, [isOpen, onClose])
 
   if (!isOpen) return null
 
