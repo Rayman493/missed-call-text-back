@@ -2153,9 +2153,17 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     } else if (selectedMapItemId && cameraOwnerRef.current === CameraOwner.INITIALIZING) {
       const selectedMarker = markersRef.current.get(selectedMapItemId)
       if (selectedMarker) {
-        const pos = selectedMarker.getPosition()
-        panToMarker(pos.lat(), pos.lng(), { checkVisibility: true }, 'selected_item')
-        markerSetSignatureRef.current = signature
+        // Skip single-marker focus on date change when there are multiple markers
+        // This allows multi-marker auto-fit to frame business + service markers together
+        // Single-marker focus is only for explicit user selection of a specific marker
+        if (dateChanged && markersRef.current.size > 1) {
+          console.log('[SCHEDULE_MAP_EFFECT] Skipping single-marker focus on date change with multiple markers')
+          markerSetSignatureRef.current = signature
+        } else {
+          const pos = selectedMarker.getPosition()
+          panToMarker(pos.lat(), pos.lng(), { checkVisibility: true }, 'selected_item')
+          markerSetSignatureRef.current = signature
+        }
       }
     } else if (showAllMode && (dateChanged || signatureChanged)) {
       // Auto-fit should happen when:
