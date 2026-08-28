@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
-import { Mail, Building2, MapPin, FileText, Clock, Phone } from 'lucide-react'
+import { Mail, MapPin, Clock, Phone } from 'lucide-react'
 
 interface EditCustomerModalProps {
   isOpen: boolean
@@ -16,11 +16,10 @@ interface EditCustomerModalProps {
 
 interface CustomerFormData {
   customerName: string
-  companyName: string
   phoneNumber: string
   email: string
   address: string
-  notes: string
+  details: string
   reasonForCalling: string
   desiredCompletionTime: string
   preferredCallbackTime: string
@@ -33,11 +32,10 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
 
   const [formData, setFormData] = useState<CustomerFormData>({
     customerName: '',
-    companyName: '',
     phoneNumber: '',
     email: '',
     address: '',
-    notes: '',
+    details: '',
     reasonForCalling: '',
     desiredCompletionTime: '',
     preferredCallbackTime: ''
@@ -52,11 +50,10 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
       const intake = leadData.raw_metadata?.extracted_info || {}
       setFormData({
         customerName: leadData.name || leadData.contact_name || intake.callerName || '',
-        companyName: leadData.company_name || '',
         phoneNumber: leadData.caller_phone || '',
         email: leadData.email || intake.email || '',
         address: intake.addressOrLocation || '',
-        notes: leadData.notes || intake.importantDetails || '',
+        details: intake.importantDetails || '',
         reasonForCalling: intake.reasonForCalling || intake.serviceRequested || '',
         desiredCompletionTime: intake.desiredCompletionTime || '',
         preferredCallbackTime: intake.preferredCallbackTime || ''
@@ -98,8 +95,6 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
       const updatePayload: any = {
         is_simple_update: true,
         contact_name: formData.customerName.trim() || null,
-        company_name: formData.companyName.trim() || null,
-        notes: formData.notes.trim() || null,
         raw_metadata: {
           ...leadData.raw_metadata,
           extracted_info: {
@@ -107,7 +102,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             callerName: formData.customerName.trim() || null,
             email: formData.email.trim() || null,
             addressOrLocation: formData.address.trim() || null,
-            importantDetails: formData.notes.trim() || null,
+            importantDetails: formData.details.trim() || null,
             reasonForCalling: formData.reasonForCalling.trim() || null,
             serviceRequested: formData.reasonForCalling.trim() || null,
             desiredCompletionTime: formData.desiredCompletionTime.trim() || null,
@@ -183,23 +178,84 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             />
           </div>
 
-          {/* Company Name */}
+          {/* Reason for Calling */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
-              <Building2 className="w-4 h-4" />
-              Company Name
+            <label className="block text-sm font-medium text-foreground mb-1.5">
+              Reason for Calling
             </label>
             <input
               type="text"
-              value={formData.companyName}
-              onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+              value={formData.reasonForCalling}
+              onChange={(e) => setFormData({ ...formData, reasonForCalling: e.target.value })}
               className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-              placeholder="Enter company name"
+              placeholder="What do they need?"
               disabled={isSubmitting}
             />
           </div>
 
-          {/* Phone - Read Only */}
+          {/* Details */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">
+              Details
+            </label>
+            <textarea
+              value={formData.details}
+              onChange={(e) => setFormData({ ...formData, details: e.target.value })}
+              rows={2}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none break-words"
+              placeholder="Enter details"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* Location */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              Location
+            </label>
+            <input
+              type="text"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40 break-words"
+              placeholder="Enter address"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* Desired Completion Time */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Desired Completion Time
+            </label>
+            <input
+              type="text"
+              value={formData.desiredCompletionTime}
+              onChange={(e) => setFormData({ ...formData, desiredCompletionTime: e.target.value })}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              placeholder="e.g., tomorrow, next week"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* Preferred Callback Time */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">
+              Preferred Callback Time
+            </label>
+            <input
+              type="text"
+              value={formData.preferredCallbackTime}
+              onChange={(e) => setFormData({ ...formData, preferredCallbackTime: e.target.value })}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              placeholder="e.g., 3PM, morning"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* Phone Number - Read Only */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
               <Phone className="w-4 h-4" />
@@ -229,84 +285,6 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40 break-words"
               placeholder="customer@example.com"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Address */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
-              Address / Location
-            </label>
-            <input
-              type="text"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40 break-words"
-              placeholder="Enter address"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Notes
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={2}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none break-words"
-              placeholder="Enter notes"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Reason for Calling */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
-              Reason / Request
-            </label>
-            <input
-              type="text"
-              value={formData.reasonForCalling}
-              onChange={(e) => setFormData({ ...formData, reasonForCalling: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-              placeholder="What do they need?"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Desired Completion Time */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Desired Timing
-            </label>
-            <input
-              type="text"
-              value={formData.desiredCompletionTime}
-              onChange={(e) => setFormData({ ...formData, desiredCompletionTime: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-              placeholder="e.g., tomorrow, next week"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Preferred Callback Time */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
-              Preferred Callback Time
-            </label>
-            <input
-              type="text"
-              value={formData.preferredCallbackTime}
-              onChange={(e) => setFormData({ ...formData, preferredCallbackTime: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-              placeholder="e.g., 3PM, morning"
               disabled={isSubmitting}
             />
           </div>

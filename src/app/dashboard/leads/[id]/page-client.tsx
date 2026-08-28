@@ -42,6 +42,7 @@ import { Lead, Message, Conversation } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
+import CustomerDetails from '@/components/CustomerDetails'
 import AICallDetails from '@/components/AICallDetails'
 import VoicemailSummary from '@/components/VoicemailSummary'
 import FocusSection from '@/components/FocusSection'
@@ -3886,6 +3887,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               
               {/* Actions */}
               <div className="flex items-center gap-2 flex-shrink-0">
+                {/* Edit Customer Button */}
+                <button
+                  onClick={() => setShowEditCustomer(true)}
+                  className="h-10 w-10 inline-flex items-center justify-center text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg transition-colors duration-200"
+                  title="Edit customer"
+                  aria-label="Edit customer"
+                >
+                  <Pencil className="w-5 h-5" />
+                </button>
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}
@@ -4114,6 +4124,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                   type="button"
+                  onClick={() => setShowEditCustomer(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  <span>Edit Customer</span>
+                </button>
+                  <button
+                  type="button"
                   onClick={handleCreateJobClick}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                 >
@@ -4321,28 +4339,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <div className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-3">Customer Context</div>
                         </div>
                         <div className="space-y-4">
-                          {/* AI Intake Summary */}
-                          {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-                            <div>
-                              <AICallDetails
-                                leadId={params.id}
-                                businessId={business.id}
-                                conversationId={leadData?.conversation?.id}
-                                callerPhone={leadData?.phone_number || lead?.phone}
-                                leadData={leadData}
-                                triggerEdit={triggerEditCustomerDetails}
-                                collapsible={false}
-                                onSave={handleRefresh}
-                              />
-                            </div>
-                          )}
-
-                          {/* Customer Summary */}
-                          {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
-                            <div className="bg-muted/30 rounded-xl border border-slate-200/80 dark:border-border/30 p-4">
-                              <VoicemailSummary leadData={leadData} triggerEdit={triggerEditCustomerDetails} />
-                            </div>
-                          )}
+                          {/* Customer Details - Canonical Read-Only Display */}
+                          <CustomerDetails leadData={leadData} lead={lead} />
                         </div>
                       </div>
 
@@ -4354,9 +4352,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <button
                             type="button"
                             onClick={handleCreateJobClick}
-                            className="inline-flex items-center gap-2 px-3 py-2 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                            className="inline-flex items-center justify-center w-8 h-8 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                            aria-label="Add scheduled job"
+                            title="Add scheduled job"
                           >
-                            Add
+                            <Plus className="w-4 h-4" />
                           </button>
                         }
                       >
@@ -4396,9 +4396,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <button
                             type="button"
                             onClick={() => openTaskModal('sidebar_tasks_add_button')}
-                            className="inline-flex items-center gap-2 px-3 py-2 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                            className="inline-flex items-center justify-center w-8 h-8 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                            aria-label="Add task"
+                            title="Add task"
                           >
-                            Add
+                            <Plus className="w-4 h-4" />
                           </button>
                         }
                       >
@@ -4438,9 +4440,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             type="button"
                             onClick={() => setShowPaymentModal(true)}
                             disabled={!business || getAvailableProviders(business).length === 0}
-                            className="inline-flex items-center gap-2 px-3 py-2 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="inline-flex items-center justify-center w-8 h-8 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-label="Request payment"
+                            title="Request payment"
                           >
-                            Add
+                            <Plus className="w-4 h-4" />
                           </button>
                         }
                       >
@@ -4482,9 +4486,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <button
                             type="button"
                             onClick={handleAppointmentClick}
-                            className="inline-flex items-center gap-2 px-3 py-2 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                            className="inline-flex items-center justify-center w-8 h-8 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                            aria-label="Schedule appointment"
+                            title="Schedule appointment"
                           >
-                            Add
+                            <Plus className="w-4 h-4" />
                           </button>
                         }
                       >
@@ -4561,9 +4567,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               setInternalNotesValue(leadData?.notes || '')
                               setShowInternalNotesModal(true)
                             }}
-                            className="inline-flex items-center gap-2 px-3 py-2 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                            className="inline-flex items-center justify-center w-8 h-8 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                            aria-label="Add internal note"
+                            title="Add internal note"
                           >
-                            <Plus className="w-3.5 h-3.5" />
+                            <Plus className="w-4 h-4" />
                           </button>
                         }
                       >
@@ -5094,14 +5102,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-semibold text-slate-900 dark:text-white">Customer Details</h3>
                 <button
-                  onClick={() => {
-                    setShowLeadInfo(false)
-                    setShowEditCustomer(true)
-                  }}
-                  className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                  title="Edit customer"
+                  onClick={() => setShowLeadInfo(false)}
+                  className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                 >
-                  <Pencil className="w-4 h-4" />
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -5207,16 +5213,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </svg>
               Customer Information
             </h3>
-            <button
-              onClick={() => {
-                setShowLeadInfo(false)
-                setShowEditCustomer(true)
-              }}
-              className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors ml-auto"
-              title="Edit customer"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
             
             {/* Customer Information */}
             <div className="space-y-4">

@@ -230,148 +230,148 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
           }}
         >
           <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 pb-4">
-            {/* CONTACT Section */}
-            <div className="space-y-3 sm:space-y-4">
-              <h3 className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Contact</h3>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Customer Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  autoComplete="name"
-                  autoCapitalize="words"
-                  autoCorrect="off"
-                  spellCheck="false"
-                  value={formData.customerName}
-                  onChange={(e) => handleInputChange('customerName', e.target.value)}
-                  placeholder="John Smith"
-                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Phone Number <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="tel"
-                  autoComplete="tel"
-                  inputMode="tel"
-                  value={formData.phoneNumber}
-                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                  placeholder="(412) 253-3598"
-                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  autoComplete="email"
-                  inputMode="email"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck="false"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  placeholder="john@example.com"
-                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                  disabled={isSubmitting}
-                />
-              </div>
+            {/* Customer Name */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Customer Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                autoComplete="name"
+                autoCapitalize="words"
+                autoCorrect="off"
+                spellCheck="false"
+                value={formData.customerName}
+                onChange={(e) => handleInputChange('customerName', e.target.value)}
+                placeholder="John Smith"
+                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                disabled={isSubmitting}
+              />
             </div>
 
-            {/* INTAKE Section */}
-            <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-5 border-t border-border/50">
-              <h3 className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Intake</h3>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Reason for Calling
-                </label>
-                <input
-                  type="text"
-                  value={formData.reasonForCalling}
-                  onChange={(e) => handleInputChange('reasonForCalling', e.target.value)}
-                  placeholder="e.g., Piano lessons, HVAC repair, Consultation"
-                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                  disabled={isSubmitting}
-                  autoCapitalize="sentences"
-                  autoCorrect="on"
-                />
-              </div>
+            {/* Reason for Calling */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Reason for Calling
+              </label>
+              <input
+                type="text"
+                value={formData.reasonForCalling}
+                onChange={(e) => handleInputChange('reasonForCalling', e.target.value)}
+                placeholder="e.g., Piano lessons, HVAC repair, Consultation"
+                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                disabled={isSubmitting}
+                autoCapitalize="sentences"
+                autoCorrect="on"
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Details
-                </label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
-                  placeholder="Any additional details..."
-                  rows={2}
-                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none resize-none"
-                  disabled={isSubmitting}
-                  autoCapitalize="sentences"
-                  autoCorrect="on"
-                  spellCheck="true"
-                />
-              </div>
+            {/* Details */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Details
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                placeholder="Any additional details..."
+                rows={2}
+                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none resize-none"
+                disabled={isSubmitting}
+                autoCapitalize="sentences"
+                autoCorrect="on"
+                spellCheck="true"
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  autoComplete="street-address"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                  placeholder="123 Main St, City, State"
-                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                  disabled={isSubmitting}
-                />
-                <p className="text-xs text-muted-foreground/70 mt-1.5">
-                  Optional: Use with Schedule Map and service locations
-                </p>
-              </div>
+            {/* Location */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Location
+              </label>
+              <input
+                type="text"
+                autoComplete="street-address"
+                value={formData.address}
+                onChange={(e) => handleInputChange('address', e.target.value)}
+                placeholder="123 Main St, City, State"
+                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                disabled={isSubmitting}
+              />
+              <p className="text-xs text-muted-foreground/70 mt-1.5">
+                Optional: Use with Schedule Map and service locations
+              </p>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Desired Completion Time
-                </label>
-                <input
-                  type="text"
-                  value={formData.desiredCompletionTime}
-                  onChange={(e) => handleInputChange('desiredCompletionTime', e.target.value)}
-                  placeholder="e.g., tomorrow, next week, by Friday"
-                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                  disabled={isSubmitting}
-                  autoCapitalize="sentences"
-                  autoCorrect="on"
-                />
-              </div>
+            {/* Desired Completion Time */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Desired Completion Time
+              </label>
+              <input
+                type="text"
+                value={formData.desiredCompletionTime}
+                onChange={(e) => handleInputChange('desiredCompletionTime', e.target.value)}
+                placeholder="e.g., tomorrow, next week, by Friday"
+                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                disabled={isSubmitting}
+                autoCapitalize="sentences"
+                autoCorrect="on"
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Preferred Callback Time
-                </label>
-                <input
-                  type="text"
-                  value={formData.preferredCallbackTime}
-                  onChange={(e) => handleInputChange('preferredCallbackTime', e.target.value)}
-                  placeholder="e.g., afternoon, 2pm, morning"
-                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                  disabled={isSubmitting}
-                  autoCapitalize="sentences"
-                  autoCorrect="on"
-                />
-              </div>
+            {/* Preferred Callback Time */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Preferred Callback Time
+              </label>
+              <input
+                type="text"
+                value={formData.preferredCallbackTime}
+                onChange={(e) => handleInputChange('preferredCallbackTime', e.target.value)}
+                placeholder="e.g., afternoon, 2pm, morning"
+                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                disabled={isSubmitting}
+                autoCapitalize="sentences"
+                autoCorrect="on"
+              />
+            </div>
+
+            {/* Phone Number */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Phone Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="tel"
+                autoComplete="tel"
+                inputMode="tel"
+                value={formData.phoneNumber}
+                onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                placeholder="(412) 253-3598"
+                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Email
+              </label>
+              <input
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                placeholder="john@example.com"
+                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                disabled={isSubmitting}
+              />
             </div>
 
             {/* Duplicate Customer Warning */}

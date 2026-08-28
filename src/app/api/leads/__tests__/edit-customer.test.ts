@@ -126,10 +126,9 @@ describe('Edit Customer Metadata Merge Logic', () => {
     it('should map form fields to correct database columns', () => {
       const formData = {
         customerName: 'John Doe',
-        companyName: 'Acme Corp',
         email: 'john@example.com',
         address: '123 Main St',
-        notes: 'Test notes',
+        details: 'Important details about the request',
         reasonForCalling: 'Plumbing',
         desiredCompletionTime: 'Tomorrow',
         preferredCallbackTime: '3PM'
@@ -137,14 +136,12 @@ describe('Edit Customer Metadata Merge Logic', () => {
 
       const updatePayload = {
         contact_name: formData.customerName,
-        company_name: formData.companyName,
-        notes: formData.notes,
         raw_metadata: {
           extracted_info: {
             callerName: formData.customerName,
             email: formData.email,
             addressOrLocation: formData.address,
-            importantDetails: formData.notes,
+            importantDetails: formData.details,
             reasonForCalling: formData.reasonForCalling,
             serviceRequested: formData.reasonForCalling,
             desiredCompletionTime: formData.desiredCompletionTime,
@@ -154,10 +151,9 @@ describe('Edit Customer Metadata Merge Logic', () => {
       }
 
       expect(updatePayload.contact_name).toBe('John Doe')
-      expect(updatePayload.company_name).toBe('Acme Corp')
-      expect(updatePayload.notes).toBe('Test notes')
       expect(updatePayload.raw_metadata.extracted_info.email).toBe('john@example.com')
       expect(updatePayload.raw_metadata.extracted_info.addressOrLocation).toBe('123 Main St')
+      expect(updatePayload.raw_metadata.extracted_info.importantDetails).toBe('Important details about the request')
     })
   })
 
