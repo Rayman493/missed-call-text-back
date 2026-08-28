@@ -121,7 +121,7 @@ describe('Business Hours Toggle Persistence', () => {
     expect(business.business_hours_enabled).toBe(false)
   })
 
-  it('CASE E: incomplete configuration cannot be enabled', () => {
+  it('CASE E: incomplete configuration can be enabled as draft state', () => {
     const business = createMockBusiness({
       business_hours_enabled: false,
       business_hours_start: null,
@@ -130,7 +130,27 @@ describe('Business Hours Toggle Persistence', () => {
       after_hours_message: null
     })
 
-    // Validation should prevent enabling without complete configuration
+    // Toggle should now be allowed (draft state)
+    const updated = { ...business, business_hours_enabled: true }
+
+    expect(updated.business_hours_enabled).toBe(true)
+    // Configuration remains incomplete
+    expect(updated.business_hours_start).toBe(null)
+    expect(updated.business_hours_end).toBe(null)
+    expect(updated.business_hours_timezone).toBe(null)
+    expect(updated.after_hours_message).toBe(null)
+  })
+
+  it('Save-time validation rejects incomplete Business Hours configuration', () => {
+    const business = createMockBusiness({
+      business_hours_enabled: true,
+      business_hours_start: null,
+      business_hours_end: null,
+      business_hours_timezone: null,
+      after_hours_message: null
+    })
+
+    // Validation at Save time should fail
     const hasValidConfig =
       !!(business.business_hours_timezone &&
       business.business_hours_start &&
@@ -139,54 +159,32 @@ describe('Business Hours Toggle Persistence', () => {
 
     expect(hasValidConfig).toBe(false)
 
-    // Attempting to enable should be rejected
-    const shouldAllowEnable = hasValidConfig
-    expect(shouldAllowEnable).toBe(false)
+    // Save attempt should be rejected
+    const shouldAllowSave = hasValidConfig
+    expect(shouldAllowSave).toBe(false)
   })
 
-  it('failed enable attempt does not persist true', () => {
+  it('Save-time validation accepts complete Business Hours configuration', () => {
     const business = createMockBusiness({
-      business_hours_enabled: false,
-      business_hours_start: null,
-      business_hours_end: null,
-      business_hours_timezone: null,
-      after_hours_message: null
-    })
-
-    // Since validation fails, enabled should remain false
-    const hasValidConfig =
-      !!(business.business_hours_timezone &&
-      business.business_hours_start &&
-      business.business_hours_end &&
-      business.after_hours_message)
-
-    const enabledAfterAttempt = hasValidConfig ? true : business.business_hours_enabled
-
-    expect(enabledAfterAttempt).toBe(false)
-  })
-
-  it('configuration remains intact after failed enable attempt', () => {
-    const business = createMockBusiness({
-      business_hours_enabled: false,
+      business_hours_enabled: true,
       business_hours_start: '09:00',
       business_hours_end: '18:00',
-      business_hours_timezone: null,
-      after_hours_message: 'Test message'
+      business_hours_timezone: 'America/New_York',
+      after_hours_message: 'After hours message'
     })
 
-    // Partial config exists but is incomplete
+    // Validation at Save time should pass
     const hasValidConfig =
       !!(business.business_hours_timezone &&
       business.business_hours_start &&
       business.business_hours_end &&
       business.after_hours_message)
 
-    expect(hasValidConfig).toBe(false)
+    expect(hasValidConfig).toBe(true)
 
-    // Configuration fields should remain intact
-    expect(business.business_hours_start).toBe('09:00')
-    expect(business.business_hours_end).toBe('18:00')
-    expect(business.after_hours_message).toBe('Test message')
+    // Save attempt should be allowed
+    const shouldAllowSave = hasValidConfig
+    expect(shouldAllowSave).toBe(true)
   })
 
   it('Done button should not auto-flip enabled state', () => {

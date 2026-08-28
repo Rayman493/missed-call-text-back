@@ -739,6 +739,13 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       // Use automation_settings directly from businessData (already updated via updateBusiness)
       const automationSettings = businessData.automation_settings || {}
 
+      // Validate Business Hours configuration before saving
+      if (businessData.business_hours_enabled) {
+        if (!businessData.business_hours_timezone || !businessData.business_hours_start || !businessData.business_hours_end || !businessData.after_hours_message) {
+          throw new Error('Business Hours requires timezone, hours, and after-hours message to be configured before enabling')
+        }
+      }
+
       // Validate Out of Office configuration before saving
       if (businessData.out_of_office_enabled) {
         if (!businessData.out_of_office_start || !businessData.out_of_office_end) {
@@ -3153,25 +3160,15 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
-                              // If enabling, validate configuration is complete
-                              if (!formBusiness.business_hours_enabled) {
-                                const hasValidConfig =
-                                  formBusiness.business_hours_timezone &&
-                                  formBusiness.business_hours_start &&
-                                  formBusiness.business_hours_end &&
-                                  formBusiness.after_hours_message
-
-                                if (!hasValidConfig) {
-                                  showToast('Please configure timezone, hours, and after-hours message before enabling Business Hours', 'error')
-                                  return
-                                }
-                              }
-
                               const nextBusiness = {
                                 ...formBusiness,
                                 business_hours_enabled: !formBusiness.business_hours_enabled
                               }
                               updateBusiness(nextBusiness)
+                              // Auto-expand when enabling
+                              if (!formBusiness.business_hours_enabled) {
+                                setBusinessHoursExpanded(true)
+                              }
                             }}
                             className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                             formBusiness.business_hours_enabled
@@ -3221,20 +3218,6 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                // If enabling, validate configuration is complete
-                                if (!formBusiness.business_hours_enabled) {
-                                  const hasValidConfig =
-                                    formBusiness.business_hours_timezone &&
-                                    formBusiness.business_hours_start &&
-                                    formBusiness.business_hours_end &&
-                                    formBusiness.after_hours_message
-
-                                  if (!hasValidConfig) {
-                                    showToast('Please configure timezone, hours, and after-hours message before enabling Business Hours', 'error')
-                                    return
-                                  }
-                                }
-
                                 const nextBusiness = {
                                   ...formBusiness,
                                   business_hours_enabled: !formBusiness.business_hours_enabled
@@ -3469,6 +3452,10 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                 out_of_office_enabled: !formBusiness.out_of_office_enabled
                               }
                               updateBusiness(nextBusiness)
+                              // Auto-expand when enabling
+                              if (!formBusiness.out_of_office_enabled) {
+                                setOutOfOfficeExpanded(true)
+                              }
                             }}
                             className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                             formBusiness.out_of_office_enabled
@@ -3631,6 +3618,10 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             onClick={(e) => {
                               e.stopPropagation()
                               updateFollowUpSettings({ enabled: !getFollowUpSettings().enabled })
+                              // Auto-expand when enabling
+                              if (!getFollowUpSettings().enabled) {
+                                setFollowUpExpanded(true)
+                              }
                             }}
                             className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                               getFollowUpSettings().enabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'
