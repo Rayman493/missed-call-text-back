@@ -3823,14 +3823,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </h1>
                   {(() => {
                     const rawStatus = leadData?.status || lead?.status || lead?.lead_status
-                    const normalizedStatus = normalizeCustomerStatus(rawStatus)
-                    const statusStyle = getCustomerStatusStyle(normalizedStatus)
                     return rawStatus && (
-                      <span
-                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium border whitespace-nowrap flex-shrink-0 ${statusStyle.badgeClass}`}
-                      >
-                        {statusStyle.label}
-                      </span>
+                      <LeadStatusDropdown
+                        currentStatus={normalizeCustomerStatus(rawStatus)}
+                        onStatusChange={handleStatusUpdate}
+                        size="sm"
+                      />
                     )
                   })()}
                   {(() => {
@@ -5096,106 +5094,34 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="flex justify-center py-1.5">
               <div className="w-12 h-1 bg-slate-300 dark:bg-slate-600 rounded-full"></div>
             </div>
-            
+
             {/* Header */}
-            <div className="px-3 pb-3 border-b border-slate-200 dark:border-slate-700">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-semibold text-slate-900 dark:text-white">Customer Details</h3>
-                <button
-                  onClick={() => setShowLeadInfo(false)}
-                  className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+            <div className="px-4 pb-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white">Customer Details</h3>
+              <button
+                onClick={() => setShowLeadInfo(false)}
+                className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                aria-label="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            
-            {/* Content */}
-            <div className="px-3 py-3 overflow-y-auto max-h-[60vh]">
-              {/* Contact Information */}
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-slate-900 dark:text-white">{formatPhoneNumber(lead?.caller_phone || '')}</h4>
-                    {leadData?.email && (
-                      <p className="text-xs text-slate-600 dark:text-slate-400 truncate">{leadData.email}</p>
-                    )}
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
-                      {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-600 dark:text-slate-400">Created</span>
-                    <span className="text-slate-900 dark:text-white font-medium">{formatRelativeTime(lead?.created_at)}</span>
-                  </div>
-                  {lead?.last_message_at && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Last activity</span>
-                      <span className="text-slate-900 dark:text-white font-medium">{formatRelativeTime(lead.last_message_at)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-slate-600 dark:text-slate-400">Messages</span>
-                    <span className="text-slate-900 dark:text-white font-medium">{messagesArray.length}</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* System Information */}
-              <div className="space-y-3 mb-4">
-                <h4 className="text-sm font-semibold text-slate-900 dark:text-white">System Details</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-600 dark:text-slate-400">ReplyFlow number</span>
-                    <span className="text-slate-900 dark:text-white font-medium font-mono">{formatPhoneNumber(business?.twilio_phone_number || '')}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600 dark:text-slate-400">Business number</span>
-                    <span className="text-slate-900 dark:text-white font-medium font-mono">{formatPhoneNumber(business?.business_phone_number || '')}</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Follow-up Status */}
-              {automationStatus && (
-                <div className="space-y-3 mb-4">
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">Automation Status</h4>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
-                    {automationStatus === 'Follow-ups cancelled after customer reply' 
-                      ? 'Follow-ups automatically paused after customer replied'
-                      : automationStatus
-                    }
-                  </div>
-                </div>
-              )}
+
+            {/* Content - Canonical Customer Details */}
+            <div className="px-4 py-3 overflow-y-auto max-h-[60vh]">
+              <CustomerDetails leadData={leadData} lead={lead} />
             </div>
-            
+
             {/* Actions */}
-            <div className="px-3 py-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+            <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowLeadInfo(false)}
                   className="flex-1 px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
                 >
                   Close
-                </button>
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="flex-1 px-4 py-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                  <span>Refresh</span>
                 </button>
               </div>
             </div>
