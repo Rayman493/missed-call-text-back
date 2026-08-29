@@ -802,8 +802,8 @@ export default function LeadsPage() {
             <AppHeader title="Customers" />
 
           {/* Main Content */}
-          <main className="flex-1 pt-6 sm:pt-8 lg:pt-10 px-4 sm:px-5 lg:px-7 md:pb-10 relative z-10 overflow-y-auto mobile-bottom-nav-safe-content-with-gap" onClick={handlePageClick}>
-            <div className="max-w-[1400px] mx-auto space-y-6">
+          <main className="flex-1 pt-6 sm:pt-8 lg:pt-10 px-4 sm:px-5 lg:px-7 md:pb-10 relative z-10 overflow-y-auto" onClick={handlePageClick}>
+            <div className="max-w-[1400px] mx-auto space-y-6 mobile-bottom-nav-safe-content-with-gap">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
 

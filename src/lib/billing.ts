@@ -162,11 +162,12 @@ async function openBillingPortal(accessToken: string, returnUrl?: string, hasExi
         }
 
         try {
-          // Use deterministic return URL for native platforms
+          // Use HTTPS Universal Link for callback
+          // The callback URL must match the return_url passed to Stripe
           const callbackUrl = `${window.location.origin}/dashboard/settings?billing=returned`
           const callbackUrlObj = new URL(callbackUrl)
           const callbackHost = callbackUrlObj.hostname
-          const callbackPath = callbackUrlObj.pathname + callbackUrlObj.search
+          const callbackPath = callbackUrlObj.pathname + callbackUrlObj.search // Full path with query
 
           const result = await openNativeWebSession({
             url: data.url,

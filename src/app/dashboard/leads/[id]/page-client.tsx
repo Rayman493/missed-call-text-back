@@ -1662,11 +1662,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  // Fetch jobs for lead to check for scheduled appointments
+  // Fetch jobs, tasks, and appointments for lead in parallel
   useEffect(() => {
-    fetchLeadJobs()
-    fetchLeadTasks()
-    fetchAppointments()
+    if (!leadData?.id || !business) return
+
+    // Run all fetches in parallel for faster initial load
+    Promise.all([
+      fetchLeadJobs(),
+      fetchLeadTasks(),
+      fetchAppointments()
+    ]).catch(error => {
+      console.error('Error fetching lead data in parallel:', error)
+    })
   }, [leadData?.id, business])
 
   // Get future scheduled appointments for this lead
@@ -3275,7 +3282,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <button
               type="button"
               onClick={handleAppointmentClick}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
             >
               <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -3826,7 +3833,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Customer Identity Header - Page-integrated */}
       <div className="flex-shrink-0 border-b border-border/35 dark:border-slate-700/35">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 md:py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 md:py-4">
           {/* Mobile Layout: Compact Information Header */}
           <div className="md:hidden">
             <div className="flex items-center gap-2">
@@ -3921,34 +3928,34 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
               
               {/* Actions */}
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 {/* Edit Customer Button */}
                 <button
                   onClick={() => setShowEditCustomer(true)}
-                  className="h-10 w-10 inline-flex items-center justify-center text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg transition-colors duration-200"
+                  className="h-9 w-9 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors duration-200"
                   title="Edit customer"
                   aria-label="Edit customer"
                 >
-                  <Pencil className="w-5 h-5" />
+                  <Pencil className="w-4 h-4" />
                 </button>
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}
-                  className="h-10 w-10 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors duration-200"
+                  className="h-9 w-9 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors duration-200"
                   title="Customer information"
                   aria-label="Customer information"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </button>
-                
+
                 {/* Mobile Overflow Button */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="h-10 w-10 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors duration-200"
+                      className="h-9 w-9 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors duration-200"
                       title="More actions"
                       aria-label="Conversation actions"
                     >
@@ -4184,7 +4191,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   type="button"
                   onClick={handleRequestPaymentClick}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                 >
                   <CreditCard className="w-3.5 h-3.5" />
                   <span>Request Payment</span>

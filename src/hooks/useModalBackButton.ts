@@ -64,7 +64,7 @@ export function useModalBackButton({ isOpen, onClose }: UseModalBackButtonOption
 
     // Handle browser back button (popstate)
     const onPopState = () => {
-      console.log('[MODAL_BACK_BUTTON] Popstate event received', {
+      console.log('[ANDROID_BACK_MODAL_CLOSE] Popstate event received', {
         pathname: window.location.pathname,
         stackLength: getModalStack().length,
         timestamp: Date.now()

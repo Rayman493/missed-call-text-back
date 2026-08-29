@@ -85,7 +85,7 @@ export default function TapToPaySetupModal({
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 mb-6">
                 <p className="text-xs text-slate-600 dark:text-slate-400">
                   <span className="font-semibold">Why Stripe?</span> Stripe securely processes your payments and sends payouts directly to your connected bank account. Setup takes just a few minutes.
                 </p>

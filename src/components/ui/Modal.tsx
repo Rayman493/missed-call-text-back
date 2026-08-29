@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useId } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface ModalProps {
   isOpen: boolean
@@ -37,36 +38,10 @@ export default function Modal({
   bottomSheetOnMobile = false
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
-  const previousScrollPosition = useRef<number>(0)
   const titleId = useId()
 
-  useEffect(() => {
-    if (isOpen) {
-      // Store current scroll position
-      previousScrollPosition.current = window.pageYOffset
-
-      // Lock body scroll
-      document.body.style.overflow = 'hidden'
-      document.body.style.position = 'fixed'
-      document.body.style.top = `-${previousScrollPosition.current}px`
-      document.body.style.width = '100%'
-    } else {
-      // Restore body scroll and position
-      document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.width = ''
-      window.scrollTo(0, previousScrollPosition.current)
-    }
-
-    return () => {
-      // Cleanup on unmount
-      document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.width = ''
-    }
-  }, [isOpen])
+  // Use the canonical scroll-lock mechanism for consistent behavior across all modals
+  useBodyScrollLock(isOpen)
 
   // Handle escape key
   useEffect(() => {
@@ -79,6 +54,21 @@ export default function Modal({
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
   }, [isOpen, onClose])
+
+  // Log overlay mount/unmount for debugging
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[OVERLAY_MOUNT] Modal overlay mounted', {
+        title,
+        timestamp: Date.now()
+      })
+    } else {
+      console.log('[OVERLAY_UNMOUNT] Modal overlay unmounted', {
+        title,
+        timestamp: Date.now()
+      })
+    }
+  }, [isOpen, title])
 
   // Handle click outside
   const handleBackdropClick = (e: React.MouseEvent) => {

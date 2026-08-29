@@ -142,23 +142,15 @@ export async function POST(request: Request) {
 
     console.log('[stripe-portal] stripe_customer_id is valid, proceeding to Stripe API call')
 
-    // Use deterministic return URL for native platforms
-    // For native iOS/Android, we need a predictable callback URL that the native session can intercept
-    // For web, we can use the current URL or a default
+    // Use HTTPS Universal Link return URL for all platforms
+    // Stripe requires HTTPS URLs for return_url (custom schemes are not accepted)
+    // Universal Links will open the native app on iOS/Android if configured correctly
+    // External return handler will detect billing=returned and handle reconciliation
     let returnUrl: string
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || getDashboardUrl()
 
-    // Check if request is from native app
-    const userAgent = request.headers.get('user-agent') || ''
-    const isNativeApp = userAgent.includes('Capacitor') || userAgent.includes('ReplyFlow')
-    const isNativeIOS = isNativeApp && (userAgent.includes('iPhone') || userAgent.includes('iPad') || userAgent.includes('iOS'))
-
-    if (isNativeApp) {
-      // Native: Use deterministic return URL for native session interception
-      returnUrl = `${appUrl}/dashboard/settings?billing=returned`
-      console.log('[stripe-portal] Using deterministic return URL for native:', returnUrl)
-    } else if (returnUrlParam) {
-      // Web: Allow custom return URL if provided and same-origin
+    // Allow custom return URL if provided and same-origin
+    if (returnUrlParam) {
       try {
         const returnUrlObj = new URL(returnUrlParam, appUrl)
         const appUrlObj = new URL(appUrl)
@@ -166,7 +158,7 @@ export async function POST(request: Request) {
         // Allow return only if same origin (same protocol, host, port)
         if (returnUrlObj.origin === appUrlObj.origin) {
           returnUrl = returnUrlParam
-          console.log('[stripe-portal] Using custom return URL from request (web):', returnUrl)
+          console.log('[stripe-portal] Using custom return URL from request:', returnUrl)
         } else {
           console.warn('[stripe-portal] Return URL has different origin, using default:', {
             returnUrlOrigin: returnUrlObj.origin,
@@ -179,9 +171,11 @@ export async function POST(request: Request) {
         returnUrl = `${getDashboardUrl()}?billing=returned`
       }
     } else {
-      // Fall back to default dashboard URL
+      // Fall back to default dashboard URL with billing=returned parameter
       returnUrl = `${getDashboardUrl()}?billing=returned`
     }
+
+    console.log('[stripe-portal] Using HTTPS Universal Link return URL:', returnUrl)
     
     logUrlResolution('stripe-portal-return-url', returnUrl, user.id, business.id)
 

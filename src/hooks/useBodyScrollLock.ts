@@ -34,6 +34,12 @@ export function useBodyScrollLock(isLocked: boolean) {
   const ownerIdRef = useRef<string>(generateOwnerId())
 
   useEffect(() => {
+    console.log('[MODAL_MOUNT] Scroll lock hook mounted', {
+      ownerId: ownerIdRef.current,
+      isLocked,
+      timestamp: Date.now()
+    })
+
     const preventTouchMove = (e: TouchEvent) => {
       if (e.target instanceof Element && e.target.closest('[data-scroll-lock-allow]')) {
         return
@@ -44,7 +50,7 @@ export function useBodyScrollLock(isLocked: boolean) {
 
     const lock = () => {
       const ownerId = ownerIdRef.current
-      console.log('[SCROLL_LOCK] LOCK', {
+      console.log('[MODAL_OPEN] Scroll lock requested', {
         ownerId,
         lockCountBefore: lockCount,
         activeOwnersBefore: Array.from(activeOwners),
@@ -88,7 +94,7 @@ export function useBodyScrollLock(isLocked: boolean) {
 
     const unlock = () => {
       const ownerId = ownerIdRef.current
-      console.log('[SCROLL_LOCK] UNLOCK', {
+      console.log('[MODAL_CLOSE_REQUEST] Scroll lock release requested', {
         ownerId,
         lockCountBefore: lockCount,
         activeOwnersBefore: Array.from(activeOwners),
@@ -104,6 +110,13 @@ export function useBodyScrollLock(isLocked: boolean) {
 
       if (lockCount === 0) {
         // Last unlock: restore scroll
+        console.log('[BODY_SCROLL_STATE] Restoring scroll to unlocked state', {
+          ownerId,
+          scrollPosition: previousScrollPosition.current,
+          bodyOverflowBefore: document.body.style.overflow,
+          bodyPositionBefore: document.body.style.position,
+          htmlOverflowBefore: document.documentElement.style.overflow
+        })
         document.body.style.overflow = ''
         document.body.style.position = ''
         document.body.style.top = ''
@@ -118,12 +131,12 @@ export function useBodyScrollLock(isLocked: boolean) {
         document.body.removeEventListener('touchmove', preventTouchMove as any)
         window.scrollTo(0, previousScrollPosition.current)
 
-        console.log('[SCROLL_LOCK] RESTORED', {
+        console.log('[SCROLL_LOCK_COUNT] Lock count reached zero', {
           ownerId,
-          scrollPosition: previousScrollPosition.current,
-          bodyOverflow: document.body.style.overflow,
-          bodyPosition: document.body.style.position,
-          htmlOverflow: document.documentElement.style.overflow
+          finalLockCount: 0,
+          bodyOverflowAfter: document.body.style.overflow,
+          bodyPositionAfter: document.body.style.position,
+          htmlOverflowAfter: document.documentElement.style.overflow
         })
       }
 
@@ -140,6 +153,13 @@ export function useBodyScrollLock(isLocked: boolean) {
     }
 
     // If not locked, do nothing (don't unlock since we might not have locked)
-    return () => {}
+    return () => {
+      console.log('[MODAL_UNMOUNT] Scroll lock hook unmounted', {
+        ownerId: ownerIdRef.current,
+        isLocked,
+        lockCount,
+        timestamp: Date.now()
+      })
+    }
   }, [isLocked])
 }

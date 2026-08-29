@@ -776,18 +776,18 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               <button
                 onClick={() => setShowTapToPaySetup(true)}
                 className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995]
-                bg-gradient-to-br from-emerald-50 dark:from-emerald-900/40 to-emerald-100 dark:to-emerald-800/30 border-emerald-400 dark:border-emerald-600/50 hover:border-emerald-500 dark:hover:border-emerald-500/60 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+                bg-green-50 dark:bg-green-900/40 border-green-200/50 dark:border-green-800/50 hover:border-green-300 dark:hover:border-green-700/50 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
               >
                 <div className="flex items-center gap-3.5 mb-2.5">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/25 dark:bg-emerald-500/20 ring-1 ring-inset ring-emerald-600/50 dark:ring-emerald-600/40 flex items-center justify-center">
-                    <AppleTapToPayIcon size={20} className="text-emerald-700 dark:text-emerald-400" />
+                  <div className="w-10 h-10 rounded-xl bg-green-500/10 dark:bg-green-500/15 border border-green-200/50 dark:border-green-800/50 flex items-center justify-center">
+                    <AppleTapToPayIcon size={20} className="text-green-600 dark:text-green-400" />
                   </div>
                   <div>
                     <h3 className="text-foreground dark:text-white font-semibold text-sm sm:text-base leading-tight">Tap to Pay</h3>
-                    <p className="text-emerald-800 dark:text-emerald-300/90 text-xs">Setup required</p>
+                    <p className="text-green-800 dark:text-green-300/90 text-xs">Setup required</p>
                   </div>
                 </div>
-                <p className="text-emerald-950/90 dark:text-emerald-200/80 text-xs sm:text-sm">Accept contactless payments directly from your phone</p>
+                <p className="text-green-950/90 dark:text-green-200/80 text-xs sm:text-sm">Accept contactless payments directly from your phone</p>
               </button>
             )
           })()}

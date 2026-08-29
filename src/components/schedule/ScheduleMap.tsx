@@ -2127,7 +2127,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       previousMapFilterRef.current = mapFilter
     }
 
-    // Smart automatic framing logic
+    // Canonical automatic framing logic
     console.log('[SCHEDULE_MAP_EFFECT]', {
       effect: 'marker_update_auto_fit_check',
       markersCount: markersRef.current.size,
@@ -2139,119 +2139,69 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       initialFramingPending: initialFramingPendingRef.current
     })
 
-    // If no markers, check if business coords exist for framing
-    // This handles the zero-stops case where business should be the geographic anchor
-    if (markersRef.current.size === 0) {
-      if (businessCoordsCacheRef.current && businessCoordsCacheRef.current.lat && businessCoordsCacheRef.current.lng) {
-        // Frame on business location with local zoom
-        const { lat, lng } = businessCoordsCacheRef.current
-        panToMarker(lat, lng, { zoom: HOME_BASE_ONLY_ZOOM }, 'business_only_initial_framing')
+    // CANONICAL DAY FRAMING: Triggered by date change or marker set change
+    // Always uses fitBounds to show ALL markers (business + all service markers)
+    // Never auto-focuses a single stop - that only happens on explicit user tap
+    const shouldAutoFit = dateChanged ||
+      (cameraOwnerRef.current !== CameraOwner.USER_OWNED &&
+       cameraOwnerRef.current !== CameraOwner.DRAGGING &&
+       (signatureChanged || initialFramingPendingRef.current))
+
+    console.log('[SCHEDULE_MAP_EFFECT]', {
+      effect: 'auto_fit_decision',
+      shouldAutoFit,
+      dateChanged,
+      signatureChanged,
+      cameraOwner: cameraOwnerRef.current,
+      lastAutoFitDateKey,
+      currentDateKey,
+      initialFramingPending: initialFramingPendingRef.current
+    })
+
+    if (shouldAutoFit) {
+      markerSetSignatureRef.current = signature
+      setLastAutoFitDateKey(currentDateKey)
+
+      // Only clear initialFramingPending when marker hydration is complete
+      const actualMarkerCount = markersRef.current.size
+      const expectedCount = expectedMarkerCountRef.current
+      const hydrationComplete = actualMarkerCount >= expectedCount && expectedCount > 0
+
+      if (hydrationComplete) {
         initialFramingPendingRef.current = false
       }
-      markerSetSignatureRef.current = signature
-      setLastAutoFitDateKey(null)
-    } else if (selectedMapItemId && cameraOwnerRef.current === CameraOwner.INITIALIZING) {
-      const selectedMarker = markersRef.current.get(selectedMapItemId)
-      if (selectedMarker) {
-        // Skip single-marker focus on date change when there are multiple markers
-        // This allows multi-marker auto-fit to frame business + service markers together
-        // Single-marker focus is only for explicit user selection of a specific marker
-        if (dateChanged && markersRef.current.size > 1) {
-          console.log('[SCHEDULE_MAP_EFFECT] Skipping single-marker focus on date change with multiple markers')
-          markerSetSignatureRef.current = signature
-        } else {
-          const pos = selectedMarker.getPosition()
-          panToMarker(pos.lat(), pos.lng(), { checkVisibility: true }, 'selected_item')
-          markerSetSignatureRef.current = signature
-        }
-      }
-    } else if (showAllMode && (dateChanged || signatureChanged)) {
-      // Auto-fit should happen when:
-      // - Date changes (new context, camera ownership already reset to INITIALIZING)
-      // - Camera is not USER_OWNED and not DRAGGING AND (signature changed OR initial framing is pending)
-      // Filter changes do NOT trigger auto-fit (preserve user viewport)
-      const shouldAutoFit = dateChanged ||
-        (cameraOwnerRef.current !== CameraOwner.USER_OWNED && cameraOwnerRef.current !== CameraOwner.DRAGGING &&
-        (signatureChanged || initialFramingPendingRef.current))
 
-      console.log('[SCHEDULE_MAP_EFFECT]', {
-        effect: 'auto_fit_decision',
-        shouldAutoFit,
-        dateChanged,
-        filterChanged,
-        signatureChanged,
-        cameraOwner: cameraOwnerRef.current,
-        businessGeocodingInProgress: businessGeocodingInProgressRef.current,
-        lastAutoFitDateKey,
-        currentDateKey,
-        initialFramingPending: initialFramingPendingRef.current
-      })
+      // Build viewport marker set for automatic framing
+      // CANONICAL POLICY: Include ALL valid markers (business + all service markers)
+      const viewportMarkers = Array.from(markersRef.current.entries())
 
-      if (shouldAutoFit) {
-        markerSetSignatureRef.current = signature
-        setLastAutoFitDateKey(currentDateKey)
-
-        // Only clear initialFramingPending when marker hydration is complete
-        // (actual marker count matches expected count)
-        const actualMarkerCount = markersRef.current.size
-        const expectedCount = expectedMarkerCountRef.current
-        const hydrationComplete = actualMarkerCount >= expectedCount && expectedCount > 0
-
-        if (hydrationComplete) {
-          initialFramingPendingRef.current = false
-        }
-
-        // Build viewport marker set for automatic framing
-        // AUTOMATIC FRAMING POLICY: Include service markers + business marker for geographic context
-        const viewportMarkers = Array.from(markersRef.current.entries())
-          .filter(([key, marker]) => {
-            // Include service markers (jobs, appointments)
-            if (!key.startsWith('business:')) return true
-            // Include business marker for geographic context
-            return true
-          })
-
-        if (viewportMarkers.length === 0) {
-          // No markers at all - use fallback
-          console.log('[SCHEDULE_MAP_EFFECT] No markers available for auto-fit')
-        } else if (viewportMarkers.length === 1) {
-          // Single marker (could be business only, or single stop)
-          const [, singleMarker] = viewportMarkers[0]
-          if (singleMarker) {
-            const pos = singleMarker.getPosition()
-            panToMarker(pos.lat(), pos.lng(), { zoom: HOME_BASE_ONLY_ZOOM }, 'single_marker_auto_fit')
-          }
-        } else {
-          // Multiple markers - fit all (service + business)
-          const bounds = new (window as any).google.maps.LatLngBounds()
-          viewportMarkers.forEach(([, marker]) => {
-            bounds.extend(marker.getPosition()!)
-          })
-          fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'multi_marker_auto_fit')
+      if (viewportMarkers.length === 0) {
+        // No markers at all - check if business coords exist for framing
+        if (businessCoordsCacheRef.current && businessCoordsCacheRef.current.lat && businessCoordsCacheRef.current.lng) {
+          const { lat, lng } = businessCoordsCacheRef.current
+          panToMarker(lat, lng, { zoom: HOME_BASE_ONLY_ZOOM }, 'business_only_fallback')
         }
       } else {
-        markerSetSignatureRef.current = signature
-      }
-    } else if (!showAllMode || cameraOwnerRef.current === CameraOwner.USER_OWNED) {
-      console.log('[SCHEDULE_MAP_EFFECT]', {
-        effect: 'skip_auto_fit',
-        reason: !showAllMode ? 'not_show_all_mode' : 'user_owned_camera',
-        showAllMode,
-        cameraOwner: cameraOwnerRef.current
-      })
-      markerSetSignatureRef.current = signature
-    } else {
-      // Signature didn't change and camera is INITIALIZING
-      // This means initial framing is complete, transition to USER_OWNED
-      if (cameraOwnerRef.current === CameraOwner.INITIALIZING && !signatureChanged) {
-        cameraOwnerRef.current = CameraOwner.USER_OWNED
-        console.log('[SCHEDULE_MAP_CAMERA_OWNERSHIP]', {
-          event: 'initial_framing_complete',
-          cameraOwner: cameraOwnerRef.current,
-          mapInstance: mapInstanceIdRef.current
+        // Always use fitBounds for canonical framing, regardless of marker count
+        // This ensures business + one service marker uses fitBounds, not panToMarker
+        const bounds = new (window as any).google.maps.LatLngBounds()
+        viewportMarkers.forEach(([, marker]) => {
+          bounds.extend(marker.getPosition()!)
         })
+        fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'canonical_day_frame')
       }
+    } else {
       markerSetSignatureRef.current = signature
+    }
+
+    // Transition camera ownership to USER_OWNED after initial framing
+    if (cameraOwnerRef.current === CameraOwner.INITIALIZING && !shouldAutoFit) {
+      cameraOwnerRef.current = CameraOwner.USER_OWNED
+      console.log('[SCHEDULE_MAP_CAMERA_OWNERSHIP]', {
+        event: 'initial_framing_complete',
+        cameraOwner: cameraOwnerRef.current,
+        mapInstance: mapInstanceIdRef.current
+      })
     }
 
     return () => {
