@@ -2362,19 +2362,19 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         <div className="flex items-center justify-between mb-4 px-1">
           <button
             onClick={onPreviousDay}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
             aria-label="Previous day"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div className="text-center">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
+          <div className="text-center w-[130px] sm:w-[160px] flex-none">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground truncate">
               {formatDate(selectedDate)}
             </h2>
           </div>
           <button
             onClick={onNextDay}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
             aria-label="Next day"
           >
             <ChevronRight className="w-5 h-5" />
@@ -2394,11 +2394,13 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     return (
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between mb-4 px-1">
-          <button onClick={onPreviousDay} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+          <button onClick={onPreviousDay} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex-shrink-0">
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <h2 className="text-lg font-semibold">{formatDate(selectedDate)}</h2>
-          <button onClick={onNextDay} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+          <div className="text-center w-[130px] sm:w-[160px] flex-none">
+            <h2 className="text-lg font-semibold truncate">{formatDate(selectedDate)}</h2>
+          </div>
+          <button onClick={onNextDay} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex-shrink-0">
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
@@ -2597,25 +2599,25 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           <div className="flex items-center gap-2">
             <button
               onClick={onPreviousDay}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
               aria-label="Previous day"
             >
               <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
             </button>
-            <div className="text-center">
-              <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">
+            <div className="text-center w-[200px] flex-none">
+              <h2 className="text-base font-semibold text-slate-900 dark:text-foreground truncate">
                 {formatDate(selectedDate)}
               </h2>
             </div>
             <button
               onClick={onGoToToday}
-              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors"
+              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors flex-shrink-0"
             >
               Today
             </button>
             <button
               onClick={onNextDay}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
               aria-label="Next day"
             >
               <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
@@ -2674,25 +2676,25 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           <div className="flex items-center justify-center gap-2">
             <button
               onClick={onPreviousDay}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
               aria-label="Previous day"
             >
               <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
             </button>
-            <div className="text-center">
-              <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">
+            <div className="text-center w-[130px] sm:w-[160px] flex-none">
+              <h2 className="text-base font-semibold text-slate-900 dark:text-foreground truncate">
                 {formatDate(selectedDate)}
               </h2>
             </div>
             <button
               onClick={onGoToToday}
-              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors"
+              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
             >
               Today
             </button>
             <button
               onClick={onNextDay}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
               aria-label="Next day"
             >
               <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
