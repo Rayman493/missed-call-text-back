@@ -104,7 +104,7 @@ export default function Modal({
           max-h-[var(--modal-max-height)]
           overflow-hidden
           rounded-xl border border-border elevated-surface-border
-          bg-card
+          bg-card dark:bg-slate-800/95
           shadow-sm
           flex flex-col min-h-0 animate-in zoom-in-95 duration-200 motion-reduce:animate-none motion-reduce:transition-none
           ${className}
