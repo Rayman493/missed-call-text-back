@@ -2437,12 +2437,12 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
             <h3 className="text-sm font-semibold text-foreground">Today's Schedule</h3>
           </div>
-          <div>
+          <div className="h-[88px] overflow-y-auto">
             {(() => {
               const selectedDayItems = getSelectedDayItems()
               if (selectedDayItems.length === 0) {
                 return (
-                  <div className="px-4 py-6 md:py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                  <div className="h-full flex items-center justify-center px-4 text-center text-sm text-slate-500 dark:text-slate-400">
                     No items scheduled for this day
                   </div>
                 )

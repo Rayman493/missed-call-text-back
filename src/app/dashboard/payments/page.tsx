@@ -755,18 +755,18 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                 <button
                   onClick={() => setShowTapToPaySetup(true)}
                   className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995]
-                  bg-gradient-to-br from-amber-100 dark:from-amber-900/35 to-amber-200 dark:to-amber-800/25 border-amber-300 dark:border-amber-700/40 hover:border-amber-400 dark:hover:border-amber-600/50 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+                  bg-green-50 dark:bg-green-900/40 border-green-200/50 dark:border-green-800/50 hover:border-green-300 dark:hover:border-green-700/50 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
                 >
                   <div className="flex items-center gap-3.5 mb-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 dark:bg-amber-500/15 ring-1 ring-inset ring-amber-600/40 dark:ring-amber-600/30 flex items-center justify-center">
-                      <AlertCircle className="w-5 h-5 text-amber-700 dark:text-amber-400" />
+                    <div className="w-10 h-10 rounded-xl bg-green-500/10 dark:bg-green-500/15 border border-green-200/50 dark:border-green-800/50 flex items-center justify-center">
+                      <AlertCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
                       <h3 className="text-foreground dark:text-white font-semibold text-sm sm:text-base leading-tight">Tap to Pay</h3>
-                      <p className="text-amber-800 dark:text-amber-300/85 text-xs">Finish setup</p>
+                      <p className="text-green-800 dark:text-green-300/90 text-xs">Finish setup</p>
                     </div>
                   </div>
-                  <p className="text-amber-900/90 dark:text-amber-200/80 text-xs sm:text-sm">Complete Stripe setup to accept contactless payments</p>
+                  <p className="text-green-950/90 dark:text-green-200/80 text-xs sm:text-sm">Complete Stripe setup to accept contactless payments</p>
                 </button>
               )
             }
