@@ -755,10 +755,10 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                 <button
                   onClick={() => setShowTapToPaySetup(true)}
                   className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995]
-                  bg-green-50 dark:bg-green-900/40 border-green-200/50 dark:border-green-800/50 hover:border-green-300 dark:hover:border-green-700/50 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+                  bg-green-50 dark:bg-green-800/60 border-green-200/50 dark:border-green-700/60 hover:border-green-300 dark:hover:border-green-600/50 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
                 >
                   <div className="flex items-center gap-3.5 mb-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-green-500/10 dark:bg-green-500/15 border border-green-200/50 dark:border-green-800/50 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-green-500/20 dark:bg-green-500/25 border border-green-200/50 dark:border-green-700/50 flex items-center justify-center">
                       <AlertCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
