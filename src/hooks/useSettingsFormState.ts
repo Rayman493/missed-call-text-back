@@ -23,9 +23,23 @@ export function useSettingsFormState({
   onSaveBusiness,
   onBusinessUpdated
 }: UseSettingsFormStateProps) {
+  // Apply default messages if empty to ensure UI shows the actual value that will be saved
+  const businessWithDefaults = initialBusiness ? {
+    ...initialBusiness,
+    after_hours_message: initialBusiness.after_hours_message || getDefaultAfterHoursTemplate(),
+    out_of_office_message: initialBusiness.out_of_office_message || getDefaultOutOfOfficeTemplate()
+  } : null
+
+  // Apply Business Hours defaults only when Business Hours is enabled to avoid unwanted persistence when disabled
+  if (businessWithDefaults && initialBusiness?.business_hours_enabled) {
+    businessWithDefaults.business_hours_timezone = initialBusiness.business_hours_timezone || 'America/New_York'
+    businessWithDefaults.business_hours_start = initialBusiness.business_hours_start || '09:00'
+    businessWithDefaults.business_hours_end = initialBusiness.business_hours_end || '18:00'
+  }
+
   const [state, setState] = useState<SettingsFormState>({
-    business: initialBusiness ? { ...initialBusiness } : null,
-    originalBusiness: initialBusiness ? { ...initialBusiness } : null,
+    business: businessWithDefaults ? { ...businessWithDefaults } : null,
+    originalBusiness: businessWithDefaults ? { ...businessWithDefaults } : null,
     hasUnsavedChanges: false,
     isSaving: false,
     saveError: null
@@ -49,6 +63,13 @@ export function useSettingsFormState({
         ...initialBusiness,
         after_hours_message: initialBusiness.after_hours_message || getDefaultAfterHoursTemplate(),
         out_of_office_message: initialBusiness.out_of_office_message || getDefaultOutOfOfficeTemplate()
+      }
+
+      // Apply Business Hours defaults only when Business Hours is enabled to avoid unwanted persistence when disabled
+      if (initialBusiness.business_hours_enabled) {
+        businessWithDefaults.business_hours_timezone = initialBusiness.business_hours_timezone || 'America/New_York'
+        businessWithDefaults.business_hours_start = initialBusiness.business_hours_start || '09:00'
+        businessWithDefaults.business_hours_end = initialBusiness.business_hours_end || '18:00'
       }
 
       setState(prev => {
@@ -80,7 +101,7 @@ export function useSettingsFormState({
     }
 
     // For text fields with defaults, treat empty string as equivalent to undefined
-    const fieldsWithDefaults = ['out_of_office_message', 'after_hours_message']
+    const fieldsWithDefaults = ['out_of_office_message', 'after_hours_message', 'business_hours_timezone', 'business_hours_start', 'business_hours_end']
     if (fieldsWithDefaults.includes(field as string)) {
       if (value === '' || value === null || value === undefined) {
         return undefined
