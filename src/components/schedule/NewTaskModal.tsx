@@ -315,7 +315,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Call customer about quote"
-              className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background dark:bg-slate-900/60 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               required
             />
           </div>
@@ -373,7 +373,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Add any details about this task..."
               rows={3}
-              className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-y"
+              className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background dark:bg-slate-900/60 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-y"
               autoCapitalize="sentences"
               autoCorrect="on"
               spellCheck={true}
