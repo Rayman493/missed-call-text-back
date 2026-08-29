@@ -2754,10 +2754,10 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         </div>
       </div>
 
-      {/* Today's Stops - Horizontal strip, visible on all screen sizes */}
-      {sortedItems.filter(item => item.type !== 'business').length > 0 && (
-        <div className="mb-2 md:mb-3 z-10">
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      {/* Today's Stops - Horizontal strip, always rendered with fixed height */}
+      <div className="mb-2 md:mb-3 z-10 h-[72px]">
+        {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
+          <div className="flex gap-2 overflow-x-auto h-full items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {sortedItems.filter(item => item.type !== 'business').map((item, index) => (
               <button
                 key={item.id}
@@ -2814,8 +2814,14 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
               </button>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="flex items-center justify-center h-full px-4">
+            <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+              No mapped stops
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Map Container - Use fixed height on mobile to prevent extending behind bottom nav */}
       <div className="flex-1 h-[calc(100dvh-var(--bottom-nav-height,80px)-140px)] md:h-auto md:min-h-0 relative rounded-xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60">
