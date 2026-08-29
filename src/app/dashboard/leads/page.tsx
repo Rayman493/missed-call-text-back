@@ -1130,7 +1130,7 @@ export default function LeadsPage() {
                     Customers
                   </h2>
                   <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                    Customers appear here as they connect with your business. You can add someone manually anytime, too.
+                    Customers are added automatically when they call or message your ReplyFlow number. You can also add customers manually anytime.
                   </p>
                 </div>
               </div>
