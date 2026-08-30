@@ -4269,7 +4269,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               
               {/* Desktop Message Thread - Scrollable */}
               {!isFullScreen && (
-              <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-5 py-4 min-h-0">
+              <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-5 py-4 min-h-0 bg-muted/20">
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
