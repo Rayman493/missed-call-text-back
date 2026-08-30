@@ -3840,12 +3840,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* Customer Info */}
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 mb-0.5">
+                <div className="flex items-center gap-1 mb-0.5">
                   <h1 className="font-medium text-foreground text-sm leading-tight truncate">
                     {getLeadDisplayName(leadData || lead)}
                   </h1>
                 </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1 flex-wrap">
                   {(() => {
                     const rawStatus = leadData?.status || lead?.status || lead?.lead_status
                     return rawStatus && (
@@ -3856,58 +3856,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       />
                     )
                   })()}
-                  {(() => {
-                    const customerSourceInfo = getCustomerSourceInfo(leadData?.source || lead?.source)
-                    return customerSourceInfo && (
-                      <span
-                        className="inline-flex items-center gap-1 px-1 py-0.5 rounded-full text-[10px] font-medium border whitespace-nowrap flex-shrink-0"
-                        title={customerSourceInfo.description}
-                        style={{
-                          backgroundColor: customerSourceInfo.type === 'replyflow' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(100, 116, 139, 0.1)',
-                          color: customerSourceInfo.type === 'replyflow' ? 'rgb(139, 92, 246)' : 'rgb(100, 116, 139)',
-                          borderColor: customerSourceInfo.type === 'replyflow' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(100, 116, 139, 0.2)'
-                        }}
-                      >
-                        {customerSourceInfo.icon === 'PhoneIncoming' && <PhoneIncoming className="w-2.5 h-2.5" />}
-                        {customerSourceInfo.icon === 'UserPlus' && <UserPlus className="w-2.5 h-2.5" />}
-                      </span>
-                    )
-                  })()}
                   <p className="text-[11px] text-muted-foreground/80 truncate">
                     {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                   </p>
-                  {leadData?.email && (
-                    <>
-                      <span className="text-muted-foreground/40">•</span>
-                      <p className="text-[11px] text-muted-foreground/80 truncate">
-                        {leadData.email}
-                      </p>
-                    </>
-                  )}
-                  {(() => {
-                    const nextAction = getNextAction(leadData || lead)
-                    const rawStatus = leadData?.status || lead?.status || lead?.lead_status
-                    const normalizedStatus = rawStatus ? normalizeCustomerStatus(rawStatus) : null
-                    // Skip showing next action when it's redundant with the status pill
-                    // (e.g., "Payment Requested" status + "Awaiting payment" action)
-                    const isRedundant = normalizedStatus === 'payment_requested'
-                    return nextAction && !isRedundant && (
-                      <span className={`text-[10px] font-medium ${
-                        nextAction.urgency === 'high'
-                          ? 'text-blue-600 dark:text-blue-400'
-                          : nextAction.urgency === 'medium'
-                          ? 'text-amber-600 dark:text-amber-400'
-                          : 'text-slate-500 dark:text-slate-400'
-                      }`}>
-                        • {nextAction.text}
-                      </span>
-                    )
-                  })()}
                 </div>
               </div>
               
               {/* Actions */}
-              <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className="flex items-center gap-1 flex-shrink-0">
                 {/* Edit Customer Button */}
                 <button
                   onClick={() => setShowEditCustomer(true)}
