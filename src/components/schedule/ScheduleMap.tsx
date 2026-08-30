@@ -2438,7 +2438,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   return (
     <div className="flex flex-col h-full relative">
       {/* Date navigation row - First control after tabs */}
-      <div className="mb-1.5 md:mb-2 z-10">
+      <div className="mb-1 md:mb-1.5 z-10">
         {/* Desktop: Centered date navigation */}
         <div className="hidden md:flex flex-col items-center gap-2">
           <div className="flex items-center justify-center gap-2">
@@ -2503,7 +2503,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       </div>
 
       {/* Filter row - Above map */}
-      <div className="mb-1.5 md:mb-2 z-10">
+      <div className="mb-1 md:mb-1.5 z-10">
         {/* Desktop: Right-aligned filters */}
         <div className="hidden md:flex items-center justify-end gap-2 flex-wrap px-1">
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
@@ -2578,7 +2578,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       </div>
 
       {/* Scheduled Stops - Horizontal strip, always rendered with fixed height */}
-      <div className="mb-1.5 md:mb-2 z-10 h-[72px]">
+      <div className="mb-1 md:mb-1.5 z-10 h-[48px]">
         {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
           <div className="flex gap-2 overflow-x-auto h-full items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {sortedItems.filter(item => item.type !== 'business').map((item, index) => (
