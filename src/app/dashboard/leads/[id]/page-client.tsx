@@ -4927,7 +4927,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
             <div className="mt-2">
               {(leadData?.paymentRequests || []).length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-2">No payments yet</p>
+                <div className="text-center py-2">
+                  <p className="text-xs text-muted-foreground">No payments yet</p>
+                  {!business || getAvailableProviders(business).length === 0 ? (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      <span>Set up a payment method to request payments.</span>
+                      <Link
+                        href="/dashboard/settings#payments"
+                        className="text-blue-600 dark:text-blue-400 hover:underline ml-1"
+                      >
+                        Set up payments →
+                      </Link>
+                    </div>
+                  ) : null}
+                </div>
               ) : (
                 <div className="space-y-1">
                   {(leadData?.paymentRequests || []).slice(0, 3).map((pr: any) => (
