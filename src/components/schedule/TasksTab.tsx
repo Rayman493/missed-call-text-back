@@ -149,7 +149,7 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
             ? { ...t, completed, completed_at: completed ? t.completed_at : null }
             : t
         ))
-        showToast('Failed to update task. Please try again.', 'error')
+        showToast('Failed to update reminder. Please try again.', 'error')
         return
       }
 
@@ -162,7 +162,7 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
           ? { ...t, completed, completed_at: completed ? t.completed_at : null }
           : t
       ))
-      showToast('Failed to update task. Please try again.', 'error')
+      showToast('Failed to update reminder. Please try again.', 'error')
     } finally {
       // Remove from loading state
       setTogglingTaskIds(prev => {
@@ -264,7 +264,7 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold text-slate-900 dark:text-foreground flex items-center gap-2">
-            Tasks
+            Reminders
             {isLoading && hasLoadedOnceRef.current && (
               <span className="inline-flex items-center justify-center w-4 h-4">
                 <span className="w-3.5 h-3.5 border-2 border-slate-300 dark:border-slate-600 border-t-transparent rounded-full animate-spin" />
@@ -289,7 +289,7 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
             className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98]"
           >
             <Plus className="w-4 h-4" />
-            New Task
+            New Reminder
           </button>
         </div>
       </div>
@@ -361,21 +361,21 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
             <CheckCircle2 className="w-8 h-8 text-slate-300 dark:text-slate-600" />
           </div>
           <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">
-            {filter === 'all' ? "You're all caught up." : `No ${filter} tasks.`}
+            {filter === 'all' ? "You're all caught up." : `No ${filter} reminders.`}
           </h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
-            {filter === 'active' && 'No tasks scheduled for today.'}
-            {filter === 'overdue' && 'No overdue tasks. Great job!'}
-            {filter === 'future' && 'No tasks scheduled for later.'}
-            {filter === 'completed' && 'No completed tasks yet.'}
-            {filter === 'all' && 'Create your first task to get started.'}
+            {filter === 'active' && 'No reminders scheduled for today.'}
+            {filter === 'overdue' && 'No overdue reminders. Great job!'}
+            {filter === 'future' && 'No reminders scheduled for later.'}
+            {filter === 'completed' && 'No completed reminders yet.'}
+            {filter === 'all' && 'Create your first reminder to get started.'}
           </p>
           <button
             onClick={() => useParentModal ? onAddTask!() : setIsNewTaskModalOpen(true)}
             className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98]"
           >
             <Plus className="w-4 h-4" />
-            New Task
+            New Reminder
           </button>
         </div>
       ) : (

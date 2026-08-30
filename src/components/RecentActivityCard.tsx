@@ -202,8 +202,8 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                 events.push({
                   id: `task-completed-${task.id}`,
                   type: 'task_completed',
-                  title: 'Task Completed',
-                  description: task.title || 'Task',
+                  title: 'Reminder Completed',
+                  description: task.title || 'Reminder',
                   timestamp: task.updated_at,
                   icon: <CheckCircle className="w-4 h-4" />,
                   iconBgColor: 'bg-emerald-500/20',

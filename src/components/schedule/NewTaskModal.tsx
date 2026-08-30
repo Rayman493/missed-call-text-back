@@ -127,17 +127,17 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to save task')
+        throw new Error(error.error || 'Failed to save reminder')
       }
 
       const result = await response.json()
-      onShowToast?.(taskToEdit ? 'Task updated' : 'Task created', 'success')
+      onShowToast?.(taskToEdit ? 'Reminder updated' : 'Reminder created', 'success')
       // Pass the created/updated task to parent for optimistic update
       onTaskCreated(!taskToEdit, result.task || null)
       handleClose()
     } catch (error) {
       console.error('[NewTaskModal] Failed to save task:', error)
-      onShowToast?.('Failed to save task. Please try again.', 'error')
+      onShowToast?.('Failed to save reminder. Please try again.', 'error')
     } finally {
       setIsSaving(false)
     }
@@ -182,7 +182,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
   const handleDelete = async () => {
     if (!taskToEdit) return
 
-    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+    if (!confirm('Are you sure you want to delete this reminder? This action cannot be undone.')) {
       return
     }
 
@@ -208,12 +208,12 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         throw new Error(error.error || 'Failed to delete task')
       }
 
-      onShowToast?.('Task deleted successfully', 'success')
+      onShowToast?.('Reminder deleted successfully', 'success')
       onTaskDeleted?.()
       handleClose()
     } catch (error) {
-      console.error('[NewTaskModal] Failed to delete task:', error)
-      onShowToast?.('Failed to delete task. Please try again.', 'error')
+      console.error('[NewTaskModal] Failed to delete reminder:', error)
+      onShowToast?.('Failed to delete reminder. Please try again.', 'error')
     } finally {
       setIsDeleting(false)
     }
@@ -237,7 +237,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={taskToEdit ? 'Edit Task' : 'New Task'}
+      title={taskToEdit ? 'Edit Reminder' : 'New Reminder'}
       footer={
         <>
           <button

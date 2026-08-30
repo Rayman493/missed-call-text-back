@@ -203,7 +203,7 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
           { id: 'payments_paid_10', title: '10 Payments Received', description: 'Received 10 customer payments', icon: 'trophy', category: 'Payments', target: 10, metric: 'paymentsPaid' },
 
           // Organization
-          { id: 'task_completed_1', title: 'First Task Completed', description: 'Complete your first task', icon: 'star', category: 'Organization', target: 1, metric: 'tasksCompleted' },
+          { id: 'task_completed_1', title: 'First Reminder Completed', description: 'Complete your first reminder', icon: 'star', category: 'Organization', target: 1, metric: 'tasksCompleted' },
 
           // Milestones (time-based)
           { id: 'one_week_active', title: '1 Week Active', description: 'ReplyFlow has been protecting your business for a week', icon: 'star', category: 'Milestones', target: 7, metric: 'days' },

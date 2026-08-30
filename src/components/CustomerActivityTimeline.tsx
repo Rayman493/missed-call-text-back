@@ -336,26 +336,26 @@ export default function CustomerActivityTimeline({ leadData, onNavigateToJob, on
       })
     }
 
-    // Tasks
+    // Reminders
     if (leadData.tasks && leadData.tasks.length > 0) {
       leadData.tasks.forEach((task: any) => {
-        // Task created
+        // Reminder created
         activityEvents.push({
           id: `task-created-${task.id}`,
           type: 'task_created',
-          title: 'Task created',
+          title: 'Reminder created',
           timestamp: task.created_at,
           detail: task.title || undefined,
           navigable: !!onNavigateToTask,
           onClick: () => onNavigateToTask?.(task.id),
         })
 
-        // Task completed
+        // Reminder completed
         if (task.status === 'completed') {
           activityEvents.push({
             id: `task-completed-${task.id}`,
             type: 'task_completed',
-            title: 'Task completed',
+            title: 'Reminder completed',
             timestamp: task.updated_at || task.created_at,
             detail: task.title || undefined,
             navigable: !!onNavigateToTask,
@@ -363,12 +363,12 @@ export default function CustomerActivityTimeline({ leadData, onNavigateToJob, on
           })
         }
 
-        // Task reopened (if was completed then not completed)
+        // Reminder reopened (if was completed then not completed)
         if (task.status !== 'completed' && task.updated_at !== task.created_at) {
           activityEvents.push({
             id: `task-reopened-${task.id}`,
             type: 'task_reopened',
-            title: 'Task reopened',
+            title: 'Reminder reopened',
             timestamp: task.updated_at,
             detail: task.title || undefined,
             navigable: !!onNavigateToTask,

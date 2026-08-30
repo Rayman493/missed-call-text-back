@@ -11,12 +11,12 @@ import { describe, it, expect } from 'vitest'
 
 describe('TodayCommandCenter', () => {
   describe('Empty State Copy', () => {
-    it('should display "Nothing needs done today" when no work items exist', () => {
+    it('should display "Nothing scheduled today" when no work items exist', () => {
       // This is a documentation test - the actual rendering is tested by E2E
       // The empty state copy was changed from "No work scheduled for today"
-      // to "Nothing needs done today" per physical device feedback
-      const expectedCopy = "Nothing needs done today"
-      expect(expectedCopy).toBe("Nothing needs done today")
+      // to "Nothing scheduled today" as part of the Task → Reminder terminology simplification
+      const expectedCopy = "Nothing scheduled today"
+      expect(expectedCopy).toBe("Nothing scheduled today")
     })
   })
 
@@ -113,11 +113,11 @@ describe('TodayCommandCenter', () => {
 
     it('edit button should have clear aria-label', () => {
       // Edit buttons should be accessible with clear labels
-      const taskEditAriaLabel = 'Edit task'
+      const reminderEditAriaLabel = 'Edit reminder'
       const jobEditAriaLabel = 'Edit job'
       const appointmentEditAriaLabel = 'Edit appointment'
 
-      expect(taskEditAriaLabel).toBe('Edit task')
+      expect(reminderEditAriaLabel).toBe('Edit reminder')
       expect(jobEditAriaLabel).toBe('Edit job')
       expect(appointmentEditAriaLabel).toBe('Edit appointment')
     })

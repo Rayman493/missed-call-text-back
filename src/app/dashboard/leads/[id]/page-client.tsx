@@ -3145,10 +3145,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* Tasks */}
+        {/* Reminders */}
         <div className="bg-background dark:bg-background rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
           <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <h3 className="text-sm font-medium text-foreground">Tasks</h3>
+            <h3 className="text-sm font-medium text-foreground">Reminders</h3>
             <button
               type="button"
               onClick={() => openTaskModal('tasks_section_add_button')}
@@ -3164,14 +3164,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="transition-all duration-200">
             {leadTasks.length === 0 ? (
               <div className="text-center py-2 sm:py-3">
-                <p className="text-xs sm:text-sm text-muted-foreground">No tasks for this customer yet.</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">No reminders for this customer yet.</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {leadTasks.slice(0, 3).map((task: any) => (
                   <div key={task.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground truncate">{task.title || 'Task'}</p>
+                      <p className="text-sm font-medium text-foreground truncate">{task.title || 'Reminder'}</p>
                       <p className="text-xs text-muted-foreground/80">
                         {task.due_date ? formatDate(task.due_date) : 'No due date'}
                         {task.due_time ? ` • ${task.due_time}` : ''}
@@ -3191,7 +3191,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     onClick={() => window.location.href = '/dashboard/calendar'}
                     className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                   >
-                    View all {leadTasks.length} tasks
+                    View all {leadTasks.length} reminders
                   </button>
                 )}
               </div>
@@ -3975,7 +3975,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                         >
                           <CheckCircle className="w-4 h-4" />
-                          <span>Add Task</span>
+                          <span>Add Reminder</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={handleRequestPaymentClick}
@@ -4167,7 +4167,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                 >
                   <CheckCircle className="w-3.5 h-3.5" />
-                  <span>Add Task</span>
+                  <span>Add Reminder</span>
                 </button>
                 <button
                   type="button"
@@ -4413,14 +4413,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                       {/* Tasks */}
                       <SidebarSection
-                        title="Tasks"
+                        title="Reminders"
                         className="mb-3"
                         headerAction={
                           <button
                             type="button"
                             onClick={() => openTaskModal('sidebar_tasks_add_button')}
                             className="inline-flex items-center justify-center w-8 h-8 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                            aria-label="Add task"
+                            aria-label="Add reminder"
                             title="Add task"
                           >
                             <Plus className="w-4 h-4" />
@@ -4428,7 +4428,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         }
                       >
                         {leadTasks.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">No open tasks</p>
+                          <p className="text-sm text-muted-foreground">No open reminders</p>
                         ) : (
                           <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
                             {leadTasks.map((task: any) => (
@@ -4439,7 +4439,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                   </svg>
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-medium text-foreground truncate">{task.title || 'Task'}</p>
+                                  <p className="text-sm font-medium text-foreground truncate">{task.title || 'Reminder'}</p>
                                   <p className="text-xs text-muted-foreground/80">
                                     {task.due_date ? formatDate(task.due_date) : 'No due date'}
                                     {task.due_time ? ` • ${task.due_time}` : ''}
@@ -4902,7 +4902,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="w-5 h-5 flex items-center justify-center">
                   <CheckCircle className="w-4 h-4 text-muted-foreground" />
                 </div>
-                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Tasks</span>
+                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Reminders</span>
                 {leadTasks.length > 0 && (
                   <span className="text-xs text-muted-foreground">({leadTasks.length})</span>
                 )}
@@ -4919,13 +4919,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
             <div className="mt-2">
               {leadTasks.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-2">No open tasks</p>
+                <p className="text-xs text-muted-foreground text-center py-2">No open reminders</p>
               ) : (
                 <div className="space-y-1">
                   {leadTasks.slice(0, 3).map((task: any) => (
                     <div key={task.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-foreground truncate">{task.title || 'Task'}</p>
+                        <p className="text-xs font-medium text-foreground truncate">{task.title || 'Reminder'}</p>
                         <p className="text-[10px] text-muted-foreground">
                           {task.due_date ? formatDate(task.due_date) : 'No due date'}
                           {task.due_time ? ` • ${task.due_time}` : ''}
@@ -4941,7 +4941,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       onClick={() => openTaskModal('task_list_view_all_button')}
                       className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                     >
-                      View all {leadTasks.length} tasks
+                      View all {leadTasks.length} reminders
                     </button>
                   )}
                 </div>

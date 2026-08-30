@@ -386,17 +386,17 @@ export default function TodayCommandCenter({
           Agenda
         </h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          {todayTasks.length + overdueTasks.length} Tasks • {todayJobs.length} Jobs • {todayAppointments.length} Appointments
+          {todayTasks.length + overdueTasks.length} Reminders • {todayJobs.length} Jobs • {todayAppointments.length} Appointments
           {overdueTasks.length > 0 && ` • ${overdueTasks.length} Overdue`}
         </p>
       </div>
 
-      {/* Needs Done Today - Primary Section */}
+      {/* Today - Primary Section */}
       <div className="bg-white dark:bg-slate-900/60 border border-blue-200/60 dark:border-blue-800/40 rounded-lg">
         <div className="flex items-center gap-2 px-4 py-3 border-b border-blue-100/50 dark:border-blue-900/30">
           <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <h3 className="text-sm font-semibold text-foreground">
-            Needs Done Today
+            Today
           </h3>
         </div>
         
@@ -409,7 +409,7 @@ export default function TodayCommandCenter({
         ) : sortedWorkItems.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Nothing needs done today
+              Nothing scheduled today
             </p>
           </div>
         ) : (
@@ -465,7 +465,7 @@ export default function TodayCommandCenter({
                       <button
                         onClick={() => onEditTask(item.data)}
                         className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100"
-                        aria-label="Edit task"
+                        aria-label="Edit reminder"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
@@ -497,23 +497,15 @@ export default function TodayCommandCenter({
         )}
       </div>
 
-      {/* Work Overview - Secondary Sections */}
+      {/* Secondary Sections */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <div className="h-px bg-border/30 flex-1" />
-          <h3 className="text-xs font-medium text-muted-foreground">
-            Work Overview
-          </h3>
-          <div className="h-px bg-border/30 flex-1" />
-        </div>
-
-        {/* Tasks */}
+        {/* Reminders */}
         <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/25">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-slate-400" />
               <h3 className="text-sm font-semibold text-foreground">
-                Tasks
+                Reminders
               </h3>
             </div>
             <div className="flex items-center gap-3">
@@ -521,12 +513,12 @@ export default function TodayCommandCenter({
                 <button
                   type="button"
                   onClick={(e) => {
-                    console.log('[TODAY_COMMAND_CENTER] + Task clicked', { timestamp: Date.now(), pathname: window.location.pathname })
+                    console.log('[TODAY_COMMAND_CENTER] + Reminder clicked', { timestamp: Date.now(), pathname: window.location.pathname })
                     onAddTask()
                   }}
                   className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
-                  + Task
+                  + Reminder
                 </button>
               )}
               <button
@@ -541,14 +533,14 @@ export default function TodayCommandCenter({
             {sortedBrowseTasks.length === 0 ? (
               <div className="text-center py-6">
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                  No open tasks
+                  No reminders
                 </p>
                 {onAddTask && (
                   <button
                     type="button"
                     onPointerDown={() => {
                       console.log('[QUICK_CLICK_EVENT_TRACE]', {
-                        source: 'TodayCommandCenter.AddTask',
+                        source: 'TodayCommandCenter.AddReminder',
                         eventType: 'pointerdown',
                         pathname: window.location.pathname,
                         timestamp: Date.now()
@@ -556,7 +548,7 @@ export default function TodayCommandCenter({
                     }}
                     onPointerUp={() => {
                       console.log('[QUICK_CLICK_EVENT_TRACE]', {
-                        source: 'TodayCommandCenter.AddTask',
+                        source: 'TodayCommandCenter.AddReminder',
                         eventType: 'pointerup',
                         pathname: window.location.pathname,
                         timestamp: Date.now()
@@ -564,17 +556,17 @@ export default function TodayCommandCenter({
                     }}
                     onClick={() => {
                       console.log('[QUICK_CLICK_EVENT_TRACE]', {
-                        source: 'TodayCommandCenter.AddTask',
+                        source: 'TodayCommandCenter.AddReminder',
                         eventType: 'click',
                         pathname: window.location.pathname,
                         timestamp: Date.now()
                       })
-                      console.log('[TODAY_COMMAND_CENTER] + Add Task clicked', { timestamp: Date.now(), pathname: window.location.pathname })
+                      console.log('[TODAY_COMMAND_CENTER] + Add Reminder clicked', { timestamp: Date.now(), pathname: window.location.pathname })
                       onAddTask()
                     }}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
                   >
-                    + Add Task
+                    + Add Reminder
                   </button>
                 )}
               </div>
@@ -630,7 +622,7 @@ export default function TodayCommandCenter({
                           <button
                             onClick={() => onEditTask(task)}
                             className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100"
-                            aria-label="Edit task"
+                            aria-label="Edit reminder"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
