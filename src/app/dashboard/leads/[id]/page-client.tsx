@@ -5092,10 +5092,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   setInternalNotesValue(leadData?.notes || '')
                   setShowInternalNotesModal(true)
                 }}
-                className="inline-flex items-center justify-center w-5 h-5 rounded-md hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
-                aria-label="Add internal note"
+                className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors"
               >
-                <Plus className="w-3.5 h-3.5 text-foreground/70 hover:text-foreground" />
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add
               </button>
             </div>
             <div className="mt-2">
