@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -10,6 +10,7 @@ import {
 } from '@radix-ui/react-dropdown-menu'
 import { Check } from 'lucide-react'
 import { CustomerStatus, getCustomerStatusStyle, getCustomerStatusIcon, getAllCustomerStatuses } from '@/lib/customer-status'
+import { shouldPreventMenuOpen } from './lead-status-gesture'
 
 interface LeadStatusDropdownProps {
   currentStatus: CustomerStatus
@@ -30,8 +31,8 @@ export default function LeadStatusDropdown({
 
   const currentStyle = getCustomerStatusStyle(currentStatus)
   const StatusIcon = getCustomerStatusIcon(currentStatus)
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
-  const [shouldPreventClick, setShouldPreventClick] = useState(false)
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null)
+  const hasMovedBeyondThreshold = useRef(false)
   const [isUpdating, setIsUpdating] = useState(false)
 
   const sizeClasses = {
@@ -54,45 +55,69 @@ export default function LeadStatusDropdown({
     }
   }
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartRef.current = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Only track primary button (left click / touch)
+    if (e.button !== 0) return
+
+    // Record initial position for gesture detection
+    pointerStartRef.current = {
+      x: e.clientX,
+      y: e.clientY
     }
-    setShouldPreventClick(false)
+    hasMovedBeyondThreshold.current = false
   }
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchStartRef.current) return
-    
-    const currentX = e.touches[0].clientX
-    const currentY = e.touches[0].clientY
-    const deltaX = Math.abs(currentX - touchStartRef.current.x)
-    const deltaY = Math.abs(currentY - touchStartRef.current.y)
-    
-    if (deltaX > 10 || deltaY > 10) {
-      setShouldPreventClick(true)
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!pointerStartRef.current) return
+
+    if (shouldPreventMenuOpen(
+      pointerStartRef.current.x,
+      pointerStartRef.current.y,
+      e.clientX,
+      e.clientY
+    )) {
+      hasMovedBeyondThreshold.current = true
     }
   }
 
-  const handleTouchEnd = () => {
-    touchStartRef.current = null
+  const handlePointerUp = (e: React.PointerEvent) => {
+    // Only respond to primary button
+    if (e.button !== 0) return
+
+    const wasScrollGesture = hasMovedBeyondThreshold.current
+
+    // Reset state
+    pointerStartRef.current = null
+    hasMovedBeyondThreshold.current = false
+
+    // If this was a deliberate tap (not a scroll), allow menu to open
+    if (!wasScrollGesture && !disabled && !isUpdating) {
+      setIsOpen(true)
+    }
+  }
+
+  const handlePointerCancel = () => {
+    pointerStartRef.current = null
+    hasMovedBeyondThreshold.current = false
+  }
+
+  const handlePointerLeave = () => {
+    // Clean up state if pointer leaves the trigger
+    pointerStartRef.current = null
+    hasMovedBeyondThreshold.current = false
   }
 
   const handleClick = (e: React.MouseEvent) => {
-    if (shouldPreventClick) {
-      e.preventDefault()
-      e.stopPropagation()
-      setShouldPreventClick(false)
-    }
+    // Allow default click behavior for keyboard/mouse
+    // Our pointer handlers will have already handled gesture detection
   }
 
   const handleOpenChange = (open: boolean) => {
-    if (shouldPreventClick && open) {
-      setShouldPreventClick(false)
-      return
+    // Only allow external close, not open (we control open via pointerup)
+    if (!open) {
+      setIsOpen(false)
     }
-    setIsOpen(open)
+    // Ignore open requests from Radix - we handle opening ourselves
   }
 
   const allStatuses = getAllCustomerStatuses()
@@ -115,12 +140,25 @@ export default function LeadStatusDropdown({
     <DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <button
+          ref={triggerRef}
           type="button"
           disabled={disabled || isUpdating}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+          onPointerLeave={handlePointerLeave}
           onClick={handleClick}
+          onKeyDown={(e) => {
+            // Preserve standard Radix trigger keyboard behavior
+            // Enter and Space are standard button activation keys
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              if (!disabled && !isUpdating) {
+                setIsOpen(true)
+              }
+            }
+          }}
           className={`${sizeClasses[size]} bg-background dark:bg-slate-800/50 border border-border dark:border-border/50 rounded-lg font-medium transition-all duration-200 inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-80 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary/50`}
         >
           <StatusIcon className={`w-3.5 h-3.5 flex-shrink-0 ${currentStyle.textClass}`} />
