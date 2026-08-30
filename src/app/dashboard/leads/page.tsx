@@ -571,12 +571,7 @@ export default function LeadsPage() {
       ((lead.name && lead.name !== 'Not collected') ? lead.name.toLowerCase().includes(q) : false) ||
       ((lead.email && lead.email !== 'Not collected') ? lead.email.toLowerCase().includes(q) : false) ||
       ((intake.customerName && intake.customerName !== 'Not collected') ? intake.customerName.toLowerCase().includes(q) : false) ||
-      (intake.serviceRequested && typeof intake.serviceRequested === 'string' && intake.serviceRequested.toLowerCase().includes(q)) ||
-      (intake.serviceAddress && typeof intake.serviceAddress === 'string' && intake.serviceAddress.toLowerCase().includes(q)) ||
-      normalizePhoneNumberForSearch(lead.caller_phone).includes(normalizePhoneNumberForSearch(searchQuery)) ||
-      (lead.messages && lead.messages.some((m: any) =>
-        m.content && typeof m.content === 'string' && m.content.toLowerCase().includes(q)
-      ))
+      normalizePhoneNumberForSearch(lead.caller_phone).includes(normalizePhoneNumberForSearch(searchQuery))
 
     const leadStatus = getLeadLifecycleStatus(lead)
     const isDeleted = !!lead.deleted_at

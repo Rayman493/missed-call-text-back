@@ -47,7 +47,7 @@ describe('Customers Page Search Safety Regression Tests', () => {
         contact_name: 'Ryan Smith',
         raw_metadata: {
           extracted_info: {
-            email: 'ryan@example.com'
+            email: 'ryan@company.com'
           }
         },
         messages: []
@@ -95,7 +95,7 @@ describe('Customers Page Search Safety Regression Tests', () => {
         contact_name: null,
         raw_metadata: {
           extracted_info: {
-            email: 'ryan@example.com'
+            email: 'ryan@company.com'
           }
         },
         messages: []
@@ -116,7 +116,7 @@ describe('Customers Page Search Safety Regression Tests', () => {
   })
 
   describe('Test 3: Customer with AI intake data', () => {
-    it('should safely search customer with AI intake serviceRequested', () => {
+    it('should NOT match serviceRequested (job description is not customer identity)', () => {
       const dbRow = {
         id: 'test-5',
         caller_phone: '(412) 253-3598',
@@ -144,13 +144,12 @@ describe('Customers Page Search Safety Regression Tests', () => {
       const matchesSearch = !searchQuery ||
         (lead.caller_phone && lead.caller_phone.includes(searchQuery)) ||
         ((lead.name && lead.name !== 'Not collected') ? lead.name.toLowerCase().includes(q) : false) ||
-        ((intake.customerName && intake.customerName !== 'Not collected') ? intake.customerName.toLowerCase().includes(q) : false) ||
-        (intake.serviceRequested && typeof intake.serviceRequested === 'string' && intake.serviceRequested.toLowerCase().includes(q))
+        ((intake.customerName && intake.customerName !== 'Not collected') ? intake.customerName.toLowerCase().includes(q) : false)
 
-      expect(matchesSearch).toBe(true)
+      expect(matchesSearch).not.toBeTruthy()
     })
 
-    it('should safely search customer with AI intake serviceAddress', () => {
+    it('should NOT match serviceAddress (job address is not customer identity)', () => {
       const dbRow = {
         id: 'test-6',
         caller_phone: '(412) 253-3598',
@@ -178,10 +177,9 @@ describe('Customers Page Search Safety Regression Tests', () => {
       const matchesSearch = !searchQuery ||
         (lead.caller_phone && lead.caller_phone.includes(searchQuery)) ||
         ((lead.name && lead.name !== 'Not collected') ? lead.name.toLowerCase().includes(q) : false) ||
-        ((intake.customerName && intake.customerName !== 'Not collected') ? intake.customerName.toLowerCase().includes(q) : false) ||
-        (intake.serviceAddress && typeof intake.serviceAddress === 'string' && intake.serviceAddress.toLowerCase().includes(q))
+        ((intake.customerName && intake.customerName !== 'Not collected') ? intake.customerName.toLowerCase().includes(q) : false)
 
-      expect(matchesSearch).toBe(true)
+      expect(matchesSearch).not.toBeTruthy()
     })
 
     it('should safely handle null AI intake fields', () => {
@@ -206,18 +204,16 @@ describe('Customers Page Search Safety Regression Tests', () => {
 
       const lead = normalizeLeadForApplication(dbRow)
 
-      const searchQuery = 'plumbing'
+      const searchQuery = 'john'
       const q = searchQuery.toLowerCase().trim()
       const intake = lead.automation_settings?.ai_intake || {}
 
       const matchesSearch = !searchQuery ||
         (lead.caller_phone && lead.caller_phone.includes(searchQuery)) ||
         ((lead.name && lead.name !== 'Not collected') ? lead.name.toLowerCase().includes(q) : false) ||
-        ((intake.customerName && intake.customerName !== 'Not collected') ? intake.customerName.toLowerCase().includes(q) : false) ||
-        (intake.serviceRequested && typeof intake.serviceRequested === 'string' && intake.serviceRequested.toLowerCase().includes(q)) ||
-        (intake.serviceAddress && typeof intake.serviceAddress === 'string' && intake.serviceAddress.toLowerCase().includes(q))
+        ((intake.customerName && intake.customerName !== 'Not collected') ? intake.customerName.toLowerCase().includes(q) : false)
 
-      expect(matchesSearch).not.toBeTruthy()
+      expect(matchesSearch).toBe(true)
     })
   })
 
@@ -275,121 +271,7 @@ describe('Customers Page Search Safety Regression Tests', () => {
     })
   })
 
-  describe('Test 5: Message content search safety', () => {
-    it('should safely search message content when present', () => {
-      const dbRow = {
-        id: 'test-10',
-        caller_phone: '(412) 253-3598',
-        contact_name: 'Amber',
-        raw_metadata: {
-          extracted_info: {
-            email: 'amber@example.com'
-          }
-        },
-        messages: [
-          { content: 'I need help with plumbing repair', direction: 'inbound' }
-        ]
-      }
-
-      const lead = normalizeLeadForApplication(dbRow)
-
-      const searchQuery = 'plumbing'
-      const q = searchQuery.toLowerCase().trim()
-
-      const matchesSearch = !searchQuery ||
-        (lead.messages && lead.messages.some((m: any) =>
-          m.content && typeof m.content === 'string' && m.content.toLowerCase().includes(q)
-        ))
-
-      expect(matchesSearch).toBe(true)
-    })
-
-    it('should safely handle null message content', () => {
-      const dbRow = {
-        id: 'test-11',
-        caller_phone: '(412) 253-3598',
-        contact_name: 'Amber',
-        raw_metadata: {
-          extracted_info: {
-            email: 'amber@example.com'
-          }
-        },
-        messages: [
-          { content: null, direction: 'inbound' }
-        ]
-      }
-
-      const lead = normalizeLeadForApplication(dbRow)
-
-      const searchQuery = 'plumbing'
-      const q = searchQuery.toLowerCase().trim()
-
-      const matchesSearch = !searchQuery ||
-        (lead.messages && lead.messages.some((m: any) =>
-          m.content && typeof m.content === 'string' && m.content.toLowerCase().includes(q)
-        ))
-
-      expect(matchesSearch).not.toBeTruthy()
-    })
-
-    it('should safely handle undefined message content', () => {
-      const dbRow = {
-        id: 'test-12',
-        caller_phone: '(412) 253-3598',
-        contact_name: 'Amber',
-        raw_metadata: {
-          extracted_info: {
-            email: 'amber@example.com'
-          }
-        },
-        messages: [
-          { direction: 'inbound' }
-        ]
-      }
-
-      const lead = normalizeLeadForApplication(dbRow)
-
-      const searchQuery = 'plumbing'
-      const q = searchQuery.toLowerCase().trim()
-
-      const matchesSearch = !searchQuery ||
-        (lead.messages && lead.messages.some((m: any) =>
-          m.content && typeof m.content === 'string' && m.content.toLowerCase().includes(q)
-        ))
-
-      expect(matchesSearch).not.toBeTruthy()
-    })
-
-    it('should safely handle non-string message content', () => {
-      const dbRow = {
-        id: 'test-13',
-        caller_phone: '(412) 253-3598',
-        contact_name: 'Amber',
-        raw_metadata: {
-          extracted_info: {
-            email: 'amber@example.com'
-          }
-        },
-        messages: [
-          { content: 12345, direction: 'inbound' }
-        ]
-      }
-
-      const lead = normalizeLeadForApplication(dbRow)
-
-      const searchQuery = 'plumbing'
-      const q = searchQuery.toLowerCase().trim()
-
-      const matchesSearch = !searchQuery ||
-        (lead.messages && lead.messages.some((m: any) =>
-          m.content && typeof m.content === 'string' && m.content.toLowerCase().includes(q)
-        ))
-
-      expect(matchesSearch).not.toBeTruthy()
-    })
-  })
-
-  describe('Test 6: Search query edge cases', () => {
+  describe('Test 5: Search query edge cases', () => {
     it('should safely handle empty search query', () => {
       const searchQuery = ''
       const q = searchQuery.toLowerCase().trim()
@@ -424,7 +306,7 @@ describe('Customers Page Search Safety Regression Tests', () => {
     })
   })
 
-  describe('Test 7: No crash scenarios', () => {
+  describe('Test 6: No crash scenarios', () => {
     it('should not crash when all fields are null', () => {
       const lead = {
         id: 'test-14',
@@ -444,12 +326,7 @@ describe('Customers Page Search Safety Regression Tests', () => {
           (lead.caller_phone && lead.caller_phone.includes(searchQuery)) ||
           ((lead.name && lead.name !== 'Not collected') ? lead.name.toLowerCase().includes(q) : false) ||
           ((lead.email && lead.email !== 'Not collected') ? lead.email.toLowerCase().includes(q) : false) ||
-          ((intake.customerName && intake.customerName !== 'Not collected') ? intake.customerName.toLowerCase().includes(q) : false) ||
-          (intake.serviceRequested && typeof intake.serviceRequested === 'string' && intake.serviceRequested.toLowerCase().includes(q)) ||
-          (intake.serviceAddress && typeof intake.serviceAddress === 'string' && intake.serviceAddress.toLowerCase().includes(q)) ||
-          (lead.messages && lead.messages.some((m: any) =>
-            m.content && typeof m.content === 'string' && m.content.toLowerCase().includes(q)
-          ))
+          ((intake.customerName && intake.customerName !== 'Not collected') ? intake.customerName.toLowerCase().includes(q) : false)
         matchesSearch
       }).not.toThrow()
     })
@@ -472,11 +349,67 @@ describe('Customers Page Search Safety Regression Tests', () => {
           (lead.caller_phone && lead.caller_phone.includes(searchQuery)) ||
           ((lead.name && lead.name !== 'Not collected') ? lead.name.toLowerCase().includes(q) : false) ||
           ((lead.email && lead.email !== 'Not collected') ? lead.email.toLowerCase().includes(q) : false) ||
-          ((intake.customerName && intake.customerName !== 'Not collected') ? intake.customerName.toLowerCase().includes(q) : false) ||
-          (intake.serviceRequested && typeof intake.serviceRequested === 'string' && intake.serviceRequested.toLowerCase().includes(q)) ||
-          (intake.serviceAddress && typeof intake.serviceAddress === 'string' && intake.serviceAddress.toLowerCase().includes(q))
+          ((intake.customerName && intake.customerName !== 'Not collected') ? intake.customerName.toLowerCase().includes(q) : false)
         matchesSearch
       }).not.toThrow()
+    })
+  })
+
+  describe('Test 7: Single-character query safety', () => {
+    it('should NOT match customer based on message content for single-char query', () => {
+      const dbRow = {
+        id: 'test-16',
+        caller_phone: '(555) 123-4567',
+        contact_name: 'Ryan Smith',
+        raw_metadata: {
+          extracted_info: {
+            email: 'ryan@company.com'
+          }
+        },
+        messages: [
+          { content: 'I need help with electrical repair', direction: 'inbound' }
+        ]
+      }
+
+      const lead = normalizeLeadForApplication(dbRow)
+
+      const searchQuery = 'E'
+      const q = searchQuery.toLowerCase().trim()
+
+      const matchesSearch = !searchQuery ||
+        (lead.caller_phone && lead.caller_phone.includes(searchQuery)) ||
+        ((lead.name && lead.name !== 'Not collected') ? lead.name.toLowerCase().includes(q) : false) ||
+        ((lead.email && lead.email !== 'Not collected') ? lead.email.toLowerCase().includes(q) : false)
+
+      // Should NOT match because "E" is not in Ryan Smith's identity or phone
+      expect(matchesSearch).not.toBeTruthy()
+    })
+
+    it('should match customer if single-char query is in name', () => {
+      const dbRow = {
+        id: 'test-17',
+        caller_phone: '(555) 123-4567',
+        contact_name: 'Elena',
+        raw_metadata: {
+          extracted_info: {
+            email: 'elena@company.com'
+          }
+        },
+        messages: []
+      }
+
+      const lead = normalizeLeadForApplication(dbRow)
+
+      const searchQuery = 'E'
+      const q = searchQuery.toLowerCase().trim()
+
+      const matchesSearch = !searchQuery ||
+        (lead.caller_phone && lead.caller_phone.includes(searchQuery)) ||
+        ((lead.name && lead.name !== 'Not collected') ? lead.name.toLowerCase().includes(q) : false) ||
+        ((lead.email && lead.email !== 'Not collected') ? lead.email.toLowerCase().includes(q) : false)
+
+      // Should match because "E" is in Elena
+      expect(matchesSearch).toBe(true)
     })
   })
 })
