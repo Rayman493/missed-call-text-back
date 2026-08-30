@@ -2438,7 +2438,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   return (
     <div className="flex flex-col h-full relative">
       {/* Date navigation row - First control after tabs */}
-      <div className="mb-1 md:mb-1.5 z-10">
+      <div className="mb-0.5 md:mb-1.5 z-10">
         {/* Desktop: Centered date navigation */}
         <div className="hidden md:flex flex-col items-center gap-2">
           <div className="flex items-center justify-center gap-2">
@@ -2611,7 +2611,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       </div>
 
       {/* Mobile: Stop preview row with h-[72px] */}
-      <div className="md:hidden mb-1 z-10 h-[72px]">
+      <div className="md:hidden mb-0.5 z-10 h-[68px]">
         {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
           <div className="flex gap-2 overflow-x-auto h-full items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {sortedItems.filter(item => item.type !== 'business').map((item, index) => (
@@ -2680,7 +2680,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       </div>
 
       {/* Mobile: Filter row below stop previews */}
-      <div className="md:hidden mb-1 z-10">
+      <div className="md:hidden mb-0.5 z-10">
         <div className="flex items-center justify-end gap-1.5 flex-wrap px-1">
           <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
             <button
