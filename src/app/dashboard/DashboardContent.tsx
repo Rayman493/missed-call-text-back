@@ -73,7 +73,6 @@ import TodaySnapshot from '@/components/TodaySnapshot'
 import FocusSection from '@/components/FocusSection'
 import DailyBrief from '@/components/DailyBrief'
 import PotentialRevenue from '@/components/PotentialRevenue'
-import RevenueOpportunities from '@/components/RevenueOpportunities'
 import CustomerReactivation from '@/components/CustomerReactivation'
 // import DraftSummaries from '@/components/DraftSummaries' // TODO: Missing component - needs to be created
 import CustomerSuccess from '@/components/CustomerSuccess'
@@ -1205,12 +1204,7 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Revenue Opportunities - Where money is waiting */}
-                    <SectionErrorBoundary sectionName="RevenueOpportunities">
-                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-90' : ''}`}>
-                        <RevenueOpportunities business={business} />
-                      </div>
-                    </SectionErrorBoundary>
+                    {/* Revenue Opportunities hidden for launch pending lifecycle-aware opportunity modeling */}
 
                     {/* Draft Summaries - Ready to send */}
                     {/* TODO: DraftSummaries component missing - commented out */}
