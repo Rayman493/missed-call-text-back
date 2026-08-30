@@ -467,6 +467,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
+  const unfilteredChannelRef = useRef<RealtimeChannel | null>(null)
   const currentLeadIdRef = useRef<string | null>(null)
   const supabaseRef = useRef(createBrowserClient())
   const supabase = supabaseRef.current
@@ -2150,10 +2151,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     // Set up new subscription
     const channelName = `lead-detail:${leadId}`
+    const unfilteredChannelName = `lead-detail-unfiltered-diagnostic:${leadId}`
     console.log('[REALTIME SUBSCRIBE REQUEST]', {
       instanceId: realtimeInstanceIdRef.current,
       leadId,
       channelName,
+      unfilteredChannelName,
       hadExistingChannel,
       timestamp: new Date().toISOString()
     })
@@ -2186,7 +2189,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             eventType: payload.eventType,
             messageId: payload.new?.id,
             messageLeadId: payload.new?.lead_id,
-            messageBusinessId: payload.new?.business_id,
             messageDirection: payload.new?.direction,
             messageStatus: payload.new?.status,
             oldId: payload.old?.id,
@@ -2201,7 +2203,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             eventType: payload.eventType,
             messageId: payload.new?.id,
             messageLeadId: payload.new?.lead_id,
-            messageBusinessId: payload.new?.business_id,
             messageDirection: payload.new?.direction,
             messageStatus: payload.new?.status,
             hasClientMessageId: !!(payload.new?.client_message_id),
@@ -2490,6 +2491,57 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     realtimeChannelRef.current = channel
 
+    // Unfiltered diagnostic channel to distinguish publication/replication issues from filter issues
+    console.log('[REALTIME_DIAG_UNFILTERED_SETUP]', {
+      channelName: unfilteredChannelName,
+      leadId,
+      event: 'INSERT',
+      schema: 'public',
+      table: 'messages',
+      filter: 'NONE',
+      timestamp: new Date().toISOString(),
+      diagnosticInstanceId: realtimeInstanceIdRef.current
+    })
+
+    const unfilteredChannel = supabase
+      .channel(unfilteredChannelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+          // NO FILTER
+        },
+        (payload: any) => {
+          console.log('[REALTIME_DIAG_UNFILTERED_EVENT]', {
+            eventType: payload.eventType,
+            schema: payload.schema,
+            table: payload.table,
+            id: payload.new?.id,
+            lead_id: payload.new?.lead_id,
+            conversation_id: payload.new?.conversation_id,
+            direction: payload.new?.direction,
+            status: payload.new?.status,
+            created_at: payload.new?.created_at,
+            currentLeadId: leadId,
+            matchesCurrentLead: payload.new?.lead_id === leadId,
+            timestamp: new Date().toISOString()
+          })
+          // NO UI MUTATIONS - DIAGNOSTIC ONLY
+        }
+      )
+      .subscribe((status: any) => {
+        console.log('[REALTIME_DIAG_UNFILTERED_STATUS]', {
+          channelName: unfilteredChannelName,
+          leadId,
+          status,
+          timestamp: new Date().toISOString()
+        })
+      })
+
+    unfilteredChannelRef.current = unfilteredChannel
+
     // Start stuck message check interval (bounded recovery - only check twice)
     let checkCount = 0
     const maxChecks = 2
@@ -2528,6 +2580,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     return () => {
       console.log('[REALTIME DIAG_CLEANUP]', {
         channelName,
+        unfilteredChannelName,
         leadId,
         timestamp: new Date().toISOString(),
         diagnosticInstanceId: realtimeInstanceIdRef.current,
@@ -2552,8 +2605,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           diagnosticInstanceId: realtimeInstanceIdRef.current
         })
         realtimeChannelRef.current = null
-        currentLeadIdRef.current = null
       }
+      if (unfilteredChannelRef.current) {
+        console.log('[REALTIME DIAG_UNFILTERED_CLEANUP] Removing unfiltered diagnostic channel')
+        supabase.removeChannel(unfilteredChannelRef.current)
+        console.log('[REALTIME DIAG_UNFILTERED_REMOVED]', {
+          channelName: unfilteredChannelName,
+          leadId,
+          timestamp: new Date().toISOString(),
+          diagnosticInstanceId: realtimeInstanceIdRef.current
+        })
+        unfilteredChannelRef.current = null
+      }
+      currentLeadIdRef.current = null
       if (stuckMessageCheckIntervalRef.current) {
         clearInterval(stuckMessageCheckIntervalRef.current)
         stuckMessageCheckIntervalRef.current = null
