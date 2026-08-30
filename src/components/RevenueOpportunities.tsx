@@ -130,8 +130,8 @@ function RevenueOpportunityRow({ opportunity, onAction }: RevenueOpportunityRowP
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${getOpportunityIconBg(opportunity.type)}`}>
         {icon}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
+      <div className="flex-1 min-w-0 flex flex-col gap-1 justify-center">
+        <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-slate-900 dark:text-foreground">
             {opportunity.customerName}
           </span>
