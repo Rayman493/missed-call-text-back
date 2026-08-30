@@ -3744,7 +3744,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                         </div>
 
                         {/* Follow-up configuration */}
-                        <div className="space-y-4">
+                        <div className="space-y-5">
                           {/* Safety Banner */}
                           <div className="bg-emerald-50/90 dark:bg-emerald-900/20 border border-emerald-200/70 dark:border-emerald-800/50 rounded-lg p-2.5 shadow-sm">
                             <div className="flex items-start gap-2">
@@ -3758,9 +3758,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           </div>
 
                           {/* Editable Follow-up Cards */}
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             {getFollowUpSettings().followUps.map((followUp: any) => (
-                              <div key={followUp.step} className="bg-white dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/50 rounded-lg p-3 shadow-sm">
+                              <div key={followUp.step} className="border border-border/30 rounded-lg p-3">
                                 <div className="flex items-start justify-between mb-3">
                                   <div className="flex items-center gap-2">
                                     <span className="text-sm font-semibold text-foreground">Follow-up #{followUp.step}</span>
@@ -3785,10 +3785,10 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                   </div>
                                 </div>
 
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                   {/* Delay Configuration */}
                                   <div>
-                                    <label className="block text-xs font-medium text-foreground mb-1.5">
+                                    <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
                                       Send after
                                     </label>
                                     <div className="flex items-center gap-2">
@@ -3803,7 +3803,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                           updateFollowUpSettings({ followUps: updatedFollowUps })
                                         }}
                                         disabled={!followUp.enabled}
-                                        className="w-20 px-2 py-1.5 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white dark:bg-slate-800/40 text-foreground text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-20 px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                       />
                                       <Dropdown
                                         options={[
@@ -3828,7 +3828,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
                                   {/* Message Template */}
                                   <div>
-                                    <label className="block text-xs font-medium text-foreground mb-1.5">
+                                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
                                       Message
                                     </label>
                                     <textarea
@@ -3841,11 +3841,11 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                       }}
                                       disabled={!followUp.enabled}
                                       rows={4}
-                                      className="w-full px-2 py-1.5 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground text-sm disabled:opacity-50 disabled:cursor-not-allowed resize-none min-h-[120px]"
+                                      className="w-full px-3 py-2 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-xs sm:text-sm hover:border-border/80 dark:hover:border-border/60 resize-none min-h-[120px] disabled:opacity-50 disabled:cursor-not-allowed"
                                       placeholder="Enter follow-up message..."
                                     />
-                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                                      Use <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{business_name}}"}</code> for business name
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                                      Use <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[11px] font-mono">{"{{business_name}}"}</code> for business name
                                     </p>
                                   </div>
                                 </div>
