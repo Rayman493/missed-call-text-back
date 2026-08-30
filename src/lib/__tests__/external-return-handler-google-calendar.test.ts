@@ -156,6 +156,13 @@ describe('External Return Handler - Google Calendar', () => {
       expect(handled).toBe(false)
       expect(mockLocation.href).toBe('')
     })
+
+    it('should recognize Google Calendar return from non-www hostname', async () => {
+      const url = 'https://replyflowhq.com/dashboard/calendar?calendar=connected'
+      const handled = await handleExternalReturn(url)
+
+      expect(handled).toBe(true)
+    })
   })
 
   describe('HTTPS protocol requirement', () => {

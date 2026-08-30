@@ -400,9 +400,9 @@ async function handleDeepLink(url: string) {
       return;
     }
 
-    // Handle universal/app links (https://www.replyflowhq.com/* or https://links.replyflowhq.com/*)
+    // Handle universal/app links (https://www.replyflowhq.com/* or https://replyflowhq.com/* or https://links.replyflowhq.com/*)
     // SECURITY: Only accept exact approved hostnames to prevent open redirects
-    const approvedHostnames = ['www.replyflowhq.com', 'links.replyflowhq.com']
+    const approvedHostnames = ['www.replyflowhq.com', 'replyflowhq.com', 'links.replyflowhq.com']
     if (urlObj.protocol === 'https:' && approvedHostnames.includes(urlObj.hostname)) {
       console.log('[UNIVERSAL LINK] Approved hostname detected:', urlObj.hostname)
 

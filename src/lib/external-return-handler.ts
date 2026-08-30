@@ -91,8 +91,8 @@ const EXTERNAL_RETURN_FLOWS: ExternalReturnFlow[] = [
   {
     name: 'GOOGLE_CALENDAR',
     matcher: (url) => {
-      // Check hostname first - only handle replyflowhq.com
-      if (url.hostname !== 'www.replyflowhq.com') {
+      // Check hostname first - handle both www and non-www
+      if (url.hostname !== 'www.replyflowhq.com' && url.hostname !== 'replyflowhq.com') {
         return false
       }
       const isCalendarPage = url.pathname.includes('/dashboard/calendar') && (url.searchParams.get('calendar') === 'connected' || url.searchParams.get('calendar') === 'cancelled' || url.searchParams.get('calendar') === 'error')
