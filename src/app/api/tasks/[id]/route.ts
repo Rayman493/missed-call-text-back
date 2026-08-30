@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { calculateReminderNotifyAt } from '@/lib/reminder-notification-utils'
 
 export async function PATCH(
   request: NextRequest,
@@ -16,7 +17,7 @@ export async function PATCH(
 
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id')
+      .select('id, business_hours_timezone')
       .eq('user_id', user.id)
       .single()
 
@@ -39,6 +40,17 @@ export async function PATCH(
       return NextResponse.json({ error: 'Task does not belong to your business' }, { status: 403 })
     }
 
+    // Fetch full task state including reminder fields
+    const { data: fullTask, error: fullTaskError } = await supabase
+      .from('tasks')
+      .select('id, due_date, due_time, reminder_offset_minutes, reminder_notify_at')
+      .eq('id', id)
+      .single()
+
+    if (fullTaskError || !fullTask) {
+      return NextResponse.json({ error: 'Failed to fetch task state' }, { status: 500 })
+    }
+
     const body = await request.json()
     const {
       title,
@@ -48,6 +60,7 @@ export async function PATCH(
       completed,
       lead_id,
       job_id,
+      reminder_offset_minutes,
     } = body
 
     // Verify lead belongs to business if provided
@@ -96,9 +109,53 @@ export async function PATCH(
     if (completed !== undefined) {
       updateData.completed = completed
       updateData.completed_at = completed ? new Date().toISOString() : null
+      // Clear notification schedule when completed
+      if (completed) {
+        updateData.reminder_notify_at = null
+      }
     }
     if (lead_id !== undefined) updateData.lead_id = lead_id || null
     if (job_id !== undefined) updateData.job_id = job_id || null
+
+    // Handle reminder_offset_minutes
+    if (reminder_offset_minutes !== undefined) {
+      if (reminder_offset_minutes === null) {
+        updateData.reminder_offset_minutes = null
+        updateData.reminder_notify_at = null
+      } else {
+        const validOffsets = [0, 15, 30, 60, 1440]
+        if (!validOffsets.includes(reminder_offset_minutes)) {
+          return NextResponse.json({ error: 'Invalid reminder_offset_minutes. Must be one of: 0, 15, 30, 60, 1440' }, { status: 400 })
+        }
+        updateData.reminder_offset_minutes = reminder_offset_minutes
+      }
+    }
+
+    // Recalculate reminder_notify_at if any of due_date, due_time, or reminder_offset_minutes changed
+    const effectiveDueDate = due_date !== undefined ? due_date : fullTask.due_date
+    const effectiveDueTime = due_time !== undefined ? due_time : fullTask.due_time
+    const effectiveOffset = reminder_offset_minutes !== undefined ? reminder_offset_minutes : fullTask.reminder_offset_minutes
+
+    if (due_date !== undefined || due_time !== undefined || reminder_offset_minutes !== undefined) {
+      if (effectiveDueDate && effectiveDueTime && effectiveOffset !== null && effectiveOffset !== undefined) {
+        const businessTimezone = business.business_hours_timezone || 'America/New_York'
+        const newNotifyAt = calculateReminderNotifyAt({
+          dueDate: effectiveDueDate,
+          dueTime: effectiveDueTime,
+          offsetMinutes: effectiveOffset,
+          timezone: businessTimezone
+        })
+
+        if (newNotifyAt) {
+          updateData.reminder_notify_at = newNotifyAt
+        } else {
+          updateData.reminder_notify_at = null
+        }
+      } else {
+        // Missing required fields, clear schedule
+        updateData.reminder_notify_at = null
+      }
+    }
 
     const { data: updatedTask, error } = await supabase
       .from('tasks')
@@ -134,7 +191,7 @@ export async function DELETE(
 
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id')
+      .select('id, business_hours_timezone')
       .eq('user_id', user.id)
       .single()
 

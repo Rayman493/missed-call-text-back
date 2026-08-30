@@ -22,6 +22,8 @@ interface Task {
   job_id: string | null
   created_at: string
   business_id?: string
+  reminder_offset_minutes?: number | null
+  reminder_notify_at?: string | null
 }
 
 interface NewTaskModalProps {
@@ -45,6 +47,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
   const [notes, setNotes] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [dueTime, setDueTime] = useState('')
+  const [reminderOffsetMinutes, setReminderOffsetMinutes] = useState<number | null>(null)
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
@@ -67,6 +70,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         setNotes(taskToEdit.notes || '')
         setDueDate(taskToEdit.due_date || '')
         setDueTime(taskToEdit.due_time || '')
+        setReminderOffsetMinutes(taskToEdit.reminder_offset_minutes || null)
         setSelectedLeadId(taskToEdit.lead_id)
         setSelectedJobId(taskToEdit.job_id)
       } else {
@@ -74,6 +78,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         setNotes('')
         setDueDate('')
         setDueTime('')
+        setReminderOffsetMinutes(null)
         setSelectedLeadId(preselectedLeadId || null)
         setSelectedJobId(null)
       }
@@ -122,6 +127,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
           due_time: dueTime || null,
           lead_id: selectedLeadId || null,
           job_id: selectedJobId || null,
+          reminder_offset_minutes: reminderOffsetMinutes,
         }),
       })
 
@@ -131,7 +137,14 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
       }
 
       const result = await response.json()
-      onShowToast?.(taskToEdit ? 'Reminder updated' : 'Reminder created', 'success')
+
+      // Handle notification scheduling warning
+      if (result.warning) {
+        onShowToast?.(result.warning, 'warning')
+      } else {
+        onShowToast?.(taskToEdit ? 'Reminder updated' : 'Reminder created', 'success')
+      }
+
       // Pass the created/updated task to parent for optimistic update
       onTaskCreated(!taskToEdit, result.task || null)
       handleClose()
@@ -224,6 +237,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
     setNotes('')
     setDueDate('')
     setDueTime('')
+    setReminderOffsetMinutes(null)
     setSelectedLeadId(null)
     setSelectedJobId(null)
     onClose()
@@ -322,6 +336,23 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               placeholder="Select time"
             />
           </div>
+
+          <SelectPicker
+            value={reminderOffsetMinutes !== null ? reminderOffsetMinutes.toString() : ''}
+            onChange={(value) => setReminderOffsetMinutes(value === '' || value === null ? null : parseInt(value, 10))}
+            disabled={!dueDate || !dueTime}
+            options={[
+              { value: '', label: 'None' },
+              { value: '0', label: 'At time' },
+              { value: '15', label: '15 minutes before' },
+              { value: '30', label: '30 minutes before' },
+              { value: '60', label: '1 hour before' },
+              { value: '1440', label: '1 day before' },
+            ]}
+            placeholder="None"
+            label="Remind me (optional)"
+            emptyMessage="None"
+          />
 
           <div>
             <label className="text-xs text-muted-foreground font-medium mb-1.5 block">

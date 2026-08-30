@@ -33,6 +33,10 @@
       "schedule": "0 8 * * *"
     },
     {
+      "path": "/api/cron/process-reminder-notifications",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/admin/recover-stuck-provisioning",
       "schedule": "0 * * * *"
     }

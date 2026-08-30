@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
+import { calculateReminderNotifyAt } from '@/lib/reminder-notification-utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest) {
       due_time,
       lead_id,
       job_id,
+      reminder_offset_minutes,
     } = body
 
     if (!title?.trim()) {
@@ -134,6 +136,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Validate reminder_offset_minutes if provided
+    if (reminder_offset_minutes !== undefined && reminder_offset_minutes !== null) {
+      const validOffsets = [0, 15, 30, 60, 1440]
+      if (!validOffsets.includes(reminder_offset_minutes)) {
+        return NextResponse.json({ error: 'Invalid reminder_offset_minutes. Must be one of: 0, 15, 30, 60, 1440' }, { status: 400 })
+      }
+    }
+
+    // Calculate reminder_notify_at if all required fields are present
+    let reminder_notify_at: string | null = null
+    let notificationWarning: string | null = null
+
+    if (due_date && due_time && reminder_offset_minutes !== null && reminder_offset_minutes !== undefined) {
+      const businessTimezone = business.business_hours_timezone || 'America/New_York'
+      reminder_notify_at = calculateReminderNotifyAt({
+        dueDate: due_date,
+        dueTime: due_time,
+        offsetMinutes: reminder_offset_minutes,
+        timezone: businessTimezone
+      })
+
+      if (!reminder_notify_at) {
+        notificationWarning = 'Reminder saved, but notification could not be scheduled'
+      }
+    }
+
     const { data: task, error } = await supabase
       .from('tasks')
       .insert({
@@ -145,6 +173,8 @@ export async function POST(request: NextRequest) {
         lead_id: lead_id || null,
         job_id: job_id || null,
         completed: false,
+        reminder_offset_minutes: reminder_offset_minutes || null,
+        reminder_notify_at: reminder_notify_at,
       })
       .select()
       .single()
@@ -154,7 +184,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create task' }, { status: 500 })
     }
 
-    return NextResponse.json({ task }, { status: 201 })
+    const response: any = { task }
+    if (notificationWarning) {
+      response.warning = notificationWarning
+    }
+
+    return NextResponse.json(response, { status: 201 })
   } catch (error) {
     console.error('[Tasks API] POST unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
