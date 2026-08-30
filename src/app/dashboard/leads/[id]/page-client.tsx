@@ -2151,14 +2151,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           filter: `lead_id=eq.${leadId}`
         },
         (payload: any) => {
-          console.log('[REALTIME INSERT] Incoming message payload:', {
+          console.log('[REALTIME INSERT] CALLBACK FIRED:', {
+            instanceId: realtimeInstanceIdRef.current,
             messageId: payload.new?.id,
             clientMessageId: payload.new?.client_message_id,
             twilioSid: payload.new?.twilio_message_sid,
+            leadId: payload.new?.lead_id,
+            filterLeadId: leadId,
             status: payload.new?.status,
+            direction: payload.new?.direction,
             mediaCount: payload.new?.media_count,
             body: payload.new?.body?.substring(0, 30),
-            created_at: payload.new?.created_at
+            created_at: payload.new?.created_at,
+            timestamp: new Date().toISOString()
           })
 
           const newMessage = payload.new
@@ -2415,7 +2420,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         })
 
         if (status === 'SUBSCRIBED') {
-          console.log('[REALTIME] Successfully subscribed to lead:', leadId)
+          console.log('[REALTIME] Successfully subscribed to lead:', {
+            leadId,
+            channelName,
+            instanceId: realtimeInstanceIdRef.current,
+            filter: `lead_id=eq.${leadId}`,
+            timestamp: new Date().toISOString()
+          })
         } else if (status === 'CHANNEL_ERROR') {
           console.error('[REALTIME] Channel error for lead:', leadId, '- attempting recovery')
           // Attempt recovery after a short delay
