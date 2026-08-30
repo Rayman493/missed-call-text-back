@@ -4142,9 +4142,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Primary Action Bar - Desktop Only */}
           <div className="hidden md:block">
             <div className="max-w-7xl mx-auto px-6 lg:px-8 py-3">
-              <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+              <div className="flex items-start gap-4">
                 {/* Left: Primary Actions */}
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
                   <button
                   type="button"
                   onClick={() => setShowEditCustomer(true)}
