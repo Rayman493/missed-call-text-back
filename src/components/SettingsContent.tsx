@@ -3255,6 +3255,8 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             <p className="text-sm text-muted-foreground leading-relaxed mb-1.5">
                               Send different replies inside and outside business hours.
                             </p>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -3265,11 +3267,12 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                 updateBusiness(nextBusiness)
                               }}
                               className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                                formBusiness.business_hours_enabled
-                                  ? 'bg-blue-600'
-                                  : 'bg-slate-300 dark:bg-slate-600'
-                              }`}
+                              formBusiness.business_hours_enabled
+                                ? 'bg-blue-600'
+                                : 'bg-slate-300 dark:bg-slate-600'
+                            }`}
                               type="button"
+                              aria-label={formBusiness.business_hours_enabled ? 'Disable Business Hours' : 'Enable Business Hours'}
                             >
                               <span
                                 className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${
@@ -3277,14 +3280,14 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                 }`}
                               />
                             </button>
+                            <button
+                              onClick={() => setBusinessHoursExpanded(false)}
+                              className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                              aria-label="Collapse Business Hours"
+                            >
+                              <ChevronUp className="w-5 h-5" />
+                            </button>
                           </div>
-                          <button
-                            onClick={() => setBusinessHoursExpanded(false)}
-                            className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors flex-shrink-0"
-                            aria-label="Collapse Business Hours"
-                          >
-                            <ChevronUp className="w-5 h-5" />
-                          </button>
                         </div>
                         
                         {/* Timezone and Hours Selector */}
@@ -3525,7 +3528,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       // Expanded state
                       <>
                         <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1 pr-4">
+                          <div className="flex-1 pr-4 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
                               <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Out of Office</h3>
                               {formBusiness.out_of_office_enabled ? (
@@ -3542,6 +3545,8 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             <p className="text-xs text-slate-500 dark:text-slate-400 mb-1.5">
                               Automatically reply while you're away.
                             </p>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -3565,14 +3570,14 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                 }`}
                               />
                             </button>
+                            <button
+                              onClick={() => setOutOfOfficeExpanded(false)}
+                              className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                              aria-label="Collapse Out of Office"
+                            >
+                              <ChevronUp className="w-5 h-5" />
+                            </button>
                           </div>
-                          <button
-                            onClick={() => setOutOfOfficeExpanded(false)}
-                            className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors flex-shrink-0"
-                            aria-label="Collapse Out of Office"
-                          >
-                            <ChevronUp className="w-5 h-5" />
-                          </button>
                         </div>
 
                         {/* Out of Office Settings */}
