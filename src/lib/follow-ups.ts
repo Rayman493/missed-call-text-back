@@ -85,7 +85,7 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
         const result = {
           step: fu.step,
           delayMinutes,
-          message: substituteTemplatePlaceholders(fu.message, business.name)
+          message: substituteTemplatePlaceholders(normalizeBrokenTemplates(fu.message), business.name)
         }
 
         return result
