@@ -174,9 +174,9 @@ export default function MobileConversationMessageList({
                 <div className="text-sm font-semibold text-foreground">
                   ${(payment.amount_cents / 100).toFixed(2)}
                 </div>
-                {payment.description && (
+                {(payment.display_name || payment.description) && (
                   <div className="text-xs text-foreground/70">
-                    For: {payment.description}
+                    For: {payment.display_name || payment.description}
                   </div>
                 )}
                 <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">

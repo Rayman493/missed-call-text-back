@@ -3113,18 +3113,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           <div className="transition-all duration-200">
             {leadJobs.length === 0 ? (
-              <div className="text-center py-2 sm:py-4">
-                <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No jobs scheduled for this customer yet.</p>
-                <button
-                  onClick={handleCreateJobClick}
-                  className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                >
-                  <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span className="hidden sm:inline">Add Job</span>
-                  <span className="sm:hidden">Add Job</span>
-                </button>
+              <div className="text-center py-2 sm:py-3">
+                <p className="text-xs sm:text-sm text-muted-foreground">No jobs scheduled for this customer yet.</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -3173,8 +3163,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           <div className="transition-all duration-200">
             {leadTasks.length === 0 ? (
-              <div className="text-center py-2 sm:py-4">
-                <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No tasks for this customer yet.</p>
+              <div className="text-center py-2 sm:py-3">
+                <p className="text-xs sm:text-sm text-muted-foreground">No tasks for this customer yet.</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -3225,19 +3215,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           <div className="transition-all duration-200">
             {paymentRequests.length === 0 ? (
-              <div className="text-center py-2 sm:py-4">
-                <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">You haven't requested payment from this customer yet.</p>
-                <button
-                  onClick={() => setShowPaymentModal(true)}
-                  disabled={!business || getAvailableProviders(business).length === 0}
-                  className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span className="hidden sm:inline">Request Payment</span>
-                  <span className="sm:hidden">Request</span>
-                </button>
+              <div className="text-center py-2 sm:py-3">
+                <p className="text-xs sm:text-sm text-muted-foreground">You haven't requested payment from this customer yet.</p>
               </div>
               ) : (
                 <div className="space-y-3">
@@ -3282,7 +3261,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <button
               type="button"
               onClick={handleAppointmentClick}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
             >
               <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -3297,8 +3276,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
               </div>
               ) : appointments.length === 0 ? (
-                <div className="text-center py-2 sm:py-4">
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No appointments scheduled yet.</p>
+                <div className="text-center py-2 sm:py-3">
+                  <p className="text-xs sm:text-sm text-muted-foreground">No appointments scheduled yet.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -3355,38 +3334,40 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
         {/* Internal Notes - Standalone Section */}
         <div className="bg-background dark:bg-background rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-sm font-medium text-foreground">Internal Notes</h3>
-                <div className="text-[10px] text-muted-foreground/70">Private to your business</div>
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-medium text-foreground">Internal Notes</h3>
+              <div className="text-[10px] text-muted-foreground/70">Private to your business</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setInternalNotesValue(leadData?.notes || '')
+                setShowInternalNotesModal(true)
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+              aria-label={Boolean((leadData?.notes || '').trim()) ? 'Edit internal note' : 'Add internal note'}
+              title={Boolean((leadData?.notes || '').trim()) ? 'Edit internal note' : 'Add internal note'}
+            >
+              <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="hidden sm:inline">Add</span>
+              <span className="sm:hidden">Add</span>
+            </button>
+          </div>
+          <div className="transition-all duration-200">
+            {Boolean((leadData?.notes || '').trim()) ? (
+              <div className="p-2.5 bg-muted/50 border border-border/40 rounded-lg">
+                <p className="text-xs text-foreground leading-relaxed break-words">
+                  {(leadData?.notes || '').trim()}
+                </p>
               </div>
-              {Boolean((leadData?.notes || '').trim()) ? (
-                <div className="mt-2 p-2.5 bg-muted/50 border border-border/40 rounded-lg">
-                  <p className="text-xs text-foreground leading-relaxed break-words">
-                    {(leadData?.notes || '').trim()}
-                  </p>
-                </div>
-              ) : (
-                <div className="mt-2 text-xs text-muted-foreground/70">
-                  No notes yet
-                </div>
-              )}
-            </div>
-            <div className="flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setInternalNotesValue(leadData?.notes || '')
-                  setShowInternalNotesModal(true)
-                }}
-                className="inline-flex items-center justify-center w-8 h-8 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                aria-label={Boolean((leadData?.notes || '').trim()) ? 'Edit internal note' : 'Add internal note'}
-                title={Boolean((leadData?.notes || '').trim()) ? 'Edit internal note' : 'Add internal note'}
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
+            ) : (
+              <div className="text-center py-2 sm:py-3">
+                <p className="text-xs sm:text-sm text-muted-foreground">No notes yet</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -3865,6 +3846,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <h1 className="font-medium text-foreground text-sm leading-tight truncate">
                     {getLeadDisplayName(leadData || lead)}
                   </h1>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
                   {(() => {
                     const rawStatus = leadData?.status || lead?.status || lead?.lead_status
                     return rawStatus && (
@@ -3892,8 +3875,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </span>
                     )
                   })()}
-                </div>
-                <div className="flex items-center gap-1.5">
                   <p className="text-[11px] text-muted-foreground/80 truncate">
                     {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                   </p>
@@ -4683,7 +4664,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                 </div>
               ) : messagesArray.length === 0 ? (
-                <div className="flex items-center justify-center py-12 animate-fadeIn">
+                <div className="flex items-center justify-center py-6 animate-fadeIn">
                   <div className="text-center max-w-sm px-6">
                     <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
                       <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
