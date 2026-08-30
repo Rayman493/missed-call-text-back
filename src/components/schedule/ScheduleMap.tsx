@@ -2139,22 +2139,23 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       initialFramingPending: initialFramingPendingRef.current
     })
 
-    // CANONICAL DAY FRAMING: Triggered by date change or marker set change
+    // CANONICAL DAY FRAMING: Triggered by date change or first marker set load
     // Always uses fitBounds to show ALL markers (business + all service markers)
     // Never auto-focuses a single stop - that only happens on explicit user tap
-    const shouldAutoFit = dateChanged ||
-      (cameraOwnerRef.current !== CameraOwner.USER_OWNED &&
-       cameraOwnerRef.current !== CameraOwner.DRAGGING &&
-       (signatureChanged || initialFramingPendingRef.current))
+    // Only fit once per date to prevent repeated fits as markers hydrate
+    const shouldAutoFit = (dateChanged || lastAutoFitDateKey !== currentDateKey) &&
+      cameraOwnerRef.current !== CameraOwner.USER_OWNED &&
+      cameraOwnerRef.current !== CameraOwner.DRAGGING &&
+      (signatureChanged || initialFramingPendingRef.current)
 
     console.log('[SCHEDULE_MAP_EFFECT]', {
       effect: 'auto_fit_decision',
       shouldAutoFit,
       dateChanged,
-      signatureChanged,
-      cameraOwner: cameraOwnerRef.current,
       lastAutoFitDateKey,
       currentDateKey,
+      signatureChanged,
+      cameraOwner: cameraOwnerRef.current,
       initialFramingPending: initialFramingPendingRef.current
     })
 
