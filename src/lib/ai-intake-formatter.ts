@@ -1291,9 +1291,26 @@ function tryParseConcatenated(tokens: string[]): { value: number, consumed: numb
 // Normalize spoken ZIP codes in address strings
 // Detects patterns like "one five two oh seven" → "15207"
 function normalizeSpokenZipInAddress(address: string): string {
-  // Pattern: comma followed by 5 spoken digits/oh, possibly with spaces or "zero"
-  const zipPattern = /,\s*(zero|one|two|three|four|five|six|seven|eight|nine|oh)(?:\s+(zero|one|two|three|four|five|six|seven|eight|nine|oh)){4}(?:\s*$)/gi
-  return address.replace(zipPattern, (match) => {
+  let normalized = address
+
+  // Pattern 1: standalone 5 spoken digits/oh (ZIP code without comma prefix)
+  // Only apply if ENTIRE value is exactly 5 spoken digit tokens
+  const standaloneZipPattern = /^(zero|one|two|three|four|five|six|seven|eight|nine|oh)(?:\s+(zero|one|two|three|four|five|six|seven|eight|nine|oh)){4}\s*$/gi
+  normalized = normalized.replace(standaloneZipPattern, (match) => {
+    const tokens = match.toLowerCase().split(/\s+/)
+    const digits = tokens.map(t => {
+      if (t === 'zero' || t === 'oh') return '0'
+      return UNITS[t]?.toString() || t
+    })
+    if (digits.length === 5 && digits.every(d => /^\d$/.test(d))) {
+      return digits.join('')
+    }
+    return match
+  })
+
+  // Pattern 2: comma followed by 5 spoken digits/oh (existing behavior)
+  const zipPatternWithComma = /,\s*(zero|one|two|three|four|five|six|seven|eight|nine|oh)(?:\s+(zero|one|two|three|four|five|six|seven|eight|nine|oh)){4}(?:\s*$)/gi
+  normalized = normalized.replace(zipPatternWithComma, (match) => {
     const hasComma = match.includes(',')
     const digits = match.toLowerCase().split(/\s+/).filter(t => t && t !== ',').map(t => {
       if (t === 'zero' || t === 'oh') return '0'
@@ -1304,6 +1321,8 @@ function normalizeSpokenZipInAddress(address: string): string {
     }
     return match
   })
+
+  return normalized
 }
 function looksLikeStreetRemainder(text: string): boolean {
   const rest = text.trim().replace(/^,\s*/, '')
@@ -1488,7 +1507,21 @@ export const normalizeAdditionalDetails = (text: string | null | undefined): str
 
   // CLEANUP: Insert missing sentence punctuation
   // Pattern: lowercase letter + space + uppercase letter (sentence boundary without punctuation)
-  normalized = normalized.replace(/([a-z])\s+([A-Z])/g, '$1. $2');
+  // Exclude common abbreviations to avoid "The. AC is not working" type issues
+  const abbreviations = ['AC', 'HVAC', 'DC', 'TV', 'PC', 'DIY', 'HV', 'OK']
+  const abbrPattern = new RegExp(`\\b(${abbreviations.join('|')})\\b`, 'i')
+  normalized = normalized.replace(/([a-z])\s+([A-Z])/g, (match, before, after) => {
+    // Don't insert period if the uppercase word is a common abbreviation
+    if (abbrPattern.test(after)) {
+      return match
+    }
+    return `${before}. ${after}`
+  });
+
+  // CLEANUP: Remove spurious periods before common abbreviations
+  // Fixes cases where input already has malformed punctuation like "The. AC is not working"
+  const spuriousPeriodPattern = new RegExp(`\\.\\s+\\b(${abbreviations.join('|')})\\b`, 'gi')
+  normalized = normalized.replace(spuriousPeriodPattern, ' $1');
 
   // CLEANUP: Normalize spacing (remove multiple spaces)
   normalized = normalized.replace(/\s+/g, ' ');
