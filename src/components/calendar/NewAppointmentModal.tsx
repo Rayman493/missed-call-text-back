@@ -89,7 +89,21 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
   }, [isOpen, context])
 
   // Handle Android back button and browser back to close modal
-  useModalBackButton({ isOpen, onClose })
+  useModalBackButton({ isOpen, onClose: () => handleCancel('android_back') })
+
+  // Log close reason for scroll lock diagnostics
+  const handleCloseWithReason = (reason: string) => {
+    console.log('[NEW_APPOINTMENT_MODAL] Closing modal', {
+      reason,
+      timestamp: Date.now(),
+      pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown'
+    })
+    // Log scroll state snapshot on close
+    if (typeof window !== 'undefined' && typeof (window as any).__logScrollStateSnapshot === 'function') {
+      (window as any).__logScrollStateSnapshot(`new_appointment_close_${reason}`)
+    }
+    onClose()
+  }
 
   if (!isOpen) return null
 
@@ -192,8 +206,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
       setIsCreating(false)
       onRefresh?.(createdEvent)
       onSuccess?.()
-      onClose()
-      
+      handleCloseWithReason('save')
+
       // Reset form
       setTitle('')
       setLocation('')
@@ -217,7 +231,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
     }
   }
 
-  const handleCancel = () => {
+  const handleCancel = (reason: string = 'cancel') => {
+    console.log('[NEW_APPOINTMENT_MODAL] handleCancel called', { reason })
     setError(null)
     // Reset form on cancel to avoid stale state on reopen
     setTitle('')
@@ -230,14 +245,15 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
     setLeadDisplay(null)
     setMeetingType('in_person')
     setCustomMeetingUrl('')
-    onClose()
+    handleCloseWithReason(reason)
   }
 
   return (
     <>
       <Modal
         isOpen={isOpen}
-        onClose={handleCancel}
+        onClose={() => handleCancel('x_button')}
+        onBackdropClose={() => handleCancel('backdrop')}
         title="New Appointment"
         footer={
           <>
@@ -261,7 +277,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
             )}
             <div className="flex gap-3 sm:gap-2">
               <button
-                onClick={handleCancel}
+                onClick={() => handleCancel('cancel_button')}
                 disabled={isCreating}
                 className="flex-1 px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >

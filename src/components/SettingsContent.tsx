@@ -1710,12 +1710,24 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
         // Hide loading modal when native session presents
         setStripeConnectLoading(false)
+
+        // Log scroll state snapshot before launching Stripe for diagnostics
+        if (typeof window !== 'undefined' && typeof (window as any).__logScrollStateSnapshot === 'function') {
+          (window as any).__logScrollStateSnapshot('stripe_launch_before')
+        }
+
         // Use native plugin for iOS, fallback to window.location.href for others
         const result = await openStripeConnectOnboarding(data.url, business.id, user?.id)
 
         // After native session completes, show checking state and refresh status
         if (result.completed || result.callbackMatched) {
           console.log('[STRIPE CONNECT] callback_resolved=true')
+
+          // Log scroll state snapshot after Stripe return for diagnostics
+          if (typeof window !== 'undefined' && typeof (window as any).__logScrollStateSnapshot === 'function') {
+            (window as any).__logScrollStateSnapshot('stripe_return_after')
+          }
+
           setStripeConnectLoading(true)
           setStripeConnectLoadingMessage('Checking Stripe connection')
           setStripeStatusChecking(true)

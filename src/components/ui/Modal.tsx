@@ -22,6 +22,8 @@ interface ModalProps {
   footer?: React.ReactNode
   // When true, uses bottom-sheet style on mobile (default: false for centered dialog)
   bottomSheetOnMobile?: boolean
+  // Optional separate callback for backdrop click (for diagnostics)
+  onBackdropClose?: () => void
 }
 
 export default function Modal({
@@ -35,13 +37,14 @@ export default function Modal({
   mobileBottomOffsetPx = 16,
   contentMaxHeight,
   footer,
-  bottomSheetOnMobile = false
+  bottomSheetOnMobile = false,
+  onBackdropClose
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
 
   // Use the canonical scroll-lock mechanism for consistent behavior across all modals
-  useBodyScrollLock(isOpen)
+  useBodyScrollLock(isOpen, title ? `Modal:${title}` : 'Modal')
 
   // Handle escape key
   useEffect(() => {
@@ -73,7 +76,11 @@ export default function Modal({
   // Handle click outside
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
-      onClose()
+      if (onBackdropClose) {
+        onBackdropClose()
+      } else {
+        onClose()
+      }
     }
   }
 

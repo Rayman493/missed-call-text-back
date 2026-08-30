@@ -3,12 +3,16 @@ import { useEffect, useRef } from 'react'
 // Reference count for nested modal support
 let lockCount = 0
 let globalScrollPosition = 0
-const activeOwners = new Set<string>()
+const activeOwners = new Map<string, { component: string; mountedAt: number }>()
 
-// Generate unique owner ID for each hook instance
+// Generate unique owner ID for each hook instance with component identity
 let ownerCounter = 0
-function generateOwnerId(): string {
-  return `owner-${++ownerCounter}`
+function generateOwnerId(componentName?: string): string {
+  const id = `owner-${++ownerCounter}`
+  if (componentName) {
+    activeOwners.set(id, { component: componentName, mountedAt: Date.now() })
+  }
+  return id
 }
 
 // Diagnostic function to check current lock state (can be called from browser console)
@@ -16,10 +20,15 @@ function generateOwnerId(): string {
 if (typeof window !== 'undefined') {
   // @ts-ignore
   window.__getScrollLockState = () => {
+    const owners = Array.from(activeOwners.entries()).map(([id, info]) => ({
+      id,
+      component: info.component,
+      mountedAt: info.mountedAt
+    }))
     return {
       lockCount,
       globalScrollPosition,
-      activeOwners: Array.from(activeOwners),
+      activeOwners: owners,
       bodyOverflow: document.body.style.overflow,
       bodyPosition: document.body.style.position,
       bodyTop: document.body.style.top,
@@ -27,15 +36,42 @@ if (typeof window !== 'undefined') {
       htmlTouchAction: document.documentElement.style.touchAction
     }
   }
+
+  // @ts-ignore
+  window.__logScrollStateSnapshot = (label: string) => {
+    const owners = Array.from(activeOwners.entries()).map(([id, info]) => ({
+      id,
+      component: info.component,
+      mountedAt: info.mountedAt
+    }))
+    console.log(`[SCROLL_STATE_SNAPSHOT] ${label}`, {
+      pathname: window.location.pathname,
+      visibilityState: document.visibilityState,
+      lockCount,
+      globalScrollPosition,
+      activeOwners: owners,
+      bodyOverflow: document.body.style.overflow,
+      bodyPosition: document.body.style.position,
+      bodyTop: document.body.style.top,
+      bodyTouchAction: document.body.style.touchAction,
+      htmlOverflow: document.documentElement.style.overflow,
+      htmlHeight: document.documentElement.style.height,
+      htmlTouchAction: document.documentElement.style.touchAction,
+      scrollY: window.scrollY,
+      scrollX: window.scrollX,
+      timestamp: Date.now()
+    })
+  }
 }
 
-export function useBodyScrollLock(isLocked: boolean) {
+export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
   const previousScrollPosition = useRef<number>(0)
-  const ownerIdRef = useRef<string>(generateOwnerId())
+  const ownerIdRef = useRef<string>(generateOwnerId(componentName))
 
   useEffect(() => {
     console.log('[MODAL_MOUNT] Scroll lock hook mounted', {
       ownerId: ownerIdRef.current,
+      component: componentName || 'unknown',
       isLocked,
       timestamp: Date.now()
     })
@@ -50,11 +86,14 @@ export function useBodyScrollLock(isLocked: boolean) {
 
     const lock = () => {
       const ownerId = ownerIdRef.current
-      console.log('[MODAL_OPEN] Scroll lock requested', {
+      const ownerInfo = activeOwners.get(ownerId)
+      console.log('[SCROLL_LOCK_ACQUIRE] Scroll lock requested', {
         ownerId,
+        component: ownerInfo?.component || componentName || 'unknown',
         lockCountBefore: lockCount,
-        activeOwnersBefore: Array.from(activeOwners),
-        pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown'
+        activeOwnersBefore: Array.from(activeOwners.entries()).map(([id, info]) => ({ id, component: info.component })),
+        pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+        timestamp: Date.now()
       })
 
       if (lockCount === 0) {
@@ -74,48 +113,65 @@ export function useBodyScrollLock(isLocked: boolean) {
         document.addEventListener('touchmove', preventTouchMove as any, { passive: false })
         document.body.addEventListener('touchmove', preventTouchMove as any, { passive: false })
 
-        console.log('[SCROLL_LOCK] FIRST_LOCK_APPLIED', {
+        console.log('[SCROLL_LOCK_ACQUIRE] FIRST_LOCK_APPLIED', {
           ownerId,
+          component: ownerInfo?.component || componentName || 'unknown',
           scrollPosition: globalScrollPosition,
           bodyOverflow: document.body.style.overflow,
           bodyPosition: document.body.style.position,
-          htmlOverflow: document.documentElement.style.overflow
+          bodyTop: document.body.style.top,
+          htmlOverflow: document.documentElement.style.overflow,
+          htmlHeight: document.documentElement.style.height,
+          bodyTouchAction: document.body.style.touchAction,
+          htmlTouchAction: document.documentElement.style.touchAction,
+          timestamp: Date.now()
         })
       }
       lockCount++
-      activeOwners.add(ownerId)
+      activeOwners.set(ownerId, { component: componentName || 'unknown', mountedAt: Date.now() })
 
-      console.log('[SCROLL_LOCK] LOCK_COMPLETE', {
+      console.log('[SCROLL_LOCK_ACQUIRE] LOCK_COMPLETE', {
         ownerId,
+        component: componentName || 'unknown',
         lockCountAfter: lockCount,
-        activeOwnersAfter: Array.from(activeOwners)
+        activeOwnersAfter: Array.from(activeOwners.entries()).map(([id, info]) => ({ id, component: info.component })),
+        timestamp: Date.now()
       })
     }
 
     const unlock = () => {
       const ownerId = ownerIdRef.current
-      console.log('[MODAL_CLOSE_REQUEST] Scroll lock release requested', {
+      const ownerInfo = activeOwners.get(ownerId)
+      console.log('[SCROLL_LOCK_RELEASE] Scroll lock release requested', {
         ownerId,
+        component: ownerInfo?.component || componentName || 'unknown',
         lockCountBefore: lockCount,
-        activeOwnersBefore: Array.from(activeOwners),
-        pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown'
+        activeOwnersBefore: Array.from(activeOwners.entries()).map(([id, info]) => ({ id, component: info.component })),
+        pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+        timestamp: Date.now()
       })
 
       lockCount--
       if (lockCount < 0) {
-        console.warn('[SCROLL_LOCK] NEGATIVE_LOCK_COUNT', { lockCount, ownerId })
+        console.warn('[SCROLL_LOCK] NEGATIVE_LOCK_COUNT', { lockCount, ownerId, component: componentName })
         lockCount = 0 // Guard against negative counts
       }
       activeOwners.delete(ownerId)
 
       if (lockCount === 0) {
         // Last unlock: restore scroll
-        console.log('[BODY_SCROLL_STATE] Restoring scroll to unlocked state', {
+        console.log('[SCROLL_LOCK_FINAL_RESTORE] Restoring scroll to unlocked state', {
           ownerId,
+          component: componentName || 'unknown',
           scrollPosition: previousScrollPosition.current,
           bodyOverflowBefore: document.body.style.overflow,
           bodyPositionBefore: document.body.style.position,
-          htmlOverflowBefore: document.documentElement.style.overflow
+          bodyTopBefore: document.body.style.top,
+          htmlOverflowBefore: document.documentElement.style.overflow,
+          htmlHeightBefore: document.documentElement.style.height,
+          bodyTouchActionBefore: document.body.style.touchAction,
+          htmlTouchActionBefore: document.documentElement.style.touchAction,
+          timestamp: Date.now()
         })
         document.body.style.overflow = ''
         document.body.style.position = ''
@@ -131,19 +187,28 @@ export function useBodyScrollLock(isLocked: boolean) {
         document.body.removeEventListener('touchmove', preventTouchMove as any)
         window.scrollTo(0, previousScrollPosition.current)
 
-        console.log('[SCROLL_LOCK_COUNT] Lock count reached zero', {
+        console.log('[SCROLL_LOCK_FINAL_RESTORE] RESTORE_COMPLETE', {
           ownerId,
+          component: componentName || 'unknown',
           finalLockCount: 0,
           bodyOverflowAfter: document.body.style.overflow,
           bodyPositionAfter: document.body.style.position,
-          htmlOverflowAfter: document.documentElement.style.overflow
+          bodyTopAfter: document.body.style.top,
+          htmlOverflowAfter: document.documentElement.style.overflow,
+          htmlHeightAfter: document.documentElement.style.height,
+          bodyTouchActionAfter: document.body.style.touchAction,
+          htmlTouchActionAfter: document.documentElement.style.touchAction,
+          activeOwnersAfter: [],
+          timestamp: Date.now()
         })
       }
 
-      console.log('[SCROLL_LOCK] UNLOCK_COMPLETE', {
+      console.log('[SCROLL_LOCK_RELEASE] RELEASE_COMPLETE', {
         ownerId,
+        component: componentName || 'unknown',
         lockCountAfter: lockCount,
-        activeOwnersAfter: Array.from(activeOwners)
+        activeOwnersAfter: Array.from(activeOwners.entries()).map(([id, info]) => ({ id, component: info.component })),
+        timestamp: Date.now()
       })
     }
 
@@ -156,8 +221,10 @@ export function useBodyScrollLock(isLocked: boolean) {
     return () => {
       console.log('[MODAL_UNMOUNT] Scroll lock hook unmounted', {
         ownerId: ownerIdRef.current,
+        component: componentName || 'unknown',
         isLocked,
         lockCount,
+        activeOwners: Array.from(activeOwners.entries()).map(([id, info]) => ({ id, component: info.component })),
         timestamp: Date.now()
       })
     }

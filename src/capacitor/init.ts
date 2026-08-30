@@ -115,6 +115,11 @@ export async function initializeCapacitor() {
     App.addListener('appStateChange', async ({ isActive }) => {
       console.log('[Capacitor] App state changed:', isActive ? 'active' : 'inactive');
 
+      // Log scroll state snapshot on app lifecycle transitions for diagnostics
+      if (typeof window !== 'undefined' && typeof (window as any).__logScrollStateSnapshot === 'function') {
+        (window as any).__logScrollStateSnapshot(`appStateChange_${isActive ? 'active' : 'inactive'}`);
+      }
+
       // Handle external return reconciliation on app resume
       if (isActive) {
         console.log('[ACCOUNT_CREATION_BRIDGE] appStateChange triggering handleAppResume');
@@ -125,6 +130,16 @@ export async function initializeCapacitor() {
         console.log('[ACCOUNT_CREATION_BRIDGE] appStateChange inactive - not triggering handleAppResume');
       }
     });
+
+    // Set up visibilitychange listener for additional lifecycle diagnostics
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        console.log('[LIFECYCLE] Document visibility changed:', document.visibilityState);
+        if (typeof (window as any).__logScrollStateSnapshot === 'function') {
+          (window as any).__logScrollStateSnapshot(`visibilitychange_${document.visibilityState}`);
+        }
+      });
+    }
 
     // Set up URL/open URL listeners for deep links
     App.addListener('appUrlOpen', async (data) => {
