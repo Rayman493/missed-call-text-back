@@ -3647,10 +3647,14 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                         <div className="flex-1 pr-4 min-w-0">
                           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                             <h3 className="text-sm font-semibold text-foreground">Automatic Follow-Ups</h3>
-                            {getFollowUpSettings().enabled && (
+                            {getFollowUpSettings().enabled ? (
                               <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                                 <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                                 Active
+                              </span>
+                            ) : (
+                              <span className="text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
+                                Disabled
                               </span>
                             )}
                           </div>
@@ -3696,10 +3700,14 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           <div className="flex-1 pr-4 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                               <h3 className="text-sm font-medium text-foreground">Automatic Follow-Ups</h3>
-                              {getFollowUpSettings().enabled && (
+                              {getFollowUpSettings().enabled ? (
                                 <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                                   <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                                   Active
+                                </span>
+                              ) : (
+                                <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
+                                  Disabled
                                 </span>
                               )}
                             </div>
