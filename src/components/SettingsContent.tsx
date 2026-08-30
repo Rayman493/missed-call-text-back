@@ -4685,8 +4685,8 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <span className="text-sm font-medium text-foreground truncate max-w-[150px] sm:max-w-[200px]">{user?.email}</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <span className="text-sm font-medium text-foreground">{user?.email}</span>
                         <button
                           onClick={() => {
                             setNewEmail('')
@@ -4839,7 +4839,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           Keep your account secure.
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                         <span className="text-sm font-medium text-foreground">•••••••••</span>
                         <button
                           onClick={() => {
