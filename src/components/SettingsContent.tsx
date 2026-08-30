@@ -3597,7 +3597,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
                         {/* Out of Office Settings */}
                         <div className="space-y-5">
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
                                 Start Date & Time
