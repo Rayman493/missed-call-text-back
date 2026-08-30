@@ -19,6 +19,9 @@ import type {
 // Terminal customer statuses that should not show revenue opportunities (canonical definition)
 const TERMINAL_STATUSES = getTerminalStatuses()
 
+// Resolution statuses that indicate work has progressed beyond estimate stage
+const RESOLUTION_STATUSES: Array<'paid' | 'completed'> = ['paid', 'completed']
+
 const CACHE_DURATION_MS = 5 * 60 * 1000 // 5 minutes
 
 class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterface {
@@ -90,7 +93,7 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
   }
 
   /**
-   * Find customers ready for estimate (completed intake, no estimate/job)
+   * Find customers ready for estimate (completed intake, no estimate/job, not paid/completed)
    */
   private async findReadyForEstimateOpportunities(
     businessId: string,
@@ -102,13 +105,16 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
       .eq('business_id', businessId)
 
     // Filter for leads with AI intake data (stored in raw_metadata)
-    // Exclude deleted leads and terminal status customers
+    // Exclude deleted leads, terminal status customers, and resolution status customers
     const leads = allLeads?.filter((lead: any) => {
       // Exclude deleted leads
       if (lead.deleted_at) return false
 
       // Exclude terminal status customers
       if (lead.status && TERMINAL_STATUSES.includes(lead.status)) return false
+
+      // Exclude resolution status customers (paid/completed have progressed beyond estimate stage)
+      if (lead.status && RESOLUTION_STATUSES.includes(lead.status as any)) return false
 
       const rawMetadata = lead.raw_metadata || {}
       // Check for AI intake completion flags

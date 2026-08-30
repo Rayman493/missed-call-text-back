@@ -105,7 +105,7 @@ describe('Revenue Opportunities - Terminal Status Filtering', () => {
       expect(filtered.map((l: any) => l.id)).toEqual(['1', '3'])
     })
 
-    it('should NOT filter out completed customers', () => {
+    it('should filter out completed customers (progressed beyond estimate stage)', () => {
       const leads = [
         { id: '1', deleted_at: null, status: 'new' },
         { id: '2', deleted_at: null, status: 'completed' },
@@ -113,16 +113,19 @@ describe('Revenue Opportunities - Terminal Status Filtering', () => {
       ]
 
       const terminalStatuses = getTerminalStatuses()
+      const RESOLUTION_STATUSES: Array<'paid' | 'completed'> = ['paid', 'completed']
       const filtered = leads.filter((lead: any) => {
         if (lead.deleted_at) return false
         if (lead.status && terminalStatuses.includes(lead.status)) return false
+        if (lead.status && RESOLUTION_STATUSES.includes(lead.status as any)) return false
         return true
       })
 
-      expect(filtered).toHaveLength(3)
+      expect(filtered).toHaveLength(2)
+      expect(filtered.map((l: any) => l.id)).toEqual(['1', '3'])
     })
 
-    it('should NOT filter out paid customers', () => {
+    it('should filter out paid customers (progressed beyond estimate stage)', () => {
       const leads = [
         { id: '1', deleted_at: null, status: 'new' },
         { id: '2', deleted_at: null, status: 'paid' },
@@ -130,13 +133,16 @@ describe('Revenue Opportunities - Terminal Status Filtering', () => {
       ]
 
       const terminalStatuses = getTerminalStatuses()
+      const RESOLUTION_STATUSES: Array<'paid' | 'completed'> = ['paid', 'completed']
       const filtered = leads.filter((lead: any) => {
         if (lead.deleted_at) return false
         if (lead.status && terminalStatuses.includes(lead.status)) return false
+        if (lead.status && RESOLUTION_STATUSES.includes(lead.status as any)) return false
         return true
       })
 
-      expect(filtered).toHaveLength(3)
+      expect(filtered).toHaveLength(2)
+      expect(filtered.map((l: any) => l.id)).toEqual(['1', '3'])
     })
 
     it('should allow actionable non-terminal customers', () => {
@@ -242,6 +248,100 @@ describe('Revenue Opportunities - Terminal Status Filtering', () => {
       // We can't test the actual formatting here without importing the utility
       // But we can verify the phone number is present in the data
       expect(leadWithPhone.caller_phone).toBe('+14125551234')
+    })
+  })
+
+  describe('resolution status filtering for ready_for_estimate', () => {
+    const RESOLUTION_STATUSES: Array<'paid' | 'completed'> = ['paid', 'completed']
+
+    it('should filter out paid customers from ready_for_estimate', () => {
+      const leads = [
+        { id: '1', deleted_at: null, status: 'new', raw_metadata: { ai_intake_completed: true } },
+        { id: '2', deleted_at: null, status: 'paid', raw_metadata: { ai_intake_completed: true } },
+        { id: '3', deleted_at: null, status: 'active', raw_metadata: { ai_intake_completed: true } },
+      ]
+
+      const filtered = leads.filter((lead: any) => {
+        if (lead.deleted_at) return false
+        if (lead.status && RESOLUTION_STATUSES.includes(lead.status as any)) return false
+        return true
+      })
+
+      expect(filtered).toHaveLength(2)
+      expect(filtered.map((l: any) => l.id)).toEqual(['1', '3'])
+    })
+
+    it('should filter out completed customers from ready_for_estimate', () => {
+      const leads = [
+        { id: '1', deleted_at: null, status: 'new', raw_metadata: { ai_intake_completed: true } },
+        { id: '2', deleted_at: null, status: 'completed', raw_metadata: { ai_intake_completed: true } },
+        { id: '3', deleted_at: null, status: 'active', raw_metadata: { ai_intake_completed: true } },
+      ]
+
+      const filtered = leads.filter((lead: any) => {
+        if (lead.deleted_at) return false
+        if (lead.status && RESOLUTION_STATUSES.includes(lead.status as any)) return false
+        return true
+      })
+
+      expect(filtered).toHaveLength(2)
+      expect(filtered.map((l: any) => l.id)).toEqual(['1', '3'])
+    })
+
+    it('should allow eligible customers with completed intake for ready_for_estimate', () => {
+      const leads = [
+        { id: '1', deleted_at: null, status: 'new', raw_metadata: { ai_intake_completed: true } },
+        { id: '2', deleted_at: null, status: 'active', raw_metadata: { ai_intake_completed: true } },
+        { id: '3', deleted_at: null, status: 'scheduled', raw_metadata: { ai_intake_completed: true } },
+      ]
+
+      const filtered = leads.filter((lead: any) => {
+        if (lead.deleted_at) return false
+        if (lead.status && RESOLUTION_STATUSES.includes(lead.status as any)) return false
+        return true
+      })
+
+      expect(filtered).toHaveLength(3)
+    })
+  })
+
+  describe('follow_up does NOT filter resolution statuses', () => {
+    const TERMINAL_STATUSES = ['cancelled', 'ignored', 'lost']
+
+    it('should allow paid customers for follow_up (re-engagement is valid)', () => {
+      const leads = [
+        { id: '1', deleted_at: null, status: 'new', raw_metadata: { ai_intake_completed: true } },
+        { id: '2', deleted_at: null, status: 'paid', raw_metadata: { ai_intake_completed: true } },
+        { id: '3', deleted_at: null, status: 'active', raw_metadata: { ai_intake_completed: true } },
+      ]
+
+      const filtered = leads.filter((lead: any) => {
+        if (lead.deleted_at) return false
+        if (lead.status && TERMINAL_STATUSES.includes(lead.status)) return false
+        return true
+      })
+
+      // Paid customer should be eligible for follow-up (re-engagement)
+      expect(filtered).toHaveLength(3)
+      expect(filtered.map((l: any) => l.id)).toEqual(['1', '2', '3'])
+    })
+
+    it('should allow completed customers for follow_up (re-engagement is valid)', () => {
+      const leads = [
+        { id: '1', deleted_at: null, status: 'new', raw_metadata: { ai_intake_completed: true } },
+        { id: '2', deleted_at: null, status: 'completed', raw_metadata: { ai_intake_completed: true } },
+        { id: '3', deleted_at: null, status: 'active', raw_metadata: { ai_intake_completed: true } },
+      ]
+
+      const filtered = leads.filter((lead: any) => {
+        if (lead.deleted_at) return false
+        if (lead.status && TERMINAL_STATUSES.includes(lead.status)) return false
+        return true
+      })
+
+      // Completed customer should be eligible for follow-up (re-engagement)
+      expect(filtered).toHaveLength(3)
+      expect(filtered.map((l: any) => l.id)).toEqual(['1', '2', '3'])
     })
   })
 })
