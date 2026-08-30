@@ -18,7 +18,7 @@ import { TapToPayEducationModal } from '@/components/TapToPayEducationModal'
 import { hasPendingEducationPromise, resolveEducation } from '@/lib/education-promise-bridge'
 import { normalizeToE164, formatForDisplay } from '@/utils/phone-formatting'
 import QuickTapToPayDiagnostics from './QuickTapToPayDiagnostics'
-import { filterLeadsBySearchQuery, getCustomerDisplayName, getCustomerSecondaryText, type Lead } from './customer-search-helpers'
+import { filterLeadsBySearchQuery, getRecentCustomers, getCustomerDisplayName, getCustomerSecondaryText, type Lead } from './customer-search-helpers'
 
 interface QuickTapToPayModalProps {
   isOpen: boolean
@@ -634,7 +634,8 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
 
   // Filter leads based on search query
   const filteredLeads = useMemo(() => {
-    return filterLeadsBySearchQuery(leads, customerSearchQuery)
+    const allResults = filterLeadsBySearchQuery(leads, customerSearchQuery)
+    return getRecentCustomers(allResults, customerSearchQuery, 5)
   }, [leads, customerSearchQuery])
 
   // Auto-load leads when modal opens
@@ -973,7 +974,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                       )}
 
                       {/* Customer results in normal document flow */}
-                      {isCustomerDropdownOpen && paymentAssociation.type === 'quick' && customerSearchQuery.trim() && (
+                      {isCustomerDropdownOpen && paymentAssociation.type === 'quick' && (
                         <div className="mt-2 max-h-48 overflow-y-auto bg-card border border-border rounded-lg shadow-sm">
                           {isLoadingLeads ? (
                             <div className="flex items-center justify-center py-4">

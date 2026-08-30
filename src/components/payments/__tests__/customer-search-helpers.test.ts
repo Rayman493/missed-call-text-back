@@ -4,6 +4,7 @@ import {
   getCustomerDisplayName,
   getCustomerSecondaryText,
   filterLeadsBySearchQuery,
+  getRecentCustomers,
   type Lead
 } from '../customer-search-helpers'
 
@@ -163,6 +164,50 @@ describe('customer-search-helpers', () => {
     it('ignores "Not collected" names in search', () => {
       const result = filterLeadsBySearchQuery(leads, 'not')
       expect(result).toHaveLength(0)
+    })
+  })
+
+  describe('getRecentCustomers', () => {
+    const manyLeads: Lead[] = [
+      { id: '1', name: 'Customer 1', caller_phone: '4125551001' },
+      { id: '2', name: 'Customer 2', caller_phone: '4125551002' },
+      { id: '3', name: 'Customer 3', caller_phone: '4125551003' },
+      { id: '4', name: 'Customer 4', caller_phone: '4125551004' },
+      { id: '5', name: 'Customer 5', caller_phone: '4125551005' },
+      { id: '6', name: 'Customer 6', caller_phone: '4125551006' },
+      { id: '7', name: 'Customer 7', caller_phone: '4125551007' },
+    ]
+
+    it('limits to 5 recent customers when query is empty', () => {
+      const result = getRecentCustomers(manyLeads, '', 5)
+      expect(result).toHaveLength(5)
+      expect(result.map(l => l.id)).toEqual(['1', '2', '3', '4', '5'])
+    })
+
+    it('limits to 5 recent customers when query is whitespace only', () => {
+      const result = getRecentCustomers(manyLeads, '   ', 5)
+      expect(result).toHaveLength(5)
+      expect(result.map(l => l.id)).toEqual(['1', '2', '3', '4', '5'])
+    })
+
+    it('uses custom limit when provided', () => {
+      const result = getRecentCustomers(manyLeads, '', 3)
+      expect(result).toHaveLength(3)
+      expect(result.map(l => l.id)).toEqual(['1', '2', '3'])
+    })
+
+    it('handles empty array', () => {
+      const result = getRecentCustomers([], '', 5)
+      expect(result).toHaveLength(0)
+    })
+
+    it('handles array smaller than limit', () => {
+      const fewLeads: Lead[] = [
+        { id: '1', name: 'Customer 1', caller_phone: '4125551001' },
+        { id: '2', name: 'Customer 2', caller_phone: '4125551002' },
+      ]
+      const result = getRecentCustomers(fewLeads, '', 5)
+      expect(result).toHaveLength(2)
     })
   })
 })

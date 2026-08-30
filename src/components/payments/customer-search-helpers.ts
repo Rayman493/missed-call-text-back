@@ -76,3 +76,14 @@ export function filterLeadsBySearchQuery(leads: Lead[], query: string): Lead[] {
     return false
   })
 }
+
+/**
+ * Limits leads to recent customers when query is empty
+ * Used by Tap to Pay to show a short useful list without requiring typing
+ */
+export function getRecentCustomers(leads: Lead[], query: string, limit: number = 5): Lead[] {
+  if (!query.trim()) {
+    return leads.slice(0, limit)
+  }
+  return leads
+}
