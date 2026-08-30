@@ -468,6 +468,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
   const unfilteredChannelRef = useRef<RealtimeChannel | null>(null)
+  const filteredInsertDiagnosticRef = useRef<RealtimeChannel | null>(null)
   const currentLeadIdRef = useRef<string | null>(null)
   const supabaseRef = useRef(createBrowserClient())
   const supabase = supabaseRef.current
@@ -2152,11 +2153,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Set up new subscription
     const channelName = `lead-detail:${leadId}`
     const unfilteredChannelName = `lead-detail-unfiltered-diagnostic:${leadId}`
+    const filteredInsertDiagnosticName = `lead-detail-filtered-insert-diagnostic:${leadId}`
     console.log('[REALTIME SUBSCRIBE REQUEST]', {
       instanceId: realtimeInstanceIdRef.current,
       leadId,
       channelName,
       unfilteredChannelName,
+      filteredInsertDiagnosticName,
       hadExistingChannel,
       timestamp: new Date().toISOString()
     })
@@ -2542,6 +2545,55 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     unfilteredChannelRef.current = unfilteredChannel
 
+    // Filtered INSERT-only diagnostic channel to distinguish event='*' + filter from filter issue
+    console.log('[REALTIME_DIAG_FILTERED_INSERT_SETUP]', {
+      channelName: filteredInsertDiagnosticName,
+      leadId,
+      event: 'INSERT',
+      schema: 'public',
+      table: 'messages',
+      filter: `lead_id=eq.${leadId}`,
+      timestamp: new Date().toISOString(),
+      diagnosticInstanceId: realtimeInstanceIdRef.current
+    })
+
+    const filteredInsertDiagnosticChannel = supabase
+      .channel(filteredInsertDiagnosticName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `lead_id=eq.${leadId}`
+        },
+        (payload: any) => {
+          console.log('[REALTIME_DIAG_FILTERED_INSERT_EVENT]', {
+            eventId: payload.id,
+            messageId: payload.new?.id,
+            messageLeadId: payload.new?.lead_id,
+            messageDirection: payload.new?.direction,
+            messageStatus: payload.new?.status,
+            created_at: payload.new?.created_at,
+            currentLeadId: leadId,
+            matchesCurrentLead: payload.new?.lead_id === leadId,
+            timestamp: new Date().toISOString(),
+            diagnosticInstanceId: realtimeInstanceIdRef.current
+          })
+        }
+      )
+      .subscribe((status: any) => {
+        console.log('[REALTIME_DIAG_FILTERED_INSERT_STATUS]', {
+          channelName: filteredInsertDiagnosticName,
+          leadId,
+          status,
+          timestamp: new Date().toISOString(),
+          diagnosticInstanceId: realtimeInstanceIdRef.current
+        })
+      })
+
+    filteredInsertDiagnosticRef.current = filteredInsertDiagnosticChannel
+
     // Start stuck message check interval (bounded recovery - only check twice)
     let checkCount = 0
     const maxChecks = 2
@@ -2581,6 +2633,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       console.log('[REALTIME DIAG_CLEANUP]', {
         channelName,
         unfilteredChannelName,
+        filteredInsertDiagnosticName,
         leadId,
         timestamp: new Date().toISOString(),
         diagnosticInstanceId: realtimeInstanceIdRef.current,
@@ -2616,6 +2669,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           diagnosticInstanceId: realtimeInstanceIdRef.current
         })
         unfilteredChannelRef.current = null
+      }
+      if (filteredInsertDiagnosticRef.current) {
+        console.log('[REALTIME DIAG_FILTERED_INSERT_CLEANUP] Removing filtered INSERT diagnostic channel')
+        supabase.removeChannel(filteredInsertDiagnosticRef.current)
+        console.log('[REALTIME DIAG_FILTERED_INSERT_REMOVED]', {
+          channelName: filteredInsertDiagnosticName,
+          leadId,
+          timestamp: new Date().toISOString(),
+          diagnosticInstanceId: realtimeInstanceIdRef.current
+        })
+        filteredInsertDiagnosticRef.current = null
       }
       currentLeadIdRef.current = null
       if (stuckMessageCheckIntervalRef.current) {
