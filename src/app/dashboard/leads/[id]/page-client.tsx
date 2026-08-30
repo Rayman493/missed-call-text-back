@@ -4211,7 +4211,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     type="button"
                     onClick={handleRefresh}
                     disabled={refreshing}
-                    className="h-9 w-9 inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-slate-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="h-8 w-8 inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-slate-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label="Refresh"
                     title="Refresh"
                   >
