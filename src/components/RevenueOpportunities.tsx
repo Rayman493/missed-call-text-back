@@ -125,38 +125,34 @@ function RevenueOpportunityRow({ opportunity, onAction }: RevenueOpportunityRowP
   return (
     <button
       onClick={onAction}
-      className="w-full px-5 py-4 flex items-center justify-between group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+      className="w-full px-5 py-4 flex items-center gap-4 group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
     >
-      <div className="flex items-center gap-4 flex-1 min-w-0">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${getOpportunityIconBg(opportunity.type)}`}>
-          {icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-medium text-slate-900 dark:text-foreground">
-              {opportunity.customerName}
-            </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              • {typeLabel}
-            </span>
-          </div>
-          <p className="text-xs text-slate-600 dark:text-slate-400 truncate">
-            {opportunity.whyNow}
-          </p>
-        </div>
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${getOpportunityIconBg(opportunity.type)}`}>
+        {icon}
       </div>
-      <div className="flex items-center gap-4 flex-shrink-0 ml-4">
-        {opportunity.estimatedValue !== null && (
-          <div className="text-right">
-            <span className="text-sm font-semibold text-slate-900 dark:text-foreground">
-              {formatCurrency(opportunity.estimatedValue)}
-            </span>
-          </div>
-        )}
-        <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium">
-          <span>{actionLabel}</span>
-          <ChevronRight className="w-4 h-4" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-sm font-medium text-slate-900 dark:text-foreground">
+            {opportunity.customerName}
+          </span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            • {typeLabel}
+          </span>
         </div>
+        <p className="text-xs text-slate-600 dark:text-slate-400">
+          {opportunity.whyNow}
+        </p>
+      </div>
+      {opportunity.estimatedValue !== null && (
+        <div className="flex-shrink-0 text-right">
+          <span className="text-sm font-semibold text-slate-900 dark:text-foreground">
+            {formatCurrency(opportunity.estimatedValue)}
+          </span>
+        </div>
+      )}
+      <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium flex-shrink-0">
+        <span>{actionLabel}</span>
+        <ChevronRight className="w-4 h-4" />
       </div>
     </button>
   )
