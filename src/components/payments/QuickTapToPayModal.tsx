@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { X, User, Briefcase, Loader2, ChevronRight, CheckCircle2, AlertCircle, XCircle, MapPin, BookOpen } from 'lucide-react'
+import { X, User, Loader2, CheckCircle2, AlertCircle, XCircle, MapPin, BookOpen, Search, X as XIcon } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -16,8 +16,9 @@ import { Capacitor } from '@capacitor/core'
 import { getCapacitorPlatform } from '@/capacitor/init'
 import { TapToPayEducationModal } from '@/components/TapToPayEducationModal'
 import { hasPendingEducationPromise, resolveEducation } from '@/lib/education-promise-bridge'
-import { normalizeToE164 } from '@/utils/phone-formatting'
+import { normalizeToE164, formatForDisplay } from '@/utils/phone-formatting'
 import QuickTapToPayDiagnostics from './QuickTapToPayDiagnostics'
+import { filterLeadsBySearchQuery, getCustomerDisplayName, getCustomerSecondaryText, type Lead } from './customer-search-helpers'
 
 interface QuickTapToPayModalProps {
   isOpen: boolean
@@ -40,14 +41,15 @@ export default function QuickTapToPayModal({
   const MINIMUM_AMOUNT_CENTS = 50 // $0.50
   const isAmountValid = amountCents === 0 || amountCents >= MINIMUM_AMOUNT_CENTS
   const isAmountBelowMinimum = amountCents > 0 && amountCents < MINIMUM_AMOUNT_CENTS
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [description, setDescription] = useState<string>('')
-  const [leads, setLeads] = useState<any[]>([])
-  const [jobs, setJobs] = useState<any[]>([])
+  const [leads, setLeads] = useState<Lead[]>([])
   const [isLoadingLeads, setIsLoadingLeads] = useState(false)
-  const [isLoadingJobs, setIsLoadingJobs] = useState(false)
   const [isNativeSupported, setIsNativeSupported] = useState(false)
   const [disabledReason, setDisabledReason] = useState<string>('')
+
+  // Customer search state
+  const [customerSearchQuery, setCustomerSearchQuery] = useState<string>('')
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false)
 
   // Location guidance card states (inline on setup screen, not overlays)
 const [showLocationPermissionCard, setShowLocationPermissionCard] = useState(false)
@@ -118,8 +120,8 @@ const handleSendReceipt = () => {
   // Prefill customer phone number if available
   if (paymentAssociation.type === 'customer' && paymentAssociation.leadId) {
     const lead = leads.find(l => l.id === paymentAssociation.leadId)
-    if (lead?.phone) {
-      setReceiptPhoneNumber(lead.phone)
+    if (lead?.caller_phone) {
+      setReceiptPhoneNumber(lead.caller_phone)
     } else {
       // Clear phone number if no lead to pre-fill
       setReceiptPhoneNumber('')
@@ -229,44 +231,27 @@ const handleOpenStripeManagement = async () => {
   }
 }
 
-// Canonical association object for customer/job selection
+// Canonical association object for customer selection
 type PaymentAssociation =
   | {
       type: 'quick'
       leadId: null
-      jobId: null
       label: 'Quick Payment'
       secondaryLabel: null
     }
   | {
       type: 'customer'
       leadId: string
-      jobId: null
       label: string
       secondaryLabel: string | null
     }
-  | {
-      type: 'job'
-      leadId: string | null
-      jobId: string
-      label: string
-      secondaryLabel: string | null
-    }
-
-type AssociationView = 'payment_setup' | 'association_menu' | 'customer_list' | 'job_list'
 
 const [paymentAssociation, setPaymentAssociation] = useState<PaymentAssociation>({
   type: 'quick',
   leadId: null,
-  jobId: null,
   label: 'Quick Payment',
   secondaryLabel: null
 })
-
-const [associationView, setAssociationView] = useState<AssociationView>('payment_setup')
-
-// Selection commit guard to prevent duplicate commits
-const selectionCommitInProgressRef = useRef(false)
 
 // One-shot continuation guard to prevent duplicate ATTEMPT_STARTED
 const continuationAttemptedRef = useRef(false)
@@ -328,7 +313,6 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
   } = useTapToPayOrchestration({
     amountCents,
     leadId: selectedLeadId || undefined,
-    jobId: selectedJobId || undefined,
     description,
     onPaymentComplete: () => {
       // Payment completion handling is now done in handlePaymentComplete when user dismisses modal
@@ -519,12 +503,11 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
   const emergencyCleanup = useCallback(() => {
     // Clear spinner flags
     setIsLoadingLeads(false)
-    setIsLoadingJobs(false)
-    
+
     // Reset orchestration state
     resetTapToPayUiState()
-    
-    // Note: We don't clear amount/customer/job as user may want to retry
+
+    // Note: We don't clear amount/customer as user may want to retry
   }, [resetTapToPayUiState])
 
   // Modal-open effect: reset state when opening, but use accurate reasons
@@ -603,13 +586,12 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
       setAmountCents(0)
       setAmountDisplay('')
       setSelectedLeadId(null)
-      setSelectedJobId(null)
       setDescription('')
-      setAssociationView('payment_setup')
+      setCustomerSearchQuery('')
+      setIsCustomerDropdownOpen(false)
       setPaymentAssociation({
         type: 'quick',
         leadId: null,
-        jobId: null,
         label: 'Quick Payment',
         secondaryLabel: null
       })
@@ -624,16 +606,6 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
-
-  // Load jobs when lead is selected
-  useEffect(() => {
-    if (selectedLeadId && !isLoadingJobs && jobs.length === 0) {
-      loadJobs(selectedLeadId)
-    } else if (!selectedLeadId) {
-      setJobs([])
-      setSelectedJobId(null)
-    }
-  }, [selectedLeadId, isLoadingJobs, jobs.length])
 
   const loadLeads = async () => {
     setIsLoadingLeads(true)
@@ -660,30 +632,17 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     }
   }
 
-  const loadJobs = async (leadId: string) => {
-    setIsLoadingJobs(true)
-    try {
-      const supabase = createBrowserClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      const headers: HeadersInit = { 'Content-Type': 'application/json' }
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`
-      }
+  // Filter leads based on search query
+  const filteredLeads = useMemo(() => {
+    return filterLeadsBySearchQuery(leads, customerSearchQuery)
+  }, [leads, customerSearchQuery])
 
-      const response = await fetch(`/api/jobs?lead_id=${leadId}`, {
-        headers,
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setJobs(data.jobs || [])
-      }
-    } catch (error) {
-      console.error('Failed to load jobs:', error)
-    } finally {
-      setIsLoadingJobs(false)
+  // Auto-load leads when modal opens
+  useEffect(() => {
+    if (isOpen && business?.id && leads.length === 0 && !isLoadingLeads) {
+      loadLeads()
     }
-  }
+  }, [isOpen, business?.id, leads.length, isLoadingLeads])
 
   const prevHadAmountRef = useRef(false)
   const handleAmountChange = (value: string) => {
@@ -769,12 +728,12 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     setAmountCents(0)
     setAmountDisplay('')
     setSelectedLeadId(null)
-    setSelectedJobId(null)
     setDescription('')
+    setCustomerSearchQuery('')
+    setIsCustomerDropdownOpen(false)
     setPaymentAssociation({
       type: 'quick',
       leadId: null,
-      jobId: null,
       label: 'Quick Payment',
       secondaryLabel: null
     })
@@ -865,7 +824,6 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
   if (!isOpen) return null
 
   const selectedLead = leads.find(l => l.id === paymentAssociation.leadId)
-  const selectedJob = jobs.find(j => j.id === paymentAssociation.jobId)
 
   return (
     <>
@@ -956,33 +914,121 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                     ))}
                   </div>
 
-                  {/* Optional Customer/Job */}
+                  {/* Optional Customer */}
                   <div className="space-y-2">
-                    <button
-                      onClick={() => setAssociationView('association_menu')}
-                      className="w-full p-3 rounded-lg border border-border hover:border-border/80 transition-colors text-left active:scale-[0.99]"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                            {paymentAssociation.type !== 'quick' ? (
-                              <User className="w-4.5 h-4.5 text-foreground" />
-                            ) : (
-                              <AppleTapToPayIcon size={18} className="text-muted-foreground" />
-                            )}
-                          </div>
-                          <div className="text-left">
-                            <p className="font-medium text-foreground text-sm">
-                              {paymentAssociation.label}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {paymentAssociation.type === 'quick' ? 'No customer or job' : paymentAssociation.secondaryLabel || ''}
-                            </p>
-                          </div>
+                    <label className="text-sm font-medium text-foreground">Customer (Optional)</label>
+                    <div>
+                      {paymentAssociation.type === 'quick' ? (
+                        // Search input when no customer selected
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <input
+                            type="text"
+                            placeholder="Search by name or phone"
+                            value={customerSearchQuery}
+                            onChange={(e) => {
+                              setCustomerSearchQuery(e.target.value)
+                              setIsCustomerDropdownOpen(true)
+                            }}
+                            onFocus={() => setIsCustomerDropdownOpen(true)}
+                            className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-background text-foreground text-sm placeholder:text-muted-foreground/50"
+                          />
                         </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                    </button>
+                      ) : (
+                        // Selected customer display
+                        <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/30">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                              <User className="w-4 h-4 text-foreground" />
+                            </div>
+                            <div className="text-left min-w-0">
+                              <p className="font-medium text-foreground text-sm truncate">
+                                {paymentAssociation.label}
+                              </p>
+                              {paymentAssociation.secondaryLabel && (
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {paymentAssociation.secondaryLabel}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setPaymentAssociation({
+                                type: 'quick',
+                                leadId: null,
+                                label: 'Quick Payment',
+                                secondaryLabel: null
+                              })
+                              setSelectedLeadId(null)
+                              setCustomerSearchQuery('')
+                              setIsCustomerDropdownOpen(false)
+                            }}
+                            className="p-1.5 rounded-md hover:bg-muted transition-colors shrink-0"
+                            aria-label="Clear customer"
+                          >
+                            <XIcon className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Customer results in normal document flow */}
+                      {isCustomerDropdownOpen && paymentAssociation.type === 'quick' && customerSearchQuery.trim() && (
+                        <div className="mt-2 max-h-48 overflow-y-auto bg-card border border-border rounded-lg shadow-sm">
+                          {isLoadingLeads ? (
+                            <div className="flex items-center justify-center py-4">
+                              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                            </div>
+                          ) : filteredLeads.length === 0 ? (
+                            <div className="p-3 text-center text-sm text-muted-foreground">
+                              No customers found
+                            </div>
+                          ) : (
+                            filteredLeads.map((lead) => {
+                              const displayName = getCustomerDisplayName(lead)
+                              const displayPhone = getCustomerSecondaryText(lead)
+
+                              return (
+                                <button
+                                  key={lead.id}
+                                  onClick={() => {
+                                    setPaymentAssociation({
+                                      type: 'customer',
+                                      leadId: lead.id,
+                                      label: displayName,
+                                      secondaryLabel: displayPhone
+                                    })
+                                    setSelectedLeadId(lead.id)
+                                    setCustomerSearchQuery('')
+                                    setIsCustomerDropdownOpen(false)
+                                  }}
+                                  className="w-full p-3 text-left hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
+                                >
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                      <User className="w-4 h-4 text-muted-foreground" />
+                                    </div>
+                                    <div className="text-left min-w-0">
+                                      <p className="font-medium text-foreground text-sm truncate">
+                                        {displayName}
+                                      </p>
+                                      {displayPhone && (
+                                        <p className="text-xs text-muted-foreground truncate">
+                                          {displayPhone}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              )
+                            })
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {paymentAssociation.type === 'quick' ? 'Quick Payment - no customer attached' : 'Payment attached to customer'}
+                    </p>
                   </div>
 
                   {/* Error */}
@@ -1122,291 +1168,6 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                           </button>
                         </div>
                       </div>
-                    </div>
-                  )}
-
-                  {/* Association Menu View */}
-                  {associationView === 'association_menu' && (
-                    <div className="space-y-2 animate-in fade-in duration-200">
-                      <div className="flex items-center gap-2 mb-4">
-                        <button
-                          onClick={() => {
-                            setAssociationView('payment_setup')
-                          }}
-                          className="p-1 rounded hover:bg-muted transition-colors"
-                        >
-                          <ChevronRight className="w-5 h-5 text-muted-foreground rotate-180" />
-                        </button>
-                        <h3 className="text-sm font-semibold text-foreground">Choose Association</h3>
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          if (selectionCommitInProgressRef.current) {
-                            return
-                          }
-                          selectionCommitInProgressRef.current = true
-                          setPaymentAssociation({
-                            type: 'quick',
-                            leadId: null,
-                            jobId: null,
-                            label: 'Quick Payment',
-                            secondaryLabel: null
-                          })
-                          setSelectedLeadId(null)
-                          setSelectedJobId(null)
-                          setAssociationView('payment_setup')
-                          setTimeout(() => {
-                            selectionCommitInProgressRef.current = false
-                          }, 0)
-                        }}
-                        className="w-full p-4 rounded-lg border border-border hover:border-border/80 transition-colors text-left active:scale-[0.99]"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                            <AppleTapToPayIcon size={20} className="text-muted-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground text-sm">Quick Payment</p>
-                            <p className="text-xs text-muted-foreground">No customer or job attached</p>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                        </div>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setAssociationView('customer_list')
-                          if (!leads.length && !isLoadingLeads) {
-                            loadLeads()
-                          }
-                        }}
-                        className="w-full p-4 rounded-lg border border-border hover:border-border/80 transition-colors text-left active:scale-[0.99]"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                            <User className="w-5 h-5 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground text-sm">Choose Customer</p>
-                            <p className="text-xs text-muted-foreground">Attach this payment to a customer</p>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                        </div>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setAssociationView('job_list')
-                          if (paymentAssociation.leadId && !jobs.length && !isLoadingJobs) {
-                            loadJobs(paymentAssociation.leadId)
-                          }
-                        }}
-                        className="w-full p-4 rounded-lg border border-border hover:border-border/80 transition-colors text-left active:scale-[0.99]"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                            <Briefcase className="w-5 h-5 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground text-sm">Choose Job</p>
-                            <p className="text-xs text-muted-foreground">Attach this payment to an existing job</p>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                        </div>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Customer List View */}
-                  {associationView === 'customer_list' && (
-                    <div className="space-y-2 animate-in fade-in duration-200">
-                      <div className="flex items-center gap-2 mb-4">
-                        <button
-                          onClick={() => {
-                            setAssociationView('association_menu')
-                          }}
-                          className="p-1 rounded hover:bg-muted transition-colors"
-                        >
-                          <ChevronRight className="w-5 h-5 text-muted-foreground rotate-180" />
-                        </button>
-                        <h3 className="text-sm font-semibold text-foreground">Choose Customer</h3>
-                      </div>
-
-                      {isLoadingLeads ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                        </div>
-                      ) : leads.length === 0 ? (
-                        <div className="text-center py-8">
-                          <p className="text-sm text-muted-foreground mb-4">No customers found</p>
-                          <button
-                            onClick={() => {
-                              if (selectionCommitInProgressRef.current) {
-                                return
-                              }
-                              selectionCommitInProgressRef.current = true
-                              setPaymentAssociation({
-                                type: 'quick',
-                                leadId: null,
-                                jobId: null,
-                                label: 'Quick Payment',
-                                secondaryLabel: null
-                              })
-                              setSelectedLeadId(null)
-                              setSelectedJobId(null)
-                              setAssociationView('payment_setup')
-                              setTimeout(() => {
-                                selectionCommitInProgressRef.current = false
-                              }, 0)
-                            }}
-                            className="text-sm text-green-600 dark:text-green-400 font-medium hover:underline"
-                          >
-                            Continue with Quick Payment
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="max-h-64 overflow-y-auto space-y-1">
-                          {leads.map((lead) => (
-                            <button
-                              key={lead.id}
-                              onClick={() => {
-                                if (paymentAssociation.type === 'customer' && paymentAssociation.leadId === lead.id) {
-                                  return
-                                }
-                                if (selectionCommitInProgressRef.current) {
-                                  return
-                                }
-                                selectionCommitInProgressRef.current = true
-                                setPaymentAssociation({
-                                  type: 'customer',
-                                  leadId: lead.id,
-                                  jobId: null,
-                                  label: (lead.name && lead.name !== 'Not collected') ? lead.name : 'Unknown',
-                                  secondaryLabel: lead.caller_phone ?? null
-                                })
-                                setSelectedLeadId(lead.id)
-                                setSelectedJobId(null)
-                                setAssociationView('payment_setup')
-                                setTimeout(() => {
-                                  selectionCommitInProgressRef.current = false
-                                }, 0)
-                              }}
-                              className="w-full p-4 rounded-lg border border-border hover:border-border/80 transition-colors text-left active:scale-[0.99]"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                                  <User className="w-5 h-5 text-muted-foreground" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-foreground text-sm truncate">{(lead.name && lead.name !== 'Not collected') ? lead.name : 'Unknown'}</p>
-                                  <p className="text-xs text-muted-foreground truncate">{lead.caller_phone || ''}</p>
-                                </div>
-                                {paymentAssociation.type === 'customer' && paymentAssociation.leadId === lead.id && (
-                                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
-                                )}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Job List View */}
-                  {associationView === 'job_list' && (
-                    <div className="space-y-2 animate-in fade-in duration-200">
-                      <div className="flex items-center gap-2 mb-4">
-                        <button
-                          onClick={() => {
-                            setAssociationView('association_menu')
-                          }}
-                          className="p-1 rounded hover:bg-muted transition-colors"
-                        >
-                          <ChevronRight className="w-5 h-5 text-muted-foreground rotate-180" />
-                        </button>
-                        <h3 className="text-sm font-semibold text-foreground">Choose Job</h3>
-                      </div>
-
-                      {isLoadingJobs ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                        </div>
-                      ) : jobs.length === 0 ? (
-                        <div className="text-center py-8">
-                          <p className="text-sm text-muted-foreground mb-4">No jobs found</p>
-                          <button
-                            onClick={() => {
-                              if (selectionCommitInProgressRef.current) {
-                                return
-                              }
-                              selectionCommitInProgressRef.current = true
-                              setPaymentAssociation({
-                                type: 'quick',
-                                leadId: null,
-                                jobId: null,
-                                label: 'Quick Payment',
-                                secondaryLabel: null
-                              })
-                              setSelectedLeadId(null)
-                              setSelectedJobId(null)
-                              setAssociationView('payment_setup')
-                              setTimeout(() => {
-                                selectionCommitInProgressRef.current = false
-                              }, 0)
-                            }}
-                            className="text-sm text-green-600 dark:text-green-400 font-medium hover:underline"
-                          >
-                            Continue with Quick Payment
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="max-h-64 overflow-y-auto space-y-1">
-                          {jobs.map((job) => (
-                            <button
-                              key={job.id}
-                              onClick={() => {
-                                if (paymentAssociation.type === 'job' && paymentAssociation.jobId === job.id) {
-                                  return
-                                }
-                                if (selectionCommitInProgressRef.current) {
-                                  return
-                                }
-                                selectionCommitInProgressRef.current = true
-                                setPaymentAssociation({
-                                  type: 'job',
-                                  leadId: job.leadId ?? null,
-                                  jobId: job.id,
-                                  label: job.name || 'Unknown Job',
-                                  secondaryLabel: job.description ?? null
-                                })
-                                setSelectedJobId(job.id)
-                                if (job.leadId) {
-                                  setSelectedLeadId(job.leadId)
-                                }
-                                setAssociationView('payment_setup')
-                                setTimeout(() => {
-                                  selectionCommitInProgressRef.current = false
-                                }, 0)
-                              }}
-                              className="w-full p-4 rounded-lg border border-border hover:border-border/80 transition-colors text-left active:scale-[0.99]"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                                  <Briefcase className="w-5 h-5 text-muted-foreground" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-foreground text-sm truncate">{job.name || 'Unknown Job'}</p>
-                                  <p className="text-xs text-muted-foreground truncate">{job.description || ''}</p>
-                                </div>
-                                {paymentAssociation.type === 'job' && paymentAssociation.jobId === job.id && (
-                                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
-                                )}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
