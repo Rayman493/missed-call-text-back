@@ -2437,170 +2437,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* Selected-Day Item List (All items: jobs, appointments, tasks) - Hidden on mobile Map mode to reduce crowding */}
-      <div className="hidden md:block mb-3 z-10">
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
-            <h3 className="text-sm font-semibold text-foreground">Today's Schedule</h3>
-          </div>
-          <div className="h-[88px] overflow-y-auto">
-            {(() => {
-              const selectedDayItems = getSelectedDayItems()
-              if (selectedDayItems.length === 0) {
-                return (
-                  <div className="h-full flex items-center justify-center px-4 text-center text-sm text-slate-500 dark:text-slate-400">
-                    No items scheduled for this day
-                  </div>
-                )
-              }
-              return selectedDayItems.map((item) => {
-                const isSelected = selectedListItem?.id === item.id
-                const isMappable = item.hasLocation && item.latitude !== null && item.longitude !== null
-
-                const handleItemClick = () => {
-                  if (isMappable && item.latitude !== null && item.longitude !== null) {
-                    // Determine the map item ID based on type
-                    const mapItemId = item.type === 'job' && item.jobId
-                      ? item.jobId
-                      : item.type === 'appointment' && item.eventId
-                        ? `appointment:${item.eventId}`
-                        : null
-
-                    if (mapItemId) {
-                      selectMapItem(mapItemId, item.latitude, item.longitude)
-                    }
-                  }
-                }
-
-                const handleEditClick = (e: React.MouseEvent) => {
-                  e.stopPropagation()
-                  if (item.type === 'job' && onEditJob) {
-                    const job = jobs.find(j => j.id === item.jobId)
-                    if (job) onEditJob(job)
-                  } else if (item.type === 'task' && onEditTask) {
-                    const task = tasks.find(t => t.id === item.taskId)
-                    if (task) onEditTask(task)
-                  } else if (item.type === 'appointment' && onEditEvent) {
-                    const event = calendarEvents.find(e => e.id === item.eventId)
-                    if (event) onEditEvent(event)
-                  }
-                }
-
-                const handleAddLocationClick = (e: React.MouseEvent) => {
-                  e.stopPropagation()
-                  if (item.type === 'job' && onAddLocationJob) {
-                    const job = jobs.find(j => j.id === item.jobId)
-                    if (job) onAddLocationJob(job)
-                  } else if (item.type === 'appointment' && onAddLocationEvent) {
-                    const event = calendarEvents.find(e => e.id === item.eventId)
-                    if (event) onAddLocationEvent(event)
-                  }
-                }
-
-                const getItemIcon = () => {
-                  if (item.type === 'job') return <Briefcase className="w-4 h-4" />
-                  if (item.type === 'appointment') return <Calendar className="w-4 h-4" />
-                  return <AlertCircle className="w-4 h-4" />
-                }
-
-                const getItemColor = () => {
-                  if (item.type === 'job') return 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                  if (item.type === 'appointment') return 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                  return 'bg-slate-100 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400'
-                }
-
-                const getTypeLabel = () => {
-                  if (item.type === 'job') return 'Job'
-                  if (item.type === 'appointment') return 'Appointment'
-                  if (item.type === 'task') return 'Task'
-                  return ''
-                }
-
-                const getTypeLabelColor = () => {
-                  if (item.type === 'job') return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                  if (item.type === 'appointment') return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                  if (item.type === 'task') return 'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-300'
-                  return 'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-300'
-                }
-
-                return (
-                  <button
-                    key={item.id}
-                    onClick={handleItemClick}
-                    className={`w-full px-3 md:px-4 py-2 md:py-3 flex items-start gap-2 md:gap-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0 ${
-                      isSelected ? 'bg-slate-50 dark:bg-slate-700/50' : ''
-                    } ${isMappable ? 'cursor-pointer' : 'cursor-default'}`}
-                  >
-                    <div className={`w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getItemColor()}`}>
-                      {getItemIcon()}
-                    </div>
-                    <div className="flex-1 min-w-0 text-left">
-                      <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-1">
-                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                          {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime)}
-                        </p>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${getTypeLabelColor()}`}>
-                          {getTypeLabel()}
-                        </span>
-                        {!item.hasLocation && (
-                          <span className="text-[10px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-                            No location
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs md:text-sm font-medium text-foreground truncate">
-                        {item.title}
-                      </p>
-                      {item.customerName && (
-                        <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 truncate hidden md:block">
-                          {item.customerName}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      {!item.hasLocation && item.type !== 'task' && (
-                        <button
-                          onClick={handleAddLocationClick}
-                          className="text-[10px] px-1.5 py-0.5 md:px-2 md:py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                        >
-                          Add location
-                        </button>
-                      )}
-                      {item.hasLocation && (
-                        <button
-                          onClick={handleEditClick}
-                          className="text-[10px] px-1.5 py-0.5 md:px-2 md:py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                        >
-                          Edit
-                        </button>
-                      )}
-                      {item.type === 'task' && (
-                        <button
-                          onClick={handleEditClick}
-                          className="text-[10px] px-1.5 py-0.5 md:px-2 md:py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                        >
-                          Edit
-                        </button>
-                      )}
-                    </div>
-                  </button>
-                )
-              })
-            })()}
-          </div>
-        </div>
-      </div>
-
-      {/* Scheduled Stops heading/count - Above strip */}
-      <div className="mb-2 md:mb-2 z-10">
-        <div className="flex items-center gap-2 px-1">
-          <h3 className="text-sm font-semibold text-foreground">Scheduled Stops</h3>
-          <span className="text-xs text-slate-500 dark:text-slate-400">{routeSummary}</span>
-        </div>
-      </div>
-
-      {/* Date navigation row - Separate row */}
-      <div className="mb-2 md:mb-2 z-10">
+      {/* Date navigation row - First control after tabs */}
+      <div className="mb-1.5 md:mb-2 z-10">
         {/* Desktop: Centered date navigation */}
         <div className="hidden md:flex items-center justify-center gap-2">
           <button
@@ -2660,8 +2498,8 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         </div>
       </div>
 
-      {/* Filter/action row - Above map */}
-      <div className="mb-2 md:mb-2 z-10">
+      {/* Filter row - Above map */}
+      <div className="mb-1.5 md:mb-2 z-10">
         {/* Desktop: Right-aligned filters */}
         <div className="hidden md:flex items-center justify-end gap-2 flex-wrap px-1">
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
@@ -2696,15 +2534,6 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
               Appointments
             </button>
           </div>
-          {sortedItems.length > 0 && (
-            <button
-              onClick={showAllMarkers}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors flex-shrink-0 whitespace-nowrap"
-            >
-              <Layers className="w-3.5 h-3.5" />
-              Show All Stops
-            </button>
-          )}
         </div>
 
         {/* Mobile: Right-aligned filters */}
@@ -2741,20 +2570,11 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
               Appts
             </button>
           </div>
-          {sortedItems.length > 0 && (
-            <button
-              onClick={showAllMarkers}
-              className="flex items-center gap-1 px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-[10px] font-medium transition-colors flex-shrink-0 whitespace-nowrap"
-            >
-              <Layers className="w-3 h-3" />
-              All
-            </button>
-          )}
         </div>
       </div>
 
       {/* Scheduled Stops - Horizontal strip, always rendered with fixed height */}
-      <div className="mb-2 md:mb-3 z-10 h-[72px]">
+      <div className="mb-1.5 md:mb-2 z-10 h-[72px]">
         {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
           <div className="flex gap-2 overflow-x-auto h-full items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {sortedItems.filter(item => item.type !== 'business').map((item, index) => (
@@ -2801,10 +2621,10 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                     ) : (
                       <>
                         <p className="text-[10px] md:text-xs font-medium text-foreground truncate">
-                          {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime) || 'No time'}
+                          {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime) || item.title}
                         </p>
                         <p className="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                          {item.customerName || 'No customer'}
+                          {item.type === 'job' ? 'Job' : 'Appointment'}
                         </p>
                       </>
                     )}
@@ -2823,7 +2643,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       </div>
 
       {/* Map Container - Use fixed height on mobile to prevent extending behind bottom nav */}
-      <div className="flex-1 h-[calc(100dvh-var(--bottom-nav-height,80px)-140px)] md:h-auto md:min-h-0 relative rounded-xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60">
+      <div className="flex-1 h-[calc(100dvh-var(--bottom-nav-height,80px)-90px)] md:h-auto md:min-h-0 relative rounded-xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60">
         <div ref={mapRef} className="w-full h-full" />
         
         {/* Map Controls Stack */}
@@ -2868,10 +2688,9 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         {/* Selected Item Info Card - Compact on mobile, anchored bottom-left */}
         {selectedItem && (
           <div className="absolute bottom-4 left-4 right-auto max-w-xs md:left-6 md:right-auto md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-20 p-3 md:p-4">
-            {/* Mobile: Compact row layout */}
+            {/* Mobile: Compact layout */}
             <div className="md:hidden">
-              {/* Row 1: Stop info + summary + close */}
-              <div className="flex items-center gap-1.5 mb-1">
+              <div className="flex items-center gap-2 mb-1">
                 <div className={`w-5 h-5 rounded flex items-center justify-center font-bold text-[10px] flex-shrink-0 ${
                   selectedItem.type === 'business' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
                   selectedItem.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
@@ -2879,11 +2698,15 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                   {selectedItem.type === 'business' ? '🏠' : selectedItem.stopNumber}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
-                    {selectedItem.type === 'business' ? 'Business' : `Stop ${selectedItem.stopNumber} · ${formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime)}`}
-                  </p>
                   <p className="text-[11px] font-medium text-foreground truncate">
-                    {selectedItem.type === 'business' ? selectedItem.title : (selectedItem.customerName || selectedItem.title)}
+                    {selectedItem.type === 'business' ? selectedItem.title : (selectedItem.title || selectedItem.customerName || 'Untitled')}
+                  </p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                    {selectedItem.type === 'business' ? 'Home Base' : (
+                      <>
+                        {selectedItem.type === 'job' ? 'Job' : 'Appointment'} {formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime) && ` · ${formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime)}`}
+                      </>
+                    )}
                   </p>
                 </div>
                 <button
@@ -2897,56 +2720,48 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                 </button>
               </div>
 
-              {/* Row 2: Actions - Simplified on mobile */}
               {selectedItem.type !== 'business' && (
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => handleViewItem(selectedItem)}
-                    className="flex-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-medium rounded-lg transition-colors"
-                  >
-                    View
-                  </button>
-                </div>
+                <button
+                  onClick={() => handleViewItem(selectedItem)}
+                  className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
+                >
+                  View details →
+                </button>
               )}
             </div>
 
-            {/* Desktop: Original layout */}
+            {/* Desktop: Simplified layout */}
             <div className="hidden md:block">
-              <div className="flex items-start justify-between mb-2 md:mb-3">
+              <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
                   {selectedItem.type === 'business' ? (
-                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center text-sm bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                    <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
                       🏠
                     </div>
                   ) : (
-                    <div className={`w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs ${
                       selectedItem.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                     }`}>
                       {selectedItem.stopNumber}
                     </div>
                   )}
                   <div>
-                    {selectedItem.type === 'business' ? (
-                      <>
-                        <p className="text-[11px] md:text-xs font-medium text-slate-600 dark:text-slate-400">
-                          Business Location
-                        </p>
-                        <h3 className="font-semibold text-sm md:text-base text-slate-900 dark:text-foreground">{selectedItem.title}</h3>
-                        <p className="text-[11px] md:text-xs text-slate-500 dark:text-slate-400 mt-0.5 md:mt-1">Home Base</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-[11px] md:text-xs font-medium text-slate-600 dark:text-slate-400">
-                          Stop {selectedItem.stopNumber} · {formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime)}
-                        </p>
-                        <h3 className="font-semibold text-sm md:text-base text-slate-900 dark:text-foreground">{selectedItem.customerName || 'No customer'}</h3>
-                      </>
-                    )}
+                    <h3 className="font-semibold text-sm text-slate-900 dark:text-foreground">
+                      {selectedItem.type === 'business' ? selectedItem.title : (selectedItem.title || selectedItem.customerName || 'Untitled')}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {selectedItem.type === 'business' ? 'Home Base' : (
+                        <>
+                          {selectedItem.type === 'job' ? 'Job' : 'Appointment'} {formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime) && ` · ${formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime)}`}
+                        </>
+                      )}
+                    </p>
                   </div>
                 </div>
                 <button
                   onClick={closeSelectedItem}
                   className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                  aria-label="Close"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2954,53 +2769,19 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
                 </button>
               </div>
 
-              <p className="text-[11px] md:text-xs text-slate-500 dark:text-slate-500 mb-1.5 md:mb-2">
-                {selectedItem.address}
-              </p>
+              {selectedItem.address && (
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2 truncate">
+                  {selectedItem.address}
+                </p>
+              )}
 
-              {/* Appointment/Job specific UI */}
               {selectedItem.type !== 'business' && (
-                <>
-                  <div className="flex items-center gap-2 mb-2 md:mb-3">
-                    <span className={`px-2 py-0.5 text-[10px] font-medium rounded ${
-                      selectedItem.type === 'job'
-                        ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                        : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                    }`}>
-                      {selectedItem.type === 'job' ? 'Job' : 'Appointment'}
-                    </span>
-                    <p className="text-[11px] md:text-xs text-slate-400 dark:text-slate-500 truncate flex-1">
-                      {selectedItem.title}
-                    </p>
-                  </div>
-
-                  {/* Next/Previous Navigation */}
-                  {sortedItems.filter(item => item.type !== 'business').length > 1 && (
-                    <div className="flex items-center justify-between mb-2 md:mb-3">
-                      <button
-                        onClick={() => navigateToStop('previous')}
-                        className="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
-                      >
-                        <ArrowLeft className="w-3 h-3" />
-                        Previous
-                      </button>
-                      <button
-                        onClick={() => navigateToStop('next')}
-                        className="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
-                      >
-                        Next
-                        <ArrowRight className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => handleViewItem(selectedItem)}
-                    className="w-full px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
-                  >
-                    View Details
-                  </button>
-                </>
+                <button
+                  onClick={() => handleViewItem(selectedItem)}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
+                >
+                  View details →
+                </button>
               )}
             </div>
           </div>
