@@ -3,7 +3,7 @@ import { sendSms } from '@/lib/twilio'
 import { sanitizeMessageContent } from '@/lib/security'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
-import { normalizePunctuation } from '@/lib/utils'
+import { normalizePunctuation, getLeadDisplayName } from '@/lib/utils'
 import { formatAiIntakeSummary, formatAiIntakeSummaryWithMode, formatAdaptiveIntakeSms } from '@/lib/ai-intake-formatter'
 import { detectCorrection, applyCorrection, generateCorrectionNote, generateMultiFieldAcknowledgement } from '@/lib/ai-correction-engine'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
@@ -1626,8 +1626,8 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         messageId: inboundMessage.id
       });
     
-    // Get lead name from raw_metadata if available
-    const leadName = lead.raw_metadata?.caller_name || lead.phone || 'Customer';
+    // Get lead name using canonical display name resolution
+    const leadName = getLeadDisplayName(lead);
     
     // Determine message text for notification
     let notificationMessage = sanitizedBody;
