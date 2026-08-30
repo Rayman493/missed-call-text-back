@@ -2243,6 +2243,44 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       )
 
+    // DIAGNOSTIC: Unfiltered messages INSERT subscription to determine if failure is at filter or publication level
+    // This channel is OBSERVATION ONLY - never mutates state
+    const diagnosticChannelName = `lead-detail-diagnostic-all-inserts:${leadId}:${realtimeInstanceIdRef.current}`
+    const diagnosticChannel = supabase.channel(diagnosticChannelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+          // NO FILTER - observe all message INSERTs
+        },
+        (payload: any) => {
+          console.log('[REALTIME UNFILTERED DIAG] CALLBACK FIRED:', {
+            instanceId: realtimeInstanceIdRef.current,
+            viewedLeadId: leadId,
+            messageId: payload.new?.id,
+            lead_id: payload.new?.lead_id,
+            direction: payload.new?.direction,
+            status: payload.new?.status,
+            sender: payload.new?.sender,
+            timestamp: new Date().toISOString()
+          })
+          // IMPORTANT: This diagnostic channel NEVER mutates state
+          // It only logs to help diagnose whether publication/RLS is working
+        }
+      )
+      .subscribe((status: any) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[REALTIME UNFILTERED DIAG] SUBSCRIBED:', {
+            diagnosticChannelName,
+            viewedLeadId: leadId,
+            instanceId: realtimeInstanceIdRef.current,
+            timestamp: new Date().toISOString()
+          })
+        }
+      })
+
     // UPDATE subscription for message status changes
     channel
       .on(
@@ -2502,6 +2540,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         supabase.removeChannel(realtimeChannelRef.current)
         realtimeChannelRef.current = null
       }
+      // Cleanup diagnostic channel
+      console.log('[REALTIME UNFILTERED DIAG] Removing diagnostic channel:', diagnosticChannelName)
+      supabase.removeChannel(diagnosticChannel)
       currentLeadIdRef.current = null
       if (stuckMessageCheckIntervalRef.current) {
         clearInterval(stuckMessageCheckIntervalRef.current)
