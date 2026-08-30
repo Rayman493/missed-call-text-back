@@ -15,6 +15,7 @@ import { isAdmin } from '@/lib/admin'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 import AssistantMobileShell from '@/components/AssistantMobileShell'
 import ContactSupportModal from '@/components/ContactSupportModal'
+import { isCapacitorNative } from '@/capacitor/init'
 
 // Compact theme switcher for dropdown
 function QuickThemeSwitcher() {
@@ -79,6 +80,7 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
   const [isValidSession, setIsValidSession] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' }[]>([])
+  const [isNative, setIsNative] = useState(false)
   const { user, signOut } = useAuth()
   const { business } = useBusiness()
   const pathname = usePathname()
@@ -92,8 +94,15 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
   const currentPlan = business?.subscription_price_id ? 'Paid plan' : business?.subscription_status || 'No plan'
   const trialStatus = business?.trial_ends_at ? `Trial ends ${new Date(business.trial_ends_at).toLocaleDateString()}` : business?.subscription_status || 'No trial active'
   const isHomepage = pathname === '/'
+
+  // Check if running in native app
+  useEffect(() => {
+    setIsNative(isCapacitorNative())
+  }, [])
+
   const desktopAccountMenuItems = accountMenuItems
     .filter(item => !item.adminOnly || isAdmin(user?.id))
+    .filter(item => !(isNative && (item.label === 'View Homepage' || item.label === 'Go to Dashboard')))
     .map(item => (
       isHomepage && item.label === 'View Homepage'
         ? { ...item, label: 'Go to Dashboard', href: '/dashboard', external: false, icon: LayoutDashboard }
@@ -437,19 +446,21 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
             <div className="h-px bg-border/50" />
 
             {/* Secondary menu items */}
-            <div className="px-1.5 py-1">
-              <Link
-                href={isHomepage ? '/dashboard' : '/'}
-                role="menuitem"
-                onClick={() => setIsOpen(false)}
-                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <Home className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                {isHomepage ? 'Go to Dashboard' : 'View Homepage'}
-              </Link>
-            </div>
+            {!isNative && (
+              <div className="px-1.5 py-1">
+                <Link
+                  href={isHomepage ? '/dashboard' : '/'}
+                  role="menuitem"
+                  onClick={() => setIsOpen(false)}
+                  className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <Home className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  {isHomepage ? 'Go to Dashboard' : 'View Homepage'}
+                </Link>
+              </div>
+            )}
 
-            <div className="h-px bg-border mx-2" />
+            {!isNative && <div className="h-px bg-border/50" />}
 
             {/* Danger section */}
             <div className="px-1.5 py-1">
