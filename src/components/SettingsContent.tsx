@@ -233,6 +233,21 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
         return
       }
 
+      // Special handling for payments section - use proper divider-based scrolling
+      if (hash === 'payments') {
+        setActiveSection('payments')
+        // Wait for section activation and then scroll to divider
+        setTimeout(() => {
+          const dividerId = `${hash}-divider`
+          const element = document.getElementById(dividerId)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            console.log('[SETTINGS] Scrolled to payments section via divider:', dividerId)
+          }
+        }, 100)
+        return
+      }
+
       // Wait for next render cycle to ensure section is in DOM
       requestAnimationFrame(() => {
         const element = document.getElementById(hash)
