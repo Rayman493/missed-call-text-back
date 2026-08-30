@@ -7,8 +7,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import Modal from '@/components/ui/Modal'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
-import LeadPickerModal from '@/components/jobs/LeadPickerModal'
-import AddCustomerModal from '@/components/AddCustomerModal'
+import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 const supabase = createBrowserClient()
@@ -43,17 +42,15 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
   // Customer linking (optional)
   const [leadId, setLeadId] = useState<string | null>(null)
   const [leadDisplay, setLeadDisplay] = useState<string | null>(null)
-  const [isLeadPickerOpen, setIsLeadPickerOpen] = useState(false)
-  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
 
   // Meeting type
   const [meetingType, setMeetingType] = useState<'in_person' | 'google_meet' | 'custom'>('in_person')
   const [customMeetingUrl, setCustomMeetingUrl] = useState('')
 
   // Derived behavior flags
-  const addCustomerAllowed = (allowAddCustomer ?? (context === 'calendar'))
   const isCustomerLocked = (lockCustomer ?? (context === 'customer' && Boolean(preselectedLeadId)))
-  const customerLabel = (requireCustomer ?? (context === 'meetings')) ? 'Customer (required)' : 'Customer (optional)'
+  const customerIsRequired = requireCustomer ?? (context === 'meetings')
+  const customerLabel = customerIsRequired ? 'Customer (required)' : 'Customer (optional)'
 
   // Initialize form with default date
   useEffect(() => {
@@ -91,6 +88,15 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
   // Handle Android back button and browser back to close modal
   useModalBackButton({ isOpen, onClose: () => handleCancel('android_back') })
 
+  // Handle customer selection - update display name
+  const handleCustomerSelect = (customer: Customer | null) => {
+    if (customer) {
+      setLeadDisplay(customer.name || customer.caller_phone || 'Selected customer')
+    } else {
+      setLeadDisplay(null)
+    }
+  }
+
   // Log close reason for scroll lock diagnostics
   const handleCloseWithReason = (reason: string) => {
     console.log('[NEW_APPOINTMENT_MODAL] Closing modal', {
@@ -123,8 +129,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
     }
 
     // Meetings context or explicit requirement: must select a customer
-    const mustHaveCustomer = requireCustomer ?? (context === 'meetings')
-    if (mustHaveCustomer && !leadId) {
+    if (customerIsRequired && !leadId) {
       setError('Please select a customer')
       return
     }
@@ -308,36 +313,15 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
         <div className="space-y-4 sm:space-y-4">
             {/* Customer */}
             <div>
-              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">{customerLabel}</label>
-              {leadId ? (
-                <div className="flex items-center gap-2">
-                  <div className="px-2 py-1 rounded bg-muted text-foreground text-xs">{leadDisplay || 'Selected customer'}</div>
-                  {!isCustomerLocked && (
-                    <button
-                      type="button"
-                      onClick={() => { setLeadId(null); setLeadDisplay(null) }}
-                      className="text-xs text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 rounded"
-                    >Clear</button>
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsLeadPickerOpen(true)}
-                    aria-label="Select existing customer"
-                    className="px-4 py-2.5 sm:px-3 sm:py-2 bg-muted border border-border rounded-lg text-xs text-foreground hover:bg-muted/80 w-full sm:w-auto text-left sm:text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
-                  >Select Existing</button>
-                  {addCustomerAllowed && (
-                    <button
-                      type="button"
-                      onClick={() => setIsAddCustomerOpen(true)}
-                      aria-label="Add new customer"
-                      className="px-4 py-2.5 sm:px-3 sm:py-2 bg-muted border border-border rounded-lg text-xs text-foreground hover:bg-muted/80 w-full sm:w-auto text-left sm:text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
-                    >+ Add New Customer</button>
-                  )}
-                </div>
-              )}
+              <SearchableCustomerSelect
+                value={leadId}
+                onChange={setLeadId}
+                onCustomerSelect={handleCustomerSelect}
+                label={customerLabel}
+                required={customerIsRequired}
+                allowClear={!isCustomerLocked}
+                placeholder="Search or select a customer..."
+              />
             </div>
 
             {/* Title */}
@@ -468,35 +452,6 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
             </div>
           </div>
       </Modal>
-
-      {/* Customer selectors */}
-      <LeadPickerModal
-      isOpen={isLeadPickerOpen}
-      onClose={() => setIsLeadPickerOpen(false)}
-      onSelect={(prefill) => {
-        setIsLeadPickerOpen(false)
-        if (prefill.lead_id) {
-          setLeadId(prefill.lead_id)
-          setLeadDisplay(prefill.customer_name || prefill.service_address || 'Customer')
-        }
-      }}
-      title="Select Customer"
-      subtitle="Search your customers"
-    />
-    {addCustomerAllowed && (
-      <AddCustomerModal
-        isOpen={isAddCustomerOpen}
-        onClose={() => setIsAddCustomerOpen(false)}
-        returnTo="calendar"
-        onLeadCreated={(newLeadId) => {
-          setIsAddCustomerOpen(false)
-          if (newLeadId) {
-            setLeadId(newLeadId)
-            setLeadDisplay('New Customer')
-          }
-        }}
-      />
-    )}
     </>
   )
 }

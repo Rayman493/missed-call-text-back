@@ -4,8 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Briefcase, Plus } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { getCustomerStatusStyle } from '@/lib/customer-status'
-import LeadPickerModal from '@/components/jobs/LeadPickerModal'
-import AddCustomerModal from '@/components/AddCustomerModal'
+import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 export type JobStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
@@ -91,12 +90,27 @@ export default function JobComposer({
   // Customer selector state
   const [leadId, setLeadId] = useState<string | null>(null)
   const [leadDisplay, setLeadDisplay] = useState<string | null>(null)
-  const [isLeadPickerOpen, setIsLeadPickerOpen] = useState(false)
-  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
 
   const locationInputRef = useRef<HTMLInputElement>(null)
 
   useModalBackButton({ isOpen, onClose })
+
+  // Handle customer selection - populate form fields from customer data
+  const handleCustomerSelect = (customer: Customer | null) => {
+    if (customer) {
+      setLeadDisplay(customer.name || customer.caller_phone || 'Customer')
+      // Extract AI intake fields from raw_metadata
+      const metadata = customer.raw_metadata || {}
+      setCustomerName(metadata.customerName || customer.name || '')
+      setCustomerPhone(metadata.customerPhone || customer.caller_phone || '')
+      setServiceAddress(metadata.serviceAddress || '')
+    } else {
+      setLeadDisplay(null)
+      setCustomerName('')
+      setCustomerPhone('')
+      setServiceAddress('')
+    }
+  }
 
   // Autofocus location input when initialFocus is 'location'
   useEffect(() => {
@@ -256,39 +270,15 @@ export default function JobComposer({
 
             {/* Customer */}
             <div>
-              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
-                Customer <span className="text-red-500">*</span>
-              </label>
-              {leadId ? (
-                <div className="flex items-center gap-2">
-                  <div className="px-2 py-1 rounded bg-muted text-foreground text-xs">{leadDisplay || 'Selected customer'}</div>
-                  {!editJob && (
-                    <button
-                      type="button"
-                      onClick={() => { setLeadId(null); setLeadDisplay(null); setCustomerName(''); setCustomerPhone(''); setServiceAddress(''); }}
-                      className="text-xs text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 rounded"
-                    >Clear</button>
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsLeadPickerOpen(true)}
-                    aria-label="Select existing customer"
-                    className="px-4 py-2.5 sm:px-3 sm:py-2 bg-muted border border-border rounded-lg text-xs text-foreground hover:bg-muted/80 w-full sm:w-auto text-left sm:text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
-                  >Select Existing</button>
-                  <button
-                    type="button"
-                    onClick={() => setIsAddCustomerOpen(true)}
-                    aria-label="Add new customer"
-                    className="px-4 py-2.5 sm:px-3 sm:py-2 bg-muted border border-border rounded-lg text-xs text-foreground hover:bg-muted/80 w-full sm:w-auto text-left sm:text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 flex items-center justify-center gap-1"
-                  >
-                    <Plus className="w-3 h-3" />
-                    Add New Customer
-                  </button>
-                </div>
-              )}
+              <SearchableCustomerSelect
+                value={leadId}
+                onChange={setLeadId}
+                onCustomerSelect={handleCustomerSelect}
+                label="Customer"
+                required={!editJob}
+                allowClear={!editJob}
+                placeholder="Search or select a customer..."
+              />
             </div>
 
             {/* Customer Name + Phone (read-only when customer selected) */}
@@ -427,36 +417,6 @@ export default function JobComposer({
             )}
         </div>
       </Modal>
-
-      {/* Customer selectors */}
-      <LeadPickerModal
-        isOpen={isLeadPickerOpen}
-        onClose={() => setIsLeadPickerOpen(false)}
-        onSelect={(prefill) => {
-          setIsLeadPickerOpen(false)
-          if (prefill.lead_id) {
-            setLeadId(prefill.lead_id)
-            setLeadDisplay(prefill.customer_name || prefill.service_address || 'Customer')
-            setCustomerName(prefill.customer_name || '')
-            setCustomerPhone(prefill.customer_phone || '')
-            setServiceAddress(prefill.service_address || '')
-          }
-        }}
-        title="Select Customer"
-        subtitle="Search your customers"
-      />
-      <AddCustomerModal
-        isOpen={isAddCustomerOpen}
-        onClose={() => setIsAddCustomerOpen(false)}
-        returnTo="calendar"
-        onLeadCreated={(newLeadId) => {
-          setIsAddCustomerOpen(false)
-          if (newLeadId) {
-            setLeadId(newLeadId)
-            setLeadDisplay('New Customer')
-          }
-        }}
-      />
     </>
   )
 }

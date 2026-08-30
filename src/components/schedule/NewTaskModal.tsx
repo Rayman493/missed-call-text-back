@@ -7,7 +7,7 @@ import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import SelectPicker from '@/components/ui/SelectPicker'
 import Modal from '@/components/ui/Modal'
-import { getLeadDisplayName } from '@/lib/utils'
+import SearchableCustomerSelect from '@/components/customers/SearchableCustomerSelect'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface Task {
@@ -34,12 +34,6 @@ interface NewTaskModalProps {
   preselectedLeadId?: string | null
 }
 
-interface Lead {
-  id: string
-  caller_phone: string
-  raw_metadata: any
-}
-
 interface Job {
   id: string
   title: string
@@ -53,7 +47,6 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
   const [dueTime, setDueTime] = useState('')
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
-  const [leads, setLeads] = useState<Lead[]>([])
   const [jobs, setJobs] = useState<Job[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -68,7 +61,6 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
 
   useEffect(() => {
     if (isOpen) {
-      fetchLeads()
       fetchJobs()
       if (taskToEdit) {
         setTitle(taskToEdit.title)
@@ -87,29 +79,6 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
       }
     }
   }, [isOpen, taskToEdit, preselectedLeadId])
-
-  const fetchLeads = async () => {
-    setIsLoading(true)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) return
-
-      const response = await fetch('/api/leads', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-
-      if (!response.ok) return
-
-      const data = await response.json()
-      setLeads(data.leads || [])
-    } catch (error) {
-      console.error('[NewTaskModal] Failed to fetch leads:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const fetchJobs = async () => {
     try {
@@ -260,10 +229,6 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
     onClose()
   }
 
-  const getLeadName = (lead: Lead) => {
-    return getLeadDisplayName(lead)
-  }
-
   // Early return if modal is closed to prevent rendering
   // Must be after all hooks to satisfy React's Rules of Hooks
   if (!isOpen) return null
@@ -320,17 +285,11 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
             />
           </div>
 
-          <SelectPicker
+          <SearchableCustomerSelect
             value={selectedLeadId}
             onChange={setSelectedLeadId}
-            options={[
-              { value: '', label: 'No customer' },
-              ...leads.map(lead => ({ value: lead.id, label: getLeadName(lead) }))
-            ]}
-            placeholder="No customer"
             label="Customer"
-            searchable={leads.length > 10}
-            emptyMessage="No customers available"
+            allowClear={true}
           />
 
           <SelectPicker

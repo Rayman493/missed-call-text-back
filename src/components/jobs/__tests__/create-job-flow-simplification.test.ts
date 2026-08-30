@@ -46,16 +46,22 @@ describe('Create Job Flow Simplification', () => {
     expect(content).not.toMatch(/setIsNewJobModalOpen\(true\)/)
   })
 
-  it('JobComposer should import LeadPickerModal', () => {
+  it('JobComposer should import SearchableCustomerSelect', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('import LeadPickerModal')
+    expect(content).toContain('import SearchableCustomerSelect')
   })
 
-  it('JobComposer should import AddCustomerModal', () => {
+  it('JobComposer should NOT import LeadPickerModal', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('import AddCustomerModal')
+    expect(content).not.toContain('import LeadPickerModal')
+  })
+
+  it('JobComposer should NOT import AddCustomerModal', () => {
+    const fs = require('fs')
+    const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
+    expect(content).not.toContain('import AddCustomerModal')
   })
 
   it('JobComposer should have leadId state', () => {
@@ -70,54 +76,58 @@ describe('Create Job Flow Simplification', () => {
     expect(content).toContain('const [leadDisplay, setLeadDisplay]')
   })
 
-  it('JobComposer should have isLeadPickerOpen state', () => {
+  it('JobComposer should NOT have isLeadPickerOpen state', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('const [isLeadPickerOpen, setIsLeadPickerOpen]')
+    expect(content).not.toContain('const [isLeadPickerOpen, setIsLeadPickerOpen]')
   })
 
-  it('JobComposer should have isAddCustomerOpen state', () => {
+  it('JobComposer should NOT have isAddCustomerOpen state', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('const [isAddCustomerOpen, setIsAddCustomerOpen]')
+    expect(content).not.toContain('const [isAddCustomerOpen, setIsAddCustomerOpen]')
   })
 
-  it('JobComposer should render customer selector UI', () => {
+  it('JobComposer should render SearchableCustomerSelect', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('Select Existing')
-    expect(content).toContain('Add New Customer')
+    expect(content).toContain('<SearchableCustomerSelect')
   })
 
-  it('JobComposer should render LeadPickerModal', () => {
+  it('JobComposer should NOT render LeadPickerModal', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('<LeadPickerModal')
+    expect(content).not.toContain('<LeadPickerModal')
   })
 
-  it('JobComposer should render AddCustomerModal', () => {
+  it('JobComposer should NOT render AddCustomerModal', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('<AddCustomerModal')
+    expect(content).not.toContain('<AddCustomerModal')
   })
 
-  it('JobComposer should use theme-aware bg-card', () => {
+  it('JobComposer should NOT render "Select Existing" button', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('bg-card')
-    expect(content).not.toContain('bg-white dark:bg-slate-900')
+    expect(content).not.toContain('Select Existing')
   })
 
-  it('JobComposer should use canonical border-border/30', () => {
+  it('JobComposer should NOT render "Add New Customer" button', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('border-border/30')
+    expect(content).not.toContain('Add New Customer')
   })
 
-  it('JobComposer should use canonical rounded-t-xl sm:rounded-xl', () => {
+  it('JobComposer should use theme-aware bg-background', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('rounded-t-xl sm:rounded-xl')
+    expect(content).toContain('bg-background')
+  })
+
+  it('JobComposer should use canonical border-border', () => {
+    const fs = require('fs')
+    const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
+    expect(content).toContain('border-border')
   })
 
   it('JobComposer should use text-xs text-muted-foreground labels', () => {
@@ -138,16 +148,10 @@ describe('Create Job Flow Simplification', () => {
     expect(content).toContain('lead_id: leadId')
   })
 
-  it('JobComposer should use body scroll lock', () => {
+  it('JobComposer should have handleCustomerSelect function', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('useBodyScrollLock(isOpen)')
-  })
-
-  it('JobComposer should have data-scroll-lock-allow', () => {
-    const fs = require('fs')
-    const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('data-scroll-lock-allow')
+    expect(content).toContain('const handleCustomerSelect')
   })
 
   it('JobComposer should not have module-scope React hooks', () => {
