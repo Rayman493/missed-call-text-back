@@ -2160,6 +2160,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     const channel = supabase
       .channel(channelName)
+
+    console.log('[REALTIME_DIAG_SETUP]', {
+      channelName,
+      leadId,
+      event: '*',
+      schema: 'public',
+      table: 'messages',
+      filter: `lead_id=eq.${leadId}`,
+      timestamp: new Date().toISOString(),
+      diagnosticInstanceId: realtimeInstanceIdRef.current
+    })
+
+    channel
       .on(
         'postgres_changes',
         {
@@ -2169,6 +2182,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           filter: `lead_id=eq.${leadId}`
         },
         (payload: any) => {
+          console.log('[REALTIME_DIAG_EVENT_RECEIVED]', {
+            eventType: payload.eventType,
+            messageId: payload.new?.id,
+            messageLeadId: payload.new?.lead_id,
+            messageBusinessId: payload.new?.business_id,
+            messageDirection: payload.new?.direction,
+            messageStatus: payload.new?.status,
+            oldId: payload.old?.id,
+            timestamp: new Date().toISOString(),
+            diagnosticInstanceId: realtimeInstanceIdRef.current
+          })
+
           console.log('[REALTIME MESSAGE EVENT]', {
             instanceId: realtimeInstanceIdRef.current,
             leadId,
@@ -2205,23 +2230,36 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               body: newMessage.body?.substring(0, 30),
               created_at: newMessage.created_at
             })
-            
+
+            console.log('[REALTIME_DIAG_RECONCILE_START]', {
+              messageId: newMessage.id,
+              leadId,
+              eventType: payload.eventType
+            })
+
             setLeadData((prev: any) => {
               if (!prev) {
                 console.log('[REALTIME MESSAGE INSERT] No prev leadData, skipping')
                 return prev
               }
-              
+
               const currentMessages = prev.messages || []
               const mergedMessages = mergeMessageWithMonotonicity(currentMessages, newMessage, 'realtime-insert')
-              
+
               // Only scroll if this is a new message (not an optimistic reconciliation)
               const incomingClientMessageId = newMessage.clientMessageId || newMessage.client_message_id
-              const isNewMessage = !currentMessages.some((msg: any) => 
-                msg.id === newMessage.id || 
+              const isNewMessage = !currentMessages.some((msg: any) =>
+                msg.id === newMessage.id ||
                 (msg.clientMessageId && msg.clientMessageId === incomingClientMessageId) ||
                 (msg.client_message_id && msg.client_message_id === incomingClientMessageId)
               )
+
+              console.log('[REALTIME_DIAG_RECONCILE_RESULT]', {
+                messageId: newMessage.id,
+                outcome: isNewMessage ? 'added' : 'merged_duplicate',
+                reason: isNewMessage ? 'new_message' : 'duplicate_reconciliation',
+                messageCount: mergedMessages.length
+              })
               
               if (isNewMessage) {
                 setTimeout(() => scrollToBottom('smooth'), 100)
@@ -2408,6 +2446,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       )
       .subscribe((status: any) => {
+        console.log('[REALTIME DIAG_STATUS]', {
+          channelName,
+          leadId,
+          status,
+          timestamp: new Date().toISOString(),
+          diagnosticInstanceId: realtimeInstanceIdRef.current
+        })
+
         console.log('[REALTIME CHANNEL STATUS]', {
           instanceId: realtimeInstanceIdRef.current,
           leadId,
@@ -2480,6 +2526,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     // Cleanup on unmount or lead ID change
     return () => {
+      console.log('[REALTIME DIAG_CLEANUP]', {
+        channelName,
+        leadId,
+        timestamp: new Date().toISOString(),
+        diagnosticInstanceId: realtimeInstanceIdRef.current,
+        pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown'
+      })
+
       console.log('[REALTIME EFFECT CLEANUP]', {
         instanceId: realtimeInstanceIdRef.current,
         effectLeadId: leadId,
@@ -2491,6 +2545,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       if (realtimeChannelRef.current) {
         console.log('[REALTIME SUBSCRIPTION CLEANUP] Removing channel')
         supabase.removeChannel(realtimeChannelRef.current)
+        console.log('[REALTIME DIAG_REMOVED]', {
+          channelName,
+          leadId,
+          timestamp: new Date().toISOString(),
+          diagnosticInstanceId: realtimeInstanceIdRef.current
+        })
         realtimeChannelRef.current = null
         currentLeadIdRef.current = null
       }
