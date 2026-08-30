@@ -2591,172 +2591,165 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         </div>
       </div>
 
-      {/* Unified Map Toolbar - Desktop: 3-region layout, Mobile: stacked rows */}
-      <div className="mb-2 md:mb-3 z-10">
-        {/* Desktop: 3-region toolbar */}
-        <div className="hidden md:grid grid-cols-[1fr_auto_1fr] gap-4 items-center px-1">
-          {/* LEFT: Scheduled Stops + count */}
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-foreground">Scheduled Stops</h3>
-            <span className="text-xs text-slate-500 dark:text-slate-400">{routeSummary}</span>
-          </div>
+      {/* Scheduled Stops heading/count - Above strip */}
+      <div className="mb-2 md:mb-2 z-10">
+        <div className="flex items-center gap-2 px-1">
+          <h3 className="text-sm font-semibold text-foreground">Scheduled Stops</h3>
+          <span className="text-xs text-slate-500 dark:text-slate-400">{routeSummary}</span>
+        </div>
+      </div>
 
-          {/* CENTER: Date navigation */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onPreviousDay}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
-              aria-label="Previous day"
-            >
-              <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            </button>
-            <div className="text-center w-[220px] flex-none">
-              <h2 className="text-base font-semibold text-slate-900 dark:text-foreground truncate">
-                {formatDateLong(selectedDate)}
-              </h2>
-            </div>
-            <button
-              onClick={onNextDay}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
-              aria-label="Next day"
-            >
-              <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            </button>
+      {/* Date navigation row - Separate row */}
+      <div className="mb-2 md:mb-2 z-10">
+        {/* Desktop: Centered date navigation */}
+        <div className="hidden md:flex items-center justify-center gap-2">
+          <button
+            onClick={onPreviousDay}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Previous day"
+          >
+            <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+          </button>
+          <div className="text-center w-[220px] flex-none">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-foreground truncate">
+              {formatDateLong(selectedDate)}
+            </h2>
           </div>
-
-          {/* RIGHT: Today + Filter + Show All */}
-          <div className="flex items-center justify-end gap-2">
-            <button
-              onClick={onGoToToday}
-              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors"
-            >
-              Today
-            </button>
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
-              <button
-                onClick={() => { setMapFilter('all') }}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                  mapFilter === 'all'
-                    ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => { setMapFilter('jobs') }}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                  mapFilter === 'jobs'
-                    ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                Jobs
-              </button>
-              <button
-                onClick={() => { setMapFilter('appointments') }}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                  mapFilter === 'appointments'
-                    ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                Appointments
-              </button>
-            </div>
-            {sortedItems.length > 0 && (
-              <button
-                onClick={showAllMarkers}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors"
-              >
-                <Layers className="w-3.5 h-3.5" />
-                Show All Stops
-              </button>
-            )}
-          </div>
+          <button
+            onClick={onNextDay}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Next day"
+          >
+            <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+          </button>
+          <button
+            onClick={onGoToToday}
+            className="ml-4 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors"
+          >
+            Today
+          </button>
         </div>
 
-        {/* Mobile: Stacked rows */}
-        <div className="md:hidden space-y-2 px-1">
-          {/* Row 1: Centered date navigation */}
-          <div className="flex items-center justify-center gap-2">
-            <button
-              onClick={onPreviousDay}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
-              aria-label="Previous day"
-            >
-              <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            </button>
-            <div className="text-center w-[140px] flex-none">
-              <h2 className="text-base font-semibold text-slate-900 dark:text-foreground truncate">
-                {formatDateShort(selectedDate)}
-              </h2>
-            </div>
-            <button
-              onClick={onNextDay}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
-              aria-label="Next day"
-            >
-              <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            </button>
+        {/* Mobile: Centered date navigation with Today */}
+        <div className="md:hidden flex items-center justify-center gap-2">
+          <button
+            onClick={onPreviousDay}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Previous day"
+          >
+            <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+          </button>
+          <div className="text-center w-[140px] flex-none">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-foreground truncate">
+              {formatDateShort(selectedDate)}
+            </h2>
           </div>
+          <button
+            onClick={onNextDay}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Next day"
+          >
+            <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+          </button>
+          <button
+            onClick={onGoToToday}
+            className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
+          >
+            Today
+          </button>
+        </div>
+      </div>
 
-          {/* Row 2: Scheduled Stops summary */}
-          <div className="flex items-center gap-1.5">
-            <h3 className="text-xs font-semibold text-foreground">Scheduled Stops</h3>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400">{routeSummary}</span>
+      {/* Filter/action row - Above map */}
+      <div className="mb-2 md:mb-2 z-10">
+        {/* Desktop: Right-aligned filters */}
+        <div className="hidden md:flex items-center justify-end gap-2 flex-wrap px-1">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
             <button
-              onClick={onGoToToday}
-              className="ml-auto px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-[10px] font-medium transition-colors flex-shrink-0"
+              onClick={() => { setMapFilter('all') }}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+                mapFilter === 'all'
+                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+              }`}
             >
-              Today
+              All
+            </button>
+            <button
+              onClick={() => { setMapFilter('jobs') }}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+                mapFilter === 'jobs'
+                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+              }`}
+            >
+              Jobs
+            </button>
+            <button
+              onClick={() => { setMapFilter('appointments') }}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+                mapFilter === 'appointments'
+                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+              }`}
+            >
+              Appointments
             </button>
           </div>
+          {sortedItems.length > 0 && (
+            <button
+              onClick={showAllMarkers}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors flex-shrink-0 whitespace-nowrap"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              Show All Stops
+            </button>
+          )}
+        </div>
 
-          {/* Row 3: Filters (right-aligned, above map) */}
-          <div className="flex items-center justify-end gap-1.5">
-            <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
-              <button
-                onClick={() => { setMapFilter('all') }}
-                className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
-                  mapFilter === 'all'
-                    ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => { setMapFilter('jobs') }}
-                className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
-                  mapFilter === 'jobs'
-                    ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                Jobs
-              </button>
-              <button
-                onClick={() => { setMapFilter('appointments') }}
-                className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
-                  mapFilter === 'appointments'
-                    ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                Appts
-              </button>
-            </div>
-            {sortedItems.length > 0 && (
-              <button
-                onClick={showAllMarkers}
-                className="flex items-center gap-1 px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-[10px] font-medium transition-colors"
-              >
-                <Layers className="w-3 h-3" />
-                All
-              </button>
-            )}
+        {/* Mobile: Right-aligned filters */}
+        <div className="md:hidden flex items-center justify-end gap-1.5 flex-wrap px-1">
+          <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+            <button
+              onClick={() => { setMapFilter('all') }}
+              className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
+                mapFilter === 'all'
+                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => { setMapFilter('jobs') }}
+              className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
+                mapFilter === 'jobs'
+                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+              }`}
+            >
+              Jobs
+            </button>
+            <button
+              onClick={() => { setMapFilter('appointments') }}
+              className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
+                mapFilter === 'appointments'
+                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+              }`}
+            >
+              Appts
+            </button>
           </div>
+          {sortedItems.length > 0 && (
+            <button
+              onClick={showAllMarkers}
+              className="flex items-center gap-1 px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-[10px] font-medium transition-colors flex-shrink-0 whitespace-nowrap"
+            >
+              <Layers className="w-3 h-3" />
+              All
+            </button>
+          )}
         </div>
       </div>
 
