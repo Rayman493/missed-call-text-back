@@ -5,7 +5,11 @@ import { useSettingsFormState } from '../useSettingsFormState'
 // Mock the out-of-office functions
 vi.mock('@/lib/out-of-office', () => ({
   getDefaultAfterHoursTemplate: () => 'Default after hours message',
-  getDefaultOutOfOfficeTemplate: () => 'Default OOO message'
+  getDefaultOutOfOfficeTemplate: () => 'Default OOO message',
+  DEFAULT_BUSINESS_HOURS_TIMEZONE: 'America/New_York',
+  DEFAULT_BUSINESS_HOURS_START: '09:00',
+  DEFAULT_BUSINESS_HOURS_END: '18:00',
+  getBusinessHoursFieldWithDefault: (value: any, defaultValue: any) => value || defaultValue
 }))
 
 describe('useSettingsFormState - Business Hours defaults', () => {

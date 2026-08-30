@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Business } from '@/lib/types'
-import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate } from '@/lib/out-of-office'
+import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate, DEFAULT_BUSINESS_HOURS_TIMEZONE, DEFAULT_BUSINESS_HOURS_START, DEFAULT_BUSINESS_HOURS_END, getBusinessHoursFieldWithDefault } from '@/lib/out-of-office'
 
 interface SettingsFormState {
   business: Business | null
@@ -32,9 +32,9 @@ export function useSettingsFormState({
 
   // Apply Business Hours defaults only when Business Hours is enabled to avoid unwanted persistence when disabled
   if (businessWithDefaults && initialBusiness?.business_hours_enabled) {
-    businessWithDefaults.business_hours_timezone = initialBusiness.business_hours_timezone || 'America/New_York'
-    businessWithDefaults.business_hours_start = initialBusiness.business_hours_start || '09:00'
-    businessWithDefaults.business_hours_end = initialBusiness.business_hours_end || '18:00'
+    businessWithDefaults.business_hours_timezone = getBusinessHoursFieldWithDefault(initialBusiness.business_hours_timezone, DEFAULT_BUSINESS_HOURS_TIMEZONE)
+    businessWithDefaults.business_hours_start = getBusinessHoursFieldWithDefault(initialBusiness.business_hours_start, DEFAULT_BUSINESS_HOURS_START)
+    businessWithDefaults.business_hours_end = getBusinessHoursFieldWithDefault(initialBusiness.business_hours_end, DEFAULT_BUSINESS_HOURS_END)
   }
 
   const [state, setState] = useState<SettingsFormState>({
@@ -67,9 +67,9 @@ export function useSettingsFormState({
 
       // Apply Business Hours defaults only when Business Hours is enabled to avoid unwanted persistence when disabled
       if (initialBusiness.business_hours_enabled) {
-        businessWithDefaults.business_hours_timezone = initialBusiness.business_hours_timezone || 'America/New_York'
-        businessWithDefaults.business_hours_start = initialBusiness.business_hours_start || '09:00'
-        businessWithDefaults.business_hours_end = initialBusiness.business_hours_end || '18:00'
+        businessWithDefaults.business_hours_timezone = getBusinessHoursFieldWithDefault(initialBusiness.business_hours_timezone, DEFAULT_BUSINESS_HOURS_TIMEZONE)
+        businessWithDefaults.business_hours_start = getBusinessHoursFieldWithDefault(initialBusiness.business_hours_start, DEFAULT_BUSINESS_HOURS_START)
+        businessWithDefaults.business_hours_end = getBusinessHoursFieldWithDefault(initialBusiness.business_hours_end, DEFAULT_BUSINESS_HOURS_END)
       }
 
       setState(prev => {

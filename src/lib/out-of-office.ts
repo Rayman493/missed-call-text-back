@@ -1,14 +1,44 @@
 /**
  * Out of Office Mode Helper Functions
- * 
+ *
  * Functions for checking and managing Out of Office Mode status
  */
 
 import { Business } from './types'
 
 /**
+ * Canonical default Business Hours timezone
+ */
+export const DEFAULT_BUSINESS_HOURS_TIMEZONE = 'America/New_York'
+
+/**
+ * Canonical default Business Hours start time (24-hour format)
+ */
+export const DEFAULT_BUSINESS_HOURS_START = '09:00'
+
+/**
+ * Canonical default Business Hours end time (24-hour format)
+ */
+export const DEFAULT_BUSINESS_HOURS_END = '18:00'
+
+/**
+ * Get a Business Hours field value with canonical default
+ * Treats null, undefined, and empty string as missing
+ *
+ * @param value - The current value (may be null, undefined, or empty string)
+ * @param defaultValue - The canonical default value
+ * @returns The value if present, otherwise the default
+ */
+export function getBusinessHoursFieldWithDefault<T extends string>(value: T | null | undefined | '', defaultValue: T): T {
+  if (value === null || value === undefined || value === '') {
+    return defaultValue
+  }
+  return value
+}
+
+/**
  * Get the canonical default Out of Office message template
- * 
+ *
  * @returns The default template with placeholders
  */
 export function getDefaultOutOfOfficeTemplate(): string {

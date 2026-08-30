@@ -46,7 +46,7 @@ import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
-import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate } from '@/lib/out-of-office'
+import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate, DEFAULT_BUSINESS_HOURS_TIMEZONE, DEFAULT_BUSINESS_HOURS_START, DEFAULT_BUSINESS_HOURS_END, getBusinessHoursFieldWithDefault } from '@/lib/out-of-office'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
 import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, RefreshCw, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react'
@@ -536,6 +536,17 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   // Initialize Business Hours with defaults when first expanded
   const handleBusinessHoursExpand = () => {
     setBusinessHoursExpanded(true)
+  }
+
+  // Initialize Business Hours with canonical defaults when enabling
+  const initializeBusinessHoursDefaults = (currentBusiness: any) => {
+    return {
+      ...currentBusiness,
+      business_hours_timezone: getBusinessHoursFieldWithDefault(currentBusiness.business_hours_timezone, DEFAULT_BUSINESS_HOURS_TIMEZONE),
+      business_hours_start: getBusinessHoursFieldWithDefault(currentBusiness.business_hours_start, DEFAULT_BUSINESS_HOURS_START),
+      business_hours_end: getBusinessHoursFieldWithDefault(currentBusiness.business_hours_end, DEFAULT_BUSINESS_HOURS_END),
+      after_hours_message: getBusinessHoursFieldWithDefault(currentBusiness.after_hours_message, DEFAULT_AFTER_HOURS_MESSAGE)
+    }
   }
 
   // Change password modal state
@@ -3159,10 +3170,10 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   <div className="border border-border/30 rounded-lg p-3 hover:border-border/50 transition-colors">
                     {!businessHoursExpanded ? (
                       // Collapsed state
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between mb-2">
                         <div className="flex-1 pr-4 min-w-0">
-                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                            <h3 className="text-sm font-semibold text-foreground">Business Hours</h3>
+                          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                            <h3 className="text-sm font-medium text-foreground">Business Hours</h3>
                             {formBusiness.business_hours_enabled ? (
                               <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                                 <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
@@ -3174,29 +3185,29 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               </span>
                             )}
                           </div>
-                          {formBusiness.business_hours_enabled ? (
+                          <p className="text-sm text-muted-foreground leading-relaxed mb-1.5">
+                            Send different replies inside and outside business hours.
+                          </p>
+                          {formBusiness.business_hours_enabled && (
                             <div className="text-xs text-muted-foreground space-y-0.5">
-                              <p className="font-medium text-foreground">Monday–Friday · {formatTime12Hour(formBusiness.business_hours_start) || '9:00 AM'}–{formatTime12Hour(formBusiness.business_hours_end) || '6:00 PM'}</p>
+                              <p className="font-medium text-foreground">Monday–Friday · {formatTime12Hour(formBusiness.business_hours_start)}–{formatTime12Hour(formBusiness.business_hours_end)}</p>
                               <p>{formBusiness.business_hours_timezone === 'America/New_York' ? 'Eastern Time' : formBusiness.business_hours_timezone === 'America/Chicago' ? 'Central Time' : formBusiness.business_hours_timezone === 'America/Denver' ? 'Mountain Time' : formBusiness.business_hours_timezone === 'America/Los_Angeles' ? 'Pacific Time' : formBusiness.business_hours_timezone}</p>
                             </div>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">
-                              Business hours not configured.
-                            </p>
                           )}
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
-                              const nextBusiness = {
-                                ...formBusiness,
-                                business_hours_enabled: !formBusiness.business_hours_enabled
-                              }
-                              updateBusiness(nextBusiness)
-                              // Auto-expand when enabling
                               if (!formBusiness.business_hours_enabled) {
+                                // Initialize defaults when enabling
+                                const initializedBusiness = initializeBusinessHoursDefaults(formBusiness)
+                                initializedBusiness.business_hours_enabled = true
+                                updateBusiness(initializedBusiness)
                                 setBusinessHoursExpanded(true)
+                              } else {
+                                // Just disable when turning off
+                                updateBusiness({ ...formBusiness, business_hours_enabled: false })
                               }
                             }}
                             className={`inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
@@ -3283,7 +3294,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               Timezone
                             </label>
                             <select
-                              value={formBusiness.business_hours_timezone || 'America/New_York'}
+                              value={formBusiness.business_hours_timezone || ''}
                               onChange={(e) => updateBusiness({ business_hours_timezone: e.target.value })}
                               className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
                             >
@@ -3313,7 +3324,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                 <input
                                   ref={openTimeInputRef}
                                   type="time"
-                                  value={formBusiness.business_hours_start || '09:00'}
+                                  value={formBusiness.business_hours_start || ''}
                                   onChange={(e) => updateBusiness({ business_hours_start: e.target.value })}
                                   className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
                                 />
@@ -3335,7 +3346,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                 <input
                                   ref={closeTimeInputRef}
                                   type="time"
-                                  value={formBusiness.business_hours_end || '18:00'}
+                                  value={formBusiness.business_hours_end || ''}
                                   onChange={(e) => updateBusiness({ business_hours_end: e.target.value })}
                                   className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
                                 />
