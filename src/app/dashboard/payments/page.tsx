@@ -715,7 +715,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                 <button
                   onClick={() => setShowQuickTapToPay(true)}
                   className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995]
-                  bg-emerald-600 dark:bg-emerald-500 border-emerald-700 dark:border-emerald-600 hover:bg-emerald-700 dark:hover:bg-emerald-600 shadow-[0_6px_18px_rgba(0,0,0,0.15)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
+                  bg-emerald-700 dark:bg-emerald-600 border-emerald-800 dark:border-emerald-700 hover:bg-emerald-800 dark:hover:bg-emerald-700 shadow-[0_6px_18px_rgba(0,0,0,0.15)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
                 >
                   <div className="flex items-center gap-3.5 mb-2.5">
                     <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-white/10 ring-1 ring-inset ring-white/30 dark:ring-white/20 flex items-center justify-center">
