@@ -2795,7 +2795,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
               </div>
 
               {/* General Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-[64px]">
                 <div className="space-y-5">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">
@@ -2922,7 +2922,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   </div>
 
                   {/* Communication Section */}
-                  <div id="communication" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
+                  <div id="communication" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-[64px]">
                     <div className="mb-5">
                       <h2 className="text-base font-semibold text-foreground mb-1">Sending Number</h2>
                       <p className="text-sm text-muted-foreground leading-relaxed">
@@ -3043,7 +3043,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
               </div>
 
               {/* Appearance Section */}
-              <div id="appearance" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
+              <div id="appearance" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-[64px]">
                 <div className="mb-5">
                   <h2 className="text-base font-semibold text-foreground mb-1">Theme</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">
@@ -3061,7 +3061,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
               </div>
 
               {/* Business Address Section */}
-              <div id="business-address" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
+              <div id="business-address" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-[64px]">
                 <div className="mb-8">
                   <h2 className="text-lg font-semibold text-foreground mb-2">Business Address</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Your canonical business address for payments and business profile.</p>
@@ -3169,7 +3169,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
               ) : (
               <>
               {/* Automation Settings */}
-              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-4 scroll-mt-[64px]">
+              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-4 scroll-mt-[64px]">
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-base font-semibold text-foreground">Instant Response</h2>
@@ -3182,7 +3182,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   {/* See audit: filtering features not production-reliable for V1 launch */}
 
                   {/* Business Hours */}
-                  <div className="border border-border/30 rounded-lg p-3 hover:border-border/50 transition-colors">
+                  <div className="card-border rounded-lg p-3 hover:border-border/50 transition-colors">
                     {!businessHoursExpanded ? (
                       // Collapsed state
                       <div className="flex items-start justify-between mb-2">
@@ -3404,7 +3404,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   </div>
 
                   {/* Out of Office Mode */}
-                  <div id="out-of-office" className="p-3 rounded-lg border border-border/30 hover:border-border/50 transition-colors scroll-mt-28 sm:scroll-mt-24">
+                  <div id="out-of-office" className="card-border p-3 rounded-lg hover:border-border/50 transition-colors scroll-mt-28 sm:scroll-mt-24">
                     {!outOfOfficeExpanded ? (
                       // Collapsed state
                       <div className="flex items-start justify-between">
@@ -3655,7 +3655,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   </div>
 
                   {/* Automatic Follow-Ups */}
-                  <div className="p-3 rounded-lg border border-border/30 hover:border-border/50 transition-colors">
+                  <div className="card-border p-3 rounded-lg hover:border-border/50 transition-colors">
                     {!followUpExpanded ? (
                       // Collapsed state
                       <div className="flex items-start justify-between">
@@ -3884,7 +3884,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
               </div>
 
               {/* Integrations Section */}
-              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
+              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-[64px]">
                 <div className="mb-8">
                   <h2 className="text-lg font-semibold text-foreground mb-2">Integrations</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Connect services you already use.</p>
@@ -3958,7 +3958,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                 <div className="h-px flex-1 bg-border/30"></div>
               </div>
 
-              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-4 sm:p-5 pb-safe-bottom-4 scroll-mt-[64px]">
+              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-4 sm:p-5 pb-safe-bottom-4 scroll-mt-[64px]">
                 <div className="mb-4">
                   <h2 className="text-base font-semibold text-foreground mb-1">Payments</h2>
                   <p className="text-sm text-muted-foreground">
@@ -4545,7 +4545,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
               </div>
 
               {/* Contacts Section */}
-              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-12">
+              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-12">
                 <div className="flex flex-col gap-4 mb-8">
                   {/* Header row with title, description, and actions */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -4662,7 +4662,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
               </div>
 
               {/* Account Section */}
-              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
+              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-[64px]">
                 <div className="mb-6">
                   <h2 className="text-lg font-semibold text-foreground mb-2">Account</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Your account details and status.</p>
@@ -4860,7 +4860,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
               </div>
 
                   {/* Subscription & Billing Section */}
-              <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-border/20 shadow-sm p-6 scroll-mt-[64px]">
+              <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-[64px]">
                 <div className="mb-4">
                   <h2 className="text-base font-semibold text-foreground mb-1">Subscription & Billing</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Manage your subscription and billing.</p>

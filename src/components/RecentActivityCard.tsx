@@ -403,7 +403,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
 
   if (loading) {
     return (
-      <div className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl p-2.5 sm:p-3">
+      <div className="bg-card/50 backdrop-blur-sm card-border rounded-xl p-2.5 sm:p-3">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-semibold text-foreground">Activity</h3>
         </div>
@@ -424,7 +424,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
   }
 
   return (
-    <div className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl p-2.5 sm:p-3">
+    <div className="bg-card/50 backdrop-blur-sm card-border rounded-xl p-2.5 sm:p-3">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-semibold text-foreground">Activity</h3>
       </div>

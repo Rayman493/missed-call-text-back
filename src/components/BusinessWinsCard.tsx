@@ -313,7 +313,7 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm">
+      <div className="bg-white dark:bg-slate-800/80 card-border rounded-xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm sm:text-base font-semibold text-foreground">Achievements</h3>
           <div className="text-xs text-muted-foreground">Loading...</div>
@@ -339,7 +339,7 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
   const total = allAchievements.length
 
   return (
-    <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+    <div className="bg-white dark:bg-slate-800/80 card-border rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 sm:w-8 sm:h-8 bg-amber-500/10 dark:bg-amber-500/15 rounded-lg flex items-center justify-center">
