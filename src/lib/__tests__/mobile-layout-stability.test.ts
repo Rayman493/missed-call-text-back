@@ -191,7 +191,7 @@ describe('Mobile Layout Stability', () => {
         'BusinessActivityGraph',
         'CustomerPipelineGraph',
         'PaymentCollectionGraph',
-        'JobsStatusGraph',
+        'CustomersStatusGraph',
         'LeadsSourceGraph'
       ]
 

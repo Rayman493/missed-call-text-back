@@ -4,39 +4,22 @@ import React, { useEffect, useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { Briefcase } from 'lucide-react'
+import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
-import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
-import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
-import { getBusinessDaysAgoRelative } from '@/lib/business-date-utils'
+import { CUSTOMER_STATUS_STYLES, CustomerStatus, normalizeCustomerStatus } from '@/lib/customer-status'
 
-interface JobStatusData {
+interface CustomerStatusData {
   status: string
   count: number
   color: string
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  scheduled: '#3B82F6',
-  in_progress: '#F59E0B',
-  completed: '#10B981',
-  cancelled: '#EF4444'
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  scheduled: 'Scheduled',
-  in_progress: 'In Progress',
-  completed: 'Completed',
-  cancelled: 'Cancelled'
-}
-
-export default function JobsStatusGraph() {
+export default function CustomersStatusGraph() {
   const { business } = useBusiness()
-  const [data, setData] = useState<JobStatusData[]>([])
+  const [data, setData] = useState<CustomerStatusData[]>([])
   const [loading, setLoading] = useState(true)
-  const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('90d')
   const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
@@ -47,57 +30,38 @@ export default function JobsStatusGraph() {
       try {
         const supabase = createBrowserClient()
 
-        // Calculate date range based on selected timeframe
-        const businessTimezone = business?.business_hours_timezone || 'UTC'
-        const daysMap = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 }
-        const daysAgo = daysMap[timeRange as keyof typeof daysMap] || 90
-        const startDateIso = getBusinessDaysAgoRelative(businessTimezone, daysAgo, new Date())
-
-        // Fetch jobs grouped by status for selected timeframe
-        const { data: jobs } = await supabase
-          .from('jobs')
+        // Fetch all current customers for the business (no date filter - current state metric)
+        const { data: leads } = await supabase
+          .from('leads')
           .select('status')
           .eq('business_id', business.id)
-          .gte('created_at', startDateIso)
+          .is('deleted_at', null) // Exclude deleted customers
 
         if (!isMounted) return
 
-        // Count by status
+        // Count by status using canonical normalization
         const statusCounts: { [key: string]: number } = {}
-        jobs?.forEach((job: any) => {
-          const status = job.status || 'scheduled'
-          statusCounts[status] = (statusCounts[status] || 0) + 1
+        leads?.forEach((lead: any) => {
+          const canonicalStatus = normalizeCustomerStatus(lead.status)
+          statusCounts[canonicalStatus] = (statusCounts[canonicalStatus] || 0) + 1
         })
 
-        // Convert to array for chart with lifecycle ordering
-        const statusOrder = ['scheduled', 'in_progress', 'completed', 'cancelled']
+        // Convert to array for chart using canonical status order from customer-status.ts
+        const statusOrder: CustomerStatus[] = ['new', 'needs_reply', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'cancelled', 'ignored', 'lost']
         const chartData = statusOrder.map((status) => {
           const count = statusCounts[status] || 0
           if (count === 0) return null
+          const style = CUSTOMER_STATUS_STYLES[status]
           return {
-            status: STATUS_LABELS[status] || status,
+            status: style.label,
             count,
-            color: STATUS_COLORS[status] || '#94A3B8'
+            color: style.color
           }
-        }).filter((item): item is JobStatusData => item !== null)
-
-        // Add unknown bucket for unrecognized status values
-        const recognizedStatuses = new Set(statusOrder)
-        const unknownCount = Object.entries(statusCounts)
-          .filter(([status]) => !recognizedStatuses.has(status))
-          .reduce((sum, [, count]) => sum + count, 0)
-
-        if (unknownCount > 0) {
-          chartData.push({
-            status: 'Unknown',
-            count: unknownCount,
-            color: '#94A3B8'
-          })
-        }
+        }).filter((item): item is CustomerStatusData => item !== null)
 
         if (isMounted) setData(chartData)
       } catch (error) {
-        if (isMounted) console.error('[JobsStatusGraph] Error fetching data:', error)
+        if (isMounted) console.error('[CustomersStatusGraph] Error fetching data:', error)
       } finally {
         if (isMounted) setLoading(false)
       }
@@ -105,14 +69,14 @@ export default function JobsStatusGraph() {
 
     fetchData()
     return () => { isMounted = false }
-  }, [business?.id, business?.business_hours_timezone, timeRange])
+  }, [business?.id])
 
   const isEmpty = data.length === 0
 
   // Calculate summary KPIs
-  const totalJobs = data.reduce((sum, item) => sum + item.count, 0)
-  const completedJobs = data.find(d => d.status === 'Completed')?.count || 0
-  const scheduledJobs = data.find(d => d.status === 'Scheduled')?.count || 0
+  const totalCustomers = data.reduce((sum, item) => sum + item.count, 0)
+  const activeCustomers = data.find(d => d.status === 'Active')?.count || 0
+  const newCustomers = data.find(d => d.status === 'New')?.count || 0
 
   // Calculate max value for X-axis ticks
   const maxValue = data.length > 0 ? Math.max(...data.map(d => d.count)) : 0
@@ -123,27 +87,22 @@ export default function JobsStatusGraph() {
       <div className="p-4 sm:p-5">
         <div className="flex items-start justify-between mb-3">
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Jobs by Status</h3>
+            <h3 className="text-sm font-semibold text-foreground">Customers by Status</h3>
           </div>
-          <PremiumSelect
-            value={timeRange}
-            onChange={setTimeRange}
-            options={ANALYTICS_TIMEFRAME_OPTIONS}
-          />
         </div>
 
         {!isEmpty && (
           <div className="mb-4">
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-semibold text-foreground">{totalJobs.toLocaleString()}</span>
+              <span className="text-2xl font-semibold text-foreground">{totalCustomers.toLocaleString()}</span>
               <span className="text-xs text-muted-foreground">
-                {totalJobs === 1 ? 'job' : 'jobs'} • {ANALYTICS_TIMEFRAME_OPTIONS.find(o => o.value === timeRange)?.label.toLowerCase()}
+                {totalCustomers === 1 ? 'customer' : 'customers'}
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground/70 mt-1">
-              {totalJobs === 1 && data.length === 1
+              {totalCustomers === 1 && data.length === 1
                 ? `${data[0].status}`
-                : `${scheduledJobs} scheduled, ${completedJobs} completed`}
+                : `${newCustomers} new, ${activeCustomers} active`}
             </div>
           </div>
         )}
@@ -154,9 +113,9 @@ export default function JobsStatusGraph() {
           </div>
         ) : isEmpty ? (
           <PremiumEmptyState
-            icon={Briefcase}
-            title="No jobs yet"
-            description="Jobs created from customer conversations will appear here with their status."
+            icon={Users}
+            title="No customers yet"
+            description="Customers from missed calls and other sources will appear here with their status."
           />
         ) : (
           <div className="h-[260px]">

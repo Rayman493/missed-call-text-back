@@ -83,7 +83,7 @@ import RevenueGraph from '@/components/analytics/RevenueGraph'
 import CustomerPipelineGraph from '@/components/analytics/CustomerPipelineGraph'
 import BusinessActivityGraph from '@/components/analytics/BusinessActivityGraph'
 import PaymentCollectionGraph from '@/components/analytics/PaymentCollectionGraph'
-import JobsStatusGraph from '@/components/analytics/JobsStatusGraph'
+import CustomersStatusGraph from '@/components/analytics/CustomersStatusGraph'
 import LeadsSourceGraph from '@/components/analytics/LeadsSourceGraph'
 import LeadConversionGraph from '@/components/analytics/LeadConversionGraph'
 import BetaFeedbackModal from '@/components/BetaFeedbackModal'
@@ -1284,7 +1284,7 @@ export default function DashboardContent() {
                             <PaymentCollectionGraph />
                           </div>
                           <div className={`${!business?.forwarding_verified ? 'opacity-90' : ''} transition-opacity duration-200`}>
-                            <JobsStatusGraph />
+                            <CustomersStatusGraph />
                           </div>
                           <div className={`${!business?.forwarding_verified ? 'opacity-90' : ''} transition-opacity duration-200 col-span-1 sm:col-span-1`}>
                             <LeadConversionGraph />
