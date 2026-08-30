@@ -26,6 +26,108 @@ interface QuickTapToPayModalProps {
   onRefreshAfterSuccess?: () => Promise<void> | void
 }
 
+// ===== PRESENTATION PHASE DERIVATION =====
+// This is a pure presentation layer that maps authoritative paymentState
+// to stable user-visible phases. It does NOT modify orchestration behavior.
+export type PresentationPhase =
+  | 'ready'
+  | 'preparing'
+  | 'waiting_for_card'
+  | 'processing'
+  | 'confirming'
+  | 'success'
+  | 'declined'
+  | 'canceled'
+  | 'recoverable_error'
+  | 'uncertain'
+  | 'education_pending'
+  | 'education_waiting_for_confirmation'
+
+/**
+ * Pure function to derive visible presentation phase from payment state
+ * Extracted for testability
+ */
+export function deriveVisiblePhase(
+  paymentState: string,
+  lastSuccessfulStage: string,
+  mappedError: { title?: string; action?: string } | null,
+  terminalService: any
+): PresentationPhase {
+  // Education states pass through
+  if (paymentState === 'education_pending') return 'education_pending'
+  if (paymentState === 'education_waiting_for_confirmation') return 'education_waiting_for_confirmation'
+
+  // Terminal states pass through
+  if (paymentState === 'ready') return 'ready'
+  if (paymentState === 'canceled') return 'canceled'
+
+  // Collapse preparation states into one stable phase
+  if (paymentState === 'preparing' || paymentState === 'connecting_reader' || paymentState === 'creating_payment_intent') {
+    return 'preparing'
+  }
+
+  // Waiting for card
+  if (paymentState === 'waiting_for_card') {
+    // If we have evidence that card interaction has progressed beyond initial waiting,
+    // show processing phase instead to avoid stale "Ready for payment" label
+    // This is presentation-only - actual paymentState remains authoritative
+    if (lastSuccessfulStage === 'payment_native_succeeded' ||
+        lastSuccessfulStage === 'reconciliation_started') {
+      return 'processing'
+    }
+    return 'waiting_for_card'
+  }
+
+  // Processing
+  if (paymentState === 'processing') {
+    // Check if we should show confirming phase instead
+    // Use available evidence: native success + reconciliation in progress
+    // This is presentation-only - actual success gate remains in orchestration
+    const attemptId = terminalService?.getCurrentAttemptId()
+    const sessionId = terminalService?.getSessionId()
+
+    // If we have evidence of native success but not yet authoritative success,
+    // show confirming phase
+    if (lastSuccessfulStage === 'payment_native_succeeded' ||
+        lastSuccessfulStage === 'reconciliation_started') {
+      return 'confirming'
+    }
+
+    return 'processing'
+  }
+
+  // Success - controlled by existing orchestration success gate
+  if (paymentState === 'success') return 'success'
+
+  // Failure - check if it's a decline vs other error
+  if (paymentState === 'failure') {
+    // If the mapped error indicates a decline, show declined phase
+    if (mappedError?.title === 'Payment declined') {
+      return 'declined'
+    }
+    // If it's ambiguous outcome, show uncertain
+    if (mappedError?.title === 'Payment in Progress' ||
+        mappedError?.action === 'back') {
+      return 'uncertain'
+    }
+    // Otherwise show as recoverable error
+    return 'recoverable_error'
+  }
+
+  // Ambiguous state
+  if (paymentState === 'ambiguous') {
+    return 'uncertain'
+  }
+
+  // Pending/ambiguous states
+  if (paymentState === 'pending' || paymentState === 'ambiguous') {
+    return 'uncertain'
+  }
+
+  // Default fallback
+  return 'ready'
+}
+
 export default function QuickTapToPayModal({
   isOpen,
   onClose,
@@ -331,88 +433,8 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     setPreparing: setReaderPreparing,
   } = useTapToPayReaderPresentation(isOpen)
 
-  // ===== PRESENTATION PHASE DERIVATION =====
-  // This is a pure presentation layer that maps authoritative paymentState
-  // to stable user-visible phases. It does NOT modify orchestration behavior.
-  type PresentationPhase =
-    | 'ready'
-    | 'preparing'
-    | 'waiting_for_card'
-    | 'processing'
-    | 'confirming'
-    | 'success'
-    | 'declined'
-    | 'canceled'
-    | 'recoverable_error'
-    | 'uncertain'
-    | 'education_pending'
-    | 'education_waiting_for_confirmation'
-
   const visiblePhase: PresentationPhase = useMemo(() => {
-    // Education states pass through
-    if (paymentState === 'education_pending') return 'education_pending'
-    if (paymentState === 'education_waiting_for_confirmation') return 'education_waiting_for_confirmation'
-
-    // Terminal states pass through
-    if (paymentState === 'ready') return 'ready'
-    if (paymentState === 'canceled') return 'canceled'
-
-    // Collapse preparation states into one stable phase
-    if (paymentState === 'preparing' || paymentState === 'connecting_reader' || paymentState === 'creating_payment_intent') {
-      return 'preparing'
-    }
-
-    // Waiting for card
-    if (paymentState === 'waiting_for_card') return 'waiting_for_card'
-
-    // Processing
-    if (paymentState === 'processing') {
-      // Check if we should show confirming phase instead
-      // Use available evidence: native success + reconciliation in progress
-      // This is presentation-only - actual success gate remains in orchestration
-      const attemptId = terminalService?.getCurrentAttemptId()
-      const sessionId = terminalService?.getSessionId()
-
-      // If we have evidence of native success but not yet authoritative success,
-      // show confirming phase
-      if (lastSuccessfulStage === 'payment_native_succeeded' ||
-          lastSuccessfulStage === 'reconciliation_started') {
-        return 'confirming'
-      }
-
-      return 'processing'
-    }
-
-    // Success - controlled by existing orchestration success gate
-    if (paymentState === 'success') return 'success'
-
-    // Failure - check if it's a decline vs other error
-    if (paymentState === 'failure') {
-      // If the mapped error indicates a decline, show declined phase
-      if (mappedError?.title === 'Payment declined') {
-        return 'declined'
-      }
-      // If it's ambiguous outcome, show uncertain
-      if (mappedError?.title === 'Payment in Progress' ||
-          mappedError?.action === 'back') {
-        return 'uncertain'
-      }
-      // Otherwise show as recoverable error
-      return 'recoverable_error'
-    }
-
-    // Ambiguous state
-    if (paymentState === 'ambiguous') {
-      return 'uncertain'
-    }
-
-    // Pending/ambiguous states
-    if (paymentState === 'pending' || paymentState === 'ambiguous') {
-      return 'uncertain'
-    }
-
-    // Default fallback
-    return 'ready'
+    return deriveVisiblePhase(paymentState, lastSuccessfulStage, mappedError, terminalService)
   }, [paymentState, lastSuccessfulStage, mappedError, terminalService])
 
   // Derive whether error is still presentation-relevant
