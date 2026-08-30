@@ -709,8 +709,8 @@ export default function LeadsPage() {
             <AppHeader title="Customers" />
 
           {/* Main Content */}
-          <main className="flex-1 pt-6 sm:pt-8 lg:pt-10 px-4 sm:px-5 lg:px-7 md:pb-10 relative z-10 overflow-y-auto" onClick={handlePageClick}>
-            <div className="max-w-[1400px] mx-auto space-y-6 mobile-bottom-nav-safe-content-with-gap">
+          <main className="flex-1 pt-4 sm:pt-8 lg:pt-10 px-4 sm:px-5 lg:px-7 md:pb-10 relative z-10 overflow-y-auto" onClick={handlePageClick}>
+            <div className="max-w-[1400px] mx-auto space-y-4 sm:space-y-6 mobile-bottom-nav-safe-content-with-gap">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
 
@@ -894,7 +894,7 @@ export default function LeadsPage() {
               return (
                 <>
             {/* Lifecycle Summary Cards - Compact on mobile */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-1 sm:mb-6">
               <StatCard
                 value={leadStatusCounts.new}
                 label="Needs Reply"
@@ -1030,7 +1030,7 @@ export default function LeadsPage() {
             </div>
 
             {/* Customers Header - Improved hierarchy */}
-            <div className="pt-2 pb-4">
+            <div className="pt-2 pb-2 sm:pb-4">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
                 <div>
                   <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
