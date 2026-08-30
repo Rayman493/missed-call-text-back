@@ -3162,7 +3162,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   <p className="text-sm text-muted-foreground leading-relaxed">Control automatic missed-call responses.</p>
                 </div>
                 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {/* V1: Spam & Repeat Filtering hidden - infrastructure preserved in automation_settings */}
                   {/* See audit: filtering features not production-reliable for V1 launch */}
 
