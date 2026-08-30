@@ -220,12 +220,12 @@ main {
 
   /* Card border - stronger in light mode for better hierarchy */
   .card-border {
-    @apply border-border/50;
+    @apply border border-border/50;
   }
 
   /* Section border - stronger top-level section containers */
   .section-border {
-    @apply border-border/30;
+    @apply border border-border/30;
   }
 
   /* Subtle page background gradient for authenticated sections */
