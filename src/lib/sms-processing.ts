@@ -376,7 +376,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       }
     }
     
-    // Create new lead with status 'contacted' since customer replied
+    // Create new lead with status 'needs_reply' since customer replied
     console.log(`[SMS Processing] No existing lead, creating new lead via LeadService`)
     
     // DEFENSIVE GUARD: Log lead creation attempt with full context
@@ -393,7 +393,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     lead = await LeadService.createLead({
       business_id: business.id,
       caller_phone: normalizedCustomerPhone,
-      status: 'contacted', // Customer replied, so mark as contacted
+      status: 'needs_reply', // Customer replied, so mark as needing reply (valid status per leads_status_check)
       source: 'sms',
       raw_metadata: { source: 'sms' },
     })
