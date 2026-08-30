@@ -467,8 +467,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
-  const unfilteredChannelRef = useRef<RealtimeChannel | null>(null)
-  const filteredInsertDiagnosticRef = useRef<RealtimeChannel | null>(null)
   const currentLeadIdRef = useRef<string | null>(null)
   const supabaseRef = useRef(createBrowserClient())
   const supabase = supabaseRef.current
@@ -2152,14 +2150,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     // Set up new subscription
     const channelName = `lead-detail:${leadId}`
-    const unfilteredChannelName = `lead-detail-unfiltered-diagnostic:${leadId}`
-    const filteredInsertDiagnosticName = `lead-detail-filtered-insert-diagnostic:${leadId}`
     console.log('[REALTIME SUBSCRIBE REQUEST]', {
       instanceId: realtimeInstanceIdRef.current,
       leadId,
       channelName,
-      unfilteredChannelName,
-      filteredInsertDiagnosticName,
       hadExistingChannel,
       timestamp: new Date().toISOString()
     })
@@ -2167,163 +2161,138 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const channel = supabase
       .channel(channelName)
 
-    console.log('[REALTIME_DIAG_SETUP]', {
-      channelName,
-      leadId,
-      event: '*',
-      schema: 'public',
-      table: 'messages',
-      filter: `lead_id=eq.${leadId}`,
-      timestamp: new Date().toISOString(),
-      diagnosticInstanceId: realtimeInstanceIdRef.current
-    })
-
+    // INSERT subscription for new messages
     channel
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'messages',
           filter: `lead_id=eq.${leadId}`
         },
         (payload: any) => {
-          console.log('[REALTIME_DIAG_EVENT_RECEIVED]', {
-            eventType: payload.eventType,
+          console.log('[REALTIME INSERT] Incoming message payload:', {
             messageId: payload.new?.id,
-            messageLeadId: payload.new?.lead_id,
-            messageDirection: payload.new?.direction,
-            messageStatus: payload.new?.status,
-            oldId: payload.old?.id,
-            timestamp: new Date().toISOString(),
-            diagnosticInstanceId: realtimeInstanceIdRef.current
+            clientMessageId: payload.new?.client_message_id,
+            twilioSid: payload.new?.twilio_message_sid,
+            status: payload.new?.status,
+            mediaCount: payload.new?.media_count,
+            body: payload.new?.body?.substring(0, 30),
+            created_at: payload.new?.created_at
           })
 
-          console.log('[REALTIME MESSAGE EVENT]', {
-            instanceId: realtimeInstanceIdRef.current,
-            leadId,
-            conversationId,
-            eventType: payload.eventType,
-            messageId: payload.new?.id,
-            messageLeadId: payload.new?.lead_id,
-            messageDirection: payload.new?.direction,
-            messageStatus: payload.new?.status,
-            hasClientMessageId: !!(payload.new?.client_message_id),
-            hasTwilioSid: !!(payload.new?.twilio_message_sid),
-            timestamp: new Date().toISOString()
-          })
-          
+          const newMessage = payload.new
+
           // Validate filter match
-          if (payload.new?.lead_id !== leadId) {
-            console.warn('[REALTIME MESSAGE EVENT] Filter mismatch - ignoring:', {
+          if (newMessage.lead_id !== leadId) {
+            console.warn('[REALTIME INSERT] Filter mismatch - ignoring:', {
               expectedLeadId: leadId,
-              actualLeadId: payload.new?.lead_id,
-              messageId: payload.new?.id
+              actualLeadId: newMessage.lead_id,
+              messageId: newMessage.id
             })
             return
           }
-          
-          if (payload.eventType === 'INSERT') {
-            const newMessage = payload.new
-            console.log('[REALTIME INSERT] Incoming message payload:', {
-              messageId: newMessage.id,
-              clientMessageId: newMessage.client_message_id,
-              twilioSid: newMessage.twilio_message_sid,
-              status: newMessage.status,
-              mediaCount: newMessage.media_count,
-              body: newMessage.body?.substring(0, 30),
-              created_at: newMessage.created_at
-            })
 
-            console.log('[REALTIME_DIAG_RECONCILE_START]', {
-              messageId: newMessage.id,
-              leadId,
-              eventType: payload.eventType
-            })
-
-            setLeadData((prev: any) => {
-              if (!prev) {
-                console.log('[REALTIME MESSAGE INSERT] No prev leadData, skipping')
-                return prev
-              }
-
-              const currentMessages = prev.messages || []
-              const mergedMessages = mergeMessageWithMonotonicity(currentMessages, newMessage, 'realtime-insert')
-
-              // Only scroll if this is a new message (not an optimistic reconciliation)
-              const incomingClientMessageId = newMessage.clientMessageId || newMessage.client_message_id
-              const isNewMessage = !currentMessages.some((msg: any) =>
-                msg.id === newMessage.id ||
-                (msg.clientMessageId && msg.clientMessageId === incomingClientMessageId) ||
-                (msg.client_message_id && msg.client_message_id === incomingClientMessageId)
-              )
-
-              console.log('[REALTIME_DIAG_RECONCILE_RESULT]', {
-                messageId: newMessage.id,
-                outcome: isNewMessage ? 'added' : 'merged_duplicate',
-                reason: isNewMessage ? 'new_message' : 'duplicate_reconciliation',
-                messageCount: mergedMessages.length
-              })
-              
-              if (isNewMessage) {
-                setTimeout(() => scrollToBottom('smooth'), 100)
-              }
-              
-              return {
-                ...prev,
-                messages: mergedMessages,
-                last_message_at: newMessage.created_at
-              }
-            })
-            
-            // Immediately fetch media for new MMS messages
-            if (newMessage.media_count && newMessage.media_count > 0) {
-              console.log('[REALTIME INSERT] Fetching media immediately for new MMS message:', {
-                messageId: newMessage.id,
-                mediaCount: newMessage.media_count
-              })
-              
-              supabase.auth.getSession().then(({ data }: any) => {
-                const session = data?.session
-                fetch(`/api/message-media?messageId=${newMessage.id}`, {
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token}`
-                  }
-                })
-                .then(response => response.json())
-                .then(mediaData => {
-                  console.log('[REALTIME INSERT] Media fetched successfully:', {
-                    messageId: newMessage.id,
-                    mediaCount: mediaData.length
-                  })
-                  setMessageMedia((prev: any) => ({
-                    ...prev,
-                    [newMessage.id]: {
-                      urls: mediaData.map((m: any) => m.media_url),
-                      types: mediaData.map((m: any) => m.mime_type)
-                    }
-                  }))
-                })
-                .catch(error => {
-                  console.error('[REALTIME INSERT] Failed to fetch media:', error)
-                })
-              })
+          setLeadData((prev: any) => {
+            if (!prev) {
+              console.log('[REALTIME INSERT] No prev leadData, skipping')
+              return prev
             }
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedMessage = payload.new
-            setLeadData((prev: any) => {
-              if (!prev) {
-                console.log('[REALTIME UPDATE] No prev leadData, skipping')
-                return prev
-              }
-              
-              const currentMessages = prev.messages || []
-              const mergedMessages = mergeMessageWithMonotonicity(currentMessages, updatedMessage, 'realtime-update')
-              
-              return { ...prev, messages: mergedMessages }
+
+            const currentMessages = prev.messages || []
+            const mergedMessages = mergeMessageWithMonotonicity(currentMessages, newMessage, 'realtime-insert')
+
+            // Only scroll if this is a new message (not an optimistic reconciliation)
+            const incomingClientMessageId = newMessage.clientMessageId || newMessage.client_message_id
+            const isNewMessage = !currentMessages.some((msg: any) =>
+              msg.id === newMessage.id ||
+              (msg.clientMessageId && msg.clientMessageId === incomingClientMessageId) ||
+              (msg.client_message_id && msg.client_message_id === incomingClientMessageId)
+            )
+
+            if (isNewMessage) {
+              setTimeout(() => scrollToBottom('smooth'), 100)
+            }
+
+            return {
+              ...prev,
+              messages: mergedMessages,
+              last_message_at: newMessage.created_at
+            }
+          })
+
+          // Immediately fetch media for new MMS messages
+          if (newMessage.media_count && newMessage.media_count > 0) {
+            console.log('[REALTIME INSERT] Fetching media immediately for new MMS message:', {
+              messageId: newMessage.id,
+              mediaCount: newMessage.media_count
+            })
+
+            supabase.auth.getSession().then(({ data }: any) => {
+              const session = data?.session
+              fetch(`/api/message-media?messageId=${newMessage.id}`, {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session?.access_token}`
+                }
+              })
+              .then(response => response.json())
+              .then(mediaData => {
+                console.log('[REALTIME INSERT] Media fetched successfully:', {
+                  messageId: newMessage.id,
+                  mediaCount: mediaData.length
+                })
+                setMessageMedia((prev: any) => ({
+                  ...prev,
+                  [newMessage.id]: {
+                    urls: mediaData.map((m: any) => m.media_url),
+                    types: mediaData.map((m: any) => m.mime_type)
+                  }
+                }))
+              })
+              .catch(error => {
+                console.error('[REALTIME INSERT] Failed to fetch media:', error)
+              })
             })
           }
+        }
+      )
+
+    // UPDATE subscription for message status changes
+    channel
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `lead_id=eq.${leadId}`
+        },
+        (payload: any) => {
+          const updatedMessage = payload.new
+
+          // Validate filter match
+          if (updatedMessage.lead_id !== leadId) {
+            console.warn('[REALTIME UPDATE] Filter mismatch - ignoring:', {
+              expectedLeadId: leadId,
+              actualLeadId: updatedMessage.lead_id,
+              messageId: updatedMessage.id
+            })
+            return
+          }
+
+          setLeadData((prev: any) => {
+            if (!prev) {
+              console.log('[REALTIME UPDATE] No prev leadData, skipping')
+              return prev
+            }
+
+            const currentMessages = prev.messages || []
+            const mergedMessages = mergeMessageWithMonotonicity(currentMessages, updatedMessage, 'realtime-update')
+
+            return { ...prev, messages: mergedMessages }
+          })
         }
       )
       .on(
@@ -2494,106 +2463,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     realtimeChannelRef.current = channel
 
-    // Unfiltered diagnostic channel to distinguish publication/replication issues from filter issues
-    console.log('[REALTIME_DIAG_UNFILTERED_SETUP]', {
-      channelName: unfilteredChannelName,
-      leadId,
-      event: 'INSERT',
-      schema: 'public',
-      table: 'messages',
-      filter: 'NONE',
-      timestamp: new Date().toISOString(),
-      diagnosticInstanceId: realtimeInstanceIdRef.current
-    })
-
-    const unfilteredChannel = supabase
-      .channel(unfilteredChannelName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages'
-          // NO FILTER
-        },
-        (payload: any) => {
-          console.log('[REALTIME_DIAG_UNFILTERED_EVENT]', {
-            eventType: payload.eventType,
-            schema: payload.schema,
-            table: payload.table,
-            id: payload.new?.id,
-            lead_id: payload.new?.lead_id,
-            conversation_id: payload.new?.conversation_id,
-            direction: payload.new?.direction,
-            status: payload.new?.status,
-            created_at: payload.new?.created_at,
-            currentLeadId: leadId,
-            matchesCurrentLead: payload.new?.lead_id === leadId,
-            timestamp: new Date().toISOString()
-          })
-          // NO UI MUTATIONS - DIAGNOSTIC ONLY
-        }
-      )
-      .subscribe((status: any) => {
-        console.log('[REALTIME_DIAG_UNFILTERED_STATUS]', {
-          channelName: unfilteredChannelName,
-          leadId,
-          status,
-          timestamp: new Date().toISOString()
-        })
-      })
-
-    unfilteredChannelRef.current = unfilteredChannel
-
-    // Filtered INSERT-only diagnostic channel to distinguish event='*' + filter from filter issue
-    console.log('[REALTIME_DIAG_FILTERED_INSERT_SETUP]', {
-      channelName: filteredInsertDiagnosticName,
-      leadId,
-      event: 'INSERT',
-      schema: 'public',
-      table: 'messages',
-      filter: `lead_id=eq.${leadId}`,
-      timestamp: new Date().toISOString(),
-      diagnosticInstanceId: realtimeInstanceIdRef.current
-    })
-
-    const filteredInsertDiagnosticChannel = supabase
-      .channel(filteredInsertDiagnosticName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `lead_id=eq.${leadId}`
-        },
-        (payload: any) => {
-          console.log('[REALTIME_DIAG_FILTERED_INSERT_EVENT]', {
-            eventId: payload.id,
-            messageId: payload.new?.id,
-            messageLeadId: payload.new?.lead_id,
-            messageDirection: payload.new?.direction,
-            messageStatus: payload.new?.status,
-            created_at: payload.new?.created_at,
-            currentLeadId: leadId,
-            matchesCurrentLead: payload.new?.lead_id === leadId,
-            timestamp: new Date().toISOString(),
-            diagnosticInstanceId: realtimeInstanceIdRef.current
-          })
-        }
-      )
-      .subscribe((status: any) => {
-        console.log('[REALTIME_DIAG_FILTERED_INSERT_STATUS]', {
-          channelName: filteredInsertDiagnosticName,
-          leadId,
-          status,
-          timestamp: new Date().toISOString(),
-          diagnosticInstanceId: realtimeInstanceIdRef.current
-        })
-      })
-
-    filteredInsertDiagnosticRef.current = filteredInsertDiagnosticChannel
-
     // Start stuck message check interval (bounded recovery - only check twice)
     let checkCount = 0
     const maxChecks = 2
@@ -2630,16 +2499,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     // Cleanup on unmount or lead ID change
     return () => {
-      console.log('[REALTIME DIAG_CLEANUP]', {
-        channelName,
-        unfilteredChannelName,
-        filteredInsertDiagnosticName,
-        leadId,
-        timestamp: new Date().toISOString(),
-        diagnosticInstanceId: realtimeInstanceIdRef.current,
-        pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown'
-      })
-
       console.log('[REALTIME EFFECT CLEANUP]', {
         instanceId: realtimeInstanceIdRef.current,
         effectLeadId: leadId,
@@ -2651,35 +2510,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       if (realtimeChannelRef.current) {
         console.log('[REALTIME SUBSCRIPTION CLEANUP] Removing channel')
         supabase.removeChannel(realtimeChannelRef.current)
-        console.log('[REALTIME DIAG_REMOVED]', {
-          channelName,
-          leadId,
-          timestamp: new Date().toISOString(),
-          diagnosticInstanceId: realtimeInstanceIdRef.current
-        })
         realtimeChannelRef.current = null
-      }
-      if (unfilteredChannelRef.current) {
-        console.log('[REALTIME DIAG_UNFILTERED_CLEANUP] Removing unfiltered diagnostic channel')
-        supabase.removeChannel(unfilteredChannelRef.current)
-        console.log('[REALTIME DIAG_UNFILTERED_REMOVED]', {
-          channelName: unfilteredChannelName,
-          leadId,
-          timestamp: new Date().toISOString(),
-          diagnosticInstanceId: realtimeInstanceIdRef.current
-        })
-        unfilteredChannelRef.current = null
-      }
-      if (filteredInsertDiagnosticRef.current) {
-        console.log('[REALTIME DIAG_FILTERED_INSERT_CLEANUP] Removing filtered INSERT diagnostic channel')
-        supabase.removeChannel(filteredInsertDiagnosticRef.current)
-        console.log('[REALTIME DIAG_FILTERED_INSERT_REMOVED]', {
-          channelName: filteredInsertDiagnosticName,
-          leadId,
-          timestamp: new Date().toISOString(),
-          diagnosticInstanceId: realtimeInstanceIdRef.current
-        })
-        filteredInsertDiagnosticRef.current = null
       }
       currentLeadIdRef.current = null
       if (stuckMessageCheckIntervalRef.current) {
