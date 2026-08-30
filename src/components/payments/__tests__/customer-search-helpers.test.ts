@@ -41,6 +41,13 @@ describe('customer-search-helpers', () => {
       const lead: Lead = { id: '1', name: null, caller_phone: null }
       expect(getCustomerDisplayName(lead)).toBe('')
     })
+
+    it('defensively handles raw E.164 accidentally supplied as name', () => {
+      // Defense-in-depth: even if malformed data arrives with raw E.164 as name,
+      // the helper still shows it (API should prevent this, but defensive layer helps)
+      const lead: Lead = { id: '1', name: '+14128553010', caller_phone: '+14128553010' }
+      expect(getCustomerDisplayName(lead)).toBe('+14128553010') // Shows raw E.164 (malformed data)
+    })
   })
 
   describe('getCustomerSecondaryText', () => {
@@ -57,6 +64,21 @@ describe('customer-search-helpers', () => {
     it('returns null when phone equals display name (name missing case)', () => {
       const lead: Lead = { id: '1', name: 'Not collected', caller_phone: '4125551212' }
       expect(getCustomerSecondaryText(lead)).toBeNull()
+    })
+
+    it('returns null when phone equals display name (null name case)', () => {
+      // API fix scenario: name is null, helper falls back to formatted phone
+      const lead: Lead = { id: '1', name: null, caller_phone: '4125551212' }
+      expect(getCustomerDisplayName(lead)).toBe('(412) 555-1212')
+      expect(getCustomerSecondaryText(lead)).toBeNull() // No duplicate
+    })
+
+    it('defensively handles raw E.164 accidentally supplied as name (no duplicate)', () => {
+      // Defense-in-depth: even if malformed data arrives with raw E.164 as name,
+      // recognize it's the same phone identity and don't duplicate
+      const lead: Lead = { id: '1', name: '+14128553010', caller_phone: '+14128553010' }
+      expect(getCustomerDisplayName(lead)).toBe('+14128553010') // Raw E.164 (malformed)
+      expect(getCustomerSecondaryText(lead)).toBeNull() // No duplicate due to defensive normalization
     })
   })
 

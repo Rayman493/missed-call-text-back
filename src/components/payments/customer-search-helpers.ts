@@ -35,7 +35,10 @@ export function getCustomerSecondaryText(lead: Lead): string | null {
   const formattedPhone = formatForDisplay(lead.caller_phone)
   const displayName = getCustomerDisplayName(lead)
   // Only show phone if it's different from the display name
-  if (formattedPhone !== displayName) {
+  // Also normalize both to digits for comparison to catch raw E.164 vs formatted phone equivalence
+  const displayNameDigits = normalizePhoneDigits(displayName)
+  const phoneDigits = normalizePhoneDigits(formattedPhone)
+  if (formattedPhone !== displayName && displayNameDigits !== phoneDigits) {
     return formattedPhone
   }
   return null
