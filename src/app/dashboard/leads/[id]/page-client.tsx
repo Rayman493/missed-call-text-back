@@ -2147,36 +2147,36 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'messages',
-          filter: `lead_id=eq.${leadId}`
+          table: 'messages'
+          // No server-side filter - RLS provides cross-business isolation
+          // Client-side lead guard ensures conversation isolation
         },
         (payload: any) => {
-          console.log('[REALTIME INSERT] CALLBACK FIRED:', {
-            instanceId: realtimeInstanceIdRef.current,
-            messageId: payload.new?.id,
-            clientMessageId: payload.new?.client_message_id,
-            twilioSid: payload.new?.twilio_message_sid,
-            leadId: payload.new?.lead_id,
-            filterLeadId: leadId,
-            status: payload.new?.status,
-            direction: payload.new?.direction,
-            mediaCount: payload.new?.media_count,
-            body: payload.new?.body?.substring(0, 30),
-            created_at: payload.new?.created_at,
-            timestamp: new Date().toISOString()
-          })
-
           const newMessage = payload.new
 
-          // Validate filter match
-          if (newMessage.lead_id !== leadId) {
-            console.warn('[REALTIME INSERT] Filter mismatch - ignoring:', {
-              expectedLeadId: leadId,
-              actualLeadId: newMessage.lead_id,
-              messageId: newMessage.id
+          // Client-side lead guard: only process messages for the currently viewed lead
+          if (!newMessage?.lead_id || newMessage.lead_id !== leadId) {
+            console.log('[REALTIME INSERT] REJECTED DIFFERENT LEAD:', {
+              instanceId: realtimeInstanceIdRef.current,
+              messageId: newMessage?.id,
+              payloadLeadId: newMessage?.lead_id,
+              viewedLeadId: leadId,
+              timestamp: new Date().toISOString()
             })
             return
           }
+
+          console.log('[REALTIME INSERT] ACCEPTED:', {
+            instanceId: realtimeInstanceIdRef.current,
+            messageId: newMessage?.id,
+            clientMessageId: newMessage?.client_message_id,
+            twilioSid: newMessage?.twilio_message_sid,
+            leadId: newMessage?.lead_id,
+            status: newMessage?.status,
+            direction: newMessage?.direction,
+            mediaCount: newMessage?.media_count,
+            timestamp: new Date().toISOString()
+          })
 
           setLeadData((prev: any) => {
             if (!prev) {
@@ -2243,44 +2243,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       )
 
-    // DIAGNOSTIC: Unfiltered messages INSERT subscription to determine if failure is at filter or publication level
-    // This channel is OBSERVATION ONLY - never mutates state
-    const diagnosticChannelName = `lead-detail-diagnostic-all-inserts:${leadId}:${realtimeInstanceIdRef.current}`
-    const diagnosticChannel = supabase.channel(diagnosticChannelName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages'
-          // NO FILTER - observe all message INSERTs
-        },
-        (payload: any) => {
-          console.log('[REALTIME UNFILTERED DIAG] CALLBACK FIRED:', {
-            instanceId: realtimeInstanceIdRef.current,
-            viewedLeadId: leadId,
-            messageId: payload.new?.id,
-            lead_id: payload.new?.lead_id,
-            direction: payload.new?.direction,
-            status: payload.new?.status,
-            sender: payload.new?.sender,
-            timestamp: new Date().toISOString()
-          })
-          // IMPORTANT: This diagnostic channel NEVER mutates state
-          // It only logs to help diagnose whether publication/RLS is working
-        }
-      )
-      .subscribe((status: any) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('[REALTIME UNFILTERED DIAG] SUBSCRIBED:', {
-            diagnosticChannelName,
-            viewedLeadId: leadId,
-            instanceId: realtimeInstanceIdRef.current,
-            timestamp: new Date().toISOString()
-          })
-        }
-      })
-
     // UPDATE subscription for message status changes
     channel
       .on(
@@ -2288,21 +2250,32 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'messages',
-          filter: `lead_id=eq.${leadId}`
+          table: 'messages'
+          // No server-side filter - RLS provides cross-business isolation
+          // Client-side lead guard ensures conversation isolation
         },
         (payload: any) => {
           const updatedMessage = payload.new
 
-          // Validate filter match
-          if (updatedMessage.lead_id !== leadId) {
-            console.warn('[REALTIME UPDATE] Filter mismatch - ignoring:', {
-              expectedLeadId: leadId,
-              actualLeadId: updatedMessage.lead_id,
-              messageId: updatedMessage.id
+          // Client-side lead guard: only process messages for the currently viewed lead
+          if (!updatedMessage?.lead_id || updatedMessage.lead_id !== leadId) {
+            console.log('[REALTIME UPDATE] REJECTED DIFFERENT LEAD:', {
+              instanceId: realtimeInstanceIdRef.current,
+              messageId: updatedMessage?.id,
+              payloadLeadId: updatedMessage?.lead_id,
+              viewedLeadId: leadId,
+              timestamp: new Date().toISOString()
             })
             return
           }
+
+          console.log('[REALTIME UPDATE] ACCEPTED:', {
+            instanceId: realtimeInstanceIdRef.current,
+            messageId: updatedMessage?.id,
+            leadId: updatedMessage?.lead_id,
+            status: updatedMessage?.status,
+            timestamp: new Date().toISOString()
+          })
 
           setLeadData((prev: any) => {
             if (!prev) {
@@ -2462,7 +2435,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             leadId,
             channelName,
             instanceId: realtimeInstanceIdRef.current,
-            filter: `lead_id=eq.${leadId}`,
             timestamp: new Date().toISOString()
           })
         } else if (status === 'CHANNEL_ERROR') {
@@ -2540,9 +2512,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         supabase.removeChannel(realtimeChannelRef.current)
         realtimeChannelRef.current = null
       }
-      // Cleanup diagnostic channel
-      console.log('[REALTIME UNFILTERED DIAG] Removing diagnostic channel:', diagnosticChannelName)
-      supabase.removeChannel(diagnosticChannel)
       currentLeadIdRef.current = null
       if (stuckMessageCheckIntervalRef.current) {
         clearInterval(stuckMessageCheckIntervalRef.current)
