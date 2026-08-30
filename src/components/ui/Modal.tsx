@@ -42,6 +42,7 @@ export default function Modal({
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
+  const pointerDownOnBackdropRef = useRef(false)
 
   // Use the canonical scroll-lock mechanism for consistent behavior across all modals
   useBodyScrollLock(isOpen, title ? `Modal:${title}` : 'Modal')
@@ -73,15 +74,34 @@ export default function Modal({
     }
   }, [isOpen, title])
 
-  // Handle click outside
+  // Track pointer origin - only true if pointerdown was directly on backdrop
+  const handleBackdropPointerDown = (e: React.PointerEvent) => {
+    pointerDownOnBackdropRef.current = e.target === e.currentTarget
+  }
+
+  // Handle pointer up - track endpoint but don't reset yet (click will reset)
+  const handleBackdropPointerUp = (e: React.PointerEvent) => {
+    // Just let the click handler handle the logic
+    // Don't reset here because click fires after pointerup
+  }
+
+  // Handle pointer cancel - reset tracking
+  const handleBackdropPointerCancel = () => {
+    pointerDownOnBackdropRef.current = false
+  }
+
+  // Handle backdrop click - only close if pointer started AND ended on backdrop
   const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
+    // Only close if click target is backdrop AND pointer started on backdrop
+    if (e.target === e.currentTarget && pointerDownOnBackdropRef.current) {
       if (onBackdropClose) {
         onBackdropClose()
       } else {
         onClose()
       }
     }
+    // Reset after handling click
+    pointerDownOnBackdropRef.current = false
   }
 
   if (!isOpen) return null
@@ -99,6 +119,9 @@ export default function Modal({
         paddingTop: 'max(16px, env(safe-area-inset-top))',
         paddingBottom: 'max(16px, var(--modal-bottom-reserve))',
       }}
+      onPointerDown={handleBackdropPointerDown}
+      onPointerUp={handleBackdropPointerUp}
+      onPointerCancel={handleBackdropPointerCancel}
       onClick={handleBackdropClick}
     >
       <div
