@@ -214,7 +214,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="flex-1 px-4 py-2.5 border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
@@ -225,7 +225,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
               handleSubmit(e)
             }}
             disabled={isSubmitting}
-            className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+            className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isSubmitting ? (
               <>
@@ -239,10 +239,10 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4">
             {/* Customer Name */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label className="block text-xs text-muted-foreground font-medium mb-1.5">
                 Customer Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -254,14 +254,14 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 value={formData.customerName}
                 onChange={(e) => handleInputChange('customerName', e.target.value)}
                 placeholder="John Smith"
-                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 disabled={isSubmitting}
               />
             </div>
 
             {/* Reason for Calling */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label className="block text-xs text-muted-foreground font-medium mb-1.5">
                 Reason for Calling
               </label>
               <input
@@ -269,7 +269,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 value={formData.reasonForCalling}
                 onChange={(e) => handleInputChange('reasonForCalling', e.target.value)}
                 placeholder="e.g., Piano lessons, HVAC repair, Consultation"
-                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 disabled={isSubmitting}
                 autoCapitalize="sentences"
                 autoCorrect="on"
@@ -278,7 +278,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
 
             {/* Details */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label className="block text-xs text-muted-foreground font-medium mb-1.5">
                 Details
               </label>
               <textarea
@@ -286,7 +286,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 onChange={(e) => handleInputChange('notes', e.target.value)}
                 placeholder="Any additional details..."
                 rows={2}
-                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none resize-none"
+                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
                 disabled={isSubmitting}
                 autoCapitalize="sentences"
                 autoCorrect="on"
@@ -296,7 +296,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
 
             {/* Location */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label className="block text-xs text-muted-foreground font-medium mb-1.5">
                 Location
               </label>
               <input
@@ -305,7 +305,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 value={formData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
                 placeholder="123 Main St, City, State"
-                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 disabled={isSubmitting}
               />
               <p className="text-xs text-muted-foreground/70 mt-1.5">
@@ -315,7 +315,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
 
             {/* Desired Completion Time */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label className="block text-xs text-muted-foreground font-medium mb-1.5">
                 Desired Completion Time
               </label>
               <input
@@ -323,7 +323,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 value={formData.desiredCompletionTime}
                 onChange={(e) => handleInputChange('desiredCompletionTime', e.target.value)}
                 placeholder="e.g., tomorrow, next week, by Friday"
-                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 disabled={isSubmitting}
                 autoCapitalize="sentences"
                 autoCorrect="on"
@@ -332,7 +332,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
 
             {/* Preferred Callback Time */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label className="block text-xs text-muted-foreground font-medium mb-1.5">
                 Preferred Callback Time
               </label>
               <input
@@ -340,7 +340,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 value={formData.preferredCallbackTime}
                 onChange={(e) => handleInputChange('preferredCallbackTime', e.target.value)}
                 placeholder="e.g., afternoon, 2pm, morning"
-                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 disabled={isSubmitting}
                 autoCapitalize="sentences"
                 autoCorrect="on"
@@ -349,7 +349,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
 
             {/* Phone Number */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label className="block text-xs text-muted-foreground font-medium mb-1.5">
                 Phone Number <span className="text-red-500">*</span>
               </label>
               <input
@@ -359,14 +359,14 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 value={formData.phoneNumber}
                 onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                 placeholder="(412) 253-3598"
-                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 disabled={isSubmitting}
               />
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label className="block text-xs text-muted-foreground font-medium mb-1.5">
                 Email
               </label>
               <input
@@ -379,7 +379,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 placeholder="john@example.com"
-                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 disabled={isSubmitting}
               />
             </div>
