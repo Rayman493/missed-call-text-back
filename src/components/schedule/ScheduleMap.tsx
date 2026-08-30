@@ -447,8 +447,13 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     geocode()
   }, [business, formatBusinessAddress, geocodeBusinessAddress])
 
-  // Format date for display
-  const formatDate = (date: Date) => {
+  // Format date for display - short format
+  const formatDateShort = (date: Date) => {
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  }
+
+  // Format date for display - long format
+  const formatDateLong = (date: Date) => {
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   }
 
@@ -2368,9 +2373,9 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div className="text-center w-[130px] sm:w-[160px] flex-none">
+          <div className="text-center w-[140px] flex-none">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground truncate">
-              {formatDate(selectedDate)}
+              {formatDateShort(selectedDate)}
             </h2>
           </div>
           <button
@@ -2394,12 +2399,12 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
   if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
     return (
       <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between mb-4 px-1">
+        <div className="flex items-center justify-center gap-2 mb-4 px-1">
           <button onClick={onPreviousDay} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex-shrink-0">
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div className="text-center w-[130px] sm:w-[160px] flex-none">
-            <h2 className="text-lg font-semibold truncate">{formatDate(selectedDate)}</h2>
+          <div className="text-center w-[140px] flex-none">
+            <h2 className="text-lg font-semibold truncate">{formatDateShort(selectedDate)}</h2>
           </div>
           <button onClick={onNextDay} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex-shrink-0">
             <ChevronRight className="w-5 h-5" />
@@ -2605,17 +2610,11 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
             >
               <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
             </button>
-            <div className="text-center w-[200px] flex-none">
+            <div className="text-center w-[220px] flex-none">
               <h2 className="text-base font-semibold text-slate-900 dark:text-foreground truncate">
-                {formatDate(selectedDate)}
+                {formatDateLong(selectedDate)}
               </h2>
             </div>
-            <button
-              onClick={onGoToToday}
-              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors flex-shrink-0"
-            >
-              Today
-            </button>
             <button
               onClick={onNextDay}
               className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
@@ -2625,8 +2624,14 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
             </button>
           </div>
 
-          {/* RIGHT: Filter + Show All */}
+          {/* RIGHT: Today + Filter + Show All */}
           <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={onGoToToday}
+              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors"
+            >
+              Today
+            </button>
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
               <button
                 onClick={() => { setMapFilter('all') }}
@@ -2682,17 +2687,11 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
             >
               <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
             </button>
-            <div className="text-center w-[130px] sm:w-[160px] flex-none">
+            <div className="text-center w-[140px] flex-none">
               <h2 className="text-base font-semibold text-slate-900 dark:text-foreground truncate">
-                {formatDate(selectedDate)}
+                {formatDateShort(selectedDate)}
               </h2>
             </div>
-            <button
-              onClick={onGoToToday}
-              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
-            >
-              Today
-            </button>
             <button
               onClick={onNextDay}
               className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
@@ -2702,55 +2701,61 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
             </button>
           </div>
 
-          {/* Row 2: Scheduled Stops + actions */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <h3 className="text-xs font-semibold text-foreground">Scheduled Stops</h3>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400">{routeSummary}</span>
+          {/* Row 2: Scheduled Stops summary */}
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-xs font-semibold text-foreground">Scheduled Stops</h3>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400">{routeSummary}</span>
+            <button
+              onClick={onGoToToday}
+              className="ml-auto px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-[10px] font-medium transition-colors flex-shrink-0"
+            >
+              Today
+            </button>
+          </div>
+
+          {/* Row 3: Filters (right-aligned, above map) */}
+          <div className="flex items-center justify-end gap-1.5">
+            <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+              <button
+                onClick={() => { setMapFilter('all') }}
+                className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
+                  mapFilter === 'all'
+                    ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => { setMapFilter('jobs') }}
+                className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
+                  mapFilter === 'jobs'
+                    ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                Jobs
+              </button>
+              <button
+                onClick={() => { setMapFilter('appointments') }}
+                className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
+                  mapFilter === 'appointments'
+                    ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                Appts
+              </button>
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
-                <button
-                  onClick={() => { setMapFilter('all') }}
-                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
-                    mapFilter === 'all'
-                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => { setMapFilter('jobs') }}
-                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
-                    mapFilter === 'jobs'
-                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  Jobs
-                </button>
-                <button
-                  onClick={() => { setMapFilter('appointments') }}
-                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
-                    mapFilter === 'appointments'
-                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  Appts
-                </button>
-              </div>
-              {sortedItems.length > 0 && (
-                <button
-                  onClick={showAllMarkers}
-                  className="flex items-center gap-1 px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-[10px] font-medium transition-colors"
-                >
-                  <Layers className="w-3 h-3" />
-                  All
-                </button>
-              )}
-            </div>
+            {sortedItems.length > 0 && (
+              <button
+                onClick={showAllMarkers}
+                className="flex items-center gap-1 px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-[10px] font-medium transition-colors"
+              >
+                <Layers className="w-3 h-3" />
+                All
+              </button>
+            )}
           </div>
         </div>
       </div>
