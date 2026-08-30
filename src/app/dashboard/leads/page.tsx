@@ -581,7 +581,7 @@ export default function LeadsPage() {
       return matchesSearch && isDeleted
     }
 
-    const matchesStatus = statusFilter === 'all' || leadStatus === statusFilter
+    const matchesStatus = statusFilter === 'all' ? leadStatus !== 'ignored' : leadStatus === statusFilter
 
     // Hide deleted customers from default view (when filter is not 'deleted')
     const shouldShowDeleted = !isDeleted
