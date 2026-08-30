@@ -4444,8 +4444,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <div>
                             <div className="text-sm font-medium text-foreground mb-2">
                               {paymentRequests.filter((pr: any) => pr.status === 'paid').length === paymentRequests.length
-                                ? `Paid ${formatCurrency(paymentRequests.reduce((sum: number, pr: any) => sum + (pr.amount_cents || 0), 0) / 100)}`
-                                : `$${(paymentRequests.reduce((sum: number, pr: any) => sum + (pr.amount_cents || 0) - (pr.status === 'paid' ? pr.amount_cents || 0 : 0), 0) / 100).toFixed(2)} outstanding`
+                                ? `Paid ${formatCurrency(paymentRequests.reduce((sum: number, pr: any) => sum + (pr.amount_cents || 0), 0), true)}`
+                                : `${formatCurrency(paymentRequests.reduce((sum: number, pr: any) => sum + (pr.amount_cents || 0) - (pr.status === 'paid' ? pr.amount_cents || 0 : 0), 0), true)} outstanding`
                               }
                             </div>
                             <div className="text-xs text-muted-foreground">
@@ -4946,7 +4946,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   {(leadData?.paymentRequests || []).slice(0, 3).map((pr: any) => (
                     <div key={pr.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-foreground">${(pr.amount_cents / 100).toFixed(2)}</p>
+                        <p className="text-xs font-medium text-foreground">{formatCurrency(pr.amount_cents, true)}</p>
                         <p className="text-[10px] text-muted-foreground">{formatRelativeTime(pr.created_at)}</p>
                       </div>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 ${
@@ -5643,9 +5643,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   if (effectiveSource === 'business') {
                     // Launch SMS directly with payment request message
                     const businessName = business?.name || 'our business'
-                    const amount = (parseFloat(paymentAmount) || 0).toFixed(2)
+                    const amount = formatCurrency(parseFloat(paymentAmount) || 0)
                     const description = paymentDescription || 'Service payment'
-                    const message = `${businessName} has sent you a payment request of $${amount}.${description ? `
+                    const message = `${businessName} has sent you a payment request of ${amount}.${description ? `
 
 Reason: "${description}"` : ''}
 

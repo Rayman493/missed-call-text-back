@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { formatRelativeTime } from '@/lib/utils'
+import { formatRelativeTime, formatCurrency } from '@/lib/utils'
 import { Phone, MessageSquare, Reply, Calendar, Mic, Briefcase, CheckCircle, CreditCard, AlertCircle, Bot, DollarSign, Video, Send } from 'lucide-react'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 
@@ -219,7 +219,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           if (lead.payment_requests && lead.payment_requests.length > 0) {
             lead.payment_requests.forEach((pr: any) => {
               const displayName = getDisplayName(customerName, lead.caller_phone)
-              const amount = `$${(pr.amount_cents / 100).toFixed(2)}`
+              const amount = formatCurrency(pr.amount_cents, true)
               if (new Date(pr.created_at) >= new Date(sevenDaysAgo)) {
                 if (pr.status === 'pending') {
                   events.push({

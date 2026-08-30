@@ -1,7 +1,7 @@
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { createClient } from '@supabase/supabase-js'
 import { Business } from '@/lib/types'
-import { normalizePunctuation } from '@/lib/utils'
+import { normalizePunctuation, formatCurrency } from '@/lib/utils'
 
 /**
  * Resolve customer display name with fallback priority
@@ -249,7 +249,7 @@ export const NOTIFICATION_TEMPLATES = {
 
   payment_requested: (data: { leadName: string; leadPhone: string; leadId: string; amountCents: number; description?: string }) => {
     const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
-    const amount = `$${(data.amountCents / 100).toFixed(2)}`
+    const amount = formatCurrency(data.amountCents, true)
     return {
       title: 'Payment Requested',
       message: `${amount} sent to ${displayName}`,
@@ -260,7 +260,7 @@ export const NOTIFICATION_TEMPLATES = {
 
   payment_created: (data: { leadName: string; leadPhone: string; leadId: string; amountCents: number; description?: string }) => {
     const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
-    const amount = `$${(data.amountCents / 100).toFixed(2)}`
+    const amount = formatCurrency(data.amountCents, true)
     return {
       title: 'Payment Request Ready',
       message: `${amount} for ${displayName}`,
@@ -271,7 +271,7 @@ export const NOTIFICATION_TEMPLATES = {
 
   payment_completed: (data: { leadName: string; leadPhone: string; leadId: string; amountCents: number }) => {
     const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
-    const amount = `$${(data.amountCents / 100).toFixed(2)}`
+    const amount = formatCurrency(data.amountCents, true)
     return {
       title: 'Payment Received',
       message: `${amount} from ${displayName}`,

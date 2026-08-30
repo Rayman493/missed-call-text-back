@@ -950,7 +950,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                           )}
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Amount</span>
-                            <span className="text-foreground font-semibold">{formatCurrency(payment.amount_cents / 100)}</span>
+                            <span className="text-foreground font-semibold">{formatCurrency(payment.amount_cents, true)}</span>
                           </div>
                           {getPaymentDescription(payment) && (
                             <div className="flex justify-between">
@@ -1094,7 +1094,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                   )}
                                   <div className="flex justify-between">
                                     <span className="text-muted-foreground">Amount</span>
-                                    <span className="text-foreground font-semibold">{formatCurrency(payment.amount_cents / 100)}</span>
+                                    <span className="text-foreground font-semibold">{formatCurrency(payment.amount_cents, true)}</span>
                                   </div>
                                   {getPaymentDescription(payment) && (
                                     <div className="flex justify-between">
@@ -1297,7 +1297,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                               {payment.leads ? formatPhoneNumber(payment.leads.caller_phone) : '-'}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-foreground font-semibold text-sm">
-                              {formatCurrency(payment.amount_cents / 100)}
+                              {formatCurrency(payment.amount_cents, true)}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
                               {getPaymentMethodBadge(payment.payment_method_type, payment.payment_provider)}
@@ -1408,7 +1408,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                   {payment.leads ? formatPhoneNumber(payment.leads.caller_phone) : '-'}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap text-foreground font-semibold text-sm">
-                                  {formatCurrency(payment.amount_cents / 100)}
+                                  {formatCurrency(payment.amount_cents, true)}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   {getPaymentMethodBadge(payment.payment_method_type, payment.payment_provider)}
@@ -1546,7 +1546,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               <div className="bg-muted/50 dark:bg-[#0f172a] rounded-lg p-4 mb-4 border border-border dark:border-slate-700">
                 <div className="flex justify-between mb-2">
                   <span className="text-muted-foreground text-sm">Amount</span>
-                  <span className="text-foreground font-semibold">{formatCurrency(paymentToMarkPaid.amount_cents / 100)}</span>
+                  <span className="text-foreground font-semibold">{formatCurrency(paymentToMarkPaid.amount_cents, true)}</span>
                 </div>
                 {paymentToMarkPaid.description && (
                   <div className="flex justify-between">

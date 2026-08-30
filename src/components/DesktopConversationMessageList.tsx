@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { formatRelativeTime } from '@/lib/utils'
+import { formatRelativeTime, formatCurrency } from '@/lib/utils'
 import VoicemailMessage from '@/components/VoicemailMessage'
 import MessageMediaRenderer from '@/components/MessageMediaRenderer'
 import BusinessPhoneHistoryActions from '@/components/BusinessPhoneHistoryActions'
@@ -172,7 +172,7 @@ export default function DesktopConversationMessageList({
                   </span>
                 </div>
                 <div className="text-sm font-semibold text-foreground">
-                  ${(payment.amount_cents / 100).toFixed(2)}
+                  ${formatCurrency(payment.amount_cents, true)}
                 </div>
                 {payment.description && (
                   <div className="text-xs text-foreground/70">

@@ -21,6 +21,7 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { formatLeadStatus } from '@/lib/status-formatter'
+import { formatCurrency } from '@/lib/utils'
 
 interface ActivityEvent {
   id: string
@@ -257,7 +258,7 @@ export default function CustomerActivityTimeline({ leadData, onNavigateToJob, on
         const metadata = msg.metadata || {}
         let detail = ''
         if (metadata.amountCents) {
-          detail = `$${(metadata.amountCents / 100).toFixed(2)} payment request`
+          detail = `${formatCurrency(metadata.amountCents, true)} payment request`
         }
 
         activityEvents.push({
@@ -387,7 +388,7 @@ export default function CustomerActivityTimeline({ leadData, onNavigateToJob, on
             type: 'payment_requested',
             title: 'Payment requested',
             timestamp: pr.created_at,
-            detail: `$${(pr.amount_cents / 100).toFixed(2)}`,
+            detail: formatCurrency(pr.amount_cents, true),
             navigable: !!onNavigateToPayment,
             onClick: () => onNavigateToPayment?.(pr.id),
           })
@@ -397,7 +398,7 @@ export default function CustomerActivityTimeline({ leadData, onNavigateToJob, on
             type: 'payment_paid',
             title: 'Payment received',
             timestamp: pr.paid_at || pr.created_at,
-            detail: `$${(pr.amount_cents / 100).toFixed(2)}`,
+            detail: formatCurrency(pr.amount_cents, true),
             navigable: !!onNavigateToPayment,
             onClick: () => onNavigateToPayment?.(pr.id),
           })
@@ -407,7 +408,7 @@ export default function CustomerActivityTimeline({ leadData, onNavigateToJob, on
             type: 'payment_failed',
             title: 'Payment failed',
             timestamp: pr.updated_at || pr.created_at,
-            detail: `$${(pr.amount_cents / 100).toFixed(2)}`,
+            detail: formatCurrency(pr.amount_cents, true),
           })
         }
       })

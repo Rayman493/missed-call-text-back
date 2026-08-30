@@ -2,16 +2,19 @@
  * Shared chart utilities for premium dashboard analytics
  *
  * Provides:
- * - Currency formatters for Y-axis labels
+ * - Currency formatters for Y-axis labels (compact)
  * - Integer tick helpers for count-based metrics
  * - Premium tooltip component
  * - Common chart styling constants
  * - Mobile touch scroll protection wrapper
  */
 
+import { formatCurrency as formatCanonicalCurrency } from './utils'
+
 /**
  * Format currency value for display
  * Handles cents, thousands, and appropriate precision
+ * COMPACT VERSION for chart axes only
  */
 export function formatCurrency(value: number): string {
   if (value === 0) return '$0'
@@ -24,6 +27,7 @@ export function formatCurrency(value: number): string {
 /**
  * Format currency for Y-axis ticks
  * Uses less precision for cleaner axis labels
+ * COMPACT VERSION for chart axes only
  */
 export function formatCurrencyAxis(value: number): string {
   if (value === 0) return '$0'
@@ -118,7 +122,8 @@ function formatNumber(value: number, name?: string): string {
                      name?.toLowerCase().includes('amount')
 
   if (isCurrency) {
-    return formatCurrency(value)
+    // Use canonical formatter for tooltips (exact currency with 2 decimals)
+    return formatCanonicalCurrency(value)
   }
 
   // Check if this is a count-based metric
