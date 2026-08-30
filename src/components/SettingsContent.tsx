@@ -2786,7 +2786,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
             ) : (
             <>
             {/* Settings Sections */}
-            <div className="space-y-6 pb-32">
+            <div className="space-y-6 pb-40">
               {/* Group: General */}
               <div id="general-divider" className="flex items-center gap-4 mb-8 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-border/30"></div>
