@@ -1,11 +1,13 @@
 /**
  * Revenue Opportunities Service
- * 
+ *
  * Identifies customers representing immediate revenue opportunities.
  * Scores opportunities 0-100 based on multiple factors.
  */
 
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { getLeadDisplayName } from '@/lib/utils'
+import { getTerminalStatuses } from '@/lib/customer-status'
 import type {
   RevenueOpportunity,
   RevenueOpportunitiesContext,
@@ -13,6 +15,9 @@ import type {
   OpportunityType,
   OpportunityAction
 } from './revenue-opportunities-types'
+
+// Terminal customer statuses that should not show revenue opportunities (canonical definition)
+const TERMINAL_STATUSES = getTerminalStatuses()
 
 const CACHE_DURATION_MS = 5 * 60 * 1000 // 5 minutes
 
@@ -93,11 +98,18 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
   ): Promise<RevenueOpportunity[]> {
     const { data: allLeads } = await supabase
       .from('leads')
-      .select('id, caller_phone, raw_metadata')
+      .select('id, caller_phone, raw_metadata, status, deleted_at')
       .eq('business_id', businessId)
 
     // Filter for leads with AI intake data (stored in raw_metadata)
+    // Exclude deleted leads and terminal status customers
     const leads = allLeads?.filter((lead: any) => {
+      // Exclude deleted leads
+      if (lead.deleted_at) return false
+
+      // Exclude terminal status customers
+      if (lead.status && TERMINAL_STATUSES.includes(lead.status)) return false
+
       const rawMetadata = lead.raw_metadata || {}
       // Check for AI intake completion flags
       return rawMetadata.ai_intake_completed === true ||
@@ -124,7 +136,7 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
     return leadsWithoutJobs.map((lead: any) => {
       const opportunity = this.createOpportunity({
         customerId: lead.id,
-        customerName: this.getCustomerName(lead),
+        customerName: getLeadDisplayName(lead),
         type: 'ready_for_estimate',
         estimatedValue: null,
         whyNow: 'Completed intake, no estimate or job created yet',
@@ -169,22 +181,32 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
     const jobsWithPayments = new Map((payments || []).map((p: any) => [p.job_id, p.amount_cents]))
     const jobsWithoutPayments = completedJobs.filter((j: any) => !jobsWithPayments.has(j.id))
 
-    // Get lead information
+    // Get lead information (exclude deleted leads and terminal status customers)
     const leadIds = jobsWithoutPayments.map((j: any) => j.lead_id)
     const { data: leads } = await supabase
       .from('leads')
-      .select('id, caller_phone, raw_metadata')
+      .select('id, caller_phone, raw_metadata, status, deleted_at')
       .eq('business_id', businessId)
       .in('id', leadIds)
 
-    const leadsMap = new Map((leads || []).map((l: any) => [l.id, l]))
+    // Filter out deleted leads and terminal status customers
+    const filteredLeads = (leads || []).filter((lead: any) => {
+      if (lead.deleted_at) return false
+      if (lead.status && TERMINAL_STATUSES.includes(lead.status)) return false
+      return true
+    })
+
+    const leadsMap = new Map(filteredLeads.map((l: any) => [l.id, l]))
 
     return jobsWithoutPayments.map((job: any) => {
       const lead = leadsMap.get(job.lead_id)
 
+      // Skip if lead was filtered out
+      if (!lead) return null
+
       const opportunity = this.createOpportunity({
         customerId: job.lead_id,
-        customerName: lead ? this.getCustomerName(lead) : 'Unknown',
+        customerName: getLeadDisplayName(lead),
         type: 'ready_for_invoice',
         estimatedValue: 0, // Cannot calculate without job amount field
         whyNow: 'Job completed, no payment requested',
@@ -198,7 +220,7 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
       })
 
       return opportunity
-    })
+    }).filter((opp: RevenueOpportunity | null): opp is RevenueOpportunity => opp !== null)
   }
 
   /**
@@ -223,13 +245,20 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
     // Get leads with recent messages but no recent activity
     const { data: allLeads } = await supabase
       .from('leads')
-      .select('id, caller_phone, raw_metadata, created_at')
+      .select('id, caller_phone, raw_metadata, created_at, status, deleted_at')
       .eq('business_id', businessId)
       .order('created_at', { ascending: false })
       .limit(50)
 
     // Filter for leads with AI intake data (stored in raw_metadata)
+    // Exclude deleted leads and terminal status customers
     const leads = allLeads?.filter((lead: any) => {
+      // Exclude deleted leads
+      if (lead.deleted_at) return false
+
+      // Exclude terminal status customers
+      if (lead.status && TERMINAL_STATUSES.includes(lead.status)) return false
+
       const rawMetadata = lead.raw_metadata || {}
       // Check for AI intake completion flags
       return rawMetadata.ai_intake_completed === true ||
@@ -245,7 +274,7 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
 
     for (const lead of leads || []) {
       const leadAge = Math.floor((Date.now() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60 * 24))
-      
+
       // Only consider leads older than 3 days but younger than 30 days
       if (leadAge > 3 && leadAge < 30) {
         // Check for recent messages
@@ -266,7 +295,7 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
         if (daysSinceLastMessage >= 7) {
           const opportunity = this.createOpportunity({
             customerId: lead.id,
-            customerName: this.getCustomerName(lead),
+            customerName: getLeadDisplayName(lead),
             type: 'follow_up',
             estimatedValue: null,
             whyNow: `Last activity was ${daysSinceLastMessage} days ago, customer usually responds`,
@@ -399,17 +428,6 @@ class RevenueOpportunitiesService implements RevenueOpportunitiesServiceInterfac
       score: Math.min(100, Math.round(totalScore)),
       factors
     }
-  }
-
-  /**
-   * Get customer name from lead data
-   */
-  private getCustomerName(lead: any): string {
-    const aiIntake = lead.raw_metadata?.ai_intake || lead.raw_metadata
-    if (aiIntake?.customerName) {
-      return aiIntake.customerName
-    }
-    return lead.caller_phone || 'Unknown'
   }
 
   /**

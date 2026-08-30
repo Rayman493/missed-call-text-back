@@ -68,7 +68,7 @@ export default function RevenueOpportunities({ business }: RevenueOpportunitiesP
     )
   }
 
-  if (error || opportunities.length === 0) {
+  if (error) {
     return null
   }
 
@@ -83,19 +83,30 @@ export default function RevenueOpportunities({ business }: RevenueOpportunitiesP
           </h2>
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          {opportunities.length} opportunity{opportunities.length !== 1 ? 's' : ''} to act on today
+          {opportunities.length === 0
+            ? 'No revenue opportunities right now'
+            : `${opportunities.length} opportunity${opportunities.length !== 1 ? 's' : ''} to act on today`
+          }
         </p>
       </div>
 
       {/* Content */}
-      <div className="divide-y divide-slate-200/70 dark:divide-slate-700/50">
-        {opportunities.map(opportunity => (
-          <RevenueOpportunityRow
-            key={opportunity.id}
-            opportunity={opportunity}
-            onAction={() => handleAction(opportunity)}
-          />
-        ))}
+      <div className="divide-y divide-slate-200/70 dark:border-slate-700/50">
+        {opportunities.length === 0 ? (
+          <div className="px-5 py-8 text-center">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              ReplyFlow will surface customers who may need an estimate, invoice, or follow-up.
+            </p>
+          </div>
+        ) : (
+          opportunities.map(opportunity => (
+            <RevenueOpportunityRow
+              key={opportunity.id}
+              opportunity={opportunity}
+              onAction={() => handleAction(opportunity)}
+            />
+          ))
+        )}
       </div>
     </div>
   )
