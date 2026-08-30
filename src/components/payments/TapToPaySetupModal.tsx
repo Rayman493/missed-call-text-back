@@ -17,7 +17,7 @@ export default function TapToPaySetupModal({
   setupState,
 }: TapToPaySetupModalProps) {
   const router = useRouter()
-  useBodyScrollLock(isOpen)
+  useBodyScrollLock(isOpen, 'tap-to-pay-setup-modal')
 
   const handleConnectStripe = () => {
     onClose()

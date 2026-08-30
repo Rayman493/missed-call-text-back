@@ -171,10 +171,10 @@ export default function PaymentsPage() {
   const [scrollPositionBeforeEdit, setScrollPositionBeforeEdit] = useState<number | null>(null)
 
   // Lock background scroll when mark-paid confirm is open as well
-  useBodyScrollLock(showMarkPaidConfirm)
-  useBodyScrollLock(showQuickTapToPay)
-  useBodyScrollLock(showTapToPaySetup)
-  useBodyScrollLock(showEditModal)
+  useBodyScrollLock(showMarkPaidConfirm, 'mark-paid-confirm')
+  useBodyScrollLock(showQuickTapToPay, 'quick-tap-to-pay')
+  useBodyScrollLock(showTapToPaySetup, 'tap-to-pay-setup')
+  useBodyScrollLock(showEditModal, 'edit-modal')
 
   // Check native support on mount
   useEffect(() => {

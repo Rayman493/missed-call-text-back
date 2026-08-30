@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { X } from 'lucide-react'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface PhotoModalProps {
   imageUrl: string
@@ -10,6 +11,8 @@ interface PhotoModalProps {
 }
 
 export default function PhotoModal({ imageUrl, isOpen, onClose }: PhotoModalProps) {
+  useBodyScrollLock(isOpen, 'photo-modal')
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -19,12 +22,10 @@ export default function PhotoModal({ imageUrl, isOpen, onClose }: PhotoModalProp
 
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = 'hidden'
     }
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = 'unset'
     }
   }, [isOpen, onClose])
 

@@ -10,6 +10,7 @@ import { Notification, resolveNotificationSubject } from '@/lib/notifications'
 import { generateCanonicalRequestTitle, validateRequestTitle } from '@/lib/ai-intake-formatter'
 import { Bell, Check, MessageCircle, PhoneMissed, Send, Calendar, Info, CheckCircle, AlertTriangle, User, MessageSquare, Clock, CreditCard, Trash2, X } from 'lucide-react'
 import { getNotificationIcon, getNotificationColor, getNotificationDotColor } from '@/lib/notification-icons'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 // Hook to detect mobile breakpoint
 const useIsMobile = () => {
@@ -26,45 +27,6 @@ const useIsMobile = () => {
   }, [])
 
   return isMobile
-}
-
-// Hook to lock body scroll when modal is open
-const useBodyScrollLock = (isOpen: boolean) => {
-  useEffect(() => {
-    if (!isOpen) return
-
-    // Save current scroll position
-    const scrollY = window.scrollY
-    const scrollX = window.scrollX
-
-    // Lock scroll
-    const originalStyle = window.getComputedStyle(document.body)
-    const originalOverflow = originalStyle.overflow
-    const originalPosition = originalStyle.position
-
-    document.body.style.overflow = 'hidden'
-    document.body.style.position = 'fixed'
-    document.body.style.top = `-${scrollY}px`
-    document.body.style.left = `-${scrollX}px`
-    document.body.style.width = '100%'
-    document.body.style.right = '0'
-
-    // Also lock html element for some browsers
-    document.documentElement.style.overflow = 'hidden'
-
-    return () => {
-      // Restore scroll position
-      document.body.style.overflow = originalOverflow
-      document.body.style.position = originalPosition
-      document.body.style.top = ''
-      document.body.style.left = ''
-      document.body.style.width = ''
-      document.body.style.right = ''
-      document.documentElement.style.overflow = ''
-
-      window.scrollTo(scrollX, scrollY)
-    }
-  }, [isOpen])
 }
 
 export default function NavbarNotifications() {
@@ -93,7 +55,7 @@ export default function NavbarNotifications() {
   const isScrollingRef = useRef(false)
 
   // Lock body scroll when notifications panel is open
-  useBodyScrollLock(isOpen)
+  useBodyScrollLock(isOpen, 'navbar-notifications')
 
   // Calculate button position when dropdown opens
   useEffect(() => {

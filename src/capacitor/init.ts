@@ -16,6 +16,7 @@ import { pushService } from '@/lib/push-service';
 import { TerminalBridgeService } from '@/lib/terminal/service';
 import { createBrowserClient } from '@/lib/supabase/browser';
 import { handleExternalReturn, handleAppResume } from '@/lib/external-return-handler';
+import { reconcileScrollLock } from '@/hooks/useBodyScrollLock';
 
 // Import production web checkout plugin for native iOS Stripe checkout
 // This provides automatic return-to-app behavior using ASWebAuthenticationSession
@@ -120,6 +121,11 @@ export async function initializeCapacitor() {
         (window as any).__logScrollStateSnapshot(`appStateChange_${isActive ? 'active' : 'inactive'}`);
       }
 
+      // Reconcile scroll lock state on app resume to prevent stale locks
+      if (isActive) {
+        reconcileScrollLock();
+      }
+
       // Handle external return reconciliation on app resume
       if (isActive) {
         console.log('[ACCOUNT_CREATION_BRIDGE] appStateChange triggering handleAppResume');
@@ -137,6 +143,10 @@ export async function initializeCapacitor() {
         console.log('[LIFECYCLE] Document visibility changed:', document.visibilityState);
         if (typeof (window as any).__logScrollStateSnapshot === 'function') {
           (window as any).__logScrollStateSnapshot(`visibilitychange_${document.visibilityState}`);
+        }
+        // Reconcile scroll lock state when becoming visible to prevent stale locks
+        if (document.visibilityState === 'visible') {
+          reconcileScrollLock();
         }
       });
     }

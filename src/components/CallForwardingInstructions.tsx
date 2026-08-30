@@ -7,6 +7,7 @@ import Link from 'next/link'
 import ForwardingHelpCenter from './ForwardingHelpCenter'
 import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface CallForwardingInstructionsProps {
   phoneNumber: string
@@ -28,11 +29,11 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
     setMounted(true)
   }, [])
 
+  // Lock body scroll when open
+  useBodyScrollLock(isOpen, 'call-forwarding-instructions')
+
   useEffect(() => {
     if (!isOpen) return
-
-    const originalOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -50,7 +51,6 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
     })
 
     return () => {
-      document.body.style.overflow = originalOverflow
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [isOpen, onClose])

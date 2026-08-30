@@ -27,7 +27,7 @@ interface ImportContactsModalProps {
 }
 
 export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }: ImportContactsModalProps) {
-  useBodyScrollLock(isOpen)
+  useBodyScrollLock(isOpen, 'import-contacts-modal')
   const [activeTab, setActiveTab] = useState<'paste' | 'csv'>('paste')
   const [pasteContent, setPasteContent] = useState('')
   const [csvFile, setCsvFile] = useState<File | null>(null)

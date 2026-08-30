@@ -64,7 +64,7 @@ export default function FollowUpSettings({ isOpen, onClose, onSave, businessName
   }, [isOpen])
 
   // Lock background scroll when modal is open
-  useBodyScrollLock(isOpen)
+  useBodyScrollLock(isOpen, 'follow-up-settings-modal')
 
   // Close on Android Back / browser Back before navigating away
   useEffect(() => {

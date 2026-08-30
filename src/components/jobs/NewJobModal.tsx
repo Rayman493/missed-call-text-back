@@ -23,7 +23,7 @@ export default function NewJobModal({
   title = 'Create Job',
   prompt = 'Choose a customer for this job',
 }: NewJobModalProps) {
-  useBodyScrollLock(isOpen)
+  useBodyScrollLock(isOpen, 'new-job-modal')
 
 // Handle Android back button and browser back to close modal
 useModalBackButton({ isOpen, onClose })

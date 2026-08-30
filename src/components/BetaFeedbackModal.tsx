@@ -20,7 +20,7 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
   const catMenuRef = useRef<HTMLDivElement | null>(null)
 
   // Lock background scroll when modal is open
-  useBodyScrollLock(isOpen)
+  useBodyScrollLock(isOpen, 'beta-feedback-modal')
 
   // Close category menu on outside click or Escape
   useEffect(() => {

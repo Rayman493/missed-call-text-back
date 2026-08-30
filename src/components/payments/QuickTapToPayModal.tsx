@@ -578,7 +578,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
   // Scroll ref for content area
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
-  useBodyScrollLock(isOpen)
+  useBodyScrollLock(isOpen, 'quick-tap-to-pay-modal')
 
   // Check native support when modal opens
   useEffect(() => {

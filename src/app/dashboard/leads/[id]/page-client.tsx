@@ -28,6 +28,7 @@ import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName, getInitialsFromName } from '@/lib/utils'
 import { getCustomerSourceInfo } from '@/lib/customer-source'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { PhoneIncoming, UserPlus, RefreshCw, Plus } from 'lucide-react'
 import { getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus, getAIIntakeStatusLabel, getAIIntakeStatusColor } from '@/lib/ai-field-mapping'
 import { deriveJobSchedulingPrefill } from '@/lib/job-scheduling-prefill'
@@ -519,13 +520,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const preservedScrollRef = useRef(0)
   const fullScreenScrollRef = useRef<HTMLDivElement>(null)
 
-  // Body scroll lock and Escape/back handling for full-screen
+  // Use centralized scroll lock for full-screen mode
+  useBodyScrollLock(isFullScreen, 'lead-fullscreen')
+
+  // Escape/back handling and focus for full-screen
   useEffect(() => {
     if (!isFullScreen) return
-    const previousOverflow = typeof document !== 'undefined' ? document.body.style.overflow : ''
-    if (typeof document !== 'undefined') {
-      document.body.style.overflow = 'hidden'
-    }
     // Focus scroll container on next frame for accessibility
     let focusRaf: number | null = null
     if (typeof window !== 'undefined') {
@@ -548,9 +548,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }).then((h: any) => { backHandle = h }).catch(() => {})
     }
     return () => {
-      if (typeof document !== 'undefined') {
-        document.body.style.overflow = previousOverflow
-      }
       if (typeof window !== 'undefined') {
         window.removeEventListener('keydown', onKeyDown)
         if (focusRaf && typeof window.cancelAnimationFrame === 'function') {
@@ -630,20 +627,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }, [collapsedSections])
 
-  // Prevent body scrolling when Customer Details modal is open
-  useEffect(() => {
-    if (typeof document !== 'undefined') {
-      if (showLeadInfo) {
-        document.body.style.overflow = 'hidden'
-        document.body.style.position = 'fixed'
-        document.body.style.width = '100%'
-      } else {
-        document.body.style.overflow = ''
-        document.body.style.position = ''
-        document.body.style.width = ''
-      }
-    }
-  }, [showLeadInfo])
+  // Use centralized scroll lock for Customer Details modal
+  useBodyScrollLock(showLeadInfo, 'customer-details-modal')
 
   // Reset triggerEditCustomerDetails after it's been consumed
   useEffect(() => {
@@ -1541,14 +1526,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Handle Android back button for Appointment Selection modal
   useModalBackButton({ isOpen: showAppointmentSelection, onClose: () => setShowAppointmentSelection(false) })
 
-  useEffect(() => {
-    if (!isAppointmentModalOpen || typeof document === 'undefined') return
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = previousOverflow
-    }
-  }, [isAppointmentModalOpen])
+  // Use centralized scroll lock for appointment modal
+  useBodyScrollLock(isAppointmentModalOpen, 'appointment-modal')
 
   // Set default payment provider when modal opens
   useEffect(() => {

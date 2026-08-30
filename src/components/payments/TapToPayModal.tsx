@@ -70,7 +70,7 @@ export default function TapToPayModal({
   const [receiptSent, setReceiptSent] = useState(false)
   const [receiptError, setReceiptError] = useState('')
 
-  useBodyScrollLock(isOpen)
+  useBodyScrollLock(isOpen, 'tap-to-pay-modal')
 
   // Use shared reader presentation hook
   // Note: Hook is called with isOpen (not isOpen && isNativeSupported) to keep the reference stable

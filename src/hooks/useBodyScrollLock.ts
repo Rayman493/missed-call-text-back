@@ -5,6 +5,67 @@ let lockCount = 0
 let globalScrollPosition = 0
 const activeOwners = new Map<string, { component: string; mountedAt: number }>()
 
+// Store original DOM values when first lock is acquired
+let originalBodyOverflow = ''
+let originalBodyPosition = ''
+let originalBodyTop = ''
+let originalBodyWidth = ''
+let originalBodyTouchAction = ''
+let originalBodyLeft = ''
+let originalBodyRight = ''
+let originalHtmlOverflow = ''
+let originalHtmlHeight = ''
+let originalHtmlTouchAction = ''
+
+/**
+ * Reconcile DOM scroll-lock state with current ownership state
+ * Call this when lifecycle transitions might cause DOM state to drift from ownership
+ * (e.g., app resume, visibility change, route change)
+ */
+export function reconcileScrollLock(): void {
+  if (typeof window === 'undefined') return
+
+  console.log('[SCROLL_RECONCILE] Reconciling scroll lock state', {
+    lockCount,
+    activeOwnerCount: activeOwners.size,
+    bodyOverflow: document.body.style.overflow,
+    htmlOverflow: document.documentElement.style.overflow,
+    timestamp: Date.now()
+  })
+
+  if (lockCount > 0 && activeOwners.size > 0) {
+    // Should be locked - apply lock if not already
+    if (document.body.style.overflow !== 'hidden' ||
+        document.documentElement.style.overflow !== 'hidden') {
+      console.log('[SCROLL_RECONCILE] Applying lock (DOM was unlocked)')
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${globalScrollPosition}px`
+      document.body.style.width = '100%'
+      document.body.style.touchAction = 'none'
+      document.documentElement.style.overflow = 'hidden'
+      document.documentElement.style.height = '100%'
+      document.documentElement.style.touchAction = 'none'
+    }
+  } else {
+    // Should be unlocked - restore original values
+    if (document.body.style.overflow !== '' ||
+        document.documentElement.style.overflow !== '') {
+      console.log('[SCROLL_RECONCILE] Restoring unlock (DOM was locked)')
+      document.body.style.overflow = originalBodyOverflow
+      document.body.style.position = originalBodyPosition
+      document.body.style.top = originalBodyTop
+      document.body.style.width = originalBodyWidth
+      document.body.style.touchAction = originalBodyTouchAction
+      document.body.style.left = originalBodyLeft
+      document.body.style.right = originalBodyRight
+      document.documentElement.style.overflow = originalHtmlOverflow
+      document.documentElement.style.height = originalHtmlHeight
+      document.documentElement.style.touchAction = originalHtmlTouchAction
+    }
+  }
+}
+
 // Generate unique owner ID for each hook instance with component identity
 let ownerCounter = 0
 function generateOwnerId(componentName?: string): string {
@@ -65,7 +126,6 @@ if (typeof window !== 'undefined') {
 }
 
 export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
-  const previousScrollPosition = useRef<number>(0)
   const ownerIdRef = useRef<string>(generateOwnerId(componentName))
 
   useEffect(() => {
@@ -96,15 +156,34 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
         timestamp: Date.now()
       })
 
+      // Guard against duplicate acquire from same owner
+      if (activeOwners.has(ownerId)) {
+        console.warn('[SCROLL_LOCK] DUPLICATE_ACQUIRE', { ownerId, component: componentName })
+        return
+      }
+
       if (lockCount === 0) {
-        // First lock: store scroll position and apply lock
-        previousScrollPosition.current = window.pageYOffset
+        // First lock: store original DOM values and scroll position
         globalScrollPosition = window.pageYOffset
+        originalBodyOverflow = document.body.style.overflow
+        originalBodyPosition = document.body.style.position
+        originalBodyTop = document.body.style.top
+        originalBodyWidth = document.body.style.width
+        originalBodyTouchAction = document.body.style.touchAction
+        originalBodyLeft = document.body.style.left
+        originalBodyRight = document.body.style.right
+        originalHtmlOverflow = document.documentElement.style.overflow
+        originalHtmlHeight = document.documentElement.style.height
+        originalHtmlTouchAction = document.documentElement.style.touchAction
+
+        // Apply lock
         document.body.style.overflow = 'hidden'
         document.body.style.position = 'fixed'
-        document.body.style.top = `-${previousScrollPosition.current}px`
+        document.body.style.top = `-${globalScrollPosition}px`
         document.body.style.width = '100%'
         document.body.style.touchAction = 'none'
+        document.body.style.left = '0'
+        document.body.style.right = '0'
         // Lock the root element to prevent background scroll in Android WebView
         document.documentElement.style.overflow = 'hidden'
         document.documentElement.style.height = '100%'
@@ -117,13 +196,9 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
           ownerId,
           component: ownerInfo?.component || componentName || 'unknown',
           scrollPosition: globalScrollPosition,
-          bodyOverflow: document.body.style.overflow,
-          bodyPosition: document.body.style.position,
-          bodyTop: document.body.style.top,
-          htmlOverflow: document.documentElement.style.overflow,
-          htmlHeight: document.documentElement.style.height,
-          bodyTouchAction: document.body.style.touchAction,
-          htmlTouchAction: document.documentElement.style.touchAction,
+          originalBodyOverflow,
+          originalBodyPosition,
+          originalHtmlOverflow,
           timestamp: Date.now()
         })
       }
@@ -142,6 +217,13 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
     const unlock = () => {
       const ownerId = ownerIdRef.current
       const ownerInfo = activeOwners.get(ownerId)
+
+      // Guard against duplicate release from same owner
+      if (!activeOwners.has(ownerId)) {
+        console.warn('[SCROLL_LOCK] DUPLICATE_RELEASE', { ownerId, component: componentName, lockCount, activeOwnerCount: activeOwners.size })
+        return
+      }
+
       console.log('[SCROLL_LOCK_RELEASE] Scroll lock release requested', {
         ownerId,
         component: ownerInfo?.component || componentName || 'unknown',
@@ -159,33 +241,37 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
       activeOwners.delete(ownerId)
 
       if (lockCount === 0) {
-        // Last unlock: restore scroll
-        console.log('[SCROLL_LOCK_FINAL_RESTORE] Restoring scroll to unlocked state', {
+        // Last unlock: restore original DOM values and scroll position
+        console.log('[SCROLL_LOCK_FINAL_RESTORE] Restoring original DOM values', {
           ownerId,
           component: componentName || 'unknown',
-          scrollPosition: previousScrollPosition.current,
-          bodyOverflowBefore: document.body.style.overflow,
-          bodyPositionBefore: document.body.style.position,
-          bodyTopBefore: document.body.style.top,
-          htmlOverflowBefore: document.documentElement.style.overflow,
-          htmlHeightBefore: document.documentElement.style.height,
-          bodyTouchActionBefore: document.body.style.touchAction,
-          htmlTouchActionBefore: document.documentElement.style.touchAction,
+          scrollPosition: globalScrollPosition,
+          originalBodyOverflow,
+          originalBodyPosition,
+          originalBodyTop,
+          originalBodyWidth,
+          originalBodyTouchAction,
+          originalBodyLeft,
+          originalBodyRight,
+          originalHtmlOverflow,
+          originalHtmlHeight,
+          originalHtmlTouchAction,
           timestamp: Date.now()
         })
-        document.body.style.overflow = ''
-        document.body.style.position = ''
-        document.body.style.top = ''
-        document.body.style.width = ''
-        document.body.style.touchAction = ''
-        // Restore html/documentElement as well
-        document.documentElement.style.overflow = ''
-        document.documentElement.style.height = ''
-        document.documentElement.style.touchAction = ''
+        document.body.style.overflow = originalBodyOverflow
+        document.body.style.position = originalBodyPosition
+        document.body.style.top = originalBodyTop
+        document.body.style.width = originalBodyWidth
+        document.body.style.touchAction = originalBodyTouchAction
+        document.body.style.left = originalBodyLeft
+        document.body.style.right = originalBodyRight
+        document.documentElement.style.overflow = originalHtmlOverflow
+        document.documentElement.style.height = originalHtmlHeight
+        document.documentElement.style.touchAction = originalHtmlTouchAction
         // Remove global listeners
         document.removeEventListener('touchmove', preventTouchMove as any)
         document.body.removeEventListener('touchmove', preventTouchMove as any)
-        window.scrollTo(0, previousScrollPosition.current)
+        window.scrollTo(0, globalScrollPosition)
 
         console.log('[SCROLL_LOCK_FINAL_RESTORE] RESTORE_COMPLETE', {
           ownerId,

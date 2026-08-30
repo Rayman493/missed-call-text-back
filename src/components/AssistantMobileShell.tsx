@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import ReplyFlowAssistant, { AssistantContext } from './ReplyFlowAssistant'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface AssistantMobileShellProps {
   isOpen: boolean
@@ -23,18 +24,21 @@ export default function AssistantMobileShell({ isOpen, context, onClose }: Assis
     onCloseRef.current = onClose
   }, [onClose])
 
-  // Lock background scroll, signal bottom nav to hide, and intercept Android Back.
+  // Use centralized scroll lock
+  useBodyScrollLock(isOpen, 'assistant-mobile-shell')
+
+  // Signal bottom nav to hide when assistant is open
   useEffect(() => {
     if (typeof window === 'undefined' || !isOpen) return
-
-    const originalBodyOverflow = document.body.style.overflow
-    const originalHtmlOverflow = document.documentElement.style.overflow
-    const originalBodyTouchAction = document.body.style.touchAction
-
-    document.body.style.overflow = 'hidden'
-    document.documentElement.style.overflow = 'hidden'
-    document.body.style.touchAction = 'none'
     document.body.setAttribute('data-assistant-open', 'true')
+    return () => {
+      document.body.removeAttribute('data-assistant-open')
+    }
+  }, [isOpen])
+
+  // Intercept Android Back and browser Back when open
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isOpen) return
 
     // Push a history state so browser/Android Back triggers popstate we can intercept
     try {
@@ -61,10 +65,6 @@ export default function AssistantMobileShell({ isOpen, context, onClose }: Assis
     return () => {
       window.removeEventListener('popstate', onPopState)
       capListener?.remove?.()
-      document.body.style.overflow = originalBodyOverflow
-      document.documentElement.style.overflow = originalHtmlOverflow
-      document.body.style.touchAction = originalBodyTouchAction
-      document.body.removeAttribute('data-assistant-open')
     }
   }, [isOpen])
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Mail, MessageCircle } from 'lucide-react'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface ContactSupportModalProps {
   isOpen: boolean
@@ -35,17 +36,7 @@ export default function ContactSupportModal({ isOpen, onClose, onOpenAssistant }
   }, [isOpen, onClose])
 
   // Lock body scroll when open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [isOpen])
+  useBodyScrollLock(isOpen, 'contact-support-modal')
 
   if (!mounted || !isOpen) {
     return null

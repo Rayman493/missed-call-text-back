@@ -646,7 +646,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
   const supabase = createBrowserClient()
 
-  useBodyScrollLock(showAddModal || showDeleteModal || showChangePasswordModal || showChangeEmailModal)
+  useBodyScrollLock(showAddModal || showDeleteModal || showChangePasswordModal || showChangeEmailModal, 'settings-modal')
 
   // Time input refs for better UX
   const openTimeInputRef = useRef<HTMLInputElement>(null)

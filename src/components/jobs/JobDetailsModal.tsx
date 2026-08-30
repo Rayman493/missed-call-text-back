@@ -107,7 +107,7 @@ export default function JobDetailsModal({
   const [lead, setLead] = useState<Lead | null>(null)
 
   // Lock background scroll when main modal is open
-  useBodyScrollLock(isOpen)
+  useBodyScrollLock(isOpen, 'job-details-modal')
 
   // Handle Android back button and browser back to close modal
   useModalBackButton({ isOpen, onClose })
