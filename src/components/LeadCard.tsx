@@ -82,7 +82,6 @@ interface LeadCardProps {
   lead: any
   onOpen: (leadId: string) => void
   onStatusChange: (leadId: string, newStatus: CustomerStatus) => void | Promise<void>
-  onIgnore: (leadId: string) => void
   onRestore: (leadId: string) => void
   onFilterStatus: (status: string) => void
   statusFilter: string
@@ -95,7 +94,6 @@ export default function LeadCard({
   lead,
   onOpen,
   onStatusChange,
-  onIgnore,
   onRestore,
   onFilterStatus,
   statusFilter,

@@ -409,94 +409,6 @@ export default function LeadsPage() {
     }
   }
 
-  // Handle ignoring a lead
-  const handleIgnoreLead = async (leadId: string) => {
-    // Store old status for revert on error
-    const oldStatus = leads.find(lead => lead.id === leadId)?.status
-
-    // Optimistic update - update local state immediately
-    setLeads(prev => prev.map(lead => 
-      lead.id === leadId 
-        ? { ...lead, status: 'ignored' }
-        : lead
-    ))
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) {
-        throw new Error('Not authenticated')
-      }
-
-      // Update lead status to ignored via API
-      const response = await fetch(`/api/leads/${leadId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          status: 'ignored'
-        })
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to ignore lead')
-      }
-    } catch (error) {
-      console.error('Error ignoring lead:', error)
-      // Revert optimistic update on error
-      if (oldStatus) {
-        setLeads(prev => prev.map(lead => 
-          lead.id === leadId 
-            ? { ...lead, status: oldStatus }
-            : lead
-        ))
-      }
-    }
-  }
-
-  // Handle restoring ignored lead
-  const handleRestoreIgnoredLead = async (leadId: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) {
-        throw new Error('Not authenticated')
-      }
-
-      // Update lead status from ignored to new via API
-      const response = await fetch(`/api/leads/${leadId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          status: 'new'
-        })
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to restore customer')
-      }
-
-      // Update local state
-      setLeads(prev => prev.map(lead => 
-        lead.id === leadId 
-          ? { ...lead, status: 'new' }
-          : lead
-      ))
-    } catch (error) {
-      console.error('Error restoring ignored lead:', error)
-      alert('Failed to restore customer. Please try again.')
-    }
-  }
-
   // Handle restore deleted customer
   const handleRestoreLead = async (leadId: string) => {
     try {
@@ -1739,74 +1651,48 @@ export default function LeadsPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>
                             </button>
-                            <div className="flex shrink-0">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <button
-                                    type="button"
-                                    className="flex h-11 w-11 items-center justify-center p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-                                    title="More actions"
-                                    aria-label="Customer actions"
-                                    onClick={(e) => e.stopPropagation()}
-                                    onKeyDown={(e) => e.stopPropagation()}
-                                  >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                                  </svg>
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuPortal>
-                                <DropdownMenuContent
-                                  align="end"
-                                  side="bottom"
-                                  sideOffset={6}
-                                  collisionPadding={12}
-                                  avoidCollisions
-                                  className="z-50 w-[240px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-100px)] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 overflow-y-auto overscroll-contain"
-                                >
-                                {lead.deleted_at && (
-                                  <DropdownMenuItem
-                                    onSelect={() => handleRestoreLead(lead.id)}
-                                    onPointerDown={(e) => e.stopPropagation()}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
-                                  >
-                                    <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.001 0 01-15.357-2m15.357 2H15" />
-                                    </svg>
-                                    <span>Restore Customer</span>
-                                  </DropdownMenuItem>
-                                )}
-                                {!lead.deleted_at && getLeadLifecycleStatus(lead) !== 'ignored' && (
-                                  <DropdownMenuItem
-                                    onSelect={() => handleIgnoreLead(lead.id)}
-                                    onPointerDown={(e) => e.stopPropagation()}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
-                                  >
-                                    <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                    </svg>
-                                    <span>Ignore Customer</span>
-                                  </DropdownMenuItem>
-                                )}
-                                {!lead.deleted_at && getLeadLifecycleStatus(lead) === 'ignored' && (
-                                  <DropdownMenuItem
-                                    onSelect={() => handleLeadStatusChange(lead.id, 'active')}
-                                    onPointerDown={(e) => e.stopPropagation()}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
-                                  >
-                                    <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.001 0 01-15.357-2m15.357 2H15" />
-                                    </svg>
-                                    <span>Restore Customer</span>
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                              </DropdownMenuPortal>
-                            </DropdownMenu>
-                            </div>
+                            {lead.deleted_at && (
+                              <div className="flex shrink-0">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="flex h-11 w-11 items-center justify-center p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                                      title="Restore customer"
+                                      aria-label="Restore customer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      onKeyDown={(e) => e.stopPropagation()}
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                      </svg>
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuPortal>
+                                    <DropdownMenuContent
+                                      align="end"
+                                      side="bottom"
+                                      sideOffset={6}
+                                      collisionPadding={12}
+                                      avoidCollisions
+                                      className="z-50 w-[240px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-100px)] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 overflow-y-auto overscroll-contain"
+                                    >
+                                      <DropdownMenuItem
+                                        onSelect={() => handleRestoreLead(lead.id)}
+                                        onPointerDown={(e) => e.stopPropagation()}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
+                                      >
+                                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.001 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        <span>Restore Customer</span>
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenuPortal>
+                                </DropdownMenu>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1826,7 +1712,6 @@ export default function LeadsPage() {
                             lead={lead}
                             onOpen={handleConversationClick}
                             onStatusChange={handleLeadStatusChange}
-                            onIgnore={handleIgnoreLead}
                             onRestore={handleRestoreLead}
                             onFilterStatus={(status) => setStatusFilter(statusFilter === status ? 'all' : status)}
                             statusFilter={statusFilter}
