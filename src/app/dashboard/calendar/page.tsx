@@ -32,7 +32,6 @@ import ScheduleMap from '@/components/schedule/ScheduleMap'
 import FocusSection from '@/components/FocusSection'
 import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
-import TasksTab from '@/components/schedule/TasksTab'
 import type { Job, JobStatus, JobPrefill } from '@/components/jobs/JobComposer'
 import { openOAuthFlow } from '@/capacitor/oauth'
 import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
@@ -266,7 +265,6 @@ export default function SchedulePage() {
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false)
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null)
   const [taskRefreshTrigger, setTaskRefreshTrigger] = useState(0)
-  const [showFullTasks, setShowFullTasks] = useState(false)
   const [isNewAppointmentModalOpen, setIsNewAppointmentModalOpen] = useState(false)
   const [newAppointmentContext, setNewAppointmentContext] = useState<'calendar' | 'customer' | 'meetings'>('calendar')
   const [newAppointmentPreselectedLeadId, setNewAppointmentPreselectedLeadId] = useState<string | null>(null)
@@ -1365,20 +1363,7 @@ export default function SchedulePage() {
                           }
                         }}
                         taskRefreshTrigger={taskRefreshTrigger}
-                        onViewAllTasks={() => setShowFullTasks(true)}
                       />
-                      {showFullTasks && (
-                        <div className="mt-4">
-                          <TasksTab
-                            onNewJob={openNewJob}
-                            taskRefreshTrigger={taskRefreshTrigger}
-                            onAddTask={() => setIsNewTaskModalOpen(true)}
-                            onEditTask={handleAgendaEditTask}
-                            showBackButton={true}
-                            onBack={() => setShowFullTasks(false)}
-                          />
-                        </div>
-                      )}
                     </>
                   )}
 

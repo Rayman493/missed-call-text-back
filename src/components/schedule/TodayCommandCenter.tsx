@@ -47,7 +47,6 @@ interface TodayCommandCenterProps {
   onDeleteAppointment?: (event: CalendarEvent) => void
   onEditTask?: (task: Task) => void
   taskRefreshTrigger?: number
-  onViewAllTasks?: () => void
 }
 
 export default function TodayCommandCenter({
@@ -63,11 +62,15 @@ export default function TodayCommandCenter({
   onDeleteAppointment,
   onEditTask,
   taskRefreshTrigger,
-  onViewAllTasks,
 }: TodayCommandCenterProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoadingTasks, setIsLoadingTasks] = useState(true)
   const supabase = createBrowserClient()
+
+  // Independent expanded state for each section
+  const [expandedReminders, setExpandedReminders] = useState(false)
+  const [expandedJobs, setExpandedJobs] = useState(false)
+  const [expandedAppointments, setExpandedAppointments] = useState(false)
 
   const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local timezone
 
@@ -522,10 +525,10 @@ export default function TodayCommandCenter({
                 </button>
               )}
               <button
-                onClick={onViewAllTasks}
+                onClick={() => setExpandedReminders(!expandedReminders)}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
-                View all →
+                {expandedReminders ? 'Show less ↑' : 'View all →'}
               </button>
             </div>
           </div>
@@ -572,7 +575,7 @@ export default function TodayCommandCenter({
               </div>
             ) : (
               <div className="space-y-1">
-                {sortedBrowseTasks.slice(0, 5).map(task => {
+                {(expandedReminders ? sortedBrowseTasks : sortedBrowseTasks.slice(0, 5)).map(task => {
                   const taskOverdue = task.due_date && task.due_date < todayStr
                   const taskToday = task.due_date === todayStr
                   return (
@@ -658,44 +661,12 @@ export default function TodayCommandCenter({
                   + Job
                 </button>
               )}
-              <Link
-                href="/dashboard/leads"
-                onPointerDown={() => {
-                  console.log('[QUICK_CLICK_EVENT_TRACE]', {
-                    source: 'TodayCommandCenter.JobsViewAll',
-                    eventType: 'pointerdown',
-                    pathname: window.location.pathname,
-                    timestamp: Date.now()
-                  })
-                }}
-                onPointerUp={() => {
-                  console.log('[QUICK_CLICK_EVENT_TRACE]', {
-                    source: 'TodayCommandCenter.JobsViewAll',
-                    eventType: 'pointerup',
-                    pathname: window.location.pathname,
-                    timestamp: Date.now()
-                  })
-                }}
-                onClick={(e) => {
-                  console.log('[QUICK_CLICK_EVENT_TRACE]', {
-                    source: 'TodayCommandCenter.JobsViewAll',
-                    eventType: 'click',
-                    pathname: window.location.pathname,
-                    timestamp: Date.now()
-                  })
-                  console.log('[LEADS_NAV_SOURCE]', {
-                    source: 'TodayCommandCenter.JobsViewAll',
-                    eventType: 'click',
-                    currentPathname: window.location.pathname,
-                    target: '/dashboard/leads',
-                    timestamp: Date.now()
-                  })
-                  console.log('[TODAY_COMMAND_CENTER] Jobs View all clicked', { timestamp: Date.now(), pathname: window.location.pathname })
-                }}
+              <button
+                onClick={() => setExpandedJobs(!expandedJobs)}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
-                View all →
-              </Link>
+                {expandedJobs ? 'Show less ↑' : 'View all →'}
+              </button>
             </div>
           </div>
           <div className="p-4">
@@ -719,7 +690,7 @@ export default function TodayCommandCenter({
               </div>
             ) : (
               <div className="space-y-1">
-                {sortedBrowseJobs.slice(0, 5).map(job => {
+                {(expandedJobs ? sortedBrowseJobs : sortedBrowseJobs.slice(0, 5)).map(job => {
                   const jobToday = job.scheduled_date === todayStr
                   return (
                     <div
@@ -793,13 +764,12 @@ export default function TodayCommandCenter({
                   + Appointment
                 </button>
               )}
-              <Link
-                href="/dashboard/calendar"
-                onClick={() => console.log('[TODAY_COMMAND_CENTER] Appointments View all clicked', { timestamp: Date.now(), pathname: window.location.pathname })}
+              <button
+                onClick={() => setExpandedAppointments(!expandedAppointments)}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
-                View all →
-              </Link>
+                {expandedAppointments ? 'Show less ↑' : 'View all →'}
+              </button>
             </div>
           </div>
           <div className="p-4">
@@ -823,7 +793,7 @@ export default function TodayCommandCenter({
               </div>
             ) : (
               <div className="space-y-1">
-                {sortedBrowseAppointments.slice(0, 5).map(event => {
+                {(expandedAppointments ? sortedBrowseAppointments : sortedBrowseAppointments.slice(0, 5)).map(event => {
                   const eventDateRaw = event.start?.dateTime || event.start?.date
                   const eventDate = eventDateRaw ? new Date(eventDateRaw) : null
                   const eventDateOnly = eventDateRaw?.split('T')[0]
