@@ -130,7 +130,7 @@ export default function SettingsActionBar({
     <>
       {/* Sticky Bottom Action Bar */}
       <div
-        className="fixed left-0 right-0 z-40 animate-in slide-in-from-bottom-3 fade-in duration-200"
+        className="fixed left-0 right-0 z-[60] animate-in slide-in-from-bottom-3 fade-in duration-200"
         style={{ bottom: showMobileBar ? `${bottomOffset}px` : 0 }}
       >
         <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 pb-3 sm:pb-4">
