@@ -3951,7 +3951,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
                           <AppleTapToPayIcon size={20} className="flex-shrink-0" />
-                          <span className="text-sm font-semibold text-foreground">Tap to Pay on iPhone</span>
+                          <span className="text-sm font-semibold text-foreground">
+                            {getCapacitorPlatform() === 'ios' ? 'Tap to Pay on iPhone' : 'Tap to Pay'}
+                          </span>
                           {(() => {
                             const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
                             const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
@@ -3992,8 +3994,8 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             if (status === 'supported' && stripeChargesEnabled && appleAccountLinkageState.status === 'linked') {
                               return (
                                 <>
-                                  <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
-                                    <span className="w-1 h-1 bg-green-500 rounded-full" />
+                                  <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-300 rounded-full font-medium flex items-center gap-1.5">
+                                    <span className="w-1 h-1 bg-green-500 dark:bg-green-500/70 rounded-full" />
                                     Enabled
                                   </span>
                                 </>
@@ -4101,7 +4103,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                     onClick={handleEnableTapToPay}
                                     disabled={isEnablingTapToPay}
                                     className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-slate-500 dark:disabled:text-slate-400 text-white disabled:cursor-not-allowed transition-colors duration-150"
-                                    aria-label="Enable Tap to Pay on iPhone"
+                                    aria-label={getCapacitorPlatform() === 'ios' ? 'Enable Tap to Pay on iPhone' : 'Enable Tap to Pay'}
                                   >
                                     {isEnablingTapToPay ? 'Enabling…' : 'Enable'}
                                   </button>
@@ -4237,18 +4239,18 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             return (
                               <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-slate-600 dark:text-slate-400 mt-3">
                                 <div className="flex items-center gap-2">
-                                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                                  <span className="w-1.5 h-1.5 bg-green-500 dark:bg-green-500/70 rounded-full flex-shrink-0"></span>
                                   <span>Device Supported</span>
                                 </div>
                                 {appleAccountLinkageState.status === 'linked' && (
                                   <div className="flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                                    <span className="w-1.5 h-1.5 bg-green-500 dark:bg-green-500/70 rounded-full flex-shrink-0"></span>
                                     <span>Apple Account Linked</span>
                                   </div>
                                 )}
                                 {business?.tap_to_pay_education_completed_at ? (
                                   <div className="flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                                    <span className="w-1.5 h-1.5 bg-green-500 dark:bg-green-500/70 rounded-full flex-shrink-0"></span>
                                     <span>Education Completed</span>
                                   </div>
                                 ) : (
@@ -4282,7 +4284,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             <button
                               onClick={handleNativeEducationGuide}
                               className="mt-3 text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5 font-medium"
-                              aria-label="Open Tap to Pay on iPhone guide"
+                              aria-label="Open Tap to Pay guide"
                             >
                               Tap to Pay on iPhone Guide
                             </button>

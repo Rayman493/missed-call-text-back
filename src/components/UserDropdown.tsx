@@ -457,7 +457,7 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
                 type="button"
                 role="menuitem"
                 onClick={handleSignOut}
-                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-red-400 transition-colors hover:bg-slate-800"
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-red-600 dark:text-red-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <LogOut className="h-4 w-4 flex-shrink-0" />
                 Sign Out

@@ -161,13 +161,6 @@ export default function MobileDrawer({ isOpen, onClose, triggerRef }: MobileDraw
           // Authenticated navigation - informational pages only
           <>
             <Link
-              href="/#interactive-demo"
-              onClick={handleNavClick}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-            >
-              See How It Works
-            </Link>
-            <Link
               href="/pricing"
               onClick={handleNavClick}
               className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
@@ -199,13 +192,6 @@ export default function MobileDrawer({ isOpen, onClose, triggerRef }: MobileDraw
             >
               <Home className="h-4 w-4 text-slate-400" />
               Home
-            </Link>
-            <Link
-              href="/#interactive-demo"
-              onClick={handleNavClick}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-            >
-              See How It Works
             </Link>
             <Link
               href="/pricing"

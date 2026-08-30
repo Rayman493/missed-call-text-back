@@ -13,6 +13,7 @@ import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 import { useTapToPayOrchestration } from '@/hooks/useTapToPayOrchestration'
 import { useTapToPayReaderPresentation } from '@/hooks/useTapToPayReaderPresentation'
 import { Capacitor } from '@capacitor/core'
+import { getCapacitorPlatform } from '@/capacitor/init'
 import { TapToPayEducationModal } from '@/components/TapToPayEducationModal'
 import { hasPendingEducationPromise, resolveEducation } from '@/lib/education-promise-bridge'
 import { normalizeToE164 } from '@/utils/phone-formatting'
@@ -1629,7 +1630,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                     disabled={amountCents <= 0 || !isAmountValid || !isNativeSupported || isPaymentInProgress || showLocationPermissionCard || showLocationServicesCard || showLocationBlockedCard}
                     className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-600 flex items-center justify-center gap-2 active:scale-95"
                   >
-                    {showLocationPermissionCard || showLocationServicesCard || showLocationBlockedCard ? 'Complete Location Setup' : isAmountBelowMinimum ? 'Minimum $0.50 Required' : 'Tap to Pay on iPhone'}
+                    {showLocationPermissionCard || showLocationServicesCard || showLocationBlockedCard ? 'Complete Location Setup' : isAmountBelowMinimum ? 'Minimum $0.50 Required' : getCapacitorPlatform() === 'ios' ? 'Tap to Pay on iPhone' : 'Tap to Pay'}
                   </button>
                 </>
               ) : (

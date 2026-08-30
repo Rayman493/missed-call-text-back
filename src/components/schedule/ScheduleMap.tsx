@@ -2589,9 +2589,9 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       <div className="mb-2 md:mb-3 z-10">
         {/* Desktop: 3-region toolbar */}
         <div className="hidden md:grid grid-cols-[1fr_auto_1fr] gap-4 items-center px-1">
-          {/* LEFT: Today's Stops + count */}
+          {/* LEFT: Scheduled Stops + count */}
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-foreground">Today's Stops</h3>
+            <h3 className="text-sm font-semibold text-foreground">Scheduled Stops</h3>
             <span className="text-xs text-slate-500 dark:text-slate-400">{routeSummary}</span>
           </div>
 
@@ -2701,10 +2701,10 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
             </button>
           </div>
 
-          {/* Row 2: Today's Stops + actions */}
+          {/* Row 2: Scheduled Stops + actions */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <h3 className="text-xs font-semibold text-foreground">Today's Stops</h3>
+              <h3 className="text-xs font-semibold text-foreground">Scheduled Stops</h3>
               <span className="text-[10px] text-slate-500 dark:text-slate-400">{routeSummary}</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -2754,7 +2754,7 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
         </div>
       </div>
 
-      {/* Today's Stops - Horizontal strip, always rendered with fixed height */}
+      {/* Scheduled Stops - Horizontal strip, always rendered with fixed height */}
       <div className="mb-2 md:mb-3 z-10 h-[72px]">
         {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
           <div className="flex gap-2 overflow-x-auto h-full items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>

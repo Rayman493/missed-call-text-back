@@ -12,6 +12,7 @@ import type { TerminalError, DeviceState } from '@/lib/terminal'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 import { useTapToPayReaderPresentation } from '@/hooks/useTapToPayReaderPresentation'
 import { Capacitor } from '@capacitor/core'
+import { getCapacitorPlatform } from '@/capacitor/init'
 import { SHOW_TAP_TO_PAY_DIAGNOSTICS } from './tapToPayUiConfig'
 import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 
@@ -1111,7 +1112,7 @@ export default function TapToPayModal({
             {/* Indeterminate preparation message for Apple configuration */}
             {readerState.preparing && readerState.softwareUpdateProgress === null && (
               <p className="text-xs text-muted-foreground mt-2 text-center">
-                Preparing Tap to Pay on iPhone… This can take a moment the first time.
+                Preparing {getCapacitorPlatform() === 'ios' ? 'Tap to Pay on iPhone' : 'Tap to Pay'}… This can take a moment the first time.
               </p>
             )}
           </div>

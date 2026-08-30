@@ -105,7 +105,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           .from('messages')
           .select(`
             *,
-            leads(id, caller_phone)
+            leads(id, caller_phone, name)
           `)
           .or(`from_phone.eq.${businessPhone},to_phone.eq.${businessPhone}`)
           .gte('created_at', sevenDaysAgo)
