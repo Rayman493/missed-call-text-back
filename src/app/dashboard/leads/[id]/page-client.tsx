@@ -469,6 +469,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
   const currentLeadIdRef = useRef<string | null>(null)
+  const realtimeSubscriptionSequenceRef = useRef(0)
   const supabaseRef = useRef(createBrowserClient())
   const supabase = supabaseRef.current
 
@@ -2096,7 +2097,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       instanceId: realtimeInstanceIdRef.current,
       leadId,
       conversationId,
-      channelName: `lead-detail:${leadId}`,
+      sequence: realtimeSubscriptionSequenceRef.current,
+      channelName: `lead-detail:${leadId}:${realtimeInstanceIdRef.current}:${realtimeSubscriptionSequenceRef.current}`,
       timestamp: new Date().toISOString()
     })
 
@@ -2127,11 +2129,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       stuckMessageCheckIntervalRef.current = null
     }
 
-    // Set up new subscription
-    const channelName = `lead-detail:${leadId}`
+    // Increment subscription sequence for unique channel name
+    realtimeSubscriptionSequenceRef.current += 1
+
+    // Set up new subscription with unique topic to avoid Supabase channel registry bug
+    const channelName = `lead-detail:${leadId}:${realtimeInstanceIdRef.current}:${realtimeSubscriptionSequenceRef.current}`
     console.log('[REALTIME SUBSCRIBE REQUEST]', {
       instanceId: realtimeInstanceIdRef.current,
       leadId,
+      sequence: realtimeSubscriptionSequenceRef.current,
       channelName,
       hadExistingChannel,
       timestamp: new Date().toISOString()
@@ -2172,6 +2178,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             clientMessageId: newMessage?.client_message_id,
             twilioSid: newMessage?.twilio_message_sid,
             leadId: newMessage?.lead_id,
+            viewedLeadId: leadId,
+            channelName,
             status: newMessage?.status,
             direction: newMessage?.direction,
             mediaCount: newMessage?.media_count,
@@ -2273,6 +2281,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             instanceId: realtimeInstanceIdRef.current,
             messageId: updatedMessage?.id,
             leadId: updatedMessage?.lead_id,
+            viewedLeadId: leadId,
+            channelName,
             status: updatedMessage?.status,
             timestamp: new Date().toISOString()
           })
@@ -2414,14 +2424,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       )
       .subscribe((status: any) => {
-        console.log('[REALTIME DIAG_STATUS]', {
-          channelName,
-          leadId,
-          status,
-          timestamp: new Date().toISOString(),
-          diagnosticInstanceId: realtimeInstanceIdRef.current
-        })
-
         console.log('[REALTIME CHANNEL STATUS]', {
           instanceId: realtimeInstanceIdRef.current,
           leadId,
@@ -2463,6 +2465,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     realtimeChannelRef.current = channel
 
+    // Capture channel name for cleanup logging
+    const ownedChannelName = channelName
+
     // Start stuck message check interval (bounded recovery - only check twice)
     let checkCount = 0
     const maxChecks = 2
@@ -2502,13 +2507,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       console.log('[REALTIME EFFECT CLEANUP]', {
         instanceId: realtimeInstanceIdRef.current,
         effectLeadId: leadId,
+        channelName: ownedChannelName,
         currentLeadIdRef: currentLeadIdRef.current,
         currentLeadDataId: leadData?.id,
         hasChannel: !!realtimeChannelRef.current,
         timestamp: new Date().toISOString()
       })
       if (realtimeChannelRef.current) {
-        console.log('[REALTIME SUBSCRIPTION CLEANUP] Removing channel')
+        console.log('[REALTIME SUBSCRIPTION CLEANUP] Removing channel:', ownedChannelName)
         supabase.removeChannel(realtimeChannelRef.current)
         realtimeChannelRef.current = null
       }
