@@ -4314,7 +4314,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {!isMobileView && (
           <div className="grid grid-cols-[minmax(0,3fr)_minmax(320px,380px)] gap-8 h-full min-h-0">
             {/* Desktop Conversation Section - Primary workspace */}
-            <section className="flex flex-col h-full min-h-0 bg-background rounded-xl border border-slate-200 dark:border-border/50 shadow-sm overflow-hidden">
+            <section className="flex flex-col h-full min-h-0 bg-muted/10 rounded-xl border border-slate-200 dark:border-border/50 shadow-sm overflow-hidden">
               {/* Desktop Conversation Header */}
               <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b border-slate-200/70 dark:border-border/30 bg-muted/40">
                 <div className="flex items-center gap-2">
@@ -4685,7 +4685,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {isMobileView && (
           <div className="px-4 sm:px-5 space-y-4 pb-[calc(6rem+env(safe-area-inset-bottom))]">
           {/* Conversation Workspace Card - Fixed height with internal scrolling */}
-          <div className="bg-background rounded-2xl border border-border/40 shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(100dvh-12rem-var(--bottom-nav-height,72px))]">
+          <div className="bg-muted/10 rounded-2xl border border-border/40 shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(100dvh-12rem-var(--bottom-nav-height,72px))]">
             {/* Conversation Header - Distinct header */}
             <div className="px-4 py-3 border-b border-border/30 bg-muted/50 flex-shrink-0">
               <div className="flex items-center justify-between">
