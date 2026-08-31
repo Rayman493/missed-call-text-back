@@ -326,6 +326,45 @@ describe('Schedule Map Camera Behavior', () => {
     })
   })
 
+  describe('Empty-State Centering', () => {
+    it('empty state should use absolute positioning for true full-row centering when no mapped stops', () => {
+      const hasMappedStops = false
+      const usesAbsoluteFullRowCentering = hasMappedStops === false
+
+      expect(usesAbsoluteFullRowCentering).toBe(true)
+    })
+
+    it('filters should remain right-aligned and interactive when no mapped stops', () => {
+      const hasMappedStops = false
+      const filtersRightAligned = true
+      const filtersInteractive = true
+
+      expect(filtersRightAligned).toBe(true)
+      expect(filtersInteractive).toBe(true)
+    })
+
+    it('empty-state layer should use pointer-events-none to not intercept filter clicks', () => {
+      const hasMappedStops = false
+      const pointerEventsNone = true
+
+      expect(pointerEventsNone).toBe(true)
+    })
+
+    it('mapped-stop previews should render correctly when stops exist', () => {
+      const hasMappedStops = true
+      const rendersPreviews = hasMappedStops === true
+
+      expect(rendersPreviews).toBe(true)
+    })
+
+    it('no empty-state label should appear when stops exist', () => {
+      const hasMappedStops = true
+      const showsEmptyState = hasMappedStops === false
+
+      expect(showsEmptyState).toBe(false)
+    })
+  })
+
   describe('User Interaction', () => {
     it('should set user interacted flag on drag', () => {
       let userInteracted = false

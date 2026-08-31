@@ -2055,10 +2055,10 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       </div>
 
       {/* Desktop: Combined row with stop previews on left and filters on right */}
-      <div className="hidden md:flex mb-1 z-10 items-center gap-3">
-        {/* Stop previews - Left side, takes available space */}
-        <div className="flex-1">
-          {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
+      {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
+        <div className="hidden md:flex mb-1 z-10 items-center gap-3">
+          {/* Stop previews - Left side, takes available space */}
+          <div className="flex-1">
             <div className="flex gap-2 overflow-x-auto items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {sortedItems.filter(item => item.type !== 'business').map((item, index) => (
                 <button
@@ -2116,18 +2116,11 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
                 </button>
               ))}
             </div>
-          ) : (
-            <div className="flex items-center justify-center px-4">
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                No mapped stops
-              </p>
-            </div>
-          )}
-        </div>
+          </div>
 
-        {/* Desktop filters - Right side, flex-shrink-0 */}
-        <div className="flex-shrink-0 flex items-center gap-2 flex-wrap px-1">
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+          <div className="flex-shrink-0 flex items-center gap-2 flex-wrap px-1">
+            {/* Desktop filters - Right side, flex-shrink-0 */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
             <button
               onClick={() => { setMapFilter('all') }}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
@@ -2161,6 +2154,49 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
           </div>
         </div>
       </div>
+      ) : (
+        <div className="hidden md:flex mb-1 z-10 relative">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              No mapped stops
+            </p>
+          </div>
+          <div className="flex-shrink-0 flex items-center gap-2 flex-wrap px-1 ml-auto">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+              <button
+                onClick={() => { setMapFilter('all') }}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+                  mapFilter === 'all'
+                    ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => { setMapFilter('jobs') }}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+                  mapFilter === 'jobs'
+                    ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                Jobs
+              </button>
+              <button
+                onClick={() => { setMapFilter('appointments') }}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+                  mapFilter === 'appointments'
+                    ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                Appointments
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile: Stop preview row */}
       <div className="md:hidden mb-1 z-10">
