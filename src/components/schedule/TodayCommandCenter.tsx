@@ -246,6 +246,14 @@ export default function TodayCommandCenter({
     return dateA - dateB
   })
 
+  // Collapsed view limit for each section
+  const COLLAPSED_LIMIT = 5
+
+  // Helper to determine if a section has more items than the collapsed limit
+  const hasMoreReminders = sortedBrowseTasks.length > COLLAPSED_LIMIT
+  const hasMoreJobs = sortedBrowseJobs.length > COLLAPSED_LIMIT
+  const hasMoreAppointments = sortedBrowseAppointments.length > COLLAPSED_LIMIT
+
   const upcomingJobs = jobs
     .filter(j => j.scheduled_date && j.scheduled_date > todayStr && j.status !== 'cancelled')
     .sort((a, b) => (a.scheduled_date || '').localeCompare(b.scheduled_date || ''))
@@ -524,6 +532,7 @@ export default function TodayCommandCenter({
                   + Reminder
                 </button>
               )}
+              {hasMoreReminders && (
               <button
                 onClick={() => setExpandedReminders(!expandedReminders)}
                 className="flex-shrink-0 w-8 h-8 md:w-8 md:h-8 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -532,6 +541,7 @@ export default function TodayCommandCenter({
               >
                 {expandedReminders ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
+              )}
             </div>
           </div>
           <div className="p-4">
@@ -577,7 +587,7 @@ export default function TodayCommandCenter({
               </div>
             ) : (
               <div className="space-y-1">
-                {(expandedReminders ? sortedBrowseTasks : sortedBrowseTasks.slice(0, 5)).map(task => {
+                {(expandedReminders || !hasMoreReminders ? sortedBrowseTasks : sortedBrowseTasks.slice(0, COLLAPSED_LIMIT)).map(task => {
                   const taskOverdue = task.due_date && task.due_date < todayStr
                   const taskToday = task.due_date === todayStr
                   return (
@@ -663,6 +673,7 @@ export default function TodayCommandCenter({
                   + Job
                 </button>
               )}
+              {hasMoreJobs && (
               <button
                 onClick={() => setExpandedJobs(!expandedJobs)}
                 className="flex-shrink-0 w-8 h-8 md:w-8 md:h-8 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -671,6 +682,7 @@ export default function TodayCommandCenter({
               >
                 {expandedJobs ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
+              )}
             </div>
           </div>
           <div className="p-4">
@@ -694,7 +706,7 @@ export default function TodayCommandCenter({
               </div>
             ) : (
               <div className="space-y-1">
-                {(expandedJobs ? sortedBrowseJobs : sortedBrowseJobs.slice(0, 5)).map(job => {
+                {(expandedJobs || !hasMoreJobs ? sortedBrowseJobs : sortedBrowseJobs.slice(0, COLLAPSED_LIMIT)).map(job => {
                   const jobToday = job.scheduled_date === todayStr
                   return (
                     <div
@@ -768,6 +780,7 @@ export default function TodayCommandCenter({
                   + Appointment
                 </button>
               )}
+              {hasMoreAppointments && (
               <button
                 onClick={() => setExpandedAppointments(!expandedAppointments)}
                 className="flex-shrink-0 w-8 h-8 md:w-8 md:h-8 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -776,6 +789,7 @@ export default function TodayCommandCenter({
               >
                 {expandedAppointments ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
+              )}
             </div>
           </div>
           <div className="p-4">
@@ -799,7 +813,7 @@ export default function TodayCommandCenter({
               </div>
             ) : (
               <div className="space-y-1">
-                {(expandedAppointments ? sortedBrowseAppointments : sortedBrowseAppointments.slice(0, 5)).map(event => {
+                {(expandedAppointments || !hasMoreAppointments ? sortedBrowseAppointments : sortedBrowseAppointments.slice(0, COLLAPSED_LIMIT)).map(event => {
                   const eventDateRaw = event.start?.dateTime || event.start?.date
                   const eventDate = eventDateRaw ? new Date(eventDateRaw) : null
                   const eventDateOnly = eventDateRaw?.split('T')[0]

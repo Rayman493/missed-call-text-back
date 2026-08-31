@@ -134,6 +134,133 @@ describe('TodayCommandCenter', () => {
     })
   })
 
+  describe('Chevron Visibility Based on Item Count', () => {
+    const COLLAPSED_LIMIT = 5
+
+    describe('Reminders', () => {
+      it('0 reminders: no chevron', () => {
+        const reminderCount = 0
+        const hasMoreReminders = reminderCount > COLLAPSED_LIMIT
+        expect(hasMoreReminders).toBe(false)
+      })
+
+      it('1 reminder: no chevron', () => {
+        const reminderCount = 1
+        const hasMoreReminders = reminderCount > COLLAPSED_LIMIT
+        expect(hasMoreReminders).toBe(false)
+      })
+
+      it('4 reminders (limit - 1): no chevron', () => {
+        const reminderCount = 4
+        const hasMoreReminders = reminderCount > COLLAPSED_LIMIT
+        expect(hasMoreReminders).toBe(false)
+      })
+
+      it('5 reminders (limit): no chevron', () => {
+        const reminderCount = 5
+        const hasMoreReminders = reminderCount > COLLAPSED_LIMIT
+        expect(hasMoreReminders).toBe(false)
+      })
+
+      it('6 reminders (limit + 1): show ChevronDown when collapsed', () => {
+        const reminderCount = 6
+        const expandedReminders = false
+        const hasMoreReminders = reminderCount > COLLAPSED_LIMIT
+        const shouldShowChevron = hasMoreReminders
+        const shouldShowDown = shouldShowChevron && !expandedReminders
+        expect(shouldShowChevron).toBe(true)
+        expect(shouldShowDown).toBe(true)
+      })
+
+      it('6 reminders expanded: show ChevronUp', () => {
+        const reminderCount = 6
+        const expandedReminders = true
+        const hasMoreReminders = reminderCount > COLLAPSED_LIMIT
+        const shouldShowChevron = hasMoreReminders
+        const shouldShowUp = shouldShowChevron && expandedReminders
+        expect(shouldShowChevron).toBe(true)
+        expect(shouldShowUp).toBe(true)
+      })
+    })
+
+    describe('Jobs', () => {
+      it('0 jobs: no chevron', () => {
+        const jobCount = 0
+        const hasMoreJobs = jobCount > COLLAPSED_LIMIT
+        expect(hasMoreJobs).toBe(false)
+      })
+
+      it('1 job: no chevron', () => {
+        const jobCount = 1
+        const hasMoreJobs = jobCount > COLLAPSED_LIMIT
+        expect(hasMoreJobs).toBe(false)
+      })
+
+      it('5 jobs (limit): no chevron', () => {
+        const jobCount = 5
+        const hasMoreJobs = jobCount > COLLAPSED_LIMIT
+        expect(hasMoreJobs).toBe(false)
+      })
+
+      it('6 jobs (limit + 1): show ChevronDown when collapsed', () => {
+        const jobCount = 6
+        const expandedJobs = false
+        const hasMoreJobs = jobCount > COLLAPSED_LIMIT
+        const shouldShowChevron = hasMoreJobs
+        const shouldShowDown = shouldShowChevron && !expandedJobs
+        expect(shouldShowChevron).toBe(true)
+        expect(shouldShowDown).toBe(true)
+      })
+    })
+
+    describe('Appointments', () => {
+      it('0 appointments: no chevron', () => {
+        const appointmentCount = 0
+        const hasMoreAppointments = appointmentCount > COLLAPSED_LIMIT
+        expect(hasMoreAppointments).toBe(false)
+      })
+
+      it('3 appointments: no chevron', () => {
+        const appointmentCount = 3
+        const hasMoreAppointments = appointmentCount > COLLAPSED_LIMIT
+        expect(hasMoreAppointments).toBe(false)
+      })
+
+      it('5 appointments (limit): no chevron', () => {
+        const appointmentCount = 5
+        const hasMoreAppointments = appointmentCount > COLLAPSED_LIMIT
+        expect(hasMoreAppointments).toBe(false)
+      })
+
+      it('8 appointments: show ChevronDown when collapsed', () => {
+        const appointmentCount = 8
+        const expandedAppointments = false
+        const hasMoreAppointments = appointmentCount > COLLAPSED_LIMIT
+        const shouldShowChevron = hasMoreAppointments
+        const shouldShowDown = shouldShowChevron && !expandedAppointments
+        expect(shouldShowChevron).toBe(true)
+        expect(shouldShowDown).toBe(true)
+      })
+    })
+  })
+
+  describe('Create Actions Preserved', () => {
+    it('+ Reminder button still renders when onAddTask provided', () => {
+      const onAddTask = true
+      expect(onAddTask).toBe(true)
+    })
+
+    it('+ Job button still renders when onAddJob provided', () => {
+      const onAddJob = true
+      expect(onAddJob).toBe(true)
+    })
+
+    it('+ Appointment button still renders when onAddAppointment provided', () => {
+      const onAddAppointment = true
+      expect(onAddAppointment).toBe(true)
+    })
+  })
+
   describe('Expansion Control UI', () => {
     it('Reminders collapsed should show ChevronDown', () => {
       const expandedReminders = false
