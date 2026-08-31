@@ -79,7 +79,7 @@ function HomepageFooter() {
             <h3 className="text-sm font-semibold text-foreground mb-8">Product</h3>
             <ul className="space-y-4">
               <li>
-                <Link href="/home#features" className="text-muted-foreground hover:text-foreground text-base transition-colors">
+                <Link href="#features-section" className="text-muted-foreground hover:text-foreground text-base transition-colors">
                   Features
                 </Link>
               </li>

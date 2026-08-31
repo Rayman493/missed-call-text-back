@@ -296,7 +296,7 @@ export default async function Home() {
                         </div>
                         <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Get Paid</div>
                         <div className="text-xs text-slate-600 dark:text-slate-400">Plumbing Repair</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Accept Tap to Pay on iPhone or Android, or send a branded SMS payment request</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Accept Tap to Pay on iPhone, or send a branded SMS payment request</div>
                         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
                           <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Customer paid</div>
                         </div>
@@ -564,7 +564,7 @@ export default async function Home() {
                 </div>
                 <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">Get Paid Anywhere</h3>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed max-w-[18rem]">
-                  Accept contactless payments on iPhone or Android, or send branded SMS payment requests — no extra hardware required.
+                  Accept contactless payments on iPhone, or send branded SMS payment requests — no extra hardware required.
                 </p>
               </div>
 
@@ -666,7 +666,7 @@ export default async function Home() {
                   </svg>
                 </div>
                 <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Accept Payments Anywhere</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-[18rem]">Accept contactless payments with Tap to Pay on iPhone or Android while meeting a customer, or send branded SMS payment requests before leaving the job site—all with no extra hardware required.</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-[18rem]">Accept contactless payments with Tap to Pay on iPhone while meeting a customer, or send branded SMS payment requests before leaving the job site—all with no extra hardware required.</p>
               </div>
             </div>
 
@@ -757,7 +757,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Accept Payments Anywhere</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Accept contactless payments with Tap to Pay on iPhone or Android while meeting a customer, or send branded SMS payment requests before leaving the job site—all with no extra hardware required.</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Accept contactless payments with Tap to Pay on iPhone while meeting a customer, or send branded SMS payment requests before leaving the job site—all with no extra hardware required.</p>
                   </div>
                 </div>
               </div>
