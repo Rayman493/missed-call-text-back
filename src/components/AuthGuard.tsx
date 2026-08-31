@@ -279,7 +279,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       // Redirect is handled by timeout callback, don't show loading
       return null
     }
-    return <AppLoadingScreen />
+    // Use neutral loading for session restoration
+    return <AppLoadingScreen isFirstTimeSetup={false} />
   }
 
   // BILLING RETURN GRACE MODE: When billing_return=success, show recovery loading with extended timeout
@@ -332,7 +333,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         timestamp: Date.now()
       })
       router.push(`/auth/signin?returnTo=${returnTo}`)
-      return <AppLoadingScreen />
+      // Use neutral loading for session restoration
+      return <AppLoadingScreen isFirstTimeSetup={false} />
     }
     
     // Show loading while waiting for session restoration
@@ -375,7 +377,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       renderBranch: 'loading',
       reason: 'auth loading and not verified; rendering AppLoadingScreen',
     })
-    return <AppLoadingScreen />
+    // Use neutral loading for session restoration, not first-time setup
+    return <AppLoadingScreen isFirstTimeSetup={false} />
   }
 
   if (!user) {

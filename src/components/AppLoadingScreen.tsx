@@ -1,12 +1,19 @@
 'use client'
 
-export default function AppLoadingScreen() {
-  const steps = [
+interface AppLoadingScreenProps {
+  isFirstTimeSetup?: boolean
+}
+
+export default function AppLoadingScreen({ isFirstTimeSetup = true }: AppLoadingScreenProps) {
+  const steps = isFirstTimeSetup ? [
     'Activating your ReplyFlow account',
     'Confirming your trial',
     'Setting up your ReplyFlow number',
     'Finalizing your account setup'
-  ]
+  ] : []
+
+  const title = isFirstTimeSetup ? 'Setting up your account' : 'Loading...'
+  const subtitle = isFirstTimeSetup ? 'This usually takes less than a minute.' : 'Please wait...'
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
@@ -28,48 +35,50 @@ export default function AppLoadingScreen() {
 
       {/* Main loading text */}
       <h1 className="text-foreground text-xl sm:text-2xl font-semibold mb-2 animate-pulse">
-        Setting up your account
+        {title}
       </h1>
 
       {/* Reassuring subtitle */}
       <p className="text-muted-foreground text-sm sm:text-base mb-8">
-        This usually takes less than a minute.
+        {subtitle}
       </p>
 
-      {/* Step-based progress */}
-      <div className="max-w-md w-full space-y-3">
-        {steps.map((step, index) => (
-          <div
-            key={index}
-            className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
-              index === 0
-                ? 'bg-primary/10 border border-primary/20'
-                : 'bg-muted/50 border border-border'
-            }`}
-          >
+      {/* Step-based progress - only show for first-time setup */}
+      {isFirstTimeSetup && (
+        <div className="max-w-md w-full space-y-3">
+          {steps.map((step, index) => (
             <div
-              className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+              key={index}
+              className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
                 index === 0
-                  ? 'bg-primary'
-                  : 'bg-muted-foreground/30'
+                  ? 'bg-primary/10 border border-primary/20'
+                  : 'bg-muted/50 border border-border'
               }`}
             >
-              {index === 0 && (
-                <div className="w-2 h-2 bg-primary-foreground rounded-full animate-pulse"></div>
-              )}
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  index === 0
+                    ? 'bg-primary'
+                    : 'bg-muted-foreground/30'
+                }`}
+              >
+                {index === 0 && (
+                  <div className="w-2 h-2 bg-primary-foreground rounded-full animate-pulse"></div>
+                )}
+              </div>
+              <p
+                className={`text-sm sm:text-base ${
+                  index === 0
+                    ? 'text-foreground font-medium'
+                    : 'text-muted-foreground'
+                }`}
+              >
+                {step}
+              </p>
             </div>
-            <p
-              className={`text-sm sm:text-base ${
-                index === 0
-                  ? 'text-foreground font-medium'
-                  : 'text-muted-foreground'
-              }`}
-            >
-              {step}
-            </p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

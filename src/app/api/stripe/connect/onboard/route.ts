@@ -221,13 +221,10 @@ export async function POST(request: Request) {
     }
 
     // Create account link for onboarding
-    // For native iOS (iOS 17.4+), use HTTPS callback suitable for ASWebAuthenticationSession
-    // For other platforms, use standard return_url with query parameter
+    // For all platforms, use return_url with query parameter for consistent handling
+    // This ensures browser back arrow works correctly on iOS ASWebAuthenticationSession
     const baseUrl = getAppBaseUrl()
-    const isNativeIOS = request.headers.get('user-agent')?.includes('iOS')
-    const return_url = isNativeIOS
-      ? `${baseUrl}/dashboard/settings`
-      : `${baseUrl}/dashboard/settings?stripe_onboarding=complete`
+    const return_url = `${baseUrl}/dashboard/settings?stripe_onboarding=complete`
 
     // Prefill canonical business address if available (before Account Link creation)
     // Stripe Express redacts KYC address after onboarding starts, but accepts prefill before Account Link

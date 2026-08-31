@@ -2860,10 +2860,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       if (!result) {
         console.log('[Refresh] No response returned from API')
         setError('Failed to refresh conversation')
-        return
-      }
-
-      if (result.ok && result.lead) {
+        // Fall through to finally block to clear refreshing state
+      } else if (result.ok && result.lead) {
         console.log('[Refresh] Successfully refreshed conversation data')
         
         // Merge new messages with existing ones to preserve optimistic state

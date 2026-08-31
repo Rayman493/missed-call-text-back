@@ -193,12 +193,14 @@ export async function POST(req: NextRequest) {
             await notificationServiceServer.notifySmsFailed(
               lead.businesses.id,
               lead.caller_phone || 'Unknown',
-              lead.id
+              lead.id,
+              MessageSid // Pass MessageSid for idempotency
             )
             console.log('[twilio] Notification created for SMS failure', {
               messageId: message.id,
               leadId: lead.id,
-              businessId: lead.businesses.id
+              businessId: lead.businesses.id,
+              messageSid: MessageSid
             })
           }
         } catch (error) {

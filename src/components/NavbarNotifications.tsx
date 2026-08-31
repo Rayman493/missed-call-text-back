@@ -148,6 +148,10 @@ export default function NavbarNotifications() {
   }
 
   // Scroll detection handlers
+  const SWIPE_THRESHOLD = 30 // pixels for horizontal swipe
+  const SCROLL_THRESHOLD = 10 // pixels for vertical scroll
+  const TAP_THRESHOLD = 5 // pixels for tap
+
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0]
     touchStartRef.current = { x: touch.clientX, y: touch.clientY }
@@ -156,23 +160,28 @@ export default function NavbarNotifications() {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!touchStartRef.current) return
-    
+
     const touch = e.touches[0]
     const deltaX = Math.abs(touch.clientX - touchStartRef.current.x)
     const deltaY = Math.abs(touch.clientY - touchStartRef.current.y)
-    
-    // If movement exceeds threshold, consider it a scroll
-    if (deltaX > 5 || deltaY > 5) {
+
+    // Distinguish horizontal swipe from vertical scroll
+    if (deltaX > SWIPE_THRESHOLD && deltaX > deltaY) {
+      // Horizontal swipe - mark as scrolling to cancel tap
+      isScrollingRef.current = true
+    } else if (deltaY > SCROLL_THRESHOLD) {
+      // Vertical scroll - mark as scrolling to cancel tap
       isScrollingRef.current = true
     }
+    // Small movement (< TAP_THRESHOLD) is a tap, don't cancel
   }
 
   const handleTouchEnd = (notification: Notification) => {
     const wasScrolling = isScrollingRef.current
     touchStartRef.current = null
     isScrollingRef.current = false
-    
-    // Only trigger click if not scrolling
+
+    // Only trigger click if not scrolling/swiping
     if (!wasScrolling) {
       handleNotificationClick(notification)
     }
@@ -186,20 +195,26 @@ export default function NavbarNotifications() {
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!touchStartRef.current) return
-    
+
     const deltaX = Math.abs(e.clientX - touchStartRef.current.x)
     const deltaY = Math.abs(e.clientY - touchStartRef.current.y)
-    
-    if (deltaX > 5 || deltaY > 5) {
+
+    // Distinguish horizontal drag from vertical scroll
+    if (deltaX > SWIPE_THRESHOLD && deltaX > deltaY) {
+      // Horizontal drag - mark as scrolling to cancel click
+      isScrollingRef.current = true
+    } else if (deltaY > SCROLL_THRESHOLD) {
+      // Vertical scroll - mark as scrolling to cancel click
       isScrollingRef.current = true
     }
+    // Small movement (< TAP_THRESHOLD) is a click, don't cancel
   }
 
   const handleMouseUp = (notification: Notification) => {
     const wasScrolling = isScrollingRef.current
     touchStartRef.current = null
     isScrollingRef.current = false
-    
+
     if (!wasScrolling) {
       handleNotificationClick(notification)
     }
@@ -277,6 +292,13 @@ export default function NavbarNotifications() {
   // UI polish: Get display name with phone masking for SMS failures
   const getDisplayName = (notification: Notification): string | null => {
     const subject = resolveNotificationSubject(notification)
+
+    // Don't show displayName if title already includes customer name
+    // These notification types include customer name in the title
+    const nameInTitleTypes = ['new_lead', 'followup_completed', 'ai_intake_completed', 'missed_call']
+    if (nameInTitleTypes.includes(notification.type)) {
+      return null
+    }
 
     // Mask phone numbers for SMS failure notifications
     if (notification.type === 'sms_failed' && notification.data?.lead_phone) {

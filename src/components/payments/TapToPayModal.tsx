@@ -1429,7 +1429,7 @@ export default function TapToPayModal({
             <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
               <CreditCard className="w-4 h-4 text-primary" />
             </div>
-            <h3 className="text-lg font-semibold text-foreground">Tap to Pay</h3>
+            <h3 className="text-lg font-semibold text-foreground" tabIndex={-1}>Tap to Pay</h3>
           </div>
           {(paymentState === 'ready' || paymentState === 'failure' || paymentState === 'canceled') && (
             <button

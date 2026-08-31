@@ -353,7 +353,7 @@ export class NotificationServiceServer {
       return true
     }
 
-    // Atomic idempotency for ai_intake_completed only
+    // Atomic idempotency for ai_intake_completed and sms_failed
     // Uses INSERT + unique constraint (23505 error) to prevent race conditions
     let idempotencyKey: string | null = null
     let useAtomicIdempotency = false
@@ -362,6 +362,11 @@ export class NotificationServiceServer {
       // Use aiCallRecordId as the stable per-event identifier
       // Do NOT use leadId as fallback to avoid suppressing legitimate subsequent AI calls
       idempotencyKey = `ai_${data.aiCallRecordId}`
+      useAtomicIdempotency = true
+    } else if (data && data.messageSid && type === 'sms_failed') {
+      // Use Twilio MessageSid as the stable per-event identifier for SMS failures
+      // This prevents duplicate notifications when Twilio sends multiple failure callbacks for the same message
+      idempotencyKey = `sms_${data.messageSid}`
       useAtomicIdempotency = true
     }
 
@@ -589,12 +594,12 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifySmsFailed(businessId: string, leadName: string, leadId: string): Promise<boolean> {
+  async notifySmsFailed(businessId: string, leadName: string, leadId: string, messageSid?: string): Promise<boolean> {
     return await this.createNotification(
       businessId,
       'sms_failed',
       '',
-      { leadName, leadId }
+      { leadName, leadId, messageSid }
     )
   }
 
