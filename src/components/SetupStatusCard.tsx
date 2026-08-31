@@ -338,7 +338,7 @@ export default function SetupStatusCard({
                 onClick={() => setShowForwardingInstructions(true)}
                 className="text-xs text-muted-foreground hover:text-foreground hover:underline mt-1 text-left"
               >
-                Missing calls? Review your call forwarding setup.
+                Calls not reaching ReplyFlow? Review your call forwarding setup.
               </button>
             </div>
           </div>
@@ -816,7 +816,7 @@ export default function SetupStatusCard({
                     onClick={() => setShowForwardingInstructions(true)}
                     className="text-xs text-muted-foreground hover:text-foreground hover:underline mt-1 text-left"
                   >
-                    Missing calls? Review your call forwarding setup.
+                    Calls not reaching ReplyFlow? Review your call forwarding setup.
                   </button>
                 </div>
               </div>
