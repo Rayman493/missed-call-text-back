@@ -147,7 +147,7 @@ export default function PaymentsNewRequestModal({
         </div>
       }
     >
-      <div className="space-y-2.5 md:space-y-3">
+      <div className="space-y-3">
         <p className="text-xs sm:text-sm text-muted-foreground">
           Send a secure payment link by text.
         </p>
@@ -178,7 +178,7 @@ export default function PaymentsNewRequestModal({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5 md:mb-2">
+          <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
             Amount (USD)
           </label>
           <div className="relative">
@@ -197,7 +197,7 @@ export default function PaymentsNewRequestModal({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5 md:mb-2">
+          <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
             Payment Method
           </label>
           {hasAnyPaymentMethod ? (
@@ -309,7 +309,7 @@ export default function PaymentsNewRequestModal({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5 md:mb-2">
+          <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
             Description
           </label>
           <textarea

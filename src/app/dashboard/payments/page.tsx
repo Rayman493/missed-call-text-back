@@ -702,7 +702,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         <FocusSection business={business} view="payments" title="Collection Priorities" compact />
 
         {/* Action Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
           {/* Tap to Pay Card */}
           {(() => {
             const isStripeReady = business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled
@@ -822,8 +822,8 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         ) : (
           <>
             {/* Overview Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-              <div className="rounded-xl p-3.5 sm:p-4 border border-border/70 bg-card shadow-sm dark:shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5 mb-5">
+              <div className="rounded-xl p-3 sm:p-3.5 border border-border/70 bg-card shadow-sm dark:shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
                 <div className="flex items-start justify-between mb-1.5">
                   <span className="text-muted-foreground text-xs font-medium">Pending Amount</span>
                   <div className="h-8 w-8 rounded-lg bg-muted/60 ring-1 ring-inset ring-border/40 flex items-center justify-center">
@@ -838,7 +838,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                 ) : null}
               </div>
 
-              <div className="rounded-xl p-3.5 sm:p-4 border border-border/70 bg-card shadow-sm dark:shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
+              <div className="rounded-xl p-3 sm:p-3.5 border border-border/70 bg-card shadow-sm dark:shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
                 <div className="flex items-start justify-between mb-1.5">
                   <span className="text-muted-foreground text-xs font-medium">Paid This Month</span>
                   <div className="h-8 w-8 rounded-lg bg-muted/60 ring-1 ring-inset ring-border/40 flex items-center justify-center">
@@ -850,7 +850,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                 </div>
               </div>
 
-              <div className="rounded-xl p-3.5 sm:p-4 border border-border/70 bg-card shadow-sm dark:shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
+              <div className="rounded-xl p-3 sm:p-3.5 border border-border/70 bg-card shadow-sm dark:shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
                 <div className="flex items-start justify-between mb-1.5">
                   <span className="text-muted-foreground text-xs font-medium">Pending Requests</span>
                   <div className="h-8 w-8 rounded-lg bg-muted/60 ring-1 ring-inset ring-border/40 flex items-center justify-center">
@@ -867,7 +867,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                 )}
               </div>
 
-              <div className="rounded-xl p-3.5 sm:p-4 border border-border/70 bg-card shadow-sm dark:shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
+              <div className="rounded-xl p-3 sm:p-3.5 border border-border/70 bg-card shadow-sm dark:shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
                 <div className="flex items-start justify-between mb-1.5">
                   <span className="text-muted-foreground text-xs font-medium">Payment Success Rate</span>
                   <div className="h-8 w-8 rounded-lg bg-muted/60 ring-1 ring-inset ring-border/40 flex items-center justify-center">
@@ -881,7 +881,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             </div>
 
             {/* Table toolbar */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex-1">
                 {/* Optional: Add label if needed */}
               </div>

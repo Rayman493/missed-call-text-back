@@ -365,15 +365,15 @@ export default function RequestPaymentModal({
         </div>
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-3">
         <p className="text-xs text-muted-foreground/70">
           Send a secure payment link by text.
         </p>
 
         {/* Content - single primary scroll container */}
-        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-4 py-4 md:px-4 md:py-4 space-y-4 pb-[env(safe-area-inset-bottom)]" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-4 py-3 md:px-4 md:py-3 space-y-3 pb-[env(safe-area-inset-bottom)]" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
+            <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
               Recipient
             </label>
             <div className="flex gap-2 mb-3">
@@ -471,7 +471,7 @@ export default function RequestPaymentModal({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
+            <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
               Amount (USD)
             </label>
             <div className="relative">
@@ -501,7 +501,7 @@ export default function RequestPaymentModal({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
+            <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
               Payment Method
             </label>
             {hasAnyPaymentMethod ? (
@@ -610,7 +610,7 @@ export default function RequestPaymentModal({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
+            <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
               Description
             </label>
             <textarea
