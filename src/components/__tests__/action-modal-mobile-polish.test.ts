@@ -3,83 +3,106 @@ import { describe, it, expect } from 'vitest'
 /**
  * Regression test for Action Modal Polish + Mobile Viewport Hardening
  *
- * This test ensures the three core action modals (New Task, New Job, New Appointment)
- * follow the canonical action-modal contract and have proper mobile viewport fit.
+ * This test ensures that modal components follow the canonical modal architecture:
+ * - Canonical Modal consumers use the Modal component from @/components/ui/Modal
+ * - The canonical Modal component itself provides mobile viewport guarantees
+ * - Custom modal implementations provide equivalent guarantees
  */
 
 describe('Action Modal Polish + Mobile Viewport Hardening', () => {
+  describe('Canonical Modal Component Guarantees', () => {
+    it('should provide fixed viewport overlay with backdrop', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(content).toContain('fixed inset-0')
+      expect(content).toContain('z-[60]')
+      expect(content).toContain('bg-black/50 backdrop-blur-sm')
+    })
+
+    it('should provide safe-area handling', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(content).toContain('env(safe-area-inset-top)')
+      expect(content).toContain('var(--modal-bottom-reserve)')
+    })
+
+    it('should provide body scroll lock', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(content).toContain('useBodyScrollLock')
+    })
+
+    it('should provide internal scrolling with scroll-lock-allow', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(content).toContain('overflow-y-auto')
+      expect(content).toContain('data-scroll-lock-allow')
+    })
+
+    it('should provide max-height constraint', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(content).toContain('max-h-[var(--modal-max-height)]')
+    })
+
+    it('should provide canonical header padding', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(content).toContain('px-4 sm:px-5 py-4')
+    })
+
+    it('should provide canonical body padding', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(content).toContain('px-4 sm:px-5 py-4')
+    })
+
+    it('should provide canonical footer padding with border', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(content).toContain('px-4 sm:px-5 py-3')
+      expect(content).toContain('border-t border-border')
+    })
+
+    it('should provide escape key handling', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(content).toContain('keydown')
+      expect(content).toContain('Escape')
+    })
+
+    it('should provide backdrop click handling', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(content).toContain('handleBackdropClick')
+    })
+
+    it('should use portal rendering', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(content).toContain('createPortal')
+    })
+
+    it('should provide accessible close button', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(content).toContain('aria-label="Close"')
+      expect(content).toContain('h-8 w-8')
+    })
+  })
+
   describe('New Task Modal', () => {
-    it('should use canonical bg-card', () => {
+    it('should use canonical Modal component', () => {
       const fs = require('fs')
       const content = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
-      expect(content).toContain('bg-card')
-      expect(content).not.toContain('bg-white dark:bg-slate-900')
-    })
-
-    it('should use canonical border-border/30', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
-      expect(content).toContain('border-border/30')
-    })
-
-    it('should use canonical rounded-t-xl sm:rounded-xl', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
-      expect(content).toContain('rounded-t-xl sm:rounded-xl')
-    })
-
-    it('should use canonical max-height with safe-area and bottom-nav', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
-      expect(content).toContain('calc(85dvh-var(--bottom-nav-height,80px)-32px-env(safe-area-inset-top))')
-    })
-
-    it('should use canonical header padding', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
-      expect(content).toContain('px-5 py-4 sm:px-4 sm:py-3')
-    })
-
-    it('should use canonical body padding', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
-      expect(content).toContain('px-5 py-4 sm:px-4 sm:py-3')
+      expect(content).toContain("import Modal from '@/components/ui/Modal'")
+      expect(content).toContain('<Modal')
     })
 
     it('should use text-xs labels', () => {
       const fs = require('fs')
       const content = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
       expect(content).toContain('text-xs text-muted-foreground font-medium')
-    })
-
-    it('should have footer with border-t', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
-      expect(content).toContain('border-t border-border/30')
-    })
-
-    it('should use canonical footer padding', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
-      expect(content).toContain('px-5 py-4 sm:px-4 sm:py-3')
-    })
-
-    it('should have safe-area bottom padding on footer', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
-      expect(content).toContain('calc(16px + env(safe-area-inset-bottom))')
-    })
-
-    it('should use data-scroll-lock-allow', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
-      expect(content).toContain('data-scroll-lock-allow')
-    })
-
-    it('should use body scroll lock', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
-      expect(content).toContain('useBodyScrollLock(isOpen)')
     })
 
     it('should not have module-scope React hooks', () => {
@@ -103,77 +126,18 @@ describe('Action Modal Polish + Mobile Viewport Hardening', () => {
     })
   })
 
-  describe('New Job Modal (JobComposer)', () => {
-    it('should use canonical bg-card', () => {
+  describe('Job Composer Modal', () => {
+    it('should use canonical Modal component', () => {
       const fs = require('fs')
       const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-      expect(content).toContain('bg-card')
-    })
-
-    it('should use canonical border-border/30', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-      expect(content).toContain('border-border/30')
-    })
-
-    it('should use canonical rounded-t-xl sm:rounded-xl', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-      expect(content).toContain('rounded-t-xl sm:rounded-xl')
-    })
-
-    it('should use canonical max-height with safe-area and bottom-nav', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-      expect(content).toContain('calc(85dvh-var(--bottom-nav-height,80px)-32px-env(safe-area-inset-top))')
-    })
-
-    it('should use canonical header padding', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-      expect(content).toContain('px-5 py-4 sm:px-4 sm:py-3')
-    })
-
-    it('should use canonical body padding', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-      expect(content).toContain('px-5 py-4 sm:px-4 sm:py-3')
+      expect(content).toContain("import Modal from '@/components/ui/Modal'")
+      expect(content).toContain('<Modal')
     })
 
     it('should use text-xs labels', () => {
       const fs = require('fs')
       const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
       expect(content).toContain('text-xs text-muted-foreground font-medium')
-    })
-
-    it('should have footer with border-t', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-      expect(content).toContain('border-t border-border/30')
-    })
-
-    it('should use canonical footer padding', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-      expect(content).toContain('px-5 py-4 sm:px-4 sm:py-3')
-    })
-
-    it('should have safe-area bottom padding on footer', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-      expect(content).toContain('calc(16px + env(safe-area-inset-bottom))')
-    })
-
-    it('should use data-scroll-lock-allow', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-      expect(content).toContain('data-scroll-lock-allow')
-    })
-
-    it('should use body scroll lock', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-      expect(content).toContain('useBodyScrollLock(isOpen)')
     })
 
     it('should not have module-scope React hooks', () => {
@@ -200,70 +164,17 @@ describe('Action Modal Polish + Mobile Viewport Hardening', () => {
   })
 
   describe('New Appointment Modal', () => {
-    it('should use canonical bg-card', () => {
+    it('should use canonical Modal component', () => {
       const fs = require('fs')
       const content = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
-      expect(content).toContain('bg-card')
-    })
-
-    it('should use canonical border-border/30', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
-      expect(content).toContain('border-border/30')
-    })
-
-    it('should use canonical rounded-t-xl sm:rounded-xl', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
-      expect(content).toContain('rounded-t-xl sm:rounded-xl')
-    })
-
-    it('should use canonical max-height with safe-area and bottom-nav', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
-      expect(content).toContain('calc(85dvh-var(--bottom-nav-height,80px)-32px-env(safe-area-inset-top))')
-    })
-
-    it('should use canonical header padding', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
-      expect(content).toContain('px-5 py-4 sm:px-4 sm:py-3')
-    })
-
-    it('should use canonical body padding', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
-      expect(content).toContain('px-5 py-4 sm:px-4 sm:py-3')
+      expect(content).toContain("import Modal from '@/components/ui/Modal'")
+      expect(content).toContain('<Modal')
     })
 
     it('should use text-xs labels', () => {
       const fs = require('fs')
       const content = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
       expect(content).toContain('text-xs text-muted-foreground font-medium')
-    })
-
-    it('should have footer with border-t', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
-      expect(content).toContain('border-t border-border/30')
-    })
-
-    it('should use canonical footer padding', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
-      expect(content).toContain('px-5 py-4 sm:px-4 sm:py-3')
-    })
-
-    it('should use data-scroll-lock-allow', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
-      expect(content).toContain('data-scroll-lock-allow')
-    })
-
-    it('should use body scroll lock', () => {
-      const fs = require('fs')
-      const content = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
-      expect(content).toContain('useBodyScrollLock(isOpen)')
     })
 
     it('should not have module-scope React hooks', () => {
@@ -282,49 +193,78 @@ describe('Action Modal Polish + Mobile Viewport Hardening', () => {
   })
 
   describe('Modal Family Parity', () => {
-    it('all three modals should use max-w-md or max-w-lg', () => {
+    it('all canonical modal consumers should use the Modal component', () => {
       const fs = require('fs')
       const taskContent = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
       const jobContent = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
       const apptContent = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
+      const customerContent = fs.readFileSync('src/components/AddCustomerModal.tsx', 'utf8')
       
-      expect(taskContent).toMatch(/max-w-(md|lg)/)
-      expect(jobContent).toMatch(/max-w-(md|lg)/)
-      expect(apptContent).toMatch(/max-w-(md|lg)/)
+      expect(taskContent).toContain("import Modal from '@/components/ui/Modal'")
+      expect(jobContent).toContain("import Modal from '@/components/ui/Modal'")
+      expect(apptContent).toContain("import Modal from '@/components/ui/Modal'")
+      expect(customerContent).toContain("import Modal from '@/components/ui/Modal'")
     })
 
-    it('all three modals should use --bottom-nav-height variable', () => {
+    it('canonical Modal component should provide max-w-lg width', () => {
       const fs = require('fs')
-      const taskContent = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
-      const jobContent = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-      const apptContent = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
-      
-      expect(taskContent).toContain('--bottom-nav-height')
-      expect(jobContent).toContain('--bottom-nav-height')
-      expect(apptContent).toContain('--bottom-nav-height')
+      const modalContent = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(modalContent).toContain('max-w-lg')
     })
 
-    it('all three modals should use env(safe-area-inset-top)', () => {
+    it('canonical Modal component should use safe-area variables', () => {
       const fs = require('fs')
-      const taskContent = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
-      const jobContent = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-      const apptContent = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
-      
-      expect(taskContent).toContain('env(safe-area-inset-top)')
-      expect(jobContent).toContain('env(safe-area-inset-top)')
-      expect(apptContent).toContain('env(safe-area-inset-top)')
+      const modalContent = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(modalContent).toContain('env(safe-area-inset-top)')
+      expect(modalContent).toContain('var(--modal-bottom-reserve)')
     })
 
-    it('all three modals should not use plain 100vh for mobile shell', () => {
+    it('canonical Modal component should not use plain 100vh for mobile shell', () => {
       const fs = require('fs')
-      const taskContent = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
-      const jobContent = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-      const apptContent = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
-      
-      // Check that they use 85dvh or similar, not plain 100vh
-      expect(taskContent).toContain('85dvh')
-      expect(jobContent).toContain('85dvh')
-      expect(apptContent).toContain('85dvh')
+      const modalContent = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      // Modal uses CSS variable for max-height, not hardcoded 100vh
+      expect(modalContent).toContain('max-h-[var(--modal-max-height)]')
+    })
+  })
+
+  describe('Custom Modal Implementations', () => {
+    it('BetaFeedbackModal should provide viewport-constrained modal', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/BetaFeedbackModal.tsx', 'utf8')
+      expect(content).toContain('fixed inset-0')
+      expect(content).toContain('max-w-lg')
+    })
+
+    it('BetaFeedbackModal should provide body scroll lock', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/BetaFeedbackModal.tsx', 'utf8')
+      expect(content).toContain('useBodyScrollLock')
+    })
+
+    it('BetaFeedbackModal should provide safe-area handling', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/BetaFeedbackModal.tsx', 'utf8')
+      expect(content).toContain('env(safe-area-inset-top)')
+      expect(content).toContain('env(safe-area-inset-bottom)')
+    })
+
+    it('NewJobModal should provide viewport-constrained modal', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/jobs/NewJobModal.tsx', 'utf8')
+      expect(content).toContain('fixed inset-0')
+      expect(content).toContain('max-w-sm')
+    })
+
+    it('NewJobModal should provide body scroll lock', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/jobs/NewJobModal.tsx', 'utf8')
+      expect(content).toContain('useBodyScrollLock')
+    })
+
+    it('NewJobModal should provide safe-area handling', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/jobs/NewJobModal.tsx', 'utf8')
+      expect(content).toContain('env(safe-area-inset-bottom)')
     })
   })
 })

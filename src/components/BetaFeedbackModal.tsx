@@ -113,9 +113,9 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={onClose}
       />
@@ -123,7 +123,7 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
       {/* Modal */}
       <div className="relative bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200" data-scroll-lock-allow>
         {/* Header */}
-        <div className="sticky top-0 bg-card border-b border-border/50 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-card border-b border-border dark:border-border/50 px-4 sm:px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
               <MessageCircle className="w-5 h-5 text-primary" />
@@ -144,33 +144,28 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
         </div>
 
         {/* Content */}
-        <div className="px-6 py-6">
-          <p className="text-sm text-muted-foreground mb-6">
-            Found a bug or have an idea? We'd love to hear your feedback as we improve ReplyFlow during the beta period.
-          </p>
-
-          {/* Success Message */}
-          {showSuccess && (
-            <div className="bg-green-900/20 border border-green-800 rounded-lg p-4 mb-6 flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-green-100">Thanks for your feedback!</p>
-                <p className="text-xs text-green-300">Your feedback has been sent to the ReplyFlow team.</p>
-              </div>
-            </div>
-          )}
-
+        <div className="px-4 sm:px-5 py-4">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Success Message */}
+            {showSuccess && (
+              <div className="bg-green-900/20 border border-green-800 rounded-lg p-3 flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-green-100">Thanks for your feedback!</p>
+                  <p className="text-xs text-green-300">Your feedback has been sent to the ReplyFlow team.</p>
+                </div>
+              </div>
+            )}
             {/* Category Dropdown */}
             <div className="relative">
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
                 Category <span className="text-red-500">*</span>
               </label>
               <button
                 ref={catButtonRef}
                 type="button"
                 onClick={() => setCatOpen((v) => !v)}
-                className="w-full px-3 py-2 bg-muted/50 border border-border/50 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary flex items-center justify-between"
+                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 flex items-center justify-between"
                 disabled={isSubmitting}
                 aria-haspopup="listbox"
                 aria-expanded={catOpen}
@@ -220,7 +215,7 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
 
             {/* Message Textarea */}
             <div>
-              <label htmlFor="message" className="block text-sm font-medium text-foreground mb-2">
+              <label htmlFor="message" className="text-xs text-muted-foreground font-medium mb-1.5 block">
                 Your Feedback <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -228,7 +223,7 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={5}
-                className="w-full px-3 py-2 bg-muted/50 border border-border/50 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none"
+                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
                 placeholder="Describe your feedback in detail..."
                 required
                 disabled={isSubmitting}
@@ -245,20 +240,20 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
               </div>
             )}
 
-            {/* Buttons */}
-            <div className="flex gap-3 pt-2">
+            {/* Footer Actions */}
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border dark:border-border/50 pt-4 mt-4">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-2 bg-muted hover:bg-muted/80 text-foreground font-medium rounded-lg transition-colors duration-200"
                 disabled={isSubmitting}
+                className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isSubmitting}
+                className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
               </button>
