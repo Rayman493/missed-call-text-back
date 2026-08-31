@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useNotifications } from '@/contexts/NotificationContext'
-import { notificationService, Notification, NotificationCount, getNotificationCustomerContext } from '@/lib/notifications'
+import { notificationService, Notification, NotificationCount, getNotificationCustomerContext, resolveNotificationSubject } from '@/lib/notifications'
 import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Settings, CreditCard, ExternalLink, PhoneMissed, Trash2, X } from 'lucide-react'
 import AppHeader from '@/components/AppHeader'
 import Navigation from '@/components/Navigation'
@@ -100,6 +100,22 @@ export default function NotificationsPage() {
 
   const getLeadContext = (notification: Notification) => {
     return getNotificationCustomerContext(notification)
+  }
+
+  // Strip duplicate name prefix from customer_reply notifications
+  // The message is stored as "Ryan: Hello" but customer context is also displayed separately
+  // This prevents the duplicate "Ryan" from appearing in the UI
+  const getDisplayMessage = (notification: Notification) => {
+    if (notification.type === 'customer_reply') {
+      const subject = resolveNotificationSubject(notification)
+      if (subject && subject !== 'Unknown Caller') {
+        const prefix = `${subject}: `
+        if (notification.message.startsWith(prefix)) {
+          return notification.message.substring(prefix.length)
+        }
+      }
+    }
+    return notification.message
   }
 
   const formatTime = (timestamp: string) => {
@@ -304,7 +320,7 @@ export default function NotificationsPage() {
 
                     {/* Message */}
                     <p className="text-sm text-muted-foreground">
-                      {notification.message}
+                      {getDisplayMessage(notification)}
                     </p>
                   </div>
                 </div>
