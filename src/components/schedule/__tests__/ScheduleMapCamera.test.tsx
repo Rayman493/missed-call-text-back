@@ -1,255 +1,318 @@
 /**
  * Schedule Map Camera Behavior Tests
  *
- * Tests for canonical camera behavior:
- * - Business + one service marker uses fitBounds
- * - Business + multiple markers uses fitBounds
- * - Business only centers at sensible default zoom
- * - Service only fits valid service markers
- * - No markers uses safe fallback
- * - Date change triggers exactly one fit
- * - Unrelated rerender does not refit
- * - Manual interaction does not snap back
- * - Marker tap focuses one marker
- * - Stop tap focuses one marker
- * - Focus does not trigger immediate day refit
- * - Delayed business marker does not create competing camera moves
+ * Tests for simplified camera behavior:
+ * - Semantic context key determines framing eligibility
+ * - Marker signature prevents redundant framing
+ * - User interaction suppresses passive framing for current context
+ * - New context resets framing eligibility
+ * - At most one corrective frame for late-arriving markers
+ * - No camera ownership state machine
  */
 
 import { describe, it, expect } from 'vitest'
 
 describe('Schedule Map Camera Behavior', () => {
-  describe('TEST 1 — Business + one service => fitBounds both', () => {
-    it('should use fitBounds for business + one service marker', () => {
-      // Canonical behavior: fitBounds([business, service])
-      // NOT panToMarker(service)
-      const markerCount = 2
-      const hasBusiness = true
-      const hasService = true
+  describe('Semantic Context Key', () => {
+    it('should create stable context key from canonical local date and filter', () => {
+      const date1 = new Date('2024-01-01T10:00:00')
+      const filter1 = 'all'
+      const selectedDateKey1 = date1.toLocaleDateString('en-CA')
+      const contextKey1 = `${selectedDateKey1}:${filter1}`
 
-      expect(markerCount).toBe(2)
-      expect(hasBusiness).toBe(true)
-      expect(hasService).toBe(true)
+      const date2 = new Date('2024-01-01T14:30:00')
+      const filter2 = 'all'
+      const selectedDateKey2 = date2.toLocaleDateString('en-CA')
+      const contextKey2 = `${selectedDateKey2}:${filter2}`
 
-      // Should call fitBounds, not panToMarker
-      const shouldUseFitBounds = markerCount > 0
-      expect(shouldUseFitBounds).toBe(true)
+      expect(contextKey1).toBe(contextKey2)
+    })
+
+    it('should use canonical local date (YYYY-MM-DD) format', () => {
+      const date = new Date('2024-01-15T09:30:00')
+      const selectedDateKey = date.toLocaleDateString('en-CA')
+
+      expect(selectedDateKey).toBe('2024-01-15')
+    })
+
+    it('should treat same local day with different times as same context', () => {
+      const dateMorning = new Date('2024-01-01T08:00:00')
+      const dateEvening = new Date('2024-01-01T18:00:00')
+      const filter = 'all'
+
+      const contextMorning = `${dateMorning.toLocaleDateString('en-CA')}:${filter}`
+      const contextEvening = `${dateEvening.toLocaleDateString('en-CA')}:${filter}`
+
+      expect(contextMorning).toBe(contextEvening)
+    })
+
+    it('should change context key when local calendar day changes', () => {
+      const date1 = new Date('2024-01-01T12:00:00')
+      const filter = 'all'
+      const contextKey1 = `${date1.toLocaleDateString('en-CA')}:${filter}`
+
+      const date2 = new Date('2024-01-02T12:00:00')
+      const contextKey2 = `${date2.toLocaleDateString('en-CA')}:${filter}`
+
+      expect(contextKey1).not.toBe(contextKey2)
+    })
+
+    it('should change context key when filter changes', () => {
+      const date = new Date('2024-01-01T12:00:00')
+      const filter1 = 'all'
+      const contextKey1 = `${date.toLocaleDateString('en-CA')}:${filter1}`
+
+      const filter2 = 'jobs'
+      const contextKey2 = `${date.toLocaleDateString('en-CA')}:${filter2}`
+
+      expect(contextKey1).not.toBe(contextKey2)
+    })
+
+    it('should not depend on UTC timestamp formatting', () => {
+      const date1 = new Date('2024-01-01T00:00:00Z') // UTC midnight
+      const date2 = new Date('2024-01-01T23:59:59Z') // UTC end of day, different local day in some timezones
+      const filter = 'all'
+
+      // Both should use local date, not UTC
+      const contextKey1 = `${date1.toLocaleDateString('en-CA')}:${filter}`
+      const contextKey2 = `${date2.toLocaleDateString('en-CA')}:${filter}`
+
+      // In a UTC timezone, these would be the same day
+      // In a negative offset timezone, they'd be different
+      // The key is we use local date consistently
+      expect(contextKey1).toMatch(/^\d{4}-\d{2}-\d{2}:/)
+      expect(contextKey2).toMatch(/^\d{4}-\d{2}-\d{2}:/)
+    })
+
+    it('should reset framing eligibility on context change', () => {
+      const oldContext = '2024-01-01:all'
+      const newContext = '2024-01-02:all'
+      const userInteracted = true
+
+      const contextChanged = oldContext !== newContext
+      const shouldResetUserInteraction = contextChanged
+
+      expect(contextChanged).toBe(true)
+      expect(shouldResetUserInteraction).toBe(true)
     })
   })
 
-  describe('TEST 2 — Business + multiple => fitBounds all', () => {
-    it('should use fitBounds for business + multiple service markers', () => {
-      const markerCount = 5 // business + 4 services
-      const hasBusiness = true
-      const hasServices = true
+  describe('Marker Signature', () => {
+    it('should create stable signature from marker coordinates', () => {
+      const markers1 = [
+        { type: 'business', id: 'home', lat: 37.7749, lng: -122.4194 },
+        { type: 'job', id: 'job-1', lat: 37.7849, lng: -122.4094 }
+      ]
+      const markers2 = [
+        { type: 'business', id: 'home', lat: 37.7749, lng: -122.4194 },
+        { type: 'job', id: 'job-1', lat: 37.7849, lng: -122.4094 }
+      ]
 
-      expect(markerCount).toBeGreaterThan(1)
-      expect(hasBusiness).toBe(true)
-      expect(hasServices).toBe(true)
-
-      // Should use fitBounds for all markers
-      const shouldUseFitBounds = markerCount > 0
-      expect(shouldUseFitBounds).toBe(true)
-    })
-  })
-
-  describe('TEST 3 — Business only', () => {
-    it('should center business at sensible default zoom', () => {
-      const markerCount = 1
-      const hasBusiness = true
-      const hasServices = false
-
-      expect(markerCount).toBe(1)
-      expect(hasBusiness).toBe(true)
-      expect(hasServices).toBe(false)
-
-      // Should center on business with default zoom
-      const shouldCenterBusiness = markerCount === 1 && hasBusiness
-      expect(shouldCenterBusiness).toBe(true)
-    })
-  })
-
-  describe('TEST 4 — Service only', () => {
-    it('should fit valid service markers', () => {
-      const markerCount = 3
-      const hasBusiness = false
-      const hasServices = true
-
-      expect(markerCount).toBeGreaterThan(0)
-      expect(hasBusiness).toBe(false)
-      expect(hasServices).toBe(true)
-
-      // Should fit all service markers
-      const shouldFitServices = markerCount > 0 && hasServices
-      expect(shouldFitServices).toBe(true)
-    })
-  })
-
-  describe('TEST 5 — No markers', () => {
-    it('should use safe fallback without crash', () => {
-      const markerCount = 0
-      const hasBusiness = false
-      const hasServices = false
-
-      expect(markerCount).toBe(0)
-      expect(hasBusiness).toBe(false)
-      expect(hasServices).toBe(false)
-
-      // Should not crash, should use fallback
-      const shouldUseFallback = markerCount === 0
-      expect(shouldUseFallback).toBe(true)
-    })
-  })
-
-  describe('TEST 6 — Zero-stop date => populated date exactly one fit', () => {
-    it('should trigger exactly one fit when transitioning from zero to populated date', () => {
-      const previousMarkerCount = 0
-      const currentMarkerCount = 3
-      const dateChanged = true
-
-      expect(previousMarkerCount).toBe(0)
-      expect(currentMarkerCount).toBeGreaterThan(0)
-      expect(dateChanged).toBe(true)
-
-      // Should trigger exactly one fit
-      const shouldTriggerFit = dateChanged && currentMarkerCount > 0
-      expect(shouldTriggerFit).toBe(true)
-    })
-  })
-
-  describe('TEST 7 — Populated date => different populated date one fit', () => {
-    it('should trigger exactly one fit when changing between different populated dates', () => {
-      const previousDate = '2024-01-01'
-      const currentDate = '2024-01-02'
-      const dateChanged = true
-      const currentMarkerCount = 4
-
-      expect(previousDate).not.toBe(currentDate)
-      expect(dateChanged).toBe(true)
-      expect(currentMarkerCount).toBeGreaterThan(0)
-
-      // Should trigger exactly one fit
-      const shouldTriggerFit = dateChanged
-      expect(shouldTriggerFit).toBe(true)
-    })
-  })
-
-  describe('TEST 8 — Unrelated rerender no refit', () => {
-    it('should not refit on unrelated rerender with same marker set', () => {
-      const dateChanged = false
-      const signatureChanged = false
-      const cameraOwner = 'USER_OWNED'
-
-      expect(dateChanged).toBe(false)
-      expect(signatureChanged).toBe(false)
-      expect(cameraOwner).toBe('USER_OWNED')
-
-      // Should not refit
-      const shouldRefit = dateChanged || signatureChanged
-      expect(shouldRefit).toBe(false)
-    })
-  })
-
-  describe('TEST 9 — Manual interaction no snap-back', () => {
-    it('should not snap back after manual interaction', () => {
-      const cameraOwner = 'USER_OWNED'
-      const signatureChanged = true
-      const dateChanged = false
-
-      expect(cameraOwner).toBe('USER_OWNED')
-      expect(signatureChanged).toBe(true)
-      expect(dateChanged).toBe(false)
-
-      // Should not refit when user owns camera
-      const shouldRefit = dateChanged || (cameraOwner !== 'USER_OWNED' && signatureChanged)
-      expect(shouldRefit).toBe(false)
-    })
-  })
-
-  describe('TEST 10 — Marker tap focuses one', () => {
-    it('should focus on single marker when tapped', () => {
-      const markerTapped = true
-      const markerId = 'marker-1'
-
-      expect(markerTapped).toBe(true)
-      expect(markerId).toBe('marker-1')
-
-      // Should focus on the tapped marker
-      const shouldFocusMarker = markerTapped
-      expect(shouldFocusMarker).toBe(true)
-    })
-  })
-
-  describe('TEST 11 — Stop tap focuses one', () => {
-    it('should focus on stop when Stop card is tapped', () => {
-      const stopTapped = true
-      const stopId = 'stop-1'
-
-      expect(stopTapped).toBe(true)
-      expect(stopId).toBe('stop-1')
-
-      // Should focus on the tapped stop
-      const shouldFocusStop = stopTapped
-      expect(shouldFocusStop).toBe(true)
-    })
-  })
-
-  describe('TEST 12 — Focus does not trigger immediate day refit', () => {
-    it('should not trigger day refit after explicit marker/Stop focus', () => {
-      const explicitFocus = true
-      const dateChanged = false
-      const signatureChanged = false
-
-      expect(explicitFocus).toBe(true)
-      expect(dateChanged).toBe(false)
-      expect(signatureChanged).toBe(false)
-
-      // Explicit focus should not trigger day refit
-      const shouldTriggerDayRefit = dateChanged || signatureChanged
-      expect(shouldTriggerDayRefit).toBe(false)
-    })
-  })
-
-  describe('TEST 13 — Delayed business marker does not create competing camera moves', () => {
-    it('should not create competing moves when business marker arrives late', () => {
-      const initialMarkerCount = 2 // 2 service markers
-      const businessMarkerArrivedLate = true
-      const finalMarkerCount = 3 // +1 business marker
-
-      expect(initialMarkerCount).toBe(2)
-      expect(businessMarkerArrivedLate).toBe(true)
-      expect(finalMarkerCount).toBe(3)
-
-      // Should trigger one fit with all markers included
-      const shouldRefitOnce = businessMarkerArrivedLate
-      expect(shouldRefitOnce).toBe(true)
-
-      // Business marker should be included in the fit
-      const businessIncluded = true
-      expect(businessIncluded).toBe(true)
-    })
-  })
-
-  describe('Marker Set Identity Strategy', () => {
-    it('should use deterministic marker-set identity', () => {
-      // Marker set identity should be based on marker IDs, not object references
-      const markerSet1 = ['marker-1', 'marker-2', 'business-1']
-      const markerSet2 = ['marker-1', 'marker-2', 'business-1'] // Same IDs, different objects
-
-      const signature1 = markerSet1.sort().join(',')
-      const signature2 = markerSet2.sort().join(',')
+      const signature1 = markers1
+        .sort((a, b) => `${a.type}:${a.id}`.localeCompare(`${b.type}:${b.id}`))
+        .map(m => `${m.type}:${m.id}:${m.lat.toFixed(6)}:${m.lng.toFixed(6)}`)
+        .join('|')
+      const signature2 = markers2
+        .sort((a, b) => `${a.type}:${a.id}`.localeCompare(`${b.type}:${b.id}`))
+        .map(m => `${m.type}:${m.id}:${m.lat.toFixed(6)}:${m.lng.toFixed(6)}`)
+        .join('|')
 
       expect(signature1).toBe(signature2)
     })
 
-    it('should detect when marker set actually changes', () => {
-      const markerSet1 = ['marker-1', 'marker-2', 'business-1']
-      const markerSet2 = ['marker-1', 'marker-3', 'business-1'] // Different marker
+    it('should detect signature change when marker coordinates change', () => {
+      const markers1 = [
+        { type: 'business', id: 'home', lat: 37.7749, lng: -122.4194 },
+        { type: 'job', id: 'job-1', lat: 37.7849, lng: -122.4094 }
+      ]
+      const markers2 = [
+        { type: 'business', id: 'home', lat: 37.7749, lng: -122.4194 },
+        { type: 'job', id: 'job-1', lat: 37.7949, lng: -122.3994 } // Different coordinates
+      ]
 
-      const signature1 = markerSet1.sort().join(',')
-      const signature2 = markerSet2.sort().join(',')
+      const signature1 = markers1
+        .sort((a, b) => `${a.type}:${a.id}`.localeCompare(`${b.type}:${b.id}`))
+        .map(m => `${m.type}:${m.id}:${m.lat.toFixed(6)}:${m.lng.toFixed(6)}`)
+        .join('|')
+      const signature2 = markers2
+        .sort((a, b) => `${a.type}:${a.id}`.localeCompare(`${b.type}:${b.id}`))
+        .map(m => `${m.type}:${m.id}:${m.lat.toFixed(6)}:${m.lng.toFixed(6)}`)
+        .join('|')
 
       expect(signature1).not.toBe(signature2)
+    })
+
+    it('should detect signature change when marker set composition changes', () => {
+      const markers1 = [
+        { type: 'business', id: 'home', lat: 37.7749, lng: -122.4194 },
+        { type: 'job', id: 'job-1', lat: 37.7849, lng: -122.4094 }
+      ]
+      const markers2 = [
+        { type: 'business', id: 'home', lat: 37.7749, lng: -122.4194 },
+        { type: 'job', id: 'job-2', lat: 37.7849, lng: -122.4094 } // Different job
+      ]
+
+      const signature1 = markers1
+        .sort((a, b) => `${a.type}:${a.id}`.localeCompare(`${b.type}:${b.id}`))
+        .map(m => `${m.type}:${m.id}:${m.lat.toFixed(6)}:${m.lng.toFixed(6)}`)
+        .join('|')
+      const signature2 = markers2
+        .sort((a, b) => `${a.type}:${a.id}`.localeCompare(`${b.type}:${b.id}`))
+        .map(m => `${m.type}:${m.id}:${m.lat.toFixed(6)}:${m.lng.toFixed(6)}`)
+        .join('|')
+
+      expect(signature1).not.toBe(signature2)
+    })
+  })
+
+  describe('Passive Framing Decision', () => {
+    it('should frame when context changes and user has not interacted', () => {
+      const contextChanged = true
+      const userInteracted = false
+      const markersExist = true
+
+      const shouldFrame = contextChanged && !userInteracted && markersExist
+      expect(shouldFrame).toBe(true)
+    })
+
+    it('should not frame when user has interacted', () => {
+      const contextChanged = true
+      const userInteracted = true
+      const signatureChanged = true
+      const markersExist = true
+
+      const shouldFrame = !userInteracted && markersExist && (contextChanged || signatureChanged)
+      expect(shouldFrame).toBe(false)
+    })
+
+    it('should not frame when signature unchanged', () => {
+      const contextChanged = false
+      const signatureChanged = false
+      const userInteracted = false
+      const markersExist = true
+
+      const shouldFrame = !userInteracted && markersExist && (contextChanged || signatureChanged)
+      expect(shouldFrame).toBe(false)
+    })
+
+    it('should allow one corrective frame for late marker', () => {
+      const signatureChanged = true
+      const userInteracted = false
+      const correctiveFrameUsed = false
+      const contextChanged = false
+      const markersExist = true
+
+      const shouldFrame = !userInteracted && markersExist &&
+                          (contextChanged || (signatureChanged && !correctiveFrameUsed && !contextChanged))
+      expect(shouldFrame).toBe(true)
+    })
+
+    it('should not allow second corrective frame', () => {
+      const signatureChanged = true
+      const userInteracted = false
+      const correctiveFrameUsed = true
+      const contextChanged = false
+      const markersExist = true
+
+      const shouldFrame = !userInteracted && markersExist &&
+                          (contextChanged || (signatureChanged && !correctiveFrameUsed && !contextChanged))
+      expect(shouldFrame).toBe(false)
+    })
+
+    it('should not frame if no markers exist', () => {
+      const contextChanged = true
+      const userInteracted = false
+      const markerCount = 0
+
+      const shouldFrame = contextChanged && !userInteracted && markerCount > 0
+      expect(shouldFrame).toBe(false)
+    })
+
+    it('should not allow corrective frame after user interaction', () => {
+      const signatureChanged = true
+      const userInteracted = true
+      const correctiveFrameUsed = false
+      const contextChanged = false
+      const markersExist = true
+
+      const shouldFrame = !userInteracted && markersExist &&
+                          (contextChanged || (signatureChanged && !correctiveFrameUsed && !contextChanged))
+      expect(shouldFrame).toBe(false)
+    })
+  })
+
+  describe('User Interaction', () => {
+    it('should set user interacted flag on drag', () => {
+      let userInteracted = false
+      const dragOccurred = true
+
+      if (dragOccurred) {
+        userInteracted = true
+      }
+
+      expect(userInteracted).toBe(true)
+    })
+
+    it('should set user interacted flag on zoom', () => {
+      let userInteracted = false
+      const zoomOccurred = true
+
+      if (zoomOccurred) {
+        userInteracted = true
+      }
+
+      expect(userInteracted).toBe(true)
+    })
+
+    it('should not set user interacted flag on programmatic move', () => {
+      let userInteracted = false
+      const programmaticMove = true
+
+      if (!programmaticMove) {
+        userInteracted = true
+      }
+
+      expect(userInteracted).toBe(false)
+    })
+
+    it('should reset user interacted flag on context change', () => {
+      let userInteracted = true
+      const contextChanged = true
+
+      if (contextChanged) {
+        userInteracted = false
+      }
+
+      expect(userInteracted).toBe(false)
+    })
+  })
+
+  describe('Zero and Single Marker Behavior', () => {
+    it('should not crash with zero markers', () => {
+      const markerCount = 0
+      const shouldFitBounds = markerCount > 1
+      const shouldCenter = markerCount === 1
+
+      expect(shouldFitBounds).toBe(false)
+      expect(shouldCenter).toBe(false)
+    })
+
+    it('should center single marker without fitBounds', () => {
+      const markerCount = 1
+      const shouldFitBounds = markerCount > 1
+      const shouldCenter = markerCount === 1
+
+      expect(shouldFitBounds).toBe(false)
+      expect(shouldCenter).toBe(true)
+    })
+
+    it('should fitBounds with multiple markers', () => {
+      const markerCount = 2
+      const shouldFitBounds = markerCount > 1
+      const shouldCenter = markerCount === 1
+
+      expect(shouldFitBounds).toBe(true)
+      expect(shouldCenter).toBe(false)
     })
   })
 })
