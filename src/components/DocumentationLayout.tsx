@@ -9,40 +9,35 @@ interface DocumentationLayoutProps {
  * DocumentationLayout - Shared layout for documentation pages
  *
  * Features:
- * - Three-column grid to center article content on desktop
- * - Left rail: Sidebar (fixed 280px)
- * - Center: Content (minmax(720px, 900px) for comfortable reading)
- * - Right rail: Empty balancing column (280px) to center content
+ * - Article content truly centered in viewport on desktop
+ * - Sidebar positioned independently to the left of centered article
  * - Sidebar sticky within its container
  * - Outer container provides scroll context
  */
 export default function DocumentationLayout({ children, sidebar }: DocumentationLayoutProps) {
   return (
     <div className="w-full">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 relative">
         {/*
-          Three-column grid for desktop to center article content:
-          - Left: Sidebar (fixed 280px)
-          - Center: Content (minmax(720px, 900px) for comfortable reading)
-          - Right: Empty balancing column (280px) to center content
+          Desktop layout: Article is centered, sidebar positioned to its left
+          - Relative container allows absolute positioning of sidebar
+          - Article uses max-w and margin-auto to center in available space (no padding affecting center)
+          - Sidebar is positioned at a fixed distance from viewport center
         */}
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(720px,900px)_280px] lg:gap-8">
-          {/* Sidebar - Desktop Only */}
-          <aside className="hidden lg:block lg:shrink-0">
+        <div className="lg:relative">
+          {/* Sidebar - Positioned relative to viewport center, left of centered article */}
+          <aside className="hidden lg:block absolute left-[calc(50%-450px-40px)] top-0 w-[280px]">
             <div className="sticky top-24 max-h-[calc(100dvh-6rem)] overflow-y-auto pr-2">
               {sidebar}
             </div>
           </aside>
 
-          {/* Main Content */}
-          <div className="space-y-8">
-            {children}
+          {/* Main Content - Truly centered in viewport, no asymmetric padding */}
+          <div className="lg:mx-auto lg:max-w-[900px]">
+            <div className="space-y-8">
+              {children}
+            </div>
           </div>
-
-          {/* Right Balancing Rail - Empty on Desktop */}
-          <aside className="hidden lg:block lg:shrink-0">
-            {/* This column exists only to balance the left sidebar */}
-          </aside>
         </div>
       </div>
     </div>

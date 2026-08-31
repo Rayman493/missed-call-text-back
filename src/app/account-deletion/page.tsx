@@ -79,7 +79,7 @@ export default function AccountDeletionPage() {
                   Account Deletion is Permanent
                 </h3>
                 <p className="text-sm text-red-800 dark:text-red-200 leading-relaxed">
-                  Once your account is deleted, this action cannot be undone. All your data will be permanently removed from ReplyFlow's systems.
+                  Once your account is deleted, this action cannot be undone. Your ReplyFlow account and associated data will be deleted, subject to the limited retention described below.
                 </p>
               </div>
             </div>
@@ -120,7 +120,7 @@ export default function AccountDeletionPage() {
                   </ol>
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-500 mt-4">
-                  Your account and all associated data will be permanently deleted.
+                  Your account and associated data will be deleted, subject to the limited retention described below.
                 </p>
               </div>
             </div>
