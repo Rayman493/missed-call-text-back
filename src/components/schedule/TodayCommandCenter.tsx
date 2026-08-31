@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calendar, Briefcase, CheckCircle2, Clock, Plus, AlertCircle, Pencil } from 'lucide-react'
+import { Calendar, Briefcase, CheckCircle2, Clock, Plus, AlertCircle, Pencil, ChevronDown, ChevronUp } from 'lucide-react'
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import type { Job } from '@/components/jobs/JobComposer'
@@ -526,9 +526,11 @@ export default function TodayCommandCenter({
               )}
               <button
                 onClick={() => setExpandedReminders(!expandedReminders)}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                className="flex-shrink-0 w-8 h-8 md:w-8 md:h-8 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-expanded={expandedReminders}
+                aria-label={expandedReminders ? 'Show fewer reminders' : 'Show all reminders'}
               >
-                {expandedReminders ? 'Show less ↑' : 'View all →'}
+                {expandedReminders ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
             </div>
           </div>
@@ -663,9 +665,11 @@ export default function TodayCommandCenter({
               )}
               <button
                 onClick={() => setExpandedJobs(!expandedJobs)}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                className="flex-shrink-0 w-8 h-8 md:w-8 md:h-8 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-expanded={expandedJobs}
+                aria-label={expandedJobs ? 'Show fewer jobs' : 'Show all jobs'}
               >
-                {expandedJobs ? 'Show less ↑' : 'View all →'}
+                {expandedJobs ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
             </div>
           </div>
@@ -766,9 +770,11 @@ export default function TodayCommandCenter({
               )}
               <button
                 onClick={() => setExpandedAppointments(!expandedAppointments)}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                className="flex-shrink-0 w-8 h-8 md:w-8 md:h-8 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-expanded={expandedAppointments}
+                aria-label={expandedAppointments ? 'Show fewer appointments' : 'Show all appointments'}
               >
-                {expandedAppointments ? 'Show less ↑' : 'View all →'}
+                {expandedAppointments ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
             </div>
           </div>

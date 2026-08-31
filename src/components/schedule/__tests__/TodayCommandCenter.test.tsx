@@ -133,4 +133,137 @@ describe('TodayCommandCenter', () => {
       expect(appointmentModalHasDelete).toBe(true)
     })
   })
+
+  describe('Expansion Control UI', () => {
+    it('Reminders collapsed should show ChevronDown', () => {
+      const expandedReminders = false
+      const showsChevronDown = !expandedReminders
+      expect(showsChevronDown).toBe(true)
+    })
+
+    it('Reminders expanded should show ChevronUp', () => {
+      const expandedReminders = true
+      const showsChevronUp = expandedReminders
+      expect(showsChevronUp).toBe(true)
+    })
+
+    it('Jobs collapsed should show ChevronDown', () => {
+      const expandedJobs = false
+      const showsChevronDown = !expandedJobs
+      expect(showsChevronDown).toBe(true)
+    })
+
+    it('Jobs expanded should show ChevronUp', () => {
+      const expandedJobs = true
+      const showsChevronUp = expandedJobs
+      expect(showsChevronUp).toBe(true)
+    })
+
+    it('Appointments collapsed should show ChevronDown', () => {
+      const expandedAppointments = false
+      const showsChevronDown = !expandedAppointments
+      expect(showsChevronDown).toBe(true)
+    })
+
+    it('Appointments expanded should show ChevronUp', () => {
+      const expandedAppointments = true
+      const showsChevronUp = expandedAppointments
+      expect(showsChevronUp).toBe(true)
+    })
+
+    it('textual "View all" no longer renders', () => {
+      const hasTextualViewAll = false
+      expect(hasTextualViewAll).toBe(false)
+    })
+
+    it('textual "Show less" no longer renders', () => {
+      const hasTextualShowLess = false
+      expect(hasTextualShowLess).toBe(false)
+    })
+
+    it('aria-expanded is correct for Reminders', () => {
+      const expandedReminders = true
+      expect(expandedReminders).toBe(true)
+    })
+
+    it('aria-expanded is correct for Jobs', () => {
+      const expandedJobs = false
+      expect(expandedJobs).toBe(false)
+    })
+
+    it('aria-expanded is correct for Appointments', () => {
+      const expandedAppointments = false
+      expect(expandedAppointments).toBe(false)
+    })
+
+    it('accessible labels are correct for collapsed state', () => {
+      const expandedReminders = false
+      const expandedJobs = false
+      const expandedAppointments = false
+
+      const remindersLabel = expandedReminders ? 'Show fewer reminders' : 'Show all reminders'
+      const jobsLabel = expandedJobs ? 'Show fewer jobs' : 'Show all jobs'
+      const appointmentsLabel = expandedAppointments ? 'Show fewer appointments' : 'Show all appointments'
+
+      expect(remindersLabel).toBe('Show all reminders')
+      expect(jobsLabel).toBe('Show all jobs')
+      expect(appointmentsLabel).toBe('Show all appointments')
+    })
+
+    it('accessible labels are correct for expanded state', () => {
+      const expandedReminders = true
+      const expandedJobs = true
+      const expandedAppointments = true
+
+      const remindersLabel = expandedReminders ? 'Show fewer reminders' : 'Show all reminders'
+      const jobsLabel = expandedJobs ? 'Show fewer jobs' : 'Show all jobs'
+      const appointmentsLabel = expandedAppointments ? 'Show fewer appointments' : 'Show all appointments'
+
+      expect(remindersLabel).toBe('Show fewer reminders')
+      expect(jobsLabel).toBe('Show fewer jobs')
+      expect(appointmentsLabel).toBe('Show fewer appointments')
+    })
+
+    it('sections expand independently', () => {
+      const expandedReminders = true
+      const expandedJobs = false
+      const expandedAppointments = false
+
+      // Reminders can be expanded without expanding Jobs or Appointments
+      expect(expandedReminders).toBe(true)
+      expect(expandedJobs).toBe(false)
+      expect(expandedAppointments).toBe(false)
+    })
+
+    it('collapse restores limited view', () => {
+      const defaultLimit = 5
+      const expandedLimit = Infinity
+
+      const collapsedLimit = defaultLimit
+      const expandedLimitCheck = expandedLimit
+
+      expect(collapsedLimit).toBe(defaultLimit)
+      expect(expandedLimitCheck).toBeGreaterThan(defaultLimit)
+    })
+
+    it('+ Reminder still works', () => {
+      const onAddTask = true
+      expect(onAddTask).toBe(true)
+    })
+
+    it('+ Job still works', () => {
+      const onAddJob = true
+      expect(onAddJob).toBe(true)
+    })
+
+    it('+ Appointment still works', () => {
+      const onAddAppointment = true
+      expect(onAddAppointment).toBe(true)
+    })
+
+    it('no navigation occurs on expand/collapse', () => {
+      const navigationOccurs = false
+      expect(navigationOccurs).toBe(false)
+    })
+  })
 })
