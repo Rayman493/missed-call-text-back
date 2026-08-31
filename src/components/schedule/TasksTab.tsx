@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { CheckCircle2, Clock, AlertCircle, Plus, X, Edit2, Trash2 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import NewTaskModal from './NewTaskModal'
@@ -52,6 +52,15 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
 
+  // Grace period state: track tasks that were just completed with their completion timestamp
+  const [justCompletedTaskIds, setJustCompletedTaskIds] = useState<Map<string, number>>(new Map())
+  const graceTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
+  const GRACE_PERIOD_MS = 4000
+
+  // Pending completion state: track tasks with completion API request in progress
+  // This prevents the row from disappearing during the API request
+  const [pendingCompletionTaskIds, setPendingCompletionTaskIds] = useState<Set<string>>(new Set())
+
   // Use parent modal if available, otherwise use local state
   const useParentModal = !!onAddTask && !!onEditTask
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info'; isVisible: boolean }>({
@@ -102,11 +111,25 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
     }
   }, [isLoading])
 
+  // Cleanup grace period timers on unmount
+  useEffect(() => {
+    return () => {
+      // Clear all pending timers
+      graceTimersRef.current.forEach(timer => clearTimeout(timer))
+      graceTimersRef.current.clear()
+    }
+  }, [])
+
   const toggleTaskComplete = async (taskId: string, completed: boolean) => {
     // Prevent duplicate toggles
     if (togglingTaskIds.has(taskId)) return
 
     const newCompletedState = !completed
+
+    // Add to pending completion state BEFORE optimistic update to prevent flicker
+    if (newCompletedState) {
+      setPendingCompletionTaskIds(prev => new Set(prev).add(taskId))
+    }
 
     // Optimistic UI update
     setTasks(prev => prev.map(t =>
@@ -129,6 +152,12 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
             ? { ...t, completed, completed_at: completed ? t.completed_at : null }
             : t
         ))
+        // Clear pending state
+        setPendingCompletionTaskIds(prev => {
+          const next = new Set(prev)
+          next.delete(taskId)
+          return next
+        })
         showToast('Authentication error. Please try again.', 'error')
         return
       }
@@ -149,11 +178,64 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
             ? { ...t, completed, completed_at: completed ? t.completed_at : null }
             : t
         ))
+        // Clear pending state
+        setPendingCompletionTaskIds(prev => {
+          const next = new Set(prev)
+          next.delete(taskId)
+          return next
+        })
         showToast('Failed to update reminder. Please try again.', 'error')
         return
       }
 
-      // Success: keep the optimistic state
+      // Success: keep the optimistic state and add to grace period if completing
+      if (newCompletedState) {
+        // Clear pending state first
+        setPendingCompletionTaskIds(prev => {
+          const next = new Set(prev)
+          next.delete(taskId)
+          return next
+        })
+
+        // Now start grace period
+        const completionTimestamp = Date.now()
+        setJustCompletedTaskIds(prev => new Map(prev).set(taskId, completionTimestamp))
+
+        // Clear any existing timer for this task
+        const existingTimer = graceTimersRef.current.get(taskId)
+        if (existingTimer) {
+          clearTimeout(existingTimer)
+        }
+
+        // Set timer to remove from grace period after GRACE_PERIOD_MS
+        const timer = setTimeout(() => {
+          setJustCompletedTaskIds(prev => {
+            const next = new Map(prev)
+            next.delete(taskId)
+            return next
+          })
+          graceTimersRef.current.delete(taskId)
+        }, GRACE_PERIOD_MS)
+
+        graceTimersRef.current.set(taskId, timer)
+      } else {
+        // If uncompleting, remove from grace period and pending state immediately
+        setJustCompletedTaskIds(prev => {
+          const next = new Map(prev)
+          next.delete(taskId)
+          return next
+        })
+        setPendingCompletionTaskIds(prev => {
+          const next = new Set(prev)
+          next.delete(taskId)
+          return next
+        })
+        const existingTimer = graceTimersRef.current.get(taskId)
+        if (existingTimer) {
+          clearTimeout(existingTimer)
+          graceTimersRef.current.delete(taskId)
+        }
+      }
     } catch (error) {
       console.error('[TasksTab] Failed to toggle task:', error)
       // Revert on network error
@@ -162,6 +244,12 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
           ? { ...t, completed, completed_at: completed ? t.completed_at : null }
           : t
       ))
+      // Clear pending state
+      setPendingCompletionTaskIds(prev => {
+        const next = new Set(prev)
+        next.delete(taskId)
+        return next
+      })
       showToast('Failed to update reminder. Please try again.', 'error')
     } finally {
       // Remove from loading state
@@ -207,13 +295,26 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
     return !dueDate
   }
 
+  // Check if a task is in its grace period (just completed within last GRACE_PERIOD_MS)
+  const isInGracePeriod = (taskId: string): boolean => {
+    const completionTimestamp = justCompletedTaskIds.get(taskId)
+    if (!completionTimestamp) return false
+    return Date.now() - completionTimestamp < GRACE_PERIOD_MS
+  }
+
   const filteredTasks = tasks.filter(task => {
     switch (filter) {
       case 'active':
+        // Include completed tasks during grace period OR while completion API is pending
+        if (task.completed && (isInGracePeriod(task.id) || pendingCompletionTaskIds.has(task.id))) return true
         return !task.completed && !isOverdue(task.due_date) && !isFuture(task.due_date)
       case 'overdue':
+        // Include completed tasks during grace period OR while completion API is pending
+        if (task.completed && (isInGracePeriod(task.id) || pendingCompletionTaskIds.has(task.id))) return true
         return !task.completed && isOverdue(task.due_date)
       case 'future':
+        // Include completed tasks during grace period OR while completion API is pending
+        if (task.completed && (isInGracePeriod(task.id) || pendingCompletionTaskIds.has(task.id))) return true
         return !task.completed && isFuture(task.due_date)
       case 'completed':
         return task.completed

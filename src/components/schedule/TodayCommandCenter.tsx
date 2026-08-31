@@ -403,10 +403,10 @@ export default function TodayCommandCenter({
       </div>
 
       {/* Today - Primary Section */}
-      <div className="bg-white dark:bg-slate-900/60 border border-blue-200/70 dark:border-blue-800/50 rounded-lg shadow-sm">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-blue-100/50 dark:border-blue-900/30">
+      <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/70 dark:border-blue-800/50 rounded-lg shadow-sm">
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-blue-100/50 dark:border-blue-900/30">
           <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          <h3 className="text-sm font-semibold text-foreground">
+          <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
             Today
           </h3>
         </div>

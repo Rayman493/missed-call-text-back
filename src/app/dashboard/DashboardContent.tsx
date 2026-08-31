@@ -1170,7 +1170,7 @@ export default function DashboardContent() {
                           href="/dashboard/settings#out-of-office"
                           className="text-xs text-blue-700 hover:text-blue-900 font-medium flex-shrink-0 transition-colors duration-200 dark:text-blue-400 dark:hover:text-blue-300"
                         >
-                          Settings
+                          Change Out of Office Status
                         </Link>
                       </div>
                     </div>

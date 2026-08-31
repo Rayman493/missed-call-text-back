@@ -16,6 +16,7 @@ import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { filterEventsByMonth, getLocalDateKey, getTodayLocalDateKey } from '@/lib/calendar-date-utils'
 import { getBusinessLocalDateString, normalizeBusinessTimezone } from '@/lib/business-date-utils'
+import { getMonthCounts } from '@/lib/calendar-summary-utils'
 import { toZonedTime } from 'date-fns-tz/toZonedTime'
 import { fromZonedTime } from 'date-fns-tz/fromZonedTime'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
@@ -716,31 +717,7 @@ export default function SchedulePage() {
   }
 
   const getThisMonthCounts = () => {
-    const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-
-    const appointments = events.filter(event => {
-      const eventDateRaw = event.start?.dateTime || event.start?.date
-      if (!eventDateRaw) return false
-      const eventDate = new Date(eventDateRaw)
-      return eventDate >= startOfMonth && eventDate <= endOfMonth
-    }).length
-
-    const startKey = getDateKey(startOfMonth)
-    const endKey = getDateKey(endOfMonth)
-    const jobCount = jobs.filter(j => {
-      if (!j.scheduled_date || j.status === 'cancelled') return false
-      return j.scheduled_date >= startKey && j.scheduled_date <= endKey
-    }).length
-
-    const taskCount = tasks.filter(t => {
-      if (!t.due_date || t.completed) return false
-      const taskDate = new Date(t.due_date)
-      return taskDate >= startOfMonth && taskDate <= endOfMonth
-    }).length
-
-    return { appointments, jobs: jobCount, tasks: taskCount }
+    return getMonthCounts(currentMonth, events, jobs, tasks)
   }
 
   const getEventsForDay = (date: Date) => {
@@ -1427,22 +1404,22 @@ export default function SchedulePage() {
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                             <p className="text-sm text-muted-foreground">
-                              <span className="font-semibold text-foreground">{getThisMonthCounts().tasks}</span>
-                              <span className="text-muted-foreground/70 ml-1">tasks</span>
+                              <span className="font-semibold text-foreground">{getThisMonthCounts().reminders}</span>
+                              <span className="text-muted-foreground/70 ml-1">{getThisMonthCounts().reminders === 1 ? 'reminder' : 'reminders'}</span>
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                             <p className="text-sm text-muted-foreground">
                               <span className="font-semibold text-foreground">{getThisMonthCounts().jobs}</span>
-                              <span className="text-muted-foreground/70 ml-1">jobs</span>
+                              <span className="text-muted-foreground/70 ml-1">{getThisMonthCounts().jobs === 1 ? 'job' : 'jobs'}</span>
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                             <p className="text-sm text-muted-foreground">
                               <span className="font-semibold text-foreground">{getThisMonthCounts().appointments}</span>
-                              <span className="text-muted-foreground/70 ml-1">appointments</span>
+                              <span className="text-muted-foreground/70 ml-1">{getThisMonthCounts().appointments === 1 ? 'appointment' : 'appointments'}</span>
                             </p>
                           </div>
                         </div>
@@ -1530,18 +1507,18 @@ export default function SchedulePage() {
                         <div className="grid grid-cols-3 gap-2 p-2 bg-white dark:bg-slate-900/50 border border-border/50 dark:border-slate-700/50 rounded-lg">
                           <div className="flex items-center justify-center gap-1.5">
                             <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                            <span className="text-xs font-medium text-foreground">{getThisMonthCounts().tasks}</span>
-                            <span className="text-[10px] text-slate-400">tasks</span>
+                            <span className="text-xs font-medium text-foreground">{getThisMonthCounts().reminders}</span>
+                            <span className="text-[10px] text-slate-400">{getThisMonthCounts().reminders === 1 ? 'reminder' : 'reminders'}</span>
                           </div>
                           <div className="flex items-center justify-center gap-1.5">
                             <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
                             <span className="text-xs font-medium text-foreground">{getThisMonthCounts().jobs}</span>
-                            <span className="text-[10px] text-slate-400">jobs</span>
+                            <span className="text-[10px] text-slate-400">{getThisMonthCounts().jobs === 1 ? 'job' : 'jobs'}</span>
                           </div>
                           <div className="flex items-center justify-center gap-1.5">
                             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
                             <span className="text-xs font-medium text-foreground">{getThisMonthCounts().appointments}</span>
-                            <span className="text-[10px] text-slate-400">appointments</span>
+                            <span className="text-[10px] text-slate-400">{getThisMonthCounts().appointments === 1 ? 'appointment' : 'appointments'}</span>
                           </div>
                         </div>
                       </div>

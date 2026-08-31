@@ -4377,7 +4377,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             <p className="text-sm text-muted-foreground mb-2">No payments yet</p>
                             {!business || getAvailableProviders(business).length === 0 ? (
                               <div className="text-xs text-muted-foreground">
-                                <span>Set up a payment method in Settings to request payments.</span>
+                                <span>Set up a payment method in Settings → Payments to request payments.</span>
                                 <Link
                                   href="/dashboard/settings#payments"
                                   className="text-blue-600 dark:text-blue-400 hover:underline ml-1"
@@ -5393,7 +5393,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       {business && isProviderAvailable('stripe', business) ? (
                         <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-full">Connected</span>
                       ) : (
-                        <span className="text-xs text-slate-500 dark:text-slate-400">Set up in Settings</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Set up in Settings → Payments</span>
                       )}
                     </div>
                   </div>
@@ -5420,7 +5420,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       {business && isProviderAvailable('venmo', business) ? (
                         <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-full">Configured</span>
                       ) : (
-                        <span className="text-xs text-slate-500 dark:text-slate-400">Set up in Settings</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Set up in Settings → Payments</span>
                       )}
                     </div>
                   </div>
@@ -5447,7 +5447,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       {business && isProviderAvailable('paypal', business) ? (
                         <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-full">Configured</span>
                       ) : (
-                        <span className="text-xs text-slate-500 dark:text-slate-400">Set up in Settings</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Set up in Settings → Payments</span>
                       )}
                     </div>
                   </div>
@@ -5458,7 +5458,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               {!business || (!isProviderAvailable('stripe', business) && !isProviderAvailable('venmo', business) && !isProviderAvailable('paypal', business)) && (
                 <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
                   <p className="text-sm text-amber-800 dark:text-amber-200">
-                    Configure a payment provider in Settings before sending payment requests.
+                    Configure a payment provider in Settings → Payments before sending payment requests.
                   </p>
                   <Link
                     href="/dashboard/settings"
