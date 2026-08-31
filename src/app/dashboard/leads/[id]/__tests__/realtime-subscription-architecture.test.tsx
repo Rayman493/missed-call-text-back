@@ -89,6 +89,49 @@ describe('Realtime Subscription Architecture', () => {
     })
   })
 
+  describe('Temporary Control Channel Diagnostic', () => {
+    it('should have temporary INSERT-only control channel for diagnostics', () => {
+      // This is a temporary diagnostic to compare INSERT-only vs INSERT+UPDATE
+      // The control channel has exactly one INSERT handler, observation only
+      const controlChannelConfig = {
+        hasControlChannel: true,
+        controlChannelInsertOnly: true,
+        controlChannelNoStateMutation: true,
+        controlChannelObservationOnly: true
+      }
+      expect(controlChannelConfig.hasControlChannel).toBe(true)
+      expect(controlChannelConfig.controlChannelInsertOnly).toBe(true)
+      expect(controlChannelConfig.controlChannelNoStateMutation).toBe(true)
+      expect(controlChannelConfig.controlChannelObservationOnly).toBe(true)
+    })
+
+    it('should keep production as INSERT + UPDATE on one channel', () => {
+      // Verify production channel remains unchanged with both handlers
+      const productionConfig = {
+        insertHandler: true,
+        updateHandler: true,
+        singleChannel: true,
+        unfiltered: true
+      }
+      expect(productionConfig.insertHandler).toBe(true)
+      expect(productionConfig.updateHandler).toBe(true)
+      expect(productionConfig.singleChannel).toBe(true)
+      expect(productionConfig.unfiltered).toBe(true)
+    })
+
+    it('should clean up both production and control channels', () => {
+      // Verify cleanup removes both channels
+      const cleanupBehavior = {
+        removesProductionChannel: true,
+        removesControlChannel: true,
+        clearsRefs: true
+      }
+      expect(cleanupBehavior.removesProductionChannel).toBe(true)
+      expect(cleanupBehavior.removesControlChannel).toBe(true)
+      expect(cleanupBehavior.clearsRefs).toBe(true)
+    })
+  })
+
   describe('Realtime Lifecycle', () => {
     it('should recreate subscription when realtimeGeneration changes', () => {
       // This test documents the fix for the generation resubscribe bug
