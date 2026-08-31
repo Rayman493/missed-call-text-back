@@ -468,7 +468,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
-  const realtimeControlChannelRef = useRef<RealtimeChannel | null>(null)
   const currentLeadIdRef = useRef<string | null>(null)
   const realtimeSubscriptionSequenceRef = useRef(0)
   const supabaseRef = useRef(createBrowserClient())
@@ -2103,18 +2102,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       timestamp: new Date().toISOString()
     })
 
-    // DIAGNOSTIC: Check auth state before subscription
-    supabase.auth.getSession().then(({ data }: any) => {
-      console.log('[REALTIME AUTH STATE]', {
-        instanceId: realtimeInstanceIdRef.current,
-        leadId,
-        hasSession: !!data?.session,
-        hasAccessToken: !!data?.session?.access_token,
-        userId: data?.session?.user?.id,
-        timestamp: new Date().toISOString()
-      })
-    })
-
     // Only recreate subscription if lead ID actually changed (navigation to different lead)
     if (currentLeadIdRef.current === leadId) {
       console.log('[REALTIME SUBSCRIPTION] Skipping - lead ID unchanged:', leadId)
@@ -2134,12 +2121,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         timestamp: new Date().toISOString()
       })
       supabase.removeChannel(realtimeChannelRef.current)
-    }
-    // Clean up existing control diagnostic channel
-    if (realtimeControlChannelRef.current) {
-      console.log('[REALTIME CONTROL CLEANUP] Removing old control channel')
-      supabase.removeChannel(realtimeControlChannelRef.current)
-      realtimeControlChannelRef.current = null
     }
 
     // Clear any existing stuck message check interval
@@ -2164,13 +2145,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     const channel = supabase
       .channel(channelName)
-
-    // DIAGNOSTIC: Inspect binding count after channel creation
-    // @ts-ignore - bindings is private but we need to inspect it for diagnostics
-    console.log('[REALTIME BINDING COUNT] after channel creation:', {
-      postgresChangesCount: (channel as any).bindings?.postgres_changes?.length || 0,
-      timestamp: new Date().toISOString()
-    })
 
     // INSERT subscription for new messages
     channel
@@ -2364,117 +2338,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       )
 
-    // DIAGNOSTIC: Inspect binding count after 3 registrations (INSERT messages, UPDATE messages, UPDATE leads)
-    // @ts-ignore - bindings is private but we need to inspect it for diagnostics
-    console.log('[REALTIME BINDING COUNT] after 3 registrations:', {
-      postgresChangesCount: (channel as any).bindings?.postgres_changes?.length || 0,
-      timestamp: new Date().toISOString()
-    })
-
-    // DIAGNOSTIC: Inspect binding count before subscribe
-    // @ts-ignore - bindings is private but we need to inspect it for diagnostics
-    console.log('[REALTIME BINDING COUNT] before subscribe:', {
-      postgresChangesCount: (channel as any).bindings?.postgres_changes?.length || 0,
-      timestamp: new Date().toISOString()
-    })
-
-    // ============================================================
-    // TEMPORARY DIAGNOSTIC: INSERT-ONLY CONTROL CHANNEL
-    // ============================================================
-    // This recreates the historically working diagnostic channel shape
-    // to determine if the combined INSERT+UPDATE structure is the issue
-    const controlChannelName = `lead-detail-control-insert:${leadId}:${realtimeInstanceIdRef.current}:${realtimeSubscriptionSequenceRef.current}`
-    console.log('[REALTIME CONTROL SUBSCRIBE REQUEST]', {
-      instanceId: realtimeInstanceIdRef.current,
-      leadId,
-      sequence: realtimeSubscriptionSequenceRef.current,
-      controlChannelName,
-      timestamp: new Date().toISOString()
-    })
-
-    const controlChannel = supabase
-      .channel(controlChannelName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages'
-          // No server-side filter - observation only
-        },
-        (payload: any) => {
-          // OBSERVATION ONLY - no state mutation
-          console.log('[REALTIME CONTROL INSERT FIRED]', {
-            instanceId: realtimeInstanceIdRef.current,
-            controlChannelName,
-            messageId: payload.new?.id,
-            leadId: payload.new?.lead_id,
-            conversationId: payload.new?.conversation_id,
-            timestamp: new Date().toISOString()
-          })
-        }
-      )
-      .subscribe((status: any) => {
-        console.log('[REALTIME CONTROL CHANNEL STATUS]', {
-          instanceId: realtimeInstanceIdRef.current,
-          leadId,
-          controlChannelName,
-          status,
-          timestamp: new Date().toISOString()
-        })
-
-        if (status === 'SUBSCRIBED') {
-          console.log('[REALTIME CONTROL] Successfully subscribed:', {
-            leadId,
-            controlChannelName,
-            instanceId: realtimeInstanceIdRef.current,
-            timestamp: new Date().toISOString()
-          })
-
-          // DIAGNOSTIC: Inspect control channel bindings
-          // @ts-ignore - bindings is private but we need to inspect it for diagnostics
-          const controlBindings = (controlChannel as any).bindings
-          const controlPostgresBindings = controlBindings?.postgres_changes || []
-          console.log('[REALTIME CONTROL BINDINGS DIAGNOSTIC]', {
-            leadId,
-            controlChannelName,
-            bindingCount: controlPostgresBindings.length,
-            allBindingTypes: Object.keys(controlBindings || {}),
-            timestamp: new Date().toISOString()
-          })
-          // Log each control binding individually
-          controlPostgresBindings.forEach((b: any, index: number) => {
-            console.log(`[REALTIME CONTROL BINDING ${index}]`, {
-              index,
-              id: b.id,
-              event: b.filter?.event,
-              schema: b.filter?.schema,
-              table: b.filter?.table,
-              filter: b.filter?.filter,
-              hasServerId: !!b.id,
-              bindingKeys: Object.keys(b),
-              timestamp: new Date().toISOString()
-            })
-          })
-        }
-      })
-
-    // Verify client/socket identity equality
-    console.log('[REALTIME IDENTITY COMPARISON]', {
-      instanceId: realtimeInstanceIdRef.current,
-      leadId,
-      productionClientSameAsControl: supabaseRef.current === supabaseRef.current,
-      // @ts-ignore - accessing private socket for diagnostic
-      productionSocketSameAsControl: (channel as any).socket === (controlChannel as any).socket,
-      timestamp: new Date().toISOString()
-    })
-
-    realtimeControlChannelRef.current = controlChannel
-
-    // ============================================================
-    // END TEMPORARY DIAGNOSTIC
-    // ============================================================
-
     channel.subscribe((status: any) => {
         console.log('[REALTIME CHANNEL STATUS]', {
           instanceId: realtimeInstanceIdRef.current,
@@ -2490,32 +2353,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             channelName,
             instanceId: realtimeInstanceIdRef.current,
             timestamp: new Date().toISOString()
-          })
-
-          // DIAGNOSTIC: Inspect postgres_changes bindings after subscription
-          // @ts-ignore - bindings is private but we need to inspect it for diagnostics
-          const bindings = (channel as any).bindings
-          const postgresBindings = bindings?.postgres_changes || []
-          console.log('[REALTIME BINDINGS DIAGNOSTIC]', {
-            leadId,
-            channelName,
-            bindingCount: postgresBindings.length,
-            allBindingTypes: Object.keys(bindings || {}),
-            timestamp: new Date().toISOString()
-          })
-          // Log each binding individually
-          postgresBindings.forEach((b: any, index: number) => {
-            console.log(`[REALTIME PRODUCTION BINDING ${index}]`, {
-              index,
-              id: b.id,
-              event: b.filter?.event,
-              schema: b.filter?.schema,
-              table: b.filter?.table,
-              filter: b.filter?.filter,
-              hasServerId: !!b.id,
-              bindingKeys: Object.keys(b),
-              timestamp: new Date().toISOString()
-            })
           })
         } else if (status === 'CHANNEL_ERROR') {
           console.error('[REALTIME] Channel error for lead:', leadId, '- attempting recovery')
@@ -2595,12 +2432,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         console.log('[REALTIME SUBSCRIPTION CLEANUP] Removing channel:', ownedChannelName)
         supabase.removeChannel(realtimeChannelRef.current)
         realtimeChannelRef.current = null
-      }
-      // Cleanup temporary control diagnostic channel
-      if (realtimeControlChannelRef.current) {
-        console.log('[REALTIME CONTROL CLEANUP] Removing control channel')
-        supabase.removeChannel(realtimeControlChannelRef.current)
-        realtimeControlChannelRef.current = null
       }
       currentLeadIdRef.current = null
       if (stuckMessageCheckIntervalRef.current) {
