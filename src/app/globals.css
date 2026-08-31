@@ -767,12 +767,12 @@ html.light select:-moz-autofill:focus {
 
 /*
  * Modal bottom reservation
- * Mobile: bottom nav height + safe-area inset + 16px visual gap
+ * Mobile: safe-area inset only (modal backdrop covers bottom nav)
  * Desktop (md breakpoint and above): 16px only (no bottom nav)
  */
 :root {
-  --modal-bottom-reserve: calc(var(--bottom-nav-height, 72px) + env(safe-area-inset-bottom) + 16px);
-  --modal-max-height: calc(100dvh - var(--bottom-nav-height, 72px) - 32px);
+  --modal-bottom-reserve: env(safe-area-inset-bottom);
+  --modal-max-height: calc(100dvh - 32px);
 }
 
 @media (min-width: 768px) {

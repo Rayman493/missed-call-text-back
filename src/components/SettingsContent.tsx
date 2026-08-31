@@ -3325,7 +3325,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               <option value="America/Phoenix">Arizona Time (MST)</option>
                             </select>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-2 gap-4 sm:grid-cols-2">
                             <div>
                               <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
                                 Open Time
@@ -3344,7 +3344,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                   type="time"
                                   value={formBusiness.business_hours_start || ''}
                                   onChange={(e) => updateBusiness({ business_hours_start: e.target.value })}
-                                  className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
+                                  className="w-full px-3 py-2 text-base sm:text-sm border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground"
                                 />
                               </div>
                             </div>
@@ -3366,7 +3366,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                   type="time"
                                   value={formBusiness.business_hours_end || ''}
                                   onChange={(e) => updateBusiness({ business_hours_end: e.target.value })}
-                                  className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
+                                  className="w-full px-3 py-2 text-base sm:text-sm border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground"
                                 />
                               </div>
                             </div>
@@ -3606,7 +3606,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                 type="datetime-local"
                                 value={formBusiness.out_of_office_start ? toDateTimeLocal(formBusiness.out_of_office_start) : ''}
                                 onChange={(e) => updateBusiness({ out_of_office_start: fromDateTimeLocal(e.target.value) })}
-                                className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
+                                className="w-full px-3 py-2 text-base sm:text-sm border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground"
                               />
                             </div>
                             <div>
@@ -3617,7 +3617,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                 type="datetime-local"
                                 value={formBusiness.out_of_office_end ? toDateTimeLocal(formBusiness.out_of_office_end) : ''}
                                 onChange={(e) => updateBusiness({ out_of_office_end: fromDateTimeLocal(e.target.value) })}
-                                className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
+                                className="w-full px-3 py-2 text-base sm:text-sm border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground"
                               />
                             </div>
                           </div>

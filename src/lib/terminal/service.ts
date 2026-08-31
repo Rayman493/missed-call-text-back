@@ -1172,6 +1172,7 @@ export class TerminalBridgeService {
       // Use the existing unresolved attempt ID instead of generating a new one
       options.terminalAttemptId = unresolvedAttemptId
       try { logTapToPayEvent('unresolved_attempt_recovered', { phase: 'payment_intent', sessionId: this.sessionId, attemptId: unresolvedAttemptId, meta: { reason: 'genuinely_ambiguous' } }).catch(() => {}) } catch {}
+      // DO NOT clear attempt outcome when reusing ambiguous attempt - preserve it for continued recovery
     } else if (unresolvedAttemptId && !options.terminalAttemptId && lastOutcome && lastOutcome !== 'ambiguous') {
       // Previous attempt was terminal (failed/canceled/succeeded) - do not reuse
       console.log('[TAP_ATTEMPT] attempt_id=' + unresolvedAttemptId + ' stage=start_payment_fresh_attempt reason=previous_outcome_terminal lastOutcome=' + lastOutcome)
@@ -1184,8 +1185,10 @@ export class TerminalBridgeService {
       try { logTapToPayEvent('active_attempt_replaced', { phase: 'payment_intent', sessionId: this.sessionId, attemptId: options.terminalAttemptId, meta: { oldAttemptId: unresolvedAttemptId, reason: 'new_attempt_parameter' } }).catch(() => {}) } catch {}
     }
 
-    // Clear last attempt outcome when starting fresh payment
-    this.clearAttemptOutcome()
+    // Clear last attempt outcome only when starting a FRESH payment (not reusing ambiguous attempt)
+    if (!shouldReuseUnresolved) {
+      this.clearAttemptOutcome()
+    }
 
     // Generate or use provided terminalAttemptId for durable attempt identity
     const terminalAttemptId = options.terminalAttemptId || crypto.randomUUID()

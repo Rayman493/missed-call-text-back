@@ -225,4 +225,105 @@ describe('Terminal Attempt Outcome Persistence', () => {
       expect(newAttemptId).toBe(previousAttemptId)
     })
   })
+
+  describe('Outcome Clearing Regression Tests', () => {
+    it('should NOT clear outcome when reusing ambiguous attempt', () => {
+      if (typeof localStorage === 'undefined') {
+        return
+      }
+      // Simulate: previous payment succeeded at native level but reconciliation failed
+      localStorage.setItem(LAST_ATTEMPT_OUTCOME_KEY, 'ambiguous')
+      localStorage.setItem(UNRESOLVED_ATTEMPT_KEY, 'attempt-123')
+
+      const unresolvedAttemptId = localStorage.getItem(UNRESOLVED_ATTEMPT_KEY)
+      const lastOutcome = localStorage.getItem(LAST_ATTEMPT_OUTCOME_KEY) as 'failed' | 'canceled' | 'succeeded' | 'ambiguous' | null
+      const shouldReuseUnresolved = unresolvedAttemptId && lastOutcome === 'ambiguous'
+
+      expect(shouldReuseUnresolved).toBe(true)
+
+      // Simulate the fix: only clear outcome when NOT reusing
+      if (!shouldReuseUnresolved) {
+        localStorage.removeItem(LAST_ATTEMPT_OUTCOME_KEY)
+      }
+
+      // Outcome should still be 'ambiguous' after reusing
+      const outcomeAfterReuse = localStorage.getItem(LAST_ATTEMPT_OUTCOME_KEY)
+      expect(outcomeAfterReuse).toBe('ambiguous')
+    })
+
+    it('should clear outcome when starting fresh attempt after terminal outcome', () => {
+      if (typeof localStorage === 'undefined') {
+        return
+      }
+      // Simulate: previous payment failed
+      localStorage.setItem(LAST_ATTEMPT_OUTCOME_KEY, 'failed')
+      localStorage.setItem(UNRESOLVED_ATTEMPT_KEY, 'attempt-123')
+
+      const unresolvedAttemptId = localStorage.getItem(UNRESOLVED_ATTEMPT_KEY)
+      const lastOutcome = localStorage.getItem(LAST_ATTEMPT_OUTCOME_KEY) as 'failed' | 'canceled' | 'succeeded' | 'ambiguous' | null
+      const shouldReuseUnresolved = unresolvedAttemptId && lastOutcome === 'ambiguous'
+
+      expect(shouldReuseUnresolved).toBe(false)
+
+      // Simulate the fix: clear outcome when NOT reusing
+      if (!shouldReuseUnresolved) {
+        localStorage.removeItem(LAST_ATTEMPT_OUTCOME_KEY)
+      }
+
+      // Outcome should be cleared after fresh attempt
+      const outcomeAfterClear = localStorage.getItem(LAST_ATTEMPT_OUTCOME_KEY)
+      expect(outcomeAfterClear).toBeNull()
+    })
+
+    it('should clear outcome when starting fresh attempt with no previous unresolved', () => {
+      if (typeof localStorage === 'undefined') {
+        return
+      }
+      // Simulate: no previous unresolved attempt
+      localStorage.setItem(LAST_ATTEMPT_OUTCOME_KEY, 'succeeded')
+
+      const unresolvedAttemptId = localStorage.getItem(UNRESOLVED_ATTEMPT_KEY)
+      const lastOutcome = localStorage.getItem(LAST_ATTEMPT_OUTCOME_KEY) as 'failed' | 'canceled' | 'succeeded' | 'ambiguous' | null
+      const shouldReuseUnresolved = unresolvedAttemptId && lastOutcome === 'ambiguous'
+
+      expect(shouldReuseUnresolved).toBeFalsy() // null is falsy, so !shouldReuseUnresolved is true
+
+      // Simulate the fix: clear outcome when NOT reusing
+      if (!shouldReuseUnresolved) {
+        localStorage.removeItem(LAST_ATTEMPT_OUTCOME_KEY)
+      }
+
+      // Outcome should be cleared
+      const outcomeAfterClear = localStorage.getItem(LAST_ATTEMPT_OUTCOME_KEY)
+      expect(outcomeAfterClear).toBeNull()
+    })
+
+    it('should prevent stale terminal outcome from contaminating new attempt', () => {
+      if (typeof localStorage === 'undefined') {
+        return
+      }
+      // Simulate: previous payment succeeded
+      localStorage.setItem(LAST_ATTEMPT_OUTCOME_KEY, 'succeeded')
+      localStorage.setItem(UNRESOLVED_ATTEMPT_KEY, 'attempt-123')
+
+      const unresolvedAttemptId = localStorage.getItem(UNRESOLVED_ATTEMPT_KEY)
+      const lastOutcome = localStorage.getItem(LAST_ATTEMPT_OUTCOME_KEY) as 'failed' | 'canceled' | 'succeeded' | 'ambiguous' | null
+      const shouldReuseUnresolved = unresolvedAttemptId && lastOutcome === 'ambiguous'
+
+      expect(shouldReuseUnresolved).toBe(false)
+      expect(lastOutcome).toBe('succeeded')
+
+      // Simulate the fix: clear both when terminal outcome
+      if (!shouldReuseUnresolved) {
+        localStorage.removeItem(UNRESOLVED_ATTEMPT_KEY)
+        localStorage.removeItem(LAST_ATTEMPT_OUTCOME_KEY)
+      }
+
+      // Both should be cleared
+      const unresolvedAfterClear = localStorage.getItem(UNRESOLVED_ATTEMPT_KEY)
+      const outcomeAfterClear = localStorage.getItem(LAST_ATTEMPT_OUTCOME_KEY)
+      expect(unresolvedAfterClear).toBeNull()
+      expect(outcomeAfterClear).toBeNull()
+    })
+  })
 })

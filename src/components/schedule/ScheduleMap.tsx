@@ -1398,6 +1398,12 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       return
     }
 
+    let map: any = null
+    let dragstartListener: any = null
+    let dragendListener: any = null
+    let zoomChangedListener: any = null
+    let idleListener: any = null
+
     try {
       const isMobile = window.innerWidth < 768
       const initialMapTypeId = mapType === 'satellite'
@@ -1453,40 +1459,100 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         ]
       }
 
-      const map = new (window as any).google.maps.Map(container, mapOptions)
+      map = new (window as any).google.maps.Map(container, mapOptions)
 
       // Log map instance creation
       mapInstanceCounter++
       mapInstanceIdRef.current = `map-${mapInstanceCounter}-${Date.now()}`
       console.log('[SCHEDULE_MAP_INSTANCE_CREATED]', { id: mapInstanceIdRef.current, timestamp: Date.now() })
 
-      // Simplified camera listeners
-      map.addListener('dragstart', () => {
-        userInteractedForContextRef.current = true
-      })
-
-      map.addListener('dragend', () => {
-        // Drag completed - user has interacted
-      })
-
-      map.addListener('zoom_changed', () => {
-        // Only record user interaction if this is NOT a programmatic move
-        // This prevents the zoom cap in fitBoundsWithMaxZoom from disabling corrective frames
-        if (!programmaticMoveInProgressRef.current) {
+      // Simplified camera listeners with listener tracking for cleanup
+      dragstartListener = map.addListener('dragstart', () => {
+        // Defensive guard: check ref exists before accessing
+        if (userInteractedForContextRef.current !== undefined) {
           userInteractedForContextRef.current = true
         }
       })
 
-      map.addListener('idle', () => {
-        programmaticMoveInProgressRef.current = false
+      dragendListener = map.addListener('dragend', () => {
+        // Drag completed - user has interacted
+      })
+
+      zoomChangedListener = map.addListener('zoom_changed', () => {
+        // Only record user interaction if this is NOT a programmatic move
+        // This prevents the zoom cap in fitBoundsWithMaxZoom from disabling corrective frames
+        // Defensive guard: check ref exists before accessing
+        if (programmaticMoveInProgressRef.current !== undefined &&
+            !programmaticMoveInProgressRef.current) {
+          userInteractedForContextRef.current = true
+        }
+      })
+
+      idleListener = map.addListener('idle', () => {
+        // Defensive guard: check ref exists before accessing
+        if (programmaticMoveInProgressRef.current !== undefined) {
+          programmaticMoveInProgressRef.current = false
+        }
       })
 
       googleMapRef.current = map
       setMapReady(true)
     } catch (error) {
       console.error('[ScheduleMap] Failed to initialize map:', error)
+      console.error('[ScheduleMap_CRASH_DIAGNOSTICS]', {
+        error: error instanceof Error ? error.message : 'Unknown',
+        stack: error instanceof Error ? error.stack : undefined,
+        mapInstanceId: mapInstanceIdRef.current,
+        isMapLoaded,
+        mapType,
+        containerExists: !!mapRef.current,
+        containerDimensions: mapRef.current ? { width: mapRef.current.offsetWidth, height: mapRef.current.offsetHeight } : null,
+        businessCoordsCache: businessCoordsCacheRef.current,
+        selectedDate: selectedDate.toISOString(),
+        mapFilter,
+        markerCount: markersRef.current.size,
+        programmaticMoveInProgress: programmaticMoveInProgressRef.current,
+        userInteracted: userInteractedForContextRef.current,
+        timestamp: Date.now()
+      })
       setMapError('Failed to initialize Google Maps')
       setIsLoading(false)
+    }
+
+    // Cleanup function to remove listeners and prevent stale callbacks
+    return () => {
+      if (dragstartListener) {
+        try {
+          (window as any).google.maps.event.removeListener(dragstartListener)
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
+      if (dragendListener) {
+        try {
+          (window as any).google.maps.event.removeListener(dragendListener)
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
+      if (zoomChangedListener) {
+        try {
+          (window as any).google.maps.event.removeListener(zoomChangedListener)
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
+      if (idleListener) {
+        try {
+          (window as any).google.maps.event.removeListener(idleListener)
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
+      // Clear map reference to prevent stale callbacks
+      if (map) {
+        googleMapRef.current = null
+      }
     }
   }, [isMapLoaded, mapType])
 
@@ -1787,13 +1853,27 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
       // Build viewport marker set for automatic framing
       // Include ALL valid markers (business + all service markers)
-      const viewportMarkers = Array.from(markersRef.current.entries())
+      try {
+        const viewportMarkers = Array.from(markersRef.current.entries())
 
-      const bounds = new (window as any).google.maps.LatLngBounds()
-      viewportMarkers.forEach(([, marker]) => {
-        bounds.extend(marker.getPosition()!)
-      })
-      fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'auto_frame')
+        const bounds = new (window as any).google.maps.LatLngBounds()
+        viewportMarkers.forEach(([, marker]) => {
+          bounds.extend(marker.getPosition()!)
+        })
+        fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'auto_frame')
+      } catch (frameError) {
+        console.error('[ScheduleMap_CRASH_DIAGNOSTICS] framing_failed', {
+          error: frameError instanceof Error ? frameError.message : 'Unknown',
+          stack: frameError instanceof Error ? frameError.stack : undefined,
+          context: contextKey,
+          signatureChanged,
+          markerCount: markersRef.current.size,
+          mapInstance: mapInstanceIdRef.current,
+          mapExists: !!googleMapRef.current,
+          programmaticMoveInProgress: programmaticMoveInProgressRef.current,
+          timestamp: Date.now()
+        })
+      }
     } else if (contextChanged && userInteractedForContextRef.current) {
       console.log('[SCHEDULE_MAP_FRAME_SKIPPED_USER_INTERACTION]', {
         context: contextKey,

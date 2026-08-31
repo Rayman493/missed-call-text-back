@@ -353,8 +353,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
             {!isAllDay && (
               <div>
                 <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Time *</label>
-                <div className="flex gap-2">
-                  <div className="flex-1">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex-1 min-w-0">
                     <TimePicker
                       value={startTime}
                       onChange={setStartTime}
@@ -363,7 +363,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                     />
                     <p className="text-[10px] text-muted-foreground mt-1">Start</p>
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <TimePicker
                       value={endTime}
                       onChange={setEndTime}

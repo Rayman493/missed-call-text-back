@@ -46,9 +46,9 @@ useEffect(() => {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-50 animate-in fade-in duration-200" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:p-4" data-scroll-lock-allow>
-        <div className="relative overflow-hidden rounded-xl border border-border/30 bg-card shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-sm max-h-[80dvh] flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[60] animate-in fade-in duration-200" onClick={onClose} />
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pt-safe pb-safe sm:p-4" style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }} data-scroll-lock-allow>
+        <div className="relative overflow-hidden rounded-xl border border-border/30 bg-card shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-sm max-h-[var(--modal-max-height)] flex flex-col animate-in zoom-in-95 duration-200">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 flex-shrink-0">
             <h2 className="text-base font-semibold text-foreground">{title}</h2>

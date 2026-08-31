@@ -416,20 +416,29 @@ export async function POST(request: NextRequest) {
     console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=payment_intent_created stripe_payment_intent_id=' + paymentIntent.id)
 
     // Update local payment_request record with Stripe PaymentIntent ID
-    const { error: updateError } = await supabaseAdmin
+    const { error: updateError, data: updatedRecord } = await supabaseAdmin
       .from('payment_requests')
       .update({
         stripe_payment_intent_id: paymentIntent.id
       })
       .eq('id', localPaymentId)
+      .select('id, stripe_payment_intent_id')
+      .single()
 
     if (updateError) {
       console.error('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=payment_request_update_failed postgres_code=' + updateError.code)
       // PaymentIntent was created but local record update failed
-      // This is recoverable - the PaymentIntent exists and can be retrieved via webhook or status check
-      // Return success to client with PI ID
+      // This is recoverable via reconciliation fallback by terminal_attempt_id
+      // Return success to client with PI ID so payment can proceed
+      // Reconciliation will recover the association later
     } else {
-      console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=payment_request_updated')
+      console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=payment_request_updated stripe_payment_intent_id=' + updatedRecord.stripe_payment_intent_id)
+      // Verify the update succeeded by checking the returned value
+      if (!updatedRecord.stripe_payment_intent_id) {
+        console.error('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=payment_request_update_verify_failed')
+        // Update reported success but value is still null - this is a data inconsistency
+        // Continue anyway as reconciliation can recover via terminal_attempt_id
+      }
     }
 
     return NextResponse.json({
