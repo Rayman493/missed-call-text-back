@@ -1215,8 +1215,33 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       }
     }
 
+    // Check if this preparation is still the most recent (prevents stale async results)
+    // Check BEFORE adding business marker to prevent partial-set publication when business geocoding completes
+    if (preparationId !== mapPreparationIdRef.current) {
+      console.log('[SCHEDULE_MAP_STALE_PREPARATION]', {
+        preparationId,
+        latestPreparationId: mapPreparationIdRef.current,
+        reason: 'superseded_by_newer_preparation',
+        hasBusinessMarker: items.some(i => i.type === 'business')
+      })
+      return
+    }
+
     // Add business location marker if available
     const businessCoords = businessCoordsCacheRef.current
+    const businessGeocodingInProgress = businessGeocodingInProgressRef.current
+
+    // If business geocoding is still in progress, defer publication to prevent partial-set race
+    // The business geocode effect will trigger a re-run via setBusinessGeocodeTrigger when complete
+    if (businessGeocodingInProgress) {
+      console.log('[SCHEDULE_MAP_DEFER_PUBLICATION]', {
+        preparationId,
+        reason: 'business_geocoding_in_progress',
+        willRetry: true
+      })
+      return
+    }
+
     if (businessCoords && business) {
       // Validate business coordinates
       if (!isValidCoordinate(businessCoords.lat, businessCoords.lng)) {
@@ -1244,7 +1269,15 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
     }
 
     // Check if this preparation is still the most recent (prevents stale async results)
+    // This guard is AFTER adding the business marker to ensure we don't publish a partial set
+    // when business geocoding completes after this preparation started
     if (preparationId !== mapPreparationIdRef.current) {
+      console.log('[SCHEDULE_MAP_STALE_PREPARATION]', {
+        preparationId,
+        latestPreparationId: mapPreparationIdRef.current,
+        reason: 'superseded_by_newer_preparation',
+        hasBusinessMarker: items.some(i => i.type === 'business')
+      })
       return
     }
 
@@ -1546,7 +1579,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       // Do NOT set isLoading to true - keep map visible during data preparation
       await prepareMapItems(preparationId)
 
-      // Check if this result is still relevant
+      // Check if this result is still relevant after async work completes
       const currentDateKey = selectedDate.toISOString().split('T')[0]
       if (dateKey !== currentDateKey || isCancelled) {
         return

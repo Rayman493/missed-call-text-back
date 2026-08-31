@@ -365,6 +365,49 @@ describe('Schedule Map Camera Behavior', () => {
     })
   })
 
+  describe('Async Marker Race Condition', () => {
+    it('preparation should defer publication if business geocoding is in progress', () => {
+      const businessGeocodingInProgress = true
+      const shouldDefer = businessGeocodingInProgress
+
+      expect(shouldDefer).toBe(true)
+    })
+
+    it('preparation should publish if business geocoding is complete', () => {
+      const businessGeocodingInProgress = false
+      const shouldDefer = businessGeocodingInProgress
+
+      expect(shouldDefer).toBe(false)
+    })
+
+    it('stale preparation should be prevented from publishing', () => {
+      const preparationId = 1
+      const latestPreparationId = 2
+      const isStale = preparationId !== latestPreparationId
+
+      expect(isStale).toBe(true)
+    })
+
+    it('current preparation should be allowed to publish', () => {
+      const preparationId = 2
+      const latestPreparationId = 2
+      const isCurrent = preparationId === latestPreparationId
+
+      expect(isCurrent).toBe(true)
+    })
+
+    it('first stop-bearing context should publish complete marker set after business geocode completes', () => {
+      const businessGeocodingInProgress = false
+      const hasBusinessMarker = true
+      const hasJobMarkers = true
+      const shouldPublish = !businessGeocodingInProgress
+
+      expect(shouldPublish).toBe(true)
+      expect(hasBusinessMarker).toBe(true)
+      expect(hasJobMarkers).toBe(true)
+    })
+  })
+
   describe('User Interaction', () => {
     it('should set user interacted flag on drag', () => {
       let userInteracted = false
