@@ -1965,7 +1965,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }
 
       if (!result) {
-        setLeadData(null)
+        // Preserve existing state on fetch failure - do not clear leadData
+        console.error('[LeadDetails] Fetch returned null result, preserving existing state')
         setLoading(false)
         return
       }
@@ -2003,7 +2004,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }
 
       setError(result.error || "Lead not found")
-      setLeadData(null)
+      // Preserve existing state on fetch error - do not clear leadData
+      console.error('[LeadDetails] Fetch failed, preserving existing state:', result.error)
       setLoading(false)
     }).catch(error => {
       // Check if this is the latest request (ignore stale errors)
@@ -2013,7 +2015,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }
 
       setError('Failed to fetch lead details')
-      setLeadData(null)
+      // Preserve existing state on fetch error - do not clear leadData
+      console.error('[LeadDetails] Fetch error, preserving existing state:', error)
       setLoading(false)
     })
   }, [params.id])
@@ -3782,11 +3785,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* Customer Info */}
               <div className="min-w-0 flex-1">
+                {/* PRIMARY IDENTITY: Customer Name and Phone */}
                 <div className="flex items-center gap-1 mb-0.5">
                   <h1 className="font-medium text-foreground text-sm leading-tight truncate">
                     {getLeadDisplayName(leadData || lead)}
                   </h1>
                 </div>
+                <div className="flex items-center gap-1 flex-wrap mb-0.5">
+                  <p className="text-[11px] text-muted-foreground/80 truncate">
+                    {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
+                  </p>
+                </div>
+                {/* SECONDARY: Customer Status */}
                 <div className="flex items-center gap-1 flex-wrap">
                   {(() => {
                     const rawStatus = leadData?.status || lead?.status || lead?.lead_status
@@ -3798,9 +3808,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       />
                     )
                   })()}
-                  <p className="text-[11px] text-muted-foreground/80 truncate">
-                    {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
-                  </p>
                 </div>
               </div>
               
@@ -5011,7 +5018,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
             <div className="mt-2">
               {Boolean((leadData?.notes || '').trim()) ? (
-                <div className="text-xs text-muted-foreground line-clamp-2 break-words">
+                <div className="text-xs text-foreground line-clamp-2 break-words">
                   {(leadData?.notes || '').trim()}
                 </div>
               ) : (
@@ -5733,7 +5740,14 @@ If you have questions, reply to this message.`
       leadId={params.id}
       leadData={leadData}
       onCustomerUpdated={async () => {
+        // Preserve scroll position before refresh to prevent jump
+        const container = conversationContainerRef.current || mobileConversationContainerRef.current
+        const scrollPosition = container?.scrollTop || 0
         await handleRefresh()
+        // Restore scroll position after refresh
+        if (container) {
+          container.scrollTop = scrollPosition
+        }
       }}
     />
 

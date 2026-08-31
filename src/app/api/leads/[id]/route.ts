@@ -87,32 +87,10 @@ export async function PATCH(
         return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
       }
 
-      const currentMetadata = currentLead.raw_metadata || {}
-      const incomingMetadata = raw_metadata || {}
-      const incomingExtractedInfo = incomingMetadata.extracted_info || {}
-
-      // Safe metadata merge - preserve existing fields not being updated
-      const mergedExtractedInfo = {
-        ...(currentMetadata.extracted_info || {}),
-        ...incomingExtractedInfo
-      }
-
-      // Handle null/empty string as clearing the field
-      Object.keys(incomingExtractedInfo).forEach(key => {
-        if (incomingExtractedInfo[key] === null || incomingExtractedInfo[key] === '') {
-          delete mergedExtractedInfo[key]
-        }
-      })
-
-      const mergedRawMetadata = {
-        ...currentMetadata,
-        ...incomingMetadata,
-        extracted_info: mergedExtractedInfo
-      }
-
-      const updateData: Record<string, any> = {
-        raw_metadata: mergedRawMetadata
-      }
+      // Preserve historical AI intake data - do NOT overwrite raw_metadata.extracted_info
+      // EditCustomer modal should only update canonical fields (contact_name, company_name, notes)
+      // AI Intake Details are historical and should only be edited via the AI Intake Details section
+      const updateData: Record<string, any> = {}
 
       if (contact_name !== undefined) updateData.contact_name = contact_name
       if (company_name !== undefined) updateData.company_name = company_name

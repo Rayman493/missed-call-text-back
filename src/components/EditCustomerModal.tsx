@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
-import { Mail, MapPin, Clock, Phone } from 'lucide-react'
+import { Mail } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 
 interface EditCustomerModalProps {
@@ -17,13 +17,9 @@ interface EditCustomerModalProps {
 
 interface CustomerFormData {
   customerName: string
-  phoneNumber: string
   email: string
-  address: string
-  details: string
-  reasonForCalling: string
-  desiredCompletionTime: string
-  preferredCallbackTime: string
+  companyName: string
+  notes: string
 }
 
 export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, onCustomerUpdated }: EditCustomerModalProps) {
@@ -33,13 +29,9 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
 
   const [formData, setFormData] = useState<CustomerFormData>({
     customerName: '',
-    phoneNumber: '',
     email: '',
-    address: '',
-    details: '',
-    reasonForCalling: '',
-    desiredCompletionTime: '',
-    preferredCallbackTime: ''
+    companyName: '',
+    notes: ''
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -48,16 +40,11 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
   // Initialize form with existing lead data when modal opens
   useEffect(() => {
     if (isOpen && leadData) {
-      const intake = leadData.raw_metadata?.extracted_info || {}
       setFormData({
-        customerName: leadData.name || leadData.contact_name || intake.callerName || '',
-        phoneNumber: leadData.caller_phone || '',
-        email: leadData.email || intake.email || '',
-        address: intake.addressOrLocation || '',
-        details: intake.importantDetails || '',
-        reasonForCalling: intake.reasonForCalling || intake.serviceRequested || '',
-        desiredCompletionTime: intake.desiredCompletionTime || '',
-        preferredCallbackTime: intake.preferredCallbackTime || ''
+        customerName: leadData.name || leadData.contact_name || '',
+        email: leadData.email || '',
+        companyName: leadData.company_name || '',
+        notes: leadData.notes || ''
       })
     }
   }, [isOpen, leadData])
@@ -91,25 +78,14 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
         throw new Error('Not authenticated')
       }
 
-      // Build update payload with proper field mapping
-      // Use null for empty strings to clear fields
+      // Build update payload with canonical fields only
+      // AI Intake data (raw_metadata.extracted_info) is historical and should not be edited here
       const updatePayload: any = {
         is_simple_update: true,
         contact_name: formData.customerName.trim() || null,
-        raw_metadata: {
-          ...leadData.raw_metadata,
-          extracted_info: {
-            ...leadData.raw_metadata?.extracted_info,
-            callerName: formData.customerName.trim() || null,
-            email: formData.email.trim() || null,
-            addressOrLocation: formData.address.trim() || null,
-            importantDetails: formData.details.trim() || null,
-            reasonForCalling: formData.reasonForCalling.trim() || null,
-            serviceRequested: formData.reasonForCalling.trim() || null,
-            desiredCompletionTime: formData.desiredCompletionTime.trim() || null,
-            preferredCallbackTime: formData.preferredCallbackTime.trim() || null
-          }
-        }
+        email: formData.email.trim() || null,
+        company_name: formData.companyName.trim() || null,
+        notes: formData.notes.trim() || null
       }
 
       const response = await fetch(`/api/leads/${leadId}`, {
@@ -145,16 +121,6 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
       isOpen={isOpen}
       onClose={onClose}
       title="Edit Customer"
-      footer={
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-          disabled={isSubmitting}
-        >
-          Cancel
-        </button>
-      }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
@@ -178,99 +144,34 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
           />
         </div>
 
-        {/* Reason for Calling */}
+        {/* Company Name */}
         <div>
           <label className="block text-sm font-medium text-foreground mb-1.5">
-            Reason for Calling
+            Company Name
           </label>
           <input
             type="text"
-            value={formData.reasonForCalling}
-            onChange={(e) => setFormData({ ...formData, reasonForCalling: e.target.value })}
+            value={formData.companyName}
+            onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
             className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-            placeholder="What do they need?"
+            placeholder="Enter company name"
             disabled={isSubmitting}
           />
         </div>
 
-        {/* Details */}
+        {/* Internal Notes */}
         <div>
           <label className="block text-sm font-medium text-foreground mb-1.5">
-            Details
+            Internal Notes
           </label>
           <textarea
-            value={formData.details}
-            onChange={(e) => setFormData({ ...formData, details: e.target.value })}
-            rows={2}
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            rows={3}
             className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none resize-none"
-            placeholder="Enter details"
+            placeholder="Add internal notes about this customer"
             disabled={isSubmitting}
           />
-        </div>
-
-        {/* Location */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
-            Location
-          </label>
-          <input
-            type="text"
-            value={formData.address}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-            placeholder="Enter address"
-            disabled={isSubmitting}
-          />
-        </div>
-
-        {/* Desired Completion Time */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            Desired Completion Time
-          </label>
-          <input
-            type="text"
-            value={formData.desiredCompletionTime}
-            onChange={(e) => setFormData({ ...formData, desiredCompletionTime: e.target.value })}
-            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-            placeholder="e.g., tomorrow, next week"
-            disabled={isSubmitting}
-          />
-        </div>
-
-        {/* Preferred Callback Time */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5">
-            Preferred Callback Time
-          </label>
-          <input
-            type="text"
-            value={formData.preferredCallbackTime}
-            onChange={(e) => setFormData({ ...formData, preferredCallbackTime: e.target.value })}
-            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-            placeholder="e.g., 3PM, morning"
-            disabled={isSubmitting}
-          />
-        </div>
-
-        {/* Phone Number - Read Only */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
-            <Phone className="w-4 h-4" />
-            Phone Number
-          </label>
-          <input
-            type="text"
-            value={formatPhoneNumber(formData.phoneNumber)}
-            disabled
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm text-muted-foreground bg-muted cursor-not-allowed"
-            title="Phone number cannot be edited"
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            Phone number cannot be changed to preserve customer identity
-          </p>
         </div>
 
         {/* Email */}
@@ -289,38 +190,25 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
           />
         </div>
 
-        {/* Save Button inside form */}
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          {isSubmitting ? (
-            <>
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12a8 8 0 01-8 8V0a8 8 0 000 16h4z"></path>
-              </svg>
-              Saving...
-            </>
-          ) : (
-            'Save Changes'
-          )}
-        </button>
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed rounded-lg transition-colors"
+          >
+            {isSubmitting ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
       </form>
     </Modal>
   )
-}
-
-// Helper function
-function formatPhoneNumber(phone: string): string {
-  if (!phone) return ''
-  const cleaned = phone.replace(/\D/g, '')
-  if (cleaned.length === 10) {
-    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`
-  }
-  if (cleaned.length === 11 && cleaned.startsWith('1')) {
-    return `+${cleaned.slice(0, 1)} (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`
-  }
-  return phone
 }
