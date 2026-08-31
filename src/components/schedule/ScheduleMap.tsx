@@ -1716,25 +1716,9 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
     // Get responsive padding for multi-marker views
     const padding = getResponsivePadding()
 
-    // Auto-select first stop on initial load or context change
-    const shouldAutoSelect = (contextChanged || autoSelectDateRef.current === null) &&
-                            userClosedDateRef.current !== contextKey &&
-                            selectedMapItemId === null
-
-    if (shouldAutoSelect) {
-      const sortedItems = getSortedMappedItems(filteredItems)
-      const firstStop = sortedItems.find(item => item.type !== 'business')
-
-      if (firstStop) {
-        setSelectedMapItemId(firstStop.id)
-        autoSelectDateRef.current = contextKey
-        console.log('[SCHEDULE_MAP_AUTO_SELECT]', {
-          selectedStop: firstStop.id,
-          stopNumber: firstStop.stopNumber,
-          context: contextKey
-        })
-      }
-    }
+    // PASSIVE AUTO-FRAME ONLY: Do not auto-select markers on context change
+// Auto-selection would cause panToMarker to override the fitBounds viewport
+// Explicit user selection (clicking a stop card) still works normally
 
     // Simplified auto-fit logic:
     // - Context change: always frame (initial frame for new context)
@@ -2005,8 +1989,8 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* Date navigation row - First control after tabs */}
-      <div className="mb-0.5 md:mb-1.5 z-10">
+      {/* Compact date navigation row */}
+      <div className="mb-1 md:mb-2 z-10">
         {/* Desktop: Centered date navigation */}
         <div className="hidden md:flex flex-col items-center gap-2">
           <div className="flex items-center justify-center gap-2">
@@ -2071,11 +2055,11 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       </div>
 
       {/* Desktop: Combined row with stop previews on left and filters on right */}
-      <div className="hidden md:flex mb-1.5 z-10 h-[72px] items-center gap-3">
+      <div className="hidden md:flex mb-1 z-10 items-center gap-3">
         {/* Stop previews - Left side, takes available space */}
-        <div className="flex-1 h-full">
+        <div className="flex-1">
           {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
-            <div className="flex gap-2 overflow-x-auto h-full items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div className="flex gap-2 overflow-x-auto items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {sortedItems.filter(item => item.type !== 'business').map((item, index) => (
                 <button
                   key={item.id}
@@ -2133,8 +2117,8 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
               ))}
             </div>
           ) : (
-            <div className="flex items-center justify-center h-full px-4">
-              <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+            <div className="flex items-center justify-center px-4">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 No mapped stops
               </p>
             </div>
@@ -2178,10 +2162,10 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         </div>
       </div>
 
-      {/* Mobile: Stop preview row with h-[72px] */}
-      <div className="md:hidden mb-0.5 z-10 h-[68px]">
+      {/* Mobile: Stop preview row */}
+      <div className="md:hidden mb-1 z-10">
         {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
-          <div className="flex gap-2 overflow-x-auto h-full items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="flex gap-2 overflow-x-auto items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {sortedItems.filter(item => item.type !== 'business').map((item, index) => (
               <button
                 key={item.id}
@@ -2239,8 +2223,8 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
             ))}
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full px-4">
-            <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+          <div className="flex items-center justify-center px-4">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               No mapped stops
             </p>
           </div>
@@ -2248,7 +2232,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       </div>
 
       {/* Mobile: Filter row below stop previews */}
-      <div className="md:hidden mb-0.5 z-10">
+      <div className="md:hidden mb-1 z-10">
         <div className="flex items-center justify-end gap-1.5 flex-wrap px-1">
           <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
             <button

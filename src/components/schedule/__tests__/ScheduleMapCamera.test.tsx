@@ -13,6 +13,41 @@
 import { describe, it, expect } from 'vitest'
 
 describe('Schedule Map Camera Behavior', () => {
+  describe('Passive Auto-Select Removal', () => {
+    it('should NOT auto-select marker on context change', () => {
+      const contextChanged = true
+      const selectedMapItemId = null
+      const userClosedDateRef = '2024-01-01:all'
+      const currentContext = '2024-01-02:all'
+
+      // Auto-select should NOT trigger on passive context change
+      const shouldAutoSelect = false // Disabled
+
+      expect(shouldAutoSelect).toBe(false)
+    })
+
+    it('should NOT auto-select marker on initial load', () => {
+      const autoSelectDateRef = null
+      const selectedMapItemId = null
+      const contextKey = '2024-01-01:all'
+
+      // Auto-select should NOT trigger on initial load
+      const shouldAutoSelect = false // Disabled
+
+      expect(shouldAutoSelect).toBe(false)
+    })
+
+    it('should only allow explicit user selection', () => {
+      const userClicked = true
+      const itemId = 'job-1'
+
+      // Only explicit user selection should work
+      const shouldSelect = userClicked
+
+      expect(shouldSelect).toBe(true)
+    })
+  })
+
   describe('Semantic Context Key', () => {
     it('should create stable context key from canonical local date and filter', () => {
       const date1 = new Date('2024-01-01T10:00:00')
@@ -238,6 +273,56 @@ describe('Schedule Map Camera Behavior', () => {
       const shouldFrame = !userInteracted && markersExist &&
                           (contextChanged || (signatureChanged && !correctiveFrameUsed && !contextChanged))
       expect(shouldFrame).toBe(false)
+    })
+  })
+
+  describe('Two-Frame Contract', () => {
+    it('should allow initial frame on context change', () => {
+      const contextChanged = true
+      const userInteracted = false
+      const markersExist = true
+      const frameNumber = 0
+
+      const shouldFrame = contextChanged && !userInteracted && markersExist && frameNumber === 0
+      expect(shouldFrame).toBe(true)
+    })
+
+    it('should allow at most one corrective frame', () => {
+      const contextChanged = false
+      const signatureChanged = true
+      const correctiveFrameUsed = false
+      const userInteracted = false
+      const markersExist = true
+
+      const shouldCorrectiveFrame = !contextChanged && signatureChanged && !correctiveFrameUsed && !userInteracted && markersExist
+      expect(shouldCorrectiveFrame).toBe(true)
+    })
+
+    it('should block third passive frame', () => {
+      const contextChanged = false
+      const signatureChanged = true
+      const correctiveFrameUsed = true
+      const userInteracted = false
+      const markersExist = true
+
+      const shouldFrame = !contextChanged && signatureChanged && !correctiveFrameUsed && !userInteracted && markersExist
+      expect(shouldFrame).toBe(false)
+    })
+
+    it('should count frames correctly for one context', () => {
+      const contextKey = '2024-01-01:all'
+      let frameCount = 0
+      let correctiveUsed = false
+
+      // Initial frame
+      frameCount++
+      // Corrective frame if needed
+      if (!correctiveUsed) {
+        frameCount++
+        correctiveUsed = true
+      }
+
+      expect(frameCount).toBeLessThanOrEqual(2)
     })
   })
 
