@@ -1389,6 +1389,17 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
       return
     }
 
+    // DIAGNOSTIC: Log marker derivation
+    console.log('[SCHEDULE_MAP_MARKERS_DERIVED]', {
+      preparationId,
+      selectedDate: selectedDate.toISOString(),
+      totalItems: items.length,
+      businessMarker: items.some(i => i.type === 'business'),
+      jobMarkers: items.filter(i => i.type === 'job').length,
+      appointmentMarkers: items.filter(i => i.type === 'appointment').length,
+      timestamp: Date.now()
+    })
+
     setMapItems(items)
     setIsLoading(false)
   }, [getItemsForDate, fetchLeadsByIds, leadCache, jobs, getCustomerNameFromLead])
@@ -2136,12 +2147,18 @@ const markerSetSignatureRef = useRef<string>('') // Signature of current marker 
     console.log('[SCHEDULE_MAP_EFFECT]', {
       effect: 'marker_update_auto_fit_check',
       markersCount: markersRef.current.size,
+      markerComposition: {
+        business: Array.from(markersRef.current.keys()).filter(k => k.startsWith('business:')).length,
+        jobs: Array.from(markersRef.current.keys()).filter(k => !k.startsWith('business:') && !k.startsWith('appointment:')).length,
+        appointments: Array.from(markersRef.current.keys()).filter(k => k.startsWith('appointment:')).length
+      },
       showAllMode,
       cameraOwner: cameraOwnerRef.current,
       dateChanged,
       signatureChanged,
       lastAutoFitDateKey,
-      initialFramingPending: initialFramingPendingRef.current
+      initialFramingPending: initialFramingPendingRef.current,
+      businessCoordsCached: !!businessCoordsCacheRef.current
     })
 
     // CANONICAL DAY FRAMING: Triggered by date change or first marker set load
