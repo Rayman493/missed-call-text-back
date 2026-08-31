@@ -2165,6 +2165,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const channel = supabase
       .channel(channelName)
 
+    // DIAGNOSTIC: Inspect binding count after channel creation
+    // @ts-ignore - bindings is private but we need to inspect it for diagnostics
+    console.log('[REALTIME BINDING COUNT] after channel creation:', {
+      postgresChangesCount: (channel as any).bindings?.postgres_changes?.length || 0,
+      timestamp: new Date().toISOString()
+    })
+
     // INSERT subscription for new messages
     channel
       .on(
@@ -2356,92 +2363,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           handleRefresh()
         }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'payment_requests',
-          filter: `lead_id=eq.${leadId}`
-        },
-        (payload: any) => {
-          setLeadData((prev: any) => {
-            if (!prev) return prev
 
-            const paymentRequests = prev.paymentRequests || []
-            if (payload.eventType === 'INSERT') {
-              // Deduplicate: only add if this payment request ID doesn't already exist
-              const alreadyExists = paymentRequests.some((pr: any) => pr.id === payload.new.id)
-              if (alreadyExists) {
-                console.log('[REALTIME PAYMENT INSERT] Payment request already exists, skipping')
-                return prev
-              }
-              return { ...prev, paymentRequests: [...paymentRequests, payload.new] }
-            } else if (payload.eventType === 'UPDATE') {
-              return {
-                ...prev,
-                paymentRequests: paymentRequests.map((pr: any) =>
-                  pr.id === payload.new.id ? { ...pr, ...payload.new } : pr
-                )
-              }
-            }
-            return prev
-          })
-          fetchLeadJobs()
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'jobs',
-          filter: `lead_id=eq.${leadId}`
-        },
-        (payload: any) => {
-          fetchLeadJobs()
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'voicemail_recordings',
-          filter: `lead_id=eq.${leadId}`
-        },
-        (payload: any) => {
-          console.log('[REALTIME VOICEMAIL EVENT]', {
-            leadId,
-            eventType: payload.eventType,
-            voicemailId: payload.new?.id,
-            timestamp: new Date().toISOString()
-          })
+    // DIAGNOSTIC: Inspect binding count after 3 registrations (INSERT messages, UPDATE messages, UPDATE leads)
+    // @ts-ignore - bindings is private but we need to inspect it for diagnostics
+    console.log('[REALTIME BINDING COUNT] after 3 registrations:', {
+      postgresChangesCount: (channel as any).bindings?.postgres_changes?.length || 0,
+      timestamp: new Date().toISOString()
+    })
 
-          setLeadData((prev: any) => {
-            if (!prev) return prev
-
-            const existingVoicemails = prev.voicemailRecordings || []
-            if (payload.eventType === 'INSERT') {
-              // Deduplicate: only add if this voicemail ID doesn't already exist
-              const alreadyExists = existingVoicemails.some((v: any) => v.id === payload.new.id)
-              if (alreadyExists) {
-                console.log('[REALTIME VOICEMAIL INSERT] Voicemail already exists, skipping')
-                return prev
-              }
-              return { ...prev, voicemailRecordings: [...existingVoicemails, payload.new] }
-            } else if (payload.eventType === 'UPDATE') {
-              return {
-                ...prev,
-                voicemailRecordings: existingVoicemails.map((v: any) =>
-                  v.id === payload.new.id ? { ...v, ...payload.new } : v
-                )
-              }
-            }
-            return prev
-          })
-        }
-      )
+    // DIAGNOSTIC: Inspect binding count before subscribe
+    // @ts-ignore - bindings is private but we need to inspect it for diagnostics
+    console.log('[REALTIME BINDING COUNT] before subscribe:', {
+      postgresChangesCount: (channel as any).bindings?.postgres_changes?.length || 0,
+      timestamp: new Date().toISOString()
+    })
 
     // ============================================================
     // TEMPORARY DIAGNOSTIC: INSERT-ONLY CONTROL CHANNEL
@@ -2499,19 +2434,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           // DIAGNOSTIC: Inspect control channel bindings
           // @ts-ignore - bindings is private but we need to inspect it for diagnostics
           const controlBindings = (controlChannel as any).bindings
+          const controlPostgresBindings = controlBindings?.postgres_changes || []
           console.log('[REALTIME CONTROL BINDINGS DIAGNOSTIC]', {
             leadId,
             controlChannelName,
-            postgresChangesBindings: controlBindings?.postgres_changes?.map((b: any) => ({
+            bindingCount: controlPostgresBindings.length,
+            allBindingTypes: Object.keys(controlBindings || {}),
+            timestamp: new Date().toISOString()
+          })
+          // Log each control binding individually
+          controlPostgresBindings.forEach((b: any, index: number) => {
+            console.log(`[REALTIME CONTROL BINDING ${index}]`, {
+              index,
               id: b.id,
               event: b.filter?.event,
               schema: b.filter?.schema,
               table: b.filter?.table,
               filter: b.filter?.filter,
-              hasServerId: !!b.id
-            })),
-            allBindingTypes: Object.keys(controlBindings || {}),
-            timestamp: new Date().toISOString()
+              hasServerId: !!b.id,
+              bindingKeys: Object.keys(b),
+              timestamp: new Date().toISOString()
+            })
           })
         }
       })
@@ -2552,19 +2495,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           // DIAGNOSTIC: Inspect postgres_changes bindings after subscription
           // @ts-ignore - bindings is private but we need to inspect it for diagnostics
           const bindings = (channel as any).bindings
+          const postgresBindings = bindings?.postgres_changes || []
           console.log('[REALTIME BINDINGS DIAGNOSTIC]', {
             leadId,
             channelName,
-            postgresChangesBindings: bindings?.postgres_changes?.map((b: any) => ({
+            bindingCount: postgresBindings.length,
+            allBindingTypes: Object.keys(bindings || {}),
+            timestamp: new Date().toISOString()
+          })
+          // Log each binding individually
+          postgresBindings.forEach((b: any, index: number) => {
+            console.log(`[REALTIME PRODUCTION BINDING ${index}]`, {
+              index,
               id: b.id,
               event: b.filter?.event,
               schema: b.filter?.schema,
               table: b.filter?.table,
               filter: b.filter?.filter,
-              hasServerId: !!b.id
-            })),
-            allBindingTypes: Object.keys(bindings || {}),
-            timestamp: new Date().toISOString()
+              hasServerId: !!b.id,
+              bindingKeys: Object.keys(b),
+              timestamp: new Date().toISOString()
+            })
           })
         } else if (status === 'CHANNEL_ERROR') {
           console.error('[REALTIME] Channel error for lead:', leadId, '- attempting recovery')
