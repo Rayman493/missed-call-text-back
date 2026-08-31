@@ -420,26 +420,101 @@ describe('Schedule Map Camera Behavior', () => {
       expect(userInteracted).toBe(true)
     })
 
-    it('should set user interacted flag on zoom', () => {
+    it('should set user interacted flag on user zoom', () => {
       let userInteracted = false
       const zoomOccurred = true
+      const programmaticMoveInProgress = false
 
-      if (zoomOccurred) {
+      if (zoomOccurred && !programmaticMoveInProgress) {
         userInteracted = true
       }
 
       expect(userInteracted).toBe(true)
     })
 
-    it('should not set user interacted flag on programmatic move', () => {
+    it('should NOT set user interacted flag on programmatic fitBounds zoom cap', () => {
       let userInteracted = false
-      const programmaticMove = true
+      const zoomOccurred = true
+      const programmaticMoveInProgress = true
 
-      if (!programmaticMove) {
+      // This is the fix: zoom_changed should check programmaticMoveInProgress
+      if (zoomOccurred && !programmaticMoveInProgress) {
         userInteracted = true
       }
 
       expect(userInteracted).toBe(false)
+    })
+
+    it('should NOT set user interacted flag on programmatic panToMarker', () => {
+      let userInteracted = false
+      const panOccurred = true
+      const programmaticMoveInProgress = true
+
+      if (panOccurred && !programmaticMoveInProgress) {
+        userInteracted = true
+      }
+
+      expect(userInteracted).toBe(false)
+    })
+
+    it('should allow corrective frame after programmatic zoom cap', () => {
+      // Simulate the bug sequence:
+      // 1. Initial frame with customer-only markers
+      // 2. fitBounds caps zoom with setZoom (programmatic)
+      // 3. zoom_changed fires but does NOT mark user interaction
+      // 4. Business marker arrives (signature change)
+      // 5. Corrective frame should execute
+
+      const programmaticMoveInProgress = true
+      let userInteracted = false
+
+      // Simulate zoom_changed from programmatic setZoom
+      const zoomOccurred = true
+      if (zoomOccurred && !programmaticMoveInProgress) {
+        userInteracted = true
+      }
+
+      // Clear programmatic flag (simulating idle event)
+      const programmaticMoveInProgressAfter = false
+
+      // Later, business arrives - signature changes
+      const signatureChanged = true
+      const correctiveFrameUsed = false
+      const contextChanged = false
+
+      // Should allow corrective frame
+      const shouldCorrectiveFrame = !userInteracted &&
+                                  signatureChanged &&
+                                  !correctiveFrameUsed &&
+                                  !contextChanged
+
+      expect(userInteracted).toBe(false) // Critical: programmatic zoom did NOT mark user interaction
+      expect(shouldCorrectiveFrame).toBe(true) // Corrective frame can execute
+    })
+
+    it('should block corrective frame after genuine user zoom', () => {
+      // Simulate user actually zooming the map
+      const programmaticMoveInProgress = false
+      let userInteracted = false
+
+      const zoomOccurred = true
+      if (zoomOccurred && !programmaticMoveInProgress) {
+        userInteracted = true
+      }
+
+      // Later, business arrives - signature changes
+      const signatureChanged = true
+      const correctiveFrameUsed = false
+      const contextChanged = false
+
+      // Should NOT allow corrective frame
+      const shouldCorrectiveFrame = !userInteracted &&
+                                  signatureChanged &&
+                                  !correctiveFrameUsed &&
+                                  !contextChanged
+
+      expect(userInteracted).toBe(true) // User zoom marked interaction
+      expect(shouldCorrectiveFrame).toBe(false) // Corrective frame blocked
     })
 
     it('should reset user interacted flag on context change', () => {

@@ -1470,7 +1470,11 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       })
 
       map.addListener('zoom_changed', () => {
-        userInteractedForContextRef.current = true
+        // Only record user interaction if this is NOT a programmatic move
+        // This prevents the zoom cap in fitBoundsWithMaxZoom from disabling corrective frames
+        if (!programmaticMoveInProgressRef.current) {
+          userInteractedForContextRef.current = true
+        }
       })
 
       map.addListener('idle', () => {
@@ -1768,8 +1772,10 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         context: contextKey,
         signatureChanged,
         userInteracted: userInteractedForContextRef.current,
+        correctiveFrameUsed: correctiveFrameUsedForContextRef.current,
         markerCount: markersRef.current.size,
-        isCorrective: signatureChanged && !contextChanged
+        isCorrective: signatureChanged && !contextChanged,
+        programmaticMoveInProgress: programmaticMoveInProgressRef.current
       })
 
       framedSignatureForContextRef.current = signature
@@ -1792,6 +1798,16 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       console.log('[SCHEDULE_MAP_FRAME_SKIPPED_USER_INTERACTION]', {
         context: contextKey,
         reason: 'user_manually_interacted'
+      })
+    } else if (!contextChanged && !signatureChanged) {
+      console.log('[SCHEDULE_MAP_FRAME_SKIPPED_NO_CHANGE]', {
+        context: contextKey,
+        reason: 'marker_set_unchanged'
+      })
+    } else if (!contextChanged && signatureChanged && correctiveFrameUsedForContextRef.current) {
+      console.log('[SCHEDULE_MAP_FRAME_SKIPPED_CORRECTIVE_USED]', {
+        context: contextKey,
+        reason: 'corrective_frame_already_used'
       })
     }
 
