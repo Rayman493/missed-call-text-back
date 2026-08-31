@@ -390,20 +390,20 @@ export default function TodayCommandCenter({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header with lightweight summary line */}
       <div>
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-foreground">
           Agenda
         </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
           {todayTasks.length + overdueTasks.length} Reminders • {todayJobs.length} Jobs • {todayAppointments.length} Appointments
           {overdueTasks.length > 0 && ` • ${overdueTasks.length} Overdue`}
         </p>
       </div>
 
       {/* Today - Primary Section */}
-      <div className="bg-white dark:bg-slate-900/60 border border-blue-200/60 dark:border-blue-800/40 rounded-lg">
+      <div className="bg-white dark:bg-slate-900/60 border border-blue-200/70 dark:border-blue-800/50 rounded-lg shadow-sm">
         <div className="flex items-center gap-2 px-4 py-3 border-b border-blue-100/50 dark:border-blue-900/30">
           <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <h3 className="text-sm font-semibold text-foreground">
@@ -418,7 +418,7 @@ export default function TodayCommandCenter({
             ))}
           </div>
         ) : sortedWorkItems.length === 0 ? (
-          <div className="text-center py-8">
+          <div className="text-center py-6">
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Nothing scheduled today
             </p>
@@ -428,7 +428,7 @@ export default function TodayCommandCenter({
             {sortedWorkItems.map(item => (
               <div
                 key={item.id}
-                className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
               >
                 <div className="flex-shrink-0">
                   {item.type === 'task' ? (
@@ -509,17 +509,17 @@ export default function TodayCommandCenter({
       </div>
 
       {/* Secondary Sections */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {/* Reminders */}
         <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border/25">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/25">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-slate-400" />
               <h3 className="text-sm font-semibold text-foreground">
                 Reminders
               </h3>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {onAddTask && (
                 <button
                   type="button"
@@ -527,7 +527,7 @@ export default function TodayCommandCenter({
                     console.log('[TODAY_COMMAND_CENTER] + Reminder clicked', { timestamp: Date.now(), pathname: window.location.pathname })
                     onAddTask()
                   }}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2.5 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
                   + Reminder
                 </button>
@@ -544,9 +544,9 @@ export default function TodayCommandCenter({
               )}
             </div>
           </div>
-          <div className="p-4">
+          <div className="p-3">
             {sortedBrowseTasks.length === 0 ? (
-              <div className="text-center py-6">
+              <div className="text-center py-4">
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
                   No reminders
                 </p>
@@ -586,14 +586,14 @@ export default function TodayCommandCenter({
                 )}
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {(expandedReminders || !hasMoreReminders ? sortedBrowseTasks : sortedBrowseTasks.slice(0, COLLAPSED_LIMIT)).map(task => {
                   const taskOverdue = task.due_date && task.due_date < todayStr
                   const taskToday = task.due_date === todayStr
                   return (
                     <div
                       key={task.id}
-                      className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
                     >
                       <button
                         onClick={() => toggleTaskComplete(task.id, task.completed)}
@@ -653,14 +653,14 @@ export default function TodayCommandCenter({
 
         {/* Jobs */}
         <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border/25">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/25">
             <div className="flex items-center gap-2">
               <Briefcase className="w-4 h-4 text-slate-400" />
               <h3 className="text-sm font-semibold text-foreground">
                 Jobs
               </h3>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {onAddJob && (
                 <button
                   type="button"
@@ -668,7 +668,7 @@ export default function TodayCommandCenter({
                     console.log('[TODAY_COMMAND_CENTER] + Job clicked', { timestamp: Date.now(), pathname: window.location.pathname })
                     onAddJob()
                   }}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2.5 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
                   + Job
                 </button>
@@ -685,9 +685,9 @@ export default function TodayCommandCenter({
               )}
             </div>
           </div>
-          <div className="p-4">
+          <div className="p-3">
             {sortedBrowseJobs.length === 0 ? (
-              <div className="text-center py-6">
+              <div className="text-center py-4">
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
                   No upcoming jobs
                 </p>
@@ -705,13 +705,13 @@ export default function TodayCommandCenter({
                 )}
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {(expandedJobs || !hasMoreJobs ? sortedBrowseJobs : sortedBrowseJobs.slice(0, COLLAPSED_LIMIT)).map(job => {
                   const jobToday = job.scheduled_date === todayStr
                   return (
                     <div
                       key={job.id}
-                      className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
                     >
                       <button
                         onClick={() => onJobClick?.(job)}
@@ -760,14 +760,14 @@ export default function TodayCommandCenter({
 
         {/* Appointments */}
         <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border/25">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/25">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-slate-400" />
               <h3 className="text-sm font-semibold text-foreground">
                 Appointments
               </h3>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {onAddAppointment && (
                 <button
                   type="button"
@@ -775,7 +775,7 @@ export default function TodayCommandCenter({
                     console.log('[TODAY_COMMAND_CENTER] + Appointment clicked', { timestamp: Date.now(), pathname: window.location.pathname })
                     onAddAppointment()
                   }}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2.5 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
                   + Appointment
                 </button>
@@ -792,9 +792,9 @@ export default function TodayCommandCenter({
               )}
             </div>
           </div>
-          <div className="p-4">
+          <div className="p-3">
             {sortedBrowseAppointments.length === 0 ? (
-              <div className="text-center py-6">
+              <div className="text-center py-4">
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
                   No upcoming appointments
                 </p>
@@ -812,7 +812,7 @@ export default function TodayCommandCenter({
                 )}
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {(expandedAppointments || !hasMoreAppointments ? sortedBrowseAppointments : sortedBrowseAppointments.slice(0, COLLAPSED_LIMIT)).map(event => {
                   const eventDateRaw = event.start?.dateTime || event.start?.date
                   const eventDate = eventDateRaw ? new Date(eventDateRaw) : null
@@ -821,7 +821,7 @@ export default function TodayCommandCenter({
                   return (
                     <div
                       key={event.id}
-                      className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
                     >
                       <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
