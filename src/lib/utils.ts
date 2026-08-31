@@ -205,7 +205,8 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 
 /**
  * Get lead display name with graceful fallback.
- * Delegates to getLeadAIIntake for canonical name resolution, then falls back to formatted phone.
+ * Delegates to getLeadAIIntake for canonical name resolution, then falls back to
+ * historical raw_metadata, then formatted phone.
  * Never displays "Not collected" as a customer name.
  */
 export function getLeadDisplayName(lead: any): string {
@@ -218,6 +219,15 @@ export function getLeadDisplayName(lead: any): string {
   // Try existing lead name if available and not "Not collected"
   if (lead?.name && lead.name !== 'Not collected') {
     return lead.name
+  }
+
+  // Try historical raw_metadata customer name (from initial AI intake)
+  // This ensures customer names from initial intake are preserved for notifications
+  // even if the most recent ai_call_record doesn't contain them
+  const rawMetadata = lead?.raw_metadata || {}
+  const historicalCustomerName = rawMetadata.customerName || rawMetadata.callerName || rawMetadata.caller_name
+  if (historicalCustomerName && historicalCustomerName !== 'Not collected') {
+    return historicalCustomerName
   }
 
   // Try formatted phone numbers

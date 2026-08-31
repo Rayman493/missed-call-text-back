@@ -89,4 +89,71 @@ describe('Customer Reply Notification Identity', () => {
     const displayName = getLeadDisplayName(lead)
     expect(displayName).toBe('Ryan')
   })
+
+  it('should use raw_metadata.customerName when lead.name is absent and AI intake name is absent', () => {
+    const lead = {
+      id: 'lead-1',
+      name: null,
+      phone: '4122533598',
+      raw_metadata: {
+        customerName: 'Ryan'
+      }
+    }
+    const displayName = getLeadDisplayName(lead)
+    expect(displayName).toBe('Ryan')
+  })
+
+  it('should use raw_metadata.callerName when lead.name is absent and AI intake name is absent', () => {
+    const lead = {
+      id: 'lead-1',
+      name: null,
+      phone: '4122533598',
+      raw_metadata: {
+        callerName: 'Sarah'
+      }
+    }
+    const displayName = getLeadDisplayName(lead)
+    expect(displayName).toBe('Sarah')
+  })
+
+  it('should use raw_metadata.caller_name when lead.name is absent and AI intake name is absent', () => {
+    const lead = {
+      id: 'lead-1',
+      name: null,
+      phone: '4122533598',
+      raw_metadata: {
+        caller_name: 'Mike'
+      }
+    }
+    const displayName = getLeadDisplayName(lead)
+    expect(displayName).toBe('Mike')
+  })
+
+  it('should prioritize raw_metadata.customerName over phone when lead.name is absent', () => {
+    const lead = {
+      id: 'lead-1',
+      name: null,
+      phone: '4122533598',
+      raw_metadata: {
+        customerName: 'Ryan'
+      }
+    }
+    const displayName = getLeadDisplayName(lead)
+    expect(displayName).toBe('Ryan')
+    expect(displayName).not.toContain('412')
+  })
+
+  it('should fall back to phone when raw_metadata customer name is "Not collected"', () => {
+    const lead = {
+      id: 'lead-1',
+      name: null,
+      phone: '4122533598',
+      raw_metadata: {
+        customerName: 'Not collected'
+      }
+    }
+    const displayName = getLeadDisplayName(lead)
+    expect(displayName).not.toBe('Not collected')
+    expect(displayName).toContain('412')
+  })
 })
