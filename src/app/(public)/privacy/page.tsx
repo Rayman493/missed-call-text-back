@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import Link from 'next/link'
 import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
@@ -285,7 +286,7 @@ export default function PrivacyPage() {
                           <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                         <p className="text-gray-600 dark:text-gray-400">
-                          <strong>Compliance</strong> - GDPR, CCPA, and industry standards
+                          <strong>Data Controls</strong> - Users can request account deletion, access their data, and manage privacy settings
                         </p>
                       </div>
                     </div>
@@ -312,14 +313,19 @@ export default function PrivacyPage() {
                       <li>• SMS messages and conversation history</li>
                       <li>• Customer information and contact details</li>
                       <li>• Customer conversations and interactions</li>
-                      <li>• AI Voice call recordings</li>
-                      <li>• Call transcripts</li>
+                      <li>• AI Voice call transcripts</li>
+                      <li>• Voicemail audio recordings</li>
                       <li>• AI-generated summaries and extracted information</li>
                     </ul>
                   </div>
                   <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                     <p className="text-sm text-blue-800 dark:text-blue-200">
-                      <strong>Account Closure:</strong> Upon account closure, data will be retained according to our privacy policy and applicable legal requirements. You may request data deletion by contacting support@replyflowhq.com.
+                      <strong>Account Closure:</strong> Upon account closure, data will be retained according to our privacy policy and applicable legal requirements. For detailed information about account deletion, visit <Link href="/account-deletion" className="underline hover:text-blue-700 dark:hover:text-blue-300">replyflowhq.com/account-deletion</Link>.
+                    </p>
+                  </div>
+                  <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong>AI Voice and Voicemail:</strong> AI Voice calls process audio in real-time and store text transcripts, not audio recordings. Voicemail messages are stored as audio recordings with text transcriptions.
                     </p>
                   </div>
                 </div>

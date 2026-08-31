@@ -1094,12 +1094,14 @@ Related articles
     answer: `When you would use this
 Permanently close your ReplyFlow account and remove all data.
 
-Step-by-step instructions
-1) Go to Dashboard → Settings → Subscription.
-2) Click "Manage Subscription" to access the Stripe portal.
-3) Cancel your subscription first (if active).
-4) Contact support at support@replyflowhq.com to request account deletion.
-5) Include your business name and confirmation that you want to permanently delete your account.
+If you can access your account
+1) Go to Dashboard → Settings.
+2) Scroll to the "Delete Account" section.
+3) Click the "Delete Account" button.
+4) Confirm deletion by typing DELETE and providing your password if required.
+
+If you cannot access your account
+Visit replyflowhq.com/account-deletion to request account deletion via support.
 
 Important notes
 - Account deletion is permanent and cannot be undone.
@@ -1107,6 +1109,7 @@ Important notes
 - Your ReplyFlow phone number will be released.
 - Disable call forwarding before deletion to stop calls from forwarding.
 - Payment history is managed by Stripe and may be retained according to Stripe's policies.
+- Some records may be retained for legal or security reasons - see account deletion page for details.
 
 If you just want to stop using ReplyFlow temporarily, cancel your subscription instead of deleting your account.`,
     category: 'Settings & Account',

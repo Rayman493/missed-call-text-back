@@ -81,10 +81,34 @@ export default function Footer() {
             <ul className="space-y-1.5 sm:space-y-2">
               <li>
                 <Link
+                  href="/privacy"
+                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-xs sm:text-sm font-medium transition-colors"
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/terms"
+                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-xs sm:text-sm font-medium transition-colors"
+                >
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/compliance"
                   className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-xs sm:text-sm font-medium transition-colors"
                 >
                   Compliance
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/account-deletion"
+                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-xs sm:text-sm font-medium transition-colors"
+                >
+                  Delete Account
                 </Link>
               </li>
             </ul>

@@ -471,7 +471,7 @@ export default function CompliancePage() {
                         <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
                       <p className="text-slate-600 dark:text-slate-400">
-                        <strong>GDPR & CCPA compliant</strong> - Data handling practices meet global privacy standards
+                        <strong>Data Rights</strong> - Users can request data access, deletion, and account closure
                       </p>
                     </div>
                     <div className="flex items-start gap-3">
@@ -543,6 +543,20 @@ export default function CompliancePage() {
                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                     Certain ReplyFlow features may store call transcripts, summaries, or recordings for business use.
                   </p>
+                  <div className="mt-4 space-y-3">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">AI Voice Calls</h3>
+                      <p className="text-blue-800 dark:text-blue-200 text-sm">
+                        AI Voice calls process audio in real-time and store text transcripts and summaries. Audio recordings are not stored for AI Voice calls.
+                      </p>
+                    </div>
+                    <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+                      <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">Voicemail</h3>
+                      <p className="text-purple-800 dark:text-purple-200 text-sm">
+                        Voicemail messages are stored as audio recordings with text transcriptions.
+                      </p>
+                    </div>
+                  </div>
                   <div className="mt-6">
                     <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                       <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">Business Responsibility</h3>

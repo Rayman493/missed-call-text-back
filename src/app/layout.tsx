@@ -85,7 +85,7 @@ export default function RootLayout({
               // Use exact matching to avoid classifying all routes as public
               (function() {
                 const pathname = window.location.pathname;
-                const publicRoutes = ['/', '/home', '/pricing', '/faq', '/privacy', '/terms'];
+                const publicRoutes = ['/', '/home', '/pricing', '/faq', '/privacy', '/terms', '/compliance', '/account-deletion'];
 
                 // Normalize pathname (remove trailing slash)
                 const normalizedPath = pathname.endsWith('/') && pathname.length > 1
@@ -116,7 +116,7 @@ export default function RootLayout({
 
                 // Check if current route is public before applying saved theme
                 const pathname = window.location.pathname;
-                const publicRoutes = ['/', '/home', '/pricing', '/faq', '/privacy', '/terms'];
+                const publicRoutes = ['/', '/home', '/pricing', '/faq', '/privacy', '/terms', '/compliance', '/account-deletion'];
                 const normalizedPath = pathname.endsWith('/') && pathname.length > 1
                   ? pathname.slice(0, -1)
                   : pathname;
