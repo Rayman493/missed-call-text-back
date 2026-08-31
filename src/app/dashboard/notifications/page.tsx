@@ -246,7 +246,7 @@ export default function NotificationsPage() {
                 )}
                 <button
                   onClick={handleClearAll}
-                  className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors shrink-0"
+                  className="px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-foreground dark:hover:text-foreground rounded-lg transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-600 focus:ring-offset-2"
                 >
                   Clear all
                 </button>

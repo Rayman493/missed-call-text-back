@@ -166,7 +166,6 @@ export default function CustomerPipelineGraph() {
                   {!isTouchDevice && (
                     <Tooltip
                       content={<PremiumTooltip />}
-                      cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
                     />
                   )}
                   <Bar

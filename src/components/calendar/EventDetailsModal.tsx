@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2, ClipboardList, MessageSquareText, CheckSquare, ChevronDown } from 'lucide-react'
+import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2, ClipboardList, MessageSquareText, CheckSquare } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import AppointmentSmsModal from '@/components/calendar/AppointmentSmsModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
-import LeadPickerModal from '@/components/jobs/LeadPickerModal'
+import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 
 const supabase = createBrowserClient()
 
@@ -117,7 +117,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   const [transcriptText, setTranscriptText] = useState<string | null>(null)
   const [isRetrying, setIsRetrying] = useState(false)
   // Customer assignment state
-  const [isLeadPickerOpen, setIsLeadPickerOpen] = useState(false)
   const [isSavingCustomer, setIsSavingCustomer] = useState(false)
   const [currentLeadId, setCurrentLeadId] = useState<string | null>(lead?.id || null)
   const [currentLeadName, setCurrentLeadName] = useState<string | null>(lead?.name || job?.customer_name || null)
@@ -423,9 +422,11 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
     setError(null)
   }
 
-  // Handle customer selection from LeadPickerModal
-  const handleCustomerSelect = async (prefill: any) => {
+  // Handle customer selection from SearchableCustomerSelect
+  const handleCustomerSelect = async (customer: Customer | null) => {
     if (!event?.id) return
+
+    const customerId = customer?.id || null
 
     setIsSavingCustomer(true)
     setError(null)
@@ -448,7 +449,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          replyflow_lead_id: prefill.lead_id
+          replyflow_lead_id: customerId
         })
       })
 
@@ -459,10 +460,9 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         return
       }
 
-      // Update local state
-      setCurrentLeadId(prefill.lead_id)
-      setCurrentLeadName(prefill.customer_name || prefill.service_address || 'Customer')
-      setIsLeadPickerOpen(false)
+      // Update local state only after successful persistence
+      setCurrentLeadId(customerId)
+      setCurrentLeadName(customer?.name || customer?.caller_phone || 'Customer')
 
       // Refresh to update calendar/map displays
       onRefresh?.()
@@ -865,53 +865,24 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
             {/* Customer */}
             <div className="space-y-2.5 md:space-y-3">
               <label className="text-xs font-medium text-muted-foreground">Customer</label>
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <span className="text-sm text-foreground font-medium truncate">
-                    {currentLeadName || 'No customer'}
-                  </span>
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <SearchableCustomerSelect
+                    value={currentLeadId}
+                    onChange={() => {}} // No-op - persistence handled in onCustomerSelect
+                    onCustomerSelect={handleCustomerSelect}
+                    placeholder="No customer"
+                    allowClear={true}
+                  />
                 </div>
-                <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
-                  {currentLeadId && (
-                    <>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); (onViewCustomer ? onViewCustomer(currentLeadId) : window.location.assign(`/dashboard/leads/${currentLeadId}`)) }}
-                        className="text-xs px-2.5 md:px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsSavingCustomer(true)
-                          handleRemoveCustomer()
-                        }}
-                        disabled={isSavingCustomer}
-                        className="text-xs text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 rounded px-2"
-                        aria-label="Remove customer"
-                      >
-                        {isSavingCustomer ? '...' : 'Clear'}
-                      </button>
-                    </>
-                  )}
+                {currentLeadId && (
                   <button
-                    onClick={() => setIsLeadPickerOpen(true)}
-                    disabled={isSavingCustomer}
-                    className="text-xs px-2.5 md:px-3 py-1.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    onClick={(e) => { e.stopPropagation(); (onViewCustomer ? onViewCustomer(currentLeadId) : window.location.assign(`/dashboard/leads/${currentLeadId}`)) }}
+                    className="text-xs px-3 py-2.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
                   >
-                    {isSavingCustomer ? (
-                      <>
-                        <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                        <span>Saving...</span>
-                      </>
-                    ) : (
-                      <>
-                        {currentLeadId ? 'Change' : 'Select'}
-                        <ChevronDown className="w-3 h-3" />
-                      </>
-                    )}
+                    View
                   </button>
-                </div>
+                )}
               </div>
             </div>
 
@@ -1250,15 +1221,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         cancelText="Cancel"
         isDestructive={true}
         isLoading={isDeleting}
-      />
-
-      {/* Customer Picker Modal */}
-      <LeadPickerModal
-        isOpen={isLeadPickerOpen}
-        onClose={() => setIsLeadPickerOpen(false)}
-        onSelect={handleCustomerSelect}
-        title="Select Customer"
-        subtitle="Search your customers"
       />
     </div>
   )

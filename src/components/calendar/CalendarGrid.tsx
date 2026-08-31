@@ -214,9 +214,11 @@ export default function CalendarGrid({
             >
               <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
             </button>
-            <h2 className="text-sm sm:text-xl md:text-2xl font-semibold text-slate-900 dark:text-foreground truncate px-2">
-              {month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-            </h2>
+            <div className="w-[140px] sm:w-[180px] md:w-[220px] text-center">
+              <h2 className="text-sm sm:text-xl md:text-2xl font-semibold text-slate-900 dark:text-foreground truncate px-2">
+                {month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </h2>
+            </div>
             <button
               onClick={onNextMonth}
               className="min-w-[44px] min-h-[44px] w-10 h-10 md:w-11 md:h-11 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors active:scale-95 border border-slate-200 dark:border-slate-700"
