@@ -107,12 +107,20 @@ export default function NavbarNotifications() {
     initializeForBusiness(business.id)
   }, [business, initializeForBusiness])
 
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false)
+
   const handleMarkAsRead = async (notificationId: string) => {
     await markAsRead(notificationId)
   }
 
   const handleMarkAllAsRead = async () => {
-    await markAllAsRead()
+    if (isMarkingAllRead) return
+    setIsMarkingAllRead(true)
+    try {
+      await markAllAsRead()
+    } finally {
+      setIsMarkingAllRead(false)
+    }
   }
 
   const handleDeleteNotification = async (notificationId: string, e: React.MouseEvent) => {
@@ -372,9 +380,10 @@ export default function NavbarNotifications() {
                 {displayedUnreadCount > 0 && (
                   <button
                     onClick={handleMarkAllAsRead}
-                    className="px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-md transition-all duration-200"
+                    disabled={isMarkingAllRead}
+                    className="px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-all duration-200"
                   >
-                    Mark all read
+                    {isMarkingAllRead ? 'Marking...' : 'Mark all as read'}
                   </button>
                 )}
               </div>
