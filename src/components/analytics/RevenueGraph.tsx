@@ -11,6 +11,7 @@ import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
+import { formatCurrency } from '@/lib/utils'
 
 interface RevenueData {
   date: string
@@ -104,7 +105,7 @@ export default function RevenueGraph() {
         {!isEmpty && isStripeConnected && (
           <div className="mb-4">
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-semibold text-foreground">${totalRevenue.toLocaleString()}</span>
+              <span className="text-2xl font-semibold text-foreground">{formatCurrency(totalRevenue)}</span>
               <span className="text-xs text-muted-foreground">
                 {data.length === 1 ? 'payment received' : 'total revenue'}
               </span>
@@ -113,9 +114,9 @@ export default function RevenueGraph() {
               {data.length === 1
                 ? `First payment: ${data[0].date}`
                 : averageDaily > 0
-                  ? `$${averageDaily.toLocaleString()} per day average`
+                  ? `${formatCurrency(averageDaily)} per day average`
                   : 'No payments yet'}
-              {peakDay && data.length > 1 && ` • Peak: ${peakDay.date} ($${peakDay.revenue.toLocaleString()})`}
+              {peakDay && data.length > 1 && ` • Peak: ${peakDay.date} (${formatCurrency(peakDay.revenue)})`}
             </div>
           </div>
         )}

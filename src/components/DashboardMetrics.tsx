@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { Users, MessageSquareReply, CheckSquare, Calendar, DollarSign, CreditCard, Loader2, AlertCircle, Phone } from 'lucide-react'
 import MetricCard from '@/components/MetricCard'
 import { getBusinessDayStart, getBusinessLocalDateString, getBusinessDaysAgo, getBusinessDaysAgoRelative, getBusinessMonthStart } from '@/lib/business-date-utils'
+import { formatCurrency } from '@/lib/utils'
 
 interface DashboardMetricsProps {
   business: Business | null
@@ -283,7 +284,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           id: 'revenue-month',
           label: 'Revenue',
           value: revenueThisMonth,
-          formattedValue: `$${revenueThisMonth.toLocaleString()}`,
+          formattedValue: formatCurrency(revenueThisMonth),
           icon: DollarSign,
           color: 'text-green-600 dark:text-green-400',
           bgColor: 'bg-green-50 dark:bg-green-900/20',
