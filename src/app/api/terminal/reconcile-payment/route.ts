@@ -35,13 +35,18 @@ export async function POST(request: NextRequest) {
   console.log('[TERMINAL_RECONCILIATION] stage=reconciliation_start')
   try {
     const body = await request.json()
-    const { paymentIntentId, terminalAttemptId } = body
+    const { paymentIntentId: initialPaymentIntentId, terminalAttemptId } = body
 
-    if (!paymentIntentId || typeof paymentIntentId !== 'string') {
-      return NextResponse.json({ error: 'Invalid paymentIntentId' }, { status: 400 })
+    // Support terminalAttemptId-only recovery for legacy unresolved markers
+    const isTerminalAttemptIdOnly = !initialPaymentIntentId && terminalAttemptId && typeof terminalAttemptId === 'string'
+
+    let paymentIntentId = initialPaymentIntentId
+
+    if (!paymentIntentId && !isTerminalAttemptIdOnly) {
+      return NextResponse.json({ error: 'Either paymentIntentId or terminalAttemptId is required' }, { status: 400 })
     }
 
-    console.log('[TERMINAL_RECONCILIATION] payment_intent_id=' + paymentIntentId + (terminalAttemptId ? ' attempt_id=' + terminalAttemptId : '') + ' duration_ms=' + (Date.now() - requestStart))
+    console.log('[TERMINAL_RECONCILIATION] payment_intent_id=' + (paymentIntentId || 'none') + (terminalAttemptId ? ' attempt_id=' + terminalAttemptId : '') + ' duration_ms=' + (Date.now() - requestStart))
 
     // Authenticate user
     const authResult = await getAuthenticatedUser(request)
@@ -49,6 +54,65 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const user = authResult
+
+    // TERMINAL_ATTEMPT_ID-ONLY RECOVERY: For legacy unresolved markers
+    if (isTerminalAttemptIdOnly) {
+      console.log('[TERMINAL_RECONCILIATION] stage=terminal_attempt_id_only_recovery duration_ms=' + (Date.now() - requestStart))
+
+      // Get user's businesses to find the one with Stripe Connect
+      const { data: userBusinesses, error: businessesError } = await supabaseAdmin
+        .from('businesses')
+        .select('id, stripe_connect_account_id')
+        .eq('user_id', user.id)
+
+      if (businessesError || !userBusinesses || userBusinesses.length === 0) {
+        console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=no_business_for_user')
+        return NextResponse.json({ error: 'Payment request not found' }, { status: 404 })
+      }
+
+      // Find the business with a connected Stripe account
+      const userBusiness = userBusinesses.find(b => b.stripe_connect_account_id)
+      if (!userBusiness) {
+        console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=no_connected_account_for_user')
+        return NextResponse.json({ error: 'Payment request not found' }, { status: 404 })
+      }
+
+      const trustedStripeAccountId = userBusiness.stripe_connect_account_id
+
+      // SAFETY: Look up payment_request by terminal_attempt_id AND user's business_id
+      const { data: recoveredRequests, error: recoveryError } = await supabaseAdmin
+        .from('payment_requests')
+        .select('id, business_id, lead_id, status, amount_cents, stripe_connect_account_id, stripe_payment_intent_id')
+        .eq('terminal_attempt_id', terminalAttemptId)
+        .eq('business_id', userBusiness.id)
+        .eq('payment_method_type', 'card_present')
+
+      if (recoveryError || !recoveredRequests || recoveredRequests.length === 0) {
+        console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=no_record_for_terminal_attempt_id business_id=' + userBusiness.id)
+        return NextResponse.json({ error: 'Payment request not found' }, { status: 404 })
+      }
+
+      // SAFETY: Fail if multiple records have the same terminal_attempt_id
+      if (recoveredRequests.length > 1) {
+        console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=duplicate_terminal_attempt_id count=' + recoveredRequests.length)
+        return NextResponse.json({ error: 'Payment request not found' }, { status: 404 })
+      }
+
+      const recoveredRequest = recoveredRequests[0]
+
+      // If no stripe_payment_intent_id, the PaymentIntent was never created
+      if (!recoveredRequest.stripe_payment_intent_id) {
+        console.log('[TERMINAL_RECONCILIATION] stage=reconciliation_no_pi terminal_attempt_id=' + terminalAttemptId + ' duration_ms=' + (Date.now() - requestStart))
+        return NextResponse.json({
+          status: 'failed',
+          message: 'Payment was not completed (PaymentIntent never created)'
+        })
+      }
+
+      // Use the recovered stripe_payment_intent_id for normal reconciliation
+      paymentIntentId = recoveredRequest.stripe_payment_intent_id
+      console.log('[TERMINAL_RECONCILIATION] stage=recovery_success terminal_attempt_id=' + terminalAttemptId + ' recovered_pi=' + paymentIntentId + ' duration_ms=' + (Date.now() - requestStart))
+    }
 
     // Find payment request by PaymentIntent ID
     const { data: paymentRequestData, error: paymentRequestError } = await supabaseAdmin

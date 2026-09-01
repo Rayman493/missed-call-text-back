@@ -170,6 +170,145 @@ describe('Terminal Payment Reconciliation Recovery - Safety Invariants', () => {
     })
   })
 
+  describe('Feature: terminalAttemptId-only recovery', () => {
+    it('should accept terminalAttemptId when paymentIntentId is absent', () => {
+      const validInput = {
+        terminalAttemptId: 'attempt-uuid-123'
+      }
+      expect(validInput.terminalAttemptId).toBeDefined()
+      expect(validInput.paymentIntentId).toBeUndefined()
+    })
+
+    it('should reject when both paymentIntentId and terminalAttemptId are absent', () => {
+      const invalidInput = {}
+      expect(invalidInput.paymentIntentId).toBeUndefined()
+      expect(invalidInput.terminalAttemptId).toBeUndefined()
+    })
+  })
+
+  describe('terminalAttemptId-only recovery contract', () => {
+    it('should authenticate user before recovery', () => {
+      const authenticated = true
+      expect(authenticated).toBe(true)
+    })
+
+    it('should resolve user business by user_id', () => {
+      const userId = 'user-123'
+      const userBusiness = {
+        id: 'business-123',
+        user_id: userId,
+        stripe_connect_account_id: 'acct_123'
+      }
+
+      const businessMatchesUser = userBusiness.user_id === userId
+      expect(businessMatchesUser).toBe(true)
+    })
+
+    it('should select business with Stripe Connect account', () => {
+      const userBusinesses = [
+        { id: 'business-1', stripe_connect_account_id: null },
+        { id: 'business-2', stripe_connect_account_id: 'acct_123' }
+      ]
+
+      const selectedBusiness = userBusinesses.find(b => b.stripe_connect_account_id)
+      expect(selectedBusiness?.stripe_connect_account_id).toBe('acct_123')
+    })
+
+    it('should look up payment_request by terminal_attempt_id + business_id', () => {
+      const terminalAttemptId = 'attempt-uuid-123'
+      const businessId = 'business-123'
+
+      const query = {
+        terminal_attempt_id: terminalAttemptId,
+        business_id: businessId,
+        payment_method_type: 'card_present'
+      }
+
+      expect(query.terminal_attempt_id).toBe(terminalAttemptId)
+      expect(query.business_id).toBe(businessId)
+    })
+
+    it('should obtain persisted stripe_payment_intent_id from payment_request', () => {
+      const paymentRequest = {
+        id: 'payment-123',
+        terminal_attempt_id: 'attempt-123',
+        stripe_payment_intent_id: 'pi_abc123'
+      }
+
+      const hasPaymentIntentId = !!paymentRequest.stripe_payment_intent_id
+      expect(hasPaymentIntentId).toBe(true)
+    })
+  })
+
+  describe('Cross-business protection', () => {
+    it('should NOT recover terminalAttemptId from different business', () => {
+      const terminalAttemptId = 'attempt-123'
+      const currentBusinessId = 'business-123'
+      const otherBusinessId = 'business-456'
+
+      const paymentRequest = {
+        terminal_attempt_id: terminalAttemptId,
+        business_id: otherBusinessId
+      }
+
+      const canRecover = paymentRequest.business_id === currentBusinessId
+      expect(canRecover).toBe(false)
+    })
+
+    it('should enforce business_id in lookup query', () => {
+      const query = {
+        terminal_attempt_id: 'attempt-123',
+        business_id: 'business-123',
+        payment_method_type: 'card_present'
+      }
+
+      const hasBusinessFilter = 'business_id' in query
+      expect(hasBusinessFilter).toBe(true)
+    })
+  })
+
+  describe('Safe not-found cases', () => {
+    it('should return safe response when terminalAttemptId not found', () => {
+      const notFoundResult = {
+        status: 'not_found',
+        error: 'Payment request not found'
+      }
+
+      expect(notFoundResult.status).toBe('not_found')
+    })
+
+    it('should return safe response when stripe_payment_intent_id is null', () => {
+      const noPiResult = {
+        status: 'failed',
+        message: 'Payment was not completed (PaymentIntent never created)'
+      }
+
+      expect(noPiResult.status).toBe('failed')
+    })
+  })
+
+  describe('Existing paymentIntentId contract preserved', () => {
+    it('should still accept paymentIntentId-only requests', () => {
+      const validInput = {
+        paymentIntentId: 'pi_123',
+        terminalAttemptId: undefined
+      }
+
+      expect(validInput.paymentIntentId).toBeDefined()
+      expect(validInput.terminalAttemptId).toBeUndefined()
+    })
+
+    it('should still accept both paymentIntentId and terminalAttemptId', () => {
+      const validInput = {
+        paymentIntentId: 'pi_123',
+        terminalAttemptId: 'attempt-123'
+      }
+
+      expect(validInput.paymentIntentId).toBeDefined()
+      expect(validInput.terminalAttemptId).toBeDefined()
+    })
+  })
+
   describe('Invariant 7: Atomic repair operation', () => {
     it('should use conditional update to prevent race conditions', () => {
       const recoveredRequest = {

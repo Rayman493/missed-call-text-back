@@ -1578,6 +1578,76 @@ export class TerminalBridgeService {
     }
   }
 
+  // Resolve previous unresolved attempt before starting new payment
+  // This is the canonical owner of previous-attempt recovery logic
+  async resolvePreviousAttemptBeforeNewPayment(): Promise<{
+    action: 'proceed' | 'block' | 'recover'
+    reason?: string
+    previousStatus?: 'paid' | 'failed' | 'canceled' | 'pending' | 'processing'
+    paymentIntentId?: string
+  }> {
+    try {
+      const unresolvedAttemptId = this.getUnresolvedAttempt()
+      const lastOutcome = this.getLastAttemptOutcome()
+
+      // No previous unresolved marker - safe to proceed
+      if (!unresolvedAttemptId) {
+        console.log('[TAP_ATTEMPT] stage=resolve_previous none_found')
+        return { action: 'proceed' }
+      }
+
+      // Previous attempt had terminal outcome - clear stale marker and proceed
+      if (lastOutcome && lastOutcome !== 'ambiguous') {
+        console.log('[TAP_ATTEMPT] stage=resolve_previous terminal_outcome lastOutcome=' + lastOutcome)
+        this.clearUnresolvedAttempt()
+        this.clearAttemptOutcome()
+        return { action: 'proceed', reason: 'cleared_terminal' }
+      }
+
+      // Previous attempt is ambiguous or outcome is unknown - attempt server recovery
+      console.log('[TAP_ATTEMPT] stage=resolve_previous needs_recovery lastOutcome=' + lastOutcome + ' attemptId=' + unresolvedAttemptId)
+
+      try {
+        const response = await fetch('/api/terminal/reconcile-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            terminalAttemptId: unresolvedAttemptId,
+          }),
+        })
+
+        if (!response.ok) {
+          console.error('[TAP_ATTEMPT] stage=resolve_previous recovery_failed status=' + response.status)
+          return { action: 'block', reason: 'recovery_failed' }
+        }
+
+        const data = await response.json()
+        console.log('[TAP_ATTEMPT] stage=resolve_previous recovery_result status=' + data.status)
+
+        // Map server status to canonical result
+        if (data.status === 'paid') {
+          this.clearUnresolvedAttempt()
+          this.clearAttemptOutcome()
+          return { action: 'recover', reason: 'previous_succeeded', previousStatus: 'paid', paymentIntentId: data.stripe_payment_intent_id }
+        } else if (data.status === 'failed' || data.status === 'canceled') {
+          this.clearUnresolvedAttempt()
+          this.clearAttemptOutcome()
+          return { action: 'proceed', reason: 'previous_terminal', previousStatus: data.status }
+        } else if (data.status === 'processing' || data.status === 'pending') {
+          return { action: 'block', reason: 'previous_processing', previousStatus: data.status }
+        } else {
+          return { action: 'block', reason: 'previous_unknown', previousStatus: 'pending' }
+        }
+      } catch (error) {
+        console.error('[TAP_ATTEMPT] stage=resolve_previous recovery_error', error)
+        return { action: 'block', reason: 'recovery_error' }
+      }
+    } catch (error) {
+      console.error('[TAP_ATTEMPT] stage=resolve_previous_error', error)
+      return { action: 'block', reason: 'resolve_error' }
+    }
+  }
+
   // Terminalize a failed attempt (called from orchestration when definitive decline is thrown)
   // This ensures thrown errors that are known declines are properly marked as terminal
   terminalizeFailedAttempt() {

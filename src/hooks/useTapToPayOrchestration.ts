@@ -222,6 +222,7 @@ export function useTapToPayOrchestration({
       // Send telemetry to server for release-style debugging
       // Fire-and-forget - does not block payment flow
       const currentCorrelationId = getCorrelationId()
+      const currentPlatform = (typeof window !== 'undefined' && (window as any).Capacitor) ? (window as any).Capacitor.getPlatform() : 'web'
       fetch('/api/terminal/ambiguous-reason', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -231,7 +232,7 @@ export function useTapToPayOrchestration({
           attemptId: terminalService.getCurrentAttemptId(),
           paymentIntentId: terminalService.getPaymentIntentId(),
           ambiguousReason: reason,
-          platform,
+          platform: currentPlatform,
         }),
       }).catch(() => {
         // Silently fail - telemetry should not break payments
@@ -1380,22 +1381,62 @@ export function useTapToPayOrchestration({
 
     autoRetryInProgress.current = false
 
-    // Check for unresolved attempt
-    const unresolvedAttemptId = terminalService.getUnresolvedAttempt()
-    if (unresolvedAttemptId) {
-      console.log('[TTP Hook] Unresolved attempt found:', { correlationId, unresolvedAttemptId })
-      updatePaymentStateRef('ambiguous', 'unresolved_attempt_found')
+    // Canonical previous-attempt recovery
+    const resolution = await terminalService.resolvePreviousAttemptBeforeNewPayment()
+
+    if (resolution.action === 'block') {
+      // Previous attempt is genuinely unresolved or recovery failed
+      console.log('[TTP Hook] Previous attempt blocks new payment:', { resolution })
+      updatePaymentStateRef('ambiguous', resolution.reason || 'unresolved_attempt_found')
+
+      const errorMsg = resolution.reason === 'previous_succeeded'
+        ? 'Previous payment succeeded. Please check payment history.'
+        : 'Please resolve the previous payment status first'
+
       await logTapToPayEvent('UNRESOLVED_ATTEMPT_DETECTED', {
         correlationId,
         source: 'orchestration',
         paymentState: 'ambiguous',
-        normalizedErrorMessage: 'Please resolve the previous payment status first',
+        normalizedErrorMessage: errorMsg,
         meta: {
-          unresolvedAttemptId,
+          previousUnresolvedAttemptId: terminalService.getUnresolvedAttempt(),
+          resolutionReason: resolution.reason,
+          previousStatus: resolution.previousStatus,
+          currentCorrelationId: correlationId,
+          currentAttemptId: terminalService.getCurrentAttemptId(),
+          currentPaymentIntentId: terminalService.getPaymentIntentId(),
+          platform: (typeof window !== 'undefined' && (window as any).Capacitor) ? (window as any).Capacitor.getPlatform() : 'web',
           ambiguousReason: 'unresolved_attempt_found'
         }
       })
-      const errorMsg = 'Please resolve the previous payment status first'
+      setError(errorMsg)
+      onPaymentError?.(errorMsg)
+      return
+    }
+
+    if (resolution.action === 'recover' && resolution.reason === 'previous_succeeded') {
+      // Previous payment succeeded - do NOT create a new PaymentIntent
+      console.log('[TTP Hook] Previous payment succeeded, blocking new charge:', { resolution })
+      updatePaymentStateRef('ambiguous', 'previous_succeeded')
+
+      const errorMsg = 'Previous payment succeeded. Please check payment history.'
+      await logTapToPayEvent('UNRESOLVED_ATTEMPT_DETECTED', {
+        correlationId,
+        source: 'orchestration',
+        paymentState: 'ambiguous',
+        normalizedErrorMessage: errorMsg,
+        meta: {
+          previousUnresolvedAttemptId: terminalService.getUnresolvedAttempt(),
+          resolutionReason: resolution.reason,
+          previousStatus: resolution.previousStatus,
+          recoveredPaymentIntentId: resolution.paymentIntentId,
+          currentCorrelationId: correlationId,
+          currentAttemptId: terminalService.getCurrentAttemptId(),
+          currentPaymentIntentId: terminalService.getPaymentIntentId(),
+          platform: (typeof window !== 'undefined' && (window as any).Capacitor) ? (window as any).Capacitor.getPlatform() : 'web',
+          ambiguousReason: 'previous_succeeded'
+        }
+      })
       setError(errorMsg)
       onPaymentError?.(errorMsg)
       return
