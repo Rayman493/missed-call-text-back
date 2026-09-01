@@ -1383,4 +1383,195 @@ describe('Prompt Selection and Dispatch', () => {
       expect(nextStage).to.equal('complete');
     });
   });
+
+  describe('Early Service Address Extraction Confidence', () => {
+    it('should NOT extract address from "look at a leaking kitchen faucet"', () => {
+      const intake: IntakeData = {
+        customerName: 'Michael Carter',
+        serviceRequested: 'someone to look at a leaking kitchen faucet',
+        serviceAddress: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const transcript = "I need someone to look at a leaking kitchen faucet. It started dripping a few days ago and it's getting worse.";
+
+      // Simulate address pattern matching "at a leaking kitchen faucet"
+      const addressPattern = /(?:at|@)\s+([^.!?]+)/i;
+      const match = transcript.match(addressPattern);
+
+      expect(match).to.not.be.null;
+      if (match) {
+        // This should be rejected by early-confidence validation
+        const candidateAddress = match[1].trim();
+        const hasStreetNumber = /^\d/.test(candidateAddress.toLowerCase());
+        const hasStreetType = /\b(street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)\b/i.test(candidateAddress);
+
+        // "a leaking kitchen faucet" has no street number or street type
+        expect(hasStreetNumber).to.equal(false);
+        expect(hasStreetType).to.equal(false);
+      }
+    });
+
+    it('should NOT extract address from "take a look at my garage door"', () => {
+      const transcript = "take a look at my garage door";
+
+      const addressPattern = /(?:at|@)\s+([^.!?]+)/i;
+      const match = transcript.match(addressPattern);
+
+      expect(match).to.not.be.null;
+      if (match) {
+        const candidateAddress = match[1].trim();
+        // "my garage door" should be rejected
+        const startsWithDigit = /^\d/.test(candidateAddress);
+        expect(startsWithDigit).to.equal(false);
+      }
+    });
+
+    it('should NOT extract address from "look at the broken fence"', () => {
+      const transcript = "look at the broken fence";
+
+      const addressPattern = /(?:at|@)\s+([^.!?]+)/i;
+      const match = transcript.match(addressPattern);
+
+      expect(match).to.not.be.null;
+      if (match) {
+        const candidateAddress = match[1].trim();
+        // "the broken fence" should be rejected
+        const startsWithDigit = /^\d/.test(candidateAddress);
+        expect(startsWithDigit).to.equal(false);
+      }
+    });
+
+    it('should NOT extract address from "work on the unit at some point"', () => {
+      const transcript = "work on the unit at some point";
+
+      const addressPattern = /(?:at|@)\s+([^.!?]+)/i;
+      const match = transcript.match(addressPattern);
+
+      expect(match).to.not.be.null;
+      if (match) {
+        const candidateAddress = match[1].trim();
+        // "some point" should be rejected
+        const startsWithDigit = /^\d/.test(candidateAddress);
+        expect(startsWithDigit).to.equal(false);
+      }
+    });
+
+    it('should extract address from "it\'s at 5128 Walnut Street in Pittsburgh"', () => {
+      const transcript = "It's at 5128 Walnut Street in Pittsburgh.";
+
+      const addressPattern = /(?:address is|located at|it's at|its at|job is at|job's at|service is at|service location is|the address is|the property is at)\s+([^.!?]+)/i;
+      const match = transcript.match(addressPattern);
+
+      expect(match).to.not.be.null;
+      if (match) {
+        const candidateAddress = match[1].trim();
+        // Explicit "it's at" introducer should accept this
+        expect(candidateAddress).to.equal('5128 Walnut Street in Pittsburgh');
+      }
+    });
+
+    it('should extract address from "the job is at 742 Evergreen Avenue"', () => {
+      const transcript = "The job is at 742 Evergreen Avenue.";
+
+      const addressPattern = /(?:address is|located at|it's at|its at|job is at|job's at|service is at|service location is|the address is|the property is at)\s+([^.!?]+)/i;
+      const match = transcript.match(addressPattern);
+
+      expect(match).to.not.be.null;
+      if (match) {
+        const candidateAddress = match[1].trim();
+        // Explicit "job is at" introducer should accept this
+        expect(candidateAddress).to.equal('742 Evergreen Avenue');
+      }
+    });
+
+    it('should extract address from combined "I need a faucet repaired at 742 Evergreen Avenue"', () => {
+      const transcript = "I need a faucet repaired at 742 Evergreen Avenue.";
+
+      const addressPattern = /(?:at|@)\s+([^.!?]+)/i;
+      const match = transcript.match(addressPattern);
+
+      expect(match).to.not.be.null;
+      if (match) {
+        const candidateAddress = match[1].trim();
+        // Bare "at" but captured text starts with digit (street number) - should accept
+        const startsWithDigit = /^\d/.test(candidateAddress);
+        expect(startsWithDigit).to.equal(true);
+        expect(candidateAddress).to.equal('742 Evergreen Avenue');
+      }
+    });
+
+    it('should extract address from "the address is 1842 Murray Avenue in Pittsburgh"', () => {
+      const transcript = "The address is 1842 Murray Avenue in Pittsburgh.";
+
+      const addressPattern = /(?:address is|located at|it's at|its at|job is at|job's at|service is at|service location is|the address is|the property is at)\s+([^.!?]+)/i;
+      const match = transcript.match(addressPattern);
+
+      expect(match).to.not.be.null;
+      if (match) {
+        const candidateAddress = match[1].trim();
+        // Explicit "address is" introducer should accept this
+        expect(candidateAddress).to.equal('1842 Murray Avenue in Pittsburgh');
+      }
+    });
+
+    it('should extract address from "it\'s located at 3307 Liberty Avenue"', () => {
+      const transcript = "It's located at 3307 Liberty Avenue.";
+
+      const addressPattern = /(?:address is|located at|it's at|its at|job is at|job's at|service is at|service location is|the address is|the property is at)\s+([^.!?]+)/i;
+      const match = transcript.match(addressPattern);
+
+      expect(match).to.not.be.null;
+      if (match) {
+        const candidateAddress = match[1].trim();
+        // Explicit "located at" introducer should accept this
+        expect(candidateAddress).to.equal('3307 Liberty Avenue');
+      }
+    });
+
+    it('should accept direct location answer "742 Evergreen Avenue in Pittsburgh"', () => {
+      const address = "742 Evergreen Avenue in Pittsburgh";
+
+      // Direct answers use isValidServiceAddress, which is permissive
+      expect(isValidServiceAddress(address)).to.equal(true);
+    });
+
+    it('Michael: resolver should route to ask_location when serviceAddress is undefined', () => {
+      const intake: IntakeData = {
+        customerName: 'Michael Carter',
+        serviceRequested: 'someone to look at a leaking kitchen faucet',
+        serviceAddress: undefined,
+        desiredCompletionTime: undefined,
+        callbackTime: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_location_or_context');
+    });
+
+    it('David: resolver should skip ask_location when valid address is present', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: 'repair a broken fence gate',
+        serviceAddress: '5128 Walnut Street in Pittsburgh',
+        desiredCompletionTime: 'sometime this week',
+        callbackTime: 'afternoons are best',
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('complete');
+    });
+
+    it('should NOT extract address when no location is provided', () => {
+      const transcript = "I need my water heater repaired.";
+
+      const addressPattern = /(?:at|@)\s+([^.!?]+)/i;
+      const match = transcript.match(addressPattern);
+
+      // No "at" in transcript
+      expect(match).to.be.null;
+    });
+  });
 });

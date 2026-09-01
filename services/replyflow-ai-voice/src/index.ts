@@ -2127,6 +2127,49 @@ function isValidServiceAddress(text: string): boolean {
 }
 
 /**
+ * Validate service address for EARLY extraction with higher confidence threshold.
+ * This is used when opportunistically extracting location from answers to OTHER questions.
+ * Direct answers to ask_location should use isValidServiceAddress instead.
+ *
+ * Early extraction requires stronger evidence that the text is actually a location,
+ * not a service description that happens to contain "at" (e.g., "look at a leaking kitchen faucet").
+ *
+ * @param text - The candidate address text to validate
+ * @param patternType - The semantic type of pattern that matched ('explicit', 'bare-at', 'street-address')
+ */
+function isConfidentEarlyServiceAddress(text: string, patternType: 'explicit' | 'bare-at' | 'street-address'): boolean {
+  // First apply basic validation
+  if (!isValidServiceAddress(text)) return false;
+
+  const trimmed = text.trim().toLowerCase();
+
+  // Explicit location-introducing phrases are strong evidence of actual location intent
+  // These patterns already contain explicit location context (e.g., "it's at", "located at")
+  if (patternType === 'explicit') {
+    return true;
+  }
+
+  // Street address patterns (e.g., "123 Main Street") are inherently location-like
+  if (patternType === 'street-address') {
+    return true;
+  }
+
+  // For bare "at" patterns (e.g., "at <something>"), require strong address evidence
+  // since "at" can appear in non-location contexts like "look at"
+  if (patternType === 'bare-at') {
+    // Require captured text to start with a digit (street number) or contain street-type terms
+    const startsWithDigit = /^\d/.test(trimmed);
+    const hasStreetType = /\b(street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)\b/i.test(trimmed);
+
+    // Only accept if there's clear address-like evidence
+    return startsWithDigit || hasStreetType;
+  }
+
+  // Default: reject for unrecognized pattern types
+  return false;
+}
+
+/**
  * Validate service request - reject only truly unusable answers
  * Issue description (additional details) is optional and handled separately
  */
@@ -3293,24 +3336,40 @@ function extractFieldsFromTranscript(
 
   // Extract serviceAddress if not already present
   if (!intake.serviceAddress) {
-    // Look for address patterns
+    // Look for address patterns with higher confidence for early extraction
+    // Split patterns to distinguish explicit location introducers from bare "at"
     const addressPatterns = [
-      /(?:at|@|address is|located at|it's at|its at)\s+([^.!?]+)/i,
-      /(\d+\s+[a-z]+\s+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+[a-z]+)?)/i,
+      {
+        pattern: /(?:address is|located at|it's at|its at|job is at|job's at|service is at|service location is|the address is|the property is at)\s+([^.!?]+)/i,
+        type: 'explicit' as const
+      },
+      {
+        pattern: /(?:at|@)\s+([^.!?]+)/i,
+        type: 'bare-at' as const
+      },
+      {
+        pattern: /(\d+\s+[a-z]+\s+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+[a-z]+)?)/i,
+        type: 'street-address' as const
+      }
     ];
 
-    for (const pattern of addressPatterns) {
+    for (const { pattern, type } of addressPatterns) {
       const match = transcript.match(pattern);
-      if (match && match[1] && isValidServiceAddress(match[1].trim())) {
-        mergeExtractedField(
-          intake,
-          'serviceAddress',
-          match[1].trim(),
-          isValidServiceAddress,
-          currentStage,
-          transcript
-        );
-        break;
+      if (match && match[1]) {
+        const candidateAddress = match[1].trim();
+
+        // Use early-confidence validation for opportunistic extraction
+        if (isConfidentEarlyServiceAddress(candidateAddress, type)) {
+          mergeExtractedField(
+            intake,
+            'serviceAddress',
+            candidateAddress,
+            isValidServiceAddress,
+            currentStage,
+            transcript
+          );
+          break;
+        }
       }
     }
   }
