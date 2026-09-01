@@ -21,11 +21,12 @@ export const EARLY_COMPLETION_PATTERNS = [
  * Only match when temporal language clearly expresses contact/availability preference
  */
 export const EARLY_CALLBACK_PATTERNS = [
-  /(?:best time|good time|prefer)\s+(?:to|at|in|on|after|before|between|anytime|morning|afternoon|evening|night|today|tomorrow)([^.!?]*)/i,
-  /(?:call me|call back|reach me|contact me)\s+(?:at|in|on|after|before|between|anytime|morning|afternoon|evening|night|today|tomorrow)([^.!?]*)/i,
-  /(?:i'm|i am)\s+(?:available|free)\s+(?:anytime|morning|afternoon|evening|night|after \d+|before \d+|between \d+ and \d+)([^.!?]*)/i,
-  /(?:anytime|morning|afternoon|evening|night)\s+(?:are|work|is)\s+(?:best|good|fine|ok)([^.!?]*)/i,
-  /(?:if you need to|if you)\s+(?:call|reach)\s+(?:me|us)([^.!?]*)/i,
+  /(?:best time|good time|prefer)\s+(?:to|at|in|on|after|before|between|anytime|morning|afternoon|evening|night|today|tomorrow)([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
+  /(?:call me|call back|reach me|contact me)\s+(?:at|in|on|after|before|between|anytime|morning|afternoon|evening|night|today|tomorrow)([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
+  /(?:i'm|i am)\s+(?:available|free)\s+(?:anytime|morning|afternoon|evening|night|after \d+|before \d+|between \d+ and \d+)([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
+  /(?:anytime|morning|afternoon|evening|night)s?\s+(?:are|work|is)\s+(?:best|good|fine|ok)([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
+  /(?:morning|afternoon|evening|night)s?\s+(?:would|will|'d|'ll)\s+(?:be\s+)?(?:best|good|fine|ok|easier|easiest|prefer(?:red)?)([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
+  /(?:you can reach me|reach me|contact me)\s+(?:at|in|on|after|before|between|anytime|morning|afternoon|evening|night)([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
 ];
 
 /**

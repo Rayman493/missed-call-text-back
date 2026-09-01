@@ -202,20 +202,65 @@ describe('Early Completion/Callback Extraction Confidence', () => {
       console.log('[PASS] "Can you come by Friday" extracted');
     });
 
-    // TODO: "Mornings work best" is an edge case that requires more sophisticated intent detection
-    // Skipping for now as the core false-positive prevention (James case) is addressed
-    /*
     it('should extract "Mornings work best"', () => {
       const transcript = "Mornings work best.";
       const result = extractEarlyCallbackTime(transcript);
-      console.log(`DEBUG: Transcript: "${transcript}"`);
-      console.log(`DEBUG: Result: "${result}"`);
       if (!result) {
         throw new Error('Expected to extract callback time');
       }
       console.log('[PASS] "Mornings work best" extracted');
     });
-    */
+
+    it('should extract "Mornings would be easiest"', () => {
+      const transcript = "Mornings would be easiest.";
+      const result = extractEarlyCallbackTime(transcript);
+      if (!result) {
+        throw new Error('Expected to extract callback time');
+      }
+      console.log('[PASS] "Mornings would be easiest" extracted');
+    });
+
+    it('should extract "Mornings would be easiest if you need to reach me" (Robert true positive)', () => {
+      const transcript = "Mornings would be easiest if you need to reach me.";
+      const result = extractEarlyCallbackTime(transcript);
+      if (!result) {
+        throw new Error('Expected to extract callback time');
+      }
+      if (result.toLowerCase().includes('if you need to reach me')) {
+        throw new Error(`Should capture time preference, not conditional fragment. Got: "${result}"`);
+      }
+      console.log('[PASS] "Mornings would be easiest if you need to reach me" extracted as time preference');
+    });
+
+    it('should extract "Afternoons are best"', () => {
+      const transcript = "Afternoons are best.";
+      const result = extractEarlyCallbackTime(transcript);
+      if (!result) {
+        throw new Error('Expected to extract callback time');
+      }
+      console.log('[PASS] "Afternoons are best" extracted');
+    });
+
+    it('should extract "Afternoons are best if you need to call me"', () => {
+      const transcript = "Afternoons are best if you need to call me.";
+      const result = extractEarlyCallbackTime(transcript);
+      if (!result) {
+        throw new Error('Expected to extract callback time');
+      }
+      if (result.toLowerCase().includes('if you need to call me')) {
+        throw new Error(`Should capture time preference, not conditional fragment. Got: "${result}"`);
+      }
+      console.log('[PASS] "Afternoons are best if you need to call me" extracted as time preference');
+    });
+
+    it('should extract "Evenings work best"', () => {
+      const transcript = "Evenings work best.";
+      const result = extractEarlyCallbackTime(transcript);
+      if (!result) {
+        throw new Error('Expected to extract callback time');
+      }
+      console.log('[PASS] "Evenings work best" extracted');
+    });
 
     it('should extract "I\'m available anytime after lunch"', () => {
       const transcript = "I'm available anytime after lunch.";
@@ -281,6 +326,81 @@ describe('Early Completion/Callback Extraction Confidence', () => {
         throw new Error(`Expected null but got: "${result}"`);
       }
       console.log('[PASS] "this week" without service-timing intent rejected');
+    });
+
+    // ROBERT REGRESSION - Conditional contact fragments
+    it('should NOT extract callback from "If you need to reach me" (Robert P1)', () => {
+      const transcript = "If you need to reach me.";
+      const result = extractEarlyCallbackTime(transcript);
+      if (result !== null) {
+        throw new Error(`Expected null but got: "${result}"`);
+      }
+      console.log('[PASS] "If you need to reach me" conditional fragment rejected');
+    });
+
+    it('should NOT extract callback from "If you need to call me"', () => {
+      const transcript = "If you need to call me.";
+      const result = extractEarlyCallbackTime(transcript);
+      if (result !== null) {
+        throw new Error(`Expected null but got: "${result}"`);
+      }
+      console.log('[PASS] "If you need to call me" conditional fragment rejected');
+    });
+
+    it('should NOT extract callback from "If you call me"', () => {
+      const transcript = "If you call me.";
+      const result = extractEarlyCallbackTime(transcript);
+      if (result !== null) {
+        throw new Error(`Expected null but got: "${result}"`);
+      }
+      console.log('[PASS] "If you call me" conditional fragment rejected');
+    });
+
+    it('should NOT extract callback from "If you reach us"', () => {
+      const transcript = "If you reach us.";
+      const result = extractEarlyCallbackTime(transcript);
+      if (result !== null) {
+        throw new Error(`Expected null but got: "${result}"`);
+      }
+      console.log('[PASS] "If you reach us" conditional fragment rejected');
+    });
+
+    // Additional false-positive safety checks
+    it('should NOT extract callback from "I called this morning about the sink"', () => {
+      const transcript = "I called this morning about the sink.";
+      const result = extractEarlyCallbackTime(transcript);
+      if (result !== null) {
+        throw new Error(`Expected null but got: "${result}"`);
+      }
+      console.log('[PASS] Historical "called this morning" without callback intent rejected');
+    });
+
+    it('should NOT extract callback from "Morning traffic has been terrible"', () => {
+      const transcript = "Morning traffic has been terrible.";
+      const result = extractEarlyCallbackTime(transcript);
+      if (result !== null) {
+        throw new Error(`Expected null but got: "${result}"`);
+      }
+      console.log('[PASS] "Morning traffic" without callback intent rejected');
+    });
+
+    // ROBERT EXACT FULL TRANSCRIPT REGRESSION
+    it('should NOT extract invalid callback from Robert Hayes full transcript', () => {
+      const transcript = "I'm calling because the water heater in my basement stopped producing hot water yesterday. I checked the breaker and it's just fine, but we're still only getting cold water. The house is at 3307 Liberty Avenue in Pittsburgh, and if possible I'd like somebody to come out tomorrow or the day after. Mornings would be easiest if you need to reach me.";
+      const callback = extractEarlyCallbackTime(transcript);
+
+      // Must NOT contain the invalid conditional fragment
+      if (callback && callback.toLowerCase().includes('if you need to reach me')) {
+        throw new Error(`Should NOT extract "if you need to reach me". Got: "${callback}"`);
+      }
+
+      // Preferably should capture "Mornings would be easiest" or equivalent
+      // Conservatively acceptable to leave empty
+      if (callback) {
+        console.log(`[PASS] Robert callback extracted as: "${callback}"`);
+      } else {
+        console.log('[PASS] Robert callback left empty (conservative, acceptable)');
+      }
     });
   });
 });
