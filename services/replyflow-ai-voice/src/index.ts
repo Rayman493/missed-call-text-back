@@ -78,6 +78,7 @@ import {
   requiresSettleWindow,
 } from './lib/timing-policy';
 import { extractRawRequestTranscriptFromStageCaptures } from './request-transcript-selection';
+import { EARLY_COMPLETION_PATTERNS, EARLY_CALLBACK_PATTERNS } from './early-timing-patterns';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -3376,13 +3377,10 @@ function extractFieldsFromTranscript(
   }
 
   // Extract desiredCompletionTime if not already present
+  // Only extract when temporal language clearly expresses requested service timing intent
+  // Isolated temporal words like "this", "next", "today" without context are rejected to avoid false positives
   if (!intake.desiredCompletionTime) {
-    const timingPatterns = [
-      /(?:i'd like|i would like|i want|i need)\s+(?:it\s+)?(?:done|completed|finished)\s+(?:by|on|in|sometime|this|next|today|tomorrow|this week|next week|no rush|whenever|as soon as possible|asap)([^.!?]*)/i,
-      /(?:sometime|this|next|today|tomorrow|this week|next week|no rush|whenever|as soon as possible|asap)([^.!?]*)/i,
-    ];
-
-    for (const pattern of timingPatterns) {
+    for (const pattern of EARLY_COMPLETION_PATTERNS) {
       const match = transcript.match(pattern);
       if (match && isValidCompletionTime(match[0].trim())) {
         mergeExtractedField(
@@ -3399,13 +3397,10 @@ function extractFieldsFromTranscript(
   }
 
   // Extract callbackTime if not already present
+  // Only extract when temporal language clearly expresses contact/availability preference
+  // Isolated temporal words like "morning", "afternoon" without context are rejected to avoid false positives
   if (!intake.callbackTime) {
-    const callbackPatterns = [
-      /(?:best time|good time|prefer|call me|call back)\s+(?:to|at|in|on|after|before|between|anytime|morning|afternoon|evening|night|today|tomorrow)([^.!?]*)/i,
-      /(?:anytime|morning|afternoon|evening|night|after \d+|before \d+|between \d+ and \d+)([^.!?]*)/i,
-    ];
-
-    for (const pattern of callbackPatterns) {
+    for (const pattern of EARLY_CALLBACK_PATTERNS) {
       const match = transcript.match(pattern);
       if (match && isValidCallbackTime(match[0].trim())) {
         mergeExtractedField(
