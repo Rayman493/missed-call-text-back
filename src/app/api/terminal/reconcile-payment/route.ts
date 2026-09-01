@@ -31,6 +31,7 @@ import { validateStateTransition } from '@/lib/terminal/state-transition-guards'
  * }
  */
 export async function POST(request: NextRequest) {
+  const requestStart = Date.now()
   console.log('[TERMINAL_RECONCILIATION] stage=reconciliation_start')
   try {
     const body = await request.json()
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid paymentIntentId' }, { status: 400 })
     }
 
-    console.log('[TERMINAL_RECONCILIATION] payment_intent_id=' + paymentIntentId + (terminalAttemptId ? ' attempt_id=' + terminalAttemptId : ''))
+    console.log('[TERMINAL_RECONCILIATION] payment_intent_id=' + paymentIntentId + (terminalAttemptId ? ' attempt_id=' + terminalAttemptId : '') + ' duration_ms=' + (Date.now() - requestStart))
 
     // Authenticate user
     const authResult = await getAuthenticatedUser(request)
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
 
       // CRITICAL FIX: Attempt to recover by terminal_attempt_id from PaymentIntent metadata
       // This handles the case where the local record update failed during payment-intent creation
-      console.log('[TERMINAL_RECONCILIATION] stage=recovery_attempt_by_terminal_attempt_id')
+      console.log('[TERMINAL_RECONCILIATION] stage=recovery_attempt_by_terminal_attempt_id duration_ms=' + (Date.now() - requestStart))
 
       // SAFETY: Must first get the user's business to prevent cross-business recovery
       // Get user's businesses to find the one with Stripe Connect
@@ -185,13 +186,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Payment request not found' }, { status: 404 })
           }
         } else {
-          console.log('[TERMINAL_RECONCILIATION] stage=recovery_update_success')
+          console.log('[TERMINAL_RECONCILIATION] stage=recovery_update_success payment_request_id=' + recoveredRequest.id + ' duration_ms=' + (Date.now() - requestStart))
           paymentRequest = recoveredRequest
         }
       }
     }
 
-    console.log('[TERMINAL_RECONCILIATION] stage=local_record_found payment_request_id=' + paymentRequest.id + ' local_status_before=' + paymentRequest.status)
+    console.log('[TERMINAL_RECONCILIATION] stage=local_record_found payment_request_id=' + paymentRequest.id + ' local_status_before=' + paymentRequest.status + ' duration_ms=' + (Date.now() - requestStart))
 
     // Verify user owns this payment request by checking business ownership
     const { data: business } = await supabaseAdmin
@@ -225,7 +226,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify PaymentIntent status server-side in connected-account context
-    console.log('[TERMINAL_RECONCILIATION] stage=stripe_retrieve_start')
+    console.log('[TERMINAL_RECONCILIATION] stage=stripe_retrieve_start duration_ms=' + (Date.now() - requestStart))
     const stripe = getStripe()
     if (!stripe) {
       console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=stripe_not_configured')
@@ -315,7 +316,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        console.log('[TERMINAL_RECONCILIATION] stage=reconciliation_complete status=paid local_status_after=paid')
+        console.log('[TERMINAL_RECONCILIATION] stage=reconciliation_complete status=paid local_status_after=paid duration_ms=' + (Date.now() - requestStart))
         return NextResponse.json({
           status: 'paid',
           paymentRequestId: paymentRequest.id,
@@ -377,7 +378,7 @@ export async function POST(request: NextRequest) {
       }
     }
   } catch (error) {
-    console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=exception error=' + (error instanceof Error ? error.message : 'Unknown'))
+    console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=exception error=' + (error instanceof Error ? error.message : 'Unknown') + ' duration_ms=' + (Date.now() - requestStart))
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

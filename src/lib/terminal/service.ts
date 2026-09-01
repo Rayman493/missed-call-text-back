@@ -1332,7 +1332,8 @@ export class TerminalBridgeService {
         this.currentPhase = undefined
       } catch (reconcileError) {
         console.error('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' reconciliation_failed error=' + (reconcileError instanceof Error ? reconcileError.message : 'Unknown'))
-        try { await logTapToPayEvent('reconcile_failed', { phase: 'reconcile', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, message: reconcileError instanceof Error ? reconcileError.message : 'Unknown' }) } catch {}
+        const isAbortError = reconcileError instanceof Error && reconcileError.name === 'AbortError'
+        try { await logTapToPayEvent('reconcile_failed', { phase: 'reconcile', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, message: reconcileError instanceof Error ? reconcileError.message : 'Unknown', meta: { ambiguousReason: isAbortError ? 'reconcile_abort' : 'reconcile_exception' } }) } catch {}
         // Don't fail the payment if reconciliation fails - webhook will handle it
         // Keep unresolved attempt ID for recovery
         this.persistAttemptOutcome('ambiguous')
@@ -1362,7 +1363,7 @@ export class TerminalBridgeService {
       console.warn('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=unexpected_status status=' + result.status + ' treating_as_ambiguous')
       // Keep unresolved attempt ID for recovery
       this.persistAttemptOutcome('ambiguous')
-      try { await logTapToPayEvent('payment_ambiguous', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, code: result.status }) } catch {}
+      try { await logTapToPayEvent('payment_ambiguous', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, code: result.status, meta: { ambiguousReason: 'native_unknown_status', rawNativeStatus: result.status } }) } catch {}
     }
 
     // Normalize connection status out of transient collecting/processing states before summary

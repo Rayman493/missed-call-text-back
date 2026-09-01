@@ -73,6 +73,7 @@ export interface UseTapToPayOrchestrationReturn {
   isNativeSupported: boolean
   lastSuccessfulStage: string
   lastResetReason: string
+  ambiguousReason: string | null
   locationPermissionGranted: boolean | null
   locationServicesEnabled: boolean | null
   locationPermissionState: 'granted' | 'denied' | 'permanently_denied' | 'unknown'
@@ -149,6 +150,7 @@ export function useTapToPayOrchestration({
       isNativeSupported: false,
       lastSuccessfulStage: 'none',
       lastResetReason: 'none',
+      ambiguousReason: null,
       locationPermissionGranted: null,
       locationServicesEnabled: null,
       locationPermissionState: 'unknown',
@@ -180,6 +182,7 @@ export function useTapToPayOrchestration({
   const recoveryRunRef = useRef(false)
   const activeAttemptIdRef = useRef<string | null>(null)
   const activeAttemptTokenRef = useRef<string | null>(null)
+  const ambiguousReasonRef = useRef<string | null>(null)
 
   // Update ref when state changes with logging and reason
   const updatePaymentStateRef = useCallback((newState: PaymentState, reason: string = 'unknown') => {
@@ -212,11 +215,37 @@ export function useTapToPayOrchestration({
     setPaymentState(newState)
     setLastResetReason(reason)
     
+    // Track ambiguous reason for diagnostics
+    if (newState === 'ambiguous') {
+      ambiguousReasonRef.current = reason
+
+      // Send telemetry to server for release-style debugging
+      // Fire-and-forget - does not block payment flow
+      const currentCorrelationId = getCorrelationId()
+      fetch('/api/terminal/ambiguous-reason', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          correlationId: currentCorrelationId ?? undefined,
+          sessionId: terminalService.getSessionId(),
+          attemptId: terminalService.getCurrentAttemptId(),
+          paymentIntentId: terminalService.getPaymentIntentId(),
+          ambiguousReason: reason,
+          platform,
+        }),
+      }).catch(() => {
+        // Silently fail - telemetry should not break payments
+      })
+    } else {
+      ambiguousReasonRef.current = null
+    }
+
     // Log state transition with attempt ID
     console.log('[TTP Hook] STATE_TRANSITION', {
       previous: previousState,
       next: newState,
       reason,
+      ambiguousReason: newState === 'ambiguous' ? reason : undefined,
       sessionId: terminalService.getSessionId(),
       attemptId: terminalService.getCurrentAttemptId(),
       startInFlight: startInFlight.current,
@@ -1361,7 +1390,10 @@ export function useTapToPayOrchestration({
         source: 'orchestration',
         paymentState: 'ambiguous',
         normalizedErrorMessage: 'Please resolve the previous payment status first',
-        meta: { unresolvedAttemptId }
+        meta: {
+          unresolvedAttemptId,
+          ambiguousReason: 'unresolved_attempt_found'
+        }
       })
       const errorMsg = 'Please resolve the previous payment status first'
       setError(errorMsg)
@@ -2180,6 +2212,20 @@ export function useTapToPayOrchestration({
             console.error('[TTP Hook] RECONCILE_FAILED', reconcileResponse.status)
             dispatchTTPEvent('RECONCILE_FAILED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'processing', 'reconciliation_failed')
 
+            await logTapToPayEvent('RECONCILE_HTTP_FAILED', {
+              correlationId,
+              attemptId: terminalService.getCurrentAttemptId() ?? undefined,
+              sessionId: terminalService.getSessionId(),
+              source: 'orchestration',
+              paymentState: 'ambiguous',
+              paymentIntentId,
+              stage: 'reconciliation',
+              meta: {
+                httpStatus: reconcileResponse.status,
+                ambiguousReason: 'reconciliation_http_error'
+              }
+            }).catch(() => {})
+
             // Reconciliation failed - native succeeded but verification unresolved
             // Use ambiguous state to indicate payment may have succeeded
             updatePaymentStateRef('ambiguous', 'reconciliation_failed')
@@ -2299,6 +2345,23 @@ export function useTapToPayOrchestration({
         } catch (reconcileError) {
           console.error('[TTP Hook] RECONCILE_EXCEPTION', reconcileError)
           dispatchTTPEvent('RECONCILE_EXCEPTION', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'ambiguous', 'exception')
+
+          const isAbortError = reconcileError instanceof Error && reconcileError.name === 'AbortError'
+          await logTapToPayEvent('RECONCILE_EXCEPTION', {
+            correlationId,
+            attemptId: terminalService.getCurrentAttemptId() ?? undefined,
+            sessionId: terminalService.getSessionId(),
+            source: 'orchestration',
+            paymentState: 'ambiguous',
+            paymentIntentId,
+            stage: 'reconciliation',
+            meta: {
+              errorName: reconcileError instanceof Error ? reconcileError.name : 'Unknown',
+              errorMessage: reconcileError instanceof Error ? reconcileError.message : 'Unknown',
+              isAbortError,
+              ambiguousReason: isAbortError ? 'reconciliation_abort' : 'reconciliation_exception'
+            }
+          }).catch(() => {})
 
           // Reconciliation failed due to exception - native succeeded but verification unresolved
           // Use ambiguous state to indicate payment may have succeeded
@@ -2635,6 +2698,7 @@ async function withTimeout<T>(
     isNativeSupported,
     lastSuccessfulStage,
     lastResetReason,
+    ambiguousReason: ambiguousReasonRef.current,
     locationPermissionGranted,
     locationServicesEnabled,
     locationPermissionState,
