@@ -49,7 +49,7 @@ import ImportContactsModal from '@/components/ImportContactsModal'
 import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate, DEFAULT_BUSINESS_HOURS_TIMEZONE, DEFAULT_BUSINESS_HOURS_START, DEFAULT_BUSINESS_HOURS_END, getBusinessHoursFieldWithDefault } from '@/lib/out-of-office'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
-import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, RefreshCw, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react'
+import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, RefreshCw, ChevronDown, ChevronUp, ShieldCheck, Phone } from 'lucide-react'
 import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
@@ -2862,8 +2862,8 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               <span className="hidden group-open:inline">▾ Number guidance</span>
                             </summary>
                             <div className="mt-2 space-y-1.5 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                              <p>A dedicated business number works best for ReplyFlow.</p>
-                              <p>Personal phones are supported too. Use Ignored Contacts to keep personal calls separate from customer calls. Personal voicemails are saved separately.</p>
+                              <p>A dedicated business number is recommended for the best ReplyFlow experience.</p>
+                              <p>You can also use a personal number with call forwarding. Personal voicemails are kept separate from customer conversations.</p>
                             </div>
                           </details>
                         </div>
@@ -2885,28 +2885,46 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       Service Location
                     </label>
                     <p className="text-sm text-muted-foreground leading-relaxed mb-2">
-                      ReplyFlow uses this to tailor the questions your AI Voice asks callers.
+                      Choose how you typically serve customers. ReplyFlow uses this to ask callers the right questions.
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div role="radiogroup" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {[
                         { value: 'onsite', title: 'On-site service', desc: 'You travel to the customer or job location.' },
                         { value: 'customer_comes_to_business', title: 'Customers come to me', desc: 'Customers visit your business location.' },
                         { value: 'remote', title: 'Remote only', desc: 'Your services are provided remotely.' }
-                      ].map(opt => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => updateBusiness({ ...(formBusiness as any), service_location_type: opt.value })}
-                          className={`text-left p-3 rounded-md border transition ${
-                            ((formBusiness as any).service_location_type || 'onsite') === opt.value
-                              ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20'
-                              : 'border-slate-200/70 dark:border-slate-700/50 hover:border-slate-300 dark:hover:border-slate-600'
-                          }`}
-                        >
-                          <div className="text-sm font-medium text-slate-900 dark:text-foreground">{opt.title}</div>
-                          <div className="text-xs text-slate-600 dark:text-slate-400">{opt.desc}</div>
-                        </button>
-                      ))}
+                      ].map(opt => {
+                        const isSelected = ((formBusiness as any).service_location_type || 'onsite') === opt.value
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            role="radio"
+                            aria-checked={isSelected}
+                            onClick={() => updateBusiness({ ...(formBusiness as any), service_location_type: opt.value })}
+                            className={`text-left p-3 rounded-md border transition cursor-pointer ${
+                              isSelected
+                                ? 'border-blue-500 bg-blue-50/40 dark:bg-blue-900/20'
+                                : 'border-slate-200/70 dark:border-slate-700/50 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`flex-shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center mt-0.5 ${
+                                isSelected
+                                  ? 'border-blue-500 bg-blue-500'
+                                  : 'border-slate-300 dark:border-slate-600'
+                              }`}>
+                                {isSelected && (
+                                  <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-slate-900 dark:text-foreground">{opt.title}</div>
+                                <div className="text-xs text-slate-600 dark:text-slate-400">{opt.desc}</div>
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
                 </div>
@@ -3925,26 +3943,24 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             </p>
                           )}
                         </div>
-                        {!isLoadingCalendar && (
-                          <button
+                        <button
                             onClick={calendarConnected ? handleDisconnectCalendar : handleConnectCalendar}
-                            disabled={isConnectingCalendar || isDisconnectingCalendar}
+                            disabled={isConnectingCalendar || isDisconnectingCalendar || isLoadingCalendar}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap ${
                               calendarConnected
                                 ? 'border border-red-200 dark:border-red-800/60 bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
                                 : 'bg-blue-600 hover:bg-blue-700 text-white'
                             }`}
                           >
-                            {isConnectingCalendar || isDisconnectingCalendar ? (
+                            {isConnectingCalendar || isDisconnectingCalendar || isLoadingCalendar ? (
                               <>
                                 <LoadingSpinner size="sm" />
-                                <span>Processing...</span>
+                                <span>{isConnectingCalendar || isDisconnectingCalendar ? 'Processing...' : 'Checking...'}</span>
                               </>
                             ) : (
                               <span>{calendarConnected ? 'Disconnect' : 'Connect'}</span>
                             )}
                           </button>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -5004,96 +5020,92 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-stretch sm:items-center justify-center z-[80] p-0 sm:p-4 overscroll-contain">
               <div className="bg-white dark:bg-slate-900 rounded-none sm:rounded-xl max-w-lg w-full h-[100vh] sm:h-auto max-h-[calc(100vh-2rem)] max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
                 {/* Fixed Header */}
-                <div className="flex-shrink-0 p-6 border-b border-slate-200/70 dark:border-slate-700/50">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
-                      <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+                <div className="flex-shrink-0 p-5 border-b border-slate-200/70 dark:border-slate-700/50">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
+                      <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
                     </div>
                     <div className="flex-1">
-                      <h2 className="text-xl font-bold text-slate-900 dark:text-foreground mb-2">
+                      <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-1">
                         Permanently delete your ReplyFlow account
                       </h2>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
-                        This permanently removes your ReplyFlow account and business data. Please review what happens before continuing.
+                        This permanently deletes your account and business data. This action cannot be undone.
                       </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Scrollable Body */}
-                <div className="flex-1 min-h-0 overflow-y-scroll p-6 space-y-5 overscroll-contain pb-24 sm:pb-6" style={{ touchAction: 'pan-y' }} data-scroll-lock-allow>
-                  {/* What happens on deletion */}
-                  <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
-                      <CreditCard className="w-4 h-4" />
-                      Billing & Subscription
+                <div className="flex-1 min-h-0 overflow-y-scroll p-5 space-y-4 overscroll-contain pb-24 sm:pb-5" style={{ touchAction: 'pan-y' }} data-scroll-lock-allow>
+                  {/* What happens */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3">
+                      What happens
                     </h3>
-                    <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-2">
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        <span>We'll automatically cancel your active subscription (if one exists).</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      Offboarding Communications
-                    </h3>
-                    <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-2">
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        <span>Call forwarding instructions via email and SMS</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        <span>Receive a ReplyFlow Journey summary with your business statistics and usage history.</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                        <span>We'll send reminders to help you disable call forwarding. Reminders stop immediately once you confirm forwarding is disabled.</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      Data Deletion
-                    </h3>
-                    <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-2">
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        <span>Permanent deletion of your business, customers, conversations, messages, appointments, settings, and related ReplyFlow data.</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        <span>Account removal and sign-out from ReplyFlow</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  {/* Warning callout */}
-                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-1">
-                          Important: Call Forwarding
-                        </p>
-                        <p className="text-xs text-amber-800 dark:text-amber-200">
-                          If call forwarding is still enabled after deleting your account, new callers may continue reaching your ReplyFlow number instead of your normal voicemail. We'll email and text simple instructions to help you disable forwarding, and reminders stop immediately once you confirm forwarding has been disabled.
-                        </p>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-5 h-5 bg-slate-100 dark:bg-slate-800 rounded-md flex items-center justify-center mt-0.5">
+                          <CreditCard className="w-3 h-3 text-slate-600 dark:text-slate-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                            Subscription
+                          </p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            Your active ReplyFlow subscription will be canceled automatically.
+                          </p>
+                        </div>
                       </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-5 h-5 bg-slate-100 dark:bg-slate-800 rounded-md flex items-center justify-center mt-0.5">
+                          <FileText className="w-3 h-3 text-slate-600 dark:text-slate-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                            Data
+                          </p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            Your business, customers, conversations, appointments, settings, and related ReplyFlow data will be permanently deleted.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-5 h-5 bg-slate-100 dark:bg-slate-800 rounded-md flex items-center justify-center mt-0.5">
+                          <Phone className="w-3 h-3 text-slate-600 dark:text-slate-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                            Call forwarding
+                          </p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            If call forwarding is still enabled after deletion, callers may continue reaching your ReplyFlow number. We'll send instructions to help you turn it off.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Compact warning callout */}
+                  <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 rounded-lg p-3">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-900 dark:text-amber-200">
+                        <span className="font-semibold">Call forwarding reminder:</span> We'll send up to two reminders to help you disable call forwarding.
+                      </p>
                     </div>
                   </div>
 
                   {/* Confirmation input */}
                   <div>
-                    <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
-                      Type <span className="font-mono font-bold">DELETE</span> to confirm
-                    </label>
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">
+                      Confirmation
+                    </h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+                      Type DELETE to confirm
+                    </p>
                     <input
                       type="text"
                       value={deleteConfirmText}
@@ -5101,52 +5113,46 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       placeholder="Type DELETE"
                       autoComplete="off"
                       disabled={isDeleting}
-                      className="w-full px-4 py-3 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground disabled:opacity-50"
+                      className="w-full px-3 py-2 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground disabled:opacity-50"
                     />
                   </div>
 
-                  {/* Final Confirmation - Password */}
+                  {/* Password */}
                   <div>
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">
-                      Final Confirmation
+                      Current password
                     </h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
-                      Enter your current password to permanently delete your ReplyFlow account.
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+                      Enter your current password to continue.
                     </p>
-
-                    <div>
-                      <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
-                        Current Password
-                      </label>
-                      <PasswordInput
-                        id="delete-password"
-                        name="delete-password"
-                        value={deletePassword}
-                        onChange={(e) => {
-                          setDeletePassword(e.target.value)
-                          setDeletePasswordError('')
-                        }}
-                        placeholder="Enter your current password"
-                        required={false}
-                        autoComplete="new-password"
-                        disabled={isDeleting}
-                        className={`h-12 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all ${
-                          deletePasswordError
-                            ? 'border-red-500 focus:ring-red-500'
-                            : 'border-slate-200/70 dark:border-slate-700/50 focus:ring-red-500/40 focus:border-red-500/80'
-                        }`}
-                      />
-                      {deletePasswordError && (
-                        <p className="mt-2 text-xs text-red-600 dark:text-red-400">
-                          {deletePasswordError}
-                        </p>
-                      )}
-                    </div>
+                    <PasswordInput
+                      id="delete-password"
+                      name="delete-password"
+                      value={deletePassword}
+                      onChange={(e) => {
+                        setDeletePassword(e.target.value)
+                        setDeletePasswordError('')
+                      }}
+                      placeholder="Enter your current password"
+                      required={false}
+                      autoComplete="new-password"
+                      disabled={isDeleting}
+                      className={`h-10 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all ${
+                        deletePasswordError
+                          ? 'border-red-500 focus:ring-red-500'
+                          : 'border-slate-200/70 dark:border-slate-700/50 focus:ring-red-500/40 focus:border-red-500/80'
+                      }`}
+                    />
+                    {deletePasswordError && (
+                      <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">
+                        {deletePasswordError}
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 {/* Fixed Footer */}
-                <div className="flex-shrink-0 p-4 sm:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-6 border-t border-slate-200/70 dark:border-slate-700/50">
+                <div className="flex-shrink-0 p-4 sm:p-5 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-5 border-t border-slate-200/70 dark:border-slate-700/50">
                   <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
                     <button
                       onClick={() => {
