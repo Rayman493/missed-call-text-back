@@ -374,7 +374,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
 
         {leads.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground">Your first customer will appear here after AI captures a lead.</p>
+            <p className="text-xs text-muted-foreground/80">Your first customer will appear here after AI captures a lead.</p>
           </div>
         ) : (
           <div className="space-y-1">

@@ -1225,13 +1225,13 @@ export default function SchedulePage() {
 
                   {/* Schedule Tab Toggle */}
                   <div className="hidden md:flex mb-3">
-                    <div className="inline-flex bg-muted/40 dark:bg-slate-800/60 rounded-xl p-0.5 w-fit border border-border/50 dark:border-slate-700/50">
+                    <div className="inline-flex bg-slate-100/50 dark:bg-slate-800/40 rounded-md p-0.5 w-fit border border-slate-200/40 dark:border-slate-700/25">
                       <button
                         onClick={() => setScheduleTab('agenda')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-all duration-200 ease-out ${
                           scheduleTab === 'agenda'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
+                            ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-sm'
                         }`}
                       >
                         <CheckCircle2 className={`w-4 h-4 ${scheduleTab === 'agenda' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
@@ -1239,10 +1239,10 @@ export default function SchedulePage() {
                       </button>
                       <button
                         onClick={() => setScheduleTab('calendar')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-all duration-200 ease-out ${
                           scheduleTab === 'calendar'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
+                            ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-sm'
                         }`}
                       >
                         <CalendarIcon className={`w-4 h-4 ${scheduleTab === 'calendar' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
@@ -1250,10 +1250,10 @@ export default function SchedulePage() {
                       </button>
                       <button
                         onClick={() => setScheduleTab('map')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-all duration-200 ease-out ${
                           scheduleTab === 'map'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
+                            ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-sm'
                         }`}
                       >
                         <MapIcon className={`w-4 h-4 ${scheduleTab === 'map' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
@@ -1264,14 +1264,14 @@ export default function SchedulePage() {
 
                   {/* Mobile tab toggle (responsive grid, no horizontal scrolling) */}
                   <div className="md:hidden mb-4 mt-2">
-                    <div className="bg-white dark:bg-slate-800/60 rounded-xl p-0.5 border border-border/50 dark:border-slate-700/50">
+                    <div className="bg-slate-100/50 dark:bg-slate-800/40 rounded-md p-0.5 border border-slate-200/40 dark:border-slate-700/25">
                       <div className="grid grid-cols-3 gap-0.5">
                         <button
                           onClick={() => setScheduleTab('agenda')}
-                          className={`flex items-center justify-center gap-1 py-2 px-0.5 rounded-lg font-medium transition-all duration-200 ease-out ${
+                          className={`flex items-center justify-center gap-1 py-2 px-0.5 rounded-md font-medium transition-all duration-200 ease-out ${
                             scheduleTab === 'agenda'
-                              ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
+                              ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-xs'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-xs'
                           }`}
                         >
                           <CheckCircle2 className={`w-3 h-3 ${scheduleTab === 'agenda' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
@@ -1279,10 +1279,10 @@ export default function SchedulePage() {
                         </button>
                         <button
                           onClick={() => setScheduleTab('calendar')}
-                          className={`flex items-center justify-center gap-1 py-2 px-0.5 rounded-lg font-medium transition-all duration-200 ease-out ${
+                          className={`flex items-center justify-center gap-1 py-2 px-0.5 rounded-md font-medium transition-all duration-200 ease-out ${
                             scheduleTab === 'calendar'
-                              ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
+                              ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-xs'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-xs'
                           }`}
                         >
                           <CalendarIcon className={`w-3 h-3 ${scheduleTab === 'calendar' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
@@ -1290,10 +1290,10 @@ export default function SchedulePage() {
                         </button>
                         <button
                           onClick={() => setScheduleTab('map')}
-                          className={`flex items-center justify-center gap-1 py-2 px-0.5 rounded-lg font-medium transition-all duration-200 ease-out ${
+                          className={`flex items-center justify-center gap-1 py-2 px-0.5 rounded-md font-medium transition-all duration-200 ease-out ${
                             scheduleTab === 'map'
-                              ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
+                              ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-xs'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-xs'
                           }`}
                         >
                           <MapIcon className={`w-3 h-3 ${scheduleTab === 'map' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
