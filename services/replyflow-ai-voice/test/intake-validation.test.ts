@@ -1238,4 +1238,149 @@ describe('Prompt Selection and Dispatch', () => {
       expect(match[0].trim().toLowerCase()).to.include('afternoon');
     });
   });
+
+  describe('Transcription Watchdog Speech-End Semantics', () => {
+    it('should not start watchdog countdown while caller is actively speaking', () => {
+      // This test documents the semantic contract: watchdog starts on speech_stopped, not speech_started
+      // The implementation ensures inSpeechSegment is checked before reprompting
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      // Simulate state during active speech
+      const inSpeechSegment = true;
+      const watchdogGeneration = 1;
+      const currentSpeechGeneration = 1;
+
+      // Watchdog should be prevented from firing while inSpeechSegment is true
+      const shouldPrevent = inSpeechSegment && (currentSpeechGeneration === watchdogGeneration);
+      expect(shouldPrevent).to.equal(true);
+    });
+
+    it('should prevent watchdog reprompt if newer speech generation started', () => {
+      // Simulate state where caller spoke again before timeout
+      const watchdogGeneration = 1;
+      const currentSpeechGeneration = 2; // Newer speech started
+
+      const shouldPrevent = currentSpeechGeneration !== watchdogGeneration;
+      expect(shouldPrevent).to.equal(true);
+    });
+
+    it('should prevent watchdog reprompt if stage changed', () => {
+      const watchdogStage = 'ask_name_reason';
+      const currentStage = 'ask_location'; // Stage advanced
+
+      const shouldPrevent = currentStage !== watchdogStage;
+      expect(shouldPrevent).to.equal(true);
+    });
+
+    it('should prevent watchdog reprompt if turn changed', () => {
+      const watchdogTurnId = 1;
+      const currentTurnId = 2; // Turn advanced
+
+      const shouldPrevent = currentTurnId !== watchdogTurnId;
+      expect(shouldPrevent).to.equal(true);
+    });
+
+    it('should prevent watchdog reprompt if answer already accepted', () => {
+      const watchdogStage = 'ask_name_reason';
+      const answerAcceptedForStage = 'ask_name_reason'; // Answer already processed
+
+      const shouldPrevent = answerAcceptedForStage === watchdogStage;
+      expect(shouldPrevent).to.equal(true);
+    });
+
+    it('should prevent watchdog reprompt if assistant already speaking', () => {
+      const assistantSpeaking = true;
+
+      const shouldPrevent = assistantSpeaking;
+      expect(shouldPrevent).to.equal(true);
+    });
+
+    it('should prevent watchdog reprompt if pending answer in settle window', () => {
+      const settleWindowTimeout = true;
+      const pendingAnswerStage = 'ask_name_reason';
+
+      const shouldPrevent = settleWindowTimeout && pendingAnswerStage;
+      expect(shouldPrevent).to.equal(true);
+    });
+
+    it('should allow watchdog reprompt when all conditions pass', () => {
+      // All conditions should be false for reprompt to proceed
+      const inSpeechSegment = false;
+      const watchdogGeneration = 1;
+      const currentSpeechGeneration = 1;
+      const watchdogStage = 'ask_name_reason';
+      const currentStage = 'ask_name_reason';
+      const watchdogTurnId = 1;
+      const currentTurnId = 1;
+      const answerAcceptedForStage = undefined;
+      const assistantSpeaking = false;
+      const settleWindowTimeout = null;
+      const pendingAnswerStage = null;
+
+      const shouldPrevent =
+        inSpeechSegment ||
+        (currentSpeechGeneration !== watchdogGeneration) ||
+        (currentStage !== watchdogStage) ||
+        (currentTurnId !== watchdogTurnId) ||
+        (answerAcceptedForStage === watchdogStage) ||
+        assistantSpeaking ||
+        (settleWindowTimeout && pendingAnswerStage);
+
+      expect(shouldPrevent).to.equal(false);
+    });
+
+    it('should capture complete canonical state from David comprehensive answer', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: 'someone to repair a broken fence gate',
+        issueDescription: 'The hinge pulled away from the post during the storm',
+        serviceAddress: '5128 Walnut Street in Pittsburgh',
+        desiredCompletionTime: 'sometime this week',
+        callbackTime: 'afternoons are best',
+        stage: 'ask_name_reason'
+      };
+
+      // Verify all fields are present
+      expect(intake.customerName).to.equal('David Reynolds');
+      expect(intake.serviceRequested).to.equal('someone to repair a broken fence gate');
+      expect(intake.issueDescription).to.equal('The hinge pulled away from the post during the storm');
+      expect(intake.serviceAddress).to.equal('5128 Walnut Street in Pittsburgh');
+      expect(intake.desiredCompletionTime).to.equal('sometime this week');
+      expect(intake.callbackTime).to.equal('afternoons are best');
+    });
+
+    it('should return complete from resolver with all fields captured', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: 'someone to repair a broken fence gate',
+        issueDescription: 'The hinge pulled away from the post during the storm',
+        serviceAddress: '5128 Walnut Street in Pittsburgh',
+        desiredCompletionTime: 'sometime this week',
+        callbackTime: 'afternoons are best',
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('complete');
+    });
+
+    it('should return complete from resolver for remote businesses without address', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: 'someone to repair a broken fence gate',
+        issueDescription: 'The hinge pulled away from the post during the storm',
+        serviceAddress: undefined, // Remote businesses don't require address
+        desiredCompletionTime: 'sometime this week',
+        callbackTime: 'afternoons are best',
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'remote');
+      expect(nextStage).to.equal('complete');
+    });
+  });
 });

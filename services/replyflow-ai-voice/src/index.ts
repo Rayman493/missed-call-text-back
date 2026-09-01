@@ -11485,18 +11485,124 @@ Reply to this message if you'd like to update or add any information.
             state.audioAppendBlockedLogged = false;
             state.turnTiming = { speechStartedAt: speechStartedAt };
 
-            // TRANSCRIPTION WATCHDOG: Start watchdog when speech begins
-            // This detects if OpenAI never returns a transcription after speech
-            const TRANSCRIPTION_TIMEOUT_MS = 15000; // 15 seconds - longer than any reasonable answer
+            // Clear any existing watchdog when new speech starts
+            // Watchdog will be re-armed after speech stops
+            if (state.transcriptionWatchdogTimeout) {
+              clearTimeout(state.transcriptionWatchdogTimeout);
+              state.transcriptionWatchdogTimeout = null;
+              console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+              console.log('[TRANSCRIPTION WATCHDOG] event: watchdog_cleared_on_speech_start');
+              console.log('[TRANSCRIPTION WATCHDOG] reason: new_speech_started');
+              console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+              console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+            }
+
+            if (state.assistantSpeaking) {
+              console.log('[SIMPLE MODE] =========================================');
+              console.log('[SIMPLE MODE] event: caller_speech_detected_during_prompt');
+              console.log('[SIMPLE MODE] stage:', state.currentStage);
+              console.log('[SIMPLE MODE] =========================================');
+              state.cachedPlaybackInterrupted = true;
+            }
+          } else if (message.type === 'input_audio_buffer.speech_stopped') {
+            const speechStoppedAt = Date.now();
+            console.log('[AUDIO PIPELINE] =========================================');
+            console.log('[AUDIO PIPELINE] event: input_audio_buffer.speech_stopped');
+            console.log('[AUDIO PIPELINE] timestamp:', speechStoppedAt);
+            console.log('[AUDIO PIPELINE] assistantSpeaking:', state.assistantSpeaking);
+            console.log('[AUDIO PIPELINE] audioBufferAppendCount:', state.audioBufferAppendCount || 0);
+            console.log('[AUDIO PIPELINE] =========================================');
+            state.inSpeechSegment = false;
+            state.lastSpeechStoppedAt = speechStoppedAt;
+            state.turnTiming.speechEndedAt = speechStoppedAt;
+
+            // TRANSCRIPTION WATCHDOG: Start/re-arm watchdog when speech ends
+            // This detects if OpenAI never returns a transcription after caller finishes speaking
+            // The watchdog is tied to the specific stage/turn/generation when speech stopped
+            const TRANSCRIPTION_TIMEOUT_MS = 15000; // 15 seconds - reasonable for post-speech transcription
+            const watchdogGeneration = state.speechGeneration;
+            const watchdogStage = state.currentStage;
+            const watchdogTurnId = state.currentTurnId;
+
             if (state.transcriptionWatchdogTimeout) {
               clearTimeout(state.transcriptionWatchdogTimeout);
             }
             state.transcriptionWatchdogTimeout = setTimeout(() => {
-              // Prevent watchdog from firing if we have a pending answer in settle window
+              // Verify state conditions before reprompting
+              // Prevent reprompt if:
+              // 1. Caller is still actively speaking
+              // 2. A newer speech generation has started (caller spoke again)
+              // 3. Stage or turn has changed
+              // 4. Answer already accepted for this stage
+              // 5. Assistant is already delivering a prompt
+              // 6. Pending answer exists in settle window
+
+              if (state.inSpeechSegment) {
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                console.log('[TRANSCRIPTION WATCHDOG] event: watchdog_prevented_active_speech');
+                console.log('[TRANSCRIPTION WATCHDOG] reason: caller_still_speaking');
+                console.log('[TRANSCRIPTION WATCHDOG] watchdogGeneration:', watchdogGeneration);
+                console.log('[TRANSCRIPTION WATCHDOG] currentSpeechGeneration:', state.speechGeneration);
+                console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                return;
+              }
+
+              if (state.speechGeneration !== watchdogGeneration) {
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                console.log('[TRANSCRIPTION WATCHDOG] event: watchdog_prevented_new_generation');
+                console.log('[TRANSCRIPTION WATCHDOG] reason: newer_speech_started');
+                console.log('[TRANSCRIPTION WATCHDOG] watchdogGeneration:', watchdogGeneration);
+                console.log('[TRANSCRIPTION WATCHDOG] currentSpeechGeneration:', state.speechGeneration);
+                console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                return;
+              }
+
+              if (state.currentStage !== watchdogStage) {
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                console.log('[TRANSCRIPTION WATCHDOG] event: watchdog_prevented_stage_changed');
+                console.log('[TRANSCRIPTION WATCHDOG] reason: stage_changed');
+                console.log('[TRANSCRIPTION WATCHDOG] watchdogStage:', watchdogStage);
+                console.log('[TRANSCRIPTION WATCHDOG] currentStage:', state.currentStage);
+                console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                return;
+              }
+
+              if (state.currentTurnId !== watchdogTurnId) {
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                console.log('[TRANSCRIPTION WATCHDOG] event: watchdog_prevented_turn_changed');
+                console.log('[TRANSCRIPTION WATCHDOG] reason: turn_changed');
+                console.log('[TRANSCRIPTION WATCHDOG] watchdogTurnId:', watchdogTurnId);
+                console.log('[TRANSCRIPTION WATCHDOG] currentTurnId:', state.currentTurnId);
+                console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                return;
+              }
+
+              if (state.answerAcceptedForStage === watchdogStage) {
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                console.log('[TRANSCRIPTION WATCHDOG] event: watchdog_prevented_answer_accepted');
+                console.log('[TRANSCRIPTION WATCHDOG] reason: answer_already_accepted');
+                console.log('[TRANSCRIPTION WATCHDOG] acceptedStage:', state.answerAcceptedForStage);
+                console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                return;
+              }
+
+              if (state.assistantSpeaking) {
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                console.log('[TRANSCRIPTION WATCHDOG] event: watchdog_prevented_assistant_speaking');
+                console.log('[TRANSCRIPTION WATCHDOG] reason: assistant_already_speaking');
+                console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                return;
+              }
+
               if (state.settleWindowTimeout && state.pendingAnswerStage) {
                 console.log('[TRANSCRIPTION WATCHDOG] =========================================');
                 console.log('[TRANSCRIPTION WATCHDOG] event: watchdog_prevented_pending_answer');
-                console.log('[TRANSCRIPTION WATCHDOG] stage:', state.currentStage);
                 console.log('[TRANSCRIPTION WATCHDOG] reason: pending_answer_in_settle_window');
                 console.log('[TRANSCRIPTION WATCHDOG] pendingAnswerStage:', state.pendingAnswerStage);
                 console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
@@ -11508,8 +11614,10 @@ Reply to this message if you'd like to update or add any information.
               console.log('[TRANSCRIPTION WATCHDOG] event: transcription_timeout');
               console.log('[TRANSCRIPTION WATCHDOG] stage:', state.currentStage);
               console.log('[TRANSCRIPTION WATCHDOG] action: reprompting');
-              console.log('[TRANSCRIPTION WATCHDOG] reason: Transcription not received after speech started');
+              console.log('[TRANSCRIPTION WATCHDOG] reason: Transcription not received after speech ended');
               console.log('[TRANSCRIPTION WATCHDOG] timeoutMs:', TRANSCRIPTION_TIMEOUT_MS);
+              console.log('[TRANSCRIPTION WATCHDOG] watchdogGeneration:', watchdogGeneration);
+              console.log('[TRANSCRIPTION WATCHDOG] watchdogTurnId:', watchdogTurnId);
               console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
               console.log('[TRANSCRIPTION WATCHDOG] =========================================');
 
@@ -11554,29 +11662,13 @@ Reply to this message if you'd like to update or add any information.
             }, TRANSCRIPTION_TIMEOUT_MS);
             console.log('[TRANSCRIPTION WATCHDOG] =========================================');
             console.log('[TRANSCRIPTION WATCHDOG] event: watchdog_started');
+            console.log('[TRANSCRIPTION WATCHDOG] trigger: speech_stopped');
             console.log('[TRANSCRIPTION WATCHDOG] stage:', state.currentStage);
+            console.log('[TRANSCRIPTION WATCHDOG] turnId:', state.currentTurnId);
+            console.log('[TRANSCRIPTION WATCHDOG] generation:', watchdogGeneration);
             console.log('[TRANSCRIPTION WATCHDOG] timeoutMs:', TRANSCRIPTION_TIMEOUT_MS);
             console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
             console.log('[TRANSCRIPTION WATCHDOG] =========================================');
-
-            if (state.assistantSpeaking) {
-              console.log('[SIMPLE MODE] =========================================');
-              console.log('[SIMPLE MODE] event: caller_speech_detected_during_prompt');
-              console.log('[SIMPLE MODE] stage:', state.currentStage);
-              console.log('[SIMPLE MODE] =========================================');
-              state.cachedPlaybackInterrupted = true;
-            }
-          } else if (message.type === 'input_audio_buffer.speech_stopped') {
-            const speechStoppedAt = Date.now();
-            console.log('[AUDIO PIPELINE] =========================================');
-            console.log('[AUDIO PIPELINE] event: input_audio_buffer.speech_stopped');
-            console.log('[AUDIO PIPELINE] timestamp:', speechStoppedAt);
-            console.log('[AUDIO PIPELINE] assistantSpeaking:', state.assistantSpeaking);
-            console.log('[AUDIO PIPELINE] audioBufferAppendCount:', state.audioBufferAppendCount || 0);
-            console.log('[AUDIO PIPELINE] =========================================');
-            state.inSpeechSegment = false;
-            state.lastSpeechStoppedAt = speechStoppedAt;
-            state.turnTiming.speechEndedAt = speechStoppedAt;
           } else if (message.type === 'input_audio_buffer.committed') {
             console.log('[AUDIO PIPELINE] =========================================');
             console.log('[AUDIO PIPELINE] event: input_audio_buffer.committed');
