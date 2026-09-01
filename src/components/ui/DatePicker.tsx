@@ -1,5 +1,6 @@
 'use client'
 
+import { useId } from 'react'
 import { X } from 'lucide-react'
 
 interface DatePickerProps {
@@ -19,6 +20,8 @@ export default function DatePicker({
   required = false,
   disabled = false
 }: DatePickerProps) {
+  const inputId = useId()
+
   const formatDateDisplay = (dateStr: string) => {
     if (!dateStr) return ''
     // Parse YYYY-MM-DD as local date to avoid timezone shifts
@@ -42,7 +45,7 @@ export default function DatePicker({
   return (
     <div className="relative">
       {label && (
-        <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+        <label htmlFor={inputId} className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
@@ -50,12 +53,16 @@ export default function DatePicker({
       {/* Native date input for all platforms */}
       <div className="relative">
         <input
+          id={inputId}
           type="date"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           required={required}
           disabled={disabled}
-          className={`w-full px-3 py-2 text-base sm:text-sm border rounded-lg transition-colors pr-10 ${
+          placeholder={placeholder}
+          className={`w-full pl-3 py-2 text-base sm:text-sm border rounded-lg transition-colors ${
+            value ? 'pr-16' : 'pr-10'
+          } ${
             disabled
               ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30'
               : 'bg-card dark:bg-slate-900/60 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60'
@@ -65,7 +72,7 @@ export default function DatePicker({
           <button
             type="button"
             onClick={clearDate}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded transition-colors"
+            className="absolute right-12 top-1/2 -translate-y-1/2 p-1.5 hover:bg-accent/40 rounded transition-colors"
             aria-label="Clear date"
           >
             <X className="w-4 h-4 text-muted-foreground" />

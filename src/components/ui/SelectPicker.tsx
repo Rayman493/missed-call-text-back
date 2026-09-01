@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useId } from 'react'
 import { ChevronDown, X, Check, Search } from 'lucide-react'
 
 interface SelectOption {
@@ -36,6 +36,8 @@ export default function SelectPicker({
   const [searchQuery, setSearchQuery] = useState('')
   const pickerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const triggerId = useId()
+  const labelId = useId()
 
   // Close on outside click
   useEffect(() => {
@@ -79,7 +81,16 @@ export default function SelectPicker({
     return option.label.toLowerCase().includes(searchQuery.toLowerCase())
   })
 
+  // Hide redundant null/"No ..." option when a null-equivalent value is already selected.
+  // The canonical null representation remains '' or null (normalized to null by onChange).
+  const isCurrentNull = value === null || value === ''
+  const visibleOptions = filteredOptions.filter(option => {
+    const isNullOption = option.value === '' || option.value === null
+    return !(isNullOption && isCurrentNull)
+  })
+
   const selectedOption = options.find(opt => opt.value === value)
+  const hasValue = value !== null && value !== ''
 
   const handleSelect = (optionValue: string) => {
     onChange(optionValue || null)
@@ -91,44 +102,57 @@ export default function SelectPicker({
     e.stopPropagation()
     onChange(null)
     setIsOpen(false)
+    setSearchQuery('')
+  }
+
+  const toggleOpen = () => {
+    if (!disabled) setIsOpen(!isOpen)
   }
 
   return (
     <div className="relative" ref={pickerRef}>
       {label && (
-        <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+        <label
+          id={labelId}
+          htmlFor={triggerId}
+          className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5"
+        >
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
 
-      {/* Trigger button */}
-      <button
-        type="button"
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        disabled={disabled}
-        className={`w-full px-3 py-2 border rounded-lg flex items-center justify-between gap-2 transition-colors ${
-          disabled
-            ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30'
-            : 'bg-card dark:bg-slate-900/60 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60 cursor-pointer'
-        }`}
-      >
-        <span className={selectedOption ? '' : 'text-muted-foreground truncate'}>
-          {selectedOption ? selectedOption.label : placeholder}
-        </span>
-        <div className="flex items-center gap-1">
-          {value && !disabled && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="p-1 hover:bg-accent/40 rounded transition-colors"
-              aria-label="Clear selection"
-            >
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
-          )}
-          <ChevronDown className="w-4 h-4 text-muted-foreground" />
-        </div>
-      </button>
+      {/* Trigger button - clear action is a separate sibling button to avoid nested buttons */}
+      <div className="relative">
+        <button
+          id={triggerId}
+          type="button"
+          onClick={toggleOpen}
+          disabled={disabled}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
+          className={`w-full border rounded-lg flex items-center justify-between gap-2 transition-colors text-left ${
+            disabled
+              ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30 px-3 py-2'
+              : 'bg-card dark:bg-slate-900/60 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60 cursor-pointer px-3 py-2'
+          } ${hasValue ? 'pr-16' : 'pr-10'}`}
+        >
+          <span className={selectedOption ? 'text-foreground truncate' : 'text-muted-foreground truncate'}>
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
+          <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        </button>
+        {hasValue && !disabled && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-8 top-1/2 -translate-y-1/2 p-1.5 hover:bg-accent/40 rounded transition-colors"
+            aria-label="Clear selection"
+          >
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
+        )}
+      </div>
 
       {/* Dropdown */}
       {isOpen && !disabled && (
@@ -150,13 +174,13 @@ export default function SelectPicker({
           )}
 
           <div className="overflow-y-auto flex-1">
-            {filteredOptions.length === 0 ? (
+            {visibleOptions.length === 0 ? (
               <div className="py-8 text-center px-4">
                 <p className="text-sm text-muted-foreground">{emptyMessage}</p>
               </div>
             ) : (
               <div className="py-1">
-                {filteredOptions.map((option) => (
+                {visibleOptions.map((option) => (
                   <button
                     key={option.value}
                     type="button"

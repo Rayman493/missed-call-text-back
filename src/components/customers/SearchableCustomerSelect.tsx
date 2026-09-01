@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useId } from 'react'
 import { ChevronDown, X, Check, Search, Loader2 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { filterLeadsBySearchQuery, normalizePhoneDigits, getCustomerDisplayName, getCustomerSecondaryText } from '@/components/payments/customer-search-helpers'
@@ -41,6 +41,8 @@ export default function SearchableCustomerSelect({
   const [error, setError] = useState<string | null>(null)
   const pickerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const triggerId = useId()
+  const labelId = useId()
 
   // Fetch customers when component mounts
   useEffect(() => {
@@ -115,6 +117,7 @@ export default function SearchableCustomerSelect({
   const filteredCustomers = filterLeadsBySearchQuery(customers, searchQuery)
 
   const selectedCustomer = customers.find(c => c.id === value)
+  const hasValue = value !== null && value !== ''
 
   const handleSelect = (customerId: string | null) => {
     onChange(customerId)
@@ -132,6 +135,10 @@ export default function SearchableCustomerSelect({
     setSearchQuery('')
   }
 
+  const toggleOpen = () => {
+    if (!disabled) setIsOpen(!isOpen)
+  }
+
   const getDisplayText = (customer: Customer | null | undefined): string => {
     if (!customer) return placeholder
     return getCustomerDisplayName(customer)
@@ -142,42 +149,53 @@ export default function SearchableCustomerSelect({
     return getCustomerSecondaryText(customer)
   }
 
+  // Show the null "No customer" option only when a customer is actually selected
+  // (so the user can deselect), and hide it when already cleared.
+  const showNoCustomerOption = allowClear && hasValue
+
   return (
     <div className="relative" ref={pickerRef}>
       {label && (
-        <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
+        <label
+          id={labelId}
+          className="text-xs text-muted-foreground font-medium mb-1.5 block"
+        >
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
 
-      {/* Trigger button */}
-      <button
-        type="button"
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        disabled={disabled}
-        className={`w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 flex items-center justify-between gap-2 transition-colors ${
-          disabled
-            ? 'opacity-50 cursor-not-allowed'
-            : 'hover:border-border/80 cursor-pointer'
-        }`}
-      >
-        <span className={selectedCustomer ? 'text-foreground truncate' : 'text-muted-foreground truncate'}>
-          {getDisplayText(selectedCustomer)}
-        </span>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {value && allowClear && !disabled && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="p-1 hover:bg-accent/40 rounded transition-colors"
-              aria-label="Clear selection"
-            >
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
-          )}
-          <ChevronDown className="w-4 h-4 text-muted-foreground" />
-        </div>
-      </button>
+      {/* Trigger button - clear action is a separate sibling button to avoid nested buttons */}
+      <div className="relative">
+        <button
+          id={triggerId}
+          type="button"
+          onClick={toggleOpen}
+          disabled={disabled}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
+          className={`w-full bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 flex items-center justify-between gap-2 transition-colors text-left ${
+            disabled
+              ? 'opacity-50 cursor-not-allowed px-4 py-2.5 sm:px-3 sm:py-2'
+              : 'hover:border-border/80 cursor-pointer px-4 py-2.5 sm:px-3 sm:py-2'
+          } ${hasValue ? 'pr-16' : 'pr-10'}`}
+        >
+          <span className={selectedCustomer ? 'text-foreground truncate' : 'text-muted-foreground truncate'}>
+            {getDisplayText(selectedCustomer)}
+          </span>
+          <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        </button>
+        {hasValue && allowClear && !disabled && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-8 top-1/2 -translate-y-1/2 p-1.5 hover:bg-accent/40 rounded transition-colors"
+            aria-label="Clear selection"
+          >
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
+        )}
+      </div>
 
       {/* Dropdown */}
       {isOpen && !disabled && (
@@ -215,7 +233,7 @@ export default function SearchableCustomerSelect({
                   Retry
                 </button>
               </div>
-            ) : filteredCustomers.length === 0 ? (
+            ) : filteredCustomers.length === 0 && !showNoCustomerOption ? (
               <div className="py-8 text-center px-4">
                 {searchQuery ? (
                   <p className="text-sm text-muted-foreground">No customers match <span className="font-medium">"{searchQuery}"</span></p>
@@ -225,7 +243,7 @@ export default function SearchableCustomerSelect({
               </div>
             ) : (
               <div className="py-1">
-                {allowClear && (
+                {showNoCustomerOption && (
                   <button
                     type="button"
                     onClick={() => handleSelect(null)}
