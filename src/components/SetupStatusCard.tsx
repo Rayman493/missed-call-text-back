@@ -841,7 +841,7 @@ export default function SetupStatusCard({
             {/* Expanded content wrapper with padding */}
             <div className="px-3 sm:px-4 pb-3 sm:pb-4">
             {/* Two-zone layout for desktop */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5">
               {/* Left Zone: Primary Content */}
               <div className="lg:col-span-2 space-y-3">
                 {/* Primary completion message */}
@@ -875,13 +875,13 @@ export default function SetupStatusCard({
                 </div>
               </div>
 
-              {/* Right Zone: Readiness Summary (desktop only) */}
-              <div className="hidden lg:block">
-                <div className="bg-muted/20 border border-border/20 rounded-md p-4">
-                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-[0.12em] mb-3">
+              {/* Right Zone: Readiness Summary */}
+              <div className="lg:col-span-1">
+                <div className="bg-muted/20 border border-border/20 rounded-md p-3 lg:p-4">
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-[0.12em] mb-2.5 lg:mb-3">
                     Setup verified
                   </h3>
-                  <div className="space-y-2.5">
+                  <div className="space-y-2 lg:space-y-2.5">
                     <div className="flex items-center gap-2">
                       <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
                       <span className="text-sm text-foreground">Number configured</span>
