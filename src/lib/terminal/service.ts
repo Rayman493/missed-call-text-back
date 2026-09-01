@@ -1297,9 +1297,12 @@ export class TerminalBridgeService {
     try { await logTapToPayEvent('collect_payment_completed', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, durationMs: Date.now() - collectStart, code: result.status }) } catch {}
     this.timings.tCollectEnd = this.timings.tCollectEnd || Date.now()
 
+    // Normalize status to handle platform-specific case variations (e.g., 'success' vs 'succeeded')
+    const normalizedStatus = result.status?.toLowerCase() || ''
+
     // If payment succeeded, trigger server-side reconciliation
     // This ensures the payment is marked as paid even if webhook is delayed
-    if (result.status === 'succeeded') {
+    if (normalizedStatus === 'succeeded' || normalizedStatus === 'success') {
       console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=payment_succeeded triggering_reconciliation')
       try {
         const headers = await this.getAuthHeaders()
@@ -1334,7 +1337,17 @@ export class TerminalBridgeService {
         // Keep unresolved attempt ID for recovery
         this.persistAttemptOutcome('ambiguous')
       }
-    } else if (result.status === 'failed' || result.status === 'canceled') {
+    } else if (normalizedStatus === 'failed' || normalizedStatus === 'fail' || normalizedStatus === 'error') {
+      // Clear unresolved attempt ID on terminal failure
+      console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=payment_terminal status=' + result.status)
+      try { logTapToPayEvent('active_attempt_reset', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, meta: { reason: 'failed' } }).catch(() => {}) } catch {}
+      this.clearUnresolvedAttempt()
+      this.persistAttemptOutcome('failed')
+      this.currentAttemptId = null
+      this.attemptStartMs = null
+      this.currentPhase = undefined
+      try { await logTapToPayEvent('payment_failed', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, code: result.error?.code, message: result.error?.message }) } catch {}
+    } else if (normalizedStatus === 'canceled' || normalizedStatus === 'cancel' || normalizedStatus === 'cancelled') {
       // Clear unresolved attempt ID on terminal failure/cancellation
       console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=payment_terminal status=' + result.status)
       try { logTapToPayEvent('active_attempt_reset', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, meta: { reason: result.status } }).catch(() => {}) } catch {}
@@ -1365,8 +1378,8 @@ export class TerminalBridgeService {
     const totalDuration = Date.now() - overallStart
     try { logTapToPayEvent('attempt_completed', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, durationMs: totalDuration, code: result.status, message: result.error?.message }) } catch {}
     const completionReason = (() => {
-      if (result.status === 'succeeded') return 'success'
-      if (result.status === 'canceled') return 'cancelled_by_user'
+      if (normalizedStatus === 'succeeded' || normalizedStatus === 'success') return 'success'
+      if (normalizedStatus === 'canceled' || normalizedStatus === 'cancel' || normalizedStatus === 'cancelled') return 'cancelled_by_user'
       if (result.error?.code === 'native_error') return 'native_error'
       if (result.error?.stage === 'collect_payment') return 'collect_failed'
       if (result.error?.stage === 'confirm_payment') return 'confirmation_failed'
