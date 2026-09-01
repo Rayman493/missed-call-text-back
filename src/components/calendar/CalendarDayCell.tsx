@@ -63,31 +63,31 @@ export default function CalendarDayCell({
     <div
       onClick={onClick}
       className={`
-        min-h-[48px] sm:min-h-[64px] md:min-h-[86px] p-0.5 sm:p-1.5 md:p-2 rounded-lg border transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-start justify-start gap-1
+        min-h-[48px] sm:min-h-[64px] md:min-h-[80px] p-1 sm:p-1.5 md:p-2 rounded-md border transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-start justify-start gap-1
         ${isCurrentMonth
           ? isWeekend
-            ? 'bg-slate-100 dark:bg-slate-800/60 border-slate-300/80 dark:border-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-700/60'
-            : 'bg-white dark:bg-slate-900/35 border-slate-200/70 dark:border-slate-800/70 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-          : 'bg-slate-50/70 dark:bg-slate-950/30 border-slate-100 dark:border-slate-900 opacity-45'
+            ? 'bg-slate-50/60 dark:bg-slate-800/25 border-slate-200/40 dark:border-slate-700/25 hover:bg-slate-100/80 dark:hover:bg-slate-800/40'
+            : 'bg-white dark:bg-slate-900/20 border-slate-200/40 dark:border-slate-700/25 hover:bg-slate-50/60 dark:hover:bg-slate-800/35'
+          : 'bg-slate-50/40 dark:bg-slate-950/20 border-slate-100/40 dark:border-slate-800/20 opacity-50'
         }
         ${isSelected
-          ? 'ring-2 ring-blue-500/70 ring-offset-1 ring-offset-background dark:ring-offset-slate-900 bg-blue-50/80 dark:bg-blue-900/25 shadow-md shadow-blue-500/10'
+          ? 'ring-2 ring-blue-500/60 ring-offset-1 ring-offset-background dark:ring-offset-slate-900 bg-blue-50/60 dark:bg-blue-900/20'
           : ''
         }
       `}
     >
       <div
         className={`
-          flex items-center justify-center w-5 h-5 md:w-7 md:h-7 flex-none leading-none p-0
+          flex items-center justify-center w-5 h-5 md:w-6 md:h-6 flex-none leading-none p-0
           ${isToday
-            ? 'bg-blue-500 rounded-full'
+            ? 'bg-blue-500 rounded-md'
             : ''
           }
         `}
       >
         <span
           className={`
-            text-[10px] md:text-sm font-medium leading-none
+            text-[10px] md:text-sm font-semibold leading-none
             ${isCurrentMonth
               ? 'text-slate-900 dark:text-foreground'
               : 'text-slate-400 dark:text-slate-600'
@@ -105,10 +105,10 @@ export default function CalendarDayCell({
         {visibleEvents.map((event, index) => (
           <div
             key={`${event.id}-${index}`}
-            className={`flex items-center gap-0.5 text-[10px] sm:text-[11px] leading-tight ${getEventColor(event.type)}`}
+            className={`flex items-center gap-1 text-[10px] sm:text-[11px] leading-tight ${getEventColor(event.type)}`}
             title={event.summary}
           >
-            <div className="flex items-center justify-center w-3 h-3 sm:w-4 sm:h-4 flex-none shrink-0">
+            <div className="flex items-center justify-center w-3 h-3 sm:w-3.5 sm:h-3.5 flex-none shrink-0">
               {getEventIcon(event.type)}
             </div>
             <span className="truncate font-medium min-w-0 flex-1">{event.summary}</span>

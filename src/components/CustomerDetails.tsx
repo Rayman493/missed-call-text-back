@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { User, Mail, Phone, MapPin, Clock } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Clock, MessageSquare, FileText } from 'lucide-react'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { formatPhoneNumber } from '@/lib/utils'
 
@@ -49,10 +49,10 @@ export default function CustomerDetails({ leadData, lead }: CustomerDetailsProps
       {renderField('Customer Name', customerName, <User className="w-4 h-4 text-muted-foreground" />)}
 
       {/* Reason for Calling */}
-      {renderField('Reason for Calling', reasonForCalling)}
+      {renderField('Reason for Calling', reasonForCalling, <MessageSquare className="w-4 h-4 text-muted-foreground" />)}
 
       {/* Details */}
-      {renderField('Details', details)}
+      {renderField('Details', details, <FileText className="w-4 h-4 text-muted-foreground" />)}
 
       {/* Location */}
       {renderField('Location', location, <MapPin className="w-4 h-4 text-muted-foreground" />)}

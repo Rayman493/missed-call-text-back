@@ -1398,41 +1398,41 @@ export default function SchedulePage() {
                       )}
 
                       {/* Compact Status Bar - Desktop: Simplified */}
-                      <div className="hidden md:flex items-center justify-between gap-6 mb-4 p-3 bg-white dark:bg-slate-900/50 border border-border/50 dark:border-slate-700/50 rounded-xl shadow-sm">
+                      <div className="hidden md:flex items-center justify-between gap-4 mb-4 px-3 py-2.5 bg-white dark:bg-slate-900/40 border border-slate-200/40 dark:border-slate-700/25 rounded-lg">
                         {/* Equal-width summary columns */}
                         <div className="grid grid-cols-3 gap-4 flex-1">
                           <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            <p className="text-sm text-muted-foreground">
-                              <span className="font-semibold text-foreground">{getThisMonthCounts().reminders}</span>
-                              <span className="text-muted-foreground/70 ml-1">{getThisMonthCounts().reminders === 1 ? 'reminder' : 'reminders'}</span>
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              <span className="font-semibold text-slate-900 dark:text-foreground">{getThisMonthCounts().reminders}</span>
+                              <span className="text-slate-500/70 dark:text-slate-500 ml-1">{getThisMonthCounts().reminders === 1 ? 'reminder' : 'reminders'}</span>
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                            <p className="text-sm text-muted-foreground">
-                              <span className="font-semibold text-foreground">{getThisMonthCounts().jobs}</span>
-                              <span className="text-muted-foreground/70 ml-1">{getThisMonthCounts().jobs === 1 ? 'job' : 'jobs'}</span>
+                            <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              <span className="font-semibold text-slate-900 dark:text-foreground">{getThisMonthCounts().jobs}</span>
+                              <span className="text-slate-500/70 dark:text-slate-500 ml-1">{getThisMonthCounts().jobs === 1 ? 'job' : 'jobs'}</span>
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                            <p className="text-sm text-muted-foreground">
-                              <span className="font-semibold text-foreground">{getThisMonthCounts().appointments}</span>
-                              <span className="text-muted-foreground/70 ml-1">{getThisMonthCounts().appointments === 1 ? 'appointment' : 'appointments'}</span>
+                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              <span className="font-semibold text-slate-900 dark:text-foreground">{getThisMonthCounts().appointments}</span>
+                              <span className="text-slate-500/70 dark:text-slate-500 ml-1">{getThisMonthCounts().appointments === 1 ? 'appointment' : 'appointments'}</span>
                             </p>
                           </div>
                         </div>
 
                         {/* Calendar Status & Actions - Simplified */}
                         <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-lg border border-emerald-500/20 dark:border-emerald-500/20">
-                            <div className="w-1.5 h-1.5 bg-emerald-600 dark:bg-emerald-400 rounded-full shadow-sm shadow-emerald-400/30"></div>
-                            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-100">Connected</span>
+                          <div className="flex items-center gap-2 px-2.5 py-1 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-md border border-emerald-500/20 dark:border-emerald-500/20">
+                            <div className="w-1.5 h-1.5 bg-emerald-600 dark:bg-emerald-400 rounded-full"></div>
+                            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Connected</span>
                           </div>
                           <button
                             onClick={() => handleAddEvent()}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98] shadow-md"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors active:scale-[0.98]"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             <span>New Appointment</span>
@@ -1441,7 +1441,7 @@ export default function SchedulePage() {
                             <button
                               ref={desktopCalendarOverflowButtonRef}
                               onClick={() => setIsCalendarOverflowOpen(!isCalendarOverflowOpen)}
-                              className="inline-flex items-center justify-center p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="inline-flex items-center justify-center p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <MoreVertical className="w-4 h-4" />
                             </button>
@@ -1504,40 +1504,40 @@ export default function SchedulePage() {
                       
                       {/* Mobile: Compact Metrics - equal-width columns */}
                       <div className="md:hidden mb-3">
-                        <div className="grid grid-cols-3 gap-2 p-2 bg-white dark:bg-slate-900/50 border border-border/50 dark:border-slate-700/50 rounded-lg">
+                        <div className="grid grid-cols-3 gap-2 p-2 bg-white dark:bg-slate-900/40 border border-slate-200/40 dark:border-slate-700/25 rounded-md">
                           <div className="flex items-center justify-center gap-1.5">
                             <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                            <span className="text-xs font-medium text-foreground">{getThisMonthCounts().reminders}</span>
-                            <span className="text-[10px] text-slate-400">{getThisMonthCounts().reminders === 1 ? 'reminder' : 'reminders'}</span>
+                            <span className="text-xs font-medium text-slate-900 dark:text-foreground">{getThisMonthCounts().reminders}</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400">{getThisMonthCounts().reminders === 1 ? 'reminder' : 'reminders'}</span>
                           </div>
                           <div className="flex items-center justify-center gap-1.5">
                             <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
-                            <span className="text-xs font-medium text-foreground">{getThisMonthCounts().jobs}</span>
-                            <span className="text-[10px] text-slate-400">{getThisMonthCounts().jobs === 1 ? 'job' : 'jobs'}</span>
+                            <span className="text-xs font-medium text-slate-900 dark:text-foreground">{getThisMonthCounts().jobs}</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400">{getThisMonthCounts().jobs === 1 ? 'job' : 'jobs'}</span>
                           </div>
                           <div className="flex items-center justify-center gap-1.5">
                             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                            <span className="text-xs font-medium text-foreground">{getThisMonthCounts().appointments}</span>
-                            <span className="text-[10px] text-slate-400">{getThisMonthCounts().appointments === 1 ? 'appointment' : 'appointments'}</span>
+                            <span className="text-xs font-medium text-slate-900 dark:text-foreground">{getThisMonthCounts().appointments}</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400">{getThisMonthCounts().appointments === 1 ? 'appointment' : 'appointments'}</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Calendar Header - mobile only */}
-                      <div className="flex md:hidden items-center justify-between gap-2 mb-3 p-2 bg-white dark:bg-slate-900/40 border border-border/50 dark:border-slate-700/40 rounded-lg">
+                      <div className="flex md:hidden items-center justify-between gap-2 mb-3 p-2 bg-white dark:bg-slate-900/40 border border-slate-200/40 dark:border-slate-700/25 rounded-md">
                         <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-emerald-400 rounded-full shadow-sm shadow-emerald-400/30"></div>
+                          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
                           <div>
-                            <p className="text-xs font-medium text-foreground">Google Calendar</p>
+                            <p className="text-xs font-medium text-slate-900 dark:text-foreground">Google Calendar</p>
                             {lastSyncTime && (
-                              <p className="text-[9px] text-emerald-200/60 font-normal">Connected • {formatTimeAgo(lastSyncTime)}</p>
+                              <p className="text-[9px] text-emerald-600/70 dark:text-emerald-400/70 font-normal">Connected • {formatTimeAgo(lastSyncTime)}</p>
                             )}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleAddEvent()}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98] shadow-md"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors active:scale-[0.98]"
                           >
                             <Plus className="w-3 h-3" />
                             <span>New</span>
@@ -1546,7 +1546,7 @@ export default function SchedulePage() {
                             <button
                               ref={mobileCalendarOverflowButtonRef}
                               onClick={() => setIsCalendarOverflowOpen(!isCalendarOverflowOpen)}
-                              className="inline-flex items-center justify-center p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-300 rounded-lg transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                              className="inline-flex items-center justify-center p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-md transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                             >
                               <MoreVertical className="w-4 h-4" />
                             </button>

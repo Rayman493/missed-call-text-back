@@ -5,7 +5,7 @@ import { Calendar, Briefcase, CheckCircle2, Clock, Plus, AlertCircle, Pencil, Ch
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import type { Job } from '@/components/jobs/JobComposer'
-import { formatTime12Hour } from '@/lib/calendar-date-utils'
+import { formatTime12Hour, formatDate } from '@/lib/time-format'
 
 // Mount/unmount diagnostics
 if (typeof window !== 'undefined') {
@@ -403,28 +403,39 @@ export default function TodayCommandCenter({
       </div>
 
       {/* Today - Compact Daily Summary Banner */}
-      <div className="bg-blue-50/30 dark:bg-blue-950/10 border-l-4 border-blue-400 dark:border-blue-500 rounded-r-md">
-        <div className="flex items-center gap-2 px-3 py-2">
-          <Clock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-          <h3 className="text-xs font-semibold text-blue-900 dark:text-blue-100 flex-shrink-0">
-            Today
-          </h3>
+      <div className="bg-blue-50/40 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-800/30 border-l-4 border-l-blue-400 dark:border-l-blue-500 rounded-lg">
+        {/* Header with Today label and current date */}
+        <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-blue-200/30 dark:border-blue-800/20">
+          <div className="flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+            <div>
+              <h3 className="text-xs font-semibold text-blue-900 dark:text-blue-100 leading-tight">
+                Today
+              </h3>
+              <p className="text-[10px] text-blue-600/70 dark:text-blue-300/60 font-normal leading-tight">
+                {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </p>
+            </div>
+          </div>
         </div>
 
         {isLoadingTasks ? (
-          <div className="px-3 pb-2 space-y-1.5">
+          <div className="px-3.5 pb-2.5 space-y-1.5">
             {[1, 2].map(i => (
               <div key={i} className="h-8 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
             ))}
           </div>
         ) : sortedWorkItems.length === 0 ? (
-          <div className="px-3 pb-2">
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Nothing scheduled today
+          <div className="px-3.5 pb-2.5 py-4">
+            <p className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-0.5">
+              Your day is clear
+            </p>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500">
+              Nothing scheduled for today.
             </p>
           </div>
         ) : (
-          <div className="px-3 pb-2 space-y-0.5">
+          <div className="px-3.5 pb-2.5 space-y-0.5">
             {sortedWorkItems.map(item => (
               <div
                 key={item.id}

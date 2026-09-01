@@ -35,11 +35,10 @@ export default function StatCard({
   // Unified card foundation
   const baseClasses = `
     relative overflow-hidden
-    border border-border/50
-    bg-white dark:bg-slate-800/80
-    shadow-sm
-    rounded-xl
-    p-4 sm:p-5
+    border border-slate-200/60 dark:border-slate-700/40
+    bg-white dark:bg-slate-800/60
+    rounded-lg
+    p-3 sm:p-4
     h-full
   `
 
@@ -48,8 +47,8 @@ export default function StatCard({
     cursor-pointer
     transition-all duration-200
     hover:-translate-y-0.5
-    hover:shadow-md
-    hover:border-blue-400/40 dark:hover:border-blue-400/30
+    hover:shadow-sm
+    hover:border-slate-300/80 dark:hover:border-slate-600/60
     ${href ? 'group' : ''}
   ` : ''
 
@@ -60,28 +59,28 @@ export default function StatCard({
     bg-primary/5
   ` : ''
 
-  // Icon color gradients
-  const iconGradients = {
-    amber: 'from-amber-500 to-amber-600/30 dark:from-amber-500/30 dark:to-amber-600/30 border-amber-200/50 dark:border-amber-800/50',
-    blue: 'from-blue-500 to-blue-600/30 dark:from-blue-500/30 dark:to-blue-600/30 border-blue-200/50 dark:border-blue-800/50',
-    green: 'from-green-500 to-green-600/30 dark:from-green-500/30 dark:to-green-600/30 border-green-200/50 dark:border-green-800/50',
-    purple: 'from-purple-500 to-purple-600/30 dark:from-purple-500/30 dark:to-purple-600/30 border-purple-200/50 dark:border-purple-800/50',
-    slate: 'from-slate-500 to-slate-600/30 dark:from-slate-500/30 dark:to-slate-600/30 border-slate-200/50 dark:border-slate-800/50',
-    orange: 'from-orange-500 to-orange-600/30 dark:from-orange-500/30 dark:to-orange-600/30 border-orange-200/50 dark:border-orange-800/50'
+  // Icon container backgrounds - more restrained
+  const iconBackgrounds = {
+    amber: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200/40 dark:border-amber-800/30',
+    blue: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200/40 dark:border-blue-800/30',
+    green: 'bg-green-50 dark:bg-green-950/30 border-green-200/40 dark:border-green-800/30',
+    purple: 'bg-purple-50 dark:bg-purple-950/30 border-purple-200/40 dark:border-purple-800/30',
+    slate: 'bg-slate-50 dark:bg-slate-950/30 border-slate-200/40 dark:border-slate-800/30',
+    orange: 'bg-orange-50 dark:bg-orange-950/30 border-orange-200/40 dark:border-orange-800/30'
   }
 
-  // Icon text colors
+  // Icon text colors - slightly more restrained
   const iconTextColors = {
-    amber: 'text-amber-600 dark:text-amber-400',
-    blue: 'text-blue-600 dark:text-blue-400',
-    green: 'text-green-600 dark:text-green-400',
-    purple: 'text-purple-600 dark:text-purple-400',
-    slate: 'text-slate-600 dark:text-slate-400',
-    orange: 'text-orange-600 dark:text-orange-400'
+    amber: 'text-amber-700 dark:text-amber-300',
+    blue: 'text-blue-700 dark:text-blue-300',
+    green: 'text-green-700 dark:text-green-300',
+    purple: 'text-purple-700 dark:text-purple-300',
+    slate: 'text-slate-700 dark:text-slate-300',
+    orange: 'text-orange-700 dark:text-orange-300'
   }
 
   const cardContent = (
-    <div 
+    <div
       className={`${baseClasses} ${interactiveClasses} ${selectedClasses} ${className}`}
       onClick={isInteractive && onClick ? onClick : undefined}
       role={isInteractive && onClick ? 'button' : undefined}
@@ -89,38 +88,35 @@ export default function StatCard({
       aria-pressed={isInteractive && onClick ? isSelected : undefined}
       aria-label={ariaLabel}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
-      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-blue-500/12 blur-2xl" />
-      <div className="pointer-events-none absolute -left-10 bottom-0 h-20 w-20 rounded-full bg-cyan-500/5 blur-2xl" />
       {/* Icon and Label Header */}
       {(iconNode || icon || label) && (
-        <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-2.5">
+        <div className="flex items-center gap-2 mb-2">
           {(iconNode || icon) && (
             <span className={`
-              w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 
-              bg-gradient-to-br ${iconGradients[iconColor]} 
-              rounded-lg sm:rounded-xl 
-              flex items-center justify-center 
-              text-sm sm:text-lg md:text-xl 
-              shadow-[0_10px_24px_rgba(2,6,23,0.25)] border ring-1 ring-white/5
+              w-7 h-7
+              ${iconBackgrounds[iconColor]}
+              border
+              rounded-md
+              flex items-center justify-center
+              text-base
               ${isInteractive && href ? '' : ''}
             `}>
               {iconNode || icon}
             </span>
           )}
-          <h3 className="text-[10px] sm:text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-[0.16em] leading-tight">
+          <h3 className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-[0.12em] leading-none">
             {label}
           </h3>
         </div>
       )}
 
       {/* Primary Metric */}
-      <div className="mb-1.5 sm:mb-1.5">
+      <div className="mb-1">
         <p className={`
-          text-2xl sm:text-3xl md:text-4xl lg:text-5xl 
-          font-black 
-          ${iconTextColors[iconColor]} 
-          tracking-tight 
+          text-2xl sm:text-3xl
+          font-bold
+          ${iconTextColors[iconColor]}
+          tracking-tight
           leading-none
         `}>
           {value}
@@ -129,7 +125,7 @@ export default function StatCard({
 
       {/* Description */}
       {description && (
-        <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400/90 font-medium leading-snug">
+        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal leading-snug">
           {description}
         </p>
       )}
