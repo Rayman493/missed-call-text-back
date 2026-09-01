@@ -157,6 +157,30 @@ export function isSettleCallbackAuthorized(
   return { authorized: true };
 }
 
+// Centralized prompt selector for Simple Mode - field-aware prompt variant selection
+// This ensures consistent prompt selection across stage entry and same-stage reprompts
+function selectSimpleModePromptKey(stage: string, intakeData: IntakeData, repromptContext?: { needsServiceReprompt?: boolean; needsNameReprompt?: boolean }): string {
+  // For ask_name_reason, select variant based on field satisfaction
+  if (stage === 'ask_name_reason') {
+    const hasValidCustomerName = !!intakeData.customerName && intakeData.customerName.trim().length > 0;
+    const hasValidServiceRequested = !!intakeData.serviceRequested && intakeData.serviceRequested.trim().length > 0;
+
+    if (hasValidCustomerName && !hasValidServiceRequested) {
+      // Name present, service missing → service-only prompt
+      return 'ask_name_reason_service_only';
+    } else if (!hasValidCustomerName && hasValidServiceRequested) {
+      // Service present, name missing → name-only prompt
+      return 'ask_name_reason_name_only';
+    }
+    // Both missing or both present → use standard combined prompt
+    // (both present case should advance past this stage, but this is the fallback)
+    return 'ask_name_reason';
+  }
+
+  // For all other stages, return the stage name as-is
+  return stage;
+}
+
 // Minimal shared immediate-advance helper for multi-field capture in Simple Mode
 // When the caller says both their name and their reason during ask_name, skip ask_request
 // and advance directly to next stage. Returns true if it advanced and dispatched a prompt.
@@ -164,7 +188,7 @@ export function handleImmediateAdvanceIfMultiFieldCaptured(
   state: any,
   originatingStage: string,
   deps: {
-    sendPrompt: (stage: string) => void;
+    sendPrompt: (stage: string, promptKeyOverride?: string) => Promise<boolean>;
     getNextIntakeStage: (stage: string) => string;
     clearPendingAnswerState: (state: any, reason: string) => void;
   }
@@ -189,7 +213,14 @@ export function handleImmediateAdvanceIfMultiFieldCaptured(
     console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
     console.log('[STAGE TRANSITION] =========================================');
 
-    deps.sendPrompt(state.currentStage);
+    // Fire-and-forget: dispatch prompt asynchronously
+    deps.sendPrompt(state.currentStage).catch((error) => {
+      console.log('[MULTI-FIELD ADVANCE ERROR] =========================================');
+      console.log('[MULTI-FIELD ADVANCE ERROR] event: prompt_dispatch_failed');
+      console.log('[MULTI-FIELD ADVANCE ERROR] error:', error);
+      console.log('[MULTI-FIELD ADVANCE ERROR] Timestamp:', new Date().toISOString());
+      console.log('[MULTI-FIELD ADVANCE ERROR] =========================================');
+    });
     return true;
   }
   return false;
@@ -423,14 +454,15 @@ export async function finalizeIncompleteOnWebsocketCloseSimple(
 // - pending-answer cleanup + durable acceptance flag reset
 // - optional details timing instrumentation
 // - next-stage resolution via getNextIntakeStage with service-location resolution
-// - transition logging and prompt dispatch
+// - field-aware prompt variant selection
+// - transition logging and prompt dispatch (including same-stage reprompts)
 export function finalizeSimpleModeSettledAnswer(
   state: any,
   finalStage: string,
   fieldName: string | null,
   trigger: string,
   deps: {
-    sendPrompt: (stage: string) => void;
+    sendPrompt: (stage: string, promptKeyOverride?: string) => Promise<boolean>;
     clearSilentTimeout: (reason?: string) => void;
     clearStageTimeout: () => void;
     getNextIntakeStage: (stage: string) => string;
@@ -454,14 +486,30 @@ export function finalizeSimpleModeSettledAnswer(
   resolution.then(() => {
     // Use field-aware resolver for Simple Mode stage advancement
     const nextStage = resolveNextSimpleModeStage(state.intakeData, state.serviceLocationType);
-    if (nextStage && nextStage !== finalStage) {
+
+    // Check if this is a same-stage reprompt (identity-only retry, unusable answer, etc.)
+    // The flag controls WHETHER to reprompt, not WHICH prompt variant to use
+    const isSameStageReprompt = nextStage === finalStage && (state.needsServiceReprompt || state.needsNameReprompt);
+
+    // Dispatch prompt if stage changes OR if same-stage reprompt is needed
+    if (nextStage && (nextStage !== finalStage || isSameStageReprompt)) {
       const previousStage = state.currentStage;
       const turnIdBefore = state.currentTurnId;
       const pendingAnswerStageBefore = state.pendingAnswerStage;
 
-      state.currentStage = nextStage;
+      // Only update currentStage if actually changing stages
+      if (nextStage !== finalStage) {
+        state.currentStage = nextStage;
+      }
       const turnIdAfter = state.currentTurnId;
       const pendingAnswerStageAfter = state.pendingAnswerStage;
+
+      // Use centralized prompt selector for field-aware variant selection
+      // Prompt variant is derived from field state, not from reprompt flags
+      const selectedPromptKey = selectSimpleModePromptKey(nextStage, state.intakeData, {
+        needsServiceReprompt: state.needsServiceReprompt,
+        needsNameReprompt: state.needsNameReprompt
+      });
 
       console.log('[STAGE TRANSITION] =========================================');
       console.log('[STAGE TRANSITION] callSid:', state.callSid);
@@ -469,7 +517,9 @@ export function finalizeSimpleModeSettledAnswer(
       console.log('[STAGE TRANSITION] toStage:', nextStage);
       console.log('[STAGE TRANSITION] trigger:', trigger);
       console.log('[STAGE TRANSITION] extractedFields:', fieldName);
-      console.log('[STAGE TRANSITION] promptKey:', nextStage);
+      console.log('[STAGE TRANSITION] logicalStage:', nextStage);
+      console.log('[STAGE TRANSITION] selectedPromptKey:', selectedPromptKey);
+      console.log('[STAGE TRANSITION] sameStageReprompt:', isSameStageReprompt);
       console.log('[STAGE TRANSITION] transitionCommitted:', true);
       console.log('[STAGE TRANSITION] pendingAnswerStageBefore:', pendingAnswerStageBefore);
       console.log('[STAGE TRANSITION] pendingAnswerStageAfter:', pendingAnswerStageAfter);
@@ -479,32 +529,72 @@ export function finalizeSimpleModeSettledAnswer(
       console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
       console.log('[STAGE TRANSITION] =========================================');
 
-      console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
+      console.log('[ANSWER FINALIZATION] stageAdvanced:', nextStage !== finalStage);
       console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
+      console.log('[ANSWER FINALIZATION] sameStageReprompt:', isSameStageReprompt);
 
       console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
       console.log('[ANSWER ACCEPTANCE DURABLE] event: answer_accepted_flag_cleared');
       console.log('[ANSWER ACCEPTANCE DURABLE] callSid:', state.callSid);
       console.log('[ANSWER ACCEPTANCE DURABLE] finalStage:', finalStage);
       console.log('[ANSWER ACCEPTANCE DURABLE] nextStage:', nextStage);
-      console.log('[ANSWER ACCEPTANCE DURABLE] reason: stage_advanced');
+      console.log('[ANSWER ACCEPTANCE DURABLE] reason:', isSameStageReprompt ? 'same_stage_reprompt' : 'stage_advanced');
       console.log('[ANSWER ACCEPTANCE DURABLE] timestamp:', new Date().toISOString());
       console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
 
-      deps.sendPrompt(state.currentStage);
+      // Pass selected prompt key as override to ensure correct variant is dispatched
+      // Clear reprompt flags ONLY when prompt dispatch actually succeeds
+      deps.sendPrompt(state.currentStage, selectedPromptKey).then((dispatched) => {
+        if (dispatched) {
+          // Only clear flags after successful dispatch to prevent silent loss of reprompt intent
+          state.needsServiceReprompt = false;
+          state.needsNameReprompt = false;
+        } else {
+          // Dispatch was suppressed - preserve reprompt intent for next turn
+          console.log('[REPROMPT FLAG PRESERVATION] =========================================');
+          console.log('[REPROMPT FLAG PRESERVATION] event: flags_preserved_after_suppressed_dispatch');
+          console.log('[REPROMPT FLAG PRESERVATION] reason: prompt_suppressed_before_audio_delivery');
+          console.log('[REPROMPT FLAG PRESERVATION] needsServiceReprompt:', state.needsServiceReprompt);
+          console.log('[REPROMPT FLAG PRESERVATION] needsNameReprompt:', state.needsNameReprompt);
+          console.log('[REPROMPT FLAG PRESERVATION] Timestamp:', new Date().toISOString());
+          console.log('[REPROMPT FLAG PRESERVATION] =========================================');
+        }
+      }).catch((error) => {
+        // If dispatch fails, clear flags to prevent sticky behavior
+        // The next turn will re-evaluate field state and may re-trigger reprompt if needed
+        console.log('[REPROMPT FLAG CLEARANCE] =========================================');
+        console.log('[REPROMPT FLAG CLEARANCE] event: flags_cleared_after_dispatch_error');
+        console.log('[REPROMPT FLAG CLEARANCE] error:', error);
+        console.log('[REPROMPT FLAG CLEARANCE] reason: dispatch_failed_preventing_sticky_flags');
+        console.log('[REPROMPT FLAG CLEARANCE] Timestamp:', new Date().toISOString());
+        console.log('[REPROMPT FLAG CLEARANCE] =========================================');
+        state.needsServiceReprompt = false;
+        state.needsNameReprompt = false;
+      });
     }
   }).catch(() => {
     // On resolution error, proceed with current state value (fallback onsite)
     // Use field-aware resolver for Simple Mode stage advancement
     const nextStage = resolveNextSimpleModeStage(state.intakeData, state.serviceLocationType);
-    if (nextStage && nextStage !== finalStage) {
+    const isSameStageReprompt = nextStage === finalStage && (state.needsServiceReprompt || state.needsNameReprompt);
+
+    if (nextStage && (nextStage !== finalStage || isSameStageReprompt)) {
       const previousStage = state.currentStage;
       const turnIdBefore = state.currentTurnId;
       const pendingAnswerStageBefore = state.pendingAnswerStage;
 
-      state.currentStage = nextStage;
+      // Only update currentStage if actually changing stages
+      if (nextStage !== finalStage) {
+        state.currentStage = nextStage;
+      }
       const turnIdAfter = state.currentTurnId;
       const pendingAnswerStageAfter = state.pendingAnswerStage;
+
+      // Use centralized prompt selector for field-aware variant selection
+      const selectedPromptKey = selectSimpleModePromptKey(nextStage, state.intakeData, {
+        needsServiceReprompt: state.needsServiceReprompt,
+        needsNameReprompt: state.needsNameReprompt
+      });
 
       console.log('[STAGE TRANSITION] =========================================');
       console.log('[STAGE TRANSITION] callSid:', state.callSid);
@@ -512,7 +602,9 @@ export function finalizeSimpleModeSettledAnswer(
       console.log('[STAGE TRANSITION] toStage:', nextStage);
       console.log('[STAGE TRANSITION] trigger:', trigger + '_error_fallback');
       console.log('[STAGE TRANSITION] extractedFields:', fieldName);
-      console.log('[STAGE TRANSITION] promptKey:', nextStage);
+      console.log('[STAGE TRANSITION] logicalStage:', nextStage);
+      console.log('[STAGE TRANSITION] selectedPromptKey:', selectedPromptKey);
+      console.log('[STAGE TRANSITION] sameStageReprompt:', isSameStageReprompt);
       console.log('[STAGE TRANSITION] transitionCommitted:', true);
       console.log('[STAGE TRANSITION] pendingAnswerStageBefore:', pendingAnswerStageBefore);
       console.log('[STAGE TRANSITION] pendingAnswerStageAfter:', pendingAnswerStageAfter);
@@ -522,9 +614,38 @@ export function finalizeSimpleModeSettledAnswer(
       console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
       console.log('[STAGE TRANSITION] =========================================');
 
-      console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
+      console.log('[ANSWER FINALIZATION] stageAdvanced:', nextStage !== finalStage);
       console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
-      deps.sendPrompt(state.currentStage);
+      console.log('[ANSWER FINALIZATION] sameStageReprompt:', isSameStageReprompt);
+
+      // Pass selected prompt key as override to ensure correct variant is dispatched
+      // Clear reprompt flags ONLY when prompt dispatch actually succeeds
+      deps.sendPrompt(state.currentStage, selectedPromptKey).then((dispatched) => {
+        if (dispatched) {
+          // Only clear flags after successful dispatch to prevent silent loss of reprompt intent
+          state.needsServiceReprompt = false;
+          state.needsNameReprompt = false;
+        } else {
+          // Dispatch was suppressed - preserve reprompt intent for next turn
+          console.log('[REPROMPT FLAG PRESERVATION] =========================================');
+          console.log('[REPROMPT FLAG PRESERVATION] event: flags_preserved_after_suppressed_dispatch');
+          console.log('[REPROMPT FLAG PRESERVATION] reason: prompt_suppressed_before_audio_delivery');
+          console.log('[REPROMPT FLAG PRESERVATION] needsServiceReprompt:', state.needsServiceReprompt);
+          console.log('[REPROMPT FLAG PRESERVATION] needsNameReprompt:', state.needsNameReprompt);
+          console.log('[REPROMPT FLAG PRESERVATION] Timestamp:', new Date().toISOString());
+          console.log('[REPROMPT FLAG PRESERVATION] =========================================');
+        }
+      }).catch((error) => {
+        // If dispatch fails, clear flags to prevent sticky behavior
+        console.log('[REPROMPT FLAG CLEARANCE] =========================================');
+        console.log('[REPROMPT FLAG CLEARANCE] event: flags_cleared_after_dispatch_error');
+        console.log('[REPROMPT FLAG CLEARANCE] error:', error);
+        console.log('[REPROMPT FLAG CLEARANCE] reason: dispatch_failed_preventing_sticky_flags');
+        console.log('[REPROMPT FLAG CLEARANCE] Timestamp:', new Date().toISOString());
+        console.log('[REPROMPT FLAG CLEARANCE] =========================================');
+        state.needsServiceReprompt = false;
+        state.needsNameReprompt = false;
+      });
     }
   });
 }
@@ -10093,7 +10214,8 @@ Reply to this message if you'd like to update or add any information.
   };
 
   // Helper to send prompt using cached PCMU audio or Realtime response.create
-  const sendPrompt = async (stage: string, promptKeyOverride?: string, source?: string, turnId?: number, deliveryAttempt?: number) => {
+  // Returns true if prompt audio was dispatched, false if suppressed before audio delivery
+  const sendPrompt = async (stage: string, promptKeyOverride?: string, source?: string, turnId?: number, deliveryAttempt?: number): Promise<boolean> => {
     const authorizedAt = Date.now();
     state.turnTiming.promptScheduledAt = authorizedAt;
 
@@ -10173,14 +10295,14 @@ Reply to this message if you'd like to update or add any information.
       console.log('[PROMPT IDEMPOTENCY] reason: stale_turn_id');
       console.log('[PROMPT IDEMPOTENCY] Timestamp:', new Date().toISOString());
       console.log('[PROMPT IDEMPOTENCY] =========================================');
-      return;
+      return false;
     }
 
     const promptKey = promptKeyOverride || stage;
     const prompt = prompts[promptKey];
     if (!prompt) {
       console.log('[SIMPLE MODE] No prompt for stage:', stage, 'promptKey:', promptKey);
-      return;
+      return false;
     }
 
     // Idempotency guard: prevent duplicate sends for the same logical delivery
@@ -10227,7 +10349,7 @@ Reply to this message if you'd like to update or add any information.
       console.log('[PROMPT IDEMPOTENCY] reason: duplicate_delivery');
       console.log('[PROMPT IDEMPOTENCY] Timestamp:', new Date().toISOString());
       console.log('[PROMPT IDEMPOTENCY] =========================================');
-      return;
+      return false;
     }
 
     // Mark this delivery as sent
@@ -10282,7 +10404,7 @@ Reply to this message if you'd like to update or add any information.
       console.log('[PROMPT STALENESS GUARD] action: blocked');
       console.log('[PROMPT STALENESS GUARD] timestamp:', new Date().toISOString());
       console.log('[PROMPT STALENESS GUARD] =========================================');
-      return;
+      return false;
     }
 
     // Log reprompt-specific information
@@ -10389,7 +10511,7 @@ Reply to this message if you'd like to update or add any information.
         // Reset assistantSpeaking to allow the conversation to continue
         state.assistantSpeaking = false;
         state.promptAudioStartedAt = 0;
-        return;
+        return false;
       }
     }
 
@@ -10452,7 +10574,7 @@ Reply to this message if you'd like to update or add any information.
           console.log('[PROMPT PRE-SEND ABORT] aiSessionState is FAILED, aborting cached audio send');
           state.assistantSpeaking = false;
           state.promptAudioStartedAt = 0;
-          return;
+          return false;
         }
 
         // Check if Twilio WebSocket is still open before sending audio
@@ -10479,7 +10601,7 @@ Reply to this message if you'd like to update or add any information.
             state.businessName,
             state.forwardedFrom
           );
-          return;
+          return false;
         }
 
         for (let i = 0; i < audioBuffer.length; i += chunkSize) {
@@ -10557,7 +10679,7 @@ Reply to this message if you'd like to update or add any information.
               // Reset assistantSpeaking to allow the conversation to continue
               state.assistantSpeaking = false;
               state.promptAudioStartedAt = 0;
-              return;
+              return false;
             }
 
             console.log('[PROMPT PRE-SEND VALIDATION] allowed:', true);
@@ -10622,7 +10744,7 @@ Reply to this message if you'd like to update or add any information.
         if (state.cachedPlaybackInterrupted || String(state.aiSessionTracker?.currentState) === 'FAILED') {
           console.log('[PROMPT SEND ABORT] Playback interrupted or session FAILED, skipping success lifecycle');
           state.assistantSpeaking = false;
-          return;
+          return false;
         }
 
         // Add trailing silence for final prompt to prevent cutoff
@@ -10630,7 +10752,7 @@ Reply to this message if you'd like to update or add any information.
           if (String(state.aiSessionTracker?.currentState) === 'FAILED') {
             console.log('[TRAILING SILENCE SKIPPED] aiSessionState FAILED - aborting');
             state.assistantSpeaking = false;
-            return;
+            return false;
           }
           const silenceDurationMs = 500; // 500ms of trailing silence
           const silenceChunks = Math.ceil(silenceDurationMs / 20);
@@ -10692,7 +10814,7 @@ Reply to this message if you'd like to update or add any information.
         };
         if (String(state.aiSessionTracker?.currentState) === 'FAILED') {
           console.log('[MARK SEND SKIPPED] aiSessionState FAILED - skipping mark after abort');
-          return;
+          return false;
         }
         ws.send(JSON.stringify(markMessage));
         console.log('[SIMPLE MODE] =========================================');
@@ -10795,6 +10917,8 @@ Reply to this message if you'd like to update or add any information.
           }, 2000);
         }
 
+        return true;
+
       } catch (error) {
         console.log('[CACHED_AUDIO_ERROR] =========================================');
         console.log('[CACHED_AUDIO_ERROR] event: cached_audio_send_error');
@@ -10822,6 +10946,7 @@ Reply to this message if you'd like to update or add any information.
           state.businessName,
           state.forwardedFrom
         );
+        return false;
       }
 
     } else {
@@ -10857,7 +10982,7 @@ Reply to this message if you'd like to update or add any information.
         state.businessName,
         state.forwardedFrom
       );
-      return;
+      return false;
     }
   };
 

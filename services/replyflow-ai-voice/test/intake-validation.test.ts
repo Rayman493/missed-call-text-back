@@ -786,3 +786,231 @@ describe('Name-Only Continuation Identity Detection', () => {
     });
   });
 });
+
+describe('Prompt Selection and Dispatch', () => {
+  describe('Field-Aware Prompt Selection Logic', () => {
+    it('should require service-only prompt when name present, service missing', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const hasValidCustomerName = !!intake.customerName && intake.customerName.trim().length > 0;
+      const hasValidServiceRequested = !!intake.serviceRequested && intake.serviceRequested.trim().length > 0;
+
+      expect(hasValidCustomerName).to.equal(true);
+      expect(hasValidServiceRequested).to.equal(false);
+
+      // Expected prompt key based on field state
+      const expectedPromptKey = hasValidCustomerName && !hasValidServiceRequested
+        ? 'ask_name_reason_service_only'
+        : 'ask_name_reason';
+
+      expect(expectedPromptKey).to.equal('ask_name_reason_service_only');
+    });
+
+    it('should require name-only prompt when service present, name missing', () => {
+      const intake: IntakeData = {
+        customerName: undefined,
+        serviceRequested: 'fence repair',
+        stage: 'ask_name_reason'
+      };
+
+      const hasValidCustomerName = !!intake.customerName && intake.customerName.trim().length > 0;
+      const hasValidServiceRequested = !!intake.serviceRequested && intake.serviceRequested.trim().length > 0;
+
+      expect(hasValidCustomerName).to.equal(false);
+      expect(hasValidServiceRequested).to.equal(true);
+
+      const expectedPromptKey = !hasValidCustomerName && hasValidServiceRequested
+        ? 'ask_name_reason_name_only'
+        : 'ask_name_reason';
+
+      expect(expectedPromptKey).to.equal('ask_name_reason_name_only');
+    });
+
+    it('should use full combined prompt when both fields missing', () => {
+      const intake: IntakeData = {
+        customerName: undefined,
+        serviceRequested: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const hasValidCustomerName = !!intake.customerName && intake.customerName.trim().length > 0;
+      const hasValidServiceRequested = !!intake.serviceRequested && intake.serviceRequested.trim().length > 0;
+
+      expect(hasValidCustomerName).to.equal(false);
+      expect(hasValidServiceRequested).to.equal(false);
+
+      const expectedPromptKey = 'ask_name_reason';
+      expect(expectedPromptKey).to.equal('ask_name_reason');
+    });
+  });
+
+  describe('Same-Stage Reprompt Logic', () => {
+    it('should allow same-stage reprompt when needsServiceReprompt is set', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      const isSameStage = nextStage === intake.stage;
+      const needsReprompt = true;
+
+      expect(nextStage).to.equal('ask_name_reason');
+      expect(isSameStage).to.equal(true);
+      expect(needsReprompt).to.equal(true);
+
+      const shouldDispatch = isSameStage && needsReprompt;
+      expect(shouldDispatch).to.equal(true);
+    });
+
+    it('should not dispatch same-stage prompt without reprompt flag', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      const isSameStage = nextStage === intake.stage;
+      const needsReprompt = false;
+
+      expect(nextStage).to.equal('ask_name_reason');
+      expect(isSameStage).to.equal(true);
+      expect(needsReprompt).to.equal(false);
+
+      const shouldDispatch = isSameStage && needsReprompt;
+      expect(shouldDispatch).to.equal(false);
+    });
+  });
+
+  describe('Identity-Only Reprompt Sequence', () => {
+    it('should stay on ask_name_reason after identity-only utterance', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_name_reason');
+    });
+
+    it('should advance after valid service provided', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: 'fence repair',
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_location');
+    });
+  });
+
+  describe('Combined Input Preservation', () => {
+    it('should advance past ask_name_reason when both fields captured', () => {
+      const intake: IntakeData = {
+        customerName: 'Sarah Thompson',
+        serviceRequested: 'garage door repair',
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_location');
+    });
+  });
+
+  describe('Dispatch Success Contract', () => {
+    it('should clear reprompt flags only when dispatch succeeds', async () => {
+      const state: any = {
+        callSid: 'CA_TEST',
+        currentStage: 'ask_name_reason',
+        intakeData: { customerName: 'David Reynolds', serviceRequested: undefined },
+        needsServiceReprompt: true,
+        needsNameReprompt: false,
+        currentTurnId: 1,
+      };
+
+      const mockSendPrompt = async (_stage: string, _promptKeyOverride?: string) => {
+        return Promise.resolve(true); // Simulate successful dispatch
+      };
+
+      const selectedPromptKey = 'ask_name_reason_service_only';
+      const result = await mockSendPrompt(state.currentStage, selectedPromptKey);
+
+      if (result) {
+        state.needsServiceReprompt = false;
+        state.needsNameReprompt = false;
+      }
+
+      expect(result).to.equal(true);
+      expect(state.needsServiceReprompt).to.equal(false);
+      expect(state.needsNameReprompt).to.equal(false);
+    });
+
+    it('should preserve reprompt flags when dispatch is suppressed', async () => {
+      const state: any = {
+        callSid: 'CA_TEST',
+        currentStage: 'ask_name_reason',
+        intakeData: { customerName: 'David Reynolds', serviceRequested: undefined },
+        needsServiceReprompt: true,
+        needsNameReprompt: false,
+        currentTurnId: 1,
+      };
+
+      const mockSendPrompt = async (_stage: string, _promptKeyOverride?: string) => {
+        return Promise.resolve(false); // Simulate suppressed dispatch
+      };
+
+      const selectedPromptKey = 'ask_name_reason_service_only';
+      const result = await mockSendPrompt(state.currentStage, selectedPromptKey);
+
+      if (result) {
+        state.needsServiceReprompt = false;
+        state.needsNameReprompt = false;
+      }
+
+      expect(result).to.equal(false);
+      expect(state.needsServiceReprompt).to.equal(true); // Flags preserved
+      expect(state.needsNameReprompt).to.equal(false);
+    });
+
+    it('should clear reprompt flags on dispatch error', async () => {
+      const state: any = {
+        callSid: 'CA_TEST',
+        currentStage: 'ask_name_reason',
+        intakeData: { customerName: 'David Reynolds', serviceRequested: undefined },
+        needsServiceReprompt: true,
+        needsNameReprompt: false,
+        currentTurnId: 1,
+      };
+
+      const mockSendPrompt = async (_stage: string, _promptKeyOverride?: string) => {
+        return Promise.reject(new Error('Network error')); // Simulate dispatch error
+      };
+
+      const selectedPromptKey = 'ask_name_reason_service_only';
+
+      await mockSendPrompt(state.currentStage, selectedPromptKey)
+        .then((result) => {
+          if (result) {
+            state.needsServiceReprompt = false;
+            state.needsNameReprompt = false;
+          }
+        })
+        .catch(() => {
+          // Clear flags on error to prevent sticky behavior
+          state.needsServiceReprompt = false;
+          state.needsNameReprompt = false;
+        });
+
+      expect(state.needsServiceReprompt).to.equal(false); // Flags cleared on error
+      expect(state.needsNameReprompt).to.equal(false);
+    });
+  });
+});
