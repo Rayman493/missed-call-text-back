@@ -194,6 +194,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   // Payment collection state
   private com.stripe.stripeterminal.external.callable.Cancelable paymentCancelable = null;
   private volatile boolean collectingPayment = false;
+  private volatile boolean canceling = false; // Block new collects until cancellation completes
+  private String paymentOperationId = null; // Operation token to prevent cross-attempt callback corruption
 
   // Request-scoped token request tracking to handle concurrent requests safely
   private static class PendingTokenRequest {
@@ -1306,11 +1308,11 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       return;
     }
 
-    // Prevent duplicate payment collection
-    if (collectingPayment) {
-      Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=payment_already_in_progress");
+    // Prevent duplicate payment collection and block while cancellation is in progress
+    if (collectingPayment || canceling) {
+      Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=" + (collectingPayment ? "payment_already_in_progress" : "cancellation_in_progress"));
       connectOperationId = null;
-      call.reject("payment-already-in-progress");
+      call.reject(collectingPayment ? "payment-already-in-progress" : "cancellation-in-progress");
       return;
     }
 
@@ -1333,6 +1335,10 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     setOperationState(OperationState.RETRIEVING_PAYMENT_INTENT, "collect_payment_start");
     notifyListeners("statusChanged", new JSObject().put("status", status));
     notifyListeners("paymentStatusChanged", new JSObject().put("status", "creating_payment"));
+
+    // Set operation token to prevent old cancel callbacks from clearing new attempt state
+    paymentOperationId = collectCorrelationId;
+    Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_id_set operationId=" + paymentOperationId);
 
     Log.d(TAG, "[PAYMENT_TRACE] stage=retrieve_payment_intent_start");
     Log.d(TAG, "[TAP_SESSION_TRACE] stage=retrieve_start ts=" + System.currentTimeMillis());
@@ -1359,7 +1365,9 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           Log.d(TAG, "[TAP_SESSION_TRACE] stage=retrieve_failure code=" + e.getErrorCode() + " ts=" + System.currentTimeMillis());
           collectingPayment = false;
           setKeepScreenOn(false);
+          paymentOperationId = null; // Clear operation token on completion
           status = "error";
+          paymentOperationId = null; // Clear operation token on failure
           setOperationState(OperationState.FAILED, "retrieve_failure");
 
           JSObject err = createStructuredError("retrieve_payment_intent", e);
@@ -1519,7 +1527,9 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           Log.d(TAG, "[TAP_SESSION_TRACE] stage=confirm_success payment_intent_id=" + confirmedIntent.getId() + " status=" + confirmedIntent.getStatus() + " ts=" + System.currentTimeMillis());
           collectingPayment = false;
           setKeepScreenOn(false);
+          paymentOperationId = null; // Clear operation token on completion
           status = "ready";
+          paymentOperationId = null; // Clear operation token on completion
           JSObject c = new JSObject(); c.put("paymentIntentId", confirmedIntent.getId()); emitDiag("confirm_payment_intent_completed", "confirm_payment", correlationId, c);
 
           // Only emit success if PaymentIntent is actually succeeded
@@ -1558,6 +1568,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           Log.d(TAG, "[TAP_SESSION_TRACE] stage=confirm_failure code=" + e.getErrorCode() + " ts=" + System.currentTimeMillis());
           collectingPayment = false;
           setKeepScreenOn(false);
+          paymentOperationId = null; // Clear operation token on completion
           status = "error";
           setOperationState(OperationState.FAILED, "confirm_failure");
 
@@ -1578,51 +1589,96 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   @PluginMethod
   public void cancel(PluginCall call) {
     final String cancelCorrelationId = call.getString("diagnosticAttemptId");
-    Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_canceled collecting=" + collectingPayment + " discovering=" + discovering + " operation_state=" + operationState);
+    Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_canceled collecting=" + collectingPayment + " canceling=" + canceling + " operation_state=" + operationState + " operationId=" + paymentOperationId);
     setOperationState(OperationState.CANCELING, "cancel_start");
     emitDiag("cancel_called", "cancel", cancelCorrelationId, null);
 
-    // Cancel ongoing payment collection
-    if (collectingPayment && paymentCancelable != null) {
-      Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_start");
+    // Set canceling flag to block new collects until cancellation completes
+    // Keep collectingPayment=true to maintain guard during cancellation
+    canceling = true;
+
+    // Cancel ongoing payment collection with operation token to prevent cross-attempt callback corruption
+    if (paymentCancelable != null) {
+      final String cancelingOperationId = paymentOperationId; // Capture operation token before nulling
+      paymentCancelable = null; // Clear field to allow new attempt to set its own after cancellation
+      Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_start cancelingOperationId=" + cancelingOperationId);
       paymentCancelable.cancel(new com.stripe.stripeterminal.external.callable.Callback() {
         @Override
         public void onSuccess() {
-          Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_success");
-          collectingPayment = false;
-          setKeepScreenOn(false);
-          status = "ready";
-          setOperationState(OperationState.IDLE, "cancel_success");
-          Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_guard_cleared");
-          notifyListeners("statusChanged", new JSObject().put("status", status));
-          notifyListeners("paymentStatusChanged", new JSObject().put("status", "canceled"));
-          emitDiag("cancel_completed", "cancel", cancelCorrelationId, null);
+          // Only clear state if this callback still belongs to the operation being canceled
+          // This prevents an old cancel callback from clearing a new attempt's state
+          if (cancelingOperationId != null && cancelingOperationId.equals(paymentOperationId)) {
+            Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_success operationId=" + cancelingOperationId);
+            collectingPayment = false;
+            canceling = false;
+            paymentOperationId = null; // Clear operation token on completion
+            status = "ready";
+            setOperationState(OperationState.IDLE, "cancel_success");
+            setKeepScreenOn(false);
+            notifyListeners("statusChanged", new JSObject().put("status", status));
+            notifyListeners("paymentStatusChanged", new JSObject().put("status", "canceled"));
+            emitDiag("cancel_completed", "cancel", cancelCorrelationId, null);
+
+            // Resolve the PluginCall only after cancellation completes
+            JSObject ret = new JSObject();
+            ret.put("status", status);
+            connectOperationId = null;
+            if (!call.isReleased()) {
+              call.resolve(ret);
+            }
+          } else {
+            Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_success_stale_callback operationId=" + cancelingOperationId + " currentOperationId=" + paymentOperationId);
+          }
         }
 
         @Override
         public void onFailure(@NonNull TerminalException e) {
-          Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_failure error_code=" + e.getErrorCode());
-          // Even if cancel fails, clear the guard to allow retry
-          // The Stripe SDK will handle the actual cleanup
-          collectingPayment = false;
-          setKeepScreenOn(false);
-          status = "ready";
-          setOperationState(OperationState.IDLE, "cancel_failure_guard_cleared");
-          Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_guard_cleared");
-          JSObject err = createStructuredError("cancel_payment", e);
-          err.put("deviceState", captureDeviceState());
-          notifyListeners("error", err);
-          JSObject d = new JSObject(); if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString()); d.put("message", e.getMessage()); emitDiag("cancel_failed", "cancel", cancelCorrelationId, d);
+          // Only clear state if this callback still belongs to the operation being canceled
+          if (cancelingOperationId != null && cancelingOperationId.equals(paymentOperationId)) {
+            Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_failure operationId=" + cancelingOperationId + " error_code=" + e.getErrorCode());
+            // Even if cancel fails, clear flags to allow retry
+            // The Stripe SDK will handle the actual cleanup
+            collectingPayment = false;
+            canceling = false;
+            paymentOperationId = null; // Clear operation token on completion
+            status = "ready";
+            setOperationState(OperationState.IDLE, "cancel_failure");
+            setKeepScreenOn(false);
+            JSObject err = createStructuredError("cancel_payment", e);
+            err.put("deviceState", captureDeviceState());
+            notifyListeners("error", err);
+            JSObject d = new JSObject(); if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString()); d.put("message", e.getMessage()); emitDiag("cancel_failed", "cancel", cancelCorrelationId, d);
+
+            // Resolve the PluginCall even on failure to allow retry
+            JSObject ret = new JSObject();
+            ret.put("status", status);
+            ret.put("error", err);
+            connectOperationId = null;
+            if (!call.isReleased()) {
+              call.resolve(ret);
+            }
+          } else {
+            Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_failure_stale_callback operationId=" + cancelingOperationId + " currentOperationId=" + paymentOperationId);
+          }
         }
       });
-    } else if (collectingPayment) {
-      // collectingPayment is true but paymentCancelable is null - clear guard to allow retry
-      Log.d(TAG, "[PAYMENT_TRACE] stage=clear_stale_payment_guard");
+    } else {
+      // No active cancelable - clear flags immediately and resolve
+      Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_no_active_cancelable");
       collectingPayment = false;
-      setKeepScreenOn(false);
+      canceling = false;
+      paymentOperationId = null;
       status = "ready";
-      setOperationState(OperationState.IDLE, "clear_stale_guard");
-      Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_guard_cleared");
+      setOperationState(OperationState.IDLE, "cancel_noop");
+      setKeepScreenOn(false);
+      notifyListeners("statusChanged", new JSObject().put("status", status));
+      notifyListeners("paymentStatusChanged", new JSObject().put("status", "canceled"));
+      emitDiag("cancel_completed", "cancel", cancelCorrelationId, null);
+
+      JSObject ret = new JSObject();
+      ret.put("status", status);
+      connectOperationId = null;
+      call.resolve(ret);
     }
 
     // Cancel ongoing discovery
@@ -1656,11 +1712,6 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       status = "ready";
       setOperationState(OperationState.IDLE, "clear_stale_discovery_guard");
     }
-
-    JSObject ret = new JSObject();
-    ret.put("status", status);
-    connectOperationId = null;
-      call.resolve(ret);
   }
 
   @PluginMethod
