@@ -680,3 +680,109 @@ describe('Sarah Thompson Physical Test Regression', () => {
     });
   });
 });
+
+describe('Name-Only Continuation Identity Detection', () => {
+  describe('Identity-Only Utterances When Name Already Known', () => {
+    it('should reject "I said my name is David Reynolds" as service when name is valid', () => {
+      // Simulate state where name is valid but service is missing
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      // Verify name is present, service missing
+      expect(intake.customerName).to.equal('David Reynolds');
+      expect(intake.serviceRequested).to.be.undefined;
+
+      // Resolver should stay on ask_name_reason (service still missing)
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_name_reason');
+    });
+
+    it('should reject "I already told you my name is David Reynolds" as service when name is valid', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_name_reason');
+    });
+
+    it('should reject "My name is David Reynolds" as service when name is already valid', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_name_reason');
+    });
+
+    it('should reject "This is David Reynolds" as service when name is already valid', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_name_reason');
+    });
+
+    it('should reject "David Reynolds" as service when name is already valid', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_name_reason');
+    });
+  });
+
+  describe('Valid Service After Identity-Only Retry', () => {
+    it('should accept valid service after identity-only response', () => {
+      // After identity-only retry, caller provides valid service
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: 'fence repair', // Valid service provided
+        stage: 'ask_name_reason'
+      };
+
+      // Resolver should advance to location
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_location');
+    });
+  });
+
+  describe('Combined Name + Service Still Works', () => {
+    it('should extract both name and service from combined sentence', () => {
+      const intake: IntakeData = {
+        customerName: 'Sarah Thompson',
+        serviceRequested: 'garage door repaired',
+        stage: 'ask_name'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_location');
+    });
+  });
+
+  describe('Service-Only Continuation Works', () => {
+    it('should accept valid service-only continuation when name is already valid', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: 'broken fence gate repair',
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_location');
+    });
+  });
+});

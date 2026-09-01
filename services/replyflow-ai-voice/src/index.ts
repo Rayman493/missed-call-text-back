@@ -1151,6 +1151,7 @@ interface IntakeData {
   startTime: number;
   skipNextStage?: boolean; // Flag to skip next stage (used when both name and reason captured in ask_name)
   needsNameReprompt?: boolean; // Flag to trigger targeted name-only reprompt (used when only reason given in ask_name)
+  needsServiceReprompt?: boolean; // Flag to trigger targeted service-only reprompt (used when only name given in ask_name_reason)
 }
 
 interface LeadSummary {
@@ -2143,6 +2144,19 @@ function sendApprovedPrompt(stage: string, openAiWs: any, ws?: any): boolean {
     approvedText = APPROVED_PROMPTS[stage] || APPROVED_PROMPTS.ask_name_reason;
   } else {
     approvedText = getIntakeStageTextSafe(intakeTemplate, templateStage);
+  }
+
+  // Check if we need to use service-only reprompt when name is valid but service is missing
+  if (stage === 'ask_name_reason' && ws?.callSessionState?.needsServiceReprompt) {
+    console.log('[TARGETED SERVICE REPROMPT] =========================================');
+    console.log('[TARGETED SERVICE REPROMPT] action: using_service_only_reprompt');
+    console.log('[TARGETED SERVICE REPROMPT] reason: caller_only_provided_identity_in_name_reason_stage');
+    console.log('[TARGETED SERVICE REPROMPT] preservedCustomerName:', ws?.callSessionState?.intakeData?.customerName);
+    console.log('[TARGETED SERVICE REPROMPT] Timestamp:', new Date().toISOString());
+    console.log('[TARGETED SERVICE REPROMPT] =========================================');
+    approvedText = APPROVED_PROMPTS.ask_name_reason_service_only || approvedText;
+    // Clear the flag after using it
+    ws.callSessionState.needsServiceReprompt = false;
   }
 
   // Log [SCRIPTED PROMPT SELECTED] - explicit logging for AI prompt selection
@@ -6696,6 +6710,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Intake edge case flags
     skipNextStage: false as boolean,
     needsNameReprompt: false as boolean,
+    needsServiceReprompt: false as boolean,
     settleGeneration: 0,
     transcriptionPending: false,
     // Per-speech-generation transcription tracking to prevent overlap bugs
@@ -7339,6 +7354,39 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
           customerName = existingName; // Preserve existing name
 
+          // Detect identity-only utterances (name repetition, correction, confirmation)
+          // These should NOT be accepted as service requests when name is already known
+          const isIdentityOnlyUtterance = (text: string): boolean => {
+            const lowerText = text.toLowerCase().trim();
+
+            // Patterns that indicate identity-only content
+            const identityPatterns = [
+              /^(?:i said|i already told you|i already said|i told you|my name is|this is|it's|i'm|i am|actually|no, it's|no, my name is)[\s,]*(?:my name is|this is|i'm|i am)?[\s]*([a-z][a-z' -]{1,40}?)(?:\.|,|$)/i,
+              /^([a-z][a-z' -]{1,40}?)(?:\.|,|$)/i, // Just a name
+              /^(?:yes|yeah|yep|no|nope)[\s,]+(?:my name is|this is|i'm|i am|it's)[\s]*([a-z][a-z' -]{1,40}?)/i,
+            ];
+
+            // Check if text matches any identity pattern
+            for (const pattern of identityPatterns) {
+              if (pattern.test(lowerText)) {
+                return true;
+              }
+            }
+
+            // Check if text is entirely a name introduction without service language
+            const nameIntroOnly = /^(?:my name is|my name's|name is|i am|i'm|this is|it is|it's|hi|hello|hey)[\s,]*(?:uh|um|yeah|well|actually)?[\s,]*([a-z][a-z' -]{1,40}?)(?:\.|,|$)/i;
+            if (nameIntroOnly.test(lowerText)) {
+              // But only if there's NO service language present
+              const serviceKeywords = ['need', 'want', 'help', 'repair', 'fix', 'broken', 'leaking', 'stopped', 'calling about', 'looking for', 'because'];
+              const hasServiceKeyword = serviceKeywords.some(keyword => lowerText.includes(keyword));
+              if (!hasServiceKeyword) {
+                return true;
+              }
+            }
+
+            return false;
+          };
+
           // Try to extract service from combined sentence using service patterns
           // This handles cases where caller repeats: "My name is X and I need Y"
           const servicePatterns = [
@@ -7360,6 +7408,17 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
             serviceRequested = stripServicePrefix(serviceMatch[1].trim()).replace(/[.,;]\s*$/, '');
             console.log('[PARSER SERVICE-ONLY CONTINUATION] extracted from pattern:', serviceRequested);
           } else {
+            // Before using fallback, check if this is an identity-only utterance
+            if (isIdentityOnlyUtterance(trimmed)) {
+              console.log('[PARSER SERVICE-ONLY CONTINUATION] =========================================');
+              console.log('[PARSER SERVICE-ONLY CONTINUATION] identity_only_utterance_detected:', trimmed);
+              console.log('[PARSER SERVICE-ONLY CONTINUATION] action: reject_as_not_service');
+              console.log('[PARSER SERVICE-ONLY CONTINUATION] Timestamp:', new Date().toISOString());
+              console.log('[PARSER SERVICE-ONLY CONTINUATION] =========================================');
+              // Return with serviceRequested empty to indicate no valid service
+              return { customerName: existingName, serviceRequested: '' };
+            }
+
             // Fallback: strip conversational fillers and use the normalized text as the service
             const normalizedInput = stripConversationalFillers(trimmed);
             serviceRequested = normalizedInput;
@@ -7762,6 +7821,18 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         customerNameAfterMerge = state.intakeData.customerName; // Preserve existing valid name
         if (parsedServiceValid) {
           serviceRequestedAfterMerge = parseResult.serviceRequested;
+        } else {
+          // Service parsing failed - check if this was identity-only content
+          // If parseResult.serviceRequested is empty string, it means identity-only was detected
+          if (parseResult.serviceRequested === '') {
+            console.log('[IDENTITY-ONLY DETECTION] =========================================');
+            console.log('[IDENTITY-ONLY DETECTION] caller_provided_identity_only:', rawTranscript);
+            console.log('[IDENTITY-ONLY DETECTION] action: set_needsServiceReprompt');
+            console.log('[IDENTITY-ONLY DETECTION] serviceRequested remains empty');
+            console.log('[IDENTITY-ONLY DETECTION] Timestamp:', new Date().toISOString());
+            console.log('[IDENTITY-ONLY DETECTION] =========================================');
+            state.needsServiceReprompt = true;
+          }
         }
       } else if (missingName && !missingService) {
         // Case C: Valid service exists, name missing - preserve service, assign name only
