@@ -452,7 +452,8 @@ export function finalizeSimpleModeSettledAnswer(
     ? deps.loadServiceLocationTypeForBusiness(state.businessId)
     : Promise.resolve();
   resolution.then(() => {
-    const nextStage = deps.getNextIntakeStage(finalStage);
+    // Use field-aware resolver for Simple Mode stage advancement
+    const nextStage = resolveNextSimpleModeStage(state.intakeData, state.serviceLocationType);
     if (nextStage && nextStage !== finalStage) {
       const previousStage = state.currentStage;
       const turnIdBefore = state.currentTurnId;
@@ -494,7 +495,8 @@ export function finalizeSimpleModeSettledAnswer(
     }
   }).catch(() => {
     // On resolution error, proceed with current state value (fallback onsite)
-    const nextStage = deps.getNextIntakeStage(finalStage);
+    // Use field-aware resolver for Simple Mode stage advancement
+    const nextStage = resolveNextSimpleModeStage(state.intakeData, state.serviceLocationType);
     if (nextStage && nextStage !== finalStage) {
       const previousStage = state.currentStage;
       const turnIdBefore = state.currentTurnId;
@@ -1300,10 +1302,11 @@ function areAllRequiredFieldsCollected(intake: IntakeData, serviceLocationType: 
   // serviceAddress is only required for onsite mode
   const requiresServiceAddress = serviceLocationType === 'onsite';
 
+  // issueDescription (Additional Details) is OPTIONAL - not required for completion
+  // This matches the canonical semantics: ask_request collects required reason + optional details
   const allCollected = !!(
     intake.customerName &&
     intake.serviceRequested &&
-    intake.issueDescription &&
     (requiresServiceAddress ? intake.serviceAddress : true) &&
     intake.desiredCompletionTime &&
     intake.callbackTime
@@ -1313,7 +1316,7 @@ function areAllRequiredFieldsCollected(intake: IntakeData, serviceLocationType: 
   console.log('[REQUIRED FIELDS CHECK] requiresServiceAddress:', requiresServiceAddress);
   console.log('[REQUIRED FIELDS CHECK] customerName:', intake.customerName);
   console.log('[REQUIRED FIELDS CHECK] serviceRequested:', intake.serviceRequested);
-  console.log('[REQUIRED FIELDS CHECK] issueDescription:', intake.issueDescription);
+  console.log('[REQUIRED FIELDS CHECK] issueDescription:', intake.issueDescription, '(OPTIONAL)');
   console.log('[REQUIRED FIELDS CHECK] serviceAddress:', intake.serviceAddress);
   console.log('[REQUIRED FIELDS CHECK] desiredCompletionTime:', intake.desiredCompletionTime);
   console.log('[REQUIRED FIELDS CHECK] callbackTime:', intake.callbackTime);
@@ -1325,7 +1328,7 @@ function areAllRequiredFieldsCollected(intake: IntakeData, serviceLocationType: 
     const missingFields = [];
     if (!intake.customerName) missingFields.push('customerName');
     if (!intake.serviceRequested) missingFields.push('serviceRequested');
-    if (!intake.issueDescription) missingFields.push('issueDescription');
+    // issueDescription is optional - not included in missing fields
     if (!intake.serviceAddress) missingFields.push('serviceAddress');
     if (!intake.desiredCompletionTime) missingFields.push('desiredCompletionTime');
     if (!intake.callbackTime) missingFields.push('callbackTime');
@@ -1966,6 +1969,113 @@ const FILLER_PHRASES = [
 function isFillerPhrase(text: string): boolean {
   const lowerText = text.trim().toLowerCase();
   return FILLER_PHRASES.some(phrase => lowerText === phrase || lowerText.startsWith(phrase + ' '));
+}
+
+/**
+ * Refusal patterns that indicate caller declined to provide information
+ * These should NOT be stored as factual values for structured fields
+ */
+const REFUSAL_PATTERNS = [
+  "i'd rather not",
+  "i would rather not",
+  "i don't want to",
+  "i dont want to",
+  "not telling you",
+  "i'd rather not say",
+  "i would rather not say",
+  "i'd rather give it later",
+  "i would rather give it later",
+  "i'll give it later",
+  "i will give it later",
+  "prefer not to",
+  "i prefer not to",
+  "i don't have the",
+  "i dont have the",
+  "i don't know the",
+  "i dont know the",
+  "i'd rather give it when",
+  "i would rather give it when"
+];
+
+/**
+ * Check if text appears to be a refusal to provide information
+ * This is a conservative check - returns true only for clear refusal patterns
+ */
+function isRefusal(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const lowerText = text.trim().toLowerCase();
+  return REFUSAL_PATTERNS.some(pattern => lowerText.includes(pattern));
+}
+
+/**
+ * Validate service address - reject refusals but accept flexible address formats
+ */
+function isValidServiceAddress(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return false;
+  if (isRefusal(trimmed)) return false;
+
+  // Reject obvious non-answers
+  const nonAnswerPatterns = [
+    /^(i don't know|i dont know|not sure|no idea|unknown)$/i,
+    /^(i don't have the address|i dont have the address|no address)$/i
+  ];
+  if (nonAnswerPatterns.some(pattern => pattern.test(trimmed))) return false;
+
+  return true;
+}
+
+/**
+ * Validate service request - reject only truly unusable answers
+ * Issue description (additional details) is optional and handled separately
+ */
+function isValidServiceRequest(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return false;
+
+  // Reject only truly unusable answers
+  const unusableAnswers = [
+    '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
+  ];
+  if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
+
+  return true;
+}
+
+/**
+ * Validate desired completion time - accept flexible timing expressions
+ */
+function isValidCompletionTime(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return false;
+
+  // Reject only truly unusable answers
+  const unusableAnswers = [
+    '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
+  ];
+  if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
+
+  return true;
+}
+
+/**
+ * Validate callback time - accept flexible callback preferences
+ */
+function isValidCallbackTime(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return false;
+
+  // Reject only truly unusable answers
+  const unusableAnswers = [
+    '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
+  ];
+  if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
+
+  return true;
 }
 
 /**
@@ -2723,6 +2833,482 @@ function getNextStage(currentStage: IntakeStage, serviceLocationType: string, sk
   console.log('[SCRIPTED FLOW] =========================================');
 
   return nextStage;
+}
+
+/**
+ * Field-aware deterministic stage resolver
+ *
+ * Scans canonical order for the first unsatisfied applicable scripted stage.
+ * AI cannot control routing - code determines next stage based on field satisfaction.
+ *
+ * Canonical Simple Mode sequence:
+ * - onsite: ask_name → ask_request → ask_location_or_context → ask_timing → ask_callback_time → complete
+ * - customer_comes_to_business/remote: ask_name → ask_request → ask_timing → ask_callback_time → complete
+ *
+ * Required fields:
+ * - customerName (required)
+ * - serviceRequested (required)
+ * - serviceAddress (required for onsite only)
+ * - desiredCompletionTime (required)
+ * - callbackTime (required)
+ *
+ * Optional fields:
+ * - issueDescription (optional - does not prevent completion)
+ */
+function resolveNextRequiredStage(
+  intake: IntakeData,
+  serviceLocationType: string = 'onsite'
+): IntakeStage {
+  console.log('[FIELD-AWARE STAGE RESOLVER] =========================================');
+  console.log('[FIELD-AWARE STAGE RESOLVER] currentStage:', intake.stage);
+  console.log('[FIELD-AWARE STAGE RESOLVER] serviceLocationType:', serviceLocationType);
+  console.log('[FIELD-AWARE STAGE RESOLVER] intakeState:', {
+    customerName: intake.customerName,
+    serviceRequested: intake.serviceRequested,
+    issueDescription: intake.issueDescription,
+    serviceAddress: intake.serviceAddress,
+    desiredCompletionTime: intake.desiredCompletionTime,
+    callbackTime: intake.callbackTime
+  });
+  console.log('[FIELD-AWARE STAGE RESOLVER] Timestamp:', new Date().toISOString());
+  console.log('[FIELD-AWARE STAGE RESOLVER] =========================================');
+
+  // Normalize service location type
+  const normalizedMode = typeof serviceLocationType === 'string' ? serviceLocationType.trim().toLowerCase() : 'onsite';
+  const isOnsite = normalizedMode === 'onsite';
+
+  // Check field satisfaction
+  const hasName = Boolean(intake.customerName && intake.customerName.trim().length > 0);
+  const hasRequest = Boolean(intake.serviceRequested && intake.serviceRequested.trim().length > 0);
+  const hasLocation = Boolean(intake.serviceAddress && intake.serviceAddress.trim().length > 0);
+  const hasCompletionTime = Boolean(intake.desiredCompletionTime && intake.desiredCompletionTime.trim().length > 0);
+  const hasCallbackTime = Boolean(intake.callbackTime && intake.callbackTime.trim().length > 0);
+
+  // Determine location requirement
+  const locationSatisfied = isOnsite ? hasLocation : true;
+
+  // Check if all required fields are satisfied
+  const allRequiredSatisfied = hasName && hasRequest && locationSatisfied && hasCompletionTime && hasCallbackTime;
+
+  console.log('[FIELD-AWARE STAGE RESOLVER] Field Satisfaction:', {
+    hasName,
+    hasRequest,
+    hasLocation,
+    locationSatisfied,
+    hasCompletionTime,
+    hasCallbackTime,
+    allRequiredSatisfied,
+    isOnsite
+  });
+
+  // If all required fields satisfied, route to complete
+  if (allRequiredSatisfied) {
+    console.log('[FIELD-AWARE STAGE RESOLVER] All required fields satisfied → complete');
+    console.log('[FIELD-AWARE STAGE RESOLVER] =========================================');
+    return 'complete';
+  }
+
+  // Scan canonical order for first unsatisfied stage
+  const canonicalSequence: IntakeStage[] = isOnsite
+    ? ['ask_name_reason', 'ask_request', 'ask_location_or_context', 'ask_timing', 'ask_callback_time']
+    : ['ask_name_reason', 'ask_request', 'ask_timing', 'ask_callback_time'];
+
+  for (const stage of canonicalSequence) {
+    let stageSatisfied = false;
+
+    switch (stage) {
+      case 'ask_name_reason':
+        stageSatisfied = hasName && hasRequest;
+        break;
+      case 'ask_request':
+        // If name is missing, we're still in ask_name_reason
+        // If request is missing but name is present, we need ask_request
+        stageSatisfied = hasRequest;
+        break;
+      case 'ask_location_or_context':
+        stageSatisfied = locationSatisfied;
+        break;
+      case 'ask_timing':
+        stageSatisfied = hasCompletionTime;
+        break;
+      case 'ask_callback_time':
+        stageSatisfied = hasCallbackTime;
+        break;
+    }
+
+    if (!stageSatisfied) {
+      console.log('[FIELD-AWARE STAGE RESOLVER] First unsatisfied stage:', stage);
+      console.log('[FIELD-AWARE STAGE RESOLVER] =========================================');
+      return stage;
+    }
+  }
+
+  // Fallback to complete if loop completes (shouldn't happen due to allRequiredSatisfied check above)
+  console.log('[FIELD-AWARE STAGE RESOLVER] Fallback → complete');
+  console.log('[FIELD-AWARE STAGE RESOLVER] =========================================');
+  return 'complete';
+}
+
+/**
+ * Simple Mode adapter for field-aware stage resolver
+ *
+ * Maps Simple Mode state to the canonical resolver and back.
+ * Simple Mode uses stage keys: ask_name_reason, ask_location, ask_completion_time, ask_callback_time, complete
+ * Canonical resolver uses: ask_name_reason, ask_location_or_context, ask_timing, ask_callback_time, complete
+ *
+ * This adapter:
+ * 1. Takes Simple Mode state (state.intakeData, state.serviceLocationType)
+ * 2. Maps to canonical structure for resolveNextRequiredStage
+ * 3. Calls resolveNextRequiredStage for field-aware routing
+ * 4. Maps canonical result back to Simple Mode stage keys
+ */
+function resolveNextSimpleModeStage(
+  intakeData: IntakeData,
+  serviceLocationType: string = 'onsite'
+): string {
+  console.log('[SIMPLE MODE STAGE RESOLVER ADAPTER] =========================================');
+  console.log('[SIMPLE MODE STAGE RESOLVER ADAPTER] currentStage:', intakeData.stage);
+  console.log('[SIMPLE MODE STAGE RESOLVER ADAPTER] serviceLocationType:', serviceLocationType);
+  console.log('[SIMPLE MODE STAGE RESOLVER ADAPTER] intakeState:', {
+    customerName: intakeData.customerName,
+    serviceRequested: intakeData.serviceRequested,
+    issueDescription: intakeData.issueDescription,
+    serviceAddress: intakeData.serviceAddress,
+    desiredCompletionTime: intakeData.desiredCompletionTime,
+    callbackTime: intakeData.callbackTime
+  });
+  console.log('[SIMPLE MODE STAGE RESOLVER ADAPTER] Timestamp:', new Date().toISOString());
+  console.log('[SIMPLE MODE STAGE RESOLVER ADAPTER] =========================================');
+
+  // Call the canonical field-aware resolver
+  const canonicalNextStage = resolveNextRequiredStage(intakeData, serviceLocationType);
+
+  // Map canonical stage keys back to Simple Mode stage keys
+  let simpleModeNextStage: string;
+  switch (canonicalNextStage) {
+    case 'ask_location_or_context':
+      simpleModeNextStage = 'ask_location';
+      console.log('[SIMPLE MODE STAGE RESOLVER ADAPTER] Mapped canonical ask_location_or_context → Simple Mode ask_location');
+      break;
+    case 'ask_timing':
+      simpleModeNextStage = 'ask_completion_time';
+      console.log('[SIMPLE MODE STAGE RESOLVER ADAPTER] Mapped canonical ask_timing → Simple Mode ask_completion_time');
+      break;
+    case 'ask_name_reason':
+    case 'ask_callback_time':
+    case 'complete':
+      simpleModeNextStage = canonicalNextStage;
+      console.log('[SIMPLE MODE STAGE RESOLVER ADAPTER] Canonical key matches Simple Mode:', canonicalNextStage);
+      break;
+    default:
+      // Fallback: return as-is (should not happen with canonical resolver)
+      simpleModeNextStage = canonicalNextStage;
+      console.log('[SIMPLE MODE STAGE RESOLVER ADAPTER] Fallback: using canonical key as-is:', canonicalNextStage);
+  }
+
+  console.log('[SIMPLE MODE STAGE RESOLVER ADAPTER] canonicalNextStage:', canonicalNextStage);
+  console.log('[SIMPLE MODE STAGE RESOLVER ADAPTER] simpleModeNextStage:', simpleModeNextStage);
+  console.log('[SIMPLE MODE STAGE RESOLVER ADAPTER] =========================================');
+
+  return simpleModeNextStage;
+}
+
+/**
+ * Canonical field merge with protection rules
+ *
+ * Merge rules:
+ * - undefined candidate does not clear existing value
+ * - empty candidate does not clear existing value
+ * - invalid candidate does not clear existing value
+ * - refusal text does not become factual value
+ * - unknown field cannot enter canonical state
+ */
+function mergeExtractedField(
+  intake: IntakeData,
+  fieldName: keyof IntakeData,
+  candidate: string | null | undefined,
+  validator: (text: string) => boolean,
+  currentStage: string,
+  transcript: string
+): boolean {
+  // If candidate is undefined or empty, do not clear existing value
+  if (candidate === undefined || candidate === null || (typeof candidate === 'string' && candidate.trim().length === 0)) {
+    console.log('[FIELD MERGE SKIPPED] =========================================');
+    console.log('[FIELD MERGE SKIPPED] field:', fieldName);
+    console.log('[FIELD MERGE SKIPPED] reason: candidate is undefined or empty');
+    console.log('[FIELD MERGE SKIPPED] existingValue:', (intake as any)[fieldName]);
+    console.log('[FIELD MERGE SKIPPED] candidate:', candidate);
+    console.log('[FIELD MERGE SKIPPED] Timestamp:', new Date().toISOString());
+    console.log('[FIELD MERGE SKIPPED] =========================================');
+    return false;
+  }
+
+  // If existing value is present and valid, do not overwrite with invalid candidate
+  const existingValue = (intake as any)[fieldName];
+  if (existingValue && existingValue.trim().length > 0) {
+    // Validate candidate before considering overwrite
+    if (!validator(candidate)) {
+      console.log('[FIELD MERGE SKIPPED] =========================================');
+      console.log('[FIELD MERGE SKIPPED] field:', fieldName);
+      console.log('[FIELD MERGE SKIPPED] reason: candidate is invalid, existing value protected');
+      console.log('[FIELD MERGE SKIPPED] existingValue:', existingValue);
+      console.log('[FIELD MERGE SKIPPED] candidate:', candidate);
+      console.log('[FIELD MERGE SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD MERGE SKIPPED] =========================================');
+      return false;
+    }
+
+    // Allow overwrite if candidate is valid and different (correction scenario)
+    // For now, be conservative: don't overwrite existing valid values
+    console.log('[FIELD MERGE SKIPPED] =========================================');
+    console.log('[FIELD MERGE SKIPPED] field:', fieldName);
+    console.log('[FIELD MERGE SKIPPED] reason: existing value present, overwrite prevented');
+    console.log('[FIELD MERGE SKIPPED] existingValue:', existingValue);
+    console.log('[FIELD MERGE SKIPPED] candidate:', candidate);
+    console.log('[FIELD MERGE SKIPPED] Timestamp:', new Date().toISOString());
+    console.log('[FIELD MERGE SKIPPED] =========================================');
+    return false;
+  }
+
+  // Validate candidate
+  if (!validator(candidate)) {
+    console.log('[FIELD MERGE SKIPPED] =========================================');
+    console.log('[FIELD MERGE SKIPPED] field:', fieldName);
+    console.log('[FIELD MERGE SKIPPED] reason: candidate is invalid');
+    console.log('[FIELD MERGE SKIPPED] candidate:', candidate);
+    console.log('[FIELD MERGE SKIPPED] Timestamp:', new Date().toISOString());
+    console.log('[FIELD MERGE SKIPPED] =========================================');
+    return false;
+  }
+
+  // Merge valid candidate
+  (intake as any)[fieldName] = candidate.trim();
+  console.log('[FIELD MERGE SUCCESS] =========================================');
+  console.log('[FIELD MERGE SUCCESS] field:', fieldName);
+  console.log('[FIELD MERGE SUCCESS] oldValue:', existingValue);
+  console.log('[FIELD MERGE SUCCESS] newValue:', candidate.trim());
+  console.log('[FIELD MERGE SUCCESS] currentStage:', currentStage);
+  console.log('[FIELD MERGE SUCCESS] transcript:', transcript);
+  console.log('[FIELD MERGE SUCCESS] Timestamp:', new Date().toISOString());
+  console.log('[FIELD MERGE SUCCESS] =========================================');
+  return true;
+}
+
+/**
+ * Cross-stage field extraction from transcript
+ *
+ * Extracts ANY relevant known intake field from the utterance, regardless of current stage.
+ * AI interprets caller language and extracts known fields.
+ * CODE controls which fields are allowed (canonical schema only).
+ *
+ * Canonical fields:
+ * - customerName
+ * - serviceRequested
+ * - issueDescription (optional)
+ * - serviceAddress
+ * - desiredCompletionTime
+ * - callbackTime
+ *
+ * Unknown fields are rejected.
+ */
+function extractFieldsFromTranscript(
+  transcript: string,
+  intake: IntakeData,
+  currentStage: string
+): void {
+  console.log('[CROSS-STAGE EXTRACTION] =========================================');
+  console.log('[CROSS-STAGE EXTRACTION] currentStage:', currentStage);
+  console.log('[CROSS-STAGE EXTRACTION] transcript:', transcript);
+  console.log('[CROSS-STAGE EXTRACTION] Timestamp:', new Date().toISOString());
+  console.log('[CROSS-STAGE EXTRACTION] =========================================');
+
+  const lowerTranscript = transcript.toLowerCase().trim();
+  const trimmedTranscript = transcript.trim();
+
+  // Extract customerName if not already present
+  if (!intake.customerName) {
+    const name = extractName(transcript);
+    if (name && name.length > 1 && !isFillerPhrase(name) && isValidCustomerName(name)) {
+      mergeExtractedField(
+        intake,
+        'customerName',
+        name,
+        isValidCustomerName,
+        currentStage,
+        transcript
+      );
+    }
+  }
+
+  // Extract serviceRequested if not already present
+  if (!intake.serviceRequested) {
+    // Use intelligent extraction similar to existing logic
+    let extractedRequest = trimmedTranscript;
+
+    // Remove name if present to get request
+    if (intake.customerName && intake.customerName.length > 1) {
+      const nameLower = intake.customerName.toLowerCase();
+      const transcriptLower = trimmedTranscript.toLowerCase();
+      const nameIndex = transcriptLower.indexOf(nameLower);
+      if (nameIndex !== -1) {
+        let requestCandidate = trimmedTranscript.substring(nameIndex + intake.customerName.length).trim();
+        const connectingPhrases = [
+          /^,\s*/i, /^and\s+/i, /^,\s+and\s+/i, /^;\s*/i, /^\.\s*/i, /^-\s*/i,
+          /^calling\s+(?:because|about|for|to)\s*/i, /^i\s+(?:need|want|would like|am calling|'m calling)\s*/i,
+        ];
+        for (const phrase of connectingPhrases) {
+          requestCandidate = requestCandidate.replace(phrase, '');
+        }
+        requestCandidate = requestCandidate.trim();
+        if (requestCandidate.length > 2 && requestCandidate.split(/\s+/).length >= 2 && !/^and\s*$/i.test(requestCandidate)) {
+          extractedRequest = requestCandidate;
+        }
+      }
+    }
+
+    if (extractedRequest && isValidServiceRequest(extractedRequest)) {
+      mergeExtractedField(
+        intake,
+        'serviceRequested',
+        extractedRequest,
+        isValidServiceRequest,
+        currentStage,
+        transcript
+      );
+    }
+  }
+
+  // Extract serviceAddress if not already present
+  if (!intake.serviceAddress) {
+    // Look for address patterns
+    const addressPatterns = [
+      /(?:at|@|address is|located at|it's at|its at)\s+([^.!?]+)/i,
+      /(\d+\s+[a-z]+\s+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+[a-z]+)?)/i,
+    ];
+
+    for (const pattern of addressPatterns) {
+      const match = transcript.match(pattern);
+      if (match && match[1] && isValidServiceAddress(match[1].trim())) {
+        mergeExtractedField(
+          intake,
+          'serviceAddress',
+          match[1].trim(),
+          isValidServiceAddress,
+          currentStage,
+          transcript
+        );
+        break;
+      }
+    }
+  }
+
+  // Extract desiredCompletionTime if not already present
+  if (!intake.desiredCompletionTime) {
+    const timingPatterns = [
+      /(?:i'd like|i would like|i want|i need)\s+(?:it\s+)?(?:done|completed|finished)\s+(?:by|on|in|sometime|this|next|today|tomorrow|this week|next week|no rush|whenever|as soon as possible|asap)([^.!?]*)/i,
+      /(?:sometime|this|next|today|tomorrow|this week|next week|no rush|whenever|as soon as possible|asap)([^.!?]*)/i,
+    ];
+
+    for (const pattern of timingPatterns) {
+      const match = transcript.match(pattern);
+      if (match && isValidCompletionTime(match[0].trim())) {
+        mergeExtractedField(
+          intake,
+          'desiredCompletionTime',
+          match[0].trim(),
+          isValidCompletionTime,
+          currentStage,
+          transcript
+        );
+        break;
+      }
+    }
+  }
+
+  // Extract callbackTime if not already present
+  if (!intake.callbackTime) {
+    const callbackPatterns = [
+      /(?:best time|good time|prefer|call me|call back)\s+(?:to|at|in|on|after|before|between|anytime|morning|afternoon|evening|night|today|tomorrow)([^.!?]*)/i,
+      /(?:anytime|morning|afternoon|evening|night|after \d+|before \d+|between \d+ and \d+)([^.!?]*)/i,
+    ];
+
+    for (const pattern of callbackPatterns) {
+      const match = transcript.match(pattern);
+      if (match && isValidCallbackTime(match[0].trim())) {
+        mergeExtractedField(
+          intake,
+          'callbackTime',
+          match[0].trim(),
+          isValidCallbackTime,
+          currentStage,
+          transcript
+        );
+        break;
+      }
+    }
+  } else {
+    // Field is already locked - prevent overwriting with trivial farewell utterances
+    const trivialFarewellUtterances = [
+      'bye', 'goodbye', 'thank you', 'thanks', 'okay', 'ok', 'sounds good',
+      'see you', 'have a good day', 'have a great day', 'alright', 'fine'
+    ];
+
+    const lowerTranscript = transcript.toLowerCase().trim();
+    const isTrivialFarewell = trivialFarewellUtterances.some(utterance =>
+      lowerTranscript === utterance || lowerTranscript === utterance + '.'
+    );
+
+    if (isTrivialFarewell) {
+      console.log('[FIELD LOCK PROTECTION] =========================================');
+      console.log('[FIELD LOCK PROTECTION] field: callbackTime');
+      console.log('[FIELD LOCK PROTECTION] current value:', intake.callbackTime);
+      console.log('[FIELD LOCK PROTECTION] attempted overwrite:', transcript.trim());
+      console.log('[FIELD LOCK PROTECTION] reason: trivial farewell utterance detected');
+      console.log('[FIELD LOCK PROTECTION] action: field locked, overwrite prevented');
+      console.log('[FIELD LOCK PROTECTION] Timestamp:', new Date().toISOString());
+      console.log('[FIELD LOCK PROTECTION] =========================================');
+    } else if (transcript.trim().length < 5) {
+      console.log('[FIELD LOCK PROTECTION] =========================================');
+      console.log('[FIELD LOCK PROTECTION] field: callbackTime');
+      console.log('[FIELD LOCK PROTECTION] current value:', intake.callbackTime);
+      console.log('[FIELD LOCK PROTECTION] attempted overwrite:', transcript.trim());
+      console.log('[FIELD LOCK PROTECTION] reason: short conversational ending');
+      console.log('[FIELD LOCK PROTECTION] action: field locked, overwrite prevented');
+      console.log('[FIELD LOCK PROTECTION] Timestamp:', new Date().toISOString());
+      console.log('[FIELD LOCK PROTECTION] =========================================');
+    }
+  }
+
+  // Extract issueDescription (optional) if serviceRequested is present
+  if (intake.serviceRequested && !intake.issueDescription) {
+    // Look for contextual details after the main request
+    const detailPatterns = [
+      /(?:because|due to|the|it's|its)\s+(?:the\s+)?(?:hinge|handle|door|window|pipe|gutter|roof|floor|wall|ceiling|fence|gate|lock|faucet|sink|toilet|shower|tub|ac|heater|furnace|boiler|electrical|wire|outlet|switch|light|bulb|appliance|machine|device|system|unit)([^.!?]*)/i,
+    ];
+
+    for (const pattern of detailPatterns) {
+      const match = transcript.match(pattern);
+      if (match) {
+        // issueDescription is optional, so we don't need strict validation
+        // Just ensure it's not a refusal
+        if (!isRefusal(match[0].trim())) {
+          mergeExtractedField(
+            intake,
+            'issueDescription',
+            match[0].trim(),
+            () => true, // No validation for optional field
+            currentStage,
+            transcript
+          );
+          break;
+        }
+      }
+    }
+  }
+
+  console.log('[CROSS-STAGE EXTRACTION COMPLETE] =========================================');
+  console.log('[CROSS-STAGE EXTRACTION] Timestamp:', new Date().toISOString());
+  console.log('[CROSS-STAGE EXTRACTION] =========================================');
 }
 
 /**
@@ -3515,268 +4101,20 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       console.log('[FIELD EXTRACTION SKIPPED] =========================================');
       break;
 
-    case 'ask_location_or_context':
-      // Allowed: serviceAddress
-      // Forbidden: customerName, serviceRequested, issueDescription, desiredCompletionTime, callbackTime
-
-      // Extract location/service address - accept verbatim answer
-      if (!intake.serviceAddress) {
-        const oldAddress = intake.serviceAddress;
-        const trimmedTranscript = transcript.trim();
-
-        // Reject only truly unusable answers
-        const unusableAnswers = [
-          '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
-        ];
-        const isUnusable = unusableAnswers.includes(lowerTranscript) || trimmedTranscript.length < 2;
-
-        if (!isUnusable) {
-          // Accept the exact transcript as the answer
-          intake.serviceAddress = trimmedTranscript;
-          console.log('[FIELD ASSIGNMENT] =========================================');
-          console.log('[FIELD ASSIGNMENT] field: serviceAddress');
-          console.log('[FIELD ASSIGNMENT] oldValue:', oldAddress);
-          console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceAddress);
-          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (verbatim capture)');
-          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
-          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
-          console.log('[FIELD ASSIGNMENT] =========================================');
-          console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress);
-        } else {
-          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-          console.log('[FIELD EXTRACTION SKIPPED] field: serviceAddress');
-          console.log('[FIELD EXTRACTION SKIPPED] reason: Unusable answer (too short or filler)');
-          console.log('[FIELD EXTRACTION SKIPPED] transcript:', transcript);
-          console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-        }
-      }
-
-      // Log skipped extractions
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: customerName');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_location stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: serviceRequested');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_location stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: issueDescription');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_location stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: desiredCompletionTime');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_location stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: callbackTime');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_location stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      break;
-
-    case 'ask_timing':
-      // Allowed: desiredCompletionTime
-      // Forbidden: customerName, serviceRequested, issueDescription, serviceAddress, callbackTime
-
-      // Extract desired completion time - accept verbatim answer
-      if (!intake.desiredCompletionTime) {
-        const oldTime = intake.desiredCompletionTime;
-        const trimmedTranscript = transcript.trim();
-
-        // Reject only truly unusable answers
-        const unusableAnswers = [
-          '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
-        ];
-        const isUnusable = unusableAnswers.includes(lowerTranscript) || trimmedTranscript.length < 2;
-
-        if (!isUnusable) {
-          // Accept the exact transcript as the answer
-          intake.desiredCompletionTime = trimmedTranscript;
-          console.log('[FIELD ASSIGNMENT] =========================================');
-          console.log('[FIELD ASSIGNMENT] field: desiredCompletionTime');
-          console.log('[FIELD ASSIGNMENT] oldValue:', oldTime);
-          console.log('[FIELD ASSIGNMENT] newValue:', intake.desiredCompletionTime);
-          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (verbatim capture)');
-          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
-          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
-          console.log('[FIELD ASSIGNMENT] =========================================');
-          console.log('[LIVE EXTRACTION MAPPED] desiredCompletionTime:', intake.desiredCompletionTime);
-        } else {
-          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-          console.log('[FIELD EXTRACTION SKIPPED] field: desiredCompletionTime');
-          console.log('[FIELD EXTRACTION SKIPPED] reason: Unusable answer (too short or filler)');
-          console.log('[FIELD EXTRACTION SKIPPED] transcript:', transcript);
-          console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-        }
-      }
-
-      // Log skipped extractions
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: customerName');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_completion_time stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: serviceRequested');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_completion_time stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: issueDescription');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_completion_time stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: serviceAddress');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_completion_time stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: callbackTime');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_completion_time stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      break;
-
-    case 'ask_callback_time':
-      // Allowed: callbackTime
-      // Forbidden: customerName, serviceRequested, issueDescription, serviceAddress, desiredCompletionTime
-
-      // Extract callback time - accept verbatim answer
-      if (!intake.callbackTime) {
-        const oldCallbackTime = intake.callbackTime;
-        const trimmedTranscript = transcript.trim();
-
-        // Reject only truly unusable answers
-        const unusableAnswers = [
-          '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
-        ];
-        const isUnusable = unusableAnswers.includes(lowerTranscript) || trimmedTranscript.length < 2;
-
-        if (!isUnusable) {
-          // Accept the exact transcript as the answer
-          intake.callbackTime = trimmedTranscript;
-          console.log('[FIELD ASSIGNMENT] =========================================');
-          console.log('[FIELD ASSIGNMENT] field: callbackTime');
-          console.log('[FIELD ASSIGNMENT] oldValue:', oldCallbackTime);
-          console.log('[FIELD ASSIGNMENT] newValue:', intake.callbackTime);
-          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (verbatim capture)');
-          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
-          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
-          console.log('[FIELD ASSIGNMENT] =========================================');
-          console.log('[LIVE EXTRACTION MAPPED] callbackTime:', intake.callbackTime);
-        } else {
-          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-          console.log('[FIELD EXTRACTION SKIPPED] field: callbackTime');
-          console.log('[FIELD EXTRACTION SKIPPED] reason: Unusable answer (too short or filler)');
-          console.log('[FIELD EXTRACTION SKIPPED] transcript:', transcript);
-          console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-        }
-      } else {
-        // Field is already locked - prevent overwriting with trivial farewell utterances
-        const trivialFarewellUtterances = [
-          'bye', 'goodbye', 'thank you', 'thanks', 'okay', 'ok', 'sounds good',
-          'see you', 'have a good day', 'have a great day', 'alright', 'fine'
-        ];
-
-        const isTrivialFarewell = trivialFarewellUtterances.some(utterance =>
-          lowerTranscript.trim() === utterance || lowerTranscript.trim() === utterance + '.'
-        );
-
-        if (isTrivialFarewell) {
-          console.log('[FIELD LOCK PROTECTION] =========================================');
-          console.log('[FIELD LOCK PROTECTION] field: callbackTime');
-          console.log('[FIELD LOCK PROTECTION] current value:', intake.callbackTime);
-          console.log('[FIELD LOCK PROTECTION] attempted overwrite:', transcript.trim());
-          console.log('[FIELD LOCK PROTECTION] reason: trivial farewell utterance detected');
-          console.log('[FIELD LOCK PROTECTION] action: field locked, overwrite prevented');
-          console.log('[FIELD LOCK PROTECTION] Timestamp:', new Date().toISOString());
-          console.log('[FIELD LOCK PROTECTION] =========================================');
-        } else if (transcript.trim().length < 5) {
-          console.log('[FIELD LOCK PROTECTION] =========================================');
-          console.log('[FIELD LOCK PROTECTION] field: callbackTime');
-          console.log('[FIELD LOCK PROTECTION] current value:', intake.callbackTime);
-          console.log('[FIELD LOCK PROTECTION] attempted overwrite:', transcript.trim());
-          console.log('[FIELD LOCK PROTECTION] reason: short conversational ending');
-          console.log('[FIELD LOCK PROTECTION] action: field locked, overwrite prevented');
-          console.log('[FIELD LOCK PROTECTION] Timestamp:', new Date().toISOString());
-          console.log('[FIELD LOCK PROTECTION] =========================================');
-        }
-      }
-
-      // Log skipped extractions
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: customerName');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: serviceRequested');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: issueDescription');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: serviceAddress');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: desiredCompletionTime');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      break;
-
     default:
-      // Unknown stage - skip all extractions
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Unknown stage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Skipping all field extractions');
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      // For all other stages, use unified cross-stage extraction
+      // This allows callers to provide any relevant canonical field in a single utterance
+      // regardless of current stage. The merge function protects existing values.
+      console.log('[UNIFIED EXTRACTION] =========================================');
+      console.log('[UNIFIED EXTRACTION] Using cross-stage field extraction');
+      console.log('[UNIFIED EXTRACTION] currentStage:', intake.stage);
+      console.log('[UNIFIED EXTRACTION] transcript:', transcript);
+      console.log('[UNIFIED EXTRACTION] Timestamp:', new Date().toISOString());
+      console.log('[UNIFIED EXTRACTION] =========================================');
+      extractFieldsFromTranscript(transcript, intake, intake.stage);
+      console.log('[UNIFIED EXTRACTION COMPLETE] =========================================');
+      console.log('[UNIFIED EXTRACTION COMPLETE] Timestamp:', new Date().toISOString());
+      console.log('[UNIFIED EXTRACTION COMPLETE] =========================================');
       break;
   }
 
@@ -3814,6 +4152,11 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
 // Helper function to validate customer name
 function isValidCustomerName(name: string): boolean {
   if (!name || typeof name !== 'string') {
+    return false;
+  }
+
+  // Reject refusal patterns first
+  if (isRefusal(name)) {
     return false;
   }
 
@@ -11249,9 +11592,9 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[ASK_NAME_REASON STAGE VALIDATION] =========================================');
 
                   if (hasValidCustomerName && hasValidServiceRequested) {
-                    // Both fields valid: advance to next stage
+                    // Both fields valid: advance to next stage using field-aware resolver
                     const previousStage = state.currentStage;
-                    const nextStage = stages[currentIndex + 1];
+                    const nextStage = resolveNextSimpleModeStage(state.intakeData, state.serviceLocationType);
                     state.currentStage = nextStage;
 
                     console.log('[STAGE TRANSITION] =========================================');
@@ -11316,9 +11659,9 @@ Reply to this message if you'd like to update or add any information.
                     sendPrompt(state.currentStage, promptKeyOverride);
                   }
                 } else if (currentIndex < stages.length - 1) {
-                  // Normal stage advancement for other stages
+                  // Normal stage advancement for other stages using field-aware resolver
                   const previousStage = state.currentStage;
-                  const nextStage = stages[currentIndex + 1];
+                  const nextStage = resolveNextSimpleModeStage(state.intakeData, state.serviceLocationType);
                   state.currentStage = nextStage;
 
                   console.log('[STAGE TRANSITION] =========================================');
@@ -12143,9 +12486,9 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[ASK_NAME_REASON STAGE VALIDATION] =========================================');
 
                 if (hasValidCustomerName && hasValidServiceRequested) {
-                  // Both fields valid: advance to next applicable stage
+                  // Both fields valid: advance to next applicable stage using field-aware resolver
                   const previousStage = state.currentStage;
-                  const nextStage = getNextIntakeStage(previousStage);
+                  const nextStage = resolveNextSimpleModeStage(state.intakeData, state.serviceLocationType);
 
                   // Clear pending answer state to prevent cross-stage leakage
                   clearPendingAnswerState(state, 'ask_name_reason_stage_advancement');
@@ -12244,9 +12587,9 @@ Reply to this message if you'd like to update or add any information.
                   sendPrompt(state.currentStage, promptKeyOverride, 'immediate_post_transcription', authorizedTurnId);
                 }
               } else if (currentIndex < stages.length - 1) {
-                // Normal stage advancement for other stages
+                // Normal stage advancement for other stages using field-aware resolver
                 const previousStage = state.currentStage;
-                const nextStage = getNextIntakeStage(previousStage);
+                const nextStage = resolveNextSimpleModeStage(state.intakeData, state.serviceLocationType);
 
                 // Clear pending answer state to prevent cross-stage leakage
                 clearPendingAnswerState(state, 'normal_stage_advancement');
