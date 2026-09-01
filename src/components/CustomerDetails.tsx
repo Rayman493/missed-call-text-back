@@ -61,7 +61,7 @@ export default function CustomerDetails({ leadData, lead }: CustomerDetailsProps
       {renderField('Desired Completion Time', desiredCompletionTime, <Clock className="w-4 h-4 text-muted-foreground" />)}
 
       {/* Preferred Callback Time */}
-      {renderField('Preferred Callback Time', preferredCallbackTime)}
+      {renderField('Preferred Callback Time', preferredCallbackTime, <Clock className="w-4 h-4 text-muted-foreground" />)}
 
       {/* Phone Number */}
       {renderField('Phone Number', formatPhoneNumber(phoneNumber), <Phone className="w-4 h-4 text-muted-foreground" />)}
