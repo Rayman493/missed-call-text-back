@@ -257,3 +257,39 @@ export function resolveNextSimpleModeStage(
   const canonicalStage = resolveNextRequiredStage(intakeData, serviceLocationType);
   return SIMPLE_MODE_STAGE_MAP[canonicalStage] || canonicalStage;
 }
+
+/**
+ * Centralized prompt selector for Simple Mode - field-aware prompt variant selection
+ * This ensures consistent prompt selection across stage entry and same-stage reprompts
+ * Distinguishes between normal progression and corrective reprompt
+ */
+export function selectSimpleModePromptKey(stage: string, intakeData: IntakeData, repromptContext?: { needsServiceReprompt?: boolean; needsNameReprompt?: boolean }): string {
+  // For ask_name_reason, select variant based on field satisfaction and reprompt context
+  if (stage === 'ask_name_reason') {
+    const hasValidCustomerName = !!intakeData.customerName && intakeData.customerName.trim().length > 0;
+    const hasValidServiceRequested = !!intakeData.serviceRequested && intakeData.serviceRequested.trim().length > 0;
+
+    // Check if this is a corrective same-stage reprompt
+    const isCorrectiveReprompt = (repromptContext?.needsServiceReprompt || repromptContext?.needsNameReprompt);
+
+    if (hasValidCustomerName && !hasValidServiceRequested) {
+      // Name present, service missing
+      if (isCorrectiveReprompt) {
+        // Corrective: short targeted reminder after identity-only/unusable answer
+        return 'ask_name_reason_service_only';
+      } else {
+        // Normal: canonical request/details question inviting additional details
+        return 'ask_request';
+      }
+    } else if (!hasValidCustomerName && hasValidServiceRequested) {
+      // Service present, name missing → name-only prompt
+      return 'ask_name_reason_name_only';
+    }
+    // Both missing or both present → use standard combined prompt
+    // (both present case should advance past this stage, but this is the fallback)
+    return 'ask_name_reason';
+  }
+
+  // For all other stages, return the stage name as-is
+  return stage;
+}

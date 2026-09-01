@@ -119,6 +119,8 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
   return Promise.race([promise, timeoutPromise]) as Promise<T>;
 }
 
+import { selectSimpleModePromptKey } from './intake-validation';
+
 // Minimal shared authorization guard for settle-window callbacks (production + tests)
 // Returns true if the callback is authorized to finalize, otherwise logs a single
 // stale/mismatch event and returns false. No side effects beyond logging.
@@ -155,30 +157,6 @@ export function isSettleCallbackAuthorized(
     return { authorized: false, reason: 'stage_or_turn_changed' };
   }
   return { authorized: true };
-}
-
-// Centralized prompt selector for Simple Mode - field-aware prompt variant selection
-// This ensures consistent prompt selection across stage entry and same-stage reprompts
-function selectSimpleModePromptKey(stage: string, intakeData: IntakeData, repromptContext?: { needsServiceReprompt?: boolean; needsNameReprompt?: boolean }): string {
-  // For ask_name_reason, select variant based on field satisfaction
-  if (stage === 'ask_name_reason') {
-    const hasValidCustomerName = !!intakeData.customerName && intakeData.customerName.trim().length > 0;
-    const hasValidServiceRequested = !!intakeData.serviceRequested && intakeData.serviceRequested.trim().length > 0;
-
-    if (hasValidCustomerName && !hasValidServiceRequested) {
-      // Name present, service missing → service-only prompt
-      return 'ask_name_reason_service_only';
-    } else if (!hasValidCustomerName && hasValidServiceRequested) {
-      // Service present, name missing → name-only prompt
-      return 'ask_name_reason_name_only';
-    }
-    // Both missing or both present → use standard combined prompt
-    // (both present case should advance past this stage, but this is the fallback)
-    return 'ask_name_reason';
-  }
-
-  // For all other stages, return the stage name as-is
-  return stage;
 }
 
 // Minimal shared immediate-advance helper for multi-field capture in Simple Mode
@@ -7973,6 +7951,38 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       state.intakeData.customerName = customerNameAfterMerge;
       state.intakeData.serviceRequested = serviceRequestedAfterMerge;
 
+      // SEMANTIC FUTURE-FIELD EXTRACTION
+      // After canonical name/service merge, attempt to extract voluntarily supplied known future fields
+      // This allows callers to provide location, timing, callback, or details early
+      // The canonical merge logic protects existing valid values from being overwritten
+      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION] =========================================');
+      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION] currentStage:', state.intakeData.stage);
+      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION] rawTranscript:', rawTranscript);
+      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION] intakeBefore:', JSON.stringify({
+        customerName: state.intakeData.customerName,
+        serviceRequested: state.intakeData.serviceRequested,
+        issueDescription: state.intakeData.issueDescription,
+        serviceAddress: state.intakeData.serviceAddress,
+        desiredCompletionTime: state.intakeData.desiredCompletionTime,
+        callbackTime: state.intakeData.callbackTime
+      }, null, 2));
+      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION] Timestamp:', new Date().toISOString());
+      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION] =========================================');
+
+      extractFieldsFromTranscript(rawTranscript, state.intakeData, state.intakeData.stage);
+
+      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION RESULT] =========================================');
+      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION RESULT] intakeAfter:', JSON.stringify({
+        customerName: state.intakeData.customerName,
+        serviceRequested: state.intakeData.serviceRequested,
+        issueDescription: state.intakeData.issueDescription,
+        serviceAddress: state.intakeData.serviceAddress,
+        desiredCompletionTime: state.intakeData.desiredCompletionTime,
+        callbackTime: state.intakeData.callbackTime
+      }, null, 2));
+      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION RESULT] Timestamp:', new Date().toISOString());
+      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION RESULT] =========================================');
+
       // MERGE RESULT TRACE
       console.log('[ASK_NAME_REASON MERGE RESULT] =========================================');
       console.log('[ASK_NAME_REASON MERGE RESULT] mergeDecision:', mergeDecision);
@@ -8058,6 +8068,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[ASK_NAME_REASON TRACE] handlerEntered:', true);
       console.log('[ASK_NAME_REASON TRACE] extractMultipleAnswersCalled:', false);
       console.log('[ASK_NAME_REASON TRACE] parseNameAndServiceCalled:', parseNameAndServiceCalled);
+      console.log('[ASK_NAME_REASON TRACE] semanticFutureFieldExtractionCalled:', true);
       console.log('[ASK_NAME_REASON TRACE] parseResultCustomerName:', parseResult.customerName);
       console.log('[ASK_NAME_REASON TRACE] parseResultServiceRequested:', parseResult.serviceRequested);
       console.log('[ASK_NAME_REASON TRACE] storeStageCaptureNameCalled:', true);

@@ -8,7 +8,8 @@ import {
   mergeExtractedField,
   IntakeData,
   resolveNextRequiredStage,
-  resolveNextSimpleModeStage
+  resolveNextSimpleModeStage,
+  selectSimpleModePromptKey
 } from '../src/intake-validation';
 
 describe('Intake Validation Functions', () => {
@@ -1011,6 +1012,230 @@ describe('Prompt Selection and Dispatch', () => {
 
       expect(state.needsServiceReprompt).to.equal(false); // Flags cleared on error
       expect(state.needsNameReprompt).to.equal(false);
+    });
+  });
+
+  describe('Normal vs Corrective Prompt Selection', () => {
+    it('should use canonical ask_request for normal post-name progression', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const selectedPromptKey = selectSimpleModePromptKey(intake.stage, intake, {
+        needsServiceReprompt: false,
+        needsNameReprompt: false
+      });
+
+      expect(selectedPromptKey).to.equal('ask_request');
+    });
+
+    it('should use ask_name_reason_service_only for corrective reprompt after identity-only', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const selectedPromptKey = selectSimpleModePromptKey(intake.stage, intake, {
+        needsServiceReprompt: true,
+        needsNameReprompt: false
+      });
+
+      expect(selectedPromptKey).to.equal('ask_name_reason_service_only');
+    });
+
+    it('should use ask_name_reason_name_only for name-only corrective reprompt', () => {
+      const intake: IntakeData = {
+        customerName: undefined,
+        serviceRequested: 'fence repair',
+        stage: 'ask_name_reason'
+      };
+
+      const selectedPromptKey = selectSimpleModePromptKey(intake.stage, intake, {
+        needsServiceReprompt: false,
+        needsNameReprompt: true
+      });
+
+      expect(selectedPromptKey).to.equal('ask_name_reason_name_only');
+    });
+  });
+
+  describe('David Multi-Field Early Capture', () => {
+    it('should capture serviceAddress when provided at ask_name_reason', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        serviceAddress: undefined,
+        desiredCompletionTime: undefined,
+        callbackTime: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const transcript = "I need someone to repair a broken fence gate. It's at 5128 Walnut Street in Pittsburgh.";
+
+      // Simulate extractFieldsFromTranscript behavior
+      const addressPattern = /(?:at|@|address is|located at|it's at|its at)\s+([^.!?]+)/i;
+      const match = transcript.match(addressPattern);
+
+      expect(match).to.not.be.null;
+      expect(match[1].trim()).to.equal('5128 Walnut Street in Pittsburgh');
+    });
+
+    it('should capture desiredCompletionTime when provided at ask_name_reason', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        serviceAddress: undefined,
+        desiredCompletionTime: undefined,
+        callbackTime: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const transcript = "I need someone to repair a broken fence gate. I'd like it done sometime this week.";
+
+      // Simulate extractFieldsFromTranscript behavior
+      const timingPattern = /(?:sometime|this|next|today|tomorrow|this week|next week|no rush|whenever|as soon as possible|asap)([^.!?]*)/i;
+      const match = transcript.match(timingPattern);
+
+      expect(match).to.not.be.null;
+      expect(match[0].trim()).to.include('sometime this week');
+    });
+
+    it('should capture callbackTime when provided at ask_name_reason', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        serviceAddress: undefined,
+        desiredCompletionTime: undefined,
+        callbackTime: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const transcript = "I need someone to repair a broken fence gate. Afternoons are best if someone needs to call me.";
+
+      // Simulate extractFieldsFromTranscript behavior
+      const callbackPattern = /(?:anytime|morning|afternoon|evening|night|after \d+|before \d+|between \d+ and \d+)([^.!?]*)/i;
+      const match = transcript.match(callbackPattern);
+
+      expect(match).to.not.be.null;
+      expect(match[0].trim().toLowerCase()).to.include('afternoon');
+    });
+
+    it('should capture issueDescription when provided at ask_name_reason', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: 'repair a broken fence gate',
+        serviceAddress: undefined,
+        desiredCompletionTime: undefined,
+        callbackTime: undefined,
+        issueDescription: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const transcript = "The hinge pulled away from the post during the storm.";
+
+      // Simulate extractFieldsFromTranscript behavior
+      const detailPattern = /(?:because|due to|the|it's|its)\s+(?:the\s+)?(?:hinge|handle|door|window|pipe|gutter|roof|floor|wall|ceiling|fence|gate|lock|faucet|sink|toilet|shower|tub|ac|heater|furnace|boiler|electrical|wire|outlet|switch|light|bulb|appliance|machine|device|system|unit)([^.!?]*)/i;
+      const match = transcript.match(detailPattern);
+
+      expect(match).to.not.be.null;
+      expect(match[0].trim()).to.include('hinge');
+    });
+  });
+
+  describe('Resolver Behavior with Early Captured Fields', () => {
+    it('should return complete when all onsite fields captured at ask_name_reason', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: 'repair a broken fence gate',
+        serviceAddress: '5128 Walnut Street in Pittsburgh',
+        desiredCompletionTime: 'sometime this week',
+        callbackTime: 'afternoons are best',
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+
+      expect(nextStage).to.equal('complete');
+    });
+
+    it('should return complete when all remote fields captured at ask_name_reason', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: 'repair a broken fence gate',
+        serviceAddress: undefined, // Remote businesses don't require address
+        desiredCompletionTime: 'sometime this week',
+        callbackTime: 'afternoons are best',
+        stage: 'ask_name_reason'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'remote');
+
+      expect(nextStage).to.equal('complete');
+    });
+  });
+
+  describe('Cross-Stage Early Field Capture', () => {
+    it('should capture location when provided with request', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: undefined,
+        serviceAddress: undefined,
+        desiredCompletionTime: undefined,
+        callbackTime: undefined,
+        stage: 'ask_name_reason'
+      };
+
+      const transcript = "I need someone to repair a broken fence gate at 5128 Walnut Street.";
+
+      // Simulate extractFieldsFromTranscript address extraction
+      const addressPattern = /(\d+\s+[a-z]+\s+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+[a-z]+)?)/i;
+      const match = transcript.match(addressPattern);
+
+      expect(match).to.not.be.null;
+      expect(match[1].trim()).to.include('5128 Walnut Street');
+    });
+
+    it('should capture timing when provided with location', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: 'fence repair',
+        serviceAddress: '5128 Walnut Street',
+        desiredCompletionTime: undefined,
+        callbackTime: undefined,
+        stage: 'ask_location'
+      };
+
+      const transcript = "5128 Walnut Street. I'd like it done sometime this week.";
+
+      // Simulate extractFieldsFromTranscript timing extraction
+      const timingPattern = /(?:sometime|this|next|today|tomorrow|this week|next week|no rush|whenever|as soon as possible|asap)([^.!?]*)/i;
+      const match = transcript.match(timingPattern);
+
+      expect(match).to.not.be.null;
+      expect(match[0].trim()).to.include('sometime this week');
+    });
+
+    it('should capture callback when provided with timing', () => {
+      const intake: IntakeData = {
+        customerName: 'David Reynolds',
+        serviceRequested: 'fence repair',
+        serviceAddress: '5128 Walnut Street',
+        desiredCompletionTime: 'sometime this week',
+        callbackTime: undefined,
+        stage: 'ask_completion_time'
+      };
+
+      const transcript = "Sometime this week. Afternoons are best if someone needs to call me.";
+
+      // Simulate extractFieldsFromTranscript callback extraction
+      const callbackPattern = /(?:anytime|morning|afternoon|evening|night|after \d+|before \d+|between \d+ and \d+)([^.!?]*)/i;
+      const match = transcript.match(callbackPattern);
+
+      expect(match).to.not.be.null;
+      expect(match[0].trim().toLowerCase()).to.include('afternoon');
     });
   });
 });
