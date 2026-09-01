@@ -11,6 +11,7 @@ import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { PremiumTooltip, CHART_STYLES, formatInteger, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative } from '@/lib/business-date-utils'
+import { normalizePaymentStatus, PAYMENT_STATUS_STYLES } from '@/lib/payment-status'
 
 interface PaymentStatusData {
   name: string
@@ -18,23 +19,13 @@ interface PaymentStatusData {
   color: string
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  draft: '#94A3B8',
-  pending: '#F59E0B',
-  paid: '#10B981',
-  failed: '#EF4444',
-  cancelled: '#94A3B8',
-  expired: '#F97316'
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Draft',
-  pending: 'Pending',
-  paid: 'Paid',
-  failed: 'Failed',
-  cancelled: 'Cancelled',
-  expired: 'Expired'
-}
+// Use canonical payment status configuration from payment-status.ts
+const STATUS_COLORS: Record<string, string> = Object.fromEntries(
+  Object.entries(PAYMENT_STATUS_STYLES).map(([status, style]) => [status, style.color])
+)
+const STATUS_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(PAYMENT_STATUS_STYLES).map(([status, style]) => [status, style.label])
+)
 
 export default function PaymentCollectionGraph() {
   const { business } = useBusiness()
@@ -67,11 +58,11 @@ export default function PaymentCollectionGraph() {
 
         if (!isMounted) return
 
-        // Count by status
+        // Count by status using canonical normalization
         const statusCounts: { [key: string]: number } = {}
         payments?.forEach((payment: any) => {
-          const status = payment.status || 'pending'
-          statusCounts[status] = (statusCounts[status] || 0) + 1
+          const canonicalStatus = normalizePaymentStatus(payment.status)
+          statusCounts[canonicalStatus] = (statusCounts[canonicalStatus] || 0) + 1
         })
 
         // Convert to array for chart with business-logical ordering
@@ -86,7 +77,9 @@ export default function PaymentCollectionGraph() {
           }
         }).filter((item): item is PaymentStatusData => item !== null)
 
-        if (isMounted) setData(chartData)
+        if (isMounted) {
+          setData(chartData)
+        }
       } catch (error) {
         if (isMounted) console.error('[PaymentCollectionGraph] Error fetching data:', error)
       } finally {
@@ -148,7 +141,7 @@ export default function PaymentCollectionGraph() {
             description="Send payment requests to customers to track collection status."
           />
         ) : (
-          <div className="h-[260px]">
+          <div className="h-[260px] w-full">
             <ChartTouchWrapper>
               <div onClick={() => setSelectedIndex(null)}>
                 <ResponsiveContainer width="100%" height="100%">
