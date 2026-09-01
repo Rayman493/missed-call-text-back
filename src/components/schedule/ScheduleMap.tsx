@@ -2284,13 +2284,16 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         </div>
       </div>
       ) : (
-        <div className="hidden md:flex mb-1 z-10 relative">
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="hidden md:flex mb-1 z-10 items-center gap-3">
+          {/* No mapped stops - Left side */}
+          <div className="flex-1">
             <p className="text-xs text-slate-500 dark:text-slate-400">
               No mapped stops
             </p>
           </div>
-          <div className="flex-shrink-0 flex items-center gap-2 flex-wrap px-1 ml-auto">
+
+          {/* Filter - Right side, flex-shrink-0 */}
+          <div className="flex-shrink-0 flex items-center gap-2 flex-wrap px-1">
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
               <button
                 onClick={() => { setMapFilter('all') }}
@@ -2327,111 +2330,148 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         </div>
       )}
 
-      {/* Mobile: Stop preview row */}
+      {/* Mobile: Combined row with stop preview on left and filter on right */}
       <div className="md:hidden mb-1 z-10">
         {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
-          <div className="flex gap-2 overflow-x-auto items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {sortedItems.filter(item => item.type !== 'business').map((item, index) => (
-              <button
-                key={item.id}
-                ref={selectedMapItemId === item.id ? (el: any) => {
-                  if (el) {
-                    setTimeout(() => {
-                      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
-                    }, 100)
-                  }
-                } : null}
-                onClick={() => selectMapItem(item.id, item.latitude, item.longitude)}
-                className={`flex-shrink-0 snap-start px-2 md:px-3 py-2 rounded-lg border transition-colors min-w-[120px] md:min-w-[140px] max-w-[160px] ${
-                  selectedMapItemId === item.id
-                    ? 'bg-blue-50 dark:bg-blue-900/25 border-blue-300 dark:border-blue-700 ring-2 ring-blue-200 dark:ring-blue-800/50 shadow-sm'
-                    : item.type === 'business'
-                      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/30'
-                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  {item.type === 'business' ? (
-                    <div className="w-5 h-5 md:w-6 md:h-6 rounded flex items-center justify-center text-[10px] md:text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex-shrink-0">
-                      🏠
+          <div className="flex items-center gap-2">
+            {/* Stop preview - Left side, takes available space */}
+            <div className="flex-1 min-w-0">
+              <div className="flex gap-2 overflow-x-auto items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                {sortedItems.filter(item => item.type !== 'business').map((item, index) => (
+                  <button
+                    key={item.id}
+                    ref={selectedMapItemId === item.id ? (el: any) => {
+                      if (el) {
+                        setTimeout(() => {
+                          el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+                        }, 100)
+                      }
+                    } : null}
+                    onClick={() => selectMapItem(item.id, item.latitude, item.longitude)}
+                    className={`flex-shrink-0 snap-start px-2 py-2 rounded-lg border transition-colors min-w-[120px] max-w-[160px] ${
+                      selectedMapItemId === item.id
+                        ? 'bg-blue-50 dark:bg-blue-900/25 border-blue-300 dark:border-blue-700 ring-2 ring-blue-200 dark:ring-blue-800/50 shadow-sm'
+                        : item.type === 'business'
+                          ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/30'
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {item.type === 'business' ? (
+                        <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex-shrink-0">
+                          🏠
+                        </div>
+                      ) : (
+                        <div className={`w-5 h-5 rounded flex items-center justify-center font-bold text-[10px] flex-shrink-0 ${
+                          item.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                        }`}>
+                          {item.stopNumber}
+                        </div>
+                      )}
+                      <div className="text-left min-w-0 flex-1">
+                        {item.type === 'business' ? (
+                          <>
+                            <p className="text-[10px] font-medium text-foreground truncate">
+                              {item.title}
+                            </p>
+                            <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate">
+                              Home Base
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-[10px] font-medium text-foreground truncate">
+                              {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime) || item.title}
+                            </p>
+                            <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate">
+                              {item.type === 'job' ? 'Job' : 'Appointment'}
+                            </p>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <div className={`w-5 h-5 md:w-6 md:h-6 rounded flex items-center justify-center font-bold text-[10px] md:text-xs flex-shrink-0 ${
-                      item.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                    }`}>
-                      {item.stopNumber}
-                    </div>
-                  )}
-                  <div className="text-left min-w-0 flex-1">
-                    {item.type === 'business' ? (
-                      <>
-                        <p className="text-[10px] md:text-xs font-medium text-foreground truncate">
-                          {item.title}
-                        </p>
-                        <p className="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                          Home Base
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-[10px] md:text-xs font-medium text-foreground truncate">
-                          {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime) || item.title}
-                        </p>
-                        <p className="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                          {item.type === 'job' ? 'Job' : 'Appointment'}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </button>
-            ))}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Filter - Right side, flex-shrink-0 */}
+            <div className="flex-shrink-0">
+              <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+                <button
+                  onClick={() => { setMapFilter('all') }}
+                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
+                    mapFilter === 'all'
+                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => { setMapFilter('jobs') }}
+                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
+                    mapFilter === 'jobs'
+                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  Jobs
+                </button>
+                <button
+                  onClick={() => { setMapFilter('appointments') }}
+                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
+                    mapFilter === 'appointments'
+                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  Appts
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center px-4">
+          <div className="flex items-center justify-between gap-2">
             <p className="text-xs text-slate-500 dark:text-slate-400">
               No mapped stops
             </p>
+            <div className="flex-shrink-0">
+              <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+                <button
+                  onClick={() => { setMapFilter('all') }}
+                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
+                    mapFilter === 'all'
+                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => { setMapFilter('jobs') }}
+                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
+                    mapFilter === 'jobs'
+                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  Jobs
+                </button>
+                <button
+                  onClick={() => { setMapFilter('appointments') }}
+                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
+                    mapFilter === 'appointments'
+                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  Appts
+                </button>
+              </div>
+            </div>
           </div>
         )}
-      </div>
-
-      {/* Mobile: Filter row below stop previews */}
-      <div className="md:hidden mb-1 z-10">
-        <div className="flex items-center justify-end gap-1.5 flex-wrap px-1">
-          <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
-            <button
-              onClick={() => { setMapFilter('all') }}
-              className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
-                mapFilter === 'all'
-                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => { setMapFilter('jobs') }}
-              className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
-                mapFilter === 'jobs'
-                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-              }`}
-            >
-              Jobs
-            </button>
-            <button
-              onClick={() => { setMapFilter('appointments') }}
-              className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
-                mapFilter === 'appointments'
-                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-              }`}
-            >
-              Appts
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Map Container - Use fixed height on mobile to prevent extending behind bottom nav */}
