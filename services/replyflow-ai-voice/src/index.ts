@@ -77,6 +77,7 @@ import {
   getSettleWindowMs,
   requiresSettleWindow,
 } from './lib/timing-policy';
+import { extractRawRequestTranscriptFromStageCaptures } from './request-transcript-selection';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -4679,7 +4680,8 @@ async function buildCanonicalExtractedInfo(
   fields: any,
   callerPhone?: string,
   serviceLocationType?: string,
-  callSid?: string
+  callSid?: string,
+  rawRequestTranscript?: string | null
 ): Promise<{
   customerName: string
   customerPhone: string
@@ -4755,7 +4757,10 @@ async function buildCanonicalExtractedInfo(
   console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
 
   // Extract the full request text (may contain both request and details in Simple Mode)
-  const rawRequestText = fields.serviceRequested || fields.request || fields.issueDescription || '';
+  // Prefer raw request transcript when available for richer semantic extraction
+  const rawRequestText = rawRequestTranscript && rawRequestTranscript.trim() !== ''
+    ? rawRequestTranscript
+    : (fields.serviceRequested || fields.request || fields.issueDescription || '');
 
   // Extract separate importantDetails if provided (canonical field name)
   const rawImportantDetails = fields.additionalDetails || fields.importantDetails || '';
@@ -8273,7 +8278,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       return;
     }
 
-    const canonicalExtractedInfo = await buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '', state.serviceLocationType, state.callSid);
+    const rawRequestTranscript = extractRawRequestTranscriptFromStageCaptures(state.stageCaptures);
+    const canonicalExtractedInfo = await buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '', state.serviceLocationType, state.callSid, rawRequestTranscript);
     const extractedInfoKeys = Object.keys(canonicalExtractedInfo).filter(k => canonicalExtractedInfo[k as keyof typeof canonicalExtractedInfo]);
 
     console.log('[PARTIAL INTAKE PERSIST] =========================================');
@@ -9521,7 +9527,8 @@ Reply to this message if you'd like to update or add any information.
       // Create lead and conversation using caller phone (not callSid)
       // Include canonical AI intake metadata in the upsert so the lead is useful
       // even if the ai_call_record insert fails.
-      const canonicalExtractedInfo = await buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '', state.serviceLocationType, state.callSid);
+      const rawRequestTranscript = extractRawRequestTranscriptFromStageCaptures(state.stageCaptures);
+      const canonicalExtractedInfo = await buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '', state.serviceLocationType, state.callSid, rawRequestTranscript);
 
       console.log('[AI INTAKE FINAL EXTRACTION AUDIT] =========================================');
       console.log('[AI INTAKE FINAL EXTRACTION AUDIT] stageCaptures:', JSON.stringify(state.stageCaptures, null, 2));
@@ -14345,7 +14352,11 @@ Return only JSON, no other text.`;
         console.log('[CUSTOMER NAME BEFORE LEAD UPDATE] Timestamp:', new Date().toISOString());
         console.log('[CUSTOMER NAME BEFORE LEAD UPDATE] =========================================');
 
-        const canonicalExtractedInfo = await buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone, (ws as any).callSessionState?.serviceLocationType, sessionCallSid);
+        // Extract raw request transcript from the session state if available
+        const sessionRawRequestTranscript = (ws as any).callSessionState?.stageCaptures
+          ? extractRawRequestTranscriptFromStageCaptures((ws as any).callSessionState.stageCaptures)
+          : null;
+        const canonicalExtractedInfo = await buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone, (ws as any).callSessionState?.serviceLocationType, sessionCallSid, sessionRawRequestTranscript);
 
         // Prefer the lead/conversation IDs pre-created by the voice route.
         const baselineLeadId = (ws as any).leadId || null;
@@ -14527,7 +14538,10 @@ Return only JSON, no other text.`;
           outcome = 'early_hangup';
         }
 
-        const canonicalCallRecordInfo = await buildCanonicalExtractedInfo(normalizedFields, sessionCallerPhone, serviceLocationMode, sessionCallSid);
+        const earlyHangupRawRequestTranscript = (ws as any).callSessionState?.stageCaptures
+          ? extractRawRequestTranscriptFromStageCaptures((ws as any).callSessionState.stageCaptures)
+          : null;
+        const canonicalCallRecordInfo = await buildCanonicalExtractedInfo(normalizedFields, sessionCallerPhone, serviceLocationMode, sessionCallSid, earlyHangupRawRequestTranscript);
         const mainInsertPayload = {
             business_id: sessionBusinessId,
             lead_id: lead.id,
@@ -18674,7 +18688,7 @@ Return only JSON, no other text.`;
                   // Update existing AI call record
                   const updatePayload = {
                       transcript: transcript,
-                      extracted_info: await buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone, (ws as any).callSessionState?.serviceLocationType, sessionCallSid),
+                      extracted_info: await buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone, (ws as any).callSessionState?.serviceLocationType, sessionCallSid, extractRawRequestTranscriptFromStageCaptures((ws as any).callSessionState?.stageCaptures)),
                       summary: extractedFields.summary,
                       extraction_failed: false,
                       updated_at: new Date().toISOString()
@@ -18846,7 +18860,7 @@ Return only JSON, no other text.`;
                     ai_session_id: sessionSessionId,
                     transcript: Array.isArray(transcript) ? transcript : [],
                     outcome: 'completed',
-                    extracted_info: await buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone, (ws as any).callSessionState?.serviceLocationType, sessionCallSid),
+                    extracted_info: await buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone, (ws as any).callSessionState?.serviceLocationType, sessionCallSid, extractRawRequestTranscriptFromStageCaptures((ws as any).callSessionState?.stageCaptures)),
                     summary: extractedFields.summary,
                     extraction_failed: false
                   };
