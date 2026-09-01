@@ -249,7 +249,7 @@ export default function CalendarGrid({
         </div>
 
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-1.5">
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-1.5" style={{ gridAutoRows: '1fr' }}>
         {days.map((dayInfo, index) => {
           const dayEvents = getEventsForDay(dayInfo.day, dayInfo.isCurrentMonth)
           const dayDate = dayInfo.isCurrentMonth ? new Date(year, monthIndex, dayInfo.day) : null

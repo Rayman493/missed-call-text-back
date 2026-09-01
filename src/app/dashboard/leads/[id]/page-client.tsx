@@ -382,6 +382,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [showInternalNotesModal, setShowInternalNotesModal] = useState(false)
   const [internalNotesValue, setInternalNotesValue] = useState('')
   const [triggerEditCustomerDetails, setTriggerEditCustomerDetails] = useState(false)
+  const [scrollPositionBeforeNotesModal, setScrollPositionBeforeNotesModal] = useState<number | null>(null)
 
   // Handle Android back button for Internal Notes modal
   useModalBackButton({ isOpen: showInternalNotesModal, onClose: () => {
@@ -3283,6 +3284,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <button
               type="button"
               onClick={() => {
+                setScrollPositionBeforeNotesModal(window.pageYOffset)
                 setInternalNotesValue(leadData?.notes || '')
                 setShowInternalNotesModal(true)
               }}
@@ -3894,6 +3896,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={() => {
+                            setScrollPositionBeforeNotesModal(window.pageYOffset)
                             setInternalNotesValue(leadData?.notes || '')
                             setShowInternalNotesModal(true)
                           }}
@@ -4089,6 +4092,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   type="button"
                   onClick={() => {
+                    setScrollPositionBeforeNotesModal(window.pageYOffset)
                     setInternalNotesValue(leadData?.notes || '')
                     setShowInternalNotesModal(true)
                   }}
@@ -4488,6 +4492,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <button
                             type="button"
                             onClick={() => {
+                              setScrollPositionBeforeNotesModal(window.pageYOffset)
                               setInternalNotesValue(leadData?.notes || '')
                               setShowInternalNotesModal(true)
                             }}
@@ -5003,6 +5008,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
               <button
                 onClick={() => {
+                  setScrollPositionBeforeNotesModal(window.pageYOffset)
                   setInternalNotesValue(leadData?.notes || '')
                   setShowInternalNotesModal(true)
                 }}
@@ -5226,6 +5232,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         onClose={() => {
           setShowInternalNotesModal(false)
           setInternalNotesValue('')
+          // Restore scroll position
+          if (scrollPositionBeforeNotesModal !== null) {
+            requestAnimationFrame(() => {
+              window.scrollTo(0, scrollPositionBeforeNotesModal)
+              setScrollPositionBeforeNotesModal(null)
+            })
+          }
         }}
         title={internalNotesValue?.trim() ? 'Edit Internal Notes' : 'Add Internal Notes'}
         footer={
@@ -5234,6 +5247,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               onClick={() => {
                 setShowInternalNotesModal(false)
                 setInternalNotesValue('')
+                // Restore scroll position
+                if (scrollPositionBeforeNotesModal !== null) {
+                  requestAnimationFrame(() => {
+                    window.scrollTo(0, scrollPositionBeforeNotesModal)
+                    setScrollPositionBeforeNotesModal(null)
+                  })
+                }
               }}
               className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -5264,6 +5284,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     const updatedData = await getLeadDetails(params.id)
                     if (updatedData?.ok && updatedData.lead) {
                       setLeadData({ ...updatedData.lead, messages: updatedData.lead.messages || updatedData.messages || [] })
+                    }
+                    // Restore scroll position
+                    if (scrollPositionBeforeNotesModal !== null) {
+                      requestAnimationFrame(() => {
+                        window.scrollTo(0, scrollPositionBeforeNotesModal)
+                        setScrollPositionBeforeNotesModal(null)
+                      })
                     }
                   } else {
                     const errorData = await response.json()

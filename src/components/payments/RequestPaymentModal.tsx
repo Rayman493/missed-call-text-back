@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -54,6 +54,17 @@ export default function RequestPaymentModal({
   const [leads, setLeads] = useState<Lead[]>([])
   const [isLoadingLeads, setIsLoadingLeads] = useState(false)
   const [leadsError, setLeadsError] = useState<string | null>(null)
+  const amountInputRef = useRef<HTMLInputElement>(null)
+
+  // Prevent initial focus on amount input when modal opens
+  useEffect(() => {
+    if (isOpen && amountInputRef.current) {
+      // Use setTimeout to ensure this runs after any browser autofocus
+      setTimeout(() => {
+        amountInputRef.current?.blur()
+      }, 0)
+    }
+  }, [isOpen])
 
   // Handle Android back button
   useModalBackButton({ isOpen, onClose })
@@ -477,6 +488,7 @@ export default function RequestPaymentModal({
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
               <input
+                ref={amountInputRef}
                 type="number"
                 inputMode="decimal"
                 value={paymentAmount}

@@ -101,7 +101,7 @@ export default function CalendarDayCell({
           {day}
         </span>
       </div>
-      <div className="w-full flex flex-col gap-0.5">
+      <div className="w-full flex flex-col gap-0.5 min-h-0">
         {visibleEvents.map((event, index) => (
           <div
             key={`${event.id}-${index}`}

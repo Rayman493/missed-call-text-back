@@ -52,6 +52,7 @@ import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
 import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, RefreshCw, ChevronDown, ChevronUp, ShieldCheck, Phone } from 'lucide-react'
 import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 import ConfirmModal from '@/components/ui/ConfirmModal'
+import Modal from '@/components/ui/Modal'
 import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import Input from '@/components/ui/Input'
@@ -646,7 +647,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
   const supabase = createBrowserClient()
 
-  useBodyScrollLock(showAddModal || showDeleteModal || showChangePasswordModal || showChangeEmailModal, 'settings-modal')
+  useBodyScrollLock(showAddModal || showDeleteModal || showChangeEmailModal, 'settings-modal')
 
   // Time input refs for better UX
   const openTimeInputRef = useRef<HTMLInputElement>(null)
@@ -3344,7 +3345,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             </select>
                           </div>
                           <div className="grid grid-cols-2 gap-4 sm:grid-cols-2">
-                            <div>
+                            <div className="min-w-0">
                               <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
                                 Open Time
                               </label>
@@ -3366,7 +3367,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                 />
                               </div>
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
                                 Close Time
                               </label>
@@ -3616,7 +3617,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                         {/* Out of Office Settings */}
                         <div className="space-y-5">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
+                            <div className="min-w-0">
                               <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
                                 Start Date & Time
                               </label>
@@ -3627,7 +3628,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                 className="w-full px-3 py-2 text-base sm:text-sm border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground"
                               />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
                                 End Date & Time
                               </label>
@@ -5269,170 +5270,171 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
           )}
 
           {/* Change Password Modal */}
-          {showChangePasswordModal && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-md w-full">
-                <div className="p-6 border-b border-slate-200/70 dark:border-slate-700/50">
-                  <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">
-                    Change Password
-                  </h3>
+          <Modal
+            isOpen={showChangePasswordModal}
+            onClose={() => {
+              setShowChangePasswordModal(false)
+              setCurrentPassword('')
+              setNewPassword('')
+              setConfirmNewPassword('')
+              setPasswordError('')
+            }}
+            title="Change Password"
+            footer={
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowChangePasswordModal(false)
+                    setCurrentPassword('')
+                    setNewPassword('')
+                    setConfirmNewPassword('')
+                    setPasswordError('')
+                  }}
+                  disabled={isChangingPassword}
+                  className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleChangePassword}
+                  disabled={isChangingPassword || !currentPassword.trim() || !newPassword.trim() || !confirmNewPassword.trim()}
+                  className="h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                >
+                  {isChangingPassword ? (
+                    <>
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
+                      Changing...
+                    </>
+                  ) : (
+                    'Change Password'
+                  )}
+                </button>
+              </div>
+            }
+          >
+            <div className="space-y-5">
+              {passwordError && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg">
+                  <p className="text-xs text-red-600 dark:text-red-400">{passwordError}</p>
                 </div>
-                
-                {passwordError && (
-                  <div className="px-6 py-3 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800/50">
-                    <p className="text-xs text-red-600 dark:text-red-400">{passwordError}</p>
-                  </div>
-                )}
+              )}
 
-                <div className="p-6 space-y-5">
-                  {/* Current Password */}
-                  <div>
-                    <label htmlFor="currentPassword" className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-                      Current Password
-                    </label>
-                    <div className="relative">
-                      <PasswordInput
-                        ref={currentPasswordRef}
-                        id="currentPassword"
-                        name="currentPassword"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        required
-                        autoComplete="current-password"
-                        placeholder="Enter current password"
-                        disabled={isChangingPassword}
-                        className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground text-sm"
-                      />
-                    </div>
-                  </div>
+              {/* Current Password */}
+              <div>
+                <label htmlFor="currentPassword" className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                  Current Password
+                </label>
+                <div className="relative">
+                  <PasswordInput
+                    ref={currentPasswordRef}
+                    id="currentPassword"
+                    name="currentPassword"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    placeholder="Enter current password"
+                    disabled={isChangingPassword}
+                    className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground text-sm"
+                  />
+                </div>
+              </div>
 
-                  {/* New Password */}
-                  <div>
-                    <label htmlFor="newPassword" className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-                      New Password
-                    </label>
-                    <div className="relative">
-                      <PasswordInput
-                        ref={newPasswordRef}
-                        id="newPassword"
-                        name="newPassword"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        required
-                        autoComplete="new-password"
-                        placeholder="Enter new password"
-                        disabled={isChangingPassword}
-                        className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground text-sm"
-                      />
+              {/* New Password */}
+              <div>
+                <label htmlFor="newPassword" className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                  New Password
+                </label>
+                <div className="relative">
+                  <PasswordInput
+                    ref={newPasswordRef}
+                    id="newPassword"
+                    name="newPassword"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    autoComplete="new-password"
+                    placeholder="Enter new password"
+                    disabled={isChangingPassword}
+                    className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground text-sm"
+                  />
+                </div>
+
+                {/* Password Strength Indicator */}
+                {newPassword && (
+                  <div className="mt-2 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-300 ${
+                            newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword) && /[0-9]/.test(newPassword)
+                              ? 'bg-green-500'
+                              : newPassword.length >= 8 && (/[A-Z]/.test(newPassword) || /[a-z]/.test(newPassword) || /[0-9]/.test(newPassword))
+                              ? 'bg-amber-500'
+                              : 'bg-red-500'
+                          }`}
+                          style={{
+                            width: `${Math.min(100, (newPassword.length / 8) * 25 +
+                              (/[A-Z]/.test(newPassword) ? 25 : 0) +
+                              (/[a-z]/.test(newPassword) ? 25 : 0) +
+                              (/[0-9]/.test(newPassword) ? 25 : 0))}%`
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                        {newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword) && /[0-9]/.test(newPassword)
+                          ? 'Strong'
+                          : newPassword.length >= 8 && (/[A-Z]/.test(newPassword) || /[a-z]/.test(newPassword) || /[0-9]/.test(newPassword))
+                          ? 'Fair'
+                          : 'Weak'}
+                      </span>
                     </div>
                     
-                    {/* Password Strength Indicator */}
-                    {newPassword && (
-                      <div className="mt-2 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full transition-all duration-300 ${
-                                newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword) && /[0-9]/.test(newPassword)
-                                  ? 'bg-green-500'
-                                  : newPassword.length >= 8 && (/[A-Z]/.test(newPassword) || /[a-z]/.test(newPassword) || /[0-9]/.test(newPassword))
-                                  ? 'bg-amber-500'
-                                  : 'bg-red-500'
-                              }`}
-                              style={{
-                                width: `${Math.min(100, (newPassword.length / 8) * 25 + 
-                                  (/[A-Z]/.test(newPassword) ? 25 : 0) + 
-                                  (/[a-z]/.test(newPassword) ? 25 : 0) + 
-                                  (/[0-9]/.test(newPassword) ? 25 : 0))}%`
-                              }}
-                            />
-                          </div>
-                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                            {newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword) && /[0-9]/.test(newPassword)
-                              ? 'Strong'
-                              : newPassword.length >= 8 && (/[A-Z]/.test(newPassword) || /[a-z]/.test(newPassword) || /[0-9]/.test(newPassword))
-                              ? 'Fair'
-                              : 'Weak'}
-                          </span>
-                        </div>
-                        
-                        {/* Individual Requirements */}
-                        <div className="grid grid-cols-2 gap-1 text-xs">
-                          <div className={`flex items-center gap-1 ${newPassword.length >= 8 ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                            {newPassword.length >= 8 ? <CheckCircle className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-slate-400 dark:border-slate-600" />}
-                            8 characters
-                          </div>
-                          <div className={`flex items-center gap-1 ${/[A-Z]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                            {/[A-Z]/.test(newPassword) ? <CheckCircle className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-slate-400 dark:border-slate-600" />}
-                            Uppercase
-                          </div>
-                          <div className={`flex items-center gap-1 ${/[a-z]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                            {/[a-z]/.test(newPassword) ? <CheckCircle className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-slate-400 dark:border-slate-600" />}
-                            Lowercase
-                          </div>
-                          <div className={`flex items-center gap-1 ${/[0-9]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                            {/[0-9]/.test(newPassword) ? <CheckCircle className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-slate-400 dark:border-slate-600" />}
-                            Number
-                          </div>
-                        </div>
+                    {/* Individual Requirements */}
+                    <div className="grid grid-cols-2 gap-1 text-xs">
+                      <div className={`flex items-center gap-1 ${newPassword.length >= 8 ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                        {newPassword.length >= 8 ? <CheckCircle className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-slate-400 dark:border-slate-600" />}
+                        8 characters
                       </div>
-                    )}
-                  </div>
-
-                  {/* Confirm New Password */}
-                  <div>
-                    <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-                      Confirm New Password
-                    </label>
-                    <div className="relative">
-                      <PasswordInput
-                        ref={confirmPasswordRef}
-                        id="confirmNewPassword"
-                        name="confirmNewPassword"
-                        value={confirmNewPassword}
-                        onChange={(e) => setConfirmNewPassword(e.target.value)}
-                        required
-                        autoComplete="new-password"
-                        placeholder="Confirm new password"
-                        disabled={isChangingPassword}
-                        className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground text-sm"
-                      />
+                      <div className={`flex items-center gap-1 ${/[A-Z]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                        {/[A-Z]/.test(newPassword) ? <CheckCircle className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-slate-400 dark:border-slate-600" />}
+                        Uppercase
+                      </div>
+                      <div className={`flex items-center gap-1 ${/[a-z]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                        {/[a-z]/.test(newPassword) ? <CheckCircle className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-slate-400 dark:border-slate-600" />}
+                        Lowercase
+                      </div>
+                      <div className={`flex items-center gap-1 ${/[0-9]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                        {/[0-9]/.test(newPassword) ? <CheckCircle className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-slate-400 dark:border-slate-600" />}
+                        Number
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
+              </div>
 
-                <div className="flex justify-end gap-3 p-4 border-t border-slate-200/70 dark:border-slate-700/50">
-                  <button
-                    onClick={() => {
-                      setShowChangePasswordModal(false)
-                      setCurrentPassword('')
-                      setNewPassword('')
-                      setConfirmNewPassword('')
-                      setPasswordError('')
-                    }}
+              {/* Confirm New Password */}
+              <div>
+                <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <PasswordInput
+                    ref={confirmPasswordRef}
+                    id="confirmNewPassword"
+                    name="confirmNewPassword"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    required
+                    autoComplete="new-password"
+                    placeholder="Confirm new password"
                     disabled={isChangingPassword}
-                    className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleChangePassword}
-                    disabled={isChangingPassword || !currentPassword.trim() || !newPassword.trim() || !confirmNewPassword.trim()}
-                    className="h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                  >
-                    {isChangingPassword ? (
-                      <>
-                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
-                        Changing...
-                      </>
-                    ) : (
-                      'Change Password'
-                    )}
-                  </button>
+                    className="h-12 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground text-sm"
+                  />
                 </div>
               </div>
             </div>
-          )}
+          </Modal>
 
           {/* Change Email Modal */}
           {showChangeEmailModal && (

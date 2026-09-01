@@ -10,6 +10,7 @@ import { normalizeAICallRecord, getHistoryCardTitle, getOutcomeColor as getRecor
 import { normalizeCustomerName, normalizeServiceReason, normalizeAdditionalDetails, normalizeAddress, normalizeTiming, generateCanonicalRequestTitle } from '@/lib/ai-intake-formatter'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { getProvenanceLabel } from '@/lib/customer-source'
+import { normalizeBusinessTimezone } from '@/lib/business-date-utils'
 
 interface AICallRecord {
   id: string
@@ -989,17 +990,23 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                           <p className="leading-relaxed whitespace-pre-wrap break-words">
                             {turn.content}
                           </p>
+                          {turn.timestamp && (
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              {(() => {
+                                const businessTimezone = business?.business_hours_timezone || 'UTC'
+                                const normalizedTimezone = normalizeBusinessTimezone(businessTimezone)
+                                const date = new Date(turn.timestamp)
+                                return date.toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                  hour12: true,
+                                  timeZone: normalizedTimezone
+                                })
+                              })()}
+                            </p>
+                          )}
                         </div>
                       </div>
-                      {turn.timestamp && (
-                        <p className={`text-[10px] text-muted-foreground mt-0.5 ${isAI ? 'text-left' : 'text-right'}`}>
-                          {new Date(turn.timestamp).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
-                          })}
-                        </p>
-                      )}
                     </div>
                     )
                   })
