@@ -10,7 +10,7 @@
  */
 export const EARLY_COMPLETION_PATTERNS = [
   /(?:i'd like|i would like|i want|i need)\s+(?:it\s+)?(?:done|completed|finished)\s+(?:by|on|in|sometime|this|next|today|tomorrow|this week|next week|no rush|whenever|as soon as possible|asap)([^.!?]*)/i,
-  /(?:i'd like|i would like|i want|i need)\s+(?:someone\s+)?(?:out|here)\s+(?:by|on|in|sometime|this|next|today|tomorrow|this week|next week|monday|tuesday|wednesday|thursday|friday)([^.!?]*)/i,
+  /(?:i'd like|i would like|i want|i need)\s+(?:someone|somebody)\s+(?:to come\s+)?(?:out|here)\s+(?:by|on|in|sometime|this|next|today|tomorrow|this week|next week|monday|tuesday|wednesday|thursday|friday)([^.!?]*)/i,
   /(?:can you|could you)\s+(?:come|get here|make it)\s+(?:by|on|in|sometime|this|next|today|tomorrow|this week|next week)([^.!?]*)/i,
   /(?:hopefully|maybe)\s+(?:sometime|this|next|today|tomorrow|this week|next week)([^.!?]*)/i,
   /(?:no rush|whenever|as soon as possible|asap)([^.!?]*)/i,

@@ -270,6 +270,83 @@ describe('Early Completion/Callback Extraction Confidence', () => {
       }
       console.log('[PASS] "I\'m available anytime after lunch" extracted');
     });
+
+    // ROBERT COMPLETION REGRESSION - somebody/to-come support
+    it('should extract "I\'d like somebody to come out tomorrow"', () => {
+      const transcript = "I'd like somebody to come out tomorrow.";
+      const result = extractEarlyCompletionTime(transcript);
+      if (!result) {
+        throw new Error('Expected to extract completion time');
+      }
+      console.log('[PASS] "I\'d like somebody to come out tomorrow" extracted');
+    });
+
+    it('should extract "I\'d like someone to come out next week"', () => {
+      const transcript = "I'd like someone to come out next week.";
+      const result = extractEarlyCompletionTime(transcript);
+      if (!result) {
+        throw new Error('Expected to extract completion time');
+      }
+      console.log('[PASS] "I\'d like someone to come out next week" extracted');
+    });
+
+    it('should extract "I\'d like somebody out tomorrow" (without "to come")', () => {
+      const transcript = "I'd like somebody out tomorrow.";
+      const result = extractEarlyCompletionTime(transcript);
+      if (!result) {
+        throw new Error('Expected to extract completion time');
+      }
+      console.log('[PASS] "I\'d like somebody out tomorrow" extracted');
+    });
+
+    it('should extract "I\'d like someone here Monday"', () => {
+      const transcript = "I'd like someone here Monday.";
+      const result = extractEarlyCompletionTime(transcript);
+      if (!result) {
+        throw new Error('Expected to extract completion time');
+      }
+      console.log('[PASS] "I\'d like someone here Monday" extracted');
+    });
+
+    it('should extract "I want somebody to come out this week"', () => {
+      const transcript = "I want somebody to come out this week.";
+      const result = extractEarlyCompletionTime(transcript);
+      if (!result) {
+        throw new Error('Expected to extract completion time');
+      }
+      console.log('[PASS] "I want somebody to come out this week" extracted');
+    });
+
+    it('should extract "I need someone to come here tomorrow"', () => {
+      const transcript = "I need someone to come here tomorrow.";
+      const result = extractEarlyCompletionTime(transcript);
+      if (!result) {
+        throw new Error('Expected to extract completion time');
+      }
+      console.log('[PASS] "I need someone to come here tomorrow" extracted');
+    });
+
+    it('should extract "I\'d like somebody to come out tomorrow or the day after" (Robert exact)', () => {
+      const transcript = "I'd like somebody to come out tomorrow or the day after.";
+      const result = extractEarlyCompletionTime(transcript);
+      if (!result) {
+        throw new Error('Expected to extract completion time');
+      }
+      console.log('[PASS] "I\'d like somebody to come out tomorrow or the day after" extracted');
+    });
+
+    // ROBERT FULL TRANSCRIPT REGRESSION
+    it('should extract completion from Robert Hayes full transcript', () => {
+      const transcript = "I'm calling because the water heater in my basement stopped producing hot water yesterday. I checked the breaker and it's just fine, but we're still only getting cold water. The house is at 3307 Liberty Avenue in Pittsburgh, and if possible I'd like somebody to come out tomorrow or the day after. Mornings would be easiest if you need to reach me.";
+      const completion = extractEarlyCompletionTime(transcript);
+      if (!completion) {
+        throw new Error('Expected to extract completion time');
+      }
+      if (!completion.toLowerCase().includes('tomorrow')) {
+        throw new Error(`Expected "tomorrow" in result but got: "${completion}"`);
+      }
+      console.log('[PASS] Robert full transcript completion extracted');
+    });
   });
 
   describe('FALSE POSITIVE REJECTIONS', () => {
