@@ -6873,6 +6873,24 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     let parserRuleMatched = 'none';
     let parseNameAndServiceCalled = false;
 
+    // Lenient validation for service when name is already valid
+    // Allows service text that may include the caller's name (e.g., repeated full sentences)
+    const isValidServiceRequestedLenient = (service: string): boolean => {
+      if (!service || typeof service !== 'string') return false;
+      const trimmed = service.trim();
+      if (trimmed.length === 0) return false;
+
+      // Reject only truly unusable answers
+      const unusableAnswers = [
+        '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
+      ];
+      if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
+
+      // Accept service text even if it contains name-intro patterns
+      // (caller may repeat full sentence when name is already known)
+      return true;
+    };
+
     // Special handling for ask_name: detect if caller provides both name and reason
     if (stage === 'ask_name') {
       console.log('[ASK_NAME EDGE CASE DETECTION] =========================================');
@@ -7179,7 +7197,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] Timestamp:', new Date().toISOString());
         console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] =========================================');
         state.intakeData.customerName = parseResult.customerName;
-        state.intakeData.request = parseResult.serviceRequested;
+        state.intakeData.serviceRequested = parseResult.serviceRequested;
+        state.intakeData.request = parseResult.serviceRequested; // Maintain compatibility
         state.skipNextStage = true; // Skip ask_request stage
         capturedAnswer = parseResult.customerName;
         extractedField = 'customerName';
@@ -7190,7 +7209,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         console.log('[ASK_NAME EDGE CASE: REASON ONLY] action: capture_service_and_stay_in_name_stage');
         console.log('[ASK_NAME EDGE CASE: REASON ONLY] Timestamp:', new Date().toISOString());
         console.log('[ASK_NAME EDGE CASE: REASON ONLY] =========================================');
-        state.intakeData.request = parseResult.serviceRequested;
+        state.intakeData.serviceRequested = parseResult.serviceRequested;
+        state.intakeData.request = parseResult.serviceRequested; // Maintain compatibility
         state.needsNameReprompt = true; // Flag to trigger targeted name-only reprompt
         capturedAnswer = parseResult.serviceRequested;
         extractedField = 'request';
@@ -7317,10 +7337,35 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           console.log('[PARSER SERVICE-ONLY CONTINUATION] Timestamp:', new Date().toISOString());
           console.log('[PARSER SERVICE-ONLY CONTINUATION] =========================================');
 
-          // Strip conversational fillers and use the normalized text as the service
-          const normalizedInput = stripConversationalFillers(trimmed);
-          serviceRequested = normalizedInput;
           customerName = existingName; // Preserve existing name
+
+          // Try to extract service from combined sentence using service patterns
+          // This handles cases where caller repeats: "My name is X and I need Y"
+          const servicePatterns = [
+            /(?:i want to|i need to|i'd like to|i would like to|i'm looking to|i am looking to)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+            /(?:i need|i want)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+            /(?:i'm calling about|i am calling about|calling about)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+            /(?:looking for|looking to get|trying to get|need someone to)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+            /(?:to get my|get my)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+            /(?:and\s+i\s+(?:need|want|would like))\s+(.+?)(?:\.|,|;|$)/i,
+          ];
+
+          let serviceMatch: RegExpMatchArray | null = null;
+          for (const pattern of servicePatterns) {
+            serviceMatch = parseText.match(pattern);
+            if (serviceMatch) break;
+          }
+
+          if (serviceMatch) {
+            serviceRequested = stripServicePrefix(serviceMatch[1].trim()).replace(/[.,;]\s*$/, '');
+            console.log('[PARSER SERVICE-ONLY CONTINUATION] extracted from pattern:', serviceRequested);
+          } else {
+            // Fallback: strip conversational fillers and use the normalized text as the service
+            const normalizedInput = stripConversationalFillers(trimmed);
+            serviceRequested = normalizedInput;
+            console.log('[PARSER SERVICE-ONLY CONTINUATION] using normalized fallback:', serviceRequested);
+          }
+
           parserRuleMatched = 'service_only_continuation';
           return { customerName, serviceRequested };
         }
@@ -7690,7 +7735,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
       // Validate parsed candidates
       const parsedNameValid = parseResult.customerName && isValidCustomerName(parseResult.customerName);
-      const parsedServiceValid = parseResult.serviceRequested && isValidServiceRequested(parseResult.serviceRequested);
+      // When name is already valid, use lenient service validation (allow name in service text)
+      const parsedServiceValid = parseResult.serviceRequested && (
+        existingNameValid
+          ? isValidServiceRequestedLenient(parseResult.serviceRequested)
+          : isValidServiceRequested(parseResult.serviceRequested)
+      );
 
       // MISSING-FIELD-AWARE MERGE LOGIC
       let mergeDecision = 'unknown';

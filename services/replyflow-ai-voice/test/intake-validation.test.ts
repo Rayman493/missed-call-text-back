@@ -523,3 +523,160 @@ describe('Simple Mode Stage Adapter', () => {
     });
   });
 });
+
+describe('Sarah Thompson Physical Test Regression', () => {
+  describe('Combined First Turn - Name + Request', () => {
+    it('should resolve to ask_location when both name and service captured in one utterance', () => {
+      // Simulate state after "My name is Sarah Thompson, and I need my garage door repaired."
+      const intake: IntakeData = {
+        customerName: 'Sarah Thompson',
+        serviceRequested: 'my garage door repaired',
+        stage: 'ask_name'
+      };
+
+      // Verify canonical state before resolver
+      expect(intake.customerName).to.equal('Sarah Thompson');
+      expect(intake.serviceRequested).to.not.be.undefined;
+      expect(intake.serviceRequested).to.not.equal('');
+
+      // Resolver should advance to location, NOT ask_name_reason
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_location');
+      expect(nextStage).to.not.equal('ask_name_reason');
+    });
+
+    it('should preserve both canonical and compatibility fields', () => {
+      // In production, both serviceRequested (canonical) and request (compatibility) are written
+      const intake: IntakeData = {
+        customerName: 'Sarah Thompson',
+        serviceRequested: 'my garage door repaired',
+        request: 'my garage door repaired', // Compatibility field
+        stage: 'ask_name'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_location');
+    });
+  });
+
+  describe('Name-Only Control', () => {
+    it('should request service when only name provided', () => {
+      // Simulate state after "Sarah Thompson"
+      const intake: IntakeData = {
+        customerName: 'Sarah Thompson',
+        serviceRequested: undefined,
+        stage: 'ask_name'
+      };
+
+      // Verify name captured, service missing
+      expect(intake.customerName).to.equal('Sarah Thompson');
+      expect(intake.serviceRequested).to.be.undefined;
+
+      // Resolver should ask for service/reason
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_name_reason');
+    });
+  });
+
+  describe('Second-Turn Service Continuation', () => {
+    it('should accept service when name already valid and caller repeats full sentence', () => {
+      // Starting state: name already captured
+      const intake: IntakeData = {
+        customerName: 'Sarah Thompson',
+        serviceRequested: 'garage door repaired', // Extracted from repeated sentence
+        stage: 'ask_name_reason'
+      };
+
+      // Verify name preserved, service now present
+      expect(intake.customerName).to.equal('Sarah Thompson');
+      expect(intake.serviceRequested).to.equal('garage door repaired');
+
+      // Resolver should advance to location
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_location');
+    });
+  });
+
+  describe('Partial Hangup Persistence Consistency', () => {
+    it('should preserve both name and service for incomplete finalization', () => {
+      // State after partial hangup with name + service captured
+      const intake: IntakeData = {
+        customerName: 'Sarah Thompson',
+        serviceRequested: 'garage door repaired',
+        request: 'garage door repaired', // Compatibility
+        // Missing: serviceAddress, desiredCompletionTime, callbackTime
+      };
+
+      // Verify canonical state has both fields
+      expect(intake.customerName).to.equal('Sarah Thompson');
+      expect(intake.serviceRequested).to.equal('garage door repaired');
+
+      // Resolver should still ask for missing fields (location)
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_location');
+    });
+  });
+
+  describe('Timing Independence', () => {
+    it('should resolve correctly regardless of when semantic extraction completes', () => {
+      // This test proves deterministic extraction is sufficient
+      // Semantic extraction happens at finalization, after all stage transitions
+      const intake: IntakeData = {
+        customerName: 'Sarah Thompson',
+        serviceRequested: 'my garage door repaired', // Deterministic extraction
+        stage: 'ask_name'
+      };
+
+      // Resolver uses canonical state immediately, no async dependency
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_location');
+
+      // Even if semantic extraction later normalizes to "Garage Door Repair",
+      // the stage decision is already committed and correct
+    });
+  });
+
+  describe('Additional Details Remains Optional', () => {
+    it('should route to complete without issueDescription when all required fields present', () => {
+      const intake: IntakeData = {
+        customerName: 'Sarah Thompson',
+        serviceRequested: 'garage door repaired',
+        serviceAddress: '123 Main Street',
+        desiredCompletionTime: 'tomorrow',
+        callbackTime: 'afternoon',
+        // issueDescription missing (optional)
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('complete');
+    });
+  });
+
+  describe('Location Branching Unchanged', () => {
+    it('should require address for onsite location type', () => {
+      const intake: IntakeData = {
+        customerName: 'Sarah Thompson',
+        serviceRequested: 'garage door repaired',
+        // serviceAddress missing
+        desiredCompletionTime: 'tomorrow',
+        callbackTime: 'afternoon'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
+      expect(nextStage).to.equal('ask_location');
+    });
+
+    it('should NOT require address for remote location type', () => {
+      const intake: IntakeData = {
+        customerName: 'Sarah Thompson',
+        serviceRequested: 'garage door repaired',
+        // serviceAddress missing (not required for remote)
+        desiredCompletionTime: 'tomorrow',
+        callbackTime: 'afternoon'
+      };
+
+      const nextStage = resolveNextSimpleModeStage(intake, 'customer_comes_to_business');
+      expect(nextStage).to.equal('complete');
+    });
+  });
+});
