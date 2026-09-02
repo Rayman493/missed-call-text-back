@@ -34,10 +34,31 @@ export default function SelectPicker({
 }: SelectPickerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [dropup, setDropup] = useState(false)
   const pickerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const triggerId = useId()
   const labelId = useId()
+
+  // Calculate available space and determine dropup/dropdown direction
+  useEffect(() => {
+    if (!isOpen || !pickerRef.current || !dropdownRef.current) return
+
+    const pickerRect = pickerRef.current.getBoundingClientRect()
+    const dropdownHeight = dropdownRef.current.offsetHeight
+    const viewportHeight = window.innerHeight
+
+    const spaceBelow = viewportHeight - pickerRect.bottom
+    const spaceAbove = pickerRect.top
+
+    // Open upward if there's more space above than below
+    if (spaceAbove > spaceBelow && spaceAbove > dropdownHeight) {
+      setDropup(true)
+    } else {
+      setDropup(false)
+    }
+  }, [isOpen])
 
   // Close on outside click
   useEffect(() => {
@@ -75,6 +96,34 @@ export default function SelectPicker({
       searchInputRef.current.focus()
     }
   }, [isOpen, searchable])
+
+  // Prevent scroll chaining from dropdown to modal body
+  useEffect(() => {
+    if (!isOpen || !dropdownRef.current) return
+
+    const dropdownEl = dropdownRef.current
+    const scrollContainer = dropdownEl.querySelector('.overflow-y-auto') as HTMLElement
+
+    if (!scrollContainer) return
+
+    const handleWheel = (e: WheelEvent) => {
+      // Prevent scroll from chaining to parent
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer
+      const isAtTop = scrollTop === 0
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1
+
+      // Allow scrolling within dropdown, but prevent chaining to parent
+      if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
+        e.preventDefault()
+      }
+    }
+
+    scrollContainer.addEventListener('wheel', handleWheel, { passive: false })
+
+    return () => {
+      scrollContainer.removeEventListener('wheel', handleWheel)
+    }
+  }, [isOpen])
 
   const filteredOptions = options.filter(option => {
     if (!searchQuery.trim()) return true
@@ -156,9 +205,14 @@ export default function SelectPicker({
 
       {/* Dropdown */}
       {isOpen && !disabled && (
-        <div className="absolute z-[60] mt-2 w-full bg-popover/95 backdrop-blur-sm rounded-lg shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] border border-border/40 max-h-[300px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+        <div
+          ref={dropdownRef}
+          className={`absolute z-[60] w-full bg-popover/95 backdrop-blur-sm rounded-lg shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] border border-border/40 max-h-[300px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 ${
+            dropup ? 'bottom-full mb-2' : 'top-full mt-2'
+          }`}
+        >
           {searchable && (
-            <div className="p-3 border-b border-border/20">
+            <div className="p-3 border-b border-border/20 shrink-0">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
@@ -173,7 +227,7 @@ export default function SelectPicker({
             </div>
           )}
 
-          <div className="overflow-y-auto flex-1">
+          <div className="overflow-y-auto flex-1 overscroll-contain">
             {visibleOptions.length === 0 ? (
               <div className="py-8 text-center px-4">
                 <p className="text-sm text-muted-foreground">{emptyMessage}</p>
