@@ -340,7 +340,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
           <SelectPicker
             value={reminderOffsetMinutes !== null ? reminderOffsetMinutes.toString() : ''}
             onChange={(value) => setReminderOffsetMinutes(value === '' || value === null ? null : parseInt(value, 10))}
-            disabled={!dueDate || !dueTime}
+            disabled={false}
             options={[
               { value: '', label: 'None' },
               { value: '0', label: 'At time' },

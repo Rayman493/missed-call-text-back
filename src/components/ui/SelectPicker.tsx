@@ -131,17 +131,17 @@ export default function SelectPicker({
           aria-haspopup="listbox"
           aria-expanded={isOpen}
           aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
-          className={`w-full border rounded-lg flex items-center gap-2 transition-colors text-left ${
+          className={`w-full border rounded-lg flex items-center justify-between gap-2 transition-colors text-left ${
             disabled
               ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30 px-3 py-2'
               : 'bg-card dark:bg-slate-900/60 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60 cursor-pointer px-3 py-2'
           } pr-10`}
         >
-          <span className={selectedOption ? 'text-foreground truncate' : 'text-muted-foreground truncate flex-1'}>
+          <span className={selectedOption ? 'text-foreground truncate flex-1' : 'text-muted-foreground truncate flex-1'}>
             {selectedOption ? selectedOption.label : placeholder}
           </span>
+          <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
         </button>
-        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
         {hasValue && !disabled && (
           <button
             type="button"
