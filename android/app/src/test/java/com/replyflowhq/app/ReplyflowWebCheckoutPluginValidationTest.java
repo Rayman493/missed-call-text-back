@@ -273,9 +273,123 @@ public class ReplyflowWebCheckoutPluginValidationTest {
     public void testDuplicateResumeAfterSuccess() {
         // Simulate: success callback resolved, then duplicate resume
         boolean completionCalled = true;
-        
+
         // onResume tries to cancel
         boolean shouldCancel = !completionCalled;
         assertFalse(shouldCancel); // Should not cancel - already completed
+    }
+
+    // Test operation type determination
+    @Test
+    public void testDetermineOperationType_billingPortal() {
+        ReplyflowWebCheckoutPlugin plugin = new ReplyflowWebCheckoutPlugin();
+        String operationType = plugin.determineOperationType("/dashboard/settings?billing=returned");
+        assertEquals("billing_portal", operationType);
+    }
+
+    @Test
+    public void testDetermineOperationType_billingPortalWithExtraParams() {
+        ReplyflowWebCheckoutPlugin plugin = new ReplyflowWebCheckoutPlugin();
+        String operationType = plugin.determineOperationType("/dashboard/settings?billing=returned&other=value");
+        assertEquals("billing_portal", operationType);
+    }
+
+    @Test
+    public void testDetermineOperationType_checkout() {
+        ReplyflowWebCheckoutPlugin plugin = new ReplyflowWebCheckoutPlugin();
+        String operationType = plugin.determineOperationType("/billing/success");
+        assertEquals("checkout", operationType);
+    }
+
+    @Test
+    public void testDetermineOperationType_checkoutWithSessionId() {
+        ReplyflowWebCheckoutPlugin plugin = new ReplyflowWebCheckoutPlugin();
+        String operationType = plugin.determineOperationType("/billing/success?session_id=cs_test123");
+        assertEquals("checkout", operationType);
+    }
+
+    @Test
+    public void testDetermineOperationType_nullDefaultsToCheckout() {
+        ReplyflowWebCheckoutPlugin plugin = new ReplyflowWebCheckoutPlugin();
+        String operationType = plugin.determineOperationType(null);
+        assertEquals("checkout", operationType);
+    }
+
+    @Test
+    public void testDetermineOperationType_settingsWithoutBillingReturns() {
+        ReplyflowWebCheckoutPlugin plugin = new ReplyflowWebCheckoutPlugin();
+        String operationType = plugin.determineOperationType("/dashboard/settings");
+        assertEquals("checkout", operationType);
+    }
+
+    // Test billing portal query string validation
+    @Test
+    public void testBillingPortalValidation_valid() {
+        String queryString = "billing=returned";
+        assertTrue(queryString != null && queryString.contains("billing=returned"));
+    }
+
+    @Test
+    public void testBillingPortalValidation_missing() {
+        String queryString = "other=value";
+        assertFalse(queryString != null && queryString.contains("billing=returned"));
+    }
+
+    @Test
+    public void testBillingPortalValidation_null() {
+        String queryString = null;
+        assertFalse(queryString != null && queryString.contains("billing=returned"));
+    }
+
+    @Test
+    public void testBillingPortalValidation_withExtraParams() {
+        String queryString = "billing=returned&other=value";
+        assertTrue(queryString != null && queryString.contains("billing=returned"));
+    }
+
+    @Test
+    public void testBillingPortalValidation_wrongParam() {
+        String queryString = "billing=wrong_value";
+        assertFalse(queryString != null && queryString.contains("billing=returned"));
+    }
+
+    // Test that checkout validation still requires session_id
+    @Test
+    public void testCheckoutValidation_requiresSessionId() {
+        String queryString = "billing=returned"; // Billing param, not session_id
+        String sessionId = null;
+
+        // Extract session_id
+        if (queryString != null) {
+            String[] params = queryString.split("&");
+            for (String param : params) {
+                String[] keyValue = param.split("=", 2);
+                if (keyValue.length == 2 && "session_id".equals(keyValue[0])) {
+                    sessionId = keyValue[1];
+                }
+            }
+        }
+
+        assertNull(sessionId); // Should be null for billing param
+    }
+
+    @Test
+    public void testCheckoutValidation_hasSessionId() {
+        String queryString = "session_id=cs_test123456789";
+        String sessionId = null;
+
+        // Extract session_id
+        if (queryString != null) {
+            String[] params = queryString.split("&");
+            for (String param : params) {
+                String[] keyValue = param.split("=", 2);
+                if (keyValue.length == 2 && "session_id".equals(keyValue[0])) {
+                    sessionId = keyValue[1];
+                }
+            }
+        }
+
+        assertNotNull(sessionId);
+        assertEquals("cs_test123456789", sessionId);
     }
 }

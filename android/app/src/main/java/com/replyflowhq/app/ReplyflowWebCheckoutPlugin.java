@@ -48,12 +48,17 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
     private static final String KEY_CALLBACK_HOST = "callback_host";
     private static final String KEY_CALLBACK_PATH = "callback_path";
     private static final String KEY_TIMESTAMP = "timestamp";
+    private static final String KEY_OPERATION_TYPE = "operation_type";
     private static final String KEY_RECOVERY_COMPLETED = "recovery_completed";
     private static final String KEY_RECOVERY_CALLBACK_MATCHED = "recovery_callback_matched";
     private static final String KEY_RECOVERY_CALLBACK_URL = "recovery_callback_url";
     private static final String KEY_RECOVERY_CANCELED = "recovery_canceled";
     private static final String KEY_RECOVERY_ERROR_CODE = "recovery_error_code";
     private static final String KEY_RECOVERY_ERROR_MESSAGE = "recovery_error_message";
+
+    // Operation types for callback validation
+    private static final String OPERATION_TYPE_CHECKOUT = "checkout";
+    private static final String OPERATION_TYPE_BILLING_PORTAL = "billing_portal";
 
     // Retain the active plugin call to prevent garbage collection
     private PluginCall activeCall = null;
@@ -283,16 +288,37 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
     }
 
     /**
+     * Determine operation type from callback path
+     * @return operation type (checkout or billing_portal)
+     * Package-private for testing
+     */
+    String determineOperationType(String callbackPath) {
+        if (callbackPath == null) {
+            return OPERATION_TYPE_CHECKOUT; // Default to checkout
+        }
+
+        // Check if this is a billing portal return
+        if (callbackPath.contains("/dashboard/settings") && callbackPath.contains("billing=returned")) {
+            return OPERATION_TYPE_BILLING_PORTAL;
+        }
+
+        // Default to checkout for /billing/success or other paths
+        return OPERATION_TYPE_CHECKOUT;
+    }
+
+    /**
      * Store pending state for process-death recovery
      */
     private void storePendingState(String callbackHost, String callbackPath) {
+        String operationType = determineOperationType(callbackPath);
         prefs.edit()
             .putBoolean(KEY_PENDING, true)
             .putString(KEY_CALLBACK_HOST, callbackHost)
             .putString(KEY_CALLBACK_PATH, callbackPath)
+            .putString(KEY_OPERATION_TYPE, operationType)
             .putLong(KEY_TIMESTAMP, System.currentTimeMillis())
             .apply();
-        Log.d(TAG, "[NATIVE_CHECKOUT] pending_state_stored=true");
+        Log.d(TAG, "[NATIVE_CHECKOUT] pending_state_stored=true operation_type=" + operationType);
     }
 
     /**
@@ -444,8 +470,14 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
         }
 
         // Callback matched - consume and complete
-        String sessionId = extractSessionId(queryString);
-        Log.d(TAG, "[NATIVE_CHECKOUT] forward_callback_matched=true session_id=" + sessionId.substring(0, 8));
+        String operationType = prefs.getString(KEY_OPERATION_TYPE, OPERATION_TYPE_CHECKOUT);
+        Log.d(TAG, "[NATIVE_CHECKOUT] forward_callback_matched=true operation_type=" + operationType);
+
+        if (OPERATION_TYPE_CHECKOUT.equals(operationType)) {
+            String sessionId = extractSessionId(queryString);
+            Log.d(TAG, "[NATIVE_CHECKOUT] forward_callback_session_id=" + (sessionId != null ? sessionId.substring(0, 8) : "null"));
+        }
+
         handleCompletion(callbackUri, null);
         return true;
     }
@@ -464,6 +496,7 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
         // Check if this matches our expected callback
         String expectedHost = prefs.getString(KEY_CALLBACK_HOST, null);
         String expectedPath = prefs.getString(KEY_CALLBACK_PATH, null);
+        String operationType = prefs.getString(KEY_OPERATION_TYPE, OPERATION_TYPE_CHECKOUT);
 
         if (expectedHost == null || expectedPath == null) {
             Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_no_expected_values=true");
@@ -475,15 +508,27 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
             return false;
         }
 
-        // Validate session_id exists and has plausible format
-        String sessionId = extractSessionId(queryString);
-        if (sessionId == null) {
-            Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_missing_session_id=true");
-            return false;
-        }
+        // Branch validation based on operation type
+        if (OPERATION_TYPE_CHECKOUT.equals(operationType)) {
+            // Stripe Checkout validation: requires session_id with cs_ prefix
+            String sessionId = extractSessionId(queryString);
+            if (sessionId == null) {
+                Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_missing_session_id=true");
+                return false;
+            }
 
-        if (!isValidSessionId(sessionId)) {
-            Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_invalid_session_id=true");
+            if (!isValidSessionId(sessionId)) {
+                Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_invalid_session_id=true");
+                return false;
+            }
+        } else if (OPERATION_TYPE_BILLING_PORTAL.equals(operationType)) {
+            // Stripe Billing Portal validation: requires billing=returned
+            if (queryString == null || !queryString.contains("billing=returned")) {
+                Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_missing_billing_returned=true");
+                return false;
+            }
+        } else {
+            Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_unknown_operation_type=true");
             return false;
         }
 
