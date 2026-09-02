@@ -47,6 +47,7 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
     private static final String KEY_PENDING = "pending_checkout";
     private static final String KEY_CALLBACK_HOST = "callback_host";
     private static final String KEY_CALLBACK_PATH = "callback_path";
+    private static final String KEY_CALLBACK_QUERY = "callback_query";
     private static final String KEY_TIMESTAMP = "timestamp";
     private static final String KEY_OPERATION_TYPE = "operation_type";
     private static final String KEY_RECOVERY_COMPLETED = "recovery_completed";
@@ -59,6 +60,10 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
     // Operation types for callback validation
     private static final String OPERATION_TYPE_CHECKOUT = "checkout";
     private static final String OPERATION_TYPE_BILLING_PORTAL = "billing_portal";
+
+    // Native scheme for billing portal trampoline
+    private static final String NATIVE_SCHEME = "replyflow";
+    private static final String NATIVE_HOST_BILLING = "billing";
 
     // Retain the active plugin call to prevent garbage collection
     private PluginCall activeCall = null;
@@ -107,9 +112,7 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
         String callbackHost = call.getString("callbackHost", "www.replyflowhq.com");
         String callbackPath = call.getString("callbackPath", "/billing/success");
 
-        Log.d(TAG, "[NATIVE_CHECKOUT] open_requested=true");
-        Log.d(TAG, "[NATIVE_CHECKOUT] callback_host=" + callbackHost);
-        Log.d(TAG, "[NATIVE_CHECKOUT] callback_path=" + callbackPath);
+        Log.d(TAG, "[RF_STRIPE_RETURN] openCheckoutSession callbackHost=" + callbackHost + " callbackPath=" + callbackPath);
 
         // Store the active call to resolve later
         activeCall = call;
@@ -143,12 +146,12 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
 
             CustomTabsIntent customTabsIntent = builder.build();
 
-            Log.d(TAG, "[NATIVE_CHECKOUT] custom_tab_launching=true");
+            Log.d(TAG, "[RF_STRIPE_RETURN] launchCustomTab launching_url=" + checkoutUrl);
 
             // Launch Custom Tab explicitly
             customTabsIntent.launchUrl(activity, uri);
 
-            Log.d(TAG, "[NATIVE_CHECKOUT] custom_tab_launched=true");
+            Log.d(TAG, "[RF_STRIPE_RETURN] launchCustomTab_launched_success");
 
             // DO NOT resolve promise here - wait for callback
             // The promise is resolved in handleCompletion when the callback fires
@@ -166,15 +169,16 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
     private void handleCompletion(Uri callbackUri, Exception error) {
         // Idempotency guard - prevent double resolution
         if (completionCalled) {
-            Log.d(TAG, "[NATIVE_CHECKOUT] completion_already_called=true");
+            Log.d(TAG, "[RF_STRIPE_RETURN] handleCompletion_already_called=true returning");
             return;
         }
         completionCalled = true;
 
-        Log.d(TAG, "[NATIVE_CHECKOUT] completion_processing=true");
+        Log.d(TAG, "[RF_STRIPE_RETURN] handleCompletion_entered callbackUri=" + (callbackUri != null ? callbackUri.toString() : "null") + " error=" + (error != null ? error.getMessage() : "null"));
 
         // Clear pending state
         clearPendingState();
+        Log.d(TAG, "[RF_STRIPE_RETURN] handleCompletion_pending_state_cleared");
 
         JSObject result = new JSObject();
 
@@ -297,7 +301,12 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
             return OPERATION_TYPE_CHECKOUT; // Default to checkout
         }
 
-        // Check if this is a billing portal return
+        // Check if this is a billing portal return via trampoline
+        if (callbackPath.contains("/native-return/billing")) {
+            return OPERATION_TYPE_BILLING_PORTAL;
+        }
+
+        // Check if this is a billing portal return via direct settings path
         if (callbackPath.contains("/dashboard/settings") && callbackPath.contains("billing=returned")) {
             return OPERATION_TYPE_BILLING_PORTAL;
         }
@@ -311,14 +320,27 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
      */
     private void storePendingState(String callbackHost, String callbackPath) {
         String operationType = determineOperationType(callbackPath);
+
+        // Parse path and query from callbackPath
+        // callbackPath may be "/dashboard/settings" or "/dashboard/settings?billing=returned"
+        String path = callbackPath;
+        String query = null;
+
+        if (callbackPath != null && callbackPath.contains("?")) {
+            int queryIndex = callbackPath.indexOf("?");
+            path = callbackPath.substring(0, queryIndex);
+            query = callbackPath.substring(queryIndex + 1);
+        }
+
         prefs.edit()
             .putBoolean(KEY_PENDING, true)
             .putString(KEY_CALLBACK_HOST, callbackHost)
-            .putString(KEY_CALLBACK_PATH, callbackPath)
+            .putString(KEY_CALLBACK_PATH, path)
+            .putString(KEY_CALLBACK_QUERY, query)
             .putString(KEY_OPERATION_TYPE, operationType)
             .putLong(KEY_TIMESTAMP, System.currentTimeMillis())
             .apply();
-        Log.d(TAG, "[NATIVE_CHECKOUT] pending_state_stored=true operation_type=" + operationType);
+        Log.d(TAG, "[RF_STRIPE_RETURN] storePendingState operationType=" + operationType + " host=" + callbackHost + " path=" + path + " query=" + query);
     }
 
     /**
@@ -328,7 +350,7 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
         prefs.edit()
             .clear()
             .apply();
-        Log.d(TAG, "[NATIVE_CHECKOUT] pending_state_cleared=true");
+        Log.d(TAG, "[RF_STRIPE_RETURN] clearPendingState_cleared");
     }
 
     /**
@@ -457,17 +479,15 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
         String path = callbackUri.getPath();
         String queryString = callbackUri.getQuery();
 
-        Log.d(TAG, "[NATIVE_CHECKOUT] forward_callback_received=true");
-        Log.d(TAG, "[NATIVE_CHECKOUT] forward_callback_scheme=" + scheme);
-        Log.d(TAG, "[NATIVE_CHECKOUT] forward_callback_host=" + host);
-        Log.d(TAG, "[NATIVE_CHECKOUT] forward_callback_path=" + path);
-        Log.d(TAG, "[NATIVE_CHECKOUT] forward_callback_query=" + queryString);
+        Log.d(TAG, "[RF_STRIPE_RETURN] forwardCallback_received scheme=" + scheme + " host=" + host + " path=" + path + " query=" + queryString);
 
         // Validate callback URI
         if (!validateCallbackUri(scheme, host, path, queryString)) {
-            Log.d(TAG, "[NATIVE_CHECKOUT] forward_callback_not_consumed=true");
+            Log.d(TAG, "[RF_STRIPE_RETURN] forwardCallback_validation_failed=true");
             return false;
         }
+
+        Log.d(TAG, "[RF_STRIPE_RETURN] forwardCallback_validation_passed=true");
 
         // Callback matched - consume and complete
         String operationType = prefs.getString(KEY_OPERATION_TYPE, OPERATION_TYPE_CHECKOUT);
@@ -487,48 +507,82 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
      * @return true if valid, false if invalid
      */
     private boolean validateCallbackUri(String scheme, String host, String path, String queryString) {
-        // Validate scheme
+        // Handle native scheme callbacks (replyflow://billing?billing=returned)
+        if (NATIVE_SCHEME.equals(scheme)) {
+            Log.d(TAG, "[RF_STRIPE_RETURN] validateCallbackUri native_scheme_received host=" + host);
+
+            // Validate host is billing
+            if (!NATIVE_HOST_BILLING.equals(host)) {
+                Log.d(TAG, "[RF_STRIPE_RETURN] validation_failed_native_wrong_host expected=" + NATIVE_HOST_BILLING + " actual=" + host);
+                return false;
+            }
+
+            // Validate query contains billing=returned
+            if (queryString == null || !queryString.contains("billing=returned")) {
+                Log.d(TAG, "[RF_STRIPE_RETURN] validation_failed_native_missing_billing_returned");
+                return false;
+            }
+
+            Log.d(TAG, "[RF_STRIPE_RETURN] validation_passed_native_callback");
+            return true;
+        }
+
+        // Handle HTTPS callbacks (for Stripe Checkout)
         if (!"https".equals(scheme)) {
-            Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_invalid_scheme=true");
+            Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_invalid_scheme=true scheme=" + scheme);
             return false;
         }
 
         // Check if this matches our expected callback
         String expectedHost = prefs.getString(KEY_CALLBACK_HOST, null);
         String expectedPath = prefs.getString(KEY_CALLBACK_PATH, null);
-        String operationType = prefs.getString(KEY_OPERATION_TYPE, OPERATION_TYPE_CHECKOUT);
+        String expectedQuery = prefs.getString(KEY_CALLBACK_QUERY, null);
 
         if (expectedHost == null || expectedPath == null) {
             Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_no_expected_values=true");
             return false;
         }
 
+        // Validate host and path
         if (!expectedHost.equals(host) || !expectedPath.equals(path)) {
-            Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_host_path_mismatch=true");
+            Log.d(TAG, "[RF_STRIPE_RETURN] validation_failed_host_path_mismatch expectedHost=" + expectedHost + " actualHost=" + host + " expectedPath=" + expectedPath + " actualPath=" + path);
             return false;
         }
 
         // Branch validation based on operation type
+        String operationType = prefs.getString(KEY_OPERATION_TYPE, OPERATION_TYPE_CHECKOUT);
+        Log.d(TAG, "[RF_STRIPE_RETURN] validateCallbackUri operationType=" + operationType);
+
         if (OPERATION_TYPE_CHECKOUT.equals(operationType)) {
             // Stripe Checkout validation: requires session_id with cs_ prefix
             String sessionId = extractSessionId(queryString);
             if (sessionId == null) {
-                Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_missing_session_id=true");
+                Log.d(TAG, "[RF_STRIPE_RETURN] validation_failed_checkout_missing_session_id");
                 return false;
             }
 
             if (!isValidSessionId(sessionId)) {
-                Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_invalid_session_id=true");
+                Log.d(TAG, "[RF_STRIPE_RETURN] validation_failed_checkout_invalid_session_id");
                 return false;
             }
+            Log.d(TAG, "[RF_STRIPE_RETURN] validation_passed_checkout_session_id_valid");
         } else if (OPERATION_TYPE_BILLING_PORTAL.equals(operationType)) {
             // Stripe Billing Portal validation: requires billing=returned
-            if (queryString == null || !queryString.contains("billing=returned")) {
-                Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_missing_billing_returned=true");
-                return false;
+            // Compare with expected query if stored, otherwise validate directly
+            if (expectedQuery != null) {
+                if (!expectedQuery.equals(queryString)) {
+                    Log.d(TAG, "[RF_STRIPE_RETURN] validation_failed_billing_query_mismatch expected=" + expectedQuery + " actual=" + queryString);
+                    return false;
+                }
+            } else {
+                if (queryString == null || !queryString.contains("billing=returned")) {
+                    Log.d(TAG, "[RF_STRIPE_RETURN] validation_failed_billing_missing_billing_returned");
+                    return false;
+                }
             }
+            Log.d(TAG, "[RF_STRIPE_RETURN] validation_passed_billing_billing_returned_present");
         } else {
-            Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_unknown_operation_type=true");
+            Log.d(TAG, "[RF_STRIPE_RETURN] validation_failed_unknown_operation_type=" + operationType);
             return false;
         }
 

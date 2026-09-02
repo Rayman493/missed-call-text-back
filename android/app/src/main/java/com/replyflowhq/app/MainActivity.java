@@ -48,7 +48,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // Generate unique instance ID for lifecycle tracking
         activityInstanceId = Integer.toHexString(System.identityHashCode(this));
-        Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] onCreate instance=" + activityInstanceId);
+        Log.d(TAG, "[RF_STRIPE_RETURN] onCreate instance=" + activityInstanceId);
 
         // Check intent for external return BEFORE super.onCreate()
         // This prevents WebView from loading callback URLs on cold start
@@ -59,10 +59,18 @@ public class MainActivity extends BridgeActivity {
             String host = intentUri.getHost();
             String path = intentUri.getPath();
             String queryString = intentUri.getQuery();
-            Log.d(TAG, "[CAPACITOR_LAUNCH_URL] scheme=" + scheme + ", host=" + host + ", path=" + path + ", query=" + queryString);
+            Log.d(TAG, "[RF_STRIPE_RETURN] onCreate_intent_received scheme=" + scheme + " host=" + host + " path=" + path + " query=" + queryString);
 
+            // Handle native scheme callbacks (replyflow://billing?billing=returned)
+            if ("replyflow".equals(scheme) && "billing".equals(host)) {
+                Log.d(TAG, "[RF_STRIPE_RETURN] onCreate_native_billing_callback_forwarding_to_plugin");
+                if (checkoutPlugin != null && checkoutPlugin.hasActiveCheckout()) {
+                    checkoutPlugin.forwardCallback(intentUri);
+                }
+                setIntent(new Intent());
+            }
             // Check if this is a recognized external return that should NOT be loaded into WebView
-            if ("https".equals(scheme) && "www.replyflowhq.com".equals(host)) {
+            else if ("https".equals(scheme) && "www.replyflowhq.com".equals(host)) {
                 boolean isExternalReturn = false;
                 String externalReturnType = null;
 
@@ -397,12 +405,30 @@ public class MainActivity extends BridgeActivity {
             String host = intentUri.getHost();
             String path = intentUri.getPath();
             String queryString = intentUri.getQuery();
-            Log.d(TAG, "[NATIVE_INTENT_RECEIVED] scheme=" + scheme + ", host=" + host + ", path=" + path + ", query=" + queryString);
+            Log.d(TAG, "[RF_STRIPE_RETURN] onNewIntent_received scheme=" + scheme + " host=" + host + " path=" + path + " query=" + queryString);
+
+            // Handle native scheme callbacks (replyflow://billing?billing=returned)
+            if ("replyflow".equals(scheme) && "billing".equals(host)) {
+                Log.d(TAG, "[RF_STRIPE_RETURN] onNewIntent_native_billing_callback_forwarding_to_plugin");
+                if (checkoutPlugin != null && checkoutPlugin.hasActiveCheckout()) {
+                    boolean consumed = checkoutPlugin.forwardCallback(intentUri);
+                    Log.d(TAG, "[RF_STRIPE_RETURN] onNewIntent_forwardCallback_result=" + consumed);
+                    if (consumed) {
+                        setIntent(new Intent());
+                        super.onNewIntent(new Intent());
+                        return;
+                    }
+                }
+                setIntent(new Intent());
+                super.onNewIntent(new Intent());
+                return;
+            }
 
             // Check if the checkout plugin has an active checkout and handle callback
             if (checkoutPlugin != null && checkoutPlugin.hasActiveCheckout()) {
-                Log.d(TAG, "[NATIVE_CHECKOUT] forwarding_callback_to_plugin=true");
+                Log.d(TAG, "[RF_STRIPE_RETURN] onNewIntent_checkout_active=true calling_forwardCallback");
                 boolean consumed = checkoutPlugin.forwardCallback(intentUri);
+                Log.d(TAG, "[RF_STRIPE_RETURN] onNewIntent_forwardCallback_result=" + consumed);
 
                 if (consumed) {
                     // Callback was consumed by plugin - clear intent to prevent WebView navigation
@@ -422,6 +448,11 @@ public class MainActivity extends BridgeActivity {
                     }
                     // Fall through to normal processing for the unrelated App Link
                 }
+            }
+
+            // Log if no active checkout
+            if (checkoutPlugin == null || !checkoutPlugin.hasActiveCheckout()) {
+                Log.d(TAG, "[RF_STRIPE_RETURN] onNewIntent_no_active_checkout checkoutPlugin=" + (checkoutPlugin != null) + " hasActive=" + (checkoutPlugin != null && checkoutPlugin.hasActiveCheckout()));
             }
 
             // Check if this is a recognized external return that should NOT be loaded into WebView
@@ -722,31 +753,31 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
-        Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] onResume instance=" + activityInstanceId);
+        Log.d(TAG, "[RF_STRIPE_RETURN] onResume instance=" + activityInstanceId);
         queryWebBuildAndUrl("onResume");
 
         // Check for checkout cancellation on resume (fallback if onNewIntent not called)
         // This handles the case where user presses Back without any App Link callback
         if (checkoutPlugin != null) {
-            Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] onResume_checkout_plugin_not_null=true");
+            Log.d(TAG, "[RF_STRIPE_RETURN] onResume_checkout_plugin_not_null=true checking_cancellation");
             checkoutPlugin.checkForCancellation();
         } else {
-            Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] onResume_checkout_plugin_null=true");
+            Log.d(TAG, "[RF_STRIPE_RETURN] onResume_checkout_plugin_null=true");
         }
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] onPause instance=" + activityInstanceId);
+        Log.d(TAG, "[RF_STRIPE_RETURN] onPause instance=" + activityInstanceId);
         queryWebBuildAndUrl("onPause");
-        Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] onPause_fired=true");
+        Log.d(TAG, "[RF_STRIPE_RETURN] onPause_fired=true");
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        Log.d(TAG, "[ACCOUNT_CREATION_NATIVE_TRACE] onStop instance=" + activityInstanceId);
+        Log.d(TAG, "[RF_STRIPE_RETURN] onStop instance=" + activityInstanceId);
         queryWebBuildAndUrl("onStop");
         Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] onStop_fired=true");
     }

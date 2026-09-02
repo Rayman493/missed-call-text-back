@@ -31,6 +31,16 @@
                 <data android:scheme="replyflow" />
             </intent-filter>
 
+            <!-- Native scheme callback for Stripe Billing Portal trampoline -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="replyflow" />
+                <data android:host="billing" />
+                <data android:path="/" />
+            </intent-filter>
+
             <!-- App Links for https://www.replyflowhq.com -->
             <!-- Stripe Connect onboarding return -->
             <intent-filter android:autoVerify="true">

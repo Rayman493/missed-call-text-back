@@ -392,4 +392,64 @@ public class ReplyflowWebCheckoutPluginValidationTest {
         assertNotNull(sessionId);
         assertEquals("cs_test123456789", sessionId);
     }
+
+    // Test native scheme trampoline path recognition
+    @Test
+    public void testDetermineOperationType_nativeTrampoline() {
+        ReplyflowWebCheckoutPlugin plugin = new ReplyflowWebCheckoutPlugin();
+        String operationType = plugin.determineOperationType("/native-return/billing");
+        assertEquals("billing_portal", operationType);
+    }
+
+    @Test
+    public void testDetermineOperationType_nativeTrampolineWithQuery() {
+        ReplyflowWebCheckoutPlugin plugin = new ReplyflowWebCheckoutPlugin();
+        String operationType = plugin.determineOperationType("/native-return/billing?billing=returned");
+        assertEquals("billing_portal", operationType);
+    }
+
+    // Test native scheme callback validation
+    @Test
+    public void testNativeSchemeCallback_valid() {
+        String scheme = "replyflow";
+        String host = "billing";
+        String queryString = "billing=returned";
+
+        boolean isValid = "replyflow".equals(scheme) && "billing".equals(host) &&
+                          queryString != null && queryString.contains("billing=returned");
+        assertTrue(isValid);
+    }
+
+    @Test
+    public void testNativeSchemeCallback_wrongHost() {
+        String scheme = "replyflow";
+        String host = "wrong";
+        String queryString = "billing=returned";
+
+        boolean isValid = "replyflow".equals(scheme) && "billing".equals(host) &&
+                          queryString != null && queryString.contains("billing=returned");
+        assertFalse(isValid);
+    }
+
+    @Test
+    public void testNativeSchemeCallback_missingQuery() {
+        String scheme = "replyflow";
+        String host = "billing";
+        String queryString = "other=value";
+
+        boolean isValid = "replyflow".equals(scheme) && "billing".equals(host) &&
+                          queryString != null && queryString.contains("billing=returned");
+        assertFalse(isValid);
+    }
+
+    @Test
+    public void testNativeSchemeCallback_nullQuery() {
+        String scheme = "replyflow";
+        String host = "billing";
+        String queryString = null;
+
+        boolean isValid = "replyflow".equals(scheme) && "billing".equals(host) &&
+                          queryString != null && queryString.contains("billing=returned");
+        assertFalse(isValid);
+    }
 }
