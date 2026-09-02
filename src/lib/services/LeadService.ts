@@ -336,14 +336,16 @@ export class LeadService {
 
       // If retry hits 23505, handle as idempotent conflict
       if (retryError.code === '23505') {
-        const existingLead = await this.findLead({ business_id, caller_phone: normalizedPhone })
-        if (existingLead) {
-          console.log('[LeadService.createLead] Reusing existing lead from retry uniqueness conflict:', {
-            leadId: existingLead.id,
-            business_id,
-            caller_phone: normalizedPhone
-          })
-          return existingLead
+        if (normalizedPhone) {
+          const existingLead = await this.findLead({ business_id, caller_phone: normalizedPhone })
+          if (existingLead) {
+            console.log('[LeadService.createLead] Reusing existing lead from retry uniqueness conflict:', {
+              leadId: existingLead.id,
+              business_id,
+              caller_phone: normalizedPhone
+            })
+            return existingLead
+          }
         }
       }
     }
