@@ -143,7 +143,7 @@ export default function PaymentCollectionGraph() {
         ) : (
           <div className="h-[260px] w-full">
             <ChartTouchWrapper>
-              <div onClick={() => setSelectedIndex(null)}>
+              <div onClick={() => setSelectedIndex(null)} className="w-full h-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
