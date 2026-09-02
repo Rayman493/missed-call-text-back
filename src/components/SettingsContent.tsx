@@ -2742,9 +2742,11 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
             {/* Page Header - normal flow */}
             <div className="pt-8 pb-6">
-              <div className="flex items-center gap-3 mb-1">
-                <AppBackButton fallbackHref="/dashboard" />
-                <h1 className="text-3xl font-bold text-foreground tracking-tight">
+              <div className="flex flex-col md:flex-row md:items-center md:gap-3 mb-1">
+                <div className="mb-1 md:mb-0">
+                  <AppBackButton fallbackHref="/dashboard" />
+                </div>
+                <h1 className="text-3xl font-bold text-foreground tracking-tight mb-1 md:mb-0">
                   Settings
                 </h1>
               </div>

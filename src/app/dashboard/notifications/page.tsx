@@ -221,10 +221,12 @@ export default function NotificationsPage() {
       <div className="max-w-5xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-          {/* Title row with back button */}
-          <div className="flex items-center gap-3 mb-4">
-            <AppBackButton fallbackHref="/dashboard" label="Back" />
-            <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
+          {/* Title row with back button - responsive layout */}
+          <div className="flex flex-col md:flex-row md:items-center md:gap-3 mb-4">
+            <div className="mb-1 md:mb-0">
+              <AppBackButton fallbackHref="/dashboard" label="Back" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-1 md:mb-0">Notifications</h1>
           </div>
 
           {/* Subtitle row with actions */}

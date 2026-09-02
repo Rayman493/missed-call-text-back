@@ -2200,22 +2200,22 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
                     }
                   } : null}
                   onClick={() => selectMapItem(item.id, item.latitude, item.longitude)}
-                  className={`flex-shrink-0 snap-start px-2 md:px-3 py-2 rounded-lg border transition-colors min-w-[120px] md:min-w-[140px] max-w-[160px] ${
+                  className={`flex-shrink-0 snap-start px-2 md:px-3 py-1.5 rounded-md border transition-colors min-w-[120px] md:min-w-[140px] max-w-[160px] ${
                     selectedMapItemId === item.id
-                      ? 'bg-blue-50 dark:bg-blue-900/25 border-blue-300 dark:border-blue-700 ring-2 ring-blue-200 dark:ring-blue-800/50 shadow-sm'
+                      ? 'bg-blue-50/80 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 ring-1 ring-blue-200 dark:ring-blue-800/40'
                       : item.type === 'business'
-                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/30'
-                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                        ? 'bg-green-50/80 dark:bg-green-900/15 border-green-200 dark:border-green-700 hover:bg-green-100/80 dark:hover:bg-green-900/25'
+                        : 'bg-white/90 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-slate-50/90 dark:hover:bg-slate-700/40'
                   }`}
                 >
                   <div className="flex items-center gap-2">
                     {item.type === 'business' ? (
-                      <div className="w-5 h-5 md:w-6 md:h-6 rounded flex items-center justify-center text-[10px] md:text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex-shrink-0">
+                      <div className="w-4.5 h-4.5 md:w-5 md:h-5 rounded flex items-center justify-center text-[9px] md:text-[10px] bg-green-100/80 dark:bg-green-900/25 text-green-600 dark:text-green-400 flex-shrink-0">
                         🏠
                       </div>
                     ) : (
-                      <div className={`w-5 h-5 md:w-6 md:h-6 rounded flex items-center justify-center font-bold text-[10px] md:text-xs flex-shrink-0 ${
-                        item.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                      <div className={`w-4.5 h-4.5 md:w-5 md:h-5 rounded flex items-center justify-center font-bold text-[9px] md:text-[10px] flex-shrink-0 ${
+                        item.type === 'job' ? 'bg-purple-100/80 dark:bg-purple-900/25 text-purple-600 dark:text-purple-400' : 'bg-blue-100/80 dark:bg-blue-900/25 text-blue-600 dark:text-blue-400'
                       }`}>
                         {item.stopNumber}
                       </div>
@@ -2348,22 +2348,22 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
                       }
                     } : null}
                     onClick={() => selectMapItem(item.id, item.latitude, item.longitude)}
-                    className={`flex-shrink-0 snap-start px-2 py-2 rounded-lg border transition-colors min-w-[120px] max-w-[160px] ${
+                    className={`flex-shrink-0 snap-start px-2 py-1.5 rounded-md border transition-colors min-w-[120px] max-w-[160px] ${
                       selectedMapItemId === item.id
-                        ? 'bg-blue-50 dark:bg-blue-900/25 border-blue-300 dark:border-blue-700 ring-2 ring-blue-200 dark:ring-blue-800/50 shadow-sm'
+                        ? 'bg-blue-50/80 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 ring-1 ring-blue-200 dark:ring-blue-800/40'
                         : item.type === 'business'
-                          ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/30'
-                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                          ? 'bg-green-50/80 dark:bg-green-900/15 border-green-200 dark:border-green-700 hover:bg-green-100/80 dark:hover:bg-green-900/25'
+                          : 'bg-white/90 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-slate-50/90 dark:hover:bg-slate-700/40'
                     }`}
                   >
                     <div className="flex items-center gap-2">
                       {item.type === 'business' ? (
-                        <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex-shrink-0">
+                        <div className="w-4 h-4 rounded flex items-center justify-center text-[9px] bg-green-100/80 dark:bg-green-900/25 text-green-600 dark:text-green-400 flex-shrink-0">
                           🏠
                         </div>
                       ) : (
-                        <div className={`w-5 h-5 rounded flex items-center justify-center font-bold text-[10px] flex-shrink-0 ${
-                          item.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                        <div className={`w-4 h-4 rounded flex items-center justify-center font-bold text-[9px] flex-shrink-0 ${
+                          item.type === 'job' ? 'bg-purple-100/80 dark:bg-purple-900/25 text-purple-600 dark:text-purple-400' : 'bg-blue-100/80 dark:bg-blue-900/25 text-blue-600 dark:text-blue-400'
                         }`}>
                           {item.stopNumber}
                         </div>

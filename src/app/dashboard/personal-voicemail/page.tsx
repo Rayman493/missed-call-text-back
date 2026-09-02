@@ -187,7 +187,20 @@ export default function PersonalVoicemailPage() {
               <div className="mb-6">
                 <h1 className="text-2xl font-bold text-foreground mb-2">Personal Voicemail</h1>
                 <p className="text-sm text-muted-foreground">
-                  Voicemails from callers in Personal Contacts appear here without entering your customer workflow
+                  {contacts.length === 0 ? (
+                    <>
+                      Voicemails from callers in{' '}
+                      <Link
+                        href="/dashboard/settings#contacts"
+                        className="text-blue-600 dark:text-blue-400 hover:underline font-medium transition-colors"
+                      >
+                        Personal Contacts
+                      </Link>
+                      {' '}appear here without entering your customer workflow
+                    </>
+                  ) : (
+                    'Voicemails from callers in Personal Contacts appear here without entering your customer workflow'
+                  )}
                 </p>
               </div>
 

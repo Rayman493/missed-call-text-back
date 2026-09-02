@@ -146,7 +146,7 @@ export default function SelectPicker({
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-8 top-1/2 -translate-y-1/2 p-1.5 hover:bg-accent/40 rounded transition-colors"
+            className="absolute right-12 top-1/2 -translate-y-1/2 p-1.5 hover:bg-accent/40 rounded transition-colors"
             aria-label="Clear selection"
           >
             <X className="w-4 h-4 text-muted-foreground" />
