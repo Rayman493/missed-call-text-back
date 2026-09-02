@@ -193,6 +193,18 @@ function ScheduleMapComponent({
   const correctiveFrameUsedForContextRef = useRef(false) // tracks if corrective frame used
   const programmaticMoveInProgressRef = useRef(false) // tracks programmatic camera moves
   const activeGestureRef = useRef(false) // tracks if a manual gesture (drag/zoom) is currently active
+
+  // Stop color palette - distinct colors for each stop number (colorblind-accessible)
+  const STOP_COLOR_PALETTE = [
+    '#EF4444', // Red
+    '#F59E0B', // Amber
+    '#10B981', // Emerald
+    '#3B82F6', // Blue
+    '#8B5CF6', // Violet
+    '#EC4899', // Pink
+    '#14B8A6', // Teal
+    '#F97316', // Orange
+  ]
   // Constants for viewport behavior
 const HOME_BASE_ONLY_ZOOM = 13 // Local zoom for single marker (shows ~5-10 miles)
 const MULTI_MARKER_MAX_ZOOM = 14 // Max zoom for multi-marker fit bounds (reduced from 15 to prevent excessive zoom-in when points are close)
@@ -1922,6 +1934,15 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
   useEffect(() => {
     if (!mapReady) return
 
+    // Skip marker updates during active manual gestures to prevent visual desync
+    if (activeGestureRef.current) {
+      console.log('[SCHEDULE_MAP_SELECTION_UPDATE_SKIPPED]', {
+        reason: 'active_manual_gesture',
+        selectedMapItemId
+      })
+      return
+    }
+
     // Create stopNumber lookup for current filter state
     const filteredItems = getFilteredMapItems(mapItems)
     const sortedWithStopNumbers = [...filteredItems]
@@ -1988,7 +2009,8 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
     }
 
     const isBusiness = type === 'business'
-    const color = isBusiness ? '#059669' : type === 'job' ? '#7C3AED' : '#2563EB' // Muted green for business, muted purple for jobs, muted blue for appointments
+    // Business marker keeps its distinct color, stops use palette based on number
+    const color = isBusiness ? '#059669' : STOP_COLOR_PALETTE[(stopNumber - 1) % STOP_COLOR_PALETTE.length]
     const size = isSelected ? 44 : 36
     const strokeWidth = isSelected ? 3 : 2
     const textColor = '#FFFFFF'
