@@ -66,6 +66,7 @@ import NewTaskModal from '@/components/schedule/NewTaskModal'
 import EditCustomerModal from '@/components/EditCustomerModal'
 import { SidebarSection } from '@/components/SidebarSection'
 import SuccessBanner from '@/components/SuccessBanner'
+import InfoBanner from '@/components/InfoBanner'
 import BusinessPhoneModal from '@/components/BusinessPhoneModal'
 import { launchSMS, copyToClipboard, openBusinessSms } from '@/lib/sms-launch'
 import { useSendingSource } from '@/hooks/useSendingSource'
@@ -375,6 +376,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [infoMessage, setInfoMessage] = useState('')
   const [realtimeGeneration, setRealtimeGeneration] = useState(0)
   const [externalActionSuccess, setExternalActionSuccess] = useState<{ primary: string; secondary: string } | null>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -590,7 +592,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const handleNativeCall = async () => {
     // Phone-dependent gating: Check if customer has a phone number
     if (!hasPhoneNumber(leadData?.caller_phone)) {
-      setSuccessMessage('Add a phone number to this customer before calling.')
+      setInfoMessage('Add a phone number to this customer before calling.')
       return
     }
 
@@ -2466,7 +2468,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     // Phone-dependent gating: Check if customer has a phone number
     if (!hasPhoneNumber(leadData?.caller_phone)) {
-      setSuccessMessage('Add a phone number to this customer before sending a text.')
+      setInfoMessage('Add a phone number to this customer before sending a text.')
       return
     }
 
@@ -3043,7 +3045,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const handleRequestPaymentClick = () => {
     // Check if customer has a phone number (payment requests are SMS-based)
     if (!hasPhoneNumber(leadData?.caller_phone)) {
-      setSuccessMessage('Add a phone number to this customer before sending a payment request.')
+      setInfoMessage('Add a phone number to this customer before sending a payment request.')
       return
     }
 
@@ -4158,6 +4160,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <SuccessBanner
                 message={successMessage}
                 onComplete={() => setSuccessMessage('')}
+              />
+            )}
+
+            {infoMessage && (
+              <InfoBanner
+                message={infoMessage}
+                onComplete={() => setInfoMessage('')}
               />
             )}
 

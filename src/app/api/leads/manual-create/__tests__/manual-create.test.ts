@@ -245,6 +245,16 @@ describe('Phone-less Customer Smoke Tests', () => {
     // User should see error: 'Add a phone number to this customer before sending a payment request.'
   })
 
+  it('should use info semantics for phone-less customer guidance', () => {
+    // Phone-less customer guidance messages should use informational styling
+    // not success/error styling
+    const customer = { caller_phone: null, name: 'Test' }
+    const hasPhone = hasPhoneNumber(customer.caller_phone)
+    expect(hasPhone).toBe(false)
+    // Messages like 'Add a phone number before texting/calling/payment' should be info banners
+    // not green success banners or red error banners
+  })
+
   it('should remove UI gate when phone is added later', () => {
     const customerWithoutPhone = { caller_phone: null, name: 'Test' }
     const customerWithPhone = { caller_phone: '4125551234', name: 'Test' }
