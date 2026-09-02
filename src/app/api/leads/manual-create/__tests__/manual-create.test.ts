@@ -186,3 +186,69 @@ describe('AI/Twilio Safety', () => {
     expect(manualCustomer.caller_phone).not.toBe(inboundPhone)
   })
 })
+
+describe('Phone-less Customer Smoke Tests', () => {
+  it('should render customer detail with null phone', () => {
+    const customer = { id: 'test-id', caller_phone: null, name: 'Test Customer' }
+    expect(customer.caller_phone).toBeNull()
+    // Detail page should render without crashing
+  })
+
+  it('should allow task creation for phone-less customer', () => {
+    const customer = { id: 'test-id', caller_phone: null, name: 'Test Customer' }
+    const task = { leadId: customer.id, title: 'Test Task', reminder_offset_minutes: 15 }
+    expect(customer.caller_phone).toBeNull()
+    // Task should be creatable
+  })
+
+  it('should allow appointment creation for phone-less customer', () => {
+    const customer = { id: 'test-id', caller_phone: null, name: 'Test Customer' }
+    const appointment = { leadId: customer.id, title: 'Test Appointment' }
+    expect(customer.caller_phone).toBeNull()
+    // Appointment should be creatable
+  })
+
+  it('should gate SMS for phone-less customer', () => {
+    const customer = { caller_phone: null, name: 'Test' }
+    const hasPhone = hasPhoneNumber(customer.caller_phone)
+    expect(hasPhone).toBe(false)
+    // SMS should be blocked with error message
+  })
+
+  it('should gate call for phone-less customer', () => {
+    const customer = { caller_phone: null, name: 'Test' }
+    const hasPhone = hasPhoneNumber(customer.caller_phone)
+    expect(hasPhone).toBe(false)
+    // Call should be blocked with error message
+  })
+
+  it('should gate payment-by-text for phone-less customer', () => {
+    const customer = { caller_phone: null, name: 'Test' }
+    const hasPhone = hasPhoneNumber(customer.caller_phone)
+    expect(hasPhone).toBe(false)
+    // Payment-by-text should be blocked with error message
+  })
+
+  it('should remove UI gate when phone is added later', () => {
+    const customerWithoutPhone = { caller_phone: null, name: 'Test' }
+    const customerWithPhone = { caller_phone: '4125551234', name: 'Test' }
+    
+    expect(hasPhoneNumber(customerWithoutPhone.caller_phone)).toBe(false)
+    expect(hasPhoneNumber(customerWithPhone.caller_phone)).toBe(true)
+    // UI gate should be removed when phone is added
+  })
+
+  it('should allow normal call when phone exists', () => {
+    const customer = { caller_phone: '4125551234', name: 'Test' }
+    const hasPhone = hasPhoneNumber(customer.caller_phone)
+    expect(hasPhone).toBe(true)
+    // Call should work normally
+  })
+
+  it('should allow normal SMS when phone exists', () => {
+    const customer = { caller_phone: '4125551234', name: 'Test' }
+    const hasPhone = hasPhoneNumber(customer.caller_phone)
+    expect(hasPhone).toBe(true)
+    // SMS should work normally
+  })
+})

@@ -588,6 +588,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const digitCount = dialNumber.replace(/\D/g, '').length
   const canDialPhone = Boolean(dialNumber && (dialNumber.replace(/\D/g, '').length >= 10))
   const handleNativeCall = async () => {
+    // Phone-dependent gating: Check if customer has a phone number
+    if (!hasPhoneNumber(leadData?.caller_phone)) {
+      setSuccessMessage('Add a phone number to this customer before calling.')
+      return
+    }
+
     // Use native phone app for all platforms
     try {
       if (canDialPhone) {
