@@ -522,7 +522,6 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 Sign Out
               </button>
             </div>
-            </div>
           </div>
         </div>,
         document.body
