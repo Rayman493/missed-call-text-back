@@ -176,8 +176,8 @@ export default function SearchableCustomerSelect({
           aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
           className={`w-full bg-background dark:bg-slate-900/40 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 flex items-center justify-between gap-2 duration-150 text-left ${
             disabled
-              ? 'opacity-50 cursor-not-allowed px-3 py-2'
-              : 'hover:border-border/60 cursor-pointer px-3 py-2'
+              ? 'opacity-50 cursor-not-allowed px-3 py-2.5'
+              : 'hover:border-border/60 cursor-pointer px-3 py-2.5'
           } pr-10`}
         >
           <span className={selectedCustomer ? 'text-foreground truncate flex-1' : 'text-muted-foreground truncate flex-1'}>

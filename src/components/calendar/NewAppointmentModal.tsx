@@ -309,10 +309,28 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
           </>
         }
       >
-        <p className="text-xs text-muted-foreground/70 mb-4">Add something to your calendar without creating a customer job.</p>
-        <div className="space-y-4 sm:space-y-4">
-            {/* Customer */}
-            <div>
+        <p className="text-xs text-muted-foreground/70 mb-6">Add something to your calendar without creating a customer job.</p>
+        <div className="space-y-6">
+            {/* Section: Basics */}
+            <div className="space-y-4">
+              <div className="pb-2 border-b border-border/50">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Basics</p>
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Title *</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Appointment title"
+                  autoCapitalize="sentences"
+                  autoComplete="on"
+                  spellCheck={true}
+                  className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
+
               <SearchableCustomerSelect
                 value={leadId}
                 onChange={setLeadId}
@@ -324,128 +342,121 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
               />
             </div>
 
-            {/* Title */}
-            <div>
-              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Title *</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Appointment title"
-                autoCapitalize="sentences"
-                autoComplete="on"
-                spellCheck={true}
-                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-              />
-            </div>
-
-            {/* Date */}
-            <div>
-              <DatePicker
-                value={date}
-                onChange={setDate}
-                placeholder="Select date"
-                required
-              />
-            </div>
-
-            {/* Time */}
-            {!isAllDay && (
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1 min-w-0">
-                  <TimePicker
-                    value={startTime}
-                    onChange={setStartTime}
-                    label="Start Time"
-                    placeholder="Start time"
-                    required
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <TimePicker
-                    value={endTime}
-                    onChange={setEndTime}
-                    label="End Time (Optional)"
-                    placeholder="Auto 1hr"
-                  />
-                </div>
+            {/* Section: Timing */}
+            <div className="space-y-4">
+              <div className="pb-2 border-b border-border/50">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timing</p>
               </div>
-            )}
 
-            {/* All Day Toggle */}
-            <div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isAllDay}
-                  onChange={(e) => setIsAllDay(e.target.checked)}
-                  className="w-4 h-4 rounded border-border bg-background text-blue-600 focus:ring-blue-500 focus:ring-offset-background"
-                />
-                <span className="text-sm text-foreground">All day event</span>
-              </label>
-            </div>
-
-            {/* Meeting Type */}
-            <div>
-              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Appointment Type</label>
-              <div role="radiogroup" aria-label="Appointment Type" className="flex flex-wrap gap-3 text-xs">
-                <label className="inline-flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-md hover:bg-muted/60 focus-within:ring-2 focus-within:ring-blue-500">
-                  <input className="w-4 h-4" type="radio" name="meetingType" checked={meetingType==='in_person'} onChange={() => setMeetingType('in_person')} />
-                  <span>In Person</span>
-                </label>
-                <label className="inline-flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-md hover:bg-muted/60 focus-within:ring-2 focus-within:ring-blue-500">
-                  <input className="w-4 h-4" type="radio" name="meetingType" checked={meetingType==='google_meet'} onChange={() => setMeetingType('google_meet')} />
-                  <span>Google Meet</span>
-                </label>
-                <label className="inline-flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-md hover:bg-muted/60 focus-within:ring-2 focus-within:ring-blue-500">
-                  <input className="w-4 h-4" type="radio" name="meetingType" checked={meetingType==='custom'} onChange={() => setMeetingType('custom')} />
-                  <span>Other / Custom Virtual</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Location */}
-            <div>
-              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Location (optional)</label>
-              <input
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Add location"
-                autoCapitalize="sentences"
-                autoComplete="on"
-                spellCheck={true}
-                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-              />
-            </div>
-
-            {/* Custom Meeting URL (only when custom) */}
-            {meetingType === 'custom' && (
               <div>
-                <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Meeting link (optional)</label>
-                <input
-                  type="url"
-                  value={customMeetingUrl}
-                  onChange={(e) => setCustomMeetingUrl(e.target.value)}
-                  placeholder="https://zoom.us/... or https://teams.microsoft.com/..."
-                  className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                <DatePicker
+                  value={date}
+                  onChange={setDate}
+                  label="Date"
+                  placeholder="Select date"
+                  required
                 />
               </div>
-            )}
 
-            {/* Description */}
-            <div>
-              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Notes (optional)</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Add notes"
-                rows={3}
-                autoCapitalize="sentences"
-                autoComplete="on"
-                spellCheck={true}
-                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
-              />
+              {!isAllDay && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <TimePicker
+                      value={startTime}
+                      onChange={setStartTime}
+                      label="Start Time"
+                      placeholder="Start time"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <TimePicker
+                      value={endTime}
+                      onChange={setEndTime}
+                      label="End Time"
+                      placeholder="Auto 1hr"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isAllDay}
+                    onChange={(e) => setIsAllDay(e.target.checked)}
+                    className="w-4 h-4 rounded border-border bg-background text-primary focus:ring-primary focus:ring-offset-background"
+                  />
+                  <span className="text-sm text-foreground">All day event</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Section: Appointment Details */}
+            <div className="space-y-4">
+              <div className="pb-2 border-b border-border/50">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Appointment Details</p>
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Appointment Type</label>
+                <div role="radiogroup" aria-label="Appointment Type" className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <label className="inline-flex items-center gap-2.5 cursor-pointer py-2 px-3 rounded-lg border border-border hover:bg-muted/60 focus-within:ring-2 focus-within:ring-primary/50">
+                    <input className="w-4 h-4" type="radio" name="meetingType" checked={meetingType==='in_person'} onChange={() => setMeetingType('in_person')} />
+                    <span className="text-sm">In Person</span>
+                  </label>
+                  <label className="inline-flex items-center gap-2.5 cursor-pointer py-2 px-3 rounded-lg border border-border hover:bg-muted/60 focus-within:ring-2 focus-within:ring-primary/50">
+                    <input className="w-4 h-4" type="radio" name="meetingType" checked={meetingType==='google_meet'} onChange={() => setMeetingType('google_meet')} />
+                    <span className="text-sm">Google Meet</span>
+                  </label>
+                  <label className="inline-flex items-center gap-2.5 cursor-pointer py-2 px-3 rounded-lg border border-border hover:bg-muted/60 focus-within:ring-2 focus-within:ring-primary/50">
+                    <input className="w-4 h-4" type="radio" name="meetingType" checked={meetingType==='custom'} onChange={() => setMeetingType('custom')} />
+                    <span className="text-sm">Custom</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Location (optional)</label>
+                <input
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Add location"
+                  autoCapitalize="sentences"
+                  autoComplete="on"
+                  spellCheck={true}
+                  className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
+
+              {meetingType === 'custom' && (
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Meeting link (optional)</label>
+                  <input
+                    type="url"
+                    value={customMeetingUrl}
+                    onChange={(e) => setCustomMeetingUrl(e.target.value)}
+                    placeholder="https://zoom.us/... or https://teams.microsoft.com/..."
+                    className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Notes (optional)</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Add notes"
+                  rows={3}
+                  autoCapitalize="sentences"
+                  autoComplete="on"
+                  spellCheck={true}
+                  className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                />
+              </div>
             </div>
           </div>
       </Modal>

@@ -283,115 +283,135 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         </>
       }
     >
-      <div className="space-y-4">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
-              Task Title <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Call customer about quote"
-              className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-              required
+      <div className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Section: Customer Context */}
+          <div className="space-y-4">
+            <div className="pb-2 border-b border-border/50">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Customer Context</p>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
+                Task Title <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., Call customer about quote"
+                className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                required
+              />
+            </div>
+
+            <SearchableCustomerSelect
+              value={selectedLeadId}
+              onChange={setSelectedLeadId}
+              label="Customer"
+              allowClear={true}
+            />
+
+            <SelectPicker
+              value={selectedJobId}
+              onChange={setSelectedJobId}
+              options={[
+                { value: '', label: 'No job' },
+                ...jobs.map(job => ({
+                  value: job.id,
+                  label: job.title + (job.customer_name ? ` - ${job.customer_name}` : '')
+                }))
+              ]}
+              placeholder="No job"
+              label="Job"
+              searchable={jobs.length > 10}
+              emptyMessage="No jobs available"
             />
           </div>
 
-          <SearchableCustomerSelect
-            value={selectedLeadId}
-            onChange={setSelectedLeadId}
-            label="Customer"
-            allowClear={true}
-          />
+          {/* Section: Timing */}
+          <div className="space-y-4">
+            <div className="pb-2 border-b border-border/50">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timing</p>
+            </div>
 
-          <SelectPicker
-            value={selectedJobId}
-            onChange={setSelectedJobId}
-            options={[
-              { value: '', label: 'No job' },
-              ...jobs.map(job => ({
-                value: job.id,
-                label: job.title + (job.customer_name ? ` - ${job.customer_name}` : '')
-              }))
-            ]}
-            placeholder="No job"
-            label="Job"
-            searchable={jobs.length > 10}
-            emptyMessage="No jobs available"
-          />
+            <div className="grid grid-cols-2 gap-3">
+              <DatePicker
+                value={dueDate}
+                onChange={setDueDate}
+                label="Due Date"
+                placeholder="Select date"
+              />
+              <TimePicker
+                value={dueTime}
+                onChange={setDueTime}
+                label="Due Time"
+                placeholder="Select time"
+              />
+            </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <DatePicker
-              value={dueDate}
-              onChange={setDueDate}
-              label="Due Date"
-              placeholder="Select date"
-            />
-            <TimePicker
-              value={dueTime}
-              onChange={setDueTime}
-              label="Due Time"
-              placeholder="Select time"
-            />
-          </div>
-
-          <SelectPicker
-            value={reminderOffsetMinutes !== null ? reminderOffsetMinutes.toString() : ''}
-            onChange={(value) => setReminderOffsetMinutes(value === '' || value === null ? null : parseInt(value, 10))}
-            disabled={false}
-            options={[
-              { value: '', label: 'None' },
-              { value: '0', label: 'At time' },
-              { value: '15', label: '15 minutes before' },
-              { value: '30', label: '30 minutes before' },
-              { value: '60', label: '1 hour before' },
-              { value: '1440', label: '1 day before' },
-            ]}
-            placeholder="None"
-            label="Remind me (optional)"
-            emptyMessage="None"
-          />
-
-          <div>
-            <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
-              Notes
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any details about this task..."
-              rows={3}
-              className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-y"
-              autoCapitalize="sentences"
-              autoCorrect="on"
-              spellCheck={true}
+            <SelectPicker
+              value={reminderOffsetMinutes !== null ? reminderOffsetMinutes.toString() : ''}
+              onChange={(value) => setReminderOffsetMinutes(value === '' || value === null ? null : parseInt(value, 10))}
+              disabled={false}
+              options={[
+                { value: '', label: 'None' },
+                { value: '0', label: 'At time' },
+                { value: '15', label: '15 minutes before' },
+                { value: '30', label: '30 minutes before' },
+                { value: '60', label: '1 hour before' },
+                { value: '1440', label: '1 day before' },
+              ]}
+              placeholder="None"
+              label="Remind me (optional)"
+              emptyMessage="None"
             />
           </div>
 
-          {/* Completion Toggle - Only in Edit Mode */}
+          {/* Section: Details */}
+          <div className="space-y-4">
+            <div className="pb-2 border-b border-border/50">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Details</p>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
+                Notes
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add any details about this task..."
+                rows={3}
+                className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                autoCapitalize="sentences"
+                autoCorrect="on"
+                spellCheck={true}
+              />
+            </div>
+          </div>
+
+          {/* Edit Mode Actions */}
           {taskToEdit && (
-            <button
-              type="button"
-              onClick={handleToggleComplete}
-              disabled={isTogglingComplete}
-              className="w-full px-4 py-2.5 border border-border rounded-lg text-foreground bg-muted hover:bg-muted/80 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isTogglingComplete ? 'Updating...' : (taskToEdit.completed ? 'Reopen Task' : 'Mark as Complete')}
-            </button>
-          )}
+            <div className="pt-4 border-t border-border/50 space-y-2">
+              <button
+                type="button"
+                onClick={handleToggleComplete}
+                disabled={isTogglingComplete}
+                className="w-full px-4 py-2.5 border border-border rounded-lg text-foreground bg-muted hover:bg-muted/80 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isTogglingComplete ? 'Updating...' : (taskToEdit.completed ? 'Reopen Task' : 'Mark as Complete')}
+              </button>
 
-          {/* Delete Button - Only in Edit Mode */}
-          {taskToEdit && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="w-full px-4 py-2.5 border border-red-200 dark:border-red-900/30 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isDeleting ? 'Deleting...' : 'Delete Task'}
-            </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="w-full px-4 py-2.5 border border-red-200 dark:border-red-900/30 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Task'}
+              </button>
+            </div>
           )}
         </form>
       </div>

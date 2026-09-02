@@ -1,7 +1,7 @@
 'use client'
 
 import { useId } from 'react'
-import { X, Clock } from 'lucide-react'
+import { X } from 'lucide-react'
 
 interface TimePickerProps {
   value: string // HH:MM format (24-hour)
@@ -34,7 +34,7 @@ export default function TimePicker({
         </label>
       )}
 
-      {/* Native time input for all platforms */}
+      {/* Native time input for all platforms - uses native affordance */}
       <div className="relative">
         <input
           id={inputId}
@@ -45,15 +45,12 @@ export default function TimePicker({
           disabled={disabled}
           placeholder={placeholder}
           step={60}
-          className={`w-full pl-3 py-2 text-base sm:text-sm border rounded-lg duration-150 ${
+          className={`w-full px-3 py-2.5 text-base sm:text-sm border rounded-lg duration-150 ${
             disabled
               ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30'
               : 'bg-background dark:bg-slate-900/40 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60'
-          } ${value ? 'pr-10' : 'pr-10'}`}
+          } ${value ? 'pr-10' : ''}`}
         />
-        {!value && !disabled && (
-          <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-        )}
         {value && !disabled && (
           <button
             type="button"

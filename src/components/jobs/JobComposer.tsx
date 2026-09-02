@@ -379,7 +379,7 @@ export default function JobComposer({
               <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
                 Status
               </label>
-              <div className="flex gap-2 flex-wrap">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 {STATUS_OPTIONS.map(opt => (
                   <button
                     key={opt.value}

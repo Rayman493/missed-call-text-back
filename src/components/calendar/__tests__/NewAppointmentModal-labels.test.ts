@@ -4,12 +4,12 @@ import { readFileSync } from 'fs'
 describe('NewAppointmentModal Start/End labels', () => {
   const content = readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
 
-  it('passes Start label to the start TimePicker', () => {
-    expect(content).toContain('label="Start"')
+  it('passes Start Time label to the start TimePicker', () => {
+    expect(content).toContain('label="Start Time"')
   })
 
-  it('passes End (optional) label to the end TimePicker', () => {
-    expect(content).toContain('label="End (optional)"')
+  it('passes End Time label to the end TimePicker', () => {
+    expect(content).toContain('label="End Time"')
   })
 
   it('does not render old bottom Start/End annotations', () => {
@@ -20,7 +20,7 @@ describe('NewAppointmentModal Start/End labels', () => {
     expect(content).not.toContain('>Time *<')
   })
 
-  it('uses section gap between Start and End fields', () => {
-    expect(content).toContain('gap-4')
+  it('uses grid gap between Start and End fields', () => {
+    expect(content).toContain('grid grid-cols-2 gap-3')
   })
 })
