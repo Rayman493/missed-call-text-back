@@ -305,6 +305,23 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         return
       }
 
+      console.log('[SCHEDULE_MAP_TYPE_CHANGE]', {
+        from: mapType === 'satellite' ? 'satellite' : 'roadmap',
+        to: mapType === 'satellite' ? 'satellite' : 'roadmap',
+        mapInstance: mapInstanceIdRef.current,
+        markerCount: markersRef.current.size
+      })
+
+      // Log marker attachment state before change
+      const markerStatesBefore = Array.from(markersRef.current.entries()).map(([key, marker]) => ({
+        key,
+        getMap: marker.getMap() === googleMapRef.current ? 'attached' : marker.getMap() === null ? 'null' : 'other'
+      }))
+      console.log('[SCHEDULE_MAP_TYPE_CHANGE_MARKERS_BEFORE]', {
+        count: markerStatesBefore.length,
+        markers: markerStatesBefore
+      })
+
       try {
         const mapTypeId = mapType === 'satellite'
           ? (window as any).google.maps.MapTypeId.HYBRID
@@ -313,6 +330,18 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       } catch (error) {
         console.error('[ScheduleMap] Failed to update map type:', error)
       }
+
+      // Log marker attachment state after change
+      setTimeout(() => {
+        const markerStatesAfter = Array.from(markersRef.current.entries()).map(([key, marker]) => ({
+          key,
+          getMap: marker.getMap() === googleMapRef.current ? 'attached' : marker.getMap() === null ? 'null' : 'other'
+        }))
+        console.log('[SCHEDULE_MAP_TYPE_CHANGE_MARKERS_AFTER]', {
+          count: markerStatesAfter.length,
+          markers: markerStatesAfter
+        })
+      }, 100)
     }
   }, [mapType, mapReady])
 
@@ -1709,6 +1738,13 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       }
     })
 
+    console.log('[SCHEDULE_MAP_MARKER_UPDATE_EFFECT]', {
+      filteredItemCount: filteredItems.length,
+      activeGesture: activeGestureRef.current,
+      mapInstance: mapInstanceIdRef.current,
+      mapType
+    })
+
     // Group items by location
     const markerInfos = groupItemsByLocation(filteredItems)
 
@@ -1799,6 +1835,11 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
     // Remove markers that no longer exist
     markersRef.current.forEach((marker, key) => {
       if (!currentMarkerIds.has(key)) {
+        console.log('[SCHEDULE_MAP_MARKER_REMOVED]', {
+          key,
+          reason: 'not_in_current_marker_ids',
+          mapInstance: mapInstanceIdRef.current
+        })
         marker.setMap(null)
         markersRef.current.delete(key)
       }
@@ -1924,14 +1965,24 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
     }
 
     return () => {
+      console.log('[SCHEDULE_MAP_MARKER_CLEANUP]', {
+        markerCount: markersRef.current.size,
+        mapInstance: mapInstanceIdRef.current
+      })
       // Clean up all markers on unmount
       markersRef.current.forEach(marker => marker.setMap(null))
       markersRef.current.clear()
     }
-  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectedMapItemId, selectedDate, mapFilter, getResponsivePadding, assignStopNumbers, getSortedMappedItems])
+  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectedMapItemId, selectedDate, mapFilter, getResponsivePadding, assignStopNumbers, getSortedMappedItems, mapType])
 
   // Update marker icons when selection changes (without triggering camera changes)
   useEffect(() => {
+    console.log('[SCHEDULE_MAP_SELECTION_UPDATE_EFFECT]', {
+      selectedMapItemId,
+      activeGesture: activeGestureRef.current,
+      mapInstance: mapInstanceIdRef.current
+    })
+
     if (!mapReady) return
 
     // Skip marker updates during active manual gestures to prevent visual desync
