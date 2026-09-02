@@ -570,6 +570,22 @@ export default function TapToPayModal({
   }
 
   const handleStartPayment = async () => {
+    console.log('[TTP_POST_SUCCESS_RETRY] button_pressed', {
+      platform,
+      timestamp: Date.now(),
+      paymentState,
+      lastSuccessfulStage,
+      currentAttemptId: terminalService.getCurrentAttemptId(),
+      currentPaymentIntentId: terminalService.getPaymentIntentId(),
+      lastAttemptOutcome: terminalService.getLastAttemptOutcome?.(),
+      isPaymentInProgress,
+      isNativeSupported,
+      amountCents,
+      leadId,
+      jobId,
+      modalIsOpen: isOpen
+    })
+
     console.log('[TTP UI] Payment started:', {
       isNativeSupported,
       platform,
@@ -580,6 +596,7 @@ export default function TapToPayModal({
     console.log('[TTP UI] Platform detected:', platform)
 
     if (!isNativeSupported) {
+      console.log('[TTP_POST_SUCCESS_RETRY] guard_blocked reason=not_native_supported')
       console.log('[TTP UI] Native support check failed')
       // Only show error message in web - never in native app
       // The user is already in the app, so this message is redundant
@@ -604,6 +621,7 @@ export default function TapToPayModal({
 
     // Double-tap protection - prevent multiple simultaneous payment attempts
     if (isPaymentInProgress) {
+      console.log('[TTP_POST_SUCCESS_RETRY] guard_blocked reason=payment_in_progress isPaymentInProgress=' + isPaymentInProgress)
       console.log('[TTP UI] Payment already in progress, ignoring')
       return
     }
@@ -614,6 +632,7 @@ export default function TapToPayModal({
     // Check for unresolved attempt before starting new payment
     const unresolvedAttemptId = terminalService.getUnresolvedAttempt()
     if (unresolvedAttemptId) {
+      console.log('[TTP_POST_SUCCESS_RETRY] guard_blocked reason=unresolved_attempt unresolvedAttemptId=' + unresolvedAttemptId)
       console.log('[TTP UI] Unresolved attempt found:', unresolvedAttemptId)
       setPaymentState('ambiguous')
       setError('Please resolve the previous payment status first')
@@ -816,6 +835,17 @@ export default function TapToPayModal({
   }
 
   const handleRetry = () => {
+    console.log('[TTP_POST_SUCCESS_RETRY] retry_button_pressed', {
+      platform,
+      timestamp: Date.now(),
+      paymentState,
+      lastSuccessfulStage,
+      currentAttemptId: terminalService.getCurrentAttemptId(),
+      currentPaymentIntentId: terminalService.getPaymentIntentId(),
+      lastAttemptOutcome: terminalService.getLastAttemptOutcome?.(),
+      isPaymentInProgress,
+      modalIsOpen: isOpen
+    })
     try { logTapToPayEvent('RETRY_BUTTON_PRESSED', { phase: terminalService.getCurrentPhase() as any, sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined }) } catch {}
     try { logTapToPayEvent('RESET_STARTED', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined }) } catch {}
     setPaymentState('ready')
@@ -835,7 +865,10 @@ export default function TapToPayModal({
     // Explicitly start new payment attempt after reset
     // Guard against concurrent retries to prevent duplicate attempts
     if (!isPaymentInProgress) {
+      console.log('[TTP_POST_SUCCESS_RETRY] retry_starting_payment isPaymentInProgress=' + isPaymentInProgress)
       handleStartPayment()
+    } else {
+      console.log('[TTP_POST_SUCCESS_RETRY] retry_blocked_by_in_progress isPaymentInProgress=' + isPaymentInProgress)
     }
   }
 

@@ -90,6 +90,7 @@ export class TerminalBridgeService {
   async resetForRetry(reason: 'user_retry' | 'manual_reset' = 'user_retry') {
     const prevAttempt = this.currentAttemptId || undefined
     const prevPi = this.currentPaymentIntentId || undefined
+    console.log('[TTP_POST_SUCCESS_RETRY] resetForRetry_entered reason=' + reason + ' prevAttempt=' + prevAttempt + ' prevPi=' + prevPi + ' currentPhase=' + this.currentPhase)
     try {
       await logTapToPayEvent('retry_reset', {
         phase: (this.currentPhase as any) || 'startup',
@@ -109,6 +110,7 @@ export class TerminalBridgeService {
     this.currentPhase = undefined
     this.currentPaymentIntentId = undefined
     this.currentLocalPaymentId = undefined
+    console.log('[TTP_POST_SUCCESS_RETRY] resetForRetry_completed state_cleared')
     // Do not disconnect; keep reader and initialized SDK
   }
 
@@ -1267,6 +1269,7 @@ export class TerminalBridgeService {
     // Collect payment via native Terminal with correlation ID
     console.log('[TAP_SESSION_TRACE] stage=native_payment_call_start attempt_id=' + terminalAttemptId)
     console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=collect_payment')
+    console.log('[TTP_POST_SUCCESS_RETRY] native_collect_invoked attemptId=' + terminalAttemptId + ' paymentIntentId=' + paymentIntentId + ' currentAttemptId=' + this.currentAttemptId)
     const collectStart = Date.now(); this.timings.tCollectStart = this.timings.tCollectStart || collectStart
     try { await logTapToPayEvent('collect_payment_started', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId }) } catch {}
     let result: any
@@ -1688,6 +1691,15 @@ export class TerminalBridgeService {
       console.log('[TAP_ATTEMPT] stage=attempt_outcome_cleared')
     } catch (error) {
       console.error('[TAP_ATTEMPT] failed to clear attempt outcome:', error)
+    }
+  }
+
+  // Get last attempt outcome for debugging (temporary for post-success retry investigation)
+  getLastAttemptOutcome(): string | null {
+    try {
+      return localStorage.getItem(LAST_ATTEMPT_OUTCOME_KEY)
+    } catch {
+      return null
     }
   }
 
