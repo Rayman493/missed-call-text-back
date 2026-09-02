@@ -174,7 +174,7 @@ export default function SearchableCustomerSelect({
           aria-haspopup="listbox"
           aria-expanded={isOpen}
           aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
-          className={`w-full bg-background dark:bg-slate-900/40 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 flex items-center justify-between gap-2 duration-150 text-left ${
+          className={`w-full bg-background dark:bg-slate-900/40 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 flex items-center gap-2 duration-150 text-left ${
             disabled
               ? 'opacity-50 cursor-not-allowed px-3 py-2.5'
               : 'hover:border-border/60 cursor-pointer px-3 py-2.5'
@@ -183,9 +183,8 @@ export default function SearchableCustomerSelect({
           <span className={selectedCustomer ? 'text-foreground truncate flex-1' : 'text-muted-foreground truncate flex-1'}>
             {getDisplayText(selectedCustomer)}
           </span>
-          <ChevronDown className={`w-4 h-4 text-muted-foreground flex-shrink-0 duration-150 ${isOpen ? 'rotate-180' : ''}`} />
         </button>
-        {hasValue && allowClear && !disabled && (
+        {hasValue && allowClear && !disabled ? (
           <button
             type="button"
             onClick={handleClear}
@@ -194,7 +193,8 @@ export default function SearchableCustomerSelect({
           >
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
-        )}
+        ) : null}
+        <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground flex-shrink-0 duration-150 pointer-events-none ${hasValue && allowClear && !disabled ? 'right-9' : ''} ${isOpen ? 'rotate-180' : ''}`} />
       </div>
 
       {/* Dropdown */}
