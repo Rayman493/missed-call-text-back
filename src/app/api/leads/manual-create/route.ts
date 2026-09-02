@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       // Create new lead with manual intake data using LeadService
       const newLead = await LeadService.createLead({
         business_id: businessId,
-        caller_phone: normalizedPhone,
+        caller_phone: normalizedPhone || undefined,
         name: customerName || undefined, // Compatibility getter maps to contact_name
         email: email || undefined, // Compatibility getter maps to metadata
         status: 'new',
