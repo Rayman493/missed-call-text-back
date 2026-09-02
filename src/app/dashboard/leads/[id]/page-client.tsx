@@ -3041,6 +3041,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }
 
   const handleRequestPaymentClick = () => {
+    // Check if customer has a phone number (payment requests are SMS-based)
+    if (!hasPhoneNumber(leadData?.caller_phone)) {
+      setSuccessMessage('Add a phone number to this customer before sending a payment request.')
+      return
+    }
+
     // Check if payment methods are configured
     const hasPaymentMethod = business && getAvailableProviders(business).length > 0
 

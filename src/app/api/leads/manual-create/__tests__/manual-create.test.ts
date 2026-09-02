@@ -237,6 +237,14 @@ describe('Phone-less Customer Smoke Tests', () => {
     // Payment-by-text should be blocked with error message
   })
 
+  it('should gate Request Payment modal for phone-less customer', () => {
+    const customer = { caller_phone: null, name: 'Test' }
+    const hasPhone = hasPhoneNumber(customer.caller_phone)
+    expect(hasPhone).toBe(false)
+    // Request Payment modal should not open for phone-less customer
+    // User should see error: 'Add a phone number to this customer before sending a payment request.'
+  })
+
   it('should remove UI gate when phone is added later', () => {
     const customerWithoutPhone = { caller_phone: null, name: 'Test' }
     const customerWithPhone = { caller_phone: '4125551234', name: 'Test' }
