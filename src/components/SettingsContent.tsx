@@ -2742,14 +2742,12 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
             {/* Page Header - normal flow */}
             <div className="pt-8 pb-6">
-              <div className="flex flex-col md:flex-row md:items-center md:gap-3 mb-1">
-                <div className="mb-1 md:mb-0">
-                  <AppBackButton fallbackHref="/dashboard" />
-                </div>
-                <h1 className="text-3xl font-bold text-foreground tracking-tight mb-1 md:mb-0">
-                  Settings
-                </h1>
+              <div className="mb-4">
+                <AppBackButton fallbackHref="/dashboard" />
               </div>
+              <h1 className="text-3xl font-bold text-foreground tracking-tight mb-2">
+                Settings
+              </h1>
               <p className="text-base text-muted-foreground leading-relaxed">
                 Manage your business settings, integrations, and preferences.
               </p>
@@ -4564,7 +4562,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
               </div>
 
               {/* Contacts Section */}
-              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-12">
+              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-[140px]">
                 <div className="flex flex-col gap-4 mb-8">
                   {/* Header row with title, description, and actions */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

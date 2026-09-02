@@ -152,7 +152,7 @@ export default function PaymentCollectionGraph() {
                       cy="50%"
                       innerRadius={CHART_STYLES.donutInnerRadius}
                       outerRadius={CHART_STYLES.donutOuterRadius}
-                      paddingAngle={CHART_STYLES.donutPaddingAngle}
+                      paddingAngle={data.length === 1 ? 0 : CHART_STYLES.donutPaddingAngle}
                       dataKey="value"
                       onClick={(data: any, index: number, event: React.MouseEvent) => {
                         event.stopPropagation()
