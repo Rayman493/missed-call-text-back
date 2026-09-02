@@ -173,6 +173,7 @@ async function openBillingPortal(accessToken: string, returnUrl?: string, hasExi
             url: data.url,
             callbackHost,
             callbackPath,
+            operationType: 'billing_portal',
           })
           console.log('[Billing Action] Native session completed:', result)
 

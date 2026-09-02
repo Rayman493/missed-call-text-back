@@ -33,6 +33,7 @@ export interface NativeWebSessionOptions {
   url: string
   callbackHost: string
   callbackPath: string
+  operationType?: 'checkout' | 'billing_portal'
 }
 
 /**
@@ -56,7 +57,7 @@ export function isNativeAndroid(): boolean {
  * @returns Promise resolving to the terminal session result
  */
 export async function openNativeWebSession(options: NativeWebSessionOptions): Promise<NativeWebSessionResult> {
-  const { url, callbackHost, callbackPath } = options
+  const { url, callbackHost, callbackPath, operationType } = options
 
   if (isNativeIOS()) {
     console.log('[Native Web Session] Opening in ASWebAuthenticationSession (iOS)')
@@ -65,6 +66,7 @@ export async function openNativeWebSession(options: NativeWebSessionOptions): Pr
         url,
         callbackHost,
         callbackPath,
+        operationType,
       })
       console.log('[Native Web Session] Native session completed:', result)
       return result
@@ -91,6 +93,7 @@ export async function openNativeWebSession(options: NativeWebSessionOptions): Pr
         url,
         callbackHost,
         callbackPath,
+        operationType,
       })
       console.log('[Native Web Session] Native session completed:', result)
       return result

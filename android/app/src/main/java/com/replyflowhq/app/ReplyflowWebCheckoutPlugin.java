@@ -107,6 +107,17 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
 
         String callbackHost = call.getString("callbackHost", "www.replyflowhq.com");
         String callbackPath = call.getString("callbackPath", "/billing/success");
+        String operationTypeParam = call.getString("operationType", null);
+
+        // Use explicit operation type if provided, otherwise infer from path
+        String operationType;
+        if (operationTypeParam != null && (OPERATION_TYPE_CHECKOUT.equals(operationTypeParam) || OPERATION_TYPE_BILLING_PORTAL.equals(operationTypeParam))) {
+            operationType = operationTypeParam;
+            Log.d(TAG, "[RF_STRIPE_RETURN] openCheckoutSession using explicit operationType=" + operationType);
+        } else {
+            operationType = determineOperationType(callbackPath);
+            Log.d(TAG, "[RF_STRIPE_RETURN] openCheckoutSession inferred operationType=" + operationType + " from path=" + callbackPath);
+        }
 
         Log.d(TAG, "[RF_STRIPE_RETURN] openCheckoutSession callbackHost=" + callbackHost + " callbackPath=" + callbackPath);
 
@@ -115,7 +126,7 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
         call.setKeepAlive(true);
 
         // Store pending state for process-death recovery
-        storePendingState(callbackHost, callbackPath);
+        storePendingState(callbackHost, callbackPath, operationType);
 
         // Record launch timestamp for cancellation detection
         launchTimestamp = System.currentTimeMillis();
@@ -315,9 +326,7 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
     /**
      * Store pending state for process-death recovery
      */
-    private void storePendingState(String callbackHost, String callbackPath) {
-        String operationType = determineOperationType(callbackPath);
-
+    private void storePendingState(String callbackHost, String callbackPath, String operationType) {
         // Parse path and query from callbackPath
         // callbackPath may be "/dashboard/settings" or "/dashboard/settings?billing=returned"
         String path = callbackPath;
