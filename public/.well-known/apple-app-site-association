@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["G5G3Z26W3U.com.replyflowhq.app"],
+        "components": [
+          {
+            "/": "/dashboard/settings/*"
+          },
+          {
+            "/": "/billing/success/*"
+          },
+          {
+            "/": "/dashboard/calendar/*"
+          }
+        ]
+      }
+    ]
+  }
+}
