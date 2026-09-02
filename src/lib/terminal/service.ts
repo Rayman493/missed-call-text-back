@@ -1673,8 +1673,8 @@ export class TerminalBridgeService {
     }
   }
 
-  // Get last attempt outcome
-  private getLastAttemptOutcome(): 'succeeded' | 'failed' | 'canceled' | 'ambiguous' | null {
+  // Get last attempt outcome (public for temporary diagnostic logging)
+  getLastAttemptOutcome(): 'succeeded' | 'failed' | 'canceled' | 'ambiguous' | null {
     try {
       const outcome = localStorage.getItem(LAST_ATTEMPT_OUTCOME_KEY) as 'succeeded' | 'failed' | 'canceled' | 'ambiguous' | null
       return outcome
@@ -1691,15 +1691,6 @@ export class TerminalBridgeService {
       console.log('[TAP_ATTEMPT] stage=attempt_outcome_cleared')
     } catch (error) {
       console.error('[TAP_ATTEMPT] failed to clear attempt outcome:', error)
-    }
-  }
-
-  // Get last attempt outcome for debugging (temporary for post-success retry investigation)
-  getLastAttemptOutcome(): string | null {
-    try {
-      return localStorage.getItem(LAST_ATTEMPT_OUTCOME_KEY)
-    } catch {
-      return null
     }
   }
 
