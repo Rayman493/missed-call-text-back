@@ -2460,7 +2460,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     // Phone-dependent gating: Check if customer has a phone number
     if (!hasPhoneNumber(leadData?.caller_phone)) {
-      onShowToast?.('Add a phone number to this customer before sending a text.', 'error')
+      setSuccessMessage('Add a phone number to this customer before sending a text.')
       return
     }
 
