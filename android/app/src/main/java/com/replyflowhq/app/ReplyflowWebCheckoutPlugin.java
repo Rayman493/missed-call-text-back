@@ -61,10 +61,6 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
     private static final String OPERATION_TYPE_CHECKOUT = "checkout";
     private static final String OPERATION_TYPE_BILLING_PORTAL = "billing_portal";
 
-    // Native scheme for billing portal trampoline
-    private static final String NATIVE_SCHEME = "replyflow";
-    private static final String NATIVE_HOST_BILLING = "billing";
-
     // Retain the active plugin call to prevent garbage collection
     private PluginCall activeCall = null;
 
@@ -143,6 +139,12 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
             builder.setShowTitle(true);
             builder.setUrlBarHidingEnabled(false);
             builder.setToolbarColor(android.graphics.Color.WHITE);
+
+            // Enable external default handler for redirects
+            // This allows subsequent navigation (like Stripe callbacks) to use default URL resolution
+            // For verified App Links, this means the native app receives the callback directly
+            // The initial Stripe URL remains in the Custom Tab
+            builder.setSendToExternalDefaultHandlerEnabled(true);
 
             CustomTabsIntent customTabsIntent = builder.build();
 
@@ -299,11 +301,6 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
     String determineOperationType(String callbackPath) {
         if (callbackPath == null) {
             return OPERATION_TYPE_CHECKOUT; // Default to checkout
-        }
-
-        // Check if this is a billing portal return via trampoline
-        if (callbackPath.contains("/native-return/billing")) {
-            return OPERATION_TYPE_BILLING_PORTAL;
         }
 
         // Check if this is a billing portal return via direct settings path
@@ -507,29 +504,9 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
      * @return true if valid, false if invalid
      */
     private boolean validateCallbackUri(String scheme, String host, String path, String queryString) {
-        // Handle native scheme callbacks (replyflow://billing?billing=returned)
-        if (NATIVE_SCHEME.equals(scheme)) {
-            Log.d(TAG, "[RF_STRIPE_RETURN] validateCallbackUri native_scheme_received host=" + host);
-
-            // Validate host is billing
-            if (!NATIVE_HOST_BILLING.equals(host)) {
-                Log.d(TAG, "[RF_STRIPE_RETURN] validation_failed_native_wrong_host expected=" + NATIVE_HOST_BILLING + " actual=" + host);
-                return false;
-            }
-
-            // Validate query contains billing=returned
-            if (queryString == null || !queryString.contains("billing=returned")) {
-                Log.d(TAG, "[RF_STRIPE_RETURN] validation_failed_native_missing_billing_returned");
-                return false;
-            }
-
-            Log.d(TAG, "[RF_STRIPE_RETURN] validation_passed_native_callback");
-            return true;
-        }
-
-        // Handle HTTPS callbacks (for Stripe Checkout)
+        // Validate scheme
         if (!"https".equals(scheme)) {
-            Log.d(TAG, "[NATIVE_CHECKOUT] validation_failed_invalid_scheme=true scheme=" + scheme);
+            Log.d(TAG, "[RF_STRIPE_RETURN] validation_failed_invalid_scheme=true scheme=" + scheme);
             return false;
         }
 

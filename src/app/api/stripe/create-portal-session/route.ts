@@ -142,10 +142,11 @@ export async function POST(request: Request) {
 
     console.log('[stripe-portal] stripe_customer_id is valid, proceeding to Stripe API call')
 
-    // Use HTTPS trampoline return URL for Stripe Billing Portal
-    // Stripe requires HTTPS URLs and does not accept custom schemes (replyflow://)
-    // The trampoline page redirects to replyflow://billing?billing=returned
-    // which triggers native app handoff via the registered custom scheme
+    // Use HTTPS Universal Link return URL for all platforms
+    // Stripe requires HTTPS URLs for return_url (custom schemes are not accepted)
+    // With CustomTabsIntent.Builder.setSendToExternalDefaultHandlerEnabled(true),
+    // subsequent navigation to verified App Links will use default URL resolution
+    // which opens the native app directly without browser confirmation prompts
     let returnUrl: string
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || getDashboardUrl()
 
@@ -164,18 +165,18 @@ export async function POST(request: Request) {
             returnUrlOrigin: returnUrlObj.origin,
             appOrigin: appUrlObj.origin
           })
-          returnUrl = `${appUrl}/native-return/billing?billing=returned`
+          returnUrl = `${getDashboardUrl()}?billing=returned`
         }
       } catch (error) {
         console.error('[stripe-portal] Invalid return URL format, using default:', error)
-        returnUrl = `${appUrl}/native-return/billing?billing=returned`
+        returnUrl = `${getDashboardUrl()}?billing=returned`
       }
     } else {
-      // Fall back to trampoline URL
-      returnUrl = `${appUrl}/native-return/billing?billing=returned`
+      // Fall back to default dashboard URL with billing=returned parameter
+      returnUrl = `${getDashboardUrl()}?billing=returned`
     }
 
-    console.log('[stripe-portal] Using HTTPS trampoline return URL:', returnUrl)
+    console.log('[stripe-portal] Using HTTPS Universal Link return URL:', returnUrl)
     
     logUrlResolution('stripe-portal-return-url', returnUrl, user.id, business.id)
 

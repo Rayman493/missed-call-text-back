@@ -61,16 +61,8 @@ public class MainActivity extends BridgeActivity {
             String queryString = intentUri.getQuery();
             Log.d(TAG, "[RF_STRIPE_RETURN] onCreate_intent_received scheme=" + scheme + " host=" + host + " path=" + path + " query=" + queryString);
 
-            // Handle native scheme callbacks (replyflow://billing?billing=returned)
-            if ("replyflow".equals(scheme) && "billing".equals(host)) {
-                Log.d(TAG, "[RF_STRIPE_RETURN] onCreate_native_billing_callback_forwarding_to_plugin");
-                if (checkoutPlugin != null && checkoutPlugin.hasActiveCheckout()) {
-                    checkoutPlugin.forwardCallback(intentUri);
-                }
-                setIntent(new Intent());
-            }
             // Check if this is a recognized external return that should NOT be loaded into WebView
-            else if ("https".equals(scheme) && "www.replyflowhq.com".equals(host)) {
+            if ("https".equals(scheme) && "www.replyflowhq.com".equals(host)) {
                 boolean isExternalReturn = false;
                 String externalReturnType = null;
 
@@ -406,23 +398,6 @@ public class MainActivity extends BridgeActivity {
             String path = intentUri.getPath();
             String queryString = intentUri.getQuery();
             Log.d(TAG, "[RF_STRIPE_RETURN] onNewIntent_received scheme=" + scheme + " host=" + host + " path=" + path + " query=" + queryString);
-
-            // Handle native scheme callbacks (replyflow://billing?billing=returned)
-            if ("replyflow".equals(scheme) && "billing".equals(host)) {
-                Log.d(TAG, "[RF_STRIPE_RETURN] onNewIntent_native_billing_callback_forwarding_to_plugin");
-                if (checkoutPlugin != null && checkoutPlugin.hasActiveCheckout()) {
-                    boolean consumed = checkoutPlugin.forwardCallback(intentUri);
-                    Log.d(TAG, "[RF_STRIPE_RETURN] onNewIntent_forwardCallback_result=" + consumed);
-                    if (consumed) {
-                        setIntent(new Intent());
-                        super.onNewIntent(new Intent());
-                        return;
-                    }
-                }
-                setIntent(new Intent());
-                super.onNewIntent(new Intent());
-                return;
-            }
 
             // Check if the checkout plugin has an active checkout and handle callback
             if (checkoutPlugin != null && checkoutPlugin.hasActiveCheckout()) {

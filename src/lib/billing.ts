@@ -162,9 +162,9 @@ async function openBillingPortal(accessToken: string, returnUrl?: string, hasExi
         }
 
         try {
-          // Use HTTPS trampoline for callback (Stripe requires HTTPS, doesn't accept custom schemes)
-          // The trampoline redirects to replyflow://billing?billing=returned which triggers native handoff
-          const callbackUrl = `${window.location.origin}/native-return/billing?billing=returned`
+          // Use HTTPS Universal Link for callback with external default handler enabled
+          // The callback URL will use default URL resolution (verified App Links for native app)
+          const callbackUrl = `${window.location.origin}/dashboard/settings?billing=returned`
           const callbackUrlObj = new URL(callbackUrl)
           const callbackHost = callbackUrlObj.hostname
           const callbackPath = callbackUrlObj.pathname // Path only - no query
