@@ -349,7 +349,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
             {/* Phone Number */}
             <div>
               <label className="block text-xs text-muted-foreground font-medium mb-1.5">
-                Phone Number <span className="text-red-500">*</span>
+                Phone Number
               </label>
               <input
                 type="tel"

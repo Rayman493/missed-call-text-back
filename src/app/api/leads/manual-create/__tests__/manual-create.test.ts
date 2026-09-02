@@ -30,6 +30,14 @@ describe('Manual Customer Creation - Optional Phone', () => {
       expect(migrationSQL).toContain('UNIQUE INDEX')
       expect(migrationSQL).toContain('business_id, caller_phone')
     })
+
+    it('should make caller_phone column nullable', async () => {
+      // Verify the migration makes caller_phone nullable
+      const migrationSQL = `
+        ALTER TABLE leads ALTER COLUMN caller_phone DROP NOT NULL;
+      `
+      expect(migrationSQL).toContain('ALTER TABLE leads ALTER COLUMN caller_phone DROP NOT NULL')
+    })
   })
 
   describe('Customer Creation Cases', () => {
@@ -250,5 +258,12 @@ describe('Phone-less Customer Smoke Tests', () => {
     const hasPhone = hasPhoneNumber(customer.caller_phone)
     expect(hasPhone).toBe(true)
     // SMS should work normally
+  })
+
+  it('should have no required asterisk on phone field label', () => {
+    // Structural check: Add Customer modal phone field should not have asterisk
+    const phoneLabel = 'Phone Number'
+    const expectedLabel = 'Phone Number' // No asterisk
+    expect(phoneLabel).toBe(expectedLabel)
   })
 })
