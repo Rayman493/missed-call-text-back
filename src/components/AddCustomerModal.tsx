@@ -45,16 +45,13 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
       return
     }
 
-    if (!formData.phoneNumber.trim()) {
-      setError('Phone number is required')
-      return
-    }
-
-    // Validate phone format
-    const phoneDigits = formData.phoneNumber.replace(/\D/g, '')
-    if (phoneDigits.length < 10) {
-      setError('Please enter a valid phone number')
-      return
+    // Validate phone format if provided
+    if (formData.phoneNumber.trim()) {
+      const phoneDigits = formData.phoneNumber.replace(/\D/g, '')
+      if (phoneDigits.length < 10) {
+        setError('Please enter a valid phone number')
+        return
+      }
     }
 
     // Validate email format if provided
@@ -68,20 +65,22 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
 
     setIsSubmitting(true)
 
-    // Check for duplicate customer by phone
+    // Check for duplicate customer by phone (only if phone provided)
     try {
-      const phoneDigits = formData.phoneNumber.replace(/\D/g, '')
-      const { data: existingLeads } = await supabase
-        .from('leads')
-        .select('id, caller_phone, raw_metadata')
-        .eq('business_id', business?.id)
-        .eq('caller_phone', phoneDigits.startsWith('1') ? phoneDigits : '1' + phoneDigits)
-        .limit(1)
+      if (formData.phoneNumber.trim()) {
+        const phoneDigits = formData.phoneNumber.replace(/\D/g, '')
+        const { data: existingLeads } = await supabase
+          .from('leads')
+          .select('id, caller_phone, raw_metadata')
+          .eq('business_id', business?.id)
+          .eq('caller_phone', phoneDigits.startsWith('1') ? phoneDigits : '1' + phoneDigits)
+          .limit(1)
 
-      if (existingLeads && existingLeads.length > 0) {
-        setDuplicateLead(existingLeads[0])
-        setIsSubmitting(false)
-        return
+        if (existingLeads && existingLeads.length > 0) {
+          setDuplicateLead(existingLeads[0])
+          setIsSubmitting(false)
+          return
+        }
       }
     } catch (err) {
       // If duplicate check fails, continue with submission
@@ -105,7 +104,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
         body: JSON.stringify({
           businessId: business?.id,
           customerName: formData.customerName.trim(),
-          phoneNumber: formData.phoneNumber.trim(),
+          phoneNumber: formData.phoneNumber.trim() || undefined,
           email: formData.email.trim() || undefined,
           address: formData.address.trim() || undefined,
           notes: formData.notes.trim() || undefined,

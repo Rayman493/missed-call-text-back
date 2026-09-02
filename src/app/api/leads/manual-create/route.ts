@@ -23,15 +23,15 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Validate required fields
-    if (!businessId || !phoneNumber) {
+    if (!businessId) {
       return NextResponse.json(
-        { error: 'Missing required fields: businessId and phoneNumber are required' },
+        { error: 'Missing required field: businessId is required' },
         { status: 400 }
       )
     }
 
-    // Normalize phone number
-    const normalizedPhone = normalizePhoneNumberForStorage(phoneNumber)
+    // Normalize phone number if provided
+    const normalizedPhone = phoneNumber ? normalizePhoneNumberForStorage(phoneNumber) : null
 
     // Check if business exists
     const { data: business, error: businessError } = await supabaseAdmin
@@ -47,11 +47,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check for existing lead by phone number using LeadService
-    const existingLead = await LeadService.findLead({
-      business_id: businessId,
-      caller_phone: normalizedPhone
-    })
+    // Check for existing lead by phone number using LeadService (only if phone provided)
+    let existingLead = null
+    if (normalizedPhone) {
+      existingLead = await LeadService.findLead({
+        business_id: businessId,
+        caller_phone: normalizedPhone
+      })
+    }
 
     let leadId: string | null = null
     let isNewLead = false

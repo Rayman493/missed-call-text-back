@@ -14,7 +14,7 @@ import { normalizeLeadForApplication } from '@/lib/types'
 
 export interface CreateLeadOptions {
   business_id: string
-  caller_phone: string
+  caller_phone?: string // Optional for manual CRM customers
   name?: string // Legacy: maps to contact_name
   email?: string // Legacy: maps to raw_metadata.extracted_info.email
   contact_name?: string // Production canonical
@@ -29,7 +29,7 @@ export interface CreateLeadOptions {
 
 export interface FindLeadOptions {
   business_id: string
-  caller_phone: string
+  caller_phone?: string // Optional - only search by phone if provided
 }
 
 export interface FindOrCreateLeadOptions extends CreateLeadOptions {
@@ -48,9 +48,15 @@ export interface UpdateLeadOptions {
 export class LeadService {
   /**
    * Find a lead by business_id and phone
+   * If caller_phone is not provided, returns null (phone-less leads cannot be found by phone)
    */
   static async findLead(options: FindLeadOptions): Promise<Lead | null> {
     const { business_id, caller_phone } = options
+
+    // If no phone provided, cannot find by phone - return null
+    if (!caller_phone) {
+      return null
+    }
 
     const normalizedPhone = normalizePhoneNumberForStorage(caller_phone)
 
@@ -115,7 +121,7 @@ export class LeadService {
    */
   static async findOrCreateLead(options: FindOrCreateLeadOptions): Promise<{ lead: Lead | null; isNew: boolean }> {
     const { business_id, caller_phone, callSid, ...leadData } = options
-    
+
     // Step 1: Check idempotency by Call SID
     if (callSid) {
       const existingLeadByCallSid = await this.findLeadByCallSid(callSid)
@@ -129,16 +135,19 @@ export class LeadService {
     }
 
     // Step 2: Look for existing lead by phone (canonical customer model)
-    const existingLead = await this.findLead({ business_id, caller_phone })
-    
-    if (existingLead) {
-      console.log('[LeadService.findOrCreateLead] Reusing existing canonical lead:', {
-        leadId: existingLead.id,
-        business_id,
-        caller_phone,
-        hoursSinceCreation: (Date.now() - new Date(existingLead.created_at).getTime()) / (1000 * 60 * 60)
-      })
-      return { lead: existingLead, isNew: false }
+    // Only if phone is provided - phone-less customers are not deduped by phone
+    if (caller_phone) {
+      const existingLead = await this.findLead({ business_id, caller_phone })
+
+      if (existingLead) {
+        console.log('[LeadService.findOrCreateLead] Reusing existing canonical lead:', {
+          leadId: existingLead.id,
+          business_id,
+          caller_phone,
+          hoursSinceCreation: (Date.now() - new Date(existingLead.created_at).getTime()) / (1000 * 60 * 60)
+        })
+        return { lead: existingLead, isNew: false }
+      }
     }
 
     // Step 3: Create new lead
@@ -165,15 +174,13 @@ export class LeadService {
     const { business_id, caller_phone, callSid, ...leadData } = options
     
     // DEFENSIVE GUARD: Validate required fields
-    if (!business_id || !caller_phone) {
-      console.error('[LeadService.createLead] Missing required fields:', {
-        business_id,
-        caller_phone
-      })
+    if (!business_id) {
+      console.error('[LeadService.createLead] Missing required field: business_id')
       return null
     }
 
-    const normalizedPhone = normalizePhoneNumberForStorage(caller_phone)
+    // Normalize phone number if provided
+    const normalizedPhone = caller_phone ? normalizePhoneNumberForStorage(caller_phone) : null
 
     // IDEMPOTENCY GUARD: Check if lead already exists for this Call SID
     if (callSid) {

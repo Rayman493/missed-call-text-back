@@ -388,20 +388,33 @@ export function normalizePunctuation(text: string | null | undefined): string {
 
 /**
  * Normalize phone number for search by removing all formatting characters.
- * 
+ *
  * This function removes spaces, parentheses, dashes, periods, and plus signs
  * to enable flexible phone number search across different formats.
- * 
+ *
  * Examples:
  * - "+14125551234" → "14125551234"
  * - "(412) 555-1234" → "4125551234"
  * - "412-555-1234" → "4125551234"
  * - "412 555 1234" → "4125551234"
- * 
+ *
  * @param phone - The phone number to normalize
  * @returns The normalized phone number (digits only)
  */
 export function normalizePhoneNumberForSearch(phone: string | null | undefined): string {
   if (!phone) return ''
   return phone.replace(/[\s\(\)\-\.\+]/g, '')
+}
+
+/**
+ * Check if a lead/customer has a phone number.
+ *
+ * This function checks if the caller_phone field is present and non-empty.
+ * Phone-less customers are valid CRM records but cannot receive SMS or calls.
+ *
+ * @param callerPhone - The caller_phone field from a lead
+ * @returns True if the lead has a phone number, false otherwise
+ */
+export function hasPhoneNumber(callerPhone: string | null | undefined): boolean {
+  return !!callerPhone && callerPhone.trim().length > 0
 }

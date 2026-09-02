@@ -7,6 +7,8 @@ import { appendBusinessAvailabilityNote } from './business-availability-sms';
 import { assertValidOutboundMmsMediaUrls } from './mms-url-validator';
 import { getExistingAssignment, getAllBusinessAssignments } from './twilio-assignment-helper';
 
+import { hasPhoneNumber } from './utils'
+
 // Log Twilio environment status on module import
 logTwilioEnvStatus();
 
@@ -42,6 +44,17 @@ export async function sendSms(
     callSid?: string; // Twilio call SID for durable idempotency and webhook correlation
   }
 ): Promise<{ sid: string | null; messageId: string | null; idempotentSkip?: boolean }> {
+  // Phone-dependent gating: Prevent sending SMS to phone-less customers
+  if (!hasPhoneNumber(to)) {
+    console.error('[SMS TRACE sendSms PHONE_REQUIRED]', {
+      business_id: business?.id,
+      to,
+      lead_id: options?.lead_id,
+      error: 'Customer phone number is required to send SMS'
+    })
+    return { sid: null, messageId: null }
+  }
+
   console.log('[SMS TRACE sendSms ENTRY]', {
     business_id: business?.id,
     business_name: business?.name,
