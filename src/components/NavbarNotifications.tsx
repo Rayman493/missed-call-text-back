@@ -383,7 +383,7 @@ export default function NavbarNotifications() {
             }}
           >
             {/* Header */}
-            <div className="px-4 py-3.5 border-b border-border bg-muted/30 dark:from-slate-800/50">
+            <div className="px-3 py-2.5 border-b border-border bg-muted/20">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="relative">
@@ -413,7 +413,7 @@ export default function NavbarNotifications() {
 
             {/* Notifications List - Phase 4: Restore grouping with audit logging */}
             <div
-              className="max-h-96 overflow-y-auto p-2 sm:p-3"
+              className="max-h-[400px] overflow-y-auto p-1.5"
               style={{
                 scrollbarWidth: 'thin',
                 scrollbarColor: 'rgba(148, 163, 184, 0.4) transparent'
@@ -429,8 +429,8 @@ export default function NavbarNotifications() {
                     if (groupNotifications.length === 0) return null
                     
                     return (
-                      <div key={groupName} className="mb-3 last:mb-0">
-                        <div className="px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      <div key={groupName} className="mb-2 last:mb-0">
+                        <div className="px-2.5 py-1 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
                           {groupName}
                         </div>
                         <div className="space-y-1">
@@ -448,23 +448,23 @@ export default function NavbarNotifications() {
                                 onMouseDown={handleMouseDown}
                                 onMouseMove={handleMouseMove}
                                 onMouseUp={() => handleMouseUp(notification)}
-                                className={`flex items-start gap-3 py-3 px-3 sm:px-4 rounded-xl transition-all duration-200 cursor-pointer group relative ml-3 sm:ml-4 ${!notification.read ? 'bg-blue-500/5 dark:bg-blue-500/10 hover:bg-blue-500/10 dark:hover:bg-blue-500/15' : 'hover:bg-muted'} ${!isLast ? 'border-b border-border/40' : ''}`}
+                                className={`flex items-start gap-2.5 py-2 px-2.5 rounded-lg transition-all duration-200 cursor-pointer group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${!notification.read ? 'bg-blue-500/5 dark:bg-blue-500/10 hover:bg-blue-500/10 dark:hover:bg-blue-500/15' : 'hover:bg-muted/40'} ${!isLast ? '' : ''}`}
                               >
                                 {/* Icon */}
-                                <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${getNotificationColor(notification.type)} flex items-center justify-center ring-1 ring-black/5 dark:ring-white/5 group-hover:ring-black/10 dark:group-hover:ring-white/10 transition-all`}>
+                                <div className={`flex-shrink-0 w-9 h-9 rounded-lg ${getNotificationColor(notification.type)} flex items-center justify-center ring-1 ring-black/5 dark:ring-white/5 group-hover:ring-black/10 dark:group-hover:ring-white/10 transition-all`}>
                                   {getNotificationIcon(notification.type)}
                                 </div>
 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
                                   {/* Title */}
-                                  <p className="text-sm font-semibold text-foreground mb-1 leading-tight tracking-tight">
+                                  <p className="text-sm font-semibold text-foreground mb-0.5 leading-tight tracking-tight">
                                     {notification.title || 'Notification'}
                                   </p>
 
                                   {/* Customer name or phone number (masked for SMS failures) */}
                                   {displayName && (
-                                    <p className="text-xs font-medium text-muted-foreground mb-1">
+                                    <p className="text-xs font-medium text-muted-foreground mb-0.5">
                                       {displayName}
                                     </p>
                                   )}
@@ -475,7 +475,7 @@ export default function NavbarNotifications() {
                                   </p>
 
                                   {/* Timestamp */}
-                                  <p className="text-[10px] text-muted-foreground mt-1.5 font-medium tracking-wide uppercase">
+                                  <p className="text-[10px] text-muted-foreground/70 mt-1 font-medium tracking-wide uppercase">
                                     {formatNotificationTime(notification.created_at)}
                                   </p>
                                 </div>
@@ -495,16 +495,16 @@ export default function NavbarNotifications() {
                   })
                 })()
               ) : loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-muted border-t-blue-500"></div>
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-muted border-t-blue-500"></div>
                 </div>
               ) : error ? (
-                <div className="text-center py-12 px-4">
-                  <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-3 ring-1 ring-red-500/20">
-                    <AlertTriangle className="w-7 h-7 text-red-400" />
+                <div className="text-center py-8 px-4">
+                  <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center mx-auto mb-2.5 ring-1 ring-red-500/20">
+                    <AlertTriangle className="w-6 h-6 text-red-400" />
                   </div>
-                  <p className="text-sm font-semibold text-foreground mb-1">Failed to load notifications</p>
-                  <p className="text-xs text-muted-foreground mb-4">Please try again</p>
+                  <p className="text-sm font-semibold text-foreground mb-0.5">Failed to load notifications</p>
+                  <p className="text-xs text-muted-foreground mb-3">Please try again</p>
                   <button
                     onClick={refreshNotifications}
                     className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-all duration-200"
@@ -513,11 +513,11 @@ export default function NavbarNotifications() {
                   </button>
                 </div>
               ) : (
-                <div className="text-center py-12 px-4">
-                  <div className="w-14 h-14 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-3 ring-1 ring-border">
-                    <Bell className="w-7 h-7 text-muted-foreground" />
+                <div className="text-center py-8 px-4">
+                  <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mx-auto mb-2.5 ring-1 ring-border">
+                    <Bell className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <p className="text-sm font-semibold text-foreground mb-1">You're all caught up</p>
+                  <p className="text-sm font-semibold text-foreground mb-0.5">You're all caught up</p>
                   <p className="text-xs text-muted-foreground">Notifications will appear here as your business becomes active.</p>
                 </div>
               )}
@@ -525,14 +525,14 @@ export default function NavbarNotifications() {
 
             {/* Footer */}
             {notifications.length > 0 && (
-              <div className="px-4 py-3 border-t border-border bg-muted/30 dark:from-slate-800/30">
+              <div className="px-2.5 py-2 border-t border-border bg-muted/20">
                 <Link
                   href="/dashboard/notifications"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-semibold text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-xl transition-all duration-200 border border-border hover:border-border/80"
+                  className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-all duration-200"
                 >
                   <span>View all notifications</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </Link>
