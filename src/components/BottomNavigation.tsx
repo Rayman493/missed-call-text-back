@@ -12,6 +12,7 @@ import { handleBillingAction } from '@/lib/billing'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 import AssistantMobileShell from '@/components/AssistantMobileShell'
 import ContactSupportModal from '@/components/ContactSupportModal'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface BottomNavigationProps {
   onLogout?: () => void
@@ -193,6 +194,9 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
       setIsMoreMenuOpen(false)
     }
   }, [isAnyAssistantOpen, isMoreMenuOpen])
+
+  // Lock background scroll when More menu is open on mobile
+  useBodyScrollLock(isMoreMenuOpen, 'MoreMenu')
 
   // Hide bottom nav on public pages or when assistant is open
   const isPublicPage = pathname === '/' || 
@@ -383,13 +387,14 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
           <div
             ref={dropdownRef}
             className="absolute z-[1001] overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl pointer-events-auto"
+            data-scroll-lock-allow
             style={dropdownPosition ? {
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
               width: `${dropdownPosition.width}px`
             } : undefined}
           >
-            <div className="py-1">
+            <div className="py-1 overflow-y-auto max-h-[60vh]">
               <Link
                 href="/dashboard/settings"
                 onClick={(e) => {
@@ -516,6 +521,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 <LogOut className="h-4 w-4 text-destructive" />
                 Sign Out
               </button>
+            </div>
             </div>
           </div>
         </div>,

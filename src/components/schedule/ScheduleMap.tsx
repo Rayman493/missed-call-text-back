@@ -2519,10 +2519,10 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         
         {/* Selected Item Info Card - Compact on mobile, anchored bottom-left */}
         {selectedItem && (
-          <div className="absolute bottom-4 left-4 right-auto max-w-xs md:left-6 md:right-auto md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-20 p-3 md:p-4">
+          <div className="absolute bottom-4 left-4 right-auto max-w-[280px] md:left-6 md:right-auto md:w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 z-20 p-3 md:p-4 duration-150">
             {/* Mobile: Compact layout */}
             <div className="md:hidden">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-2">
                 <div className={`w-5 h-5 rounded flex items-center justify-center font-bold text-[10px] flex-shrink-0 ${
                   selectedItem.type === 'business' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
                   selectedItem.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
@@ -2530,10 +2530,10 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
                   {selectedItem.type === 'business' ? '🏠' : selectedItem.stopNumber}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium text-foreground truncate">
+                  <p className="text-[11px] font-semibold text-foreground truncate leading-tight">
                     {selectedItem.type === 'business' ? selectedItem.title : (selectedItem.title || selectedItem.customerName || 'Untitled')}
                   </p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate leading-tight mt-0.5">
                     {selectedItem.type === 'business' ? 'Home Base' : (
                       <>
                         {selectedItem.type === 'job' ? 'Job' : 'Appointment'} {formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime) && ` · ${formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime)}`}
@@ -2543,7 +2543,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
                 </div>
                 <button
                   onClick={closeSelectedItem}
-                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors flex-shrink-0"
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors duration-150 flex-shrink-0"
                   aria-label="Close"
                 >
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2555,7 +2555,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
               {selectedItem.type !== 'business' && (
                 <button
                   onClick={() => handleViewItem(selectedItem)}
-                  className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
+                  className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors duration-150"
                 >
                   View details →
                 </button>
@@ -2564,8 +2564,8 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
             {/* Desktop: Simplified layout */}
             <div className="hidden md:block">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2.5">
                   {selectedItem.type === 'business' ? (
                     <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
                       🏠
@@ -2578,10 +2578,10 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
                     </div>
                   )}
                   <div>
-                    <h3 className="font-semibold text-sm text-slate-900 dark:text-foreground">
+                    <h3 className="font-semibold text-sm text-slate-900 dark:text-foreground leading-tight">
                       {selectedItem.type === 'business' ? selectedItem.title : (selectedItem.title || selectedItem.customerName || 'Untitled')}
                     </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
                       {selectedItem.type === 'business' ? 'Home Base' : (
                         <>
                           {selectedItem.type === 'job' ? 'Job' : 'Appointment'} {formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime) && ` · ${formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime)}`}
@@ -2592,7 +2592,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
                 </div>
                 <button
                   onClick={closeSelectedItem}
-                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors duration-150"
                   aria-label="Close"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2602,7 +2602,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
               </div>
 
               {selectedItem.address && (
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2 truncate">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-3 truncate leading-tight">
                   {selectedItem.address}
                 </p>
               )}
@@ -2610,7 +2610,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
               {selectedItem.type !== 'business' && (
                 <button
                   onClick={() => handleViewItem(selectedItem)}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors duration-150"
                 >
                   View details →
                 </button>
@@ -2628,7 +2628,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
               </h3>
               <button
                 onClick={() => setSelectedMarker(null)}
-                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors duration-150"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
