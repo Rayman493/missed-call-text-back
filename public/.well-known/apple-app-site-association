@@ -3,19 +3,25 @@
     "apps": [],
     "details": [
       {
-        "appIDs": ["G5G3Z26W3U.com.replyflowhq.app"],
+        "appIDs": ["6K8XY33M7H.com.replyflowhq.app"],
         "components": [
           {
-            "/": "/dashboard/settings/*"
+            "/": "/dashboard/settings/*",
+            "comment": "Stripe billing portal return path for native iOS"
           },
           {
-            "/": "/billing/success/*"
+            "/": "/billing/success",
+            "comment": "Stripe checkout return path for native iOS (exact match)"
           },
           {
-            "/": "/dashboard/calendar/*"
+            "/": "/dashboard/calendar/*",
+            "comment": "Google Calendar OAuth return path for native iOS"
           }
         ]
       }
     ]
+  },
+  "webcredentials": {
+    "apps": ["6K8XY33M7H.com.replyflowhq.app"]
   }
 }
