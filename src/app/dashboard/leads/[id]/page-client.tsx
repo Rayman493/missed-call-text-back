@@ -3209,7 +3209,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     ))}
                   </div>
                   <button
-                    onClick={() => setShowPaymentModal(true)}
+                    onClick={handleRequestPaymentClick}
                     disabled={!business || getAvailableProviders(business).length === 0}
                     className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -4400,7 +4400,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         headerAction={
                           <button
                             type="button"
-                            onClick={() => setShowPaymentModal(true)}
+                            onClick={handleRequestPaymentClick}
                             disabled={!business || getAvailableProviders(business).length === 0}
                             className="inline-flex items-center justify-center w-8 h-8 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                             aria-label="Request payment"
@@ -4901,7 +4901,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Payments</span>
               </div>
               <button
-                onClick={() => setShowPaymentModal(true)}
+                onClick={handleRequestPaymentClick}
                 disabled={!business || getAvailableProviders(business).length === 0}
                 className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
