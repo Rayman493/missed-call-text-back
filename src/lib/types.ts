@@ -157,7 +157,7 @@ export type StripeConnectStatus =
 export interface Lead {
   id: string;
   business_id: string;
-  caller_phone: string;
+  caller_phone: string | null;
   contact_name?: string | null;
   company_name?: string | null;
   notes?: string | null;
