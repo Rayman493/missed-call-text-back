@@ -916,7 +916,7 @@ export default function SetupStatusCard({
           {/* Desktop: Centered modal */}
           <div className="fixed inset-0 z-[100] hidden md:flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/55" onClick={() => setIsAssistantOpen(false)} />
-            <div className="relative w-full max-w-[480px] max-h-[calc(100dvh-2rem)] flex flex-col">
+            <div className="relative w-full max-w-[560px] max-h-[calc(100dvh-2rem)] flex flex-col">
               <div className="bg-white dark:bg-slate-800 shadow-2xl overflow-hidden flex flex-col min-h-0 rounded-2xl">
                 <ReplyFlowAssistant
                   context={{ currentPage: 'dashboard' }}
