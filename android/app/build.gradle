@@ -49,6 +49,20 @@ android {
             }
         }
     }
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = false
+            returnDefaultValues = true
+            all {
+                testLogging {
+                    events "passed", "skipped", "failed"
+                    exceptionFormat "full"
+                    showStandardStreams = true
+                }
+            }
+        }
+    }
 }
 
 repositories {
