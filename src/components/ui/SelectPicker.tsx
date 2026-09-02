@@ -135,7 +135,7 @@ export default function SelectPicker({
             disabled
               ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30 px-3 py-2.5'
               : 'bg-background dark:bg-slate-900/40 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60 cursor-pointer px-3 py-2.5'
-          } pr-9`}
+          } pr-10`}
         >
           <span className={selectedOption ? 'text-foreground truncate flex-1' : 'text-muted-foreground truncate flex-1'}>
             {selectedOption ? selectedOption.label : placeholder}
@@ -146,7 +146,7 @@ export default function SelectPicker({
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-9 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded transition-colors"
             aria-label="Clear selection"
           >
             <X className="w-4 h-4 text-muted-foreground" />
