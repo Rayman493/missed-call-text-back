@@ -2200,22 +2200,22 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
                     }
                   } : null}
                   onClick={() => selectMapItem(item.id, item.latitude, item.longitude)}
-                  className={`flex-shrink-0 snap-start px-2 md:px-3 py-1.5 rounded-md border transition-colors min-w-[120px] md:min-w-[140px] max-w-[160px] ${
+                  className={`flex-shrink-0 snap-start px-1.5 md:px-2 py-1 rounded-md border transition-colors min-w-[100px] md:min-w-[120px] max-w-[140px] ${
                     selectedMapItemId === item.id
-                      ? 'bg-blue-50/80 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 ring-1 ring-blue-200 dark:ring-blue-800/40'
+                      ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-300/60 dark:border-blue-700/60 ring-1 ring-blue-200/50 dark:ring-blue-800/30'
                       : item.type === 'business'
-                        ? 'bg-green-50/80 dark:bg-green-900/15 border-green-200 dark:border-green-700 hover:bg-green-100/80 dark:hover:bg-green-900/25'
-                        : 'bg-white/90 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-slate-50/90 dark:hover:bg-slate-700/40'
+                        ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200/60 dark:border-green-700/60 hover:bg-green-100/50 dark:hover:bg-green-900/15'
+                        : 'bg-white/70 dark:bg-slate-800/60 border-slate-200/60 dark:border-slate-700/60 hover:bg-slate-50/70 dark:hover:bg-slate-700/30'
                   }`}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     {item.type === 'business' ? (
-                      <div className="w-4.5 h-4.5 md:w-5 md:h-5 rounded flex items-center justify-center text-[9px] md:text-[10px] bg-green-100/80 dark:bg-green-900/25 text-green-600 dark:text-green-400 flex-shrink-0">
+                      <div className="w-4 h-4 md:w-4.5 md:h-4.5 rounded flex items-center justify-center text-[8px] md:text-[9px] bg-green-100/50 dark:bg-green-900/15 text-green-600 dark:text-green-400 flex-shrink-0">
                         🏠
                       </div>
                     ) : (
-                      <div className={`w-4.5 h-4.5 md:w-5 md:h-5 rounded flex items-center justify-center font-bold text-[9px] md:text-[10px] flex-shrink-0 ${
-                        item.type === 'job' ? 'bg-purple-100/80 dark:bg-purple-900/25 text-purple-600 dark:text-purple-400' : 'bg-blue-100/80 dark:bg-blue-900/25 text-blue-600 dark:text-blue-400'
+                      <div className={`w-4 h-4 md:w-4.5 md:h-4.5 rounded flex items-center justify-center font-bold text-[8px] md:text-[9px] flex-shrink-0 ${
+                        item.type === 'job' ? 'bg-purple-100/50 dark:bg-purple-900/15 text-purple-600 dark:text-purple-400' : 'bg-blue-100/50 dark:bg-blue-900/15 text-blue-600 dark:text-blue-400'
                       }`}>
                         {item.stopNumber}
                       </div>
@@ -2223,19 +2223,19 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
                     <div className="text-left min-w-0 flex-1">
                       {item.type === 'business' ? (
                         <>
-                          <p className="text-[10px] md:text-xs font-medium text-foreground truncate">
+                          <p className="text-[9px] md:text-[11px] font-medium text-foreground truncate">
                             {item.title}
                           </p>
-                          <p className="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                          <p className="text-[8px] md:text-[9px] text-slate-500 dark:text-slate-400 truncate">
                             Home Base
                           </p>
                         </>
                       ) : (
                         <>
-                          <p className="text-[10px] md:text-xs font-medium text-foreground truncate">
+                          <p className="text-[9px] md:text-[11px] font-medium text-foreground truncate">
                             {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime) || item.title}
                           </p>
-                          <p className="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                          <p className="text-[8px] md:text-[9px] text-slate-500 dark:text-slate-400 truncate">
                             {item.type === 'job' ? 'Job' : 'Appointment'}
                           </p>
                         </>
@@ -2348,22 +2348,22 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
                       }
                     } : null}
                     onClick={() => selectMapItem(item.id, item.latitude, item.longitude)}
-                    className={`flex-shrink-0 snap-start px-2 py-1.5 rounded-md border transition-colors min-w-[120px] max-w-[160px] ${
+                    className={`flex-shrink-0 snap-start px-1.5 py-1 rounded-md border transition-colors min-w-[100px] max-w-[140px] ${
                       selectedMapItemId === item.id
-                        ? 'bg-blue-50/80 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 ring-1 ring-blue-200 dark:ring-blue-800/40'
+                        ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-300/60 dark:border-blue-700/60 ring-1 ring-blue-200/50 dark:ring-blue-800/30'
                         : item.type === 'business'
-                          ? 'bg-green-50/80 dark:bg-green-900/15 border-green-200 dark:border-green-700 hover:bg-green-100/80 dark:hover:bg-green-900/25'
-                          : 'bg-white/90 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-slate-50/90 dark:hover:bg-slate-700/40'
+                          ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200/60 dark:border-green-700/60 hover:bg-green-100/50 dark:hover:bg-green-900/15'
+                          : 'bg-white/70 dark:bg-slate-800/60 border-slate-200/60 dark:border-slate-700/60 hover:bg-slate-50/70 dark:hover:bg-slate-700/30'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       {item.type === 'business' ? (
-                        <div className="w-4 h-4 rounded flex items-center justify-center text-[9px] bg-green-100/80 dark:bg-green-900/25 text-green-600 dark:text-green-400 flex-shrink-0">
+                        <div className="w-4 h-4 rounded flex items-center justify-center text-[8px] bg-green-100/50 dark:bg-green-900/15 text-green-600 dark:text-green-400 flex-shrink-0">
                           🏠
                         </div>
                       ) : (
-                        <div className={`w-4 h-4 rounded flex items-center justify-center font-bold text-[9px] flex-shrink-0 ${
-                          item.type === 'job' ? 'bg-purple-100/80 dark:bg-purple-900/25 text-purple-600 dark:text-purple-400' : 'bg-blue-100/80 dark:bg-blue-900/25 text-blue-600 dark:text-blue-400'
+                        <div className={`w-4 h-4 rounded flex items-center justify-center font-bold text-[8px] flex-shrink-0 ${
+                          item.type === 'job' ? 'bg-purple-100/50 dark:bg-purple-900/15 text-purple-600 dark:text-purple-400' : 'bg-blue-100/50 dark:bg-blue-900/15 text-blue-600 dark:text-blue-400'
                         }`}>
                           {item.stopNumber}
                         </div>
@@ -2371,19 +2371,19 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
                       <div className="text-left min-w-0 flex-1">
                         {item.type === 'business' ? (
                           <>
-                            <p className="text-[10px] font-medium text-foreground truncate">
+                            <p className="text-[9px] font-medium text-foreground truncate">
                               {item.title}
                             </p>
-                            <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate">
+                            <p className="text-[8px] text-slate-500 dark:text-slate-400 truncate">
                               Home Base
                             </p>
                           </>
                         ) : (
                           <>
-                            <p className="text-[10px] font-medium text-foreground truncate">
+                            <p className="text-[9px] font-medium text-foreground truncate">
                               {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime) || item.title}
                             </p>
-                            <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate">
+                            <p className="text-[8px] text-slate-500 dark:text-slate-400 truncate">
                               {item.type === 'job' ? 'Job' : 'Appointment'}
                             </p>
                           </>

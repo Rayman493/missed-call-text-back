@@ -356,7 +356,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                   <TimePicker
                     value={startTime}
                     onChange={setStartTime}
-                    label="Start"
+                    label="Start Time"
                     placeholder="Start time"
                     required
                   />
@@ -365,7 +365,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                   <TimePicker
                     value={endTime}
                     onChange={setEndTime}
-                    label="End (optional)"
+                    label="End Time (Optional)"
                     placeholder="Auto 1hr"
                   />
                 </div>

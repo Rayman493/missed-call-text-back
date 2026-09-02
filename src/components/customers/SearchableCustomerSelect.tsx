@@ -174,22 +174,22 @@ export default function SearchableCustomerSelect({
           aria-haspopup="listbox"
           aria-expanded={isOpen}
           aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
-          className={`w-full bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 flex items-center justify-between gap-2 transition-colors text-left ${
+          className={`w-full bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 flex items-center gap-2 transition-colors text-left ${
             disabled
               ? 'opacity-50 cursor-not-allowed px-4 py-2.5 sm:px-3 sm:py-2'
               : 'hover:border-border/80 cursor-pointer px-4 py-2.5 sm:px-3 sm:py-2'
-          } ${hasValue ? 'pr-16' : 'pr-10'}`}
+          } pr-10`}
         >
-          <span className={selectedCustomer ? 'text-foreground truncate' : 'text-muted-foreground truncate'}>
+          <span className={selectedCustomer ? 'text-foreground truncate flex-1' : 'text-muted-foreground truncate flex-1'}>
             {getDisplayText(selectedCustomer)}
           </span>
-          <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
         </button>
+        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
         {hasValue && allowClear && !disabled && (
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-12 top-1/2 -translate-y-1/2 p-1.5 hover:bg-accent/40 rounded transition-colors"
+            className="absolute right-10 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded transition-colors"
             aria-label="Clear selection"
           >
             <X className="w-4 h-4 text-muted-foreground" />
