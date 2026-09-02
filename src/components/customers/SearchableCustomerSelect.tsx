@@ -174,16 +174,16 @@ export default function SearchableCustomerSelect({
           aria-haspopup="listbox"
           aria-expanded={isOpen}
           aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
-          className={`w-full bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 flex items-center justify-between gap-2 transition-colors text-left ${
+          className={`w-full bg-background dark:bg-slate-900/40 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 flex items-center justify-between gap-2 duration-150 text-left ${
             disabled
-              ? 'opacity-50 cursor-not-allowed px-4 py-2.5 sm:px-3 sm:py-2'
-              : 'hover:border-border/80 cursor-pointer px-4 py-2.5 sm:px-3 sm:py-2'
+              ? 'opacity-50 cursor-not-allowed px-3 py-2'
+              : 'hover:border-border/60 cursor-pointer px-3 py-2'
           } pr-10`}
         >
           <span className={selectedCustomer ? 'text-foreground truncate flex-1' : 'text-muted-foreground truncate flex-1'}>
             {getDisplayText(selectedCustomer)}
           </span>
-          <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          <ChevronDown className={`w-4 h-4 text-muted-foreground flex-shrink-0 duration-150 ${isOpen ? 'rotate-180' : ''}`} />
         </button>
         {hasValue && allowClear && !disabled && (
           <button
@@ -199,7 +199,7 @@ export default function SearchableCustomerSelect({
 
       {/* Dropdown */}
       {isOpen && !disabled && (
-        <div className="absolute z-[60] mt-2 w-full bg-card/95 backdrop-blur-sm rounded-lg shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] border border-border/40 max-h-[300px] overflow-hidden flex flex-col">
+        <div className="absolute z-[60] mt-2 w-full bg-card/95 backdrop-blur-sm rounded-lg shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] border border-border/40 max-h-[300px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
           {/* Search input */}
           <div className="p-3 border-b border-border/20">
             <div className="relative">
@@ -210,7 +210,7 @@ export default function SearchableCustomerSelect({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name or phone..."
-                className="w-full pl-9 pr-3 py-2 text-base sm:text-sm bg-muted/50 border border-border/50 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80"
+                className="w-full pl-9 pr-3 py-2 text-base sm:text-sm bg-muted/50 border border-border/50 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary duration-150"
               />
             </div>
           </div>
@@ -247,7 +247,7 @@ export default function SearchableCustomerSelect({
                   <button
                     type="button"
                     onClick={() => handleSelect(null)}
-                    className={`w-full px-3 py-2 text-sm text-left transition-colors flex items-center justify-between gap-2 ${
+                    className={`w-full px-3 py-2 text-sm text-left duration-150 flex items-center justify-between gap-2 ${
                       value === null ? 'bg-accent/40' : 'text-foreground hover:bg-accent/40'
                     }`}
                   >
@@ -264,7 +264,7 @@ export default function SearchableCustomerSelect({
                       key={customer.id}
                       type="button"
                       onClick={() => handleSelect(customer.id)}
-                      className={`w-full px-3 py-2 text-sm text-left transition-colors flex flex-col gap-0.5 ${
+                      className={`w-full px-3 py-2 text-sm text-left duration-150 flex flex-col gap-0.5 ${
                         value === customer.id ? 'bg-accent/40' : 'text-foreground hover:bg-accent/40'
                       }`}
                     >

@@ -32,8 +32,9 @@ describe('SelectPicker', () => {
     expect(content).not.toMatch(/<button[^>]*>\s*<button/)
   })
 
-  it('adds right padding for clear icon', () => {
-    expect(content).toContain("hasValue ? 'pr-16' : 'pr-10'")
+  it('rotates chevron when dropdown is open', () => {
+    expect(content).toContain('rotate-180')
+    expect(content).toContain('duration-150')
   })
 
   it('hides redundant null option when null value is already selected', () => {

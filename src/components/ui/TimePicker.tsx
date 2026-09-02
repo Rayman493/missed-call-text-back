@@ -1,7 +1,7 @@
 'use client'
 
 import { useId } from 'react'
-import { X } from 'lucide-react'
+import { X, Clock } from 'lucide-react'
 
 interface TimePickerProps {
   value: string // HH:MM format (24-hour)
@@ -45,17 +45,20 @@ export default function TimePicker({
           disabled={disabled}
           placeholder={placeholder}
           step={60}
-          className={`w-full pl-3 py-2 text-base sm:text-sm border rounded-lg transition-colors pr-10 ${
+          className={`w-full pl-3 py-2 text-base sm:text-sm border rounded-lg duration-150 ${
             disabled
               ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30'
-              : 'bg-card dark:bg-slate-900/60 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60'
-          }`}
+              : 'bg-background dark:bg-slate-900/40 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60'
+          } ${value ? 'pr-10' : 'pr-10'}`}
         />
+        {!value && !disabled && (
+          <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        )}
         {value && !disabled && (
           <button
             type="button"
             onClick={clearTime}
-            className="absolute right-10 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded duration-150"
             aria-label="Clear time"
           >
             <X className="w-4 h-4 text-muted-foreground" />

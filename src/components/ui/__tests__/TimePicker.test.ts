@@ -9,9 +9,10 @@ describe('TimePicker', () => {
     expect(content).toContain('id={inputId}')
   })
 
-  it('positions clear button left of native clock indicator', () => {
-    expect(content).toContain("right-12")
-    expect(content).toContain("pr-16")
+  it('shows clock icon when no value, clear button when value exists', () => {
+    expect(content).toContain('Clock')
+    expect(content).toContain('!value && !disabled')
+    expect(content).toContain('value && !disabled')
   })
 
   it('only shows clear button when a time is selected', () => {

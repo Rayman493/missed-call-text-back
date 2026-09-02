@@ -131,16 +131,16 @@ export default function SelectPicker({
           aria-haspopup="listbox"
           aria-expanded={isOpen}
           aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
-          className={`w-full border rounded-lg flex items-center justify-between gap-2 transition-colors text-left ${
+          className={`w-full border rounded-lg flex items-center justify-between gap-2 duration-150 text-left ${
             disabled
               ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30 px-3 py-2'
-              : 'bg-card dark:bg-slate-900/60 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60 cursor-pointer px-3 py-2'
+              : 'bg-background dark:bg-slate-900/40 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60 cursor-pointer px-3 py-2'
           } pr-10`}
         >
           <span className={selectedOption ? 'text-foreground truncate flex-1' : 'text-muted-foreground truncate flex-1'}>
             {selectedOption ? selectedOption.label : placeholder}
           </span>
-          <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          <ChevronDown className={`w-4 h-4 text-muted-foreground flex-shrink-0 duration-150 ${isOpen ? 'rotate-180' : ''}`} />
         </button>
         {hasValue && !disabled && (
           <button
@@ -156,7 +156,7 @@ export default function SelectPicker({
 
       {/* Dropdown */}
       {isOpen && !disabled && (
-        <div className="absolute z-[60] mt-2 w-full bg-popover/95 backdrop-blur-sm rounded-lg shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] border border-border/40 max-h-[300px] overflow-hidden flex flex-col">
+        <div className="absolute z-[60] mt-2 w-full bg-popover/95 backdrop-blur-sm rounded-lg shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] border border-border/40 max-h-[300px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
           {searchable && (
             <div className="p-3 border-b border-border/20">
               <div className="relative">
@@ -167,7 +167,7 @@ export default function SelectPicker({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search..."
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-muted/50 border border-border/50 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-muted/50 border border-border/50 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary duration-150"
                 />
               </div>
             </div>
@@ -186,7 +186,7 @@ export default function SelectPicker({
                     type="button"
                     onClick={() => handleSelect(option.value)}
                     disabled={option.disabled}
-                    className={`w-full px-3 py-2 text-sm text-left transition-colors flex items-center justify-between gap-2 ${
+                    className={`w-full px-3 py-2 text-sm text-left duration-150 flex items-center justify-between gap-2 ${
                       option.disabled
                         ? 'text-muted-foreground/50 cursor-not-allowed'
                         : 'text-foreground hover:bg-accent/40'

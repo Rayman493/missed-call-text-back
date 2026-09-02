@@ -9,9 +9,10 @@ describe('DatePicker', () => {
     expect(content).toContain('id={inputId}')
   })
 
-  it('positions clear button left of native calendar indicator', () => {
-    expect(content).toContain("right-12")
-    expect(content).toContain("pr-16")
+  it('shows calendar icon when no value, clear button when value exists', () => {
+    expect(content).toContain('CalendarDays')
+    expect(content).toContain('!value && !disabled')
+    expect(content).toContain('value && !disabled')
   })
 
   it('only shows clear button when a date is selected', () => {
