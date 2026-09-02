@@ -4411,20 +4411,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         }
                       >
                         {paymentRequests.length === 0 ? (
-                          <div>
-                            <p className="text-sm text-muted-foreground mb-2">No payments yet</p>
-                            {!business || getAvailableProviders(business).length === 0 ? (
-                              <div className="text-xs text-muted-foreground">
-                                <span>Set up a payment method in Settings → Payments to request payments.</span>
-                                <Link
-                                  href="/dashboard/settings#payments"
-                                  className="text-blue-600 dark:text-blue-400 hover:underline ml-1"
-                                >
-                                  Set up payments →
-                                </Link>
-                              </div>
-                            ) : null}
-                          </div>
+                          <p className="text-sm text-muted-foreground">No payments yet</p>
                         ) : (
                           <div>
                             <div className="text-sm font-medium text-foreground mb-2">
@@ -4463,7 +4450,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         ) : appointments.length === 0 ? (
                           <p className="text-sm text-muted-foreground">No appointments</p>
                         ) : (
-                          <div className="space-y-2">
+                          <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
                             {(() => {
                               const now = new Date()
                               const sorted = [...appointments].sort((a: any, b: any) => {
@@ -4496,7 +4483,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 }
                                 const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                                 return (
-                                  <div key={event.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg transition-all duration-200">
+                                  <div key={event.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200">
                                     <div className="flex-shrink-0 w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center">
                                       <CalendarDays className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                                     </div>
