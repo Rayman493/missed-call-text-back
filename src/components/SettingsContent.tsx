@@ -98,6 +98,19 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       }
     }
   }, [section])
+
+  // Refresh billing state when returning from Android Billing Portal X-close
+  useEffect(() => {
+    const handleBillingRefresh = () => {
+      console.log('[SettingsContent] Billing refresh requested after Android X-close')
+      refreshBusiness()
+    }
+
+    window.addEventListener('billing-refresh-needed', handleBillingRefresh)
+    return () => {
+      window.removeEventListener('billing-refresh-needed', handleBillingRefresh)
+    }
+  }, [refreshBusiness])
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deletePassword, setDeletePassword] = useState('')
   const [deletePasswordError, setDeletePasswordError] = useState('')
@@ -4946,6 +4959,12 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     )}
                   </div>
                 </div>
+                {/* Android-specific guidance for Billing Portal return */}
+                {typeof window !== 'undefined' && /Android/i.test(window.navigator.userAgent) && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    When you're finished in Stripe, tap X to return to ReplyFlow.
+                  </p>
+                )}
                 {needsUpgrade(business?.subscription_status) && !getManualAccessStatus(business).hasManualAccess && (
                   <button
                     onClick={() => handleBillingActionClick('upgrade')}

@@ -159,7 +159,8 @@ public class ReplyflowWebCheckoutPlugin extends Plugin {
 
             CustomTabsIntent customTabsIntent = builder.build();
 
-            Log.d(TAG, "[RF_STRIPE_RETURN] launchCustomTab launching_url=" + checkoutUrl);
+            // Safe logging - don't expose Stripe session secrets
+            Log.d(TAG, "[RF_STRIPE_RETURN] launchCustomTab host=" + uri.getHost() + " path=" + uri.getPath());
 
             // Launch Custom Tab explicitly
             customTabsIntent.launchUrl(activity, uri);

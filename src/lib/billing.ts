@@ -179,9 +179,19 @@ async function openBillingPortal(accessToken: string, returnUrl?: string, hasExi
 
           // Handle terminal result
           if (result.canceled) {
-            console.log('[Billing Action] User canceled portal session')
+            console.log('[Billing Action] User canceled portal session (likely X-close)')
             // Clear pending operation on cancel
             await setPendingStripeOperation(null)
+
+            // For Android, trigger billing state refresh after X-close
+            // This ensures the UI reflects any changes made in Stripe
+            if (isNativeAndroid()) {
+              console.log('[Billing Action] Triggering billing state refresh after Android X-close')
+              // Trigger a refresh by invalidating cached data
+              // The next render will fetch fresh billing state
+              window.dispatchEvent(new CustomEvent('billing-refresh-needed'))
+            }
+
             return {
               success: true,
               url: data.url,
