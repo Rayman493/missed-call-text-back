@@ -17,6 +17,7 @@ export interface WebCheckoutPlugin {
     url: string
     callbackHost?: string
     callbackPath?: string
+    operationType?: 'checkout' | 'billing_portal'
   }): Promise<{
     completed: boolean
     iosVersion?: string
