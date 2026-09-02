@@ -253,14 +253,16 @@ export class LeadService {
       })
 
       // Immediately fetch and return the existing lead (idempotent reuse)
-      const existingLead = await this.findLead({ business_id, caller_phone: normalizedPhone })
-      if (existingLead) {
-        console.log('[LeadService.createLead] Reusing existing lead from uniqueness conflict:', {
-          leadId: existingLead.id,
-          business_id,
-          caller_phone: normalizedPhone
-        })
-        return existingLead
+      if (normalizedPhone) {
+        const existingLead = await this.findLead({ business_id, caller_phone: normalizedPhone })
+        if (existingLead) {
+          console.log('[LeadService.createLead] Reusing existing lead from uniqueness conflict:', {
+            leadId: existingLead.id,
+            business_id,
+            caller_phone: normalizedPhone
+          })
+          return existingLead
+        }
       }
 
       // If we can't find the existing lead despite the conflict, this is unexpected
