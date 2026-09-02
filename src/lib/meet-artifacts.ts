@@ -182,6 +182,7 @@ export class MeetArtifactProcessor {
     })()
 
     const scored = useConfs.map((c) => {
+      if (!c) return { c: null, endTs: null, startTs: null, anchorTs: Number.POSITIVE_INFINITY, distNow: Number.POSITIVE_INFINITY, distSched: Number.POSITIVE_INFINITY, completionBias: 0 }
       const endTs = c.endTime ? new Date(c.endTime).getTime() : null
       const startTs = c.startTime ? new Date(c.startTime).getTime() : null
       const anchorTs = endTs ?? startTs ?? Number.POSITIVE_INFINITY
@@ -191,12 +192,24 @@ export class MeetArtifactProcessor {
       return { c, endTs, startTs, anchorTs, distNow, distSched, completionBias }
     })
 
+    // Filter out null entries from Google Meet API
+    const validScored = scored.filter(s => s.c !== null)
+
+    // If all entries are null, treat as no conference
+    if (validScored.length === 0) {
+      await repo.updateMeetingRecord(record.id, {
+        transcript_status: record.transcript_status ?? 'pending',
+        next_processing_attempt_at: new Date(now().getTime() + 60 * 60 * 1000).toISOString(),
+      })
+      return { processed: false, status: 'pending', reason: 'no_conference' }
+    }
+
     // If no usable timestamps at all (all Infinity), treat as ambiguous
-    const anyTimed = scored.some(s => Number.isFinite(s.anchorTs))
+    const anyTimed = validScored.some(s => Number.isFinite(s.anchorTs))
     let pick = undefined as undefined | { name: string; startTime?: string; endTime?: string }
     if (usedFallback && anyTimed) {
       let ambiguous = false
-      scored.sort((a, b) => {
+      validScored.sort((a, b) => {
         // Completed first
         if (a.completionBias !== b.completionBias) return a.completionBias - b.completionBias
         // Nearest to now
@@ -208,9 +221,9 @@ export class MeetArtifactProcessor {
       })
 
       // Ambiguity guard: if top two are extremely close, do not guess
-      if (scored.length >= 2) {
-        const a = scored[0]
-        const b = scored[1]
+      if (validScored.length >= 2) {
+        const a = validScored[0]
+        const b = validScored[1]
         const closeWindowMs = 5 * 60 * 1000 // 5 minutes
         if (Math.abs(a.anchorTs - b.anchorTs) <= closeWindowMs) {
           // Too close to confidently choose – remain pending/ambiguous
@@ -220,13 +233,15 @@ export class MeetArtifactProcessor {
 
       // Only choose if not ambiguous
       if (!ambiguous) {
-        pick = scored[0]?.c
+        pick = validScored[0]?.c
       }
     } else {
       // Bounded path (or no usable timestamps): previous earliest-start selection
       pick = useConfs.reduce((best, cur) => {
+        if (!cur) return best
+        if (!best) return cur
         const curStart = cur.startTime ? new Date(cur.startTime).getTime() : Number.MAX_SAFE_INTEGER
-        const bestStart = best?.startTime ? new Date(best.startTime).getTime() : Number.MAX_SAFE_INTEGER
+        const bestStart = best.startTime ? new Date(best.startTime).getTime() : Number.MAX_SAFE_INTEGER
         return curStart < bestStart ? cur : best
       }, undefined as undefined | { name: string; startTime?: string; endTime?: string })
     }
@@ -302,10 +317,39 @@ export class MeetArtifactProcessor {
 
     // Choose latest by endTime
     const t = transcripts.reduce((best, cur) => {
+      if (!cur) return best
+      if (!best) return cur
       const curEnd = cur.endTime ? new Date(cur.endTime).getTime() : -1
-      const bestEnd = best?.endTime ? new Date(best.endTime).getTime() : -1
+      const bestEnd = best.endTime ? new Date(best.endTime).getTime() : -1
       return curEnd > bestEnd ? cur : best
-    })
+    }, undefined as undefined | { name: string; state?: string; startTime?: string; endTime?: string })
+
+    if (!t || !transcripts || transcripts.length === 0) {
+
+      // Terminal unavailable check: after 10 attempts with completed conference, mark unavailable
+      const maxAttempts = 10
+      const currentAttempts = record.processing_attempts || 0
+      const conferenceEndTs = pick.endTime ? new Date(pick.endTime).getTime() : null
+      const isConferenceCompleted = conferenceEndTs !== null && conferenceEndTs < now().getTime()
+
+      if (isConferenceCompleted && currentAttempts >= maxAttempts) {
+        await repo.updateMeetingRecord(record.id, {
+          transcript_status: 'unavailable',
+          processing_error: null,
+          next_processing_attempt_at: null, // Stop automatic retries
+        })
+        return { processed: false, status: 'unavailable', reason: 'max_attempts_exceeded' }
+      }
+
+      // Use 15-minute backoff for first attempt, 1-hour for subsequent retries
+      const isFirstAttempt = !record.transcript_status || record.transcript_status !== 'pending'
+      const backoffMinutes = isFirstAttempt ? 15 : 60
+      await repo.updateMeetingRecord(record.id, {
+        transcript_status: 'pending',
+        next_processing_attempt_at: new Date(now().getTime() + backoffMinutes * 60 * 1000).toISOString(),
+      })
+      return { processed: false, status: 'pending', reason: 'no_transcripts' }
+    }
 
     // Retrieve all transcript entries
     let pageToken: string | undefined
