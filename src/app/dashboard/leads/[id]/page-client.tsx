@@ -71,6 +71,7 @@ import { launchSMS, copyToClipboard, openBusinessSms } from '@/lib/sms-launch'
 import { useSendingSource } from '@/hooks/useSendingSource'
 import { useSupportsBusinessNumber } from '@/lib/platform-capabilities'
 import { getNextAction } from '@/lib/lead-next-action'
+import { hasPhoneNumber } from '@/lib/utils'
 
 // Helper functions for consistent formatting
 const formatDate = (dateString: string | null | undefined): string => {
@@ -1695,6 +1696,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         
         const message = `Hi ${customerName}, this is a reminder about your appointment on ${dateTimeString}. Please confirm or let us know if you need to reschedule.`
 
+        // Phone-dependent gating: Check if customer has a phone number
+        if (!hasPhoneNumber(dialNumber)) {
+          onShowToast?.('Add a phone number to this customer before sending a text.', 'error')
+          return
+        }
+
         try {
           // Launch SMS using shared helper
           await openBusinessSms({ recipient: dialNumber, body: message, source: 'confirmation' })
@@ -2450,7 +2457,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (e instanceof Event) {
       e.preventDefault()
     }
-    
+
+    // Phone-dependent gating: Check if customer has a phone number
+    if (!hasPhoneNumber(leadData?.caller_phone)) {
+      onShowToast?.('Add a phone number to this customer before sending a text.', 'error')
+      return
+    }
+
     // Check if media files were passed
     const mediaFiles = Array.isArray(e) ? e : undefined
     const isMMS = mediaFiles && mediaFiles.length > 0
@@ -5514,6 +5527,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               onClick={async () => {
                 if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
                   setError('Please enter a valid amount')
+                  return
+                }
+
+                // Phone-dependent gating: Check if customer has a phone number for SMS payment request
+                if (!hasPhoneNumber(leadData?.caller_phone)) {
+                  setError('Add a phone number to this customer before sending a payment request.')
                   return
                 }
 

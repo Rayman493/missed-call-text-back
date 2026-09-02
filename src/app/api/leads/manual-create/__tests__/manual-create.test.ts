@@ -4,7 +4,8 @@
  * Tests for creating customers without phone numbers
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
+import { hasPhoneNumber } from '@/lib/utils'
 
 describe('Manual Customer Creation - Optional Phone', () => {
   describe('Database Migration', () => {
@@ -149,7 +150,6 @@ describe('Downstream Non-Phone Features', () => {
 
 describe('Phone-Dependent UI Gating', () => {
   it('should check hasPhoneNumber before SMS', () => {
-    const { hasPhoneNumber } = require('@/lib/utils')
     expect(hasPhoneNumber(null)).toBe(false)
     expect(hasPhoneNumber('')).toBe(false)
     expect(hasPhoneNumber('4125551234')).toBe(true)
@@ -157,14 +157,14 @@ describe('Phone-Dependent UI Gating', () => {
 
   it('should block SMS for phone-less customer at UI level', async () => {
     const customer = { caller_phone: null, name: 'Test' }
-    const hasPhone = customer.caller_phone && customer.caller_phone.trim().length > 0
+    const hasPhone = hasPhoneNumber(customer.caller_phone)
     expect(hasPhone).toBe(false)
     // UI should show "Add phone number to send SMS" message
   })
 
   it('should block call for phone-less customer at UI level', async () => {
     const customer = { caller_phone: null, name: 'Test' }
-    const hasPhone = customer.caller_phone && customer.caller_phone.trim().length > 0
+    const hasPhone = hasPhoneNumber(customer.caller_phone)
     expect(hasPhone).toBe(false)
     // UI should show "Add phone number to make call" message
   })

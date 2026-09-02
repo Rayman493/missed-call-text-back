@@ -406,6 +406,11 @@ export async function POST(request: Request) {
       }
 
       // Send MMS
+      if (!lead.caller_phone) {
+        return NextResponse.json({
+          error: 'Customer phone number is required to send messages'
+        }, { status: 400 })
+      }
       const result = await sendMms(business, lead.caller_phone, sanitizedMessage || '', mediaUrls, {
         lead_id: lead.id,
         conversation_id: conversation.id,
@@ -416,6 +421,11 @@ export async function POST(request: Request) {
       messageId = result?.messageId || null
     } else {
       // Send SMS
+      if (!lead.caller_phone) {
+        return NextResponse.json({
+          error: 'Customer phone number is required to send messages'
+        }, { status: 400 })
+      }
       const result = await sendSms(business, lead.caller_phone, sanitizedMessage, {
         lead_id: lead.id,
         conversation_id: conversation.id,
