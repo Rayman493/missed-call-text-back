@@ -385,10 +385,10 @@ export default function JobComposer({
                     key={opt.value}
                     type="button"
                     onClick={() => setStatus(opt.value)}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
+                    className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
                       status === opt.value
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-muted text-foreground border-border hover:bg-muted/80'
+                        ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                        : 'bg-background text-foreground border-border hover:border-border/80 hover:bg-muted/50'
                     }`}
                   >
                     {opt.label}

@@ -215,7 +215,7 @@ main {
   }
 
   .elevated-surface-border {
-    @apply border-border;
+    @apply border-border/60;
   }
 
   /* Card border - stronger in light mode for better hierarchy */

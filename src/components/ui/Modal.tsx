@@ -133,9 +133,9 @@ export default function Modal({
           relative w-full max-w-lg
           max-h-[var(--modal-max-height)]
           overflow-hidden
-          rounded-xl border border-border elevated-surface-border
+          rounded-xl border border-border/60
           bg-card dark:bg-slate-800/95
-          shadow-sm
+          shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.04)]
           flex flex-col min-h-0 animate-in zoom-in-95 duration-200 motion-reduce:animate-none motion-reduce:transition-none
           ${className}
         `}

@@ -178,7 +178,7 @@ export default function SearchableCustomerSelect({
             disabled
               ? 'opacity-50 cursor-not-allowed px-3 py-2.5'
               : 'hover:border-border/60 cursor-pointer px-3 py-2.5'
-          } pr-10`}
+          } pr-9`}
         >
           <span className={selectedCustomer ? 'text-foreground truncate flex-1' : 'text-muted-foreground truncate flex-1'}>
             {getDisplayText(selectedCustomer)}
@@ -189,7 +189,7 @@ export default function SearchableCustomerSelect({
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-10 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded transition-colors"
+            className="absolute right-9 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded transition-colors"
             aria-label="Clear selection"
           >
             <X className="w-4 h-4 text-muted-foreground" />

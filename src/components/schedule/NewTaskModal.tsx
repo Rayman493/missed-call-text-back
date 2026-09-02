@@ -288,7 +288,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
           {/* Section: Customer Context */}
           <div className="space-y-4">
             <div className="pb-2 border-b border-border/50">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Customer Context</p>
+              <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">Customer Context</p>
             </div>
 
             <div>
@@ -332,7 +332,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
           {/* Section: Timing */}
           <div className="space-y-4">
             <div className="pb-2 border-b border-border/50">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timing</p>
+              <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">Timing</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -371,7 +371,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
           {/* Section: Details */}
           <div className="space-y-4">
             <div className="pb-2 border-b border-border/50">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Details</p>
+              <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">Details</p>
             </div>
 
             <div>

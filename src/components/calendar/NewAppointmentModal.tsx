@@ -314,7 +314,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
             {/* Section: Basics */}
             <div className="space-y-4">
               <div className="pb-2 border-b border-border/50">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Basics</p>
+                <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">Basics</p>
               </div>
 
               <div>
@@ -345,7 +345,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
             {/* Section: Timing */}
             <div className="space-y-4">
               <div className="pb-2 border-b border-border/50">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timing</p>
+                <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">Timing</p>
               </div>
 
               <div>
@@ -396,7 +396,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
             {/* Section: Appointment Details */}
             <div className="space-y-4">
               <div className="pb-2 border-b border-border/50">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Appointment Details</p>
+                <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">Appointment Details</p>
               </div>
 
               <div>
