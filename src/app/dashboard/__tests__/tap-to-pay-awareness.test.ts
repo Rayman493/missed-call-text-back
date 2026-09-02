@@ -36,7 +36,7 @@ describe('Dashboard Tap to Pay Awareness', () => {
     it('should not show awareness modal if not eligible even if acknowledged', () => {
       const isEligible = false
       const isAcknowledged = true
-      const shouldShow = isEligible && !acknowledgedAt
+      const shouldShow = isEligible && !isAcknowledged
 
       expect(shouldShow).toBe(false)
     })

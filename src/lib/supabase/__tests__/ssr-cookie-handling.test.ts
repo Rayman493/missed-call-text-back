@@ -230,7 +230,7 @@ describe('Supabase SSR Cookie Handling', () => {
       }
 
       expect(tenantIsolation.usesRLS).toBe(true)
-      expect(tenantIsolation.user_id_matches).toBe(true)
+      expect(tenantIsolation.user_idMatches).toBe(true)
       expect(tenantIsolation.cannotAccessOtherBusinesses).toBe(true)
     })
   })
