@@ -176,12 +176,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Create timeline event
-    if (leadId) {
+    if (leadId && normalizedPhone) {
       await timelineEvents.leadCreated(businessId, leadId, conversationId || '', normalizedPhone)
     }
 
     // Create notification for new lead (only if new)
-    if (isNewLead && leadId) {
+    if (isNewLead && leadId && normalizedPhone) {
       try {
         await notificationServiceServer.notifyNewLead(
           businessId,
