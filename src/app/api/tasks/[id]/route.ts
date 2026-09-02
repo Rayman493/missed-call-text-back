@@ -123,9 +123,9 @@ export async function PATCH(
         updateData.reminder_offset_minutes = null
         updateData.reminder_notify_at = null
       } else {
-        const validOffsets = [0, 15, 30, 60, 1440]
+        const validOffsets = [0, 5, 15, 30, 60, 120, 1440, 2880, 10080]
         if (!validOffsets.includes(reminder_offset_minutes)) {
-          return NextResponse.json({ error: 'Invalid reminder_offset_minutes. Must be one of: 0, 15, 30, 60, 1440' }, { status: 400 })
+          return NextResponse.json({ error: 'Invalid reminder_offset_minutes. Must be one of: 0, 5, 15, 30, 60, 120, 1440, 2880, 10080' }, { status: 400 })
         }
         updateData.reminder_offset_minutes = reminder_offset_minutes
       }

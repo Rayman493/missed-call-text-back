@@ -138,9 +138,9 @@ export async function POST(request: NextRequest) {
 
     // Validate reminder_offset_minutes if provided
     if (reminder_offset_minutes !== undefined && reminder_offset_minutes !== null) {
-      const validOffsets = [0, 15, 30, 60, 1440]
+      const validOffsets = [0, 5, 15, 30, 60, 120, 1440, 2880, 10080]
       if (!validOffsets.includes(reminder_offset_minutes)) {
-        return NextResponse.json({ error: 'Invalid reminder_offset_minutes. Must be one of: 0, 15, 30, 60, 1440' }, { status: 400 })
+        return NextResponse.json({ error: 'Invalid reminder_offset_minutes. Must be one of: 0, 5, 15, 30, 60, 120, 1440, 2880, 10080' }, { status: 400 })
       }
     }
 
