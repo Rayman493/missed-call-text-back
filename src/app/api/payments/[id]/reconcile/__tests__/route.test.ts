@@ -38,7 +38,7 @@ describe('POST /api/payments/[id]/reconcile', () => {
     const { data: businessData } = await supabase
       .from('businesses')
       .insert({
-        owner_id: testUserId,
+        user_id: testUserId,
         name: 'Test Business for Reconciliation',
         business_phone_number: '+15550100999'
       })

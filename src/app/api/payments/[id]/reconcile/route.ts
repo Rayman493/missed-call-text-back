@@ -81,16 +81,21 @@ export async function POST(
     // Verify business ownership via RLS
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id, owner_id')
+      .select('id, user_id')
       .eq('id', paymentRequest.business_id)
       .maybeSingle()
 
-    if (businessError || !business) {
-      console.error('[PAYMENT RECONCILE] Business not found:', businessError)
+    if (businessError) {
+      console.error('[PAYMENT RECONCILE] Database error fetching business:', businessError)
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+
+    if (!business) {
+      console.error('[PAYMENT RECONCILE] Business not found:', paymentRequest.business_id)
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    if (business.owner_id !== user.id) {
+    if (business.user_id !== user.id) {
       console.error('[PAYMENT RECONCILE] User not authorized for business:', user.id, business.id)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
