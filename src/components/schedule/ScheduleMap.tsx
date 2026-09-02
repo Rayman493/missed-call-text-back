@@ -192,6 +192,7 @@ function ScheduleMapComponent({
   const framedSignatureForContextRef = useRef('') // tracks framed marker set signature
   const correctiveFrameUsedForContextRef = useRef(false) // tracks if corrective frame used
   const programmaticMoveInProgressRef = useRef(false) // tracks programmatic camera moves
+  const activeGestureRef = useRef(false) // tracks if a manual gesture (drag/zoom) is currently active
   // Constants for viewport behavior
 const HOME_BASE_ONLY_ZOOM = 13 // Local zoom for single marker (shows ~5-10 miles)
 const MULTI_MARKER_MAX_ZOOM = 14 // Max zoom for multi-marker fit bounds (reduced from 15 to prevent excessive zoom-in when points are close)
@@ -1472,10 +1473,16 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         if (userInteractedForContextRef.current !== undefined) {
           userInteractedForContextRef.current = true
         }
+        if (activeGestureRef.current !== undefined) {
+          activeGestureRef.current = true
+        }
       })
 
       dragendListener = map.addListener('dragend', () => {
         // Drag completed - user has interacted
+        if (activeGestureRef.current !== undefined) {
+          activeGestureRef.current = false
+        }
       })
 
       zoomChangedListener = map.addListener('zoom_changed', () => {
@@ -1693,6 +1700,17 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
     // Group items by location
     const markerInfos = groupItemsByLocation(filteredItems)
 
+    // Skip marker updates during active manual gestures to prevent visual desync
+    // Native Google Maps markers are synchronized with the map, but recreating/updating
+    // them during a drag can cause visual artifacts. Markers will update after gesture ends.
+    if (activeGestureRef.current) {
+      console.log('[SCHEDULE_MAP_MARKER_UPDATE_SKIPPED]', {
+        reason: 'active_manual_gesture',
+        markerCount: markersRef.current.size
+      })
+      return
+    }
+
     // Track current marker IDs
     const currentMarkerIds = new Set<string>()
 
@@ -1826,8 +1844,10 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
     // Simplified auto-fit logic:
     // - Context change: always frame (initial frame for new context)
     // - Signature change without context change: at most one corrective frame if user hasn't interacted
+    // - Never frame during active manual gestures (drag/zoom)
     const shouldAutoFit = markersRef.current.size > 0 &&
                           !userInteractedForContextRef.current &&
+                          !activeGestureRef.current &&
                           (
                             contextChanged ||
                             (signatureChanged && !correctiveFrameUsedForContextRef.current && !contextChanged)
