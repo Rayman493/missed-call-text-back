@@ -1935,7 +1935,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         getMapInstance: () => mapInstanceIdRef.current,
         getMarkerCount: () => markersRef.current.size,
         getDevicePixelRatio: () => window.devicePixelRatio,
-        getCanvasScale: () => window.devicePixelRatio || 2 // Matches createNumberedMarkerIcon
+        getCanvasScale: () => window.devicePixelRatio || 1 // Canvas backing-store scale (DPR)
       }
     }
     return () => {
@@ -2013,11 +2013,11 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
   // Create numbered marker icon
   const createNumberedMarkerIcon = (stopNumber: number, type: MapItemType, isSelected: boolean = false): any => {
-    // Use actual device pixel ratio for crisp rendering
-    const scale = window.devicePixelRatio || 2
+    // Use actual device pixel ratio for HiDPI canvas backing store
+    const dpr = window.devicePixelRatio || 1
 
-    // Use 0 for business markers in cache key, include scale to prevent wrong-scale cache hits
-    const cacheKey = `${type === 'business' ? 0 : stopNumber}-${type}-${isSelected}-${scale}`
+    // Include DPR in cache key to prevent wrong-scale cache hits when DPR changes
+    const cacheKey = `${type === 'business' ? 0 : stopNumber}-${type}-${isSelected}-${dpr}`
 
     // Return cached icon if available
     if (markerIconCache.has(cacheKey)) {
@@ -2032,13 +2032,13 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
     const textColor = '#FFFFFF'
 
     // Create canvas for numbered marker
+    // Canvas backing store uses physical pixels for crisp rendering
     const canvas = document.createElement('canvas')
-    canvas.width = size * scale
-    canvas.height = size * scale
-    canvas.width = size * scale
-    canvas.height = size * scale
+    canvas.width = size * dpr
+    canvas.height = size * dpr
     const ctx = canvas.getContext('2d')!
-    ctx.scale(scale, scale)
+    // Scale drawing context so we draw in logical coordinates
+    ctx.scale(dpr, dpr)
 
     // Draw circle background
     ctx.beginPath()
@@ -2062,8 +2062,10 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
     const icon = {
       url: canvas.toDataURL(),
-      scaledSize: new (window as any).google.maps.Size(size * scale, size * scale),
-      anchor: new (window as any).google.maps.Point((size * scale) / 2, (size * scale) / 2)
+      // scaledSize is the DISPLAYED size in logical pixels, not backing-store dimensions
+      scaledSize: new (window as any).google.maps.Size(size, size),
+      // anchor is in logical displayed coordinates, not backing-store coordinates
+      anchor: new (window as any).google.maps.Point(size / 2, size / 2)
     }
 
     // Cache the icon
