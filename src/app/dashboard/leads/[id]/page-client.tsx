@@ -3819,7 +3819,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </h1>
                 </div>
                 <div className="flex items-center gap-1 flex-wrap mb-0.5">
-                  <p className="text-[11px] text-muted-foreground/80 truncate">
+                  <p className="text-[11px] text-foreground/80 truncate">
                     {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                   </p>
                 </div>

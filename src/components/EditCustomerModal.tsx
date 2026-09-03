@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
-import { Mail } from 'lucide-react'
+import { Mail, Phone } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 
 interface EditCustomerModalProps {
@@ -20,6 +20,7 @@ interface CustomerFormData {
   email: string
   companyName: string
   notes: string
+  phoneNumber: string
 }
 
 export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, onCustomerUpdated }: EditCustomerModalProps) {
@@ -31,7 +32,8 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
     customerName: '',
     email: '',
     companyName: '',
-    notes: ''
+    notes: '',
+    phoneNumber: ''
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -44,7 +46,8 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
         customerName: leadData.name || leadData.contact_name || '',
         email: leadData.email || '',
         companyName: leadData.company_name || '',
-        notes: leadData.notes || ''
+        notes: leadData.notes || '',
+        phoneNumber: leadData.caller_phone || ''
       })
     }
   }, [isOpen, leadData])
@@ -85,7 +88,8 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
         contact_name: formData.customerName.trim() || null,
         email: formData.email.trim() || null,
         company_name: formData.companyName.trim() || null,
-        notes: formData.notes.trim() || null
+        notes: formData.notes.trim() || null,
+        caller_phone: formData.phoneNumber.trim() || null
       }
 
       const response = await fetch(`/api/leads/${leadId}`, {
@@ -140,6 +144,22 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
             className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
             placeholder="Enter customer name"
+            disabled={isSubmitting}
+          />
+        </div>
+
+        {/* Phone Number */}
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+            <Phone className="w-4 h-4" />
+            Phone Number
+          </label>
+          <input
+            type="tel"
+            value={formData.phoneNumber}
+            onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+            placeholder="(555) 123-4567"
             disabled={isSubmitting}
           />
         </div>

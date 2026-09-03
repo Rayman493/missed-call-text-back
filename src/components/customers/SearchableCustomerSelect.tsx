@@ -117,21 +117,25 @@ export default function SearchableCustomerSelect({
 
   // Calculate available space and determine dropup/dropdown direction
   useEffect(() => {
-    if (!isOpen || !pickerRef.current || !dropdownRef.current) return
+    if (!isOpen || !pickerRef.current) return
 
     const pickerRect = pickerRef.current.getBoundingClientRect()
-    const dropdownHeight = dropdownRef.current.offsetHeight
     const viewportHeight = window.innerHeight
 
     const spaceBelow = viewportHeight - pickerRect.bottom
     const spaceAbove = pickerRect.top
 
-    // Open upward if there's more space above than below
-    if (spaceAbove > spaceBelow && spaceAbove > dropdownHeight) {
-      setDropup(true)
-    } else {
-      setDropup(false)
-    }
+    // Reserve space for safe gap
+    const safeGap = 16
+    const maxDropdownHeight = 300
+
+    // Calculate actual available space (not dependent on content)
+    const availableBelow = spaceBelow - safeGap
+    const availableAbove = spaceAbove - safeGap
+
+    // Determine direction based on available space, not rendered height
+    const useDropup = spaceAbove > spaceBelow && availableAbove > maxDropdownHeight
+    setDropup(useDropup)
   }, [isOpen])
 
   // Prevent scroll chaining from dropdown to modal body
