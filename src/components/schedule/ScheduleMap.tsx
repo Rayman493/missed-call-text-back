@@ -294,6 +294,10 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
   const [showAllMode, setShowAllMode] = useState(true)
   const [leadCache, setLeadCache] = useState<Map<string, { name: string | null; phone: string | null }>>(new Map()) // Cache for lead data to avoid N+1 queries
 
+  // Track last click time for double-tap detection (works on both desktop and mobile)
+  const lastClickTimeRef = useRef<Map<string, number>>(new Map())
+  const DOUBLE_TAP_DELAY_MS = 300
+
   // Production VECTOR rendering configuration
 const PRODUCTION_MAP_ID = 'c783fbbc07696bfd5be1f3c6'
 
@@ -1837,7 +1841,21 @@ useEffect(() => {
 
         marker.addListener('click', () => {
           if (markerInfo.items.length === 1) {
-            selectMapItem(markerInfo.items[0].id, markerInfo.items[0].latitude, markerInfo.items[0].longitude)
+            const item = markerInfo.items[0]
+            const now = Date.now()
+            const lastClick = lastClickTimeRef.current.get(item.id) ?? 0
+            const timeSinceLastClick = now - lastClick
+
+            // Check if this is a double-tap/click
+            if (timeSinceLastClick < DOUBLE_TAP_DELAY_MS) {
+              // Double-tap: focus on map (select + pan + zoom)
+              focusStopOnMap(item.id, item.latitude, item.longitude)
+              lastClickTimeRef.current.delete(item.id) // Reset to prevent triple-tap
+            } else {
+              // Single-tap: just select
+              selectMapItem(item.id, item.latitude, item.longitude)
+              lastClickTimeRef.current.set(item.id, now)
+            }
           } else {
             // For grouped markers, select the first item chronologically as default
             // This ensures map/list synchronization works even when multiple items share a location
@@ -1855,7 +1873,7 @@ useEffect(() => {
           }
         })
 
-        // Add double-click zoom for stop markers (not business marker)
+        // Keep dblclick for desktop as a fallback (some browsers prefer native dblclick)
         if (!isBusinessMarker && markerInfo.items.length === 1) {
           marker.addListener('dblclick', () => {
             const item = markerInfo.items[0]
