@@ -166,6 +166,7 @@ export default function CustomerPipelineGraph() {
                   {!isTouchDevice && (
                     <Tooltip
                       content={<PremiumTooltip />}
+                      cursor={false}
                     />
                   )}
                   <Bar

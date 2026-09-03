@@ -151,6 +151,7 @@ export default function CustomersStatusGraph() {
                   {!isTouchDevice && (
                     <Tooltip
                       content={<PremiumTooltip />}
+                      cursor={false}
                     />
                   )}
                   <Bar
