@@ -297,6 +297,27 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
   // Production VECTOR rendering configuration
 const PRODUCTION_MAP_ID = 'c783fbbc07696bfd5be1f3c6'
 
+// Canonical helper to focus on a stop on the map (used by marker and card double-click)
+const focusStopOnMap = (itemId: string, latitude: number | null, longitude: number | null) => {
+  const targetZoom = 16
+
+  // Select the stop (only if coordinates are valid)
+  if (latitude !== null && longitude !== null) {
+    selectMapItem(itemId, latitude, longitude)
+
+    // Pan to stop
+    if (googleMapRef.current) {
+      googleMapRef.current.panTo({ lat: latitude, lng: longitude })
+
+      // Zoom in only if current zoom is below target
+      const currentZoom = googleMapRef.current.getZoom() ?? 0
+      if (currentZoom < targetZoom) {
+        googleMapRef.current.setZoom(targetZoom)
+      }
+    }
+  }
+}
+
 // Clean up old diagnostic localStorage keys from previous diagnostic mode
 useEffect(() => {
   if (typeof window !== 'undefined') {
@@ -1838,23 +1859,7 @@ useEffect(() => {
         if (!isBusinessMarker && markerInfo.items.length === 1) {
           marker.addListener('dblclick', () => {
             const item = markerInfo.items[0]
-            const targetZoom = 16
-            const currentZoom = googleMapRef.current?.getZoom() ?? 0
-
-            // Select the marker
-            selectMapItem(item.id, item.latitude, item.longitude)
-
-            // Pan to marker
-            if (googleMapRef.current) {
-              googleMapRef.current.panTo({ lat: item.latitude, lng: item.longitude })
-            }
-
-            // Zoom in only if current zoom is below target
-            if (currentZoom < targetZoom) {
-              if (googleMapRef.current) {
-                googleMapRef.current.setZoom(targetZoom)
-              }
-            }
+            focusStopOnMap(item.id, item.latitude, item.longitude)
           })
         }
 
@@ -2354,6 +2359,12 @@ useEffect(() => {
                     }
                   } : null}
                   onClick={() => selectMapItem(item.id, item.latitude, item.longitude)}
+                  onDoubleClick={() => {
+                    // Only add zoom behavior for stop markers (not business)
+                    if (item.type !== 'business') {
+                      focusStopOnMap(item.id, item.latitude, item.longitude)
+                    }
+                  }}
                   className={`flex-shrink-0 snap-start px-1.5 md:px-2 py-1 rounded-md border transition-colors min-w-[100px] md:min-w-[150px] max-w-[140px] md:max-w-[170px] ${
                     selectedMapItemId === item.id
                       ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-300/60 dark:border-blue-700/60 ring-1 ring-blue-200/50 dark:ring-blue-800/30'
