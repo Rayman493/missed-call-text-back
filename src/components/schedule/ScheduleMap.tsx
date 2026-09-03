@@ -294,38 +294,8 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
   const [showAllMode, setShowAllMode] = useState(true)
   const [leadCache, setLeadCache] = useState<Map<string, { name: string | null; phone: string | null }>>(new Map()) // Cache for lead data to avoid N+1 queries
 
-  // Diagnostic state for RASTER vs VECTOR A/B testing
-// Persists via localStorage to survive page reload
-const DIAGNOSTIC_VECTOR_ENABLED_KEY = 'replyflow_schedule_vector_diagnostic_enabled'
-const DIAGNOSTIC_VECTOR_MAP_ID_KEY = 'replyflow_schedule_vector_diagnostic_map_id'
-
-const [enableVectorMode, setEnableVectorMode] = useState(() => {
-  if (typeof window !== 'undefined') {
-    const enabled = localStorage.getItem(DIAGNOSTIC_VECTOR_ENABLED_KEY) === 'true'
-    return enabled
-  }
-  return false
-})
-
-const [vectorMapId, setVectorMapId] = useState(() => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem(DIAGNOSTIC_VECTOR_MAP_ID_KEY) || null
-  }
-  return null
-})
-
-// Sync vector mode with localStorage
-useEffect(() => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(DIAGNOSTIC_VECTOR_ENABLED_KEY, enableVectorMode.toString())
-    if (vectorMapId) {
-      localStorage.setItem(DIAGNOSTIC_VECTOR_MAP_ID_KEY, vectorMapId)
-    } else {
-      localStorage.removeItem(DIAGNOSTIC_VECTOR_MAP_ID_KEY)
-    }
-    console.log('[SCHEDULE_MAP_VECTOR_MODE]', enableVectorMode ? 'VECTOR (diagnostic)' : 'RASTER (default)')
-  }
-}, [enableVectorMode, vectorMapId])
+  // Production VECTOR rendering configuration
+const PRODUCTION_MAP_ID = 'c783fbbc07696bfd5be1f3c6'
 
   // Derive selectedListItem from selectedMapItemId and mapItems (prevents stale object risk)
   const selectedListItem = useMemo(() =>
@@ -1502,43 +1472,14 @@ useEffect(() => {
         center: initialCenter,
         zoom: initialZoom,
         mapTypeId: initialMapTypeId,
+        mapId: PRODUCTION_MAP_ID,
+        renderingType: 'VECTOR',
         disableDefaultUI: false,
         zoomControl: true,
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
-        gestureHandling: 'greedy',
-        // Diagnostic: Enable vector rendering when diagnostic mode is enabled
-        // Requires a valid mapId from Google Cloud Console (persisted via localStorage)
-        ...(enableVectorMode && vectorMapId && {
-          mapId: vectorMapId,
-          renderingType: 'VECTOR'
-        }),
-        // Map styles are only applied in raster mode (no mapId)
-        // When mapId is present, styles are controlled via Google Cloud Console
-        ...(!enableVectorMode && {
-          styles: [
-            {
-              featureType: 'poi',
-              elementType: 'labels',
-              stylers: [{ visibility: 'off' }]
-            },
-            {
-              featureType: 'poi.business',
-              stylers: [{ visibility: 'off' }]
-            },
-            {
-              featureType: 'transit',
-              elementType: 'labels',
-              stylers: [{ visibility: 'off' }]
-            },
-            {
-              featureType: 'administrative',
-              elementType: 'labels',
-              stylers: [{ visibility: 'simplified' }]
-            }
-          ]
-        })
+        gestureHandling: 'greedy'
       }
 
       map = new (window as any).google.maps.Map(container, mapOptions)
@@ -1550,13 +1491,11 @@ useEffect(() => {
       mapInstanceIdRef.current = `map-${mapInstanceCounter}-${Date.now()}`
       console.log('[SCHEDULE_MAP_INSTANCE_CREATED]', { id: mapInstanceIdRef.current, timestamp: Date.now() })
 
-      // Runtime verification of rendering mode (diagnostic)
-      // Check if mapId is set to infer vector mode
+      // Runtime verification of rendering mode (production)
       const actualMapId = mapOptions.mapId || null
       const actualRenderingType = mapOptions.renderingType || 'RASTER'
       const isVectorMode = actualMapId !== null && actualRenderingType === 'VECTOR'
       console.log('[SCHEDULE_MAP_RENDERING_MODE]', {
-        diagnosticVectorEnabled: enableVectorMode,
         configuredMapId: actualMapId,
         requestedRenderingType: actualRenderingType,
         actualRenderingType: isVectorMode ? 'VECTOR' : 'RASTER',
@@ -1676,7 +1615,7 @@ useEffect(() => {
         googleMapRef.current = null
       }
     }
-  }, [isMapLoaded, enableVectorMode, vectorMapId])
+  }, [isMapLoaded])
 
   // ResizeObserver to initialize map when container gets dimensions
   useEffect(() => {
@@ -1887,6 +1826,30 @@ useEffect(() => {
           }
         })
 
+        // Add double-click zoom for stop markers (not business marker)
+        if (!isBusinessMarker && markerInfo.items.length === 1) {
+          marker.addListener('dblclick', () => {
+            const item = markerInfo.items[0]
+            const targetZoom = 16
+            const currentZoom = googleMapRef.current?.getZoom() ?? 0
+
+            // Select the marker
+            selectMapItem(item.id, item.latitude, item.longitude)
+
+            // Pan to marker
+            if (googleMapRef.current) {
+              googleMapRef.current.panTo({ lat: item.latitude, lng: item.longitude })
+            }
+
+            // Zoom in only if current zoom is below target
+            if (currentZoom < targetZoom) {
+              if (googleMapRef.current) {
+                googleMapRef.current.setZoom(targetZoom)
+              }
+            }
+          })
+        }
+
         // Add hover feedback for desktop discoverability
         marker.addListener('mouseenter', () => {
           // Only apply hover effect to unselected markers
@@ -2044,41 +2007,18 @@ useEffect(() => {
         getRenderingMode: () => {
           if (!googleMapRef.current) {
             return {
-              diagnosticVectorEnabled: enableVectorMode,
-              configuredMapId: vectorMapId,
-              requestedRenderingType: enableVectorMode && vectorMapId ? 'VECTOR' : 'RASTER',
+              configuredMapId: PRODUCTION_MAP_ID,
+              requestedRenderingType: 'VECTOR',
               actualRenderingType: 'MAP_NOT_READY',
               mapInstance: mapInstanceIdRef.current
             }
           }
-          const actualMapId = vectorMapId || null
-          const actualRenderingType = enableVectorMode && vectorMapId ? 'VECTOR' : 'RASTER'
           return {
-            diagnosticVectorEnabled: enableVectorMode,
-            configuredMapId: actualMapId,
-            requestedRenderingType: actualRenderingType,
-            actualRenderingType: actualRenderingType,
+            configuredMapId: PRODUCTION_MAP_ID,
+            requestedRenderingType: 'VECTOR',
+            actualRenderingType: 'VECTOR',
             mapInstance: mapInstanceIdRef.current
           }
-        },
-        // Diagnostic helpers for vector mode testing
-        enableVectorMode: (mapId?: string) => {
-          if (!mapId) {
-            console.error('[SCHEDULE_MAP] enableVectorMode requires a mapId parameter')
-            return
-          }
-          localStorage.setItem(DIAGNOSTIC_VECTOR_ENABLED_KEY, 'true')
-          localStorage.setItem(DIAGNOSTIC_VECTOR_MAP_ID_KEY, mapId)
-          setVectorMapId(mapId)
-          setEnableVectorMode(true)
-          console.log('[SCHEDULE_MAP] Vector mode enabled with mapId:', mapId, '. Map will recreate.')
-        },
-        disableVectorMode: () => {
-          localStorage.removeItem(DIAGNOSTIC_VECTOR_ENABLED_KEY)
-          localStorage.removeItem(DIAGNOSTIC_VECTOR_MAP_ID_KEY)
-          setVectorMapId(null)
-          setEnableVectorMode(false)
-          console.log('[SCHEDULE_MAP] Vector mode disabled. Map will recreate.')
         }
       }
     }
@@ -2087,7 +2027,7 @@ useEffect(() => {
         delete (window as any).__scheduleMapPerf
       }
     }
-  }, [enableVectorMode, vectorMapId])
+  }, [])
 
   // Update marker icons when selection changes (without triggering camera changes)
   useEffect(() => {
