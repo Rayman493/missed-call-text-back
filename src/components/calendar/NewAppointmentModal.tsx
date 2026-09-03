@@ -21,12 +21,13 @@ interface NewAppointmentModalProps {
   context?: 'calendar' | 'customer' | 'meetings'
   preselectedLeadId?: string | null
   preselectedLeadDisplay?: string | null
+  preselectedLeadCustomer?: Customer | null // Full customer object for selector hydration
   allowAddCustomer?: boolean
   requireCustomer?: boolean
   lockCustomer?: boolean
 }
 
-export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSuccess, defaultDate, context = 'calendar', preselectedLeadId = null, preselectedLeadDisplay = null, allowAddCustomer, requireCustomer, lockCustomer }: NewAppointmentModalProps) {
+export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSuccess, defaultDate, context = 'calendar', preselectedLeadId = null, preselectedLeadDisplay = null, preselectedLeadCustomer, allowAddCustomer, requireCustomer, lockCustomer }: NewAppointmentModalProps) {
   const router = useRouter()
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -339,6 +340,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                 required={customerIsRequired}
                 allowClear={!isCustomerLocked}
                 placeholder="Search or select a customer..."
+                prefillCustomer={preselectedLeadCustomer}
               />
             </div>
 

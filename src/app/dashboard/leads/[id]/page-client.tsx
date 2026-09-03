@@ -3022,6 +3022,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       ? intake.serviceRequested
       : null
 
+    // Construct canonical customer object for selector hydration
+    // This ensures the selector can display the customer even without AI intake
+    const prefillCustomer = {
+      id: params.id,
+      name: leadData?.name || leadData?.contact_name || null,
+      caller_phone: leadData?.caller_phone || null,
+      raw_metadata: leadData?.raw_metadata || null
+    }
+
     return {
       title: canonicalTitle || serviceRequestedFallback || `Job for ${leadName || 'Customer'}`,
       customer_name: leadName || undefined,
@@ -3034,6 +3043,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       scheduled_time: schedulingPrefill.time,
       requested_completion_label: schedulingPrefill.requestedCompletionLabel,
       callback_preference_label: schedulingPrefill.callbackPreferenceLabel,
+      prefillCustomer
     }
   }
 
@@ -5762,6 +5772,12 @@ If you have questions, reply to this message.`
       context="customer"
       preselectedLeadId={params.id}
       preselectedLeadDisplay={getLeadDisplayName(leadData)}
+      preselectedLeadCustomer={{
+        id: params.id,
+        name: leadData?.name || leadData?.contact_name || null,
+        caller_phone: leadData?.caller_phone || null,
+        raw_metadata: leadData?.raw_metadata || null
+      }}
       allowAddCustomer={false}
       requireCustomer={true}
       lockCustomer={true}
@@ -5783,6 +5799,12 @@ If you have questions, reply to this message.`
         }
       }}
       preselectedLeadId={params.id}
+      preselectedLeadCustomer={{
+        id: params.id,
+        name: leadData?.name || leadData?.contact_name || null,
+        caller_phone: leadData?.caller_phone || null,
+        raw_metadata: leadData?.raw_metadata || null
+      }}
     />
 
     {/* Edit Customer Modal */}

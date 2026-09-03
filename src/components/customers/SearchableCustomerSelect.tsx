@@ -22,6 +22,7 @@ interface SearchableCustomerSelectProps {
   required?: boolean
   disabled?: boolean
   allowClear?: boolean // Allow clearing selection (for optional customers)
+  prefillCustomer?: Customer | null // Pre-fill with a specific customer object (e.g., from parent context)
 }
 
 export default function SearchableCustomerSelect({
@@ -32,7 +33,8 @@ export default function SearchableCustomerSelect({
   label,
   required = false,
   disabled = false,
-  allowClear = true
+  allowClear = true,
+  prefillCustomer
 }: SearchableCustomerSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -50,6 +52,20 @@ export default function SearchableCustomerSelect({
   useEffect(() => {
     fetchCustomers()
   }, [])
+
+  // Merge prefillCustomer into customers list to ensure selected customer is available
+  useEffect(() => {
+    if (!prefillCustomer) return
+
+    setCustomers(prev => {
+      // Check if customer is already in the list
+      const alreadyExists = prev.some(c => c.id === prefillCustomer.id)
+      if (alreadyExists) return prev
+
+      // Add prefillCustomer to the beginning of the list
+      return [prefillCustomer, ...prev]
+    })
+  }, [prefillCustomer])
 
   const fetchCustomers = async () => {
     setIsLoading(true)

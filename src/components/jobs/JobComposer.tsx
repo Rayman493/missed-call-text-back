@@ -21,6 +21,7 @@ export interface JobPrefill {
   scheduled_time?: string
   requested_completion_label?: string
   callback_preference_label?: string
+  prefillCustomer?: Customer | null // Full customer object for selector hydration
 }
 
 export interface Job {
@@ -278,6 +279,7 @@ export default function JobComposer({
                 required={!editJob}
                 allowClear={!editJob}
                 placeholder="Search or select a customer..."
+                prefillCustomer={prefill?.prefillCustomer}
               />
             </div>
 

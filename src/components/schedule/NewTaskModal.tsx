@@ -7,7 +7,7 @@ import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import SelectPicker from '@/components/ui/SelectPicker'
 import Modal from '@/components/ui/Modal'
-import SearchableCustomerSelect from '@/components/customers/SearchableCustomerSelect'
+import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface Task {
@@ -34,6 +34,7 @@ interface NewTaskModalProps {
   onShowToast?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
   onTaskDeleted?: () => void
   preselectedLeadId?: string | null
+  preselectedLeadCustomer?: Customer | null // Full customer object for selector hydration
 }
 
 interface Job {
@@ -42,7 +43,7 @@ interface Job {
   customer_name: string | null
 }
 
-export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdit, onShowToast, onTaskDeleted, preselectedLeadId }: NewTaskModalProps) {
+export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdit, onShowToast, onTaskDeleted, preselectedLeadId, preselectedLeadCustomer }: NewTaskModalProps) {
   const [title, setTitle] = useState('')
   const [notes, setNotes] = useState('')
   const [dueDate, setDueDate] = useState('')
@@ -310,6 +311,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               onChange={setSelectedLeadId}
               label="Customer"
               allowClear={true}
+              prefillCustomer={preselectedLeadCustomer}
             />
 
             <SelectPicker
