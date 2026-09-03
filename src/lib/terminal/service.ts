@@ -125,6 +125,8 @@ export class TerminalBridgeService {
       currentPhase: this.currentPhase,
       paymentStatus: this.paymentStatus,
       connectionStatus: this.connectionStatus,
+      connectInFlight: this.connectInFlight !== null,
+      initializeInFlight: this.initializeInFlight !== null,
       flags: { ...this.attemptFlags },
     })
 
@@ -137,6 +139,12 @@ export class TerminalBridgeService {
         meta: { reason },
       })
     } catch {}
+
+    // CRITICAL: Clear in-flight connection/initialize promises
+    // These can block retry if a previous cancel left them in a bad state
+    this.clearInFlightConnection('reset_for_retry')
+    this.initializeInFlight = null
+
     // Clear unresolved attempt id if present to avoid reuse
     this.clearUnresolvedAttempt()
     // Clear attempt outcome to allow fresh payment
@@ -168,6 +176,8 @@ export class TerminalBridgeService {
       attemptId: prevAttempt,
       reason,
       flags: { ...this.attemptFlags },
+      connectInFlight: this.connectInFlight !== null,
+      initializeInFlight: this.initializeInFlight !== null,
     })
 
     // Do not disconnect; keep reader and initialized SDK
@@ -1289,6 +1299,18 @@ export class TerminalBridgeService {
 
     console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=payment_intent_created paymentIntentId=' + paymentIntentId)
     try { await logTapToPayEvent('payment_intent_ready', { phase: 'payment_intent', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId }) } catch {}
+
+    // Report stage for server-visible diagnostics
+    try {
+      await reportTtpRetryStage('ttp_pi_response_received', {
+        attemptId: terminalAttemptId,
+        paymentIntentId,
+        clientSecretPresent: !!clientSecret,
+        connectionStatus: this.connectionStatus,
+        lastReaderId: this.lastReaderId,
+      })
+    } catch {}
+
     this.currentPhase = 'collect_payment'
 
     // Validate native bridge parameters before passing to native layer
@@ -1329,11 +1351,33 @@ export class TerminalBridgeService {
     console.log('[TAP_SESSION_TRACE] stage=native_payment_call_start attempt_id=' + terminalAttemptId)
     console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=collect_payment')
     console.log('[TTP_POST_SUCCESS_RETRY] native_collect_invoked attemptId=' + terminalAttemptId + ' paymentIntentId=' + paymentIntentId + ' currentAttemptId=' + this.currentAttemptId)
+
+    // Report stage for server-visible diagnostics before native collect
+    try {
+      await reportTtpRetryStage('ttp_native_collect_pre_guard', {
+        attemptId: terminalAttemptId,
+        paymentIntentId,
+        clientSecretPresent: !!clientSecret,
+        connectionStatus: this.connectionStatus,
+        lastReaderId: this.lastReaderId,
+        connectInFlight: this.connectInFlight !== null,
+      })
+    } catch {}
+
     const collectStart = Date.now(); this.timings.tCollectStart = this.timings.tCollectStart || collectStart
     try { await logTapToPayEvent('collect_payment_started', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId }) } catch {}
     let result: any
     try {
       const collectAttemptId = this.currentAttemptId
+
+      // Report stage for server-visible diagnostics
+      try {
+        await reportTtpRetryStage('ttp_native_collect_invoked', {
+          attemptId: terminalAttemptId,
+          paymentIntentId,
+        })
+      } catch {}
+
       result = await this.plugin.collectPayment({
         paymentIntentId,
         clientSecret,
