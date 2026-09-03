@@ -97,10 +97,9 @@ export default function PaymentCollectionGraph() {
   const totalPayments = data.reduce((sum, item) => sum + item.value, 0)
   const paidPayments = data.find(d => d.name === 'Paid')?.value || 0
   const pendingPayments = data.find(d => d.name === 'Pending')?.value || 0
-  // Collection rate: percentage of actionable requests (paid + pending) that were paid
-  // Excludes draft, failed, cancelled, expired requests from denominator as they don't represent actual collection attempts
-  const actionablePayments = paidPayments + pendingPayments
-  const collectionRate = actionablePayments > 0 ? Math.round((paidPayments / actionablePayments) * 100) : 0
+  // Collection rate: percentage of all requests that were paid
+  // Includes all statuses in denominator (paid, pending, failed, cancelled, expired, draft)
+  const collectionRate = totalPayments > 0 ? Math.round((paidPayments / totalPayments) * 100) : 0
 
   return (
     <Card className="h-full" variant="hero" padding="md">
