@@ -4,6 +4,32 @@ import { Preferences } from '@capacitor/preferences'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 
+// Helper to send server-visible TTP retry stage diagnostics
+async function reportTtpRetryStage(stage: string, additionalData: Record<string, any> = {}) {
+  try {
+    // Only report in production-like builds (not during development)
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+      await fetch('/api/diagnostics/ttp-retry-stage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: '',
+          attemptId: additionalData.attemptId || null,
+          stage,
+          paymentState: additionalData.paymentState || null,
+          timestamp: Date.now(),
+          platform: Capacitor.getPlatform(),
+          ...additionalData,
+        }),
+      }).catch(() => {
+        // Silently fail - diagnostics should not break the app
+      })
+    }
+  } catch {
+    // Silently fail - diagnostics should not break the app
+  }
+}
+
 // Storage schema version - increment when storage format changes
 const STORAGE_SCHEMA_VERSION = 'v2'
 const STORAGE_SCHEMA_KEY = 'terminal_storage_schema_version'
@@ -91,6 +117,17 @@ export class TerminalBridgeService {
     const prevAttempt = this.currentAttemptId || undefined
     const prevPi = this.currentPaymentIntentId || undefined
     console.log('[TTP_POST_SUCCESS_RETRY] resetForRetry_entered reason=' + reason + ' prevAttempt=' + prevAttempt + ' prevPi=' + prevPi + ' currentPhase=' + this.currentPhase)
+
+    // Report stage for server-visible diagnostics
+    await reportTtpRetryStage('post_success_retry_reset_entered', {
+      attemptId: prevAttempt,
+      reason,
+      currentPhase: this.currentPhase,
+      paymentStatus: this.paymentStatus,
+      connectionStatus: this.connectionStatus,
+      flags: { ...this.attemptFlags },
+    })
+
     try {
       await logTapToPayEvent('retry_reset', {
         phase: (this.currentPhase as any) || 'startup',
@@ -110,7 +147,29 @@ export class TerminalBridgeService {
     this.currentPhase = undefined
     this.currentPaymentIntentId = undefined
     this.currentLocalPaymentId = undefined
+
+    // CRITICAL: Also clear attempt flags that may be set after success
+    this.attemptFlags = {
+      readerReused: false,
+      discoveryPerformed: false,
+      paymentIntentCreated: false,
+      paymentMethodCollected: false,
+      paymentConfirmed: false,
+      reconciled: false,
+    }
+
+    // Clear attempt-scoped timings
+    this.timings = {}
+
     console.log('[TTP_POST_SUCCESS_RETRY] resetForRetry_completed state_cleared')
+
+    // Report stage for server-visible diagnostics
+    await reportTtpRetryStage('post_success_retry_reset_completed', {
+      attemptId: prevAttempt,
+      reason,
+      flags: { ...this.attemptFlags },
+    })
+
     // Do not disconnect; keep reader and initialized SDK
   }
 

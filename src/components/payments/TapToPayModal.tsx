@@ -586,6 +586,31 @@ export default function TapToPayModal({
       modalIsOpen: isOpen
     })
 
+    // Report stage for server-visible diagnostics
+    try {
+      await fetch('/api/diagnostics/ttp-retry-stage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: terminalService.getSessionId(),
+          attemptId: terminalService.getCurrentAttemptId(),
+          stage: 'post_success_retry_tap_button_pressed',
+          paymentState,
+          timestamp: Date.now(),
+          platform,
+          guards: {
+            isPaymentInProgress,
+            isNativeSupported,
+            hasPaymentIntentId: !!terminalService.getPaymentIntentId(),
+            hasAttemptId: !!terminalService.getCurrentAttemptId(),
+            lastAttemptOutcome: terminalService.getLastAttemptOutcome?.(),
+            connectionStatus: (terminalService as any).connectionStatus,
+            paymentStatus: (terminalService as any).paymentStatus,
+          },
+        }),
+      }).catch(() => {})
+    } catch {}
+
     console.log('[TTP UI] Payment started:', {
       isNativeSupported,
       platform,
@@ -598,6 +623,28 @@ export default function TapToPayModal({
     if (!isNativeSupported) {
       console.log('[TTP_POST_SUCCESS_RETRY] guard_blocked reason=not_native_supported')
       console.log('[TTP UI] Native support check failed')
+      try {
+        await fetch('/api/diagnostics/ttp-retry-stage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: terminalService.getSessionId(),
+            attemptId: terminalService.getCurrentAttemptId(),
+            stage: 'post_success_retry_guard_blocked',
+            paymentState,
+            timestamp: Date.now(),
+            platform,
+            guards: {
+              isPaymentInProgress,
+              isNativeSupported,
+              hasPaymentIntentId: !!terminalService.getPaymentIntentId(),
+              hasAttemptId: !!terminalService.getCurrentAttemptId(),
+              lastAttemptOutcome: terminalService.getLastAttemptOutcome?.(),
+            },
+            meta: { reason: 'not_native_supported' },
+          }),
+        }).catch(() => {})
+      } catch {}
       // Only show error message in web - never in native app
       // The user is already in the app, so this message is redundant
       if (platform === 'web') {
@@ -623,6 +670,28 @@ export default function TapToPayModal({
     if (isPaymentInProgress) {
       console.log('[TTP_POST_SUCCESS_RETRY] guard_blocked reason=payment_in_progress isPaymentInProgress=' + isPaymentInProgress)
       console.log('[TTP UI] Payment already in progress, ignoring')
+      try {
+        await fetch('/api/diagnostics/ttp-retry-stage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: terminalService.getSessionId(),
+            attemptId: terminalService.getCurrentAttemptId(),
+            stage: 'post_success_retry_guard_blocked',
+            paymentState,
+            timestamp: Date.now(),
+            platform,
+            guards: {
+              isPaymentInProgress,
+              isNativeSupported,
+              hasPaymentIntentId: !!terminalService.getPaymentIntentId(),
+              hasAttemptId: !!terminalService.getCurrentAttemptId(),
+              lastAttemptOutcome: terminalService.getLastAttemptOutcome?.(),
+            },
+            meta: { reason: 'payment_in_progress' },
+          }),
+        }).catch(() => {})
+      } catch {}
       return
     }
 
@@ -634,6 +703,28 @@ export default function TapToPayModal({
     if (unresolvedAttemptId) {
       console.log('[TTP_POST_SUCCESS_RETRY] guard_blocked reason=unresolved_attempt unresolvedAttemptId=' + unresolvedAttemptId)
       console.log('[TTP UI] Unresolved attempt found:', unresolvedAttemptId)
+      try {
+        await fetch('/api/diagnostics/ttp-retry-stage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: terminalService.getSessionId(),
+            attemptId: terminalService.getCurrentAttemptId(),
+            stage: 'post_success_retry_guard_blocked',
+            paymentState,
+            timestamp: Date.now(),
+            platform,
+            guards: {
+              isPaymentInProgress,
+              isNativeSupported,
+              hasPaymentIntentId: !!terminalService.getPaymentIntentId(),
+              hasAttemptId: !!terminalService.getCurrentAttemptId(),
+              lastAttemptOutcome: terminalService.getLastAttemptOutcome?.(),
+            },
+            meta: { reason: 'unresolved_attempt', unresolvedAttemptId },
+          }),
+        }).catch(() => {})
+      } catch {}
       setPaymentState('ambiguous')
       setError('Please resolve the previous payment status first')
       checkAttemptStatus(unresolvedAttemptId)
@@ -646,6 +737,28 @@ export default function TapToPayModal({
     setStructuredError(null)
     setJsError(null)
     setLastSuccessfulStage('initializing')
+
+    try {
+      await fetch('/api/diagnostics/ttp-retry-stage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: terminalService.getSessionId(),
+          attemptId: terminalService.getCurrentAttemptId(),
+          stage: 'post_success_retry_start_payment_entered',
+          paymentState: 'preparing',
+          timestamp: Date.now(),
+          platform,
+          guards: {
+            isPaymentInProgress: true,
+            isNativeSupported,
+            hasPaymentIntentId: !!terminalService.getPaymentIntentId(),
+            hasAttemptId: !!terminalService.getCurrentAttemptId(),
+            lastAttemptOutcome: terminalService.getLastAttemptOutcome?.(),
+          },
+        }),
+      }).catch(() => {})
+    } catch {}
 
     try {
       console.log('[TTP UI] Checking device support')
@@ -718,6 +831,29 @@ export default function TapToPayModal({
 
       console.log('[TTP UI] Starting payment collection')
       // Start payment collection (this creates PaymentIntent internally)
+
+      try {
+        await fetch('/api/diagnostics/ttp-retry-stage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: terminalService.getSessionId(),
+            attemptId: terminalService.getCurrentAttemptId(),
+            stage: 'post_success_retry_payment_intent_request_start',
+            paymentState,
+            timestamp: Date.now(),
+            platform,
+            guards: {
+              isPaymentInProgress,
+              isNativeSupported,
+              hasPaymentIntentId: !!terminalService.getPaymentIntentId(),
+              hasAttemptId: !!terminalService.getCurrentAttemptId(),
+              lastAttemptOutcome: terminalService.getLastAttemptOutcome?.(),
+            },
+          }),
+        }).catch(() => {})
+      } catch {}
+
       const paymentPromise = terminalService.startTapToPayPayment({
         amountCents,
         currency: 'usd',
