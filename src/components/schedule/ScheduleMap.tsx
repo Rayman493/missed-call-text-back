@@ -197,6 +197,19 @@ const opCountersRef = useRef({
   mapSetOptions: 0,
   markerCleanup: 0
 })
+
+// Track operation timestamps for gesture analysis
+const opTimestampsRef = useRef<Array<{ operation: string; timestamp: number; duringGesture: boolean }>>([])
+
+// Helper to log operation with gesture context
+function logOperation(operation: string) {
+  const timestamp = Date.now()
+  const duringGesture = activeGestureRef.current
+  opTimestampsRef.current.push({ operation, timestamp, duringGesture })
+  if (duringGesture) {
+    console.warn(`[SCHEDULE_MAP_OP_DURING_GESTURE]`, { operation, timestamp, mapInstance: mapInstanceIdRef.current })
+  }
+}
   const calendarEventCoordsCacheRef = useRef<Map<string, { lat: number; lng: number; formattedAddress: string } | null>>(new Map()) // Cache for calendar event coordinates (null = failed geocode)
   const businessCoordsCacheRef = useRef<{ lat: number; lng: number; formattedAddress: string } | null>(null) // Cache for business coordinates
   const lastBusinessAddressRef = useRef<string | null>(null) // Track last business address for invalidation
@@ -289,9 +302,17 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
   // Increment render count
   renderCountRef.current++
+  const renderTimestamp = Date.now()
   // Track renders during active gesture for performance measurement
   if (activeGestureRef.current) {
     gestureRenderCountRef.current++
+    const renderDuringGesture = {
+      timestamp: renderTimestamp,
+      mapInstance: mapInstanceIdRef.current,
+      renderCount: renderCountRef.current
+    }
+    console.warn('[SCHEDULE_MAP_RENDER_DURING_GESTURE]', renderDuringGesture)
+    opTimestampsRef.current.push({ operation: 'render', timestamp: renderTimestamp, duringGesture: true })
   }
 
   // Persist map type preference
@@ -1479,6 +1500,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
       map = new (window as any).google.maps.Map(container, mapOptions)
       opCountersRef.current.mapCreate++
+      logOperation('mapCreate')
 
       // Log map instance creation
       mapInstanceCounter++
@@ -1498,9 +1520,25 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
       dragendListener = map.addListener('dragend', () => {
         // Drag completed - user has interacted
+        const dragEndTime = Date.now()
+        console.log('[SCHEDULE_MAP_DRAGEND]', {
+          timestamp: dragEndTime,
+          mapInstance: mapInstanceIdRef.current
+        })
         if (activeGestureRef.current !== undefined) {
           activeGestureRef.current = false
         }
+        // Track operations in the next 500ms after dragend
+        setTimeout(() => {
+          const opsAfterDrag = opTimestampsRef.current.filter(op => op.timestamp >= dragEndTime && op.timestamp < dragEndTime + 500)
+          if (opsAfterDrag.length > 0) {
+            console.warn('[SCHEDULE_MAP_POST_DRAG_OPS]', {
+              count: opsAfterDrag.length,
+              operations: opsAfterDrag,
+              mapInstance: mapInstanceIdRef.current
+            })
+          }
+        }, 500)
       })
 
       zoomChangedListener = map.addListener('zoom_changed', () => {
@@ -1620,13 +1658,18 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
         // Only log if size actually changed (avoid noise)
         if (Math.abs(width - lastSize.width) > 1 || Math.abs(height - lastSize.height) > 1) {
+          const duringGesture = activeGestureRef.current
           console.log('[SCHEDULE_MAP_RESIZE]', {
             old: `${lastSize.width}x${lastSize.height}`,
             new: `${width}x${height}`,
             reason: 'container_resize',
             mapInstance: mapInstanceIdRef.current,
+            duringGesture,
             timestamp: Date.now()
           })
+          if (duringGesture) {
+            console.warn('[SCHEDULE_MAP_RESIZE_DURING_GESTURE]', 'ResizeObserver fired during active gesture - this may cause rubber-band feel')
+          }
           resizeLastSizeRef.current = { width, height }
         }
       }
@@ -1747,6 +1790,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         // Update existing marker
         existingMarker.setIcon(createNumberedMarkerIcon(isBusinessMarker ? 0 : stopNumber, primaryItem.type, isSelected))
         opCountersRef.current.markerSetIcon++
+        logOperation('markerSetIcon')
         existingMarker.setZIndex(isSelected ? 1000 : 1)
       } else {
         // Create new marker
@@ -1764,6 +1808,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         })
 
         opCountersRef.current.markerCreate++
+        logOperation('markerCreate')
 
         marker.addListener('click', () => {
           if (markerInfo.items.length === 1) {
@@ -1915,8 +1960,11 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         getRenderCount: () => renderCountRef.current,
         getGestureRenderCount: () => gestureRenderCountRef.current,
         getOpCounters: () => ({ ...opCountersRef.current }),
+        getOpTimestamps: () => [...opTimestampsRef.current],
+        getOpsDuringGesture: () => opTimestampsRef.current.filter(op => op.duringGesture),
         resetCounters: () => {
           gestureRenderCountRef.current = 0
+          opTimestampsRef.current = []
           opCountersRef.current = {
             mapCreate: 0,
             markerCreate: 0,
@@ -1993,6 +2041,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
         marker.setIcon(createNumberedMarkerIcon(isBusiness ? 0 : stopNumber, type, isSelected))
         opCountersRef.current.markerSetIcon++
+        logOperation('markerSetIcon_selection')
         marker.setZIndex(isSelected ? 1000 : 1)
       }
     })
