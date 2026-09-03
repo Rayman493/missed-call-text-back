@@ -56,7 +56,7 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
           {/* Desktop: Centered modal */}
           <div className="fixed inset-0 z-[9999] hidden md:flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsOpen(false)} style={{ touchAction: 'none' }} />
-            <div className="relative w-full md:w-[560px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] flex flex-col">
+            <div className="relative w-full md:w-[660px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] flex flex-col">
               <div className="bg-white dark:bg-slate-800 shadow-2xl overflow-hidden flex flex-col min-h-0 rounded-2xl">
                 <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
               </div>

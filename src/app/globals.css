@@ -358,8 +358,8 @@ html.light::-webkit-scrollbar-thumb:hover {
   }
 
   body::-webkit-scrollbar {
-    width: 14px;
-    height: 14px;
+    width: 11px;
+    height: 11px;
   }
 
   body::-webkit-scrollbar-track {
@@ -383,8 +383,8 @@ html.light::-webkit-scrollbar-thumb:hover {
   }
 
   html.light body::-webkit-scrollbar {
-    width: 14px;
-    height: 14px;
+    width: 11px;
+    height: 11px;
   }
 
   html.light body::-webkit-scrollbar-track {
