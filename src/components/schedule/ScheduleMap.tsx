@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react'
-import { MapPin, Calendar, Briefcase, AlertCircle, ChevronLeft, ChevronRight, Filter, ArrowLeft, ArrowRight, Layers, Crosshair } from 'lucide-react'
+import { MapPin, Calendar, Briefcase, AlertCircle, ChevronLeft, ChevronRight, Filter, ArrowLeft, ArrowRight, Layers, Crosshair, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
@@ -2294,10 +2294,13 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
                       ) : (
                         <>
                           <p className="text-[9px] md:text-[11px] font-medium text-foreground truncate">
-                            {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime) || item.title}
+                            {item.title || (item.type === 'job' ? 'Job' : item.type === 'appointment' ? 'Appointment' : 'Task')}
                           </p>
-                          <p className="text-[8px] md:text-[9px] text-slate-500 dark:text-slate-400 truncate">
-                            {item.type === 'job' ? 'Job' : 'Appointment'}
+                          <p className="text-[8px] md:text-[9px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
+                            {item.type === 'job' && <Briefcase size={10} />}
+                            {item.type === 'appointment' && <Calendar size={10} />}
+                            {item.type === 'task' && <CheckCircle size={10} />}
+                            {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime)}
                           </p>
                         </>
                       )}
@@ -2442,10 +2445,13 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
                         ) : (
                           <>
                             <p className="text-[9px] font-medium text-foreground truncate">
-                              {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime) || item.title}
+                              {item.title || (item.type === 'job' ? 'Job' : item.type === 'appointment' ? 'Appointment' : 'Task')}
                             </p>
-                            <p className="text-[8px] text-slate-500 dark:text-slate-400 truncate">
-                              {item.type === 'job' ? 'Job' : 'Appointment'}
+                            <p className="text-[8px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
+                              {item.type === 'job' && <Briefcase size={10} />}
+                              {item.type === 'appointment' && <Calendar size={10} />}
+                              {item.type === 'task' && <CheckCircle size={10} />}
+                              {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime)}
                             </p>
                           </>
                         )}
