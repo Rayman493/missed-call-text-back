@@ -1514,27 +1514,31 @@ useEffect(() => {
           mapId: vectorMapId,
           renderingType: 'VECTOR'
         }),
-        styles: [
-          {
-            featureType: 'poi',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
-          },
-          {
-            featureType: 'poi.business',
-            stylers: [{ visibility: 'off' }]
-          },
-          {
-            featureType: 'transit',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
-          },
-          {
-            featureType: 'administrative',
-            elementType: 'labels',
-            stylers: [{ visibility: 'simplified' }]
-          }
-        ]
+        // Map styles are only applied in raster mode (no mapId)
+        // When mapId is present, styles are controlled via Google Cloud Console
+        ...(!enableVectorMode && {
+          styles: [
+            {
+              featureType: 'poi',
+              elementType: 'labels',
+              stylers: [{ visibility: 'off' }]
+            },
+            {
+              featureType: 'poi.business',
+              stylers: [{ visibility: 'off' }]
+            },
+            {
+              featureType: 'transit',
+              elementType: 'labels',
+              stylers: [{ visibility: 'off' }]
+            },
+            {
+              featureType: 'administrative',
+              elementType: 'labels',
+              stylers: [{ visibility: 'simplified' }]
+            }
+          ]
+        })
       }
 
       map = new (window as any).google.maps.Map(container, mapOptions)
