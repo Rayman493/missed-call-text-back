@@ -1935,7 +1935,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         getMapInstance: () => mapInstanceIdRef.current,
         getMarkerCount: () => markersRef.current.size,
         getDevicePixelRatio: () => window.devicePixelRatio,
-        getCanvasScale: () => 2 // Hardcoded in createNumberedMarkerIcon
+        getCanvasScale: () => window.devicePixelRatio || 2 // Matches createNumberedMarkerIcon
       }
     }
     return () => {
@@ -2013,8 +2013,11 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
   // Create numbered marker icon
   const createNumberedMarkerIcon = (stopNumber: number, type: MapItemType, isSelected: boolean = false): any => {
-    // Use 0 for business markers in cache key
-    const cacheKey = `${type === 'business' ? 0 : stopNumber}-${type}-${isSelected}`
+    // Use actual device pixel ratio for crisp rendering
+    const scale = window.devicePixelRatio || 2
+
+    // Use 0 for business markers in cache key, include scale to prevent wrong-scale cache hits
+    const cacheKey = `${type === 'business' ? 0 : stopNumber}-${type}-${isSelected}-${scale}`
 
     // Return cached icon if available
     if (markerIconCache.has(cacheKey)) {
@@ -2030,7 +2033,8 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
     // Create canvas for numbered marker
     const canvas = document.createElement('canvas')
-    const scale = 2 // Retina display support
+    canvas.width = size * scale
+    canvas.height = size * scale
     canvas.width = size * scale
     canvas.height = size * scale
     const ctx = canvas.getContext('2d')!
@@ -2058,8 +2062,8 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
     const icon = {
       url: canvas.toDataURL(),
-      scaledSize: new (window as any).google.maps.Size(size, size),
-      anchor: new (window as any).google.maps.Point(size / 2, size / 2)
+      scaledSize: new (window as any).google.maps.Size(size * scale, size * scale),
+      anchor: new (window as any).google.maps.Point((size * scale) / 2, (size * scale) / 2)
     }
 
     // Cache the icon
