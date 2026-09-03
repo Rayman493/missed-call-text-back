@@ -179,6 +179,7 @@ function ScheduleMapComponent({
   const mapInstanceIdRef = useRef<string>(`map-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
   const renderCountRef = useRef(0)
   const lastLogTimeRef = useRef<{ [key: string]: number }>({}) // For throttling high-frequency events
+  const isUnmountingRef = useRef(false) // Track if component is unmounting to prevent clearing map ref on effect rerun
   const markersRef = useRef<Map<string, any>>(new Map()) // Marker registry keyed by item ID
   const calendarEventCoordsCacheRef = useRef<Map<string, { lat: number; lng: number; formattedAddress: string } | null>>(new Map()) // Cache for calendar event coordinates (null = failed geocode)
   const businessCoordsCacheRef = useRef<{ lat: number; lng: number; formattedAddress: string } | null>(null) // Cache for business coordinates
@@ -1419,7 +1420,17 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
   }, [])
 
   // Initialize map (only when API, container, and dimensions are ready)
+  // IMPORTANT: This effect must NOT depend on mapType to prevent map recreation on toggle
+  // Map type changes are handled by a separate effect that calls setMapTypeId on the existing instance
   useEffect(() => {
+    console.log('[SCHEDULE_MAP_INIT_EFFECT]', {
+      isMapLoaded,
+      hasMapRef: !!mapRef.current,
+      hasGoogleMapRef: !!googleMapRef.current,
+      mapType,
+      mapInstance: mapInstanceIdRef.current
+    })
+
     if (!isMapLoaded || !mapRef.current || googleMapRef.current) return
 
     // Check container dimensions
@@ -1569,6 +1580,13 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
     // Cleanup function to remove listeners and prevent stale callbacks
     return () => {
+      console.log('[SCHEDULE_MAP_INIT_CLEANUP]', {
+        isUnmounting: isUnmountingRef.current,
+        hasMap: !!map,
+        mapInstance: mapInstanceIdRef.current,
+        mapType
+      })
+
       if (dragstartListener) {
         try {
           (window as any).google.maps.event.removeListener(dragstartListener)
@@ -1598,11 +1616,22 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         }
       }
       // Clear map reference to prevent stale callbacks
-      if (map) {
+      // Only clear on actual component unmount, not on effect rerun
+      // mapType changes are handled by separate effect without recreating the map
+      if (map && isUnmountingRef.current) {
+        console.log('[SCHEDULE_MAP_MAP_REF_CLEARED]', {
+          reason: 'component_unmount',
+          mapInstance: mapInstanceIdRef.current
+        })
         googleMapRef.current = null
+      } else {
+        console.log('[SCHEDULE_MAP_MAP_REF_PRESERVED]', {
+          reason: 'effect_rerun_not_unmount',
+          mapInstance: mapInstanceIdRef.current
+        })
       }
     }
-  }, [isMapLoaded, mapType])
+  }, [isMapLoaded])
 
   // ResizeObserver to initialize map when container gets dimensions
   useEffect(() => {
@@ -1742,7 +1771,9 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       filteredItemCount: filteredItems.length,
       activeGesture: activeGestureRef.current,
       mapInstance: mapInstanceIdRef.current,
-      mapType
+      mapType,
+      existingMarkerCount: markersRef.current.size,
+      trigger: 'marker_effect_run'
     })
 
     // Group items by location
@@ -2040,6 +2071,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
   // Log map instance destruction on unmount
   useEffect(() => {
     return () => {
+      isUnmountingRef.current = true
       if (googleMapRef.current) {
         console.log('[SCHEDULE_MAP_INSTANCE_DESTROYED]', {
           id: mapInstanceIdRef.current,
