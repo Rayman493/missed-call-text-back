@@ -297,6 +297,14 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
   // Production VECTOR rendering configuration
 const PRODUCTION_MAP_ID = 'c783fbbc07696bfd5be1f3c6'
 
+// Clean up old diagnostic localStorage keys from previous diagnostic mode
+useEffect(() => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('replyflow_schedule_vector_diagnostic_enabled')
+    localStorage.removeItem('replyflow_schedule_vector_diagnostic_map_id')
+  }
+}, [])
+
   // Derive selectedListItem from selectedMapItemId and mapItems (prevents stale object risk)
   const selectedListItem = useMemo(() =>
     mapItems.find(item => item.id === selectedMapItemId) ?? null,
