@@ -180,7 +180,23 @@ function ScheduleMapComponent({
   const renderCountRef = useRef(0)
   const lastLogTimeRef = useRef<{ [key: string]: number }>({}) // For throttling high-frequency events
   const isUnmountingRef = useRef(false) // Track if component is unmounting to prevent clearing map ref on effect rerun
+  const gestureRenderCountRef = useRef(0) // Track renders during active gesture for performance measurement
   const markersRef = useRef<Map<string, any>>(new Map()) // Marker registry keyed by item ID
+
+// Operation counters for gesture performance measurement
+const opCountersRef = useRef({
+  mapCreate: 0,
+  markerCreate: 0,
+  markerSetMap: 0,
+  markerSetIcon: 0,
+  markerSetPosition: 0,
+  mapSetCenter: 0,
+  mapPanTo: 0,
+  mapFitBounds: 0,
+  mapSetZoom: 0,
+  mapSetOptions: 0,
+  markerCleanup: 0
+})
   const calendarEventCoordsCacheRef = useRef<Map<string, { lat: number; lng: number; formattedAddress: string } | null>>(new Map()) // Cache for calendar event coordinates (null = failed geocode)
   const businessCoordsCacheRef = useRef<{ lat: number; lng: number; formattedAddress: string } | null>(null) // Cache for business coordinates
   const lastBusinessAddressRef = useRef<string | null>(null) // Track last business address for invalidation
@@ -273,6 +289,10 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
   // Increment render count
   renderCountRef.current++
+  // Track renders during active gesture for performance measurement
+  if (activeGestureRef.current) {
+    gestureRenderCountRef.current++
+  }
 
   // Persist map type preference
   useEffect(() => {
@@ -1458,6 +1478,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       }
 
       map = new (window as any).google.maps.Map(container, mapOptions)
+      opCountersRef.current.mapCreate++
 
       // Log map instance creation
       mapInstanceCounter++
@@ -1725,6 +1746,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       if (existingMarker) {
         // Update existing marker
         existingMarker.setIcon(createNumberedMarkerIcon(isBusinessMarker ? 0 : stopNumber, primaryItem.type, isSelected))
+        opCountersRef.current.markerSetIcon++
         existingMarker.setZIndex(isSelected ? 1000 : 1)
       } else {
         // Create new marker
@@ -1740,6 +1762,8 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
           zIndex: isSelected ? 1000 : 1,
           shape: createMarkerShape(isSelected ? 44 : 36) // Consistent 44px touch target centered on icon
         })
+
+        opCountersRef.current.markerCreate++
 
         marker.addListener('click', () => {
           if (markerInfo.items.length === 1) {
@@ -1783,7 +1807,9 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
     markersRef.current.forEach((marker, key) => {
       if (!currentMarkerIds.has(key)) {
         marker.setMap(null)
+        opCountersRef.current.markerSetMap++
         markersRef.current.delete(key)
+        opCountersRef.current.markerCleanup++
       }
     })
 
@@ -1874,10 +1900,50 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
     return () => {
       // Clean up all markers on unmount
-      markersRef.current.forEach(marker => marker.setMap(null))
+      markersRef.current.forEach(marker => {
+        marker.setMap(null)
+        opCountersRef.current.markerSetMap++
+      })
       markersRef.current.clear()
     }
   }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectedMapItemId, selectedDate, mapFilter, getResponsivePadding, assignStopNumbers, getSortedMappedItems, mapType])
+
+  // Expose performance counters to browser console for gesture performance measurement
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__scheduleMapPerf = {
+        getRenderCount: () => renderCountRef.current,
+        getGestureRenderCount: () => gestureRenderCountRef.current,
+        getOpCounters: () => ({ ...opCountersRef.current }),
+        resetCounters: () => {
+          gestureRenderCountRef.current = 0
+          opCountersRef.current = {
+            mapCreate: 0,
+            markerCreate: 0,
+            markerSetMap: 0,
+            markerSetIcon: 0,
+            markerSetPosition: 0,
+            mapSetCenter: 0,
+            mapPanTo: 0,
+            mapFitBounds: 0,
+            mapSetZoom: 0,
+            mapSetOptions: 0,
+            markerCleanup: 0
+          }
+        },
+        getActiveGesture: () => activeGestureRef.current,
+        getMapInstance: () => mapInstanceIdRef.current,
+        getMarkerCount: () => markersRef.current.size,
+        getDevicePixelRatio: () => window.devicePixelRatio,
+        getCanvasScale: () => 2 // Hardcoded in createNumberedMarkerIcon
+      }
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).__scheduleMapPerf
+      }
+    }
+  }, [])
 
   // Update marker icons when selection changes (without triggering camera changes)
   useEffect(() => {
@@ -1926,6 +1992,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         const isBusiness = type === 'business'
 
         marker.setIcon(createNumberedMarkerIcon(isBusiness ? 0 : stopNumber, type, isSelected))
+        opCountersRef.current.markerSetIcon++
         marker.setZIndex(isSelected ? 1000 : 1)
       }
     })
