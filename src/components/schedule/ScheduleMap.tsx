@@ -273,24 +273,6 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
   // Increment render count
   renderCountRef.current++
-  const currentRenderCount = renderCountRef.current
-
-  // Log renders (throttled - only on first render and every 20th render to reduce console noise)
-  const shouldLogRender = currentRenderCount === 1 || currentRenderCount % 20 === 0
-  if (shouldLogRender) {
-    console.log('[SCHEDULE_MAP_RENDER]', {
-      count: currentRenderCount,
-      mapInstance: mapInstanceIdRef.current,
-      mapReady,
-      jobsCount: jobs.length,
-      eventsCount: calendarEvents.length,
-      tasksCount: tasks.length,
-      selectedDate: selectedDate.toISOString(),
-      mapItemsCount: mapItems.length,
-      showAllMode,
-      mapFilter
-    })
-  }
 
   // Persist map type preference
   useEffect(() => {
@@ -306,23 +288,6 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         return
       }
 
-      console.log('[SCHEDULE_MAP_TYPE_CHANGE]', {
-        from: mapType === 'satellite' ? 'satellite' : 'roadmap',
-        to: mapType === 'satellite' ? 'satellite' : 'roadmap',
-        mapInstance: mapInstanceIdRef.current,
-        markerCount: markersRef.current.size
-      })
-
-      // Log marker attachment state before change
-      const markerStatesBefore = Array.from(markersRef.current.entries()).map(([key, marker]) => ({
-        key,
-        getMap: marker.getMap() === googleMapRef.current ? 'attached' : marker.getMap() === null ? 'null' : 'other'
-      }))
-      console.log('[SCHEDULE_MAP_TYPE_CHANGE_MARKERS_BEFORE]', {
-        count: markerStatesBefore.length,
-        markers: markerStatesBefore
-      })
-
       try {
         const mapTypeId = mapType === 'satellite'
           ? (window as any).google.maps.MapTypeId.HYBRID
@@ -331,18 +296,6 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       } catch (error) {
         console.error('[ScheduleMap] Failed to update map type:', error)
       }
-
-      // Log marker attachment state after change
-      setTimeout(() => {
-        const markerStatesAfter = Array.from(markersRef.current.entries()).map(([key, marker]) => ({
-          key,
-          getMap: marker.getMap() === googleMapRef.current ? 'attached' : marker.getMap() === null ? 'null' : 'other'
-        }))
-        console.log('[SCHEDULE_MAP_TYPE_CHANGE_MARKERS_AFTER]', {
-          count: markerStatesAfter.length,
-          markers: markerStatesAfter
-        })
-      }, 100)
     }
   }, [mapType, mapReady])
 
@@ -1423,14 +1376,6 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
   // IMPORTANT: This effect must NOT depend on mapType to prevent map recreation on toggle
   // Map type changes are handled by a separate effect that calls setMapTypeId on the existing instance
   useEffect(() => {
-    console.log('[SCHEDULE_MAP_INIT_EFFECT]', {
-      isMapLoaded,
-      hasMapRef: !!mapRef.current,
-      hasGoogleMapRef: !!googleMapRef.current,
-      mapType,
-      mapInstance: mapInstanceIdRef.current
-    })
-
     if (!isMapLoaded || !mapRef.current || googleMapRef.current) return
 
     // Check container dimensions
@@ -1580,13 +1525,6 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
     // Cleanup function to remove listeners and prevent stale callbacks
     return () => {
-      console.log('[SCHEDULE_MAP_INIT_CLEANUP]', {
-        isUnmounting: isUnmountingRef.current,
-        hasMap: !!map,
-        mapInstance: mapInstanceIdRef.current,
-        mapType
-      })
-
       if (dragstartListener) {
         try {
           (window as any).google.maps.event.removeListener(dragstartListener)
@@ -1619,16 +1557,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       // Only clear on actual component unmount, not on effect rerun
       // mapType changes are handled by separate effect without recreating the map
       if (map && isUnmountingRef.current) {
-        console.log('[SCHEDULE_MAP_MAP_REF_CLEARED]', {
-          reason: 'component_unmount',
-          mapInstance: mapInstanceIdRef.current
-        })
         googleMapRef.current = null
-      } else {
-        console.log('[SCHEDULE_MAP_MAP_REF_PRESERVED]', {
-          reason: 'effect_rerun_not_unmount',
-          mapInstance: mapInstanceIdRef.current
-        })
       }
     }
   }, [isMapLoaded])
@@ -1767,15 +1696,6 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       }
     })
 
-    console.log('[SCHEDULE_MAP_MARKER_UPDATE_EFFECT]', {
-      filteredItemCount: filteredItems.length,
-      activeGesture: activeGestureRef.current,
-      mapInstance: mapInstanceIdRef.current,
-      mapType,
-      existingMarkerCount: markersRef.current.size,
-      trigger: 'marker_effect_run'
-    })
-
     // Group items by location
     const markerInfos = groupItemsByLocation(filteredItems)
 
@@ -1783,10 +1703,6 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
     // Native Google Maps markers are synchronized with the map, but recreating/updating
     // them during a drag can cause visual artifacts. Markers will update after gesture ends.
     if (activeGestureRef.current) {
-      console.log('[SCHEDULE_MAP_MARKER_UPDATE_SKIPPED]', {
-        reason: 'active_manual_gesture',
-        markerCount: markersRef.current.size
-      })
       return
     }
 
@@ -1866,25 +1782,9 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
     // Remove markers that no longer exist
     markersRef.current.forEach((marker, key) => {
       if (!currentMarkerIds.has(key)) {
-        console.log('[SCHEDULE_MAP_MARKER_REMOVED]', {
-          key,
-          reason: 'not_in_current_marker_ids',
-          mapInstance: mapInstanceIdRef.current
-        })
         marker.setMap(null)
         markersRef.current.delete(key)
       }
-    })
-
-    // Log marker lifecycle
-    const createdCount = currentMarkerIds.size - markersRef.current.size
-    const removedCount = markersRef.current.size - currentMarkerIds.size
-    console.log('[SCHEDULE_MAP_MARKERS]', {
-      created: createdCount,
-      removed: removedCount,
-      total: currentMarkerIds.size,
-      reason: 'marker_update_effect',
-      mapInstance: mapInstanceIdRef.current
     })
 
     // Calculate semantic context key using canonical local date (YYYY-MM-DD format)
@@ -1905,11 +1805,6 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
     // Check if context changed
     const contextChanged = contextKey !== semanticContextKeyRef.current
     if (contextChanged) {
-      console.log('[SCHEDULE_MAP_CONTEXT]', {
-        oldContext: semanticContextKeyRef.current,
-        newContext: contextKey,
-        userInteracted: userInteractedForContextRef.current
-      })
       semanticContextKeyRef.current = contextKey
       userInteractedForContextRef.current = false
       correctiveFrameUsedForContextRef.current = false
@@ -1938,15 +1833,6 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
                           )
 
     if (shouldAutoFit) {
-      console.log('[SCHEDULE_MAP_FRAME]', {
-        context: contextKey,
-        signatureChanged,
-        userInteracted: userInteractedForContextRef.current,
-        correctiveFrameUsed: correctiveFrameUsedForContextRef.current,
-        markerCount: markersRef.current.size,
-        isCorrective: signatureChanged && !contextChanged,
-        programmaticMoveInProgress: programmaticMoveInProgressRef.current
-      })
 
       framedSignatureForContextRef.current = signature
 
@@ -1979,27 +1865,14 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         })
       }
     } else if (contextChanged && userInteractedForContextRef.current) {
-      console.log('[SCHEDULE_MAP_FRAME_SKIPPED_USER_INTERACTION]', {
-        context: contextKey,
-        reason: 'user_manually_interacted'
-      })
+      // User manually interacted, skip framing
     } else if (!contextChanged && !signatureChanged) {
-      console.log('[SCHEDULE_MAP_FRAME_SKIPPED_NO_CHANGE]', {
-        context: contextKey,
-        reason: 'marker_set_unchanged'
-      })
+      // No change, skip framing
     } else if (!contextChanged && signatureChanged && correctiveFrameUsedForContextRef.current) {
-      console.log('[SCHEDULE_MAP_FRAME_SKIPPED_CORRECTIVE_USED]', {
-        context: contextKey,
-        reason: 'corrective_frame_already_used'
-      })
+      // Corrective frame already used, skip framing
     }
 
     return () => {
-      console.log('[SCHEDULE_MAP_MARKER_CLEANUP]', {
-        markerCount: markersRef.current.size,
-        mapInstance: mapInstanceIdRef.current
-      })
       // Clean up all markers on unmount
       markersRef.current.forEach(marker => marker.setMap(null))
       markersRef.current.clear()
@@ -2008,20 +1881,10 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
   // Update marker icons when selection changes (without triggering camera changes)
   useEffect(() => {
-    console.log('[SCHEDULE_MAP_SELECTION_UPDATE_EFFECT]', {
-      selectedMapItemId,
-      activeGesture: activeGestureRef.current,
-      mapInstance: mapInstanceIdRef.current
-    })
-
     if (!mapReady) return
 
     // Skip marker updates during active manual gestures to prevent visual desync
     if (activeGestureRef.current) {
-      console.log('[SCHEDULE_MAP_SELECTION_UPDATE_SKIPPED]', {
-        reason: 'active_manual_gesture',
-        selectedMapItemId
-      })
       return
     }
 
