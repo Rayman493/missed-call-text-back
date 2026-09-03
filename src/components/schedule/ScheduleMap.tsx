@@ -294,6 +294,25 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
   const [showAllMode, setShowAllMode] = useState(true)
   const [leadCache, setLeadCache] = useState<Map<string, { name: string | null; phone: string | null }>>(new Map()) // Cache for lead data to avoid N+1 queries
 
+  // Diagnostic state for RASTER vs VECTOR A/B testing
+  // Set to true in browser console to enable vector rendering: window.__enableVectorMap = true
+  const [enableVectorMode, setEnableVectorMode] = useState(false)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handler = () => {
+        const enabled = (window as any).__enableVectorMap === true
+        setEnableVectorMode(enabled)
+        console.log('[SCHEDULE_MAP_VECTOR_MODE]', enabled ? 'VECTOR (diagnostic)' : 'RASTER (default)')
+      }
+      window.addEventListener('__vectorModeChange', handler as any)
+      // Check initial value
+      handler()
+      return () => {
+        window.removeEventListener('__vectorModeChange', handler as any)
+      }
+    }
+  }, [])
+
   // Derive selectedListItem from selectedMapItemId and mapItems (prevents stale object risk)
   const selectedListItem = useMemo(() =>
     mapItems.find(item => item.id === selectedMapItemId) ?? null,
@@ -1475,6 +1494,12 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         streetViewControl: false,
         fullscreenControl: false,
         gestureHandling: 'greedy',
+        // Diagnostic: Enable vector rendering when __enableVectorMap is true
+        // Requires a valid mapId from Google Cloud Console
+        ...(enableVectorMode && {
+          mapId: (window as any).__vectorMapId || 'YOUR_MAP_ID_HERE',
+          renderingType: 'VECTOR'
+        }),
         styles: [
           {
             featureType: 'poi',
@@ -1506,6 +1531,19 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
       mapInstanceCounter++
       mapInstanceIdRef.current = `map-${mapInstanceCounter}-${Date.now()}`
       console.log('[SCHEDULE_MAP_INSTANCE_CREATED]', { id: mapInstanceIdRef.current, timestamp: Date.now() })
+
+      // Runtime verification of rendering mode (diagnostic)
+      // Check if mapId is set to infer vector mode
+      const actualMapId = mapOptions.mapId || null
+      const actualRenderingType = mapOptions.renderingType || 'RASTER'
+      const isVectorMode = actualMapId !== null && actualRenderingType === 'VECTOR'
+      console.log('[SCHEDULE_MAP_RENDERING_MODE]', {
+        mode: isVectorMode ? 'VECTOR' : 'RASTER',
+        mapId: actualMapId,
+        renderingType: actualRenderingType,
+        diagnostic: enableVectorMode,
+        timestamp: Date.now()
+      })
 
       // Simplified camera listeners with listener tracking for cleanup
       dragstartListener = map.addListener('dragstart', () => {
@@ -1619,7 +1657,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         googleMapRef.current = null
       }
     }
-  }, [isMapLoaded])
+  }, [isMapLoaded, enableVectorMode])
 
   // ResizeObserver to initialize map when container gets dimensions
   useEffect(() => {
@@ -1983,7 +2021,26 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
         getMapInstance: () => mapInstanceIdRef.current,
         getMarkerCount: () => markersRef.current.size,
         getDevicePixelRatio: () => window.devicePixelRatio,
-        getCanvasScale: () => window.devicePixelRatio || 1 // Canvas backing-store scale (DPR)
+        getCanvasScale: () => window.devicePixelRatio || 1, // Canvas backing-store scale (DPR)
+        getRenderingMode: () => {
+          if (!googleMapRef.current) return 'MAP_NOT_READY'
+          const options = googleMapRef.current.getMapTypeId ? {} : {}
+          return enableVectorMode ? 'VECTOR' : 'RASTER'
+        },
+        // Diagnostic helpers for vector mode testing
+        enableVectorMode: (mapId?: string) => {
+          if (mapId) {
+            (window as any).__vectorMapId = mapId
+          }
+          (window as any).__enableVectorMap = true
+          window.dispatchEvent(new Event('__vectorModeChange'))
+          console.log('[SCHEDULE_MAP] Vector mode enabled. Reload page to apply.')
+        },
+        disableVectorMode: () => {
+          (window as any).__enableVectorMap = false
+          window.dispatchEvent(new Event('__vectorModeChange'))
+          console.log('[SCHEDULE_MAP] Vector mode disabled. Reload page to apply.')
+        }
       }
     }
     return () => {
