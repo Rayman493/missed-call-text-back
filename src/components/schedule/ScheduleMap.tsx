@@ -2261,7 +2261,7 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
                     }
                   } : null}
                   onClick={() => selectMapItem(item.id, item.latitude, item.longitude)}
-                  className={`flex-shrink-0 snap-start px-1.5 md:px-2 py-1 rounded-md border transition-colors min-w-[100px] md:min-w-[120px] max-w-[140px] ${
+                  className={`flex-shrink-0 snap-start px-1.5 md:px-2 py-1 rounded-md border transition-colors min-w-[100px] md:min-w-[150px] max-w-[140px] md:max-w-[170px] ${
                     selectedMapItemId === item.id
                       ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-300/60 dark:border-blue-700/60 ring-1 ring-blue-200/50 dark:ring-blue-800/30'
                       : item.type === 'business'
