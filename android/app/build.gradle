@@ -9,6 +9,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        // Endpoint for fire-and-forget Tap to Pay process lifecycle telemetry
+        buildConfigField "String", "TTP_DIAGNOSTICS_ENDPOINT", '"https://www.replyflowhq.com/api/diagnostics/ttp-retry-stage"'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,6 +18,10 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    buildFeatures {
+        buildConfig true
+    }
+
     // Stripe Terminal Android SDK requires Java 8 bytecode
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
