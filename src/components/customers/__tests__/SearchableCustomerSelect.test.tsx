@@ -159,6 +159,23 @@ describe('SearchableCustomerSelect', () => {
     expect(content).toContain('onCustomerSelect?:')
   })
 
+  it('should replace existing customer when prefillCustomer merges', () => {
+    expect(content).toContain("const filtered = prev.filter(c => c.id !== prefillCustomer.id)")
+    expect(content).toContain('[prefillCustomer, ...filtered]')
+  })
+
+  it('should render selected trigger with getDisplayText', () => {
+    expect(content).toContain('getDisplayText(selectedCustomer)')
+  })
+
+  it('should render dropdown primary text with getDisplayText', () => {
+    expect(content).toContain('<span className="truncate flex-1">{getDisplayText(customer)}</span>')
+  })
+
+  it('should render dropdown secondary text with getSecondaryText', () => {
+    expect(content).toContain('const secondaryText = getSecondaryText(customer)')
+  })
+
   it('should include raw_metadata in Customer interface', () => {
     expect(content).toContain('raw_metadata?: Record<string, any> | null')
   })

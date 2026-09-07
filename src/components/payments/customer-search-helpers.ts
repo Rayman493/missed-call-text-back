@@ -14,12 +14,60 @@ export function normalizePhoneDigits(phone: string): string {
 }
 
 /**
+ * Canonical placeholder values that should never be treated as real customer data.
+ */
+const CUSTOMER_CONTEXT_PLACEHOLDERS = new Set([
+  'not collected',
+  'not provided',
+  'not provided name',
+  'unknown',
+  'unknown caller',
+  'unknown customer',
+  'caller',
+  'customer',
+  'service request',
+  'general service',
+  'n/a',
+])
+
+/**
+ * Returns true if a value is a known placeholder, null/undefined, or only whitespace.
+ */
+export function isPlaceholderValue(value: unknown): boolean {
+  if (value == null) return true
+  if (typeof value !== 'string') return false
+  const trimmed = value.trim()
+  if (trimmed === '') return true
+  return CUSTOMER_CONTEXT_PLACEHOLDERS.has(trimmed.toLowerCase())
+}
+
+/**
+ * Normalize a customer context value for editable form defaults.
+ * Returns the trimmed value if meaningful, otherwise null.
+ */
+export function normalizeEditableContext(value: string | null | undefined): string | null {
+  if (isPlaceholderValue(value)) return null
+  return (value as string).trim()
+}
+
+/**
+ * Returns the first non-placeholder value from a list of candidates.
+ */
+export function firstNonPlaceholder(...values: (string | null | undefined)[]): string | null {
+  for (const value of values) {
+    const normalized = normalizeEditableContext(value)
+    if (normalized) return normalized
+  }
+  return null
+}
+
+/**
  * Determines the display name for a customer
- * Falls back to formatted phone if name is missing or "Not collected"
+ * Falls back to formatted phone if name is missing or a placeholder
  */
 export function getCustomerDisplayName(lead: Lead): string {
-  if (lead.name && lead.name !== 'Not collected') {
-    return lead.name
+  if (!isPlaceholderValue(lead.name)) {
+    return (lead.name as string).trim()
   }
   return formatForDisplay(lead.caller_phone || '')
 }
@@ -29,10 +77,11 @@ export function getCustomerDisplayName(lead: Lead): string {
  * Returns formatted phone if available and different from display name
  */
 export function getCustomerSecondaryText(lead: Lead): string | null {
-  if (!lead.caller_phone) {
+  if (!lead.caller_phone || isPlaceholderValue(lead.caller_phone)) {
     return null
   }
   const formattedPhone = formatForDisplay(lead.caller_phone)
+  if (isPlaceholderValue(formattedPhone)) return null
   const displayName = getCustomerDisplayName(lead)
   // Only show phone if it's different from the display name
   // Also normalize both to digits for comparison to catch raw E.164 vs formatted phone equivalence
@@ -58,7 +107,7 @@ export function filterLeadsBySearchQuery(leads: Lead[], query: string): Lead[] {
 
   return leads.filter((lead) => {
     // Match by name (case-insensitive, ignore placeholder names)
-    if (lead.name && lead.name !== 'Not collected' && lead.name.toLowerCase().includes(queryLower)) {
+    if (lead.name && !isPlaceholderValue(lead.name) && lead.name.toLowerCase().includes(queryLower)) {
       return true
     }
 

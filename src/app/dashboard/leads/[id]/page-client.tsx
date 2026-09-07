@@ -73,6 +73,7 @@ import { useSendingSource } from '@/hooks/useSendingSource'
 import { useSupportsBusinessNumber } from '@/lib/platform-capabilities'
 import { getNextAction } from '@/lib/lead-next-action'
 import { hasPhoneNumber } from '@/lib/utils'
+import { normalizeEditableContext, firstNonPlaceholder } from '@/components/payments/customer-search-helpers'
 
 // Helper functions for consistent formatting
 const formatDate = (dateString: string | null | undefined): string => {
@@ -2981,9 +2982,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Generate JobComposer prefill data from lead and AI intake
   const generateJobPrefill = (): JobPrefill => {
     const intake = getLeadAIIntake(leadData)
-    const leadName = intake.customerName || leadData?.name || ''
-    const leadPhone = intake.customerPhone || leadData?.caller_phone || ''
-    const leadAddress = intake.serviceAddress
+    const leadName = firstNonPlaceholder(intake.customerName, leadData?.name, leadData?.contact_name)
+    const leadPhone = firstNonPlaceholder(intake.customerPhone, leadData?.caller_phone)
+    const leadAddress = normalizeEditableContext(intake.serviceAddress)
 
     if (process.env.NODE_ENV !== 'production') {
       console.log('[generateJobPrefill debug]', {
@@ -3001,8 +3002,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     const noteSections = []
 
-    if (intake.additionalDetails) {
-      noteSections.push(`Additional Details\n• ${intake.additionalDetails}`)
+    const additionalDetails = normalizeEditableContext(intake.additionalDetails)
+    if (additionalDetails) {
+      noteSections.push(`Additional Details\n• ${additionalDetails}`)
     }
 
     // Derive scheduling prefill from AI intake
@@ -3015,19 +3017,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const canonicalTitle = getLeadRequestTitle(leadData)
 
     // Fallback: only use serviceRequested if it's not a placeholder
-    const serviceRequestedFallback = intake.serviceRequested &&
-      intake.serviceRequested !== 'Not collected' &&
-      intake.serviceRequested !== 'General Service' &&
-      intake.serviceRequested.trim() !== ''
-      ? intake.serviceRequested
-      : null
+    const serviceRequestedFallback = normalizeEditableContext(intake.serviceRequested)
 
     // Construct canonical customer object for selector hydration
     // This ensures the selector can display the customer even without AI intake
     const prefillCustomer = {
       id: params.id,
-      name: leadData?.name || leadData?.contact_name || null,
-      caller_phone: leadData?.caller_phone || null,
+      name: leadName,
+      caller_phone: leadPhone,
       raw_metadata: leadData?.raw_metadata || null
     }
 
@@ -5774,7 +5771,7 @@ If you have questions, reply to this message.`
       preselectedLeadDisplay={getLeadDisplayName(leadData)}
       preselectedLeadCustomer={{
         id: params.id,
-        name: leadData?.name || leadData?.contact_name || null,
+        name: firstNonPlaceholder(leadData?.name, leadData?.contact_name),
         caller_phone: leadData?.caller_phone || null,
         raw_metadata: leadData?.raw_metadata || null
       }}
@@ -5801,7 +5798,7 @@ If you have questions, reply to this message.`
       preselectedLeadId={params.id}
       preselectedLeadCustomer={{
         id: params.id,
-        name: leadData?.name || leadData?.contact_name || null,
+        name: firstNonPlaceholder(leadData?.name, leadData?.contact_name),
         caller_phone: leadData?.caller_phone || null,
         raw_metadata: leadData?.raw_metadata || null
       }}

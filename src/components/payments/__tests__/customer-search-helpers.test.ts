@@ -5,6 +5,8 @@ import {
   getCustomerSecondaryText,
   filterLeadsBySearchQuery,
   getRecentCustomers,
+  normalizeEditableContext,
+  firstNonPlaceholder,
   type Lead
 } from '../customer-search-helpers'
 
@@ -164,6 +166,71 @@ describe('customer-search-helpers', () => {
     it('ignores "Not collected" names in search', () => {
       const result = filterLeadsBySearchQuery(leads, 'not')
       expect(result).toHaveLength(0)
+    })
+  })
+
+  describe('normalizeEditableContext', () => {
+    it('returns trimmed value for real text', () => {
+      expect(normalizeEditableContext('  123 Main St  ')).toBe('123 Main St')
+    })
+
+    it('returns null for Not collected', () => {
+      expect(normalizeEditableContext('Not collected')).toBeNull()
+    })
+
+    it('returns null for General Service', () => {
+      expect(normalizeEditableContext('General Service')).toBeNull()
+    })
+
+    it('returns null for empty/whitespace/null/undefined', () => {
+      expect(normalizeEditableContext('')).toBeNull()
+      expect(normalizeEditableContext('   ')).toBeNull()
+      expect(normalizeEditableContext(null)).toBeNull()
+      expect(normalizeEditableContext(undefined)).toBeNull()
+    })
+  })
+
+  describe('firstNonPlaceholder', () => {
+    it('returns the first meaningful value', () => {
+      expect(firstNonPlaceholder('Not collected', 'Ray Test', 'Other')).toBe('Ray Test')
+    })
+
+    it('returns null when all candidates are placeholders', () => {
+      expect(firstNonPlaceholder('Not collected', '  ', null, 'Unknown')).toBeNull()
+    })
+
+    it('returns null when no candidates are provided', () => {
+      expect(firstNonPlaceholder()).toBeNull()
+    })
+  })
+
+  describe('getCustomerDisplayName', () => {
+    it('returns name for phone-only customer', () => {
+      const lead: Lead = { id: '1', name: null, caller_phone: '4125551212' }
+      expect(getCustomerDisplayName(lead)).toBe('(412) 555-1212')
+    })
+
+    it('trims whitespace from names', () => {
+      const lead: Lead = { id: '1', name: '  Ray Test  ', caller_phone: '4125551212' }
+      expect(getCustomerDisplayName(lead)).toBe('Ray Test')
+    })
+
+    it('never renders Not collected as identity', () => {
+      const lead: Lead = { id: '1', name: 'Not collected', caller_phone: '4125551212' }
+      expect(getCustomerDisplayName(lead)).toBe('(412) 555-1212')
+    })
+  })
+
+  describe('filterLeadsBySearchQuery', () => {
+    it('searches by name case-insensitively', () => {
+      const leads: Lead[] = [{ id: '1', name: 'Ray Test', caller_phone: '4125551212' }]
+      expect(filterLeadsBySearchQuery(leads, 'RAY').map(l => l.id)).toEqual(['1'])
+      expect(filterLeadsBySearchQuery(leads, 'ray').map(l => l.id)).toEqual(['1'])
+    })
+
+    it('searches formatted phone with punctuation', () => {
+      const leads: Lead[] = [{ id: '1', name: 'Ray Test', caller_phone: '4125551212' }]
+      expect(filterLeadsBySearchQuery(leads, '(412) 555').map(l => l.id)).toEqual(['1'])
     })
   })
 

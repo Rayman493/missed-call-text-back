@@ -5,6 +5,7 @@ import { X, Briefcase, Plus } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { getCustomerStatusStyle } from '@/lib/customer-status'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
+import { firstNonPlaceholder, normalizeEditableContext, getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 export type JobStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
@@ -99,12 +100,12 @@ export default function JobComposer({
   // Handle customer selection - populate form fields from customer data
   const handleCustomerSelect = (customer: Customer | null) => {
     if (customer) {
-      setLeadDisplay(customer.name || customer.caller_phone || 'Customer')
+      setLeadDisplay(getCustomerDisplayName(customer) || 'Customer')
       // Extract AI intake fields from raw_metadata
       const metadata = customer.raw_metadata || {}
-      setCustomerName(metadata.customerName || customer.name || '')
-      setCustomerPhone(metadata.customerPhone || customer.caller_phone || '')
-      setServiceAddress(metadata.serviceAddress || '')
+      setCustomerName(firstNonPlaceholder(metadata.customerName, metadata.callerName, customer.name) || '')
+      setCustomerPhone(firstNonPlaceholder(metadata.customerPhone, customer.caller_phone) || '')
+      setServiceAddress(normalizeEditableContext(metadata.serviceAddress) || '')
     } else {
       setLeadDisplay(null)
       setCustomerName('')

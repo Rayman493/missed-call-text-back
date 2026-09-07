@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     console.log('[API LEADS GET] Fetching leads for business:', business.id!)
     let query = supabase
       .from('leads')
-      .select('id, business_id, caller_phone, status, created_at, raw_metadata, deleted_at')
+      .select('id, business_id, caller_phone, contact_name, status, created_at, raw_metadata, deleted_at')
       .eq('business_id', business.id!)
 
     // Apply deleted filter
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     // Apply status filter if provided
     if (statusFilter && statusFilter !== 'all') {
-      const validStatuses = ['new', 'needs_follow_up', 'in_progress', 'completed', 'archived']
+      const validStatuses = ['new', 'needs_reply', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'cancelled', 'ignored', 'lost']
       if (validStatuses.includes(statusFilter)) {
         query = query.eq('status', statusFilter)
         console.log('[API LEADS GET] Applied status filter:', statusFilter)
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
       id: lead.id,
       business_id: lead.business_id,
       caller_phone: lead.caller_phone,
-      name: lead.raw_metadata?.customerName || lead.raw_metadata?.callerName || lead.raw_metadata?.name || null,
+      name: lead.contact_name || lead.raw_metadata?.customerName || lead.raw_metadata?.callerName || lead.raw_metadata?.name || null,
       status: lead.status,
       created_at: lead.created_at,
       updated_at: lead.created_at, // Use created_at as fallback since updated_at doesn't exist in live schema

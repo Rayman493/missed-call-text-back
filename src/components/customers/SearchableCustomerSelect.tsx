@@ -58,12 +58,10 @@ export default function SearchableCustomerSelect({
     if (!prefillCustomer) return
 
     setCustomers(prev => {
-      // Check if customer is already in the list
-      const alreadyExists = prev.some(c => c.id === prefillCustomer.id)
-      if (alreadyExists) return prev
-
+      // Remove any existing entry so the prefill (authoritative parent data) wins
+      const filtered = prev.filter(c => c.id !== prefillCustomer.id)
       // Add prefillCustomer to the beginning of the list
-      return [prefillCustomer, ...prev]
+      return [prefillCustomer, ...filtered]
     })
   }, [prefillCustomer])
 

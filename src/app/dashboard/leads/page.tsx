@@ -36,7 +36,7 @@ import {
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { copyToClipboard } from '@/lib/clipboard'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
-import { getCustomerStatusStyle, normalizeCustomerStatus } from '@/lib/customer-status'
+import { getCustomerStatusStyle, getCustomerStatusLabel, getAllCustomerStatuses, normalizeCustomerStatus } from '@/lib/customer-status'
 import { cn } from '@/lib/theme'
 import { 
   getSubscriptionStatusText, 
@@ -103,17 +103,29 @@ function getCompactSummary(lead: any): string {
   return 'New customer request'
 }
 
-// Status filter options
+// Status filter icons mapped to canonical statuses (presentation only)
+const STATUS_FILTER_ICONS: Record<string, string> = {
+  all: '●',
+  new: '📞',
+  needs_reply: '💬',
+  active: '💬',
+  scheduled: '📅',
+  payment_requested: '💳',
+  paid: '✅',
+  completed: '✓',
+  cancelled: '🟠',
+  ignored: '🟠',
+  lost: '❌',
+}
+
+// Status filter options derived from the canonical customer status ordering
 const statusFilterOptions = [
-  { value: 'all', label: 'All', icon: '●' },
-  { value: 'new', label: 'New', icon: '📞' },
-  { value: 'active', label: 'Active', icon: '💬' },
-  { value: 'scheduled', label: 'Scheduled', icon: '📅' },
-  { value: 'payment_requested', label: 'Payment Requested', icon: '💳' },
-  { value: 'paid', label: 'Paid', icon: '✅' },
-  { value: 'completed', label: 'Completed', icon: '✓' },
-  { value: 'lost', label: 'Lost', icon: '❌' },
-  { value: 'ignored', label: 'Ignored', icon: '🟠' },
+  { value: 'all', label: 'All', icon: STATUS_FILTER_ICONS['all'] },
+  ...getAllCustomerStatuses().map((status) => ({
+    value: status,
+    label: getCustomerStatusLabel(status),
+    icon: STATUS_FILTER_ICONS[status],
+  })),
 ]
 
 function getStatusFilterIcon(filter: string): string {

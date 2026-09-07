@@ -148,6 +148,30 @@ describe('Create Job Flow Simplification', () => {
     expect(content).toContain('lead_id: leadId')
   })
 
+  it('JobComposer should use getCustomerDisplayName for leadDisplay', () => {
+    const fs = require('fs')
+    const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
+    expect(content).toContain('getCustomerDisplayName(customer)')
+  })
+
+  it('JobComposer should normalize customerName with firstNonPlaceholder', () => {
+    const fs = require('fs')
+    const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
+    expect(content).toContain('firstNonPlaceholder(metadata.customerName, metadata.callerName, customer.name)')
+  })
+
+  it('JobComposer should normalize customerPhone with firstNonPlaceholder', () => {
+    const fs = require('fs')
+    const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
+    expect(content).toContain('firstNonPlaceholder(metadata.customerPhone, customer.caller_phone)')
+  })
+
+  it('JobComposer should normalize serviceAddress with normalizeEditableContext', () => {
+    const fs = require('fs')
+    const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
+    expect(content).toContain('normalizeEditableContext(metadata.serviceAddress)')
+  })
+
   it('JobComposer should have handleCustomerSelect function', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')

@@ -8,6 +8,7 @@ import Modal from '@/components/ui/Modal'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
+import { getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 const supabase = createBrowserClient()
@@ -92,7 +93,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
   // Handle customer selection - update display name
   const handleCustomerSelect = (customer: Customer | null) => {
     if (customer) {
-      setLeadDisplay(customer.name || customer.caller_phone || 'Selected customer')
+      setLeadDisplay(getCustomerDisplayName(customer) || 'Selected customer')
     } else {
       setLeadDisplay(null)
     }
