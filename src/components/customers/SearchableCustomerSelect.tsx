@@ -42,6 +42,7 @@ export default function SearchableCustomerSelect({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [dropup, setDropup] = useState(false)
+  const [maxDropdownHeight, setMaxDropdownHeight] = useState(300)
   const pickerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -122,34 +123,54 @@ export default function SearchableCustomerSelect({
     }
   }, [isOpen])
 
-  // Focus search input when opened
+  // Focus search input when opened and scroll the picker into view so the
+  // dropdown remains visible above the on-screen keyboard.
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       searchInputRef.current.focus()
+      pickerRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     }
   }, [isOpen])
 
-  // Calculate available space and determine dropup/dropdown direction
+  // Calculate available space (respecting the visual viewport, including on-screen keyboard)
+  // and determine dropup/dropdown direction and a dynamic max-height for the dropdown.
   useEffect(() => {
     if (!isOpen || !pickerRef.current) return
 
-    const pickerRect = pickerRef.current.getBoundingClientRect()
-    const viewportHeight = window.innerHeight
+    const measure = () => {
+      if (!pickerRef.current) return
+      const pickerRect = pickerRef.current.getBoundingClientRect()
+      const vv = window.visualViewport
+      const viewportTop = vv ? vv.offsetTop : 0
+      const viewportBottom = vv ? vv.offsetTop + vv.height : window.innerHeight
 
-    const spaceBelow = viewportHeight - pickerRect.bottom
-    const spaceAbove = pickerRect.top
+      const spaceBelow = viewportBottom - pickerRect.bottom
+      const spaceAbove = pickerRect.top - viewportTop
+      const safeGap = 16
+      const desiredMax = 300
 
-    // Reserve space for safe gap
-    const safeGap = 16
-    const maxDropdownHeight = 300
+      // Determine direction based on available space, but never shrink below 160px
+      const useDropup = spaceAbove > spaceBelow && (spaceAbove - safeGap) >= desiredMax
+      const available = useDropup ? spaceAbove - safeGap : spaceBelow - safeGap
+      setDropup(useDropup)
+      setMaxDropdownHeight(Math.min(desiredMax, Math.max(available, 160)))
+    }
 
-    // Calculate actual available space (not dependent on content)
-    const availableBelow = spaceBelow - safeGap
-    const availableAbove = spaceAbove - safeGap
+    measure()
+    const vv = window.visualViewport
+    if (vv) {
+      vv.addEventListener('resize', measure)
+      vv.addEventListener('scroll', measure)
+    }
+    window.addEventListener('resize', measure)
 
-    // Determine direction based on available space, not rendered height
-    const useDropup = spaceAbove > spaceBelow && availableAbove > maxDropdownHeight
-    setDropup(useDropup)
+    return () => {
+      if (vv) {
+        vv.removeEventListener('resize', measure)
+        vv.removeEventListener('scroll', measure)
+      }
+      window.removeEventListener('resize', measure)
+    }
   }, [isOpen])
 
   // Prevent scroll chaining from dropdown to modal body
@@ -221,7 +242,7 @@ export default function SearchableCustomerSelect({
   const showNoCustomerOption = allowClear && hasValue
 
   return (
-    <div className="relative" ref={pickerRef}>
+    <div className="relative min-w-0" ref={pickerRef}>
       {label && (
         <label
           id={labelId}
@@ -271,6 +292,7 @@ export default function SearchableCustomerSelect({
           className={`absolute z-[60] w-full bg-card/95 backdrop-blur-sm rounded-lg shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] border border-border/40 max-h-[300px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 ${
             dropup ? 'bottom-full mb-2' : 'top-full mt-2'
           }`}
+          style={{ maxHeight: maxDropdownHeight }}
         >
           {/* Search input */}
           <div className="p-3 border-b border-border/20">
@@ -288,7 +310,11 @@ export default function SearchableCustomerSelect({
           </div>
 
           {/* Results list */}
-          <div className="overflow-y-auto flex-1 overscroll-contain" data-scroll-lock-allow>
+          <div
+            className="overflow-y-auto flex-1 overscroll-contain touch-pan-y"
+            data-scroll-lock-allow
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             {isLoading ? (
               <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />

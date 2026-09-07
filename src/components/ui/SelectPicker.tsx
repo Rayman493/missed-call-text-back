@@ -35,28 +35,51 @@ export default function SelectPicker({
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [dropup, setDropup] = useState(false)
+  const [maxDropdownHeight, setMaxDropdownHeight] = useState(300)
   const pickerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const triggerId = useId()
   const labelId = useId()
 
-  // Calculate available space and determine dropup/dropdown direction
+  // Calculate available space (respecting the visual viewport, including on-screen keyboard)
+  // and determine dropup/dropdown direction and a dynamic max-height for the dropdown.
   useEffect(() => {
     if (!isOpen || !pickerRef.current || !dropdownRef.current) return
 
-    const pickerRect = pickerRef.current.getBoundingClientRect()
-    const dropdownHeight = dropdownRef.current.offsetHeight
-    const viewportHeight = window.innerHeight
+    const measure = () => {
+      if (!pickerRef.current) return
+      const pickerRect = pickerRef.current.getBoundingClientRect()
+      const vv = window.visualViewport
+      const viewportTop = vv ? vv.offsetTop : 0
+      const viewportBottom = vv ? vv.offsetTop + vv.height : window.innerHeight
 
-    const spaceBelow = viewportHeight - pickerRect.bottom
-    const spaceAbove = pickerRect.top
+      const spaceBelow = viewportBottom - pickerRect.bottom
+      const spaceAbove = pickerRect.top - viewportTop
+      const safeGap = 16
+      const desiredMax = 300
 
-    // Open upward if there's more space above than below
-    if (spaceAbove > spaceBelow && spaceAbove > dropdownHeight) {
-      setDropup(true)
-    } else {
-      setDropup(false)
+      // Prefer the direction with more available space, but never shrink below 160px
+      const useDropup = spaceAbove > spaceBelow && (spaceAbove - safeGap) >= desiredMax
+      const available = useDropup ? spaceAbove - safeGap : spaceBelow - safeGap
+      setDropup(useDropup)
+      setMaxDropdownHeight(Math.min(desiredMax, Math.max(available, 160)))
+    }
+
+    measure()
+    const vv = window.visualViewport
+    if (vv) {
+      vv.addEventListener('resize', measure)
+      vv.addEventListener('scroll', measure)
+    }
+    window.addEventListener('resize', measure)
+
+    return () => {
+      if (vv) {
+        vv.removeEventListener('resize', measure)
+        vv.removeEventListener('scroll', measure)
+      }
+      window.removeEventListener('resize', measure)
     }
   }, [isOpen])
 
@@ -90,10 +113,12 @@ export default function SelectPicker({
     }
   }, [isOpen])
 
-  // Focus search input when opened
+  // Focus search input when opened and scroll the picker into view so the
+  // dropdown remains visible above the on-screen keyboard.
   useEffect(() => {
     if (isOpen && searchable && searchInputRef.current) {
       searchInputRef.current.focus()
+      pickerRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     }
   }, [isOpen, searchable])
 
@@ -159,7 +184,7 @@ export default function SelectPicker({
   }
 
   return (
-    <div className="relative" ref={pickerRef}>
+    <div className="relative min-w-0" ref={pickerRef}>
       {label && (
         <label
           id={labelId}
@@ -210,6 +235,7 @@ export default function SelectPicker({
           className={`absolute z-[60] w-full bg-popover/95 backdrop-blur-sm rounded-lg shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] border border-border/40 max-h-[300px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 ${
             dropup ? 'bottom-full mb-2' : 'top-full mt-2'
           }`}
+          style={{ maxHeight: maxDropdownHeight }}
         >
           {searchable && (
             <div className="p-3 border-b border-border/20 shrink-0">
@@ -227,7 +253,11 @@ export default function SelectPicker({
             </div>
           )}
 
-          <div className="overflow-y-auto flex-1 overscroll-contain">
+          <div
+            className="overflow-y-auto flex-1 overscroll-contain touch-pan-y"
+            data-scroll-lock-allow
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             {visibleOptions.length === 0 ? (
               <div className="py-8 text-center px-4">
                 <p className="text-sm text-muted-foreground">{emptyMessage}</p>

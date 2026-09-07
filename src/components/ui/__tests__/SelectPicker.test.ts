@@ -106,4 +106,25 @@ describe('SelectPicker', () => {
   it('keeps dropdown option labels from overflowing with min-w-0', () => {
     expect(content).toContain('<span className="truncate flex-1 min-w-0">{option.label}</span>')
   })
+
+  it('uses visual viewport to size dropdown around the on-screen keyboard', () => {
+    expect(content).toContain('window.visualViewport')
+    expect(content).toContain('setMaxDropdownHeight')
+    expect(content).toContain('setDropup')
+  })
+
+  it('allows the dropdown list to scroll independently on mobile', () => {
+    expect(content).toContain('data-scroll-lock-allow')
+    expect(content).toContain('overflow-y-auto')
+    expect(content).toContain('overscroll-contain')
+  })
+
+  it('applies iOS momentum scrolling to the dropdown list', () => {
+    expect(content).toContain('WebkitOverflowScrolling')
+    expect(content).toContain('touch-pan-y')
+  })
+
+  it('scrolls the picker into view when opening the searchable dropdown', () => {
+    expect(content).toContain('scrollIntoView')
+  })
 })
