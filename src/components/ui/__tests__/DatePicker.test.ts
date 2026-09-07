@@ -9,17 +9,36 @@ describe('DatePicker', () => {
     expect(content).toContain('id={inputId}')
   })
 
-  it('shows calendar icon when no value, clear button when value exists', () => {
+  it('shows CalendarDays icon when empty and not disabled', () => {
     expect(content).toContain('CalendarDays')
-    expect(content).toContain('!value && !disabled')
-    expect(content).toContain('value && !disabled')
+    expect(content).toContain('pointer-events-none')
+    expect(content).toContain('!disabled')
   })
 
-  it('only shows clear button when a date is selected', () => {
-    expect(content).toContain('{value && !disabled && (')
+  it('shows clear button only when a date is selected and not disabled', () => {
+    expect(content).toContain('{value ?')
+    expect(content).toContain('aria-label="Clear date"')
+    expect(content).toContain('!disabled')
   })
 
   it('uses native date input to preserve platform picker', () => {
     expect(content).toContain('type="date"')
+  })
+
+  it('hides default native calendar indicator to prevent bleed', () => {
+    expect(content).toContain('appearance-none')
+  })
+
+  it('reserves trailing space for the control and clear button', () => {
+    expect(content).toContain("value ? 'pr-16' : 'pr-10'")
+  })
+
+  it('positions clear button away from the decorative icon', () => {
+    expect(content).toContain('right-12')
+    expect(content).toContain('right-3')
+  })
+
+  it('centers trailing icons vertically', () => {
+    expect(content).toContain('top-1/2 -translate-y-1/2')
   })
 })

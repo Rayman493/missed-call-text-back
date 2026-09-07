@@ -9,17 +9,36 @@ describe('TimePicker', () => {
     expect(content).toContain('id={inputId}')
   })
 
-  it('shows clock icon when no value, clear button when value exists', () => {
+  it('shows Clock icon when empty and not disabled', () => {
     expect(content).toContain('Clock')
-    expect(content).toContain('!value && !disabled')
-    expect(content).toContain('value && !disabled')
+    expect(content).toContain('pointer-events-none')
+    expect(content).toContain('!disabled')
   })
 
-  it('only shows clear button when a time is selected', () => {
-    expect(content).toContain('{value && !disabled && (')
+  it('shows clear button only when a time is selected and not disabled', () => {
+    expect(content).toContain('{value ?')
+    expect(content).toContain('aria-label="Clear time"')
+    expect(content).toContain('!disabled')
   })
 
   it('uses native time input to preserve platform picker', () => {
     expect(content).toContain('type="time"')
+  })
+
+  it('hides default native time indicator to prevent bleed', () => {
+    expect(content).toContain('appearance-none')
+  })
+
+  it('reserves trailing space for the control and clear button', () => {
+    expect(content).toContain("value ? 'pr-16' : 'pr-10'")
+  })
+
+  it('positions clear button away from the decorative icon', () => {
+    expect(content).toContain('right-12')
+    expect(content).toContain('right-3')
+  })
+
+  it('centers trailing icons vertically', () => {
+    expect(content).toContain('top-1/2 -translate-y-1/2')
   })
 })

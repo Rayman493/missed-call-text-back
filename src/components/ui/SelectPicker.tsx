@@ -164,7 +164,7 @@ export default function SelectPicker({
         <label
           id={labelId}
           htmlFor={triggerId}
-          className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5"
+          className="block text-xs text-muted-foreground font-medium mb-1.5"
         >
           {label} {required && <span className="text-red-500">*</span>}
         </label>

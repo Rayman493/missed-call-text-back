@@ -1,7 +1,7 @@
 'use client'
 
 import { useId } from 'react'
-import { X } from 'lucide-react'
+import { X, Clock } from 'lucide-react'
 
 interface TimePickerProps {
   value: string // HH:MM format (24-hour)
@@ -29,7 +29,7 @@ export default function TimePicker({
   return (
     <div className="relative">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+        <label htmlFor={inputId} className="block text-xs text-muted-foreground font-medium mb-1.5">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
@@ -45,21 +45,27 @@ export default function TimePicker({
           disabled={disabled}
           placeholder={placeholder}
           step={60}
-          className={`w-full px-3 py-2.5 text-base sm:text-sm border rounded-lg duration-150 ${
+          className={`w-full min-w-0 px-3 py-2.5 text-base sm:text-sm leading-5 border rounded-lg duration-150 appearance-none ${
             disabled
-              ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30'
+              ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30 pr-3'
               : 'bg-background dark:bg-slate-900/40 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60'
-          } ${value ? 'pr-10' : ''}`}
+          } ${value ? 'pr-16' : 'pr-10'}`}
         />
-        {value && !disabled && (
-          <button
-            type="button"
-            onClick={clearTime}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded duration-150"
-            aria-label="Clear time"
-          >
-            <X className="w-4 h-4 text-muted-foreground" />
-          </button>
+        {!disabled && (
+          <>
+            {value ? (
+              <button
+                type="button"
+                onClick={clearTime}
+                className="absolute right-12 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded duration-150 z-10"
+                aria-label="Clear time"
+              >
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            ) : (
+              <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            )}
+          </>
         )}
       </div>
     </div>
