@@ -147,15 +147,19 @@ This is reminder #${record.reminder_count + 1} of ${MAX_REMINDERS}.`
               minimalBusiness as any,
               record.business_phone_number,
               reminderSmsMessage,
-              { lead_id: undefined }
+              { lead_id: undefined, isOffboarding: true }
             )
 
-            // sendSms returns the message SID on success, null on failure
-            if (smsSent) {
-              console.log(`[Offboarding Reminders] SMS sent successfully to ${record.business_phone_number}, SID: ${smsSent}`)
+            // sendSms returns an object; only a truthy sid means real Twilio success
+            if (smsSent?.sid) {
+              console.log(`[Offboarding Reminders] SMS sent successfully to ${record.business_phone_number}, SID: ${smsSent.sid}`)
               smsResult = 'sent'
+            } else if (smsSent?.reason === 'NO_TWILIO_NUMBER') {
+              // Number was recycled/released or no longer canonically assigned - intentionally unsendable
+              console.log(`[Offboarding Reminders] SMS skipped for ${record.business_phone_number} (Twilio number recycled/released)`)
+              smsResult = 'skipped'
             } else {
-              console.error(`[Offboarding Reminders] SMS send returned null (no canonical Twilio number) for ${record.business_phone_number}`)
+              console.error(`[Offboarding Reminders] SMS send failed for ${record.business_phone_number}:`, smsSent)
               smsResult = 'failed'
             }
           } catch (smsError) {

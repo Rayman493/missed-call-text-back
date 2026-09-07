@@ -149,9 +149,10 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
       // Pass the created/updated task to parent for optimistic update
       onTaskCreated(!taskToEdit, result.task || null)
       handleClose()
-    } catch (error) {
-      console.error('[NewTaskModal] Failed to save task:', error)
-      onShowToast?.('Failed to save reminder. Please try again.', 'error')
+    } catch (error: any) {
+      console.error('[NewTaskModal] Failed to save reminder:', error)
+      const message = error?.message || 'Failed to save reminder. Please try again.'
+      onShowToast?.(message, 'error')
     } finally {
       setIsSaving(false)
     }
@@ -277,7 +278,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
             ) : (
               <>
                 <Plus className="w-4 h-4" />
-                <span>{taskToEdit ? 'Save Changes' : 'Create Task'}</span>
+                <span>{taskToEdit ? 'Save Changes' : 'Create Reminder'}</span>
               </>
             )}
           </button>
@@ -294,7 +295,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
 
             <div>
               <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
-                Task Title <span className="text-red-500">*</span>
+                Reminder Title <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -387,7 +388,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add any details about this task..."
+                placeholder="Add any details about this reminder..."
                 rows={3}
                 className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                 autoCapitalize="sentences"

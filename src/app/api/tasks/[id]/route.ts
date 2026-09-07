@@ -166,7 +166,7 @@ export async function PATCH(
 
     if (error) {
       console.error('[Tasks API] PATCH error:', error)
-      return NextResponse.json({ error: 'Failed to update task' }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to update reminder' }, { status: 500 })
     }
 
     return NextResponse.json({ task: updatedTask })

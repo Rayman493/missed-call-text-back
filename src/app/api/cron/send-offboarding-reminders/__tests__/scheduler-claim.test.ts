@@ -134,19 +134,34 @@ describe('Offboarding Reminder Scheduler - Claim Mechanism', () => {
 describe('Offboarding Reminder Scheduler - SMS Classification', () => {
   describe('SMS send result classification', () => {
     it('should classify successful SMS send as sent', () => {
-      const smsSent = 'SM1234567890abcdef' // Non-null SID
+      const smsSent = { sid: 'SM1234567890abcdef', messageId: 'msg-1' } // Non-null SID
 
-      const smsResult = smsSent ? 'sent' : 'failed'
+      const smsResult = smsSent?.sid ? 'sent' : 'failed'
 
       expect(smsResult).toBe('sent')
     })
 
-    it('should classify null SMS result as failed', () => {
-      const smsSent = null
+    it('should classify null sid as failed', () => {
+      const smsSent = { sid: null, messageId: null }
 
-      const smsResult = smsSent ? 'sent' : 'failed'
+      const smsResult = smsSent?.sid ? 'sent' : 'failed'
 
       expect(smsResult).toBe('failed')
+    })
+
+    it('should classify NO_TWILIO_NUMBER as skipped', () => {
+      const smsSent = { sid: null, messageId: null, reason: 'NO_TWILIO_NUMBER' }
+
+      let smsResult: 'sent' | 'skipped' | 'failed' = 'skipped'
+      if (smsSent?.sid) {
+        smsResult = 'sent'
+      } else if (smsSent?.reason === 'NO_TWILIO_NUMBER') {
+        smsResult = 'skipped'
+      } else {
+        smsResult = 'failed'
+      }
+
+      expect(smsResult).toBe('skipped')
     })
 
     it('should classify SMS exception as failed', () => {

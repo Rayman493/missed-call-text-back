@@ -43,7 +43,7 @@ export async function sendSms(
     clientMessageId?: string; // Client-generated UUID for optimistic message correlation
     callSid?: string; // Twilio call SID for durable idempotency and webhook correlation
   }
-): Promise<{ sid: string | null; messageId: string | null; idempotentSkip?: boolean }> {
+): Promise<{ sid: string | null; messageId: string | null; idempotentSkip?: boolean; reason?: string }> {
   // Phone-dependent gating: Prevent sending SMS to phone-less customers
   if (!hasPhoneNumber(to)) {
     console.error('[SMS TRACE sendSms PHONE_REQUIRED]', {
@@ -213,7 +213,7 @@ export async function sendSms(
     });
     await logFailedMessage(business, to, message, options, 'No Twilio number assigned to business', 'NO_TWILIO_NUMBER', false);
     console.log('[SMS TRACE sendSms RETURN_NULL]', { reason: 'NO_TWILIO_NUMBER', business_id: business.id, requiresPhoneSid, hasPhoneNumber: !!business.twilio_phone_number, hasPhoneSid: !!business.twilio_phone_number_sid });
-    return { sid: null, messageId: null };
+    return { sid: null, messageId: null, reason: 'NO_TWILIO_NUMBER' };
   }
   console.log('[SMS TRACE sendSms STEP_5_COMPLETE]', { proceeding: true });
 

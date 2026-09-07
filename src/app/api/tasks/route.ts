@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[Tasks API] POST error:', error)
-      return NextResponse.json({ error: 'Failed to create task' }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to create reminder' }, { status: 500 })
     }
 
     const response: any = { task }
