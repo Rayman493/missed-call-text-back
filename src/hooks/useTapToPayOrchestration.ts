@@ -2580,6 +2580,67 @@ async function withTimeout<T>(
     clearTimeout(timeoutId)
   }
 }
+
+  // Reset all attempt-scoped JS and service state before a brand-new attempt.
+  const resetAttemptState = useCallback(async (reason: 'user_retry' | 'manual_reset' = 'user_retry') => {
+    console.log('[TTP Hook] RESET_ATTEMPT_STATE_STARTED', {
+      reason,
+      previousState: paymentStateRef.current,
+      timestamp: new Date().toISOString()
+    })
+    dispatchTTPEvent('RESET_ATTEMPT_STATE_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentStateRef.current, reason)
+
+    // Reset UI flags
+    setError('')
+    setStructuredError(null)
+    setMappedError(null)
+    autoRetryInProgress.current = false
+    connectionRetryAttempted.current = false
+    startInFlight.current = false
+    activeAttemptRef.current = false
+    activeAttemptIdRef.current = null
+    activeAttemptTokenRef.current = null
+    ambiguousReasonRef.current = null
+    setIsPaymentInProgress(false)
+    setLastResetReason(reason)
+
+    // Reset terminal service in-flight / attempt-scoped state so the next attempt starts clean
+    await terminalService.resetForRetry(reason)
+
+    // Clean-slate snapshot after reset
+    const cleanSlate = {
+      currentAttemptId: terminalService.getCurrentAttemptId(),
+      currentPaymentIntentId: terminalService.getPaymentIntentId(),
+      currentLocalPaymentId: terminalService.getLocalPaymentId(),
+      connectionStatus: terminalService.getConnectionStatus(),
+      paymentStatus: terminalService.getPaymentStatus(),
+      readerId: terminalService.getReaderId(),
+      lastAttemptOutcome: terminalService.getLastAttemptOutcome(),
+    }
+    try {
+      await logTapToPayEvent('TTP_RETRY_CLEAN_SLATE', {
+        phase: 'startup',
+        sessionId: terminalService.getSessionId(),
+        attemptId: cleanSlate.currentAttemptId || undefined,
+        source: 'orchestration',
+        paymentState: paymentStateRef.current,
+        stage: 'reset_attempt_state',
+        meta: {
+          ...cleanSlate,
+          pass: !cleanSlate.currentAttemptId && !cleanSlate.currentPaymentIntentId && !cleanSlate.currentLocalPaymentId,
+        },
+      })
+    } catch {}
+
+    updatePaymentStateRef('ready', reason)
+    console.log('[TTP Hook] RESET_ATTEMPT_STATE_COMPLETED', {
+      reason,
+      paymentState: paymentStateRef.current,
+      timestamp: new Date().toISOString()
+    })
+    dispatchTTPEvent('RESET_ATTEMPT_STATE_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentStateRef.current, reason)
+  }, [terminalService, updatePaymentStateRef])
+
   const cancelPayment = useCallback(async (reason: string = 'user_canceled') => {
     console.log('[QuickTTP UI] CANCEL_PAYMENT_CALLED', { reason, currentPaymentState: paymentState })
     dispatchTTPEvent('RESET_TRIGGERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentState, `cancelPayment:${reason}`)
@@ -2603,7 +2664,7 @@ async function withTimeout<T>(
     setMappedError(null)
   }, [updatePaymentStateRef, paymentState, lastSuccessfulStage, isPaymentInProgress])
 
-  // Retry payment
+  // Retry payment after a non-cancellation failure (e.g. connection/initialization error)
   const retryPayment = useCallback(async () => {
     console.log('[TTP Hook] RETRY_STARTED_AFTER_CONNECT_FAILURE', {
       previousState: paymentState,
@@ -2611,13 +2672,12 @@ async function withTimeout<T>(
       timestamp: new Date().toISOString()
     })
     dispatchTTPEvent('RETRY_STARTED_AFTER_CONNECT_FAILURE', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentState, 'retry_after_connect_failure')
-    setError('')
-    setStructuredError(null)
-    setMappedError(null)
-    await startPayment()
-  }, [startPayment, paymentState, lastSuccessfulStage])
 
-  // Retry after cancellation - dedicated function for clean cancellation retry
+    await resetAttemptState('user_retry')
+    await startPayment()
+  }, [resetAttemptState, startPayment, paymentState, lastSuccessfulStage, terminalService])
+
+  // Retry after cancellation - fully reset state, then start a brand-new payment attempt
   // Cleanup function for canceled attempts
   const cleanupCanceledAttempt = useCallback(async (paymentIntentId: string | undefined, attemptId: string | undefined) => {
     console.log('[TTP Hook] CANCELED_ATTEMPT_CLEANUP_STARTED', { paymentIntentId, attemptId })
@@ -2664,32 +2724,17 @@ async function withTimeout<T>(
     })
     dispatchTTPEvent('RETRY_AFTER_CANCELLATION_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentState, 'retry_after_cancellation')
 
-    // Clear cancellation-specific state
-    setError('')
-    setStructuredError(null)
-    setMappedError(null)
-    autoRetryInProgress.current = false
+    await resetAttemptState('user_retry')
 
-    // Clear all attempt flags to ensure setup controls return
-    startInFlight.current = false
-    activeAttemptRef.current = false
-    activeAttemptIdRef.current = null
-    activeAttemptTokenRef.current = null
-    setIsPaymentInProgress(false)
-
-    // Clear reset reason to avoid confusion
-    setLastResetReason('retry_after_cancellation')
-
-    // Transition to ready state (this will emit STATE_TRANSITION via updatePaymentStateRef)
-    updatePaymentStateRef('ready', 'retry_after_cancellation')
-
-    // Complete retry - do NOT auto-start payment
     console.log('[TTP Hook] RETRY_AFTER_CANCELLATION_COMPLETED', {
       paymentState: paymentStateRef.current,
       timestamp: new Date().toISOString()
     })
     dispatchTTPEvent('RETRY_AFTER_CANCELLATION_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentStateRef.current, 'retry_after_cancellation')
-  }, [updatePaymentStateRef, paymentState, terminalService])
+
+    // Start a brand-new attempt through the same canonical path as a first payment
+    await startPayment()
+  }, [resetAttemptState, startPayment, paymentState, terminalService])
 
   // Emergency reset function to clear all UI state
   const resetTapToPayUiState = useCallback((preserveSucceededAttempt: boolean = true) => {

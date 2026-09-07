@@ -181,6 +181,28 @@ export class TerminalBridgeService {
       initializeInFlight: this.initializeInFlight !== null,
     })
 
+    // Emit a single pass/fail clean-slate snapshot for retry investigations
+    try {
+      await logTapToPayEvent('TTP_RETRY_CLEAN_SLATE', {
+        phase: 'startup',
+        sessionId: this.sessionId,
+        attemptId: prevAttempt,
+        source: 'terminal_service',
+        paymentState: this.paymentStatus,
+        stage: 'reset_for_retry',
+        meta: {
+          currentAttemptId: this.currentAttemptId,
+          currentPaymentIntentId: this.currentPaymentIntentId,
+          currentLocalPaymentId: this.currentLocalPaymentId,
+          connectionStatus: this.connectionStatus,
+          paymentStatus: this.paymentStatus,
+          readerId: this.lastReaderId,
+          lastAttemptOutcome: this.getLastAttemptOutcome(),
+          pass: !this.currentAttemptId && !this.currentPaymentIntentId && !this.currentLocalPaymentId,
+        },
+      })
+    } catch {}
+
     // Do not disconnect; keep reader and initialized SDK
   }
 

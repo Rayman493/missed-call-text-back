@@ -8,6 +8,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { TerminalBridgeService } from '../service'
 import Terminal, { isNativeCapacitor } from '../index'
+import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
+
+// Mock diagnostic logging so retries can be asserted
+vi.mock('@/lib/tap-to-pay-diagnostics', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/tap-to-pay-diagnostics')>()
+  return {
+    ...actual,
+    logTapToPayEvent: vi.fn().mockResolvedValue(undefined),
+  }
+})
 
 // Mock the Terminal plugin
 vi.mock('../index', () => ({
@@ -62,6 +72,24 @@ describe('TerminalBridgeService - Cancel/Retry Regression', () => {
       expect((service as any).currentLocalPaymentId).toBeUndefined()
       expect((service as any).attemptStartMs).toBeNull()
       expect((service as any).currentPhase).toBeUndefined()
+    })
+
+    it('resetForRetry emits TTP_RETRY_CLEAN_SLATE with pass=true', async () => {
+      ;(service as any).currentAttemptId = 'attempt-123'
+      ;(service as any).currentPaymentIntentId = 'pi_123'
+      ;(service as any).currentLocalPaymentId = 'local-123'
+
+      await service.resetForRetry('user_retry')
+
+      const cleanSlateCalls = (vi.mocked(logTapToPayEvent) as any).mock.calls.filter(
+        (call: any[]) => call[0] === 'TTP_RETRY_CLEAN_SLATE'
+      )
+      expect(cleanSlateCalls.length).toBe(1)
+      const payload = cleanSlateCalls[0][1] as any
+      expect(payload.meta.currentAttemptId).toBeNull()
+      expect(payload.meta.currentPaymentIntentId).toBeUndefined()
+      expect(payload.meta.currentLocalPaymentId).toBeUndefined()
+      expect(payload.meta.pass).toBe(true)
     })
 
     it('cancel clears currentAttemptId synchronously', async () => {
