@@ -220,6 +220,16 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       payload.put("canceling", canceling);
       payload.put("hasPaymentCancelable", paymentCancelable != null);
       payload.put("hasPaymentOperationId", paymentOperationId != null);
+      payload.put("paymentOperationGeneration", paymentOperationGeneration);
+      payload.put("paymentCancelableGeneration", paymentCancelableGeneration);
+      payload.put("cancelOperationGeneration", cancelOperationGeneration);
+      if (cancelingOperationId != null) {
+        payload.put("cancelingOperationId", cancelingOperationId);
+        payload.put("cancelingOperationGeneration", cancelingOperationGeneration);
+      }
+      if (paymentCancelable != null) {
+        payload.put("paymentCancelableIsCompleted", paymentCancelable.isCompleted());
+      }
       if (correlationId != null && paymentOperationId != null) {
         payload.put("paymentOperationIdMatchesAttempt", paymentOperationId.equals(correlationId));
       }
@@ -305,10 +315,15 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   private volatile boolean readerRefreshNeeded = false;
   
   // Payment collection state
-  private com.stripe.stripeterminal.external.callable.Cancelable paymentCancelable = null;
+  private volatile com.stripe.stripeterminal.external.callable.Cancelable paymentCancelable = null;
   private volatile boolean collectingPayment = false;
   private volatile boolean canceling = false; // Block new collects until cancellation completes
-  private String paymentOperationId = null; // Operation token to prevent cross-attempt callback corruption
+  private volatile String paymentOperationId = null; // Operation token to prevent cross-attempt callback corruption
+  private volatile int paymentOperationGeneration = 0; // Monotonically increasing generation for each collect attempt
+  private volatile int paymentCancelableGeneration = 0; // Generation of the Cancelable currently/lastly assigned to a collect
+  private volatile int cancelOperationGeneration = 0; // Monotonically increasing generation for each cancel invocation
+  private volatile int cancelingOperationGeneration = 0; // Generation of the in-flight cancel invocation
+  private volatile String cancelingOperationId = null; // Operation id being canceled
 
   // Request-scoped token request tracking to handle concurrent requests safely
   private static class PendingTokenRequest {
@@ -1484,17 +1499,23 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       return;
     }
 
-    // Prevent duplicate payment collection and block while cancellation is in progress
-    if (collectingPayment || canceling) {
-      String reason = collectingPayment ? "payment_already_in_progress" : "cancellation_in_progress";
-      String code = collectingPayment ? "payment-already-in-progress" : "cancellation-in-progress";
-      Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=" + reason);
+    // Prevent duplicate payment collection, block while cancellation is in progress,
+    // and block until the previous collect's Cancelable has fully completed.
+    boolean previousCancelableIncomplete = paymentCancelable != null && !paymentCancelable.isCompleted();
+    if (collectingPayment || canceling || previousCancelableIncomplete) {
+      String reason = collectingPayment ? "payment_already_in_progress" : (canceling ? "cancellation_in_progress" : "previous_cancelable_not_completed");
+      String code = collectingPayment ? "payment-already-in-progress" : (canceling ? "cancellation-in-progress" : "previous-cancelable-not-completed");
+      Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=" + reason + " paymentCancelableIsCompleted=" + (paymentCancelable != null ? paymentCancelable.isCompleted() : "null"));
       connectOperationId = null;
-      JSObject guardInfo = new JSObject(); guardInfo.put("guardName", collectingPayment ? "collectingPayment" : "canceling"); guardInfo.put("collectingPayment", collectingPayment); guardInfo.put("canceling", canceling); guardInfo.put("reason", reason); guardInfo.put("hasPluginCall", call != null); emitDiag("TTP_NATIVE_ANDROID_COLLECT_GUARD_BLOCKED", "collect_payment", collectCorrelationId, guardInfo);
+      JSObject guardInfo = new JSObject(); guardInfo.put("guardName", collectingPayment ? "collectingPayment" : (canceling ? "canceling" : "paymentCancelable")); guardInfo.put("collectingPayment", collectingPayment); guardInfo.put("canceling", canceling); guardInfo.put("previousCancelableIncomplete", previousCancelableIncomplete); guardInfo.put("paymentCancelableIsCompleted", paymentCancelable != null ? paymentCancelable.isCompleted() : null); guardInfo.put("reason", reason); guardInfo.put("hasPluginCall", call != null); emitDiag("TTP_NATIVE_ANDROID_COLLECT_GUARD_BLOCKED", "collect_payment", collectCorrelationId, guardInfo);
       emitPluginCallResult(call, "collect_payment", collectCorrelationId, "guard_" + reason, false);
       call.reject(code);
       return;
     }
+
+    // Advance generation for this collect attempt before setting the operation token.
+    paymentOperationGeneration++;
+    int collectGeneration = paymentOperationGeneration;
 
     String clientSecret = call.getString("clientSecret");
     String terminalAttemptId = call.getString("terminalAttemptId");
@@ -1520,7 +1541,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
     // Set operation token to prevent old cancel callbacks from clearing new attempt state
     paymentOperationId = collectCorrelationId;
-    Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_id_set operationId=" + paymentOperationId);
+    Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_id_set operationId=" + paymentOperationId + " operationGeneration=" + collectGeneration);
 
     Log.d(TAG, "[PAYMENT_TRACE] stage=retrieve_payment_intent_start");
     Log.d(TAG, "[TAP_SESSION_TRACE] stage=retrieve_start ts=" + System.currentTimeMillis());
@@ -1712,10 +1733,13 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         }
       );
       paymentCancelable = newCollectCancelable;
-      Log.d(TAG, "[TTP_NATIVE_ANDROID_STRIPE_COLLECT_STARTED] attemptId=" + correlationId + " cancelable_created=" + (newCollectCancelable != null));
+      paymentCancelableGeneration = paymentOperationGeneration;
+      Log.d(TAG, "[TTP_NATIVE_ANDROID_STRIPE_COLLECT_STARTED] attemptId=" + correlationId + " cancelable_created=" + (newCollectCancelable != null) + " paymentOperationGeneration=" + paymentOperationGeneration + " paymentCancelableGeneration=" + paymentCancelableGeneration);
       JSObject startedMore = new JSObject();
       startedMore.put("cancelableCreated", newCollectCancelable != null);
       startedMore.put("hasPluginCall", originalCall != null);
+      startedMore.put("paymentOperationGeneration", paymentOperationGeneration);
+      startedMore.put("paymentCancelableGeneration", paymentCancelableGeneration);
       emitDiag("TTP_NATIVE_ANDROID_STRIPE_COLLECT_STARTED", "collect_payment", correlationId, startedMore);
     } catch (Exception e) {
       Log.e(TAG, "[PAYMENT_TRACE] Exception in collectPaymentMethod", e);
@@ -1852,100 +1876,146 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     canceling = true;
 
     // Cancel ongoing payment collection with operation token to prevent cross-attempt callback corruption
+    cancelOperationGeneration++;
+    cancelingOperationGeneration = cancelOperationGeneration;
+    cancelingOperationId = paymentOperationId;
+
     if (paymentCancelable != null) {
       final com.stripe.stripeterminal.external.callable.Cancelable activeCancelable = paymentCancelable;
-      final String cancelingOperationId = paymentOperationId; // Capture operation token before nulling
+      final String cancelingOperationIdCapture = paymentOperationId;
+      final int canceledPaymentCancelableGeneration = paymentCancelableGeneration;
+      final int cancelingOperationGenerationCapture = cancelingOperationGeneration;
       paymentCancelable = null; // Clear field to allow new attempt to set its own after cancellation
-      Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_start cancelingOperationId=" + cancelingOperationId);
+      Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_start cancelingOperationId=" + cancelingOperationIdCapture + " cancelingOperationGeneration=" + cancelingOperationGenerationCapture + " paymentCancelableIsCompleted=" + activeCancelable.isCompleted() + " paymentCancelableGeneration=" + canceledPaymentCancelableGeneration);
       JSObject cancelInvokeInfo = new JSObject();
-      cancelInvokeInfo.put("cancelingOperationId", cancelingOperationId);
+      cancelInvokeInfo.put("cancelingOperationId", cancelingOperationIdCapture);
+      cancelInvokeInfo.put("cancelingOperationGeneration", cancelingOperationGenerationCapture);
+      cancelInvokeInfo.put("canceledPaymentCancelableGeneration", canceledPaymentCancelableGeneration);
+      cancelInvokeInfo.put("paymentCancelableIsCompleted", activeCancelable.isCompleted());
       cancelInvokeInfo.put("hasPaymentCancelable", activeCancelable != null);
       cancelInvokeInfo.put("hasPluginCall", call != null);
       emitDiag("TTP_NATIVE_ANDROID_CANCEL_INVOKED", "cancel", cancelCorrelationId, cancelInvokeInfo);
-      activeCancelable.cancel(new com.stripe.stripeterminal.external.callable.Callback() {
-        @Override
-        public void onSuccess() {
-          // CRITICAL: canceling must always be cleared when the cancel request completes,
-          // regardless of operation token, otherwise retry collect will be blocked forever.
-          canceling = false;
-          Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_success operationId=" + cancelingOperationId);
-          emitDiag("TTP_NATIVE_ANDROID_CANCEL_CALLBACK_SUCCESS", "cancel", cancelCorrelationId, new JSObject().put("cancelingOperationId", cancelingOperationId).put("currentOperationId", paymentOperationId));
 
-          // Only clear active collect state if this callback still belongs to the current operation.
-          // If a new collect already started, leave its state alone.
-          if (cancelingOperationId != null && cancelingOperationId.equals(paymentOperationId)) {
-            collectingPayment = false;
-            paymentOperationId = null; // Clear operation token on completion
-            status = "ready";
-            setOperationState(OperationState.IDLE, "cancel_success");
-            readerRefreshNeeded = true;
-            emitDiag("TTP_READER_REFRESH_MARKED", "cancel", cancelCorrelationId, new JSObject().put("reason", "cancel_success").put("readerRefreshNeeded", readerRefreshNeeded));
-            setKeepScreenOn(false);
-            notifyListeners("statusChanged", new JSObject().put("status", status));
-            notifyListeners("paymentStatusChanged", new JSObject().put("status", "canceled"));
-            emitDiag("cancel_completed", "cancel", cancelCorrelationId, null);
+      // Stripe Terminal 5.x has known Cancelable lifecycle races (SDK #702/#709/#712).
+      // If the Cancelable is already completed, calling cancel() can silently drop callbacks.
+      // Settle state immediately instead of asking the SDK to cancel a finished operation.
+      if (activeCancelable.isCompleted()) {
+        Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_already_completed operationId=" + cancelingOperationIdCapture);
+        canceling = false;
+        cancelingOperationId = null;
+        cancelingOperationGeneration = 0;
+        collectingPayment = false;
+        paymentOperationId = null;
+        status = "ready";
+        setOperationState(OperationState.IDLE, "cancel_already_completed");
+        readerRefreshNeeded = true;
+        emitDiag("TTP_READER_REFRESH_MARKED", "cancel", cancelCorrelationId, new JSObject().put("reason", "cancel_already_completed").put("readerRefreshNeeded", readerRefreshNeeded));
+        setKeepScreenOn(false);
+        notifyListeners("statusChanged", new JSObject().put("status", status));
+        notifyListeners("paymentStatusChanged", new JSObject().put("status", "canceled"));
+        emitDiag("cancel_completed", "cancel", cancelCorrelationId, null);
 
-            // Resolve the PluginCall only after cancellation completes
-            JSObject ret = new JSObject();
-            ret.put("status", status);
-            connectOperationId = null;
-            if (!call.isReleased()) {
-              call.resolve(ret);
-              emitPluginCallResult(call, "cancel", cancelCorrelationId, "cancel_success", true);
-            } else {
-              emitPluginCallResult(call, "cancel", cancelCorrelationId, "cancel_success", true);
-            }
-          } else {
-            Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_success_stale_callback operationId=" + cancelingOperationId + " currentOperationId=" + paymentOperationId);
-            emitDiag("TTP_NATIVE_ANDROID_CANCEL_CALLBACK_STALE", "cancel", cancelCorrelationId, new JSObject().put("cancelingOperationId", cancelingOperationId).put("currentOperationId", paymentOperationId));
-          }
+        JSObject ret = new JSObject();
+        ret.put("status", status);
+        connectOperationId = null;
+        if (!call.isReleased()) {
+          call.resolve(ret);
+          emitPluginCallResult(call, "cancel", cancelCorrelationId, "cancel_already_completed", true);
+        } else {
+          emitPluginCallResult(call, "cancel", cancelCorrelationId, "cancel_already_completed", true);
         }
+      } else {
+        activeCancelable.cancel(new com.stripe.stripeterminal.external.callable.Callback() {
+          @Override
+          public void onSuccess() {
+            // CRITICAL: canceling must always be cleared when the cancel request completes,
+            // regardless of operation token, otherwise retry collect will be blocked forever.
+            canceling = false;
+            cancelingOperationId = null;
+            cancelingOperationGeneration = 0;
+            Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_success operationId=" + cancelingOperationIdCapture + " operationGeneration=" + cancelingOperationGenerationCapture);
+            emitDiag("TTP_NATIVE_ANDROID_CANCEL_CALLBACK_SUCCESS", "cancel", cancelCorrelationId, new JSObject().put("cancelingOperationId", cancelingOperationIdCapture).put("cancelingOperationGeneration", cancelingOperationGenerationCapture).put("canceledPaymentCancelableGeneration", canceledPaymentCancelableGeneration).put("currentPaymentOperationId", paymentOperationId).put("currentPaymentOperationGeneration", paymentOperationGeneration).put("currentPaymentCancelableGeneration", paymentCancelableGeneration));
 
-        @Override
-        public void onFailure(@NonNull TerminalException e) {
-          // CRITICAL: canceling must always be cleared when the cancel request completes.
-          canceling = false;
-          Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_failure operationId=" + cancelingOperationId + " error_code=" + e.getErrorCode());
-          emitDiag("TTP_NATIVE_ANDROID_CANCEL_CALLBACK_ERROR", "cancel", cancelCorrelationId, new JSObject().put("cancelingOperationId", cancelingOperationId).put("currentOperationId", paymentOperationId).put("code", e.getErrorCode() != null ? e.getErrorCode().toString() : "").put("message", e.getMessage()));
+            // Only clear active collect state if this callback still belongs to the current operation.
+            // If a new collect already started, leave its state alone.
+            if (cancelingOperationIdCapture != null && cancelingOperationIdCapture.equals(paymentOperationId) && canceledPaymentCancelableGeneration == paymentCancelableGeneration) {
+              collectingPayment = false;
+              paymentOperationId = null; // Clear operation token on completion
+              status = "ready";
+              setOperationState(OperationState.IDLE, "cancel_success");
+              readerRefreshNeeded = true;
+              emitDiag("TTP_READER_REFRESH_MARKED", "cancel", cancelCorrelationId, new JSObject().put("reason", "cancel_success").put("readerRefreshNeeded", readerRefreshNeeded));
+              setKeepScreenOn(false);
+              notifyListeners("statusChanged", new JSObject().put("status", status));
+              notifyListeners("paymentStatusChanged", new JSObject().put("status", "canceled"));
+              emitDiag("cancel_completed", "cancel", cancelCorrelationId, null);
 
-          // Only clear active collect state if this callback still belongs to the current operation.
-          if (cancelingOperationId != null && cancelingOperationId.equals(paymentOperationId)) {
-            // Even if cancel fails, clear flags to allow retry
-            // The Stripe SDK will handle the actual cleanup
-            collectingPayment = false;
-            paymentOperationId = null; // Clear operation token on completion
-            status = "ready";
-            setOperationState(OperationState.IDLE, "cancel_failure");
-            readerRefreshNeeded = true;
-            emitDiag("TTP_READER_REFRESH_MARKED", "cancel", cancelCorrelationId, new JSObject().put("reason", "cancel_failure").put("readerRefreshNeeded", readerRefreshNeeded));
-            setKeepScreenOn(false);
-            JSObject err = createStructuredError("cancel_payment", e);
-            err.put("deviceState", captureDeviceState());
-            notifyListeners("error", err);
-            JSObject d = new JSObject(); if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString()); d.put("message", e.getMessage()); emitDiag("cancel_failed", "cancel", cancelCorrelationId, d);
-
-            // Resolve the PluginCall even on failure to allow retry
-            JSObject ret = new JSObject();
-            ret.put("status", status);
-            ret.put("error", err);
-            connectOperationId = null;
-            if (!call.isReleased()) {
-              call.resolve(ret);
-              emitPluginCallResult(call, "cancel", cancelCorrelationId, "cancel_failure", true);
+              // Resolve the PluginCall only after cancellation completes
+              JSObject ret = new JSObject();
+              ret.put("status", status);
+              connectOperationId = null;
+              if (!call.isReleased()) {
+                call.resolve(ret);
+                emitPluginCallResult(call, "cancel", cancelCorrelationId, "cancel_success", true);
+              } else {
+                emitPluginCallResult(call, "cancel", cancelCorrelationId, "cancel_success", true);
+              }
             } else {
-              emitPluginCallResult(call, "cancel", cancelCorrelationId, "cancel_failure", true);
+              Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_success_stale_callback operationId=" + cancelingOperationIdCapture + " currentOperationId=" + paymentOperationId + " canceledPaymentCancelableGeneration=" + canceledPaymentCancelableGeneration + " currentPaymentCancelableGeneration=" + paymentCancelableGeneration);
+              emitDiag("TTP_NATIVE_ANDROID_CANCEL_CALLBACK_STALE", "cancel", cancelCorrelationId, new JSObject().put("cancelingOperationId", cancelingOperationIdCapture).put("cancelingOperationGeneration", cancelingOperationGenerationCapture).put("canceledPaymentCancelableGeneration", canceledPaymentCancelableGeneration).put("currentPaymentOperationId", paymentOperationId).put("currentPaymentOperationGeneration", paymentOperationGeneration).put("currentPaymentCancelableGeneration", paymentCancelableGeneration));
             }
-          } else {
-            Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_failure_stale_callback operationId=" + cancelingOperationId + " currentOperationId=" + paymentOperationId);
-            emitDiag("TTP_NATIVE_ANDROID_CANCEL_CALLBACK_STALE", "cancel", cancelCorrelationId, new JSObject().put("cancelingOperationId", cancelingOperationId).put("currentOperationId", paymentOperationId));
           }
-        }
-      });
+
+          @Override
+          public void onFailure(@NonNull TerminalException e) {
+            // CRITICAL: canceling must always be cleared when the cancel request completes.
+            canceling = false;
+            cancelingOperationId = null;
+            cancelingOperationGeneration = 0;
+            Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_failure operationId=" + cancelingOperationIdCapture + " operationGeneration=" + cancelingOperationGenerationCapture + " error_code=" + e.getErrorCode());
+            emitDiag("TTP_NATIVE_ANDROID_CANCEL_CALLBACK_ERROR", "cancel", cancelCorrelationId, new JSObject().put("cancelingOperationId", cancelingOperationIdCapture).put("cancelingOperationGeneration", cancelingOperationGenerationCapture).put("canceledPaymentCancelableGeneration", canceledPaymentCancelableGeneration).put("currentPaymentOperationId", paymentOperationId).put("currentPaymentOperationGeneration", paymentOperationGeneration).put("currentPaymentCancelableGeneration", paymentCancelableGeneration).put("code", e.getErrorCode() != null ? e.getErrorCode().toString() : "").put("message", e.getMessage()));
+
+            // Only clear active collect state if this callback still belongs to the current operation.
+            if (cancelingOperationIdCapture != null && cancelingOperationIdCapture.equals(paymentOperationId) && canceledPaymentCancelableGeneration == paymentCancelableGeneration) {
+              // Even if cancel fails, clear flags to allow retry
+              // The Stripe SDK will handle the actual cleanup
+              collectingPayment = false;
+              paymentOperationId = null; // Clear operation token on completion
+              status = "ready";
+              setOperationState(OperationState.IDLE, "cancel_failure");
+              readerRefreshNeeded = true;
+              emitDiag("TTP_READER_REFRESH_MARKED", "cancel", cancelCorrelationId, new JSObject().put("reason", "cancel_failure").put("readerRefreshNeeded", readerRefreshNeeded));
+              setKeepScreenOn(false);
+              JSObject err = createStructuredError("cancel_payment", e);
+              err.put("deviceState", captureDeviceState());
+              notifyListeners("error", err);
+              JSObject d = new JSObject(); if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString()); d.put("message", e.getMessage()); emitDiag("cancel_failed", "cancel", cancelCorrelationId, d);
+
+              // Resolve the PluginCall even on failure to allow retry
+              JSObject ret = new JSObject();
+              ret.put("status", status);
+              ret.put("error", err);
+              connectOperationId = null;
+              if (!call.isReleased()) {
+                call.resolve(ret);
+                emitPluginCallResult(call, "cancel", cancelCorrelationId, "cancel_failure", true);
+              } else {
+                emitPluginCallResult(call, "cancel", cancelCorrelationId, "cancel_failure", true);
+              }
+            } else {
+              Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_failure_stale_callback operationId=" + cancelingOperationIdCapture + " currentOperationId=" + paymentOperationId + " canceledPaymentCancelableGeneration=" + canceledPaymentCancelableGeneration + " currentPaymentCancelableGeneration=" + paymentCancelableGeneration);
+              emitDiag("TTP_NATIVE_ANDROID_CANCEL_CALLBACK_STALE", "cancel", cancelCorrelationId, new JSObject().put("cancelingOperationId", cancelingOperationIdCapture).put("cancelingOperationGeneration", cancelingOperationGenerationCapture).put("canceledPaymentCancelableGeneration", canceledPaymentCancelableGeneration).put("currentPaymentOperationId", paymentOperationId).put("currentPaymentOperationGeneration", paymentOperationGeneration).put("currentPaymentCancelableGeneration", paymentCancelableGeneration));
+            }
+          }
+        });
+      }
     } else {
       // No active cancelable - clear flags immediately and resolve
       Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_no_active_cancelable");
       collectingPayment = false;
       canceling = false;
+      cancelingOperationId = null;
+      cancelingOperationGeneration = 0;
       paymentOperationId = null;
       status = "ready";
       setOperationState(OperationState.IDLE, "cancel_noop");
