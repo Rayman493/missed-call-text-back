@@ -757,6 +757,13 @@ public class MainActivity extends BridgeActivity {
         Log.d(TAG, "[NATIVE_CHECKOUT_CANCEL] onStop_fired=true");
     }
 
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        Log.d(TAG, "[RF_STRIPE_RETURN] onWindowFocusChanged instance=" + activityInstanceId + " hasFocus=" + hasFocus);
+        ReplyflowStripeTerminalPlugin.onHostWindowFocusChanged(this, hasFocus);
+    }
+
     /**
      * Check if a URI is a ReplyFlow App Link
      */

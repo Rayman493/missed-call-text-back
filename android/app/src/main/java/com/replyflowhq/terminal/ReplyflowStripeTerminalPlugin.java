@@ -66,6 +66,16 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   private static final String TAG = "ReplyflowStripeTerminal";
   private static final String BUILD_MARKER = "TTP_2026_08_03_ORCHESTRATION_FIX";
 
+  // Singleton reference for host Activity lifecycle telemetry. Updated in load().
+  private static volatile ReplyflowStripeTerminalPlugin sInstance = null;
+  // Host Activity state captured from the main thread (set by MainActivity and lifecycle callbacks)
+  private static volatile String hostActivityInstanceId = null;
+  private static volatile boolean hostActivityResumed = false;
+  private static volatile boolean hostActivityHasWindowFocus = false;
+  private static volatile boolean hostActivityIsFinishing = false;
+  private static volatile boolean hostActivityIsDestroyed = false;
+  private static volatile int hostActivityTaskId = -1;
+
   // Request ID for permission correlation
   private String locationPermissionRequestId = null;
 
@@ -129,8 +139,66 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   @Override
   public void load() {
     super.load();
+    sInstance = this;
     Log.d(TAG, "[PLUGIN] ReplyflowStripeTerminalPlugin.load() executed - plugin loaded successfully");
     Log.d(TAG, "[PLUGIN] Build marker: " + BUILD_MARKER);
+  }
+
+  // Host Activity lifecycle telemetry — called from MainActivity on the main thread.
+  public static void onHostActivityResumed(android.app.Activity activity) {
+    if (activity == null) return;
+    hostActivityResumed = true;
+    hostActivityIsFinishing = activity.isFinishing();
+    hostActivityIsDestroyed = activity.isDestroyed();
+    hostActivityTaskId = activity.getTaskId();
+    hostActivityInstanceId = Integer.toHexString(System.identityHashCode(activity));
+    if (sInstance != null) {
+      sInstance.emitDiag("TTP_ANDROID_ACTIVITY_RESUMED", "host_activity", null,
+        new JSObject().put("activityInstanceId", hostActivityInstanceId).put("taskId", hostActivityTaskId));
+    }
+  }
+
+  public static void onHostActivityPaused(android.app.Activity activity) {
+    hostActivityResumed = false;
+    if (sInstance != null) {
+      sInstance.emitDiag("TTP_ANDROID_ACTIVITY_PAUSED", "host_activity", null,
+        new JSObject().put("activityInstanceId", hostActivityInstanceId).put("taskId", hostActivityTaskId));
+    }
+  }
+
+  public static void onHostWindowFocusChanged(android.app.Activity activity, boolean hasFocus) {
+    if (activity == null) return;
+    hostActivityHasWindowFocus = hasFocus;
+    hostActivityIsFinishing = activity.isFinishing();
+    hostActivityIsDestroyed = activity.isDestroyed();
+    if (sInstance != null) {
+      sInstance.emitDiag("TTP_ANDROID_WINDOW_FOCUS", "host_activity", null,
+        new JSObject().put("hasFocus", hasFocus).put("activityInstanceId", hostActivityInstanceId).put("taskId", hostActivityTaskId));
+    }
+  }
+
+  public static void onHostActivityDestroyed(android.app.Activity activity) {
+    if (activity == null) return;
+    hostActivityIsDestroyed = true;
+    hostActivityResumed = false;
+    hostActivityHasWindowFocus = false;
+    if (sInstance != null) {
+      sInstance.emitDiag("TTP_ANDROID_ACTIVITY_DESTROYED", "host_activity", null,
+        new JSObject().put("activityInstanceId", hostActivityInstanceId).put("taskId", hostActivityTaskId));
+    }
+  }
+
+  private JSObject captureHostActivityState() {
+    JSObject state = new JSObject();
+    state.put("hostActivityResumed", hostActivityResumed);
+    state.put("hostActivityHasWindowFocus", hostActivityHasWindowFocus);
+    state.put("hostActivityIsFinishing", hostActivityIsFinishing);
+    state.put("hostActivityIsDestroyed", hostActivityIsDestroyed);
+    state.put("hostActivityInstanceId", hostActivityInstanceId);
+    state.put("hostActivityTaskId", hostActivityTaskId);
+    state.put("threadName", Thread.currentThread().getName());
+    state.put("isMainThread", android.os.Looper.getMainLooper().isCurrentThread());
+    return state;
   }
 
   // Emit sanitized diagnostics to JS so the app can persist in-app and forward to server logs
@@ -202,11 +270,13 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   @Override
   protected void handleOnResume() {
     super.handleOnResume();
+    onHostActivityResumed(getActivity());
     Log.d(TAG, "[APP_LIFECYCLE] onResume collecting=" + collectingPayment + " discovering=" + discovering + " status=" + status + " operation_state=" + operationState);
   }
 
   @Override
   protected void handleOnPause() {
+    onHostActivityPaused(getActivity());
     Log.d(TAG, "[APP_LIFECYCLE] onPause collecting=" + collectingPayment + " discovering=" + discovering + " status=" + status + " operation_state=" + operationState);
     super.handleOnPause();
   }
@@ -219,6 +289,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
   @Override
   public void handleOnDestroy() {
+    onHostActivityDestroyed(getActivity());
     Log.d(TAG, "[APP_LIFECYCLE] onDestroy collecting=" + collectingPayment + " discovering=" + discovering + " status=" + status + " operation_state=" + operationState);
     super.handleOnDestroy();
   }
@@ -1382,6 +1453,10 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     Log.d(TAG, "[TAP_SESSION_TRACE] stage=payment_start ts=" + System.currentTimeMillis());
     emitDiag("collect_payment_called", "collect_payment", collectCorrelationId, null);
 
+    // Host Activity presentation-lifecycle telemetry. Captured at the JS→native boundary
+    // so we can correlate Activity focus/resume state with whether the Stripe contactless UI presents.
+    emitDiag("TTP_ANDROID_HOST_ACTIVITY_STATE", "collect_payment", collectCorrelationId, captureHostActivityState());
+
     // Authoritative native entry telemetry for retry investigations
     // emitDiag() includes sanitized base state; add only collect-specific extras here
     JSObject entryState = new JSObject();
@@ -1519,6 +1594,10 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     emitDiag("TTP_NATIVE_ANDROID_BEFORE_STRIPE_COLLECT", "collect_payment", correlationId, beforeCollectState);
 
     try {
+      // Capture host state immediately before asking Stripe to present the contactless activity.
+      // If the Activity is not resumed/focused at this point, the Stripe SDK may cancel immediately.
+      emitDiag("TTP_ANDROID_BEFORE_CONTACTLESS_PRESENTATION", "collect_payment", correlationId, captureHostActivityState());
+
       com.stripe.stripeterminal.external.callable.Cancelable newCollectCancelable = Terminal.getInstance().collectPaymentMethod(
         paymentIntent,
         new PaymentIntentCallback() {
