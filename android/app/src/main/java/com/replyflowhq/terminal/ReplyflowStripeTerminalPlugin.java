@@ -47,7 +47,6 @@ import com.stripe.stripeterminal.external.models.DiscoveryConfiguration.TapToPay
 import com.stripe.stripeterminal.external.models.ConnectionConfiguration.TapToPayConnectionConfiguration;
 import com.stripe.stripeterminal.external.models.PaymentIntent;
 import com.stripe.stripeterminal.external.models.PaymentIntentStatus;
-import com.stripe.stripeterminal.external.models.LocaleConfig;
 import com.stripe.stripeterminal.external.callable.PaymentIntentCallback;
 import java.util.Locale;
 
@@ -314,9 +313,6 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
     try {
       Log.d(TAG, "[TTP ANDROID] Calling Terminal.init()...");
-      // The SDK 5.7.0 documentation mentions LocaleConfig but the actual API differs from docs
-      // Try using the deprecated overload without LocaleConfig since the new API is not available
-      Log.d(TAG, "[STRIPE_TERMINAL_INIT] Using deprecated Terminal.init() overload (without LocaleConfig)");
       Log.d(TAG, "[STRIPE_TERMINAL_INIT] Device locale: " + localeIdentifier);
 
       Terminal.init(
