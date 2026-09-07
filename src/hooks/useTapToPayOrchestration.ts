@@ -2580,16 +2580,27 @@ async function withTimeout<T>(
     clearTimeout(timeoutId)
   }
 }
-  const cancelPayment = useCallback((reason: string = 'user_canceled') => {
+  const cancelPayment = useCallback(async (reason: string = 'user_canceled') => {
     console.log('[QuickTTP UI] CANCEL_PAYMENT_CALLED', { reason, currentPaymentState: paymentState })
     dispatchTTPEvent('RESET_TRIGGERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentState, `cancelPayment:${reason}`)
     setIsPaymentInProgress(false)
-            permissionLock.setTapToPayActive(false)
+    permissionLock.setTapToPayActive(false)
+    autoRetryInProgress.current = false
+
+    // Ensure the native Terminal collection is actually canceled before marking the UI as canceled.
+    // Without this, the next Tap to Pay attempt can be rejected by native guards because the
+    // previous collect operation is still active.
+    try {
+      await terminalService.cancel()
+      console.log('[QuickTTP UI] NATIVE_CANCEL_COMPLETED', { reason, currentPaymentState: paymentState })
+    } catch (cancelError) {
+      console.error('[QuickTTP UI] NATIVE_CANCEL_FAILED', cancelError)
+    }
+
     updatePaymentStateRef('canceled', reason)
     setError('')
     setStructuredError(null)
     setMappedError(null)
-    autoRetryInProgress.current = false
   }, [updatePaymentStateRef, paymentState, lastSuccessfulStage, isPaymentInProgress])
 
   // Retry payment
