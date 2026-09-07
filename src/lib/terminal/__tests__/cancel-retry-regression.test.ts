@@ -209,4 +209,76 @@ describe('TerminalBridgeService - Cancel/Retry Regression', () => {
       expect((service as any).currentPaymentIntentId).toBe('pi_2')
     })
   })
+
+  describe('reader refresh handoff', () => {
+    beforeEach(() => {
+      vi.mocked(isNativeCapacitor).mockReturnValue(true)
+      vi.resetModules()
+      service = TerminalBridgeService.getInstance()
+      vi.mocked(Terminal.addListener).mockResolvedValue({ remove: vi.fn() } as any)
+      ;(service as any).fetchTerminalLocation = vi.fn().mockResolvedValue({ locationId: 'tml_123' })
+    })
+
+    it('ensureReaderReady calls native even when JS thinks connected', async () => {
+      vi.mocked(Terminal.connectTapToPay).mockResolvedValue({
+        status: 'connected',
+        readerId: 'rdr_1',
+        readerType: 'TAP_TO_PAY',
+      } as any)
+
+      ;(service as any).connectionStatus = 'connected'
+      ;(service as any).lastReaderId = 'rdr_1'
+
+      const result = await service.ensureReaderReady()
+
+      expect(Terminal.connectTapToPay).toHaveBeenCalledTimes(1)
+      expect(result.status).toBe('connected')
+    })
+
+    it('connectTapToPay does not short-circuit from cached connected state', async () => {
+      vi.mocked(Terminal.connectTapToPay).mockResolvedValue({
+        status: 'connected',
+        readerId: 'rdr_2',
+        readerType: 'TAP_TO_PAY',
+      } as any)
+
+      ;(service as any).connectionStatus = 'connected'
+      ;(service as any).lastReaderId = 'rdr_2'
+
+      await service.connectTapToPay()
+
+      expect(Terminal.connectTapToPay).toHaveBeenCalledTimes(1)
+    })
+
+    it('ensureReaderReady returns in-flight promise without re-calling native', async () => {
+      vi.mocked(Terminal.connectTapToPay).mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve({ status: 'connected' }), 10))
+      )
+
+      const p1 = service.ensureReaderReady()
+      const p2 = service.ensureReaderReady()
+
+      const [r1, r2] = await Promise.all([p1, p2])
+      expect(r1.status).toBe('connected')
+      expect(r2.status).toBe('connected')
+      expect(Terminal.connectTapToPay).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not skip readiness solely because connectionStatus is connected', async () => {
+      vi.mocked(Terminal.connectTapToPay).mockResolvedValue({
+        status: 'connected',
+        readerId: 'rdr_4',
+        readerType: 'TAP_TO_PAY',
+      } as any)
+
+      // Simulate stale JS state that used to cause the short-circuit
+      ;(service as any).connectionStatus = 'connected'
+      ;(service as any).lastReaderId = 'rdr_4'
+
+      const result = await service.ensureReaderReady()
+
+      expect(Terminal.connectTapToPay).toHaveBeenCalled()
+      expect(result.status).toBe('connected')
+    })
+  })
 })

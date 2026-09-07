@@ -768,16 +768,19 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     if (readerRefreshNeeded) {
       // A prior payment reached a terminal state; do not reuse the connected reader session
       Log.d(TAG, "[READER_REFRESH] terminal state requires clean session operationId=" + connectOperationId + " lastReaderId=" + lastConnectedReaderId);
-      emitDiag("reader_refresh_required", "connect_reader", connectCorrelationId, new JSObject().put("readerConnected", stripeConnectedReader != null).put("lastConnectedReaderId", lastConnectedReaderId));
+      emitDiag("TTP_NATIVE_READER_REFRESH_ENTRY", "connect_reader", connectCorrelationId, new JSObject().put("readerConnected", stripeConnectedReader != null).put("lastConnectedReaderId", lastConnectedReaderId));
       if (stripeConnectedReader != null) {
+        emitDiag("TTP_NATIVE_READER_REFRESH_DISCONNECT_STARTED", "connect_reader", connectCorrelationId, new JSObject().put("readerId", stripeConnectedReader.getId()).put("lastConnectedReaderId", lastConnectedReaderId));
         Terminal.getInstance().disconnectReader(new com.stripe.stripeterminal.external.callable.Callback() {
           @Override
           public void onSuccess() {
             Log.d(TAG, "[READER_REFRESH] disconnect success operationId=" + connectOperationId);
+            emitDiag("TTP_NATIVE_READER_REFRESH_DISCONNECT_COMPLETED", "connect_reader", connectCorrelationId, new JSObject().put("success", true));
           }
           @Override
           public void onFailure(@NonNull TerminalException e) {
             Log.w(TAG, "[READER_REFRESH] disconnect failed operationId=" + connectOperationId + " error=" + e.getMessage());
+            emitDiag("TTP_NATIVE_READER_REFRESH_DISCONNECT_COMPLETED", "connect_reader", connectCorrelationId, new JSObject().put("success", false).put("code", e.getErrorCode() != null ? e.getErrorCode().toString() : null).put("message", e.getMessage()));
           }
         });
       }
@@ -857,6 +860,9 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     notifyListeners("statusChanged", new JSObject().put("status", status));
     Log.d(TAG, "[TAP_SESSION_TRACE] stage=discover_start ts=" + System.currentTimeMillis());
     emitDiag("discover_readers_started", "discover", connectCorrelationId, null);
+    if (readerRefreshNeeded) {
+      emitDiag("TTP_NATIVE_READER_REFRESH_REDISCOVERY_STARTED", "discover", connectCorrelationId, new JSObject().put("lastConnectedReaderId", lastConnectedReaderId));
+    }
 
     // Create Tap to Pay discovery configuration
     DiscoveryConfiguration cfg = new DiscoveryConfiguration.TapToPayDiscoveryConfiguration(
@@ -1044,8 +1050,14 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             if (readerAfterError != null) {
               // Reader now exists - race recovery: treat as success
               Log.d(TAG, "[TAP_SESSION_TRACE] race_recovery reader_connected=" + readerAfterError.getId());
+              boolean wasRefreshNeeded = readerRefreshNeeded;
               connectedReader = readerAfterError;
+              lastConnectedReaderId = readerAfterError.getId();
+              readerRefreshNeeded = false;
               status = "connected";
+              if (wasRefreshNeeded) {
+                emitDiag("TTP_NATIVE_READER_REFRESH_COMPLETED", "connect_reader", connectCorrelationId, new JSObject().put("readerId", readerAfterError.getId()).put("recoveryReason", "discovery_race_recovery"));
+              }
               notifyListeners("statusChanged", new JSObject().put("status", status));
 
               JSObject readerInfo = new JSObject();
@@ -1174,10 +1186,14 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             emitDiag("stale_connect_callback_ignored", "connect_reader", correlationId, stale);
             return;
           }
+          boolean wasRefreshNeeded = readerRefreshNeeded;
           ReplyflowStripeTerminalPlugin.this.connectedReader = connectedReader;
           lastConnectedReaderId = connectedReader.getId();
           readerRefreshNeeded = false;
           status = "connected";
+          if (wasRefreshNeeded) {
+            emitDiag("TTP_NATIVE_READER_REFRESH_COMPLETED", "connect_reader", correlationId, new JSObject().put("readerId", connectedReader.getId()).put("recoveryReason", "fresh_connect"));
+          }
           Log.d(TAG, "[TAP_SESSION_TRACE] stage=reader_connected reader_id=" + connectedReader.getId() + " ts=" + System.currentTimeMillis());
 
           JSObject readerInfo = new JSObject();
@@ -1215,10 +1231,14 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             Reader r = Terminal.getInstance().getConnectedReader();
             if (r != null) {
               // Complete the same success contract as normal onSuccess callback
+              boolean wasRefreshNeeded = readerRefreshNeeded;
               ReplyflowStripeTerminalPlugin.this.connectedReader = r;
               lastConnectedReaderId = r.getId();
               readerRefreshNeeded = false;
               status = "connected";
+              if (wasRefreshNeeded) {
+                emitDiag("TTP_NATIVE_READER_REFRESH_COMPLETED", "connect_reader", correlationId, new JSObject().put("readerId", r.getId()).put("recoveryReason", "ALREADY_CONNECTED_TO_READER"));
+              }
               Log.d(TAG, "[TAP_SESSION_TRACE] stage=already_connected_success reader_id=" + r.getId() + " ts=" + System.currentTimeMillis());
 
               JSObject readerInfo = new JSObject();
@@ -1457,6 +1477,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           status = "error";
           setOperationState(OperationState.FAILED, "retrieve_failure");
           readerRefreshNeeded = true;
+          emitDiag("TTP_READER_REFRESH_MARKED", "payment_intent", collectCorrelationId, new JSObject().put("reason", "retrieve_failure").put("readerRefreshNeeded", readerRefreshNeeded));
+          notifyListeners("statusChanged", new JSObject().put("status", status));
 
           JSObject err = createStructuredError("retrieve_payment_intent", e);
           err.put("deviceState", captureDeviceState());
@@ -1548,6 +1570,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
               status = "ready";
               setOperationState(OperationState.IDLE, "collect_canceled");
               readerRefreshNeeded = true;
+              emitDiag("TTP_READER_REFRESH_MARKED", "collect_payment", correlationId, new JSObject().put("reason", "collect_canceled").put("readerRefreshNeeded", readerRefreshNeeded));
               notifyListeners("statusChanged", new JSObject().put("status", status));
               notifyListeners("paymentStatusChanged", new JSObject().put("status", "canceled"));
 
@@ -1584,6 +1607,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             status = "error";
             setOperationState(OperationState.FAILED, "collect_failure");
             readerRefreshNeeded = true;
+            emitDiag("TTP_READER_REFRESH_MARKED", "collect_payment", correlationId, new JSObject().put("reason", "collect_failure").put("readerRefreshNeeded", readerRefreshNeeded));
+            notifyListeners("statusChanged", new JSObject().put("status", status));
 
             JSObject err = createStructuredError("collect_payment_method", e);
             err.put("deviceState", captureDeviceState());
@@ -1622,6 +1647,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       status = "error";
       setOperationState(OperationState.FAILED, "collect_exception");
       readerRefreshNeeded = true;
+      emitDiag("TTP_READER_REFRESH_MARKED", "collect_payment", correlationId, new JSObject().put("reason", "collect_exception").put("readerRefreshNeeded", readerRefreshNeeded));
+      notifyListeners("statusChanged", new JSObject().put("status", status));
       
       JSObject err = new JSObject();
       err.put("code", "collect_exception");
@@ -1670,6 +1697,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           if (confirmedIntent.getStatus() == PaymentIntentStatus.SUCCEEDED) {
             setOperationState(OperationState.SUCCEEDED, "confirm_success_succeeded");
             readerRefreshNeeded = true;
+            emitDiag("TTP_READER_REFRESH_MARKED", "confirm_payment", correlationId, new JSObject().put("reason", "confirm_success_succeeded").put("readerRefreshNeeded", readerRefreshNeeded));
+            notifyListeners("statusChanged", new JSObject().put("status", status));
             Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_complete payment_intent_id=" + confirmedIntent.getId());
             notifyListeners("paymentStatusChanged", new JSObject().put("status", "payment_succeeded").put("paymentIntentId", confirmedIntent.getId()));
 
@@ -1685,6 +1714,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             // PaymentIntent is not succeeded - emit appropriate non-success state
             setOperationState(OperationState.IDLE, "confirm_success_not_succeeded");
             readerRefreshNeeded = true;
+            emitDiag("TTP_READER_REFRESH_MARKED", "confirm_payment", correlationId, new JSObject().put("reason", "confirm_success_not_succeeded").put("readerRefreshNeeded", readerRefreshNeeded));
+            notifyListeners("statusChanged", new JSObject().put("status", status));
             Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_complete status=" + confirmedIntent.getStatus() + " payment_intent_id=" + confirmedIntent.getId());
 
             JSObject result = new JSObject();
@@ -1711,6 +1742,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           status = "error";
           setOperationState(OperationState.FAILED, "confirm_failure");
           readerRefreshNeeded = true;
+          emitDiag("TTP_READER_REFRESH_MARKED", "confirm_payment", correlationId, new JSObject().put("reason", "confirm_failure").put("readerRefreshNeeded", readerRefreshNeeded));
+          notifyListeners("statusChanged", new JSObject().put("status", status));
 
           JSObject err = createStructuredError("confirm_payment_intent", e);
           err.put("deviceState", captureDeviceState());
@@ -1767,6 +1800,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             status = "ready";
             setOperationState(OperationState.IDLE, "cancel_success");
             readerRefreshNeeded = true;
+            emitDiag("TTP_READER_REFRESH_MARKED", "cancel", cancelCorrelationId, new JSObject().put("reason", "cancel_success").put("readerRefreshNeeded", readerRefreshNeeded));
             setKeepScreenOn(false);
             notifyListeners("statusChanged", new JSObject().put("status", status));
             notifyListeners("paymentStatusChanged", new JSObject().put("status", "canceled"));
@@ -1804,6 +1838,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             status = "ready";
             setOperationState(OperationState.IDLE, "cancel_failure");
             readerRefreshNeeded = true;
+            emitDiag("TTP_READER_REFRESH_MARKED", "cancel", cancelCorrelationId, new JSObject().put("reason", "cancel_failure").put("readerRefreshNeeded", readerRefreshNeeded));
             setKeepScreenOn(false);
             JSObject err = createStructuredError("cancel_payment", e);
             err.put("deviceState", captureDeviceState());
@@ -1836,6 +1871,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       status = "ready";
       setOperationState(OperationState.IDLE, "cancel_noop");
       readerRefreshNeeded = true;
+      emitDiag("TTP_READER_REFRESH_MARKED", "cancel", cancelCorrelationId, new JSObject().put("reason", "cancel_noop").put("readerRefreshNeeded", readerRefreshNeeded));
       setKeepScreenOn(false);
       notifyListeners("statusChanged", new JSObject().put("status", status));
       notifyListeners("paymentStatusChanged", new JSObject().put("status", "canceled"));

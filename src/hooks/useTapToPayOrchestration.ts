@@ -1737,7 +1737,7 @@ export function useTapToPayOrchestration({
 
         try {
           const connectResult = await withTimeout(
-            terminalService.connectTapToPay(),
+            terminalService.ensureReaderReady(),
             'READER_CONNECTION',
             connectionTimeout,
             terminalService.getSessionId() || 'unknown',
@@ -1932,7 +1932,7 @@ export function useTapToPayOrchestration({
                   // Retry connection with same timeout
                   try {
                     const retryResult = await withTimeout(
-                      terminalService.connectTapToPay(),
+                      terminalService.ensureReaderReady(),
                       'READER_CONNECTION_RETRY',
                       connectionTimeout,
                       terminalService.getSessionId() || 'unknown',

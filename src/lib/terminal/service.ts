@@ -864,6 +864,13 @@ export class TerminalBridgeService {
     return { locationId: data.locationId }
   }
 
+  // Public entry point for every user-initiated Tap to Pay attempt.
+  // Never short-circuit from cached JS state: the native plugin alone decides
+  // whether the existing reader can be reused or a fresh session is needed.
+  async ensureReaderReady(options?: { simulated?: boolean }) {
+    return this.connectTapToPay(options)
+  }
+
   async connectTapToPay(options?: { simulated?: boolean }) {
     if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
 
@@ -886,20 +893,19 @@ export class TerminalBridgeService {
     console.log('[TAP_SESSION_TRACE] stage=connect_call_start')
     // Do not await any diagnostics before assigning in-flight to avoid races
     const __connectReason = (() => {
-      if (this.connectionStatus === 'connected') return 'reuse_short_circuit'
+      if (this.connectionStatus === 'connected') return 'ensure_reader_ready'
       if (!this.sessionTimings.connectStart) return 'cold_start'
       return 'reconnect_or_resumed'
     })()
 
-    // Short-circuit if already connected
-    if (this.connectionStatus === 'connected') {
-      logTapToPayEvent('connect_dedup_already_connected', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected', readerId: this.lastReaderId }).catch(() => {})
-      // Alias event for clearer dashboards
-      logTapToPayEvent('CONNECT_DEDUP_ALREADY_CONNECTED', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected', readerId: this.lastReaderId }).catch(() => {})
-      return { status: 'connected' as const }
-    }
+    // Always request native reader readiness; the native plugin decides whether to
+    // reuse the existing reader or refresh (disconnect/rediscover/reconnect) based on
+    // its readerRefreshNeeded state. Do NOT short-circuit from JS connectionStatus.
+    logTapToPayEvent('TTP_JS_CONNECT_REQUESTED', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: this.connectionStatus, readerId: this.lastReaderId, meta: { reason: __connectReason } }).catch(() => {})
+
     // Dedupe concurrent calls
     if (this.connectInFlight) {
+      logTapToPayEvent('TTP_JS_CONNECT_DEDUP_INFLIGHT', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: this.connectionStatus, readerId: this.lastReaderId }).catch(() => {})
       logTapToPayEvent('connect_dedup_reused_inflight', { phase: 'connect_reader', sessionId: this.sessionId }).catch(() => {})
       // Alias event for clearer dashboards
       logTapToPayEvent('CONNECT_DEDUP_REUSED_INFLIGHT', { phase: 'connect_reader', sessionId: this.sessionId }).catch(() => {})
