@@ -47,7 +47,9 @@ import com.stripe.stripeterminal.external.models.DiscoveryConfiguration.TapToPay
 import com.stripe.stripeterminal.external.models.ConnectionConfiguration.TapToPayConnectionConfiguration;
 import com.stripe.stripeterminal.external.models.PaymentIntent;
 import com.stripe.stripeterminal.external.models.PaymentIntentStatus;
+import com.stripe.stripeterminal.external.models.CollectPaymentIntentConfiguration;
 import com.stripe.stripeterminal.external.callable.PaymentIntentCallback;
+import java.util.List;
 import java.util.Locale;
 
 @CapacitorPlugin(
@@ -199,6 +201,69 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     state.put("threadName", Thread.currentThread().getName());
     state.put("isMainThread", android.os.Looper.getMainLooper().isCurrentThread());
     return state;
+  }
+
+  // Capture the Stripe Terminal inputs and state immediately before collectPaymentMethod.
+  // All fields are sanitized — no client secrets, card data, or customer PII.
+  private void emitStripeCollectInputs(PaymentIntent paymentIntent, String correlationId) {
+    try {
+      JSObject collectConfig = new JSObject();
+      // The app currently uses Terminal.collectPaymentMethod(PaymentIntent, callback), so the SDK
+      // supplies a default CollectPaymentIntentConfiguration. Build an equivalent default object
+      // here purely for telemetry so we can compare success vs retry config values.
+      CollectPaymentIntentConfiguration defaultConfig = new CollectPaymentIntentConfiguration.Builder().build();
+      collectConfig.put("usesDefaultConfig", true);
+      collectConfig.put("allowRedisplay", defaultConfig.getAllowRedisplay() != null ? defaultConfig.getAllowRedisplay().toString() : null);
+      collectConfig.put("customerCancellation", defaultConfig.getCustomerCancellation() != null ? defaultConfig.getCustomerCancellation().toString() : null);
+      collectConfig.put("updatePaymentIntent", defaultConfig.getUpdatePaymentIntent());
+      collectConfig.put("skipTipping", defaultConfig.getSkipTipping());
+      collectConfig.put("skipDonation", defaultConfig.getSkipDonation());
+      collectConfig.put("requestDynamicCurrencyConversion", defaultConfig.getRequestDynamicCurrencyConversion());
+      collectConfig.put("giftCardBrand", defaultConfig.getGiftCardBrand() != null ? defaultConfig.getGiftCardBrand().toString() : null);
+      collectConfig.put("hasMotoConfiguration", defaultConfig.getMotoConfiguration() != null);
+      collectConfig.put("hasTippingConfiguration", defaultConfig.getTippingConfiguration() != null);
+      collectConfig.put("surchargeNotice", defaultConfig.getSurchargeNotice());
+      emitDiag("TTP_STRIPE_COLLECT_CONFIG", "collect_payment", correlationId, collectConfig);
+
+      JSObject preCollectState = new JSObject();
+      preCollectState.put("paymentIntentId", paymentIntent.getId());
+      preCollectState.put("paymentIntentStatus", paymentIntent.getStatus() != null ? paymentIntent.getStatus().toString() : null);
+      preCollectState.put("amount", paymentIntent.getAmount());
+      preCollectState.put("currency", paymentIntent.getCurrency());
+      preCollectState.put("captureMethod", paymentIntent.getCaptureMethod());
+      preCollectState.put("livemode", paymentIntent.getLivemode());
+      preCollectState.put("amountCapturable", paymentIntent.getAmountCapturable());
+      preCollectState.put("amountReceived", paymentIntent.getAmountReceived());
+      preCollectState.put("confirmationMethod", paymentIntent.getConfirmationMethod());
+      List<?> pmtList = paymentIntent.getPaymentMethodTypes();
+      if (pmtList != null) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < pmtList.size(); i++) {
+          if (i > 0) sb.append(",");
+          sb.append(pmtList.get(i).toString());
+        }
+        preCollectState.put("paymentMethodTypes", sb.toString());
+      }
+      preCollectState.put("hasPaymentMethod", paymentIntent.getPaymentMethod() != null);
+      preCollectState.put("readerConnected", connectedReader != null);
+      if (connectedReader != null) {
+        preCollectState.put("readerId", connectedReader.getId());
+        preCollectState.put("readerType", connectedReader.getDeviceType() != null ? connectedReader.getDeviceType().toString() : null);
+        preCollectState.put("readerSoftwareVersion", connectedReader.getSoftwareVersion());
+        preCollectState.put("readerBatteryLevel", connectedReader.getBatteryLevel());
+        preCollectState.put("readerSimulated", connectedReader.isSimulated());
+      }
+      preCollectState.put("lastConnectedReaderId", lastConnectedReaderId);
+      preCollectState.put("stripeConnectionStatus", Terminal.getInstance().getConnectionStatus().toString());
+      preCollectState.put("stripePaymentStatus", Terminal.getInstance().getPaymentStatus().toString());
+      preCollectState.put("readerRefreshNeeded", readerRefreshNeeded);
+      preCollectState.put("paymentOperationGeneration", paymentOperationGeneration);
+      preCollectState.put("paymentCancelableGeneration", paymentCancelableGeneration);
+      emitDiag("TTP_STRIPE_PRE_COLLECT_STATE", "collect_payment", correlationId, preCollectState);
+    } catch (Exception e) {
+      Log.w(TAG, "[PAYMENT_TRACE] emitStripeCollectInputs failed: " + e.getMessage());
+      emitDiag("TTP_STRIPE_COLLECT_INPUTS_ERROR", "collect_payment", correlationId, new JSObject().put("error", e.getMessage()));
+    }
   }
 
   // Emit sanitized diagnostics to JS so the app can persist in-app and forward to server logs
@@ -1613,6 +1678,9 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     beforeCollectState.put("hasPluginCall", originalCall != null);
     Log.d(TAG, "[TTP_NATIVE_ANDROID_BEFORE_STRIPE_COLLECT] attemptId=" + correlationId + " state=" + beforeCollectState.toString());
     emitDiag("TTP_NATIVE_ANDROID_BEFORE_STRIPE_COLLECT", "collect_payment", correlationId, beforeCollectState);
+
+    // Emit full Stripe-side collect inputs and SDK status for success-vs-retry comparison.
+    emitStripeCollectInputs(paymentIntent, correlationId);
 
     try {
       // Capture host state immediately before asking Stripe to present the contactless activity.
