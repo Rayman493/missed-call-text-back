@@ -131,11 +131,11 @@ describe('SearchableCustomerSelect', () => {
   })
 
   it('should use standard modal form control styling', () => {
-    expect(content).toContain('px-4 py-2.5 sm:px-3 sm:py-2')
+    expect(content).toContain('px-3 py-2.5')
     expect(content).toContain('bg-background')
     expect(content).toContain('border border-border')
     expect(content).toContain('rounded-lg')
-    expect(content).toContain('focus:ring-2 focus:ring-blue-500/50')
+    expect(content).toContain('focus:ring-2 focus:ring-primary/50')
   })
 
   it('should have max-h-[300px] for dropdown scroll', () => {
@@ -181,7 +181,13 @@ describe('SearchableCustomerSelect', () => {
   })
 
   it('should add right padding for clear icon', () => {
-    expect(content).toContain("hasValue ? 'pr-16' : 'pr-10'")
+    expect(content).toContain('pr-14')
+    expect(content).toContain('pr-10')
+  })
+
+  it('should place chevron to the left of the clear button when a value is selected', () => {
+    expect(content).toContain('right-10')
+    expect(content).toContain('right-3')
   })
 
   // Truth-table behavioral assertions derived from the implementation

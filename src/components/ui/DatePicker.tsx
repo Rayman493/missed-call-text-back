@@ -38,7 +38,9 @@ export default function DatePicker({
     onChange(`${year}-${month}-${day}`)
   }
 
-  const clearDate = () => {
+  const clearDate = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
     onChange('')
   }
 
@@ -72,7 +74,7 @@ export default function DatePicker({
               <button
                 type="button"
                 onClick={clearDate}
-                className="absolute right-12 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded duration-150 z-10"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded duration-150 z-10"
                 aria-label="Clear date"
               >
                 <X className="w-4 h-4 text-muted-foreground" />

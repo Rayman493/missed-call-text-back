@@ -32,6 +32,20 @@ describe('SelectPicker', () => {
     expect(content).not.toMatch(/<button[^>]*>\s*<button/)
   })
 
+  it('reserves extra right padding when a value is selected', () => {
+    expect(content).toContain('pr-14')
+    expect(content).toContain('pr-10')
+  })
+
+  it('places chevron to the left of the clear button when a value is selected', () => {
+    expect(content).toContain('right-10')
+    expect(content).toContain('right-3')
+  })
+
+  it('prevents clear button click from opening the dropdown', () => {
+    expect(content).toContain('e.stopPropagation()')
+  })
+
   it('rotates chevron when dropdown is open', () => {
     expect(content).toContain('rotate-180')
     expect(content).toContain('duration-150')

@@ -245,7 +245,7 @@ export default function SearchableCustomerSelect({
             disabled
               ? 'opacity-50 cursor-not-allowed px-3 py-2.5'
               : 'hover:border-border/60 cursor-pointer px-3 py-2.5'
-          } pr-10`}
+          } ${hasValue && allowClear && !disabled ? 'pr-14' : 'pr-10'}`}
         >
           <span className={selectedCustomer ? 'text-foreground truncate flex-1' : 'text-muted-foreground truncate flex-1'}>
             {getDisplayText(selectedCustomer)}
@@ -261,7 +261,7 @@ export default function SearchableCustomerSelect({
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         ) : null}
-        <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground flex-shrink-0 duration-150 pointer-events-none ${hasValue && allowClear && !disabled ? 'right-9' : ''} ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground flex-shrink-0 duration-150 pointer-events-none ${hasValue && allowClear && !disabled ? 'right-10' : ''} ${isOpen ? 'rotate-180' : ''}`} />
       </div>
 
       {/* Dropdown */}

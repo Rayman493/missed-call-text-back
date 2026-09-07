@@ -33,9 +33,13 @@ describe('TimePicker', () => {
     expect(content).toContain("value ? 'pr-16' : 'pr-10'")
   })
 
-  it('positions clear button away from the decorative icon', () => {
-    expect(content).toContain('right-12')
+  it('positions clear button at the right edge in place of the decorative icon', () => {
     expect(content).toContain('right-3')
+  })
+
+  it('prevents clear button click from opening the native time picker', () => {
+    expect(content).toContain('stopPropagation')
+    expect(content).toContain('preventDefault')
   })
 
   it('centers trailing icons vertically', () => {

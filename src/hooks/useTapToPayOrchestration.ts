@@ -183,6 +183,8 @@ export function useTapToPayOrchestration({
   const activeAttemptIdRef = useRef<string | null>(null)
   const activeAttemptTokenRef = useRef<string | null>(null)
   const ambiguousReasonRef = useRef<string | null>(null)
+  const userCanceledRef = useRef(false)
+  const cancelInFlightRef = useRef(false)
 
   // Update ref when state changes with logging and reason
   const updatePaymentStateRef = useCallback((newState: PaymentState, reason: string = 'unknown') => {
@@ -2481,8 +2483,15 @@ export function useTapToPayOrchestration({
       stage: lastSuccessfulStage,
     })
     
+    // A user-initiated cancel during an in-flight start may leave a promise that rejects later.
+    // Treat any late error as a cancel so the UI does not flip from canceled back to failure.
+    const userCanceledDuringAttempt = userCanceledRef.current
+    if (userCanceledDuringAttempt) {
+      userCanceledRef.current = false
+    }
+
     // Check if this is a cancellation and set state accordingly
-    const isCancellation = mapped.title === 'Payment canceled'
+    const isCancellation = userCanceledDuringAttempt || mapped.title === 'Payment canceled'
     const outcome: 'success' | 'failure' | 'canceled' = isCancellation ? 'canceled' : 'failure'
 
     // Store last completed attempt for diagnostics
@@ -2601,6 +2610,8 @@ async function withTimeout<T>(
     activeAttemptIdRef.current = null
     activeAttemptTokenRef.current = null
     ambiguousReasonRef.current = null
+    userCanceledRef.current = false
+    cancelInFlightRef.current = false
     setIsPaymentInProgress(false)
     setLastResetReason(reason)
 
@@ -2642,11 +2653,25 @@ async function withTimeout<T>(
   }, [terminalService, updatePaymentStateRef])
 
   const cancelPayment = useCallback(async (reason: string = 'user_canceled') => {
+    if (cancelInFlightRef.current) {
+      console.log('[QuickTTP UI] CANCEL_PAYMENT_IGNORED_ALREADY_IN_FLIGHT')
+      return
+    }
+    cancelInFlightRef.current = true
     console.log('[QuickTTP UI] CANCEL_PAYMENT_CALLED', { reason, currentPaymentState: paymentState })
     dispatchTTPEvent('RESET_TRIGGERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentState, `cancelPayment:${reason}`)
     setIsPaymentInProgress(false)
     permissionLock.setTapToPayActive(false)
     autoRetryInProgress.current = false
+    connectionRetryAttempted.current = false
+    userCanceledRef.current = true
+
+    // Invalidate any in-flight start attempt so its async results are ignored
+    // and it cannot overwrite the canceled state later.
+    startInFlight.current = false
+    activeAttemptRef.current = false
+    activeAttemptIdRef.current = null
+    activeAttemptTokenRef.current = null
 
     // Ensure the native Terminal collection is actually canceled before marking the UI as canceled.
     // Without this, the next Tap to Pay attempt can be rejected by native guards because the
@@ -2656,6 +2681,8 @@ async function withTimeout<T>(
       console.log('[QuickTTP UI] NATIVE_CANCEL_COMPLETED', { reason, currentPaymentState: paymentState })
     } catch (cancelError) {
       console.error('[QuickTTP UI] NATIVE_CANCEL_FAILED', cancelError)
+    } finally {
+      cancelInFlightRef.current = false
     }
 
     updatePaymentStateRef('canceled', reason)

@@ -22,7 +22,9 @@ export default function TimePicker({
 }: TimePickerProps) {
   const inputId = useId()
 
-  const clearTime = () => {
+  const clearTime = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
     onChange('')
   }
 
@@ -57,7 +59,7 @@ export default function TimePicker({
               <button
                 type="button"
                 onClick={clearTime}
-                className="absolute right-12 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded duration-150 z-10"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded duration-150 z-10"
                 aria-label="Clear time"
               >
                 <X className="w-4 h-4 text-muted-foreground" />

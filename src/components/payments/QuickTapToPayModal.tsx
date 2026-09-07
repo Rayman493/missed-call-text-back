@@ -1568,8 +1568,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                           cancelPayment('user_canceled')
                         }
                       }}
-                      disabled={isPaymentInProgress}
-                      className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                      className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
                     >
                       Cancel
                     </button>
