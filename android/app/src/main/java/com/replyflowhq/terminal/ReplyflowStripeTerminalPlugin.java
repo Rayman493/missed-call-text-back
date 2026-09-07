@@ -134,23 +134,64 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     Log.d(TAG, "[PLUGIN] Build marker: " + BUILD_MARKER);
   }
 
-  // Emit sanitized diagnostics to JS so the app can persist in-app
+  // Emit sanitized diagnostics to JS so the app can persist in-app and forward to server logs
   private void emitDiag(String name, String phase, String correlationId, JSObject more) {
     try {
       JSObject payload = new JSObject();
       payload.put("name", name);
       if (phase != null) payload.put("phase", phase);
       payload.put("timestamp", System.currentTimeMillis());
+      payload.put("platform", "android");
       if (correlationId != null) payload.put("attemptId", correlationId);
+
+      // Base native lifecycle state (sanitized — never includes secrets)
+      payload.put("initialized", initialized);
+      payload.put("readerConnected", connectedReader != null);
+      payload.put("connectionStatus", status);
+      payload.put("operationState", operationState != null ? operationState.toString() : "null");
+      payload.put("collectingPayment", collectingPayment);
+      payload.put("canceling", canceling);
+      payload.put("hasPaymentCancelable", paymentCancelable != null);
+      payload.put("hasPaymentOperationId", paymentOperationId != null);
+      if (correlationId != null && paymentOperationId != null) {
+        payload.put("paymentOperationIdMatchesAttempt", paymentOperationId.equals(correlationId));
+      }
+      if (connectedReader != null) {
+        payload.put("readerId", connectedReader.getId());
+        payload.put("readerType", connectedReader.getDeviceType() != null ? connectedReader.getDeviceType().toString() : null);
+      }
+      payload.put("isMainThread", android.os.Looper.getMainLooper().isCurrentThread());
+      payload.put("hasContext", getContext() != null);
+      payload.put("hasActivity", getActivity() != null);
+
       if (more != null) {
         Iterator<String> keys = more.keys();
         while (keys.hasNext()) {
           String k = keys.next();
-          payload.put(k, more.get(k));
+          Object v = more.get(k);
+          if (v != null) payload.put(k, v);
         }
       }
       notifyListeners("tpDiagnostics", payload);
     } catch (Exception ignored) {}
+  }
+
+  // Helper to emit a sanitized PluginCall resolution/rejection diagnostic
+  private void emitPluginCallResult(PluginCall call, String phase, String correlationId, String outcome, boolean resolved) {
+    if (call == null) {
+      emitDiag("TTP_NATIVE_ANDROID_PLUGINCALL_UNAVAILABLE", phase, correlationId,
+        new JSObject().put("outcome", outcome).put("hasPluginCall", false));
+      return;
+    }
+    boolean released = call.isReleased();
+    String event = resolved
+      ? (released ? "TTP_NATIVE_ANDROID_PLUGINCALL_ALREADY_RELEASED" : "TTP_NATIVE_ANDROID_PLUGINCALL_RESOLVED")
+      : (released ? "TTP_NATIVE_ANDROID_PLUGINCALL_ALREADY_RELEASED" : "TTP_NATIVE_ANDROID_PLUGINCALL_REJECTED");
+    JSObject more = new JSObject();
+    more.put("outcome", outcome);
+    more.put("hasPluginCall", true);
+    more.put("pluginCallReleased", released);
+    emitDiag(event, phase, correlationId, more);
   }
 
   @Override
@@ -1293,18 +1334,9 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     emitDiag("collect_payment_called", "collect_payment", collectCorrelationId, null);
 
     // Authoritative native entry telemetry for retry investigations
-    boolean isMainThread = android.os.Looper.getMainLooper().isCurrentThread();
+    // emitDiag() includes sanitized base state; add only collect-specific extras here
     JSObject entryState = new JSObject();
-    entryState.put("initialized", initialized);
-    entryState.put("readerConnected", connectedReader != null);
-    entryState.put("connectionStatus", status);
-    entryState.put("operationState", operationState.toString());
-    entryState.put("collectingPayment", collectingPayment);
-    entryState.put("canceling", canceling);
-    entryState.put("paymentOperationId", paymentOperationId);
     entryState.put("hasClientSecret", call.getString("clientSecret") != null);
-    entryState.put("isMainThread", isMainThread);
-    entryState.put("hasActiveCancelable", paymentCancelable != null);
     Log.d(TAG, "[TTP_NATIVE_ANDROID_COLLECT_ENTRY] attemptId=" + collectCorrelationId + " state=" + entryState.toString());
     emitDiag("TTP_NATIVE_ANDROID_COLLECT_ENTRY", "collect_payment", collectCorrelationId, entryState);
 
@@ -1312,6 +1344,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=not_initialized");
       setOperationState(OperationState.FAILED, "not_initialized");
       connectOperationId = null;
+      JSObject guardInfo = new JSObject(); guardInfo.put("guardName", "initialized"); guardInfo.put("guardValue", initialized); guardInfo.put("reason", "not_initialized"); guardInfo.put("hasPluginCall", call != null); emitDiag("TTP_NATIVE_ANDROID_COLLECT_GUARD_BLOCKED", "collect_payment", collectCorrelationId, guardInfo);
+      emitPluginCallResult(call, "collect_payment", collectCorrelationId, "guard_not_initialized", false);
       call.reject("not-initialized");
       return;
     }
@@ -1320,15 +1354,21 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=no_reader_connected");
       setOperationState(OperationState.FAILED, "no_reader_connected");
       connectOperationId = null;
+      JSObject guardInfo = new JSObject(); guardInfo.put("guardName", "connectedReader"); guardInfo.put("guardValue", false); guardInfo.put("reason", "no_reader_connected"); guardInfo.put("hasPluginCall", call != null); emitDiag("TTP_NATIVE_ANDROID_COLLECT_GUARD_BLOCKED", "collect_payment", collectCorrelationId, guardInfo);
+      emitPluginCallResult(call, "collect_payment", collectCorrelationId, "guard_no_reader", false);
       call.reject("no-reader-connected");
       return;
     }
 
     // Prevent duplicate payment collection and block while cancellation is in progress
     if (collectingPayment || canceling) {
-      Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=" + (collectingPayment ? "payment_already_in_progress" : "cancellation_in_progress"));
+      String reason = collectingPayment ? "payment_already_in_progress" : "cancellation_in_progress";
+      String code = collectingPayment ? "payment-already-in-progress" : "cancellation-in-progress";
+      Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=" + reason);
       connectOperationId = null;
-      call.reject(collectingPayment ? "payment-already-in-progress" : "cancellation-in-progress");
+      JSObject guardInfo = new JSObject(); guardInfo.put("guardName", collectingPayment ? "collectingPayment" : "canceling"); guardInfo.put("collectingPayment", collectingPayment); guardInfo.put("canceling", canceling); guardInfo.put("reason", reason); guardInfo.put("hasPluginCall", call != null); emitDiag("TTP_NATIVE_ANDROID_COLLECT_GUARD_BLOCKED", "collect_payment", collectCorrelationId, guardInfo);
+      emitPluginCallResult(call, "collect_payment", collectCorrelationId, "guard_" + reason, false);
+      call.reject(code);
       return;
     }
 
@@ -1341,6 +1381,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       Log.w(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=client_secret_missing");
       setOperationState(OperationState.FAILED, "client_secret_missing");
       connectOperationId = null;
+      JSObject guardInfo = new JSObject(); guardInfo.put("guardName", "clientSecret"); guardInfo.put("hasClientSecret", clientSecret != null); guardInfo.put("reason", "client_secret_missing"); guardInfo.put("hasPluginCall", call != null); emitDiag("TTP_NATIVE_ANDROID_COLLECT_GUARD_BLOCKED", "collect_payment", collectCorrelationId, guardInfo);
+      emitPluginCallResult(call, "collect_payment", collectCorrelationId, "guard_client_secret_missing", false);
       call.reject("client-secret-required");
       return;
     }
@@ -1395,7 +1437,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           // Pass structured error to JS via rejection
           connectOperationId = null;
           call.reject("retrieve_payment_intent", err);
-          Log.d(TAG, "[TTP_NATIVE_ANDROID_PLUGINCALL_REJECTED] attemptId=" + collectCorrelationId + " outcome=retrieve_failure");
+          emitPluginCallResult(call, "payment_intent", collectCorrelationId, "retrieve_failure", false);
           JSObject d = new JSObject(); if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString()); d.put("message", e.getMessage()); emitDiag("retrieve_payment_intent_failed", "payment_intent", collectCorrelationId, d);
         }
       }
@@ -1416,13 +1458,11 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     notifyListeners("paymentStatusChanged", new JSObject().put("status", "waiting_for_card"));
     JSObject m0 = new JSObject(); m0.put("paymentIntentId", paymentIntent.getId()); emitDiag("collect_payment_method_started", "collect_payment", correlationId, m0);
 
+    // sanitized base state is added by emitDiag; include only collect-specific extras
     JSObject beforeCollectState = new JSObject();
     beforeCollectState.put("paymentIntentId", paymentIntent.getId());
     beforeCollectState.put("paymentIntentStatus", paymentIntent.getStatus().toString());
-    beforeCollectState.put("readerConnected", connectedReader != null);
-    beforeCollectState.put("connectionStatus", status);
-    beforeCollectState.put("operationState", operationState.toString());
-    beforeCollectState.put("isMainThread", android.os.Looper.getMainLooper().isCurrentThread());
+    beforeCollectState.put("hasPluginCall", originalCall != null);
     Log.d(TAG, "[TTP_NATIVE_ANDROID_BEFORE_STRIPE_COLLECT] attemptId=" + correlationId + " state=" + beforeCollectState.toString());
     emitDiag("TTP_NATIVE_ANDROID_BEFORE_STRIPE_COLLECT", "collect_payment", correlationId, beforeCollectState);
 
@@ -1435,7 +1475,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_success payment_intent_id=" + collectedIntent.getId() + " payment_intent_status=" + collectedIntent.getStatus());
             Log.d(TAG, "[TAP_SESSION_TRACE] stage=collect_success payment_intent_id=" + collectedIntent.getId() + " ts=" + System.currentTimeMillis());
             Log.d(TAG, "[TTP_NATIVE_ANDROID_COLLECT_SUCCESS] attemptId=" + correlationId + " payment_intent_id=" + collectedIntent.getId());
-            emitDiag("TTP_NATIVE_ANDROID_COLLECT_SUCCESS", "collect_payment", correlationId, new JSObject().put("paymentIntentId", collectedIntent.getId()).put("status", collectedIntent.getStatus().toString()));
+            emitDiag("TTP_NATIVE_ANDROID_COLLECT_SUCCESS", "collect_payment", correlationId, new JSObject().put("paymentIntentId", collectedIntent.getId()).put("status", collectedIntent.getStatus().toString()).put("hasPluginCall", originalCall != null));
             setOperationState(OperationState.CONFIRMING_PAYMENT_INTENT, "collect_success");
             notifyListeners("paymentStatusChanged", new JSObject().put("status", "confirming_payment"));
             JSObject m = new JSObject(); m.put("paymentIntentId", collectedIntent.getId()); emitDiag("collect_payment_method_completed", "collect_payment", correlationId, m);
@@ -1492,12 +1532,13 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
               try {
                 if (!originalCall.isReleased()) {
                   originalCall.resolve(canceledResult);
-                  Log.d(TAG, "[TTP_NATIVE_ANDROID_PLUGINCALL_RESOLVED] attemptId=" + correlationId + " outcome=canceled");
+                  emitPluginCallResult(originalCall, "collect_payment", correlationId, "canceled", true);
                 } else {
-                  Log.d(TAG, "[TTP_NATIVE_ANDROID_PLUGINCALL_ALREADY_RELEASED] attemptId=" + correlationId + " outcome=canceled");
+                  emitPluginCallResult(originalCall, "collect_payment", correlationId, "canceled", true);
                 }
               } catch (Exception resolveException) {
                 Log.e(TAG, "[PAYMENT_TRACE] Failed to resolve canceled call", resolveException);
+                emitDiag("TTP_NATIVE_ANDROID_PLUGINCALL_RESOLVE_EXCEPTION", "collect_payment", correlationId, new JSObject().put("outcome", "canceled").put("message", resolveException.getMessage()));
               }
               return;
             }
@@ -1522,12 +1563,13 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             try {
               if (!originalCall.isReleased()) {
                 originalCall.reject("collect_payment_method", err);
-                Log.d(TAG, "[TTP_NATIVE_ANDROID_PLUGINCALL_REJECTED] attemptId=" + correlationId + " outcome=error");
+                emitPluginCallResult(originalCall, "collect_payment", correlationId, "collect_error", false);
               } else {
-                Log.d(TAG, "[TTP_NATIVE_ANDROID_PLUGINCALL_ALREADY_RELEASED] attemptId=" + correlationId + " outcome=error");
+                emitPluginCallResult(originalCall, "collect_payment", correlationId, "collect_error", false);
               }
             } catch (Exception rejectException) {
               Log.e(TAG, "[PAYMENT_TRACE] Failed to reject call", rejectException);
+              emitDiag("TTP_NATIVE_ANDROID_PLUGINCALL_REJECT_EXCEPTION", "collect_payment", correlationId, new JSObject().put("outcome", "collect_error").put("message", rejectException.getMessage()));
             }
             JSObject d = new JSObject(); if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString()); d.put("message", e.getMessage()); emitDiag("collect_payment_method_failed", "collect_payment", correlationId, d);
           }
@@ -1535,7 +1577,10 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       );
       paymentCancelable = newCollectCancelable;
       Log.d(TAG, "[TTP_NATIVE_ANDROID_STRIPE_COLLECT_STARTED] attemptId=" + correlationId + " cancelable_created=" + (newCollectCancelable != null));
-      emitDiag("TTP_NATIVE_ANDROID_STRIPE_COLLECT_STARTED", "collect_payment", correlationId, null);
+      JSObject startedMore = new JSObject();
+      startedMore.put("cancelableCreated", newCollectCancelable != null);
+      startedMore.put("hasPluginCall", originalCall != null);
+      emitDiag("TTP_NATIVE_ANDROID_STRIPE_COLLECT_STARTED", "collect_payment", correlationId, startedMore);
     } catch (Exception e) {
       Log.e(TAG, "[PAYMENT_TRACE] Exception in collectPaymentMethod", e);
       collectingPayment = false;
@@ -1558,12 +1603,13 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       try {
         if (!originalCall.isReleased()) {
           originalCall.reject("collect_payment_method", err);
-          Log.d(TAG, "[TTP_NATIVE_ANDROID_PLUGINCALL_REJECTED] attemptId=" + correlationId + " outcome=collect_exception");
+          emitPluginCallResult(originalCall, "collect_payment", correlationId, "collect_exception", false);
         } else {
-          Log.d(TAG, "[TTP_NATIVE_ANDROID_PLUGINCALL_ALREADY_RELEASED] attemptId=" + correlationId + " outcome=collect_exception");
+          emitPluginCallResult(originalCall, "collect_payment", correlationId, "collect_exception", false);
         }
       } catch (Exception rejectException) {
         Log.e(TAG, "[PAYMENT_TRACE] Failed to reject call after exception", rejectException);
+        emitDiag("TTP_NATIVE_ANDROID_PLUGINCALL_REJECT_EXCEPTION", "collect_payment", correlationId, new JSObject().put("outcome", "collect_exception").put("message", rejectException.getMessage()));
       }
     }
   }
@@ -1600,7 +1646,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             notifyListeners("paymentSucceeded", result);
 
             originalCall.resolve(result);
-            Log.d(TAG, "[TTP_NATIVE_ANDROID_PLUGINCALL_RESOLVED] attemptId=" + correlationId + " outcome=succeeded");
+            emitPluginCallResult(originalCall, "confirm_payment", correlationId, "succeeded", true);
           } else {
             // PaymentIntent is not succeeded - emit appropriate non-success state
             setOperationState(OperationState.IDLE, "confirm_success_not_succeeded");
@@ -1615,7 +1661,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             // For non-terminal states, still resolve but with the actual status
             // The server reconciliation will handle the final state
             originalCall.resolve(result);
-            Log.d(TAG, "[TTP_NATIVE_ANDROID_PLUGINCALL_RESOLVED] attemptId=" + correlationId + " outcome=" + confirmedIntent.getStatus().toString());
+            emitPluginCallResult(originalCall, "confirm_payment", correlationId, confirmedIntent.getStatus().toString(), true);
           }
         }
 
@@ -1638,7 +1684,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure stage=confirm_payment_intent");
           // Pass structured error to JS via rejection
           originalCall.reject("confirm_payment_intent", err);
-          Log.d(TAG, "[TTP_NATIVE_ANDROID_PLUGINCALL_REJECTED] attemptId=" + correlationId + " outcome=confirm_failure");
+          emitPluginCallResult(originalCall, "confirm_payment", correlationId, "confirm_failure", false);
           JSObject d = new JSObject(); if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString()); d.put("message", e.getMessage()); emitDiag("confirm_payment_intent_failed", "confirm_payment", correlationId, d);
         }
       }
@@ -1650,6 +1696,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     final String cancelCorrelationId = call.getString("diagnosticAttemptId");
     Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_canceled collecting=" + collectingPayment + " canceling=" + canceling + " operation_state=" + operationState + " operationId=" + paymentOperationId);
     setOperationState(OperationState.CANCELING, "cancel_start");
+    emitDiag("TTP_NATIVE_ANDROID_CANCEL_ENTRY", "cancel", cancelCorrelationId, null);
     emitDiag("cancel_called", "cancel", cancelCorrelationId, null);
 
     // Set canceling flag to block new collects until cancellation completes
@@ -1662,6 +1709,11 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       final String cancelingOperationId = paymentOperationId; // Capture operation token before nulling
       paymentCancelable = null; // Clear field to allow new attempt to set its own after cancellation
       Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_start cancelingOperationId=" + cancelingOperationId);
+      JSObject cancelInvokeInfo = new JSObject();
+      cancelInvokeInfo.put("cancelingOperationId", cancelingOperationId);
+      cancelInvokeInfo.put("hasPaymentCancelable", activeCancelable != null);
+      cancelInvokeInfo.put("hasPluginCall", call != null);
+      emitDiag("TTP_NATIVE_ANDROID_CANCEL_INVOKED", "cancel", cancelCorrelationId, cancelInvokeInfo);
       activeCancelable.cancel(new com.stripe.stripeterminal.external.callable.Callback() {
         @Override
         public void onSuccess() {
@@ -1689,9 +1741,9 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             connectOperationId = null;
             if (!call.isReleased()) {
               call.resolve(ret);
-              Log.d(TAG, "[TTP_NATIVE_ANDROID_PLUGINCALL_RESOLVED] attemptId=" + cancelCorrelationId + " outcome=cancel_success");
+              emitPluginCallResult(call, "cancel", cancelCorrelationId, "cancel_success", true);
             } else {
-              Log.d(TAG, "[TTP_NATIVE_ANDROID_PLUGINCALL_ALREADY_RELEASED] attemptId=" + cancelCorrelationId + " outcome=cancel_success");
+              emitPluginCallResult(call, "cancel", cancelCorrelationId, "cancel_success", true);
             }
           } else {
             Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_success_stale_callback operationId=" + cancelingOperationId + " currentOperationId=" + paymentOperationId);
@@ -1727,9 +1779,9 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             connectOperationId = null;
             if (!call.isReleased()) {
               call.resolve(ret);
-              Log.d(TAG, "[TTP_NATIVE_ANDROID_PLUGINCALL_RESOLVED] attemptId=" + cancelCorrelationId + " outcome=cancel_failure");
+              emitPluginCallResult(call, "cancel", cancelCorrelationId, "cancel_failure", true);
             } else {
-              Log.d(TAG, "[TTP_NATIVE_ANDROID_PLUGINCALL_ALREADY_RELEASED] attemptId=" + cancelCorrelationId + " outcome=cancel_failure");
+              emitPluginCallResult(call, "cancel", cancelCorrelationId, "cancel_failure", true);
             }
           } else {
             Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_failure_stale_callback operationId=" + cancelingOperationId + " currentOperationId=" + paymentOperationId);
@@ -1754,7 +1806,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       ret.put("status", status);
       connectOperationId = null;
       call.resolve(ret);
-      Log.d(TAG, "[TTP_NATIVE_ANDROID_PLUGINCALL_RESOLVED] attemptId=" + cancelCorrelationId + " outcome=cancel_noop");
+      emitPluginCallResult(call, "cancel", cancelCorrelationId, "cancel_noop", true);
     }
 
     // Cancel ongoing discovery

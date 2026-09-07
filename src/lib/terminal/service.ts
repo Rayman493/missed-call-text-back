@@ -5,15 +5,16 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 
 // Helper to send server-visible TTP retry stage diagnostics
+// Fire-and-forget: never throw and never block payment flows.
 async function reportTtpRetryStage(stage: string, additionalData: Record<string, any> = {}) {
   try {
     // Only report in production-like builds (not during development)
     if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-      await fetch('/api/diagnostics/ttp-retry-stage', {
+      fetch('/api/diagnostics/ttp-retry-stage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sessionId: '',
+          sessionId: additionalData.sessionId || '',
           attemptId: additionalData.attemptId || null,
           stage,
           paymentState: additionalData.paymentState || null,
@@ -519,6 +520,15 @@ export class TerminalBridgeService {
             logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l5Type, activeListenerCount: c5.next, activeListenerIds: this.getActiveListenerIds(l5Type), totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
           }
           const l0 = await (this.plugin as any).addListener('tpDiagnostics', async (payload: any) => {
+            // Forward every native event to server-visible telemetry without blocking the payment flow
+            reportTtpRetryStage(payload?.name || 'native_event', {
+              sessionId: this.sessionId,
+              attemptId: payload?.attemptId ?? this.currentAttemptId,
+              phase: payload?.phase,
+              platform: payload?.platform || Capacitor.getPlatform(),
+              native: payload,
+            }).catch(() => {})
+
             logTapToPayEvent(payload?.name || 'native_event', {
               phase: payload?.phase,
               sessionId: this.sessionId,
@@ -530,6 +540,7 @@ export class TerminalBridgeService {
               durationMs: payload?.durationMs,
               code: payload?.code,
               message: payload?.message,
+              source: 'native',
               meta: payload?.meta,
             }).catch(() => {})
             if (payload?.attemptId && this.currentAttemptId && payload.attemptId !== this.currentAttemptId) {

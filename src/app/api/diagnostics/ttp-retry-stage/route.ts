@@ -13,6 +13,8 @@ export async function POST(request: NextRequest) {
       paymentState,
       timestamp,
       platform,
+      // Native telemetry bridge payload (sanitized by the Android plugin / JS listener)
+      native,
       // Guards
       isPaymentInProgress,
       isNativeSupported,
@@ -36,6 +38,7 @@ export async function POST(request: NextRequest) {
       paymentState,
       timestamp,
       platform,
+      native,
       guards: {
         isPaymentInProgress,
         isNativeSupported,
