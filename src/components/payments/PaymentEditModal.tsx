@@ -122,7 +122,7 @@ export default function PaymentEditModal({
       onClose={handleClose}
       title="Edit Payment"
       footer={
-        <div className="flex gap-2.5 justify-end">
+        <div className="flex flex-wrap gap-2.5 justify-end min-w-0">
           <button
             onClick={handleClose}
             disabled={isSaving}

@@ -169,7 +169,7 @@ describe('SearchableCustomerSelect', () => {
   })
 
   it('should render dropdown primary text with getDisplayText', () => {
-    expect(content).toContain('<span className="truncate flex-1">{getDisplayText(customer)}</span>')
+    expect(content).toContain('<span className="truncate flex-1 min-w-0">{getDisplayText(customer)}</span>')
   })
 
   it('should render dropdown secondary text with getSecondaryText', () => {
@@ -215,5 +215,13 @@ describe('SearchableCustomerSelect', () => {
     expect(content).toContain('setIsOpen(false)')
     expect(content).toContain('setSearchQuery(\'\')')
     expect(content).toContain('onChange(customerId)')
+  })
+
+  it('uses min-w-0 on selected value so long customer names truncate on narrow iOS widths', () => {
+    expect(content).toContain('truncate flex-1 min-w-0')
+  })
+
+  it('uses min-w-0 on dropdown primary text to avoid overflow', () => {
+    expect(content).toContain('<span className="truncate flex-1 min-w-0">{getDisplayText(customer)}</span>')
   })
 })

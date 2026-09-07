@@ -45,4 +45,9 @@ describe('DatePicker', () => {
   it('centers trailing icons vertically', () => {
     expect(content).toContain('top-1/2 -translate-y-1/2')
   })
+
+  it('allows the field to shrink in narrow grid columns', () => {
+    expect(content).toContain('relative min-w-0')
+    expect(content).toContain('min-w-0')
+  })
 })

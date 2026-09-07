@@ -852,7 +852,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     <>
       {typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[calc(100dvh-env(safe-area-inset-top)-24px)] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200">
+          <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[calc(100dvh-env(safe-area-inset-top)-24px)] overflow-hidden flex flex-col min-h-0 min-w-0 animate-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
               <div className="flex items-center gap-2.5">
@@ -1395,7 +1395,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
             />
 
             {/* Footer */}
-            <div className="px-4 py-3 border-t border-border/50 flex gap-3 shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+            <div className="px-4 py-3 border-t border-border/50 flex flex-wrap gap-3 shrink-0 min-w-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
               {showPaymentSetup ? (
                 <>
                   {disabledReason && (

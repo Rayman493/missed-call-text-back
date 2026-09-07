@@ -37,7 +37,7 @@ export default function TimePicker({
       )}
 
       {/* Native time input for all platforms - uses native affordance */}
-      <div className="relative">
+      <div className="relative min-w-0">
         <input
           id={inputId}
           type="time"

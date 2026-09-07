@@ -136,14 +136,14 @@ export default function Modal({
           rounded-xl border border-border/60
           bg-card dark:bg-slate-800/95
           shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.04)]
-          flex flex-col min-h-0 animate-in zoom-in-95 duration-200 motion-reduce:animate-none motion-reduce:transition-none
+          flex flex-col min-h-0 min-w-0 animate-in zoom-in-95 duration-200 motion-reduce:animate-none motion-reduce:transition-none
           ${className}
         `}
         onClick={(e) => e.stopPropagation()}
       >
           {title && (
             <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-border dark:border-border/50 shrink-0">
-              <h2 id={titleId} className="text-lg font-semibold text-foreground">{title}</h2>
+              <h2 id={titleId} className="text-lg font-semibold text-foreground min-w-0 truncate">{title}</h2>
               <button
                 onClick={onClose}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
@@ -155,7 +155,7 @@ export default function Modal({
           )}
 
           <div
-            className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-4 sm:px-5 py-4"
+            className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-4 sm:px-5 py-4"
             data-scroll-lock-allow
             style={{ WebkitOverflowScrolling: 'touch', maxHeight: contentMaxHeight || undefined }}
           >
@@ -163,7 +163,10 @@ export default function Modal({
           </div>
 
           {footer && (
-            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border dark:border-border/50 px-4 sm:px-5 py-3">
+            <div
+              className="flex flex-wrap shrink-0 items-center justify-end gap-2 border-t border-border dark:border-border/50 px-4 sm:px-5 py-3 min-w-0"
+              style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+            >
               {footer}
             </div>
           )}

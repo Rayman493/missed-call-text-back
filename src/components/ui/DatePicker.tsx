@@ -53,7 +53,7 @@ export default function DatePicker({
       )}
 
       {/* Native date input for all platforms - uses native affordance */}
-      <div className="relative">
+      <div className="relative min-w-0">
         <input
           id={inputId}
           type="date"

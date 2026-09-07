@@ -89,6 +89,27 @@ describe('Action Modal Polish + Mobile Viewport Hardening', () => {
       expect(content).toContain('aria-label="Close"')
       expect(content).toContain('h-8 w-8')
     })
+
+    it('should use min-w-0 on modal card, header, body and footer to prevent iOS overflow', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      // card, body, footer, and title should all shrink rather than overflow
+      expect(content).toContain('min-h-0 min-w-0')
+      expect(content).toContain('min-h-0 min-w-0 overflow-y-auto')
+      expect(content).toContain('min-w-0')
+    })
+
+    it('should wrap footer action buttons on narrow viewports', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(content).toContain('flex flex-wrap shrink-0 items-center justify-end')
+    })
+
+    it('should add safe-area bottom padding to footer', () => {
+      const fs = require('fs')
+      const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+      expect(content).toContain('paddingBottom: \'max(12px, env(safe-area-inset-bottom))\'')
+    })
   })
 
   describe('New Task Modal', () => {
@@ -110,7 +131,7 @@ describe('Action Modal Polish + Mobile Viewport Hardening', () => {
       const content = fs.readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
       
       const lines = content.split('\n')
-      const functionStartLine = lines.findIndex(line => line.includes('export default function'))
+      const functionStartLine = lines.findIndex((line: string) => line.includes('export default function'))
       
       for (let i = 0; i < functionStartLine; i++) {
         if (lines[i].match(/^(const|let|var)\s+\w+\s*=\s*(useState|useEffect|useRef|useMemo|useCallback)/)) {
@@ -145,7 +166,7 @@ describe('Action Modal Polish + Mobile Viewport Hardening', () => {
       const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
       
       const lines = content.split('\n')
-      const functionStartLine = lines.findIndex(line => line.includes('export default function'))
+      const functionStartLine = lines.findIndex((line: string) => line.includes('export default function'))
       
       for (let i = 0; i < functionStartLine; i++) {
         if (lines[i].match(/^(const|let|var)\s+\w+\s*=\s*(useState|useEffect|useRef|useMemo|useCallback)/)) {
@@ -182,7 +203,7 @@ describe('Action Modal Polish + Mobile Viewport Hardening', () => {
       const content = fs.readFileSync('src/components/calendar/NewAppointmentModal.tsx', 'utf8')
       
       const lines = content.split('\n')
-      const functionStartLine = lines.findIndex(line => line.includes('export default function'))
+      const functionStartLine = lines.findIndex((line: string) => line.includes('export default function'))
       
       for (let i = 0; i < functionStartLine; i++) {
         if (lines[i].match(/^(const|let|var)\s+\w+\s*=\s*(useState|useEffect|useRef|useMemo|useCallback)/)) {
@@ -248,23 +269,24 @@ describe('Action Modal Polish + Mobile Viewport Hardening', () => {
       expect(content).toContain('env(safe-area-inset-bottom)')
     })
 
-    it('NewJobModal should provide viewport-constrained modal', () => {
+    it('NewJobModal should use canonical Modal component', () => {
       const fs = require('fs')
       const content = fs.readFileSync('src/components/jobs/NewJobModal.tsx', 'utf8')
-      expect(content).toContain('fixed inset-0')
-      expect(content).toContain('max-w-sm')
+      expect(content).toContain("import Modal from '@/components/ui/Modal'")
+      expect(content).toContain('<Modal')
     })
 
-    it('NewJobModal should provide body scroll lock', () => {
+    it('NewJobModal should handle Android back button', () => {
       const fs = require('fs')
       const content = fs.readFileSync('src/components/jobs/NewJobModal.tsx', 'utf8')
-      expect(content).toContain('useBodyScrollLock')
+      expect(content).toContain('useModalBackButton')
     })
 
-    it('NewJobModal should provide safe-area handling', () => {
+    it('NewJobModal should not implement a duplicate viewport shell', () => {
       const fs = require('fs')
       const content = fs.readFileSync('src/components/jobs/NewJobModal.tsx', 'utf8')
-      expect(content).toContain('env(safe-area-inset-bottom)')
+      // The canonical Modal shell owns safe-area, scroll lock, and max-width
+      expect(content).not.toContain('fixed inset-0')
     })
   })
 })

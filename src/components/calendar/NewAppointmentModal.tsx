@@ -265,7 +265,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
         footer={
           <>
             {error && (
-              <div className="mb-3">
+              <div className="w-full mb-3">
                 <div className="p-2.5 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
@@ -282,7 +282,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                 </div>
               </div>
             )}
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3 min-w-0">
               <button
                 onClick={() => handleCancel('cancel_button')}
                 disabled={isCreating}

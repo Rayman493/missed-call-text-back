@@ -247,7 +247,7 @@ export default function SearchableCustomerSelect({
               : 'hover:border-border/60 cursor-pointer px-3 py-2.5'
           } ${hasValue && allowClear && !disabled ? 'pr-14' : 'pr-10'}`}
         >
-          <span className={selectedCustomer ? 'text-foreground truncate flex-1' : 'text-muted-foreground truncate flex-1'}>
+          <span className={selectedCustomer ? 'text-foreground truncate flex-1 min-w-0' : 'text-muted-foreground truncate flex-1 min-w-0'}>
             {getDisplayText(selectedCustomer)}
           </span>
         </button>
@@ -323,7 +323,7 @@ export default function SearchableCustomerSelect({
                       value === null ? 'bg-accent/40' : 'text-foreground hover:bg-accent/40'
                     }`}
                   >
-                    <span className="truncate flex-1 text-muted-foreground">No customer</span>
+                    <span className="truncate flex-1 min-w-0 text-muted-foreground">No customer</span>
                     {value === null && (
                       <Check className="w-4 h-4 text-primary flex-shrink-0" />
                     )}
@@ -341,7 +341,7 @@ export default function SearchableCustomerSelect({
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="truncate flex-1">{getDisplayText(customer)}</span>
+                        <span className="truncate flex-1 min-w-0">{getDisplayText(customer)}</span>
                         {value === customer.id && (
                           <Check className="w-4 h-4 text-primary flex-shrink-0" />
                         )}

@@ -98,4 +98,12 @@ describe('SelectPicker', () => {
   it('should close dropdown when selecting No job', () => {
     expect(content).toContain('setIsOpen(false)')
   })
+
+  it('uses min-w-0 on selected value so long labels truncate on narrow iOS widths', () => {
+    expect(content).toContain('truncate flex-1 min-w-0')
+  })
+
+  it('keeps dropdown option labels from overflowing with min-w-0', () => {
+    expect(content).toContain('<span className="truncate flex-1 min-w-0">{option.label}</span>')
+  })
 })
