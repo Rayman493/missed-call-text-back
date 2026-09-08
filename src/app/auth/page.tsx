@@ -1229,7 +1229,7 @@ function AuthContent() {
                       setErrorDisplay(null)
                     }}
                     required
-                    autoComplete="new-password"
+                    autoComplete="current-password"
                     className="h-12 px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
                   />
                 </div>

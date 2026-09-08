@@ -1495,7 +1495,7 @@ export default function LeadsPage() {
                   return (
                     <EmptyState
                       variant="search"
-                      title={`No ${statusFilter} customers`}
+                      title={`No ${getCustomerStatusLabel(statusFilter)} customers`}
                       description="Try changing the status filter to see other customers"
                     />
                   )

@@ -3794,6 +3794,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const messages = leadData?.messages || []
   const conversation = leadData?.conversation || null
   const source = leadData?.source || null
+  const currentCustomer = getCurrentCustomerContext(leadData || {})
 
   return (
     <DashboardErrorBoundary>
@@ -5300,19 +5301,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Phone:</span>
-                    <span className="font-mono">{formatPhoneNumber(lead?.caller_phone || '')}</span>
+                    <span className="font-mono">{formatPhoneNumber(currentCustomer.phoneNumber || '')}</span>
                   </div>
-                  {leadData?.email && (
+                  {currentCustomer.email && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Email:</span>
-                      <span className="truncate">{leadData.email}</span>
+                      <span className="truncate">{currentCustomer.email}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Status:</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
-                      {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
-                    </span>
+                    {(() => {
+                      const statusStyle = getCustomerStatusStyle(leadData?.status || leadData?.lead_status || 'new')
+                      return (
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusStyle.badgeClass}`}>
+                          {statusStyle.label}
+                        </span>
+                      )
+                    })()}
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Created:</span>

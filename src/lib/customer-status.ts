@@ -171,6 +171,7 @@ export function normalizeCustomerStatus(rawStatus: string | null | undefined): C
   
   // Direct canonical mappings only - no legacy translations
   if (status === 'new') return 'new'
+  if (status === 'replied') return 'needs_reply'
   if (status === 'needs_reply') return 'needs_reply'
   if (status === 'active') return 'active'
   if (status === 'scheduled') return 'scheduled'

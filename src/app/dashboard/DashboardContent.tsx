@@ -39,6 +39,7 @@ import { getSetupHealth } from '@/lib/setup-health'
 import { themeClasses, bgTokens, textTokens, borderTokens, buttonTokens } from '@/lib/theme'
 import Link from 'next/link'
 import StatusBadge from '@/components/StatusBadge'
+import { getCustomerStatusStyle } from '@/lib/customer-status'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import SmsVerificationBanner from '@/components/SmsVerificationBanner'
@@ -124,24 +125,15 @@ function needsResponse(lead: any): boolean {
 // Helper to get lead status display
 function getLeadStatusDisplay(lead: any): { text: string; color: string } {
   // Use lead_status if available, otherwise derive from messages
-  const status = lead.lead_status || lead.status || 'new'
-  
+  const rawStatus = lead.lead_status || lead.status || 'new'
+
   if (needsResponse(lead)) {
-    return { text: 'Needs Response', color: 'amber' }
+    const style = getCustomerStatusStyle('needs_reply')
+    return { text: style.label, color: style.color }
   }
-  
-  switch (status) {
-    case 'new':
-      return { text: 'New', color: 'blue' }
-    case 'replied':
-      return { text: 'Replied', color: 'green' }
-    case 'qualified':
-      return { text: 'Qualified', color: 'purple' }
-    case 'closed':
-      return { text: 'Closed', color: 'gray' }
-    default:
-      return { text: 'New', color: 'blue' }
-  }
+
+  const style = getCustomerStatusStyle(rawStatus)
+  return { text: style.label, color: style.color }
 }
 
 // Helper to filter and sort leads

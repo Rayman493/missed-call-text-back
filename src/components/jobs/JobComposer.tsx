@@ -65,7 +65,7 @@ interface JobComposerProps {
 
 const STATUS_OPTIONS: { value: JobStatus; label: string }[] = [
   { value: 'scheduled', label: getCustomerStatusStyle('scheduled').label },
-  { value: 'in_progress', label: getCustomerStatusStyle('active').label },
+  { value: 'in_progress', label: 'In Progress' },
   { value: 'completed', label: getCustomerStatusStyle('completed').label },
   { value: 'cancelled', label: getCustomerStatusStyle('lost').label },
 ]

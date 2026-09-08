@@ -18,12 +18,12 @@ describe('Login Autofill Hardening', () => {
     expect(content).toMatch(/autoComplete="username"/)
   })
 
-  it('Sign In password field should use autocomplete="new-password"', () => {
+  it('Sign In password field should use autocomplete="current-password"', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/app/auth/page.tsx', 'utf8')
 
-    // The sign-in password field should have autoComplete="new-password"
-    expect(content).toMatch(/autoComplete="new-password"/)
+    // The sign-in password field should have autoComplete="current-password"
+    expect(content).toMatch(/autoComplete="current-password"/)
   })
 
   it('Should not have autoComplete="email" in sign-in context', () => {
@@ -38,12 +38,13 @@ describe('Login Autofill Hardening', () => {
     expect(emailAutocompleteCount).toBeLessThan(2)
   })
 
-  it('Should not have autoComplete="current-password"', () => {
+  it('Sign-up password fields should keep autocomplete="new-password"', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/app/auth/page.tsx', 'utf8')
 
-    // Sign-in password should NOT have autoComplete="current-password"
-    expect(content).not.toContain('autoComplete="current-password"')
+    // Sign-up password and confirm should still have autoComplete="new-password"
+    const newPasswordCount = (content.match(/autoComplete="new-password"/g) || []).length
+    expect(newPasswordCount).toBeGreaterThanOrEqual(2)
   })
 
   it('Signup email field should retain autocomplete="email"', () => {
