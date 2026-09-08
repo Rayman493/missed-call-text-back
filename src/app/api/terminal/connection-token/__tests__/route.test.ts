@@ -38,10 +38,17 @@ describe('POST /api/terminal/connection-token', () => {
     // Reset all mocks
     vi.clearAllMocks()
 
+    // Set the Supabase environment variables required by the auth helper
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-key'
+
     // Setup mock Supabase client
     mockSupabaseClient = {
       auth: {
-        getSession: vi.fn(),
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'user-123' } },
+          error: null,
+        }),
       },
     }
     ;(createClient as any).mockReturnValue(mockSupabaseClient)
@@ -58,13 +65,14 @@ describe('POST /api/terminal/connection-token', () => {
   })
 
   it('should return 401 when no session is provided', async () => {
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: null },
+    mockSupabaseClient.auth.getUser.mockResolvedValue({
+      data: { user: null },
       error: null,
     })
 
     const request = new NextRequest('http://localhost/api/terminal/connection-token', {
       method: 'POST',
+      headers: { Authorization: 'Bearer test-token' },
     })
 
     const response = await POST(request)
@@ -75,13 +83,14 @@ describe('POST /api/terminal/connection-token', () => {
   })
 
   it('should return 401 when session has error', async () => {
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: null },
+    mockSupabaseClient.auth.getUser.mockResolvedValue({
+      data: { user: null },
       error: { message: 'Invalid token' },
     })
 
     const request = new NextRequest('http://localhost/api/terminal/connection-token', {
       method: 'POST',
+      headers: { Authorization: 'Bearer test-token' },
     })
 
     const response = await POST(request)
@@ -92,8 +101,8 @@ describe('POST /api/terminal/connection-token', () => {
   })
 
   it('should return 404 when user has no business', async () => {
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: { user: { id: 'user-123' } } },
+    mockSupabaseClient.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'user-123' } },
       error: null,
     })
 
@@ -105,6 +114,7 @@ describe('POST /api/terminal/connection-token', () => {
 
     const request = new NextRequest('http://localhost/api/terminal/connection-token', {
       method: 'POST',
+      headers: { Authorization: 'Bearer test-token' },
     })
 
     const response = await POST(request)
@@ -116,8 +126,8 @@ describe('POST /api/terminal/connection-token', () => {
   })
 
   it('should return 400 when business has no connected Stripe account', async () => {
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: { user: { id: 'user-123' } } },
+    mockSupabaseClient.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'user-123' } },
       error: null,
     })
 
@@ -137,6 +147,7 @@ describe('POST /api/terminal/connection-token', () => {
 
     const request = new NextRequest('http://localhost/api/terminal/connection-token', {
       method: 'POST',
+      headers: { Authorization: 'Bearer test-token' },
     })
 
     const response = await POST(request)
@@ -147,8 +158,8 @@ describe('POST /api/terminal/connection-token', () => {
   })
 
   it('should return 400 when Stripe Connect account is not in connected state', async () => {
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: { user: { id: 'user-123' } } },
+    mockSupabaseClient.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'user-123' } },
       error: null,
     })
 
@@ -168,18 +179,19 @@ describe('POST /api/terminal/connection-token', () => {
 
     const request = new NextRequest('http://localhost/api/terminal/connection-token', {
       method: 'POST',
+      headers: { Authorization: 'Bearer test-token' },
     })
 
     const response = await POST(request)
     const data = await response.json()
 
     expect(response.status).toBe(400)
-    expect(data.error).toBe('Stripe Connect account not ready')
+    expect(data.error).toBe('Stripe setup incomplete. Please complete your Stripe account setup.')
   })
 
   it('should return 503 when Stripe client fails to initialize', async () => {
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: { user: { id: 'user-123' } } },
+    mockSupabaseClient.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'user-123' } },
       error: null,
     })
 
@@ -201,6 +213,7 @@ describe('POST /api/terminal/connection-token', () => {
 
     const request = new NextRequest('http://localhost/api/terminal/connection-token', {
       method: 'POST',
+      headers: { Authorization: 'Bearer test-token' },
     })
 
     const response = await POST(request)
@@ -211,8 +224,8 @@ describe('POST /api/terminal/connection-token', () => {
   })
 
   it('should create ConnectionToken scoped to connected account and return secret', async () => {
-    mockSupabaseClient.auth.getSession.mockResolvedValue({
-      data: { session: { user: { id: 'user-123' } } },
+    mockSupabaseClient.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'user-123' } },
       error: null,
     })
 
@@ -236,6 +249,7 @@ describe('POST /api/terminal/connection-token', () => {
 
     const request = new NextRequest('http://localhost/api/terminal/connection-token', {
       method: 'POST',
+      headers: { Authorization: 'Bearer test-token' },
     })
 
     const response = await POST(request)
@@ -254,10 +268,11 @@ describe('POST /api/terminal/connection-token', () => {
   })
 
   it('should return 500 on unexpected errors', async () => {
-    mockSupabaseClient.auth.getSession.mockRejectedValue(new Error('Database connection failed'))
+    mockSupabaseClient.auth.getUser.mockRejectedValue(new Error('Database connection failed'))
 
     const request = new NextRequest('http://localhost/api/terminal/connection-token', {
       method: 'POST',
+      headers: { Authorization: 'Bearer test-token' },
     })
 
     const response = await POST(request)

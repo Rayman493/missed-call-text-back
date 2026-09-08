@@ -505,7 +505,7 @@ async function runTestAlertTests() {
   console.log(`\nResults: ${passed} passed, ${failed} failed`)
   
   if (failed > 0) {
-    process.exit(1)
+    throw new Error(`${failed} test alert assertion(s) failed`)
   }
 }
 

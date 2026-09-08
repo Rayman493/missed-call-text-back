@@ -8870,6 +8870,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       /^i don't know what you need\.?$/i,
       /^i don't know what you're asking for\.?$/i,
       /^i don't know what you're asking\.?$/i,
+      // Catch-all for any "I'm not sure ..." or "I don't know ..." uncertainty-led response
+      /^i'?m not sure\b.*$/i,
+      /^i am not sure\b.*$/i,
+      /^im not sure\b.*$/i,
+      /^i don'?t know\b.*$/i,
+      /^i dont know\b.*$/i,
     ];
 
     // Check against exact patterns

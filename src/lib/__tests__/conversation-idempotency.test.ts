@@ -207,14 +207,13 @@ async function runAllTests(): Promise<void> {
       console.log('✅ ForceNew path handles constraint violations with fallback')
       console.log('✅ Retry lookup after constraint violation works correctly')
       console.log('✅ ConversationService handles constraint violations gracefully')
-      process.exit(0)
     } else {
       console.log('\n❌ Some tests failed. Review the errors above.')
-      process.exit(1)
+      throw new Error(`${failed} conversation idempotency assertion(s) failed`)
     }
   } catch (error) {
     console.error('\n❌ Test suite failed with error:', error)
-    process.exit(1)
+    throw error
   }
 }
 

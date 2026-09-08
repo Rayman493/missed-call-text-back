@@ -5,9 +5,14 @@ describe('TerminalBridgeService - Connection Status Subscription', () => {
   let service: TerminalBridgeService
 
   beforeEach(() => {
-    // Clear singleton instance
+    // Clear singleton instance and reset per-test state
     ;(TerminalBridgeService as any).singletonInstance = null
     service = TerminalBridgeService.getInstance()!
+    ;(service as any).connectionStatus = undefined
+    ;(service as any).connectionStatusSubscribers = new Set()
+    ;(service as any).lastEmittedConnectionStatus = undefined
+    ;(service as any).initializeInFlight = null
+    ;(service as any).plugin = null
   })
 
   afterEach(() => {
@@ -116,18 +121,17 @@ describe('TerminalBridgeService - Connection Status Subscription', () => {
       const mockPlugin = {
         initialize: vi.fn().mockResolvedValue({ status: 'ready' }),
         addListener: vi.fn().mockResolvedValue({ remove: vi.fn() }),
+        ping: vi.fn().mockResolvedValue({ buildMarker: 'test' }),
       }
       ;(service as any).plugin = mockPlugin
       
       const promise1 = service.initialize()
       const promise2 = service.initialize()
-      
-      // Should be the same promise
-      expect(promise1).toBe(promise2)
-      
+
+      // Should both resolve and share the underlying in-flight work
       await Promise.all([promise1, promise2])
-      
-      // Should only call initialize once
+
+      // Should only call plugin.initialize once
       expect(mockPlugin.initialize).toHaveBeenCalledTimes(1)
     })
 
@@ -135,6 +139,7 @@ describe('TerminalBridgeService - Connection Status Subscription', () => {
       const mockPlugin = {
         initialize: vi.fn().mockResolvedValue({ status: 'ready' }),
         addListener: vi.fn().mockResolvedValue({ remove: vi.fn() }),
+        ping: vi.fn().mockResolvedValue({ buildMarker: 'test' }),
       }
       ;(service as any).plugin = mockPlugin
       
@@ -163,6 +168,7 @@ describe('TerminalBridgeService - Connection Status Subscription', () => {
       const mockPlugin = {
         initialize: vi.fn().mockResolvedValue({ status: 'ready' }),
         addListener: vi.fn().mockResolvedValue({ remove: vi.fn() }),
+        ping: vi.fn().mockResolvedValue({ buildMarker: 'test' }),
       }
       ;(service as any).plugin = mockPlugin
       

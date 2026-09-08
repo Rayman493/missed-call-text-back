@@ -40,6 +40,17 @@ export function isRefusal(text: string): boolean {
 }
 
 /**
+ * Check if text is an uncertainty-led non-answer
+ * Catches "I'm not sure...", "I don't know...", "not sure yet", etc.
+ * while avoiding false positives on legitimate names (word boundary after uncertainty phrase)
+ */
+function isUncertaintyNonAnswer(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const lower = text.trim().toLowerCase();
+  return /^(i'?m not sure|i am not sure|im not sure|i don'?t know|i dont know|idk|not sure|no idea|i have no idea)\b/i.test(lower);
+}
+
+/**
  * Validate service address - reject refusals but accept flexible address formats
  */
 export function isValidServiceAddress(text: string): boolean {
@@ -47,6 +58,7 @@ export function isValidServiceAddress(text: string): boolean {
   const trimmed = text.trim();
   if (trimmed.length === 0) return false;
   if (isRefusal(trimmed)) return false;
+  if (isUncertaintyNonAnswer(trimmed)) return false;
 
   // Reject obvious non-answers
   const nonAnswerPatterns = [
@@ -75,6 +87,7 @@ export function isValidServiceRequest(text: string): boolean {
     '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
   ];
   if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
+  if (isUncertaintyNonAnswer(trimmed)) return false;
 
   return true;
 }
@@ -95,6 +108,7 @@ export function isValidCompletionTime(text: string): boolean {
     '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
   ];
   if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
+  if (isUncertaintyNonAnswer(trimmed)) return false;
 
   return true;
 }
@@ -115,6 +129,7 @@ export function isValidCallbackTime(text: string): boolean {
     '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
   ];
   if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
+  if (isUncertaintyNonAnswer(trimmed)) return false;
 
   return true;
 }

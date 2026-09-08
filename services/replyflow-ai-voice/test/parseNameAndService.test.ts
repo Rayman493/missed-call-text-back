@@ -144,7 +144,13 @@ const isNonAnswer = (text: string): boolean => {
     /^(i\s+)?am\s+not\s+sure\s+how\s+to\s+answer$/i,
     /^(i\s+)?don'?t\s+know\s+how\s+to\s+respond$/i,
     /^(i\s+)?'?m\s+not\s+sure\s+how\s+to\s+respond$/i,
-    /^(i\s+)?am\s+not\s+sure\s+how\s+to\s+respond$/i
+    /^(i\s+)?am\s+not\s+sure\s+how\s+to\s+respond$/i,
+    // Catch-all for any "I'm not sure ..." or "I don't know ..." uncertainty-led response
+    /^i'?m\s+not\s+sure\b.*$/i,
+    /^i am\s+not\s+sure\b.*$/i,
+    /^im\s+not\s+sure\b.*$/i,
+    /^i don'?t\s+know\b.*$/i,
+    /^i dont\s+know\b.*$/i
   ];
   
   for (const pattern of shortUncertaintyPatterns) {
@@ -379,7 +385,7 @@ const parseNameAndService = (text: string, existingService?: string): { customer
       // Remove trailing punctuation and common leading intros
       left = left.replace(/[.,;:]+\s*$/i, '').trim();
       left = left.replace(/^(?:hi|hello|hey)[,\s]+/i, '').trim();
-      left = left.replace(/^(?:my name is|my name's|name is|i am|i'm|this is)[,\s]*(?:(?:uh|um|yeah|well|actually)[,\s]+)*/i, '').trim();
+      left = left.replace(/^(?:my name is|my name's|name is|i am|i'm|this is|i need)[,\s]*(?:(?:uh|um|yeah|well|actually)[,\s]+)*/i, '').trim();
       name = left;
     }
   }
@@ -1396,4 +1402,6 @@ console.log('\n=== TESTING IMMEDIATE POST-TRANSCRIPTION REPROMPT FLOW ===\n');
 
 console.log('\n=== IMMEDIATE POST-TRANSCRIPTION REPROMPT TESTS COMPLETE ===\n');
 
-process.exit(failed > 0 ? 1 : 0);
+if (failed > 0) {
+  throw new Error(`${failed} parseNameAndService test assertion(s) failed`);
+}

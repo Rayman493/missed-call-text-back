@@ -329,7 +329,6 @@ export interface LeadAIIntake {
 export function getLeadAIIntake(lead: any): LeadAIIntake {
   const rawMetadata = lead?.raw_metadata || {}
 
-  // Extracted info from CURRENT ai_call_record only - NO historical fallback
   // Sort by created_at descending to get the most recent call record
   const sortedAiCallRecords = [...(lead?.aiCallRecords || lead?.ai_call_records || [])]
     .sort((a: any, b: any) => {
@@ -338,16 +337,20 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       return bTime - aTime // Descending order (newest first)
     })
 
+  const hasAiCallRecord = sortedAiCallRecords.length > 0
+  const isManualCustomer = lead?.source === 'manual' || rawMetadata?.creation_source === 'manual'
+
+  // Extracted info from CURRENT ai_call_record if present.
+  // If there is no current call record, fall back to raw_metadata.extracted_info so
+  // genuine existing data is not reported as "Not collected".
   const extractedInfoRaw =
     sortedAiCallRecords[0]?.extracted_info ||
+    (!hasAiCallRecord ? rawMetadata.extracted_info : {}) ||
     {}
 
   const normalized = normalizeExtractedInfo(extractedInfoRaw)
 
-  // For manual customers (no ai_call_record), fall back to raw_metadata.extracted_info
-  // This ensures manually entered data is displayed correctly
-  const hasAiCallRecord = sortedAiCallRecords.length > 0
-  const isManualCustomer = lead?.source === 'manual' || rawMetadata?.creation_source === 'manual'
+  // For manual customers (no ai_call_record), raw_metadata.extracted_info is the primary source
   const manualExtractedInfo = (!hasAiCallRecord && isManualCustomer) ? (rawMetadata.extracted_info || {}) : {}
   const manualNormalized = normalizeExtractedInfo(manualExtractedInfo)
 
@@ -498,8 +501,8 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
         ? 'aiCallRecords[0].extracted_info (current call)'
         : lead?.ai_call_records?.[0]?.extracted_info
           ? 'ai_call_records[0].extracted_info (current call)'
-          : isManualCustomer
-            ? 'raw_metadata.extracted_info (manual customer fallback)'
+          : rawMetadata.extracted_info
+            ? (isManualCustomer ? 'raw_metadata.extracted_info (manual customer fallback)' : 'raw_metadata.extracted_info (fallback, no current call record)')
             : 'none (no current call record)',
       extractedInfoRaw,
       normalized,
