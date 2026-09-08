@@ -296,7 +296,7 @@ export default async function Home() {
                         </div>
                         <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Get Paid</div>
                         <div className="text-xs text-slate-600 dark:text-slate-400">Plumbing Repair</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Accept Tap to Pay on iPhone, or send a branded SMS payment request</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Accept Tap to Pay on iPhone or Android, or send a branded SMS payment request</div>
                         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
                           <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Customer paid</div>
                         </div>
@@ -555,19 +555,6 @@ export default async function Home() {
                 </p>
               </div>
 
-              {/* Get Paid Anywhere */}
-              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
-                <div className="w-11 h-11 sm:w-12 sm:h-12 bg-rose-100 dark:bg-rose-900/30 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5">
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">Get Paid Anywhere</h3>
-                <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed max-w-[18rem]">
-                  Accept contactless payments on iPhone, or send branded SMS payment requests — no extra hardware required.
-                </p>
-              </div>
-
               {/* Appointments & Payments */}
               <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <div className="w-11 h-11 sm:w-12 sm:h-12 bg-violet-100 dark:bg-violet-900/30 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5">
@@ -578,6 +565,19 @@ export default async function Home() {
                 <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">Schedule & Manage Work</h3>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed max-w-[18rem]">
                   Schedule appointments, manage jobs and reminders, and view your day's stops on the schedule map.
+                </p>
+              </div>
+
+              {/* Get Paid Anywhere */}
+              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 bg-rose-100 dark:bg-rose-900/30 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">Get Paid Anywhere</h3>
+                <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed max-w-[18rem]">
+                  Accept contactless payments on iPhone or Android, or send branded SMS payment requests — no extra hardware required.
                 </p>
               </div>
 
