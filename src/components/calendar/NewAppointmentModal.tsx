@@ -35,6 +35,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
   const { business } = useBusiness()
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const createInFlightRef = useRef(false)
+  const requestIdRef = useRef<string | null>(null)
   
   // Form state
   const [title, setTitle] = useState('')
@@ -80,6 +82,16 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
       setLeadDisplay(null)
     }
   }, [isOpen, preselectedLeadId, preselectedLeadDisplay, context])
+
+  // Reset submission guards every time the modal opens so a new logical
+  // appointment creation gets a fresh request_id and is not blocked by a
+  // stale ref from a previous close.
+  useEffect(() => {
+    if (isOpen) {
+      createInFlightRef.current = false
+      requestIdRef.current = null
+    }
+  }, [isOpen])
 
   // Default Appointment Type based on entry context exactly once per fresh open
   // Prevent overwriting user changes while the modal is already open
@@ -152,10 +164,15 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
       }
     }
 
+    if (createInFlightRef.current) return
+    createInFlightRef.current = true
     setIsCreating(true)
     setError(null)
 
     try {
+      const requestId = requestIdRef.current ?? crypto.randomUUID()
+      requestIdRef.current = requestId
+
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
 
@@ -194,6 +211,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
           meeting_type: meetingType === 'in_person' ? undefined : meetingType === 'google_meet' ? 'google_meet' : 'custom',
           custom_meeting_url: meetingType === 'custom' && customMeetingUrl.trim() ? customMeetingUrl.trim() : undefined,
           lead_id: leadId || undefined,
+          request_id: requestId,
         })
       })
 
@@ -238,7 +256,9 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
       setCustomMeetingUrl('')
     } catch (err) {
       setError('Failed to create appointment')
+    } finally {
       setIsCreating(false)
+      createInFlightRef.current = false
     }
   }
 

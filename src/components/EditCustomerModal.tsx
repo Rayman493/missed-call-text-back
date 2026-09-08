@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
@@ -38,6 +38,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const submitInFlightRef = useRef(false)
 
   // Initialize form with existing lead data when modal opens
   useEffect(() => {
@@ -80,6 +81,8 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
       }
     }
 
+    if (submitInFlightRef.current) return
+    submitInFlightRef.current = true
     setIsSubmitting(true)
 
     try {
@@ -124,6 +127,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
       setError(err.message || 'Failed to update customer')
     } finally {
       setIsSubmitting(false)
+      submitInFlightRef.current = false
     }
   }
 

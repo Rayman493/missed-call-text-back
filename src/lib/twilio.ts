@@ -147,6 +147,33 @@ export async function sendSms(
       // Continue with send if check fails (don't block legitimate messages)
     }
   }
+  // Idempotency check for manual outbound messages using client_message_id.
+  // A retry with the same client_message_id must not trigger a second Twilio send
+  // once we have already persisted a successful message for that ID.
+  if (options?.isManual && options?.clientMessageId && business?.id) {
+    console.log('[SMS TRACE sendSms STEP_2B_MANUAL_IDEMPOTENCY_START]', { clientMessageId: options.clientMessageId, business_id: business.id });
+    const { data: existingMessage, error: existingError } = await supabase
+      .from('messages')
+      .select('id, twilio_message_sid, status, error_code')
+      .eq('business_id', business.id)
+      .eq('client_message_id', options.clientMessageId)
+      .maybeSingle();
+
+    console.log('[SMS TRACE sendSms STEP_2B_MANUAL_IDEMPOTENCY_RESULT]', { found: !!existingMessage, error: existingError?.code });
+
+    if (existingError && existingError.code !== 'PGRST116') {
+      console.error('[SMS] Error checking manual client_message_id duplicate:', existingError);
+    } else if (existingMessage) {
+      const wasTwilioCalled = existingMessage.twilio_message_sid && existingMessage.twilio_message_sid !== 'NOT_CALLED';
+      const isFailed = existingMessage.status === 'failed' || existingMessage.status === 'undelivered' || existingMessage.error_code;
+
+      if (wasTwilioCalled && !isFailed) {
+        console.log('[SMS] Manual message with client_message_id already sent, returning existing:', { clientMessageId: options.clientMessageId, messageId: existingMessage.id, twilio_message_sid: existingMessage.twilio_message_sid });
+        return { sid: existingMessage.twilio_message_sid, messageId: existingMessage.id };
+      }
+    }
+  }
+
   console.log('[SMS TRACE sendSms STEP_2_COMPLETE]', { proceeding: true });
 
   // Check if lead has opted out - block automated messages to opted-out numbers
@@ -986,6 +1013,31 @@ export async function sendMms(
     console.error('[MMS FAILED] Number not ready for use - provisioning incomplete');
     await logFailedMessage(business, to, message || '[MMS]', options, 'Number not ready for use - provisioning incomplete', 'NUMBER_NOT_READY', false);
     return { sid: null, messageId: null };
+  }
+
+  // Idempotency check for manual outbound MMS using client_message_id.
+  if (options?.isManual && options?.clientMessageId && business?.id) {
+    console.log('[MMS TRACE sendMms MANUAL_IDEMPOTENCY_START]', { clientMessageId: options.clientMessageId, business_id: business.id });
+    const { data: existingMessage, error: existingError } = await supabase
+      .from('messages')
+      .select('id, twilio_message_sid, status, error_code')
+      .eq('business_id', business.id)
+      .eq('client_message_id', options.clientMessageId)
+      .maybeSingle();
+
+    console.log('[MMS TRACE sendMms MANUAL_IDEMPOTENCY_RESULT]', { found: !!existingMessage, error: existingError?.code });
+
+    if (existingError && existingError.code !== 'PGRST116') {
+      console.error('[MMS] Error checking manual client_message_id duplicate:', existingError);
+    } else if (existingMessage) {
+      const wasTwilioCalled = existingMessage.twilio_message_sid && existingMessage.twilio_message_sid !== 'NOT_CALLED';
+      const isFailed = existingMessage.status === 'failed' || existingMessage.status === 'undelivered' || existingMessage.error_code;
+
+      if (wasTwilioCalled && !isFailed) {
+        console.log('[MMS] Manual MMS with client_message_id already sent, returning existing:', { clientMessageId: options.clientMessageId, messageId: existingMessage.id, twilio_message_sid: existingMessage.twilio_message_sid });
+        return { sid: existingMessage.twilio_message_sid, messageId: existingMessage.id };
+      }
+    }
   }
 
   // Handle simulation mode

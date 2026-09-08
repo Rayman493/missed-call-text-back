@@ -321,6 +321,27 @@ export async function POST(request: Request) {
     // This ensures Stripe idempotency even if client retries with same attempt ID
     const idempotencyKey = `payment-request-${business_id}-${lead_id}-${validatedAmountCents}-${paymentAttemptId}`
 
+    // Check for duplicate payment requests (same lead, amount, provider within 5 minutes)
+    // This MUST run before creating any external Stripe/Venmo/PayPal resource so we
+    // don't waste or duplicate external state for requests we intend to reject.
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    const { data: duplicateCheck } = await supabase
+      .from('payment_requests')
+      .select('id, created_at')
+      .eq('lead_id', lead_id)
+      .eq('amount_cents', validatedAmountCents)
+      .eq('payment_provider', provider)
+      .eq('status', 'pending')
+      .gte('created_at', fiveMinutesAgo)
+      .maybeSingle()
+
+    if (duplicateCheck) {
+      console.log('[PAYMENT REQUEST] Duplicate payment request detected:', duplicateCheck.id)
+      return NextResponse.json({
+        error: 'A payment request for this amount has already been sent to this lead. Please wait a few minutes before trying again.'
+      }, { status: 409 })
+    }
+
     // Generate payment link based on provider
     let paymentLink = ''
     let checkoutSession = null
@@ -395,25 +416,6 @@ export async function POST(request: Request) {
       .map(b => b.toString(16).padStart(2, '0'))
       .join('')
     console.log('[PAYMENT REQUEST] Token generated:', token)
-
-    // Check for duplicate payment requests (same lead, amount, provider within 5 minutes)
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-    const { data: duplicateCheck, error: duplicateError } = await supabase
-      .from('payment_requests')
-      .select('id, created_at')
-      .eq('lead_id', lead_id)
-      .eq('amount_cents', validatedAmountCents)
-      .eq('payment_provider', provider)
-      .eq('status', 'pending')
-      .gte('created_at', fiveMinutesAgo)
-      .maybeSingle()
-
-    if (duplicateCheck) {
-      console.log('[PAYMENT REQUEST] Duplicate payment request detected:', duplicateCheck.id)
-      return NextResponse.json({ 
-        error: 'A payment request for this amount has already been sent to this lead. Please wait a few minutes before trying again.' 
-      }, { status: 409 })
-    }
 
     // Create payment_request record
     console.log('[PAYMENT REQUEST] Inserting payment_request record...')

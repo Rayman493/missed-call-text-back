@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2, ClipboardList, MessageSquareText, CheckSquare } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -147,6 +147,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   const [isEditing, setIsEditing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSmsOpen, setIsSmsOpen] = useState(false)
+  const mutationInFlightRef = useRef(false)
 
   // Ownership: an event is ReplyFlow-owned if it carries our private metadata (created in ReplyFlow)
   const isReplyFlowOwned = !!event.extendedProperties?.private?.replyflow_lead_id || !!event.extendedProperties?.private?.replyflow_meeting_url
@@ -351,6 +352,8 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
 
   const markComplete = async () => {
     if (!event?.id) return
+    if (mutationInFlightRef.current) return
+    mutationInFlightRef.current = true
     setIsCompleting(true)
     try {
       const startStr = event.start?.dateTime || event.start?.date || ''
@@ -372,6 +375,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       setError(e?.message || 'Failed to mark meeting complete')
     } finally {
       setIsCompleting(false)
+      mutationInFlightRef.current = false
     }
   }
 
@@ -405,6 +409,8 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   }
 
   const handleDeleteConfirm = async () => {
+    if (mutationInFlightRef.current) return
+    mutationInFlightRef.current = true
     setIsDeleting(true)
     setError(null)
 
@@ -414,7 +420,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
 
       if (!token) {
         setError('Not authenticated')
-        setIsDeleting(false)
         return
       }
 
@@ -428,20 +433,18 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to delete event' }))
         setError(errorData.error || 'Failed to delete event')
-        setIsDeleting(false)
-        setShowConfirm(false)
         return
       }
 
       // Success
-      setShowConfirm(false)
-      setIsDeleting(false)
       onDelete?.()
       onClose()
     } catch (err) {
       setError('Failed to delete event')
+    } finally {
       setIsDeleting(false)
       setShowConfirm(false)
+      mutationInFlightRef.current = false
     }
   }
 
@@ -481,6 +484,8 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   // Handle customer selection from SearchableCustomerSelect
   const handleCustomerSelect = async (customer: Customer | null) => {
     if (!event?.id) return
+    if (mutationInFlightRef.current) return
+    mutationInFlightRef.current = true
 
     const customerId = customer?.id || null
 
@@ -527,12 +532,15 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       setError('Failed to update customer')
     } finally {
       setIsSavingCustomer(false)
+      mutationInFlightRef.current = false
     }
   }
 
   // Handle customer removal
   const handleRemoveCustomer = async () => {
     if (!event?.id) return
+    if (mutationInFlightRef.current) return
+    mutationInFlightRef.current = true
 
     setIsSavingCustomer(true)
     setError(null)
@@ -577,10 +585,13 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       setError('Failed to remove customer')
     } finally {
       setIsSavingCustomer(false)
+      mutationInFlightRef.current = false
     }
   }
 
   const handleSaveChanges = async () => {
+    if (mutationInFlightRef.current) return
+    mutationInFlightRef.current = true
     setIsSaving(true)
     setError(null)
 
@@ -590,13 +601,12 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
 
       if (!token) {
         setError('Not authenticated')
-        setIsSaving(false)
         return
       }
 
       // Build start/end objects for Google Calendar
       let start: any, end: any
-      
+
       if (isAllDay) {
         start = { date: editedStartDate }
         // For all-day events, end date is exclusive (next day)
@@ -606,7 +616,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       } else {
         const startDateTime = new Date(`${editedStartDate}T${editedStartTime}`)
         const endDateTime = new Date(`${editedStartDate}T${editedEndTime}`)
-        
+
         start = { dateTime: startDateTime.toISOString() }
         end = { dateTime: endDateTime.toISOString() }
       }
@@ -629,22 +639,24 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to update event' }))
         setError(errorData.error || 'Failed to update event')
-        setIsSaving(false)
         return
       }
 
       // Success
       setIsEditing(false)
-      setIsSaving(false)
       onRefresh?.()
       onClose()
     } catch (err) {
       setError('Failed to update event')
+    } finally {
       setIsSaving(false)
+      mutationInFlightRef.current = false
     }
   }
 
   const handleSaveLocation = async () => {
+    if (mutationInFlightRef.current) return
+    mutationInFlightRef.current = true
     setIsSaving(true)
     setError(null)
 
@@ -652,7 +664,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
     const trimmedLocation = editedLocation.trim()
     if (!trimmedLocation) {
       setError('Please enter a location')
-      setIsSaving(false)
       return
     }
 
@@ -662,7 +673,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
 
       if (!token) {
         setError('Not authenticated')
-        setIsSaving(false)
         return
       }
 
@@ -680,18 +690,18 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to update location' }))
         setError(errorData.error || 'Failed to update location')
-        setIsSaving(false)
         return
       }
 
       // Success
-      setIsSaving(false)
       onRefresh?.()
       onClose()
       onShowToast?.('Location saved successfully', 'success')
     } catch (err) {
       setError('Failed to update location')
+    } finally {
       setIsSaving(false)
+      mutationInFlightRef.current = false
     }
   }
 

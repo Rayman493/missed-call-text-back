@@ -22,7 +22,7 @@
  * - any → ambiguous (ambiguous is a client-side state, not a DB state)
  */
 
-export type PaymentRequestStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'canceled' | 'requires_payment_method'
+export type PaymentRequestStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'canceled' | 'cancelled' | 'requires_payment_method'
 
 export interface TransitionResult {
   allowed: boolean
@@ -30,9 +30,18 @@ export interface TransitionResult {
 }
 
 /**
+ * Canonical DB spelling is 'cancelled'. Accept 'canceled' as an alias because
+ * some callers (and tests) use the American spelling, but always compare using
+ * the canonical form.
+ */
+function canonicalStatus(status: PaymentRequestStatus): PaymentRequestStatus {
+  return status === 'canceled' ? 'cancelled' : status
+}
+
+/**
  * Terminal states that cannot be transitioned from
  */
-const TERMINAL_STATES: PaymentRequestStatus[] = ['paid', 'failed', 'canceled']
+const TERMINAL_STATES: PaymentRequestStatus[] = ['paid', 'failed', 'cancelled']
 
 /**
  * Validate a state transition
@@ -46,25 +55,28 @@ export function validateStateTransition(
     return { allowed: true }
   }
 
+  const normalizedFrom = canonicalStatus(fromStatus)
+  const normalizedTo = canonicalStatus(toStatus)
+
   // Cannot transition from terminal states
-  if (TERMINAL_STATES.includes(fromStatus)) {
+  if (TERMINAL_STATES.includes(normalizedFrom)) {
     return {
       allowed: false,
-      reason: `Cannot transition from terminal state '${fromStatus}' to '${toStatus}'`,
+      reason: `Cannot transition from terminal state '${normalizedFrom}' to '${normalizedTo}'`,
     }
   }
 
   // Specific invalid transitions
   const invalidTransitions: Record<string, PaymentRequestStatus[]> = {
     failed: ['processing', 'pending'],
-    canceled: ['processing', 'pending'],
+    cancelled: ['processing', 'pending'],
   }
 
-  const blockedForFrom = invalidTransitions[fromStatus] || []
-  if (blockedForFrom.includes(toStatus)) {
+  const blockedForFrom = invalidTransitions[normalizedFrom] || []
+  if (blockedForFrom.includes(normalizedTo)) {
     return {
       allowed: false,
-      reason: `Invalid transition from '${fromStatus}' to '${toStatus}'`,
+      reason: `Invalid transition from '${normalizedFrom}' to '${normalizedTo}'`,
     }
   }
 
@@ -102,14 +114,15 @@ export async function safeStatusUpdate(
  * Check if a status is terminal
  */
 export function isTerminalStatus(status: PaymentRequestStatus): boolean {
-  return TERMINAL_STATES.includes(status)
+  return TERMINAL_STATES.includes(canonicalStatus(status))
 }
 
 /**
  * Check if a status allows retry (new PaymentIntent creation)
  */
 export function allowsRetry(status: PaymentRequestStatus): boolean {
-  return status === 'failed' || status === 'canceled' || status === 'requires_payment_method'
+  const normalized = canonicalStatus(status)
+  return normalized === 'failed' || normalized === 'cancelled' || normalized === 'requires_payment_method'
 }
 
 /**

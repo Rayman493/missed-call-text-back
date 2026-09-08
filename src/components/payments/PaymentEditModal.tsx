@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { User, Copy, ExternalLink } from 'lucide-react'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getPaymentStatusStyle } from '@/lib/payment-status'
@@ -55,6 +55,7 @@ export default function PaymentEditModal({
   const [label, setLabel] = useState(currentLabel)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
+  const saveInFlightRef = useRef(false)
 
   // Handle Android back button
   useModalBackButton({ isOpen, onClose })
@@ -71,6 +72,8 @@ export default function PaymentEditModal({
 
   const handleSave = async () => {
     if (!label.trim()) return
+    if (saveInFlightRef.current) return
+    saveInFlightRef.current = true
 
     setIsSaving(true)
     setError('')
@@ -83,6 +86,7 @@ export default function PaymentEditModal({
       setError(err instanceof Error ? err.message : 'Failed to save payment label')
     } finally {
       setIsSaving(false)
+      saveInFlightRef.current = false
     }
   }
 

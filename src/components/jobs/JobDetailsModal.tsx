@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Pencil, Trash2, Link as LinkIcon, MessageSquare, CheckCircle2, AlertCircle, CreditCard, Copy, ExternalLink, Smartphone, MessageSquareText, Navigation, Share2 } from 'lucide-react'
 import type { Job, JobStatus } from './JobComposer'
@@ -105,6 +105,8 @@ export default function JobDetailsModal({
   const [isCancellingPayment, setIsCancellingPayment] = useState(false)
   const [isNativeSupported, setIsNativeSupported] = useState(false)
   const [lead, setLead] = useState<Lead | null>(null)
+  const updateStatusInFlightRef = useRef(false)
+  const deleteInFlightRef = useRef(false)
 
   // Lock background scroll when main modal is open
   useBodyScrollLock(isOpen, 'job-details-modal')
@@ -273,6 +275,8 @@ export default function JobDetailsModal({
 
   const handleStatusChange = async (newStatus: JobStatus) => {
     if (newStatus === job.status) return
+    if (updateStatusInFlightRef.current) return
+    updateStatusInFlightRef.current = true
     setIsUpdatingStatus(true)
     try {
       const response = await fetch(`/api/jobs/${job.id}`, {
@@ -285,10 +289,13 @@ export default function JobDetailsModal({
       onStatusChange(data.job, newStatus)
     } finally {
       setIsUpdatingStatus(false)
+      updateStatusInFlightRef.current = false
     }
   }
 
   const handleDelete = async () => {
+    if (deleteInFlightRef.current) return
+    deleteInFlightRef.current = true
     setIsDeleting(true)
     try {
       const response = await fetch(`/api/jobs/${job.id}`, { method: 'DELETE' })
@@ -298,6 +305,7 @@ export default function JobDetailsModal({
     } finally {
       setIsDeleting(false)
       setShowDeleteConfirm(false)
+      deleteInFlightRef.current = false
     }
   }
 

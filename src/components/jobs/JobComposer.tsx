@@ -90,6 +90,7 @@ export default function JobComposer({
   const [status, setStatus] = useState<JobStatus>('scheduled')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
+  const saveInFlightRef = useRef(false)
 
   // Customer selector state
   const [leadId, setLeadId] = useState<string | null>(null)
@@ -173,6 +174,8 @@ export default function JobComposer({
       return
     }
     
+    if (saveInFlightRef.current) return
+    saveInFlightRef.current = true
     setError('')
     setIsSaving(true)
     try {
@@ -212,6 +215,7 @@ export default function JobComposer({
       setError(err instanceof Error ? err.message : 'Failed to save job')
     } finally {
       setIsSaving(false)
+      saveInFlightRef.current = false
     }
   }
 

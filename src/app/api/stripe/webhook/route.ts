@@ -2296,7 +2296,7 @@ export async function POST(request: Request) {
         // Find and update payment request
         const { data: paymentRequest } = await supabase
           .from('payment_requests')
-          .select('id, lead_id, business_id, stripe_connect_account_id')
+          .select('id, lead_id, business_id, status, stripe_connect_account_id')
           .eq('stripe_payment_intent_id', paymentIntentId)
           .maybeSingle()
         
@@ -2317,6 +2317,14 @@ export async function POST(request: Request) {
             }
           } else if (expectedConnectedAccountId && !eventConnectedAccountId) {
             console.warn('[TERMINAL PAYMENT] Platform event for connected account payment - ignoring')
+            await markEventProcessed(supabase, event.id)
+            break
+          }
+
+          // Do not allow a late failed webhook to overwrite an already-paid/successful request
+          const failedValidation = validateStateTransition(paymentRequest.status, 'failed')
+          if (!failedValidation.allowed) {
+            console.error('[TERMINAL PAYMENT] invalid_transition=' + failedValidation.reason + ' payment_request_id=' + paymentRequest.id)
             await markEventProcessed(supabase, event.id)
             break
           }
@@ -2361,7 +2369,7 @@ export async function POST(request: Request) {
         // Find and update payment request
         const { data: paymentRequest } = await supabase
           .from('payment_requests')
-          .select('id, lead_id, business_id, stripe_connect_account_id')
+          .select('id, lead_id, business_id, status, stripe_connect_account_id')
           .eq('stripe_payment_intent_id', paymentIntentId)
           .maybeSingle()
         
@@ -2382,6 +2390,14 @@ export async function POST(request: Request) {
             }
           } else if (expectedConnectedAccountId && !eventConnectedAccountId) {
             console.warn('[TERMINAL PAYMENT] Platform event for connected account payment - ignoring')
+            await markEventProcessed(supabase, event.id)
+            break
+          }
+
+          // Do not allow a late canceled webhook to overwrite an already-paid/successful request
+          const cancelValidation = validateStateTransition(paymentRequest.status, 'cancelled')
+          if (!cancelValidation.allowed) {
+            console.error('[TERMINAL PAYMENT] invalid_transition=' + cancelValidation.reason + ' payment_request_id=' + paymentRequest.id)
             await markEventProcessed(supabase, event.id)
             break
           }

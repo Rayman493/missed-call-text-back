@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
       meeting_type,
       custom_meeting_url,
       lead_id,
+      request_id,
     } = body
 
     // Validate required fields
@@ -282,8 +283,17 @@ export async function POST(request: NextRequest) {
       },
     }
 
+    // Stable idempotency identity for the Google Calendar event itself.
+    // The client supplies a request_id per logical appointment creation; if the
+    // request must be retried (lost response, 5xx, network error) reusing the
+    // same request_id sets the same Google event ID, so a duplicate POST from
+    // our retry will return HTTP 409 and we can fetch the already-created event.
+    const requestId = request_id || crypto.randomUUID()
+    const isClientProvided = !!request_id
+
     // Base event body
     let eventBody: any = {
+      id: requestId,
       summary: title,
       description: description || '',
       start,
@@ -292,17 +302,17 @@ export async function POST(request: NextRequest) {
       extendedProperties,
     }
 
-    console.log('[Calendar Create] Creating event with data:', { title, date, endDate: finalEndDate, allDay })
+    console.log('[Calendar Create] Creating event with data:', { title, date, endDate: finalEndDate, allDay, requestId, isClientProvided })
 
     // If Google Meet requested, include conferenceData createRequest and conferenceDataVersion=1
     let createUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events`
     if (meeting_type === 'google_meet') {
-      const requestId = `rf-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+      const conferenceRequestId = `rf-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
       eventBody = {
         ...eventBody,
         conferenceData: {
           createRequest: {
-            requestId,
+            requestId: conferenceRequestId,
             conferenceSolutionKey: { type: 'hangoutsMeet' },
           },
         },
@@ -319,7 +329,31 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(eventBody),
     })
 
-    if (!response.ok) {
+    let createdEvent: any
+    if (response.ok) {
+      createdEvent = await response.json()
+    } else if (response.status === 409) {
+      // Google already has an event with this ID (previous attempt succeeded but
+      // response was lost). Fetch the existing event and continue.
+      console.log('[Calendar Create] Google returned 409 for request_id:', requestId, 'fetching existing event')
+      const existingEventUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(requestId)}?conferenceDataVersion=1`
+      const existingResponse = await fetchWithRetry(existingEventUrl, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+      })
+
+      if (!existingResponse.ok) {
+        const errorText = await existingResponse.text()
+        console.error('[Calendar Create] Failed to fetch existing event after 409:', {
+          requestId,
+          status: existingResponse.status,
+          errorText
+        })
+        return NextResponse.json({ error: 'Failed to create event in Google Calendar' }, { status: 500 })
+      }
+
+      createdEvent = await existingResponse.json()
+    } else {
       const errorText = await response.text()
       let errorData
       try {
@@ -333,7 +367,7 @@ export async function POST(request: NextRequest) {
         error: errorData,
         payloadSent: eventBody
       })
-      
+
       // Handle specific Google Calendar API errors
       if (response.status === 401) {
         return NextResponse.json({ error: 'Google Calendar authorization failed' }, { status: 401 })
@@ -342,11 +376,9 @@ export async function POST(request: NextRequest) {
       } else if (response.status === 429) {
         return NextResponse.json({ error: 'Too many requests to Google Calendar' }, { status: 429 })
       }
-      
+
       return NextResponse.json({ error: 'Failed to create event in Google Calendar' }, { status: 500 })
     }
-
-    const createdEvent = await response.json()
     console.log('[CALENDAR EVENT CREATE] Google response', {
       eventId: createdEvent.id,
       start: createdEvent.start,

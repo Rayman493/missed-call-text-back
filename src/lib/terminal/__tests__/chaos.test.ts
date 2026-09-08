@@ -1072,6 +1072,16 @@ describe('Tap to Pay Chaos / Failure-Injection Tests', () => {
       const validation = validateStateTransition('pending', 'canceled')
       expect(validation.allowed).toBe(true)
     })
+
+    it('should reject paid → cancelled transition', () => {
+      const validation = validateStateTransition('paid', 'cancelled')
+      expect(validation.allowed).toBe(false)
+    })
+
+    it('should treat cancelled as a terminal state (DB canonical spelling)', () => {
+      const validation = validateStateTransition('cancelled', 'failed')
+      expect(validation.allowed).toBe(false)
+    })
   })
 
   // ===================================================

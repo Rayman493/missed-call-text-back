@@ -55,6 +55,8 @@ export default function RequestPaymentModal({
   const [isLoadingLeads, setIsLoadingLeads] = useState(false)
   const [leadsError, setLeadsError] = useState<string | null>(null)
   const amountInputRef = useRef<HTMLInputElement>(null)
+  const createInFlightRef = useRef(false)
+  const attemptIdRef = useRef<string | null>(null)
 
   // Prevent initial focus on amount input when modal opens
   useEffect(() => {
@@ -105,6 +107,8 @@ export default function RequestPaymentModal({
   // Prefill lead and description when modal opens
   useEffect(() => {
     if (isOpen) {
+      createInFlightRef.current = false
+      attemptIdRef.current = null
       if (prefillLeadId) {
         setSelectedLeadId(prefillLeadId)
         setRecipientType('lead')
@@ -217,6 +221,8 @@ export default function RequestPaymentModal({
       return
     }
 
+    if (createInFlightRef.current) return
+    createInFlightRef.current = true
     setIsCreatingPayment(true)
     setError('')
 
@@ -287,7 +293,8 @@ export default function RequestPaymentModal({
       }
 
       // Generate attempt ID for idempotency - stable across retries
-      const attemptId = crypto.randomUUID()
+      const attemptId = attemptIdRef.current ?? crypto.randomUUID()
+      attemptIdRef.current = attemptId
 
       const payload = {
         business_id: business?.id,
@@ -347,6 +354,7 @@ export default function RequestPaymentModal({
       setError(err instanceof Error ? err.message : 'Failed to create payment request')
     } finally {
       setIsCreatingPayment(false)
+      createInFlightRef.current = false
     }
   }
 

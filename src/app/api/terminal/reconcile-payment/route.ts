@@ -388,21 +388,43 @@ export async function POST(request: NextRequest) {
       }
 
       case 'canceled': {
-        console.log('[TERMINAL_RECONCILIATION] stage=local_update_start local_status=canceled')
+        console.log('[TERMINAL_RECONCILIATION] stage=local_update_start local_status=cancelled')
+
+        const cancelValidation = validateStateTransition(paymentRequest.status, 'cancelled')
+        if (!cancelValidation.allowed) {
+          console.error('[TERMINAL_RECONCILIATION] invalid_transition=' + cancelValidation.reason)
+          return NextResponse.json({
+            status: paymentRequest.status,
+            paymentRequestId: paymentRequest.id,
+            message: 'Invalid state transition'
+          }, { status: 409 })
+        }
+
         await supabaseAdmin
           .from('payment_requests')
-          .update({ status: 'canceled' })
+          .update({ status: 'cancelled' })
           .eq('id', paymentRequest.id)
 
-        console.log('[TERMINAL_RECONCILIATION] stage=reconciliation_complete status=canceled local_status_after=canceled')
+        console.log('[TERMINAL_RECONCILIATION] stage=reconciliation_complete status=cancelled local_status_after=cancelled')
         return NextResponse.json({
-          status: 'canceled',
+          status: 'cancelled',
           paymentRequestId: paymentRequest.id,
         })
       }
 
       case 'requires_payment_method': {
         console.log('[TERMINAL_RECONCILIATION] stage=local_update_start local_status=failed')
+
+        const failedValidation = validateStateTransition(paymentRequest.status, 'failed')
+        if (!failedValidation.allowed) {
+          console.error('[TERMINAL_RECONCILIATION] invalid_transition=' + failedValidation.reason)
+          return NextResponse.json({
+            status: paymentRequest.status,
+            paymentRequestId: paymentRequest.id,
+            message: 'Invalid state transition'
+          }, { status: 409 })
+        }
+
         await supabaseAdmin
           .from('payment_requests')
           .update({ status: 'failed' })
