@@ -251,20 +251,20 @@ const getResponsivePadding = useCallback(() => {
 
   if (isMobile) {
     // Mobile: account for top header, Today's Schedule panel, bottom nav, map controls
-    // Use balanced padding to avoid excessive zoom-out while keeping UI visible
+    // Slightly loosened so outer markers sit a bit farther from the edges.
     return {
-      top: 80, // Header + reasonable cushion
-      right: 20, // Right edge cushion for map controls
-      bottom: bottomNavHeight + 30, // Bottom nav + breathing room
-      left: 20 // Left edge cushion
+      top: 100, // Header + schedule panel + more surrounding context
+      right: 40, // Right edge cushion for map controls
+      bottom: bottomNavHeight + 50, // Bottom nav + breathing room
+      left: 40 // Left edge cushion
     }
   } else {
-    // Desktop: more breathing room, less UI obstruction
+    // Desktop: more breathing room and a little extra geographic context
     return {
-      top: 60, // Header
-      right: 40, // Right cushion
-      bottom: 40, // Bottom cushion
-      left: 40 // Left cushion
+      top: 80, // Header
+      right: 60, // Right cushion
+      bottom: 60, // Bottom cushion
+      left: 60 // Left cushion
     }
   }
 }, [])
