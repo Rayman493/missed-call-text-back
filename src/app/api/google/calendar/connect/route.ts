@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
@@ -71,13 +72,24 @@ export async function GET(request: NextRequest) {
 
     console.log('[Google Calendar Connect] Business found:', business.id)
 
-    // Generate state parameter for CSRF protection
-    const state = Buffer.from(JSON.stringify({
+    // Generate a signed state parameter that binds the OAuth flow to this
+    // user and business. Prevents tampering and CSRF redirects.
+    const stateSecret = process.env.GOOGLE_OAUTH_STATE_SECRET || GOOGLE_CLIENT_SECRET || ''
+    const statePayload = {
       business_id: business.id,
+      user_id: user.id,
       timestamp: Date.now()
+    }
+    const stateSignature = crypto
+      .createHmac('sha256', stateSecret)
+      .update(JSON.stringify(statePayload))
+      .digest('hex')
+    const state = Buffer.from(JSON.stringify({
+      ...statePayload,
+      signature: stateSignature
     })).toString('base64')
 
-    console.log('[Google Calendar Connect] Generated state')
+    console.log('[Google Calendar Connect] Generated signed state')
 
     // Construct Google OAuth URL (Calendar + Meet read-only for transcripts)
     const scopeList = [

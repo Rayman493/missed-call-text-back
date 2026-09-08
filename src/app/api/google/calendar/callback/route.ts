@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
@@ -74,13 +75,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
     }
 
-    // Decode and validate state
+    // Decode and validate signed state
     let stateData
     try {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString())
       console.log('[GOOGLE OAUTH] state valid:', !!stateData.business_id ? 'yes' : 'no')
 
-      if (!stateData.business_id || !stateData.timestamp) {
+      if (!stateData.business_id || !stateData.user_id || !stateData.timestamp || !stateData.signature) {
         throw new Error('Invalid state')
       }
 
@@ -91,6 +92,23 @@ export async function GET(request: NextRequest) {
         console.error('[GOOGLE OAUTH] State expired, age:', stateAge, 'ms')
         throw new Error('State expired')
       }
+
+      // Verify HMAC signature to prevent tampering/IDOR
+      const stateSecret = process.env.GOOGLE_OAUTH_STATE_SECRET || GOOGLE_CLIENT_SECRET || ''
+      const expectedSignature = crypto
+        .createHmac('sha256', stateSecret)
+        .update(JSON.stringify({
+          business_id: stateData.business_id,
+          user_id: stateData.user_id,
+          timestamp: stateData.timestamp
+        }))
+        .digest('hex')
+
+      if (stateData.signature !== expectedSignature) {
+        console.error('[GOOGLE OAUTH] State signature mismatch')
+        throw new Error('State signature mismatch')
+      }
+
       console.log('[GOOGLE OAUTH] state validated, age:', stateAge, 'ms')
     } catch (error) {
       console.error('[GOOGLE OAUTH] Invalid state:', error)
@@ -133,6 +151,11 @@ export async function GET(request: NextRequest) {
 
     if (businessError || !business) {
       console.error('[GOOGLE OAUTH] business lookup failed:', businessError)
+      return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
+    }
+
+    if (business.user_id !== stateData.user_id) {
+      console.error('[GOOGLE OAUTH] business/user mismatch from state')
       return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
     }
 

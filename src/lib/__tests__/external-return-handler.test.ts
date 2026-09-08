@@ -4,7 +4,7 @@
  * Tests for centralized external browser return handling and Stripe status reconciliation.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { Capacitor } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
 import {
@@ -146,6 +146,64 @@ describe('External Return Handler', () => {
       // Stripe Checkout doesn't call reconcileStripeStatus - it navigates to billing/success
       // The billing/success page handles reconciliation via polling
       expect(result).toBe(true)
+    })
+  })
+
+  describe('Navigation Safety', () => {
+    let mockLocation: { href: string }
+    let originalWindow: typeof window
+
+    beforeEach(() => {
+      originalWindow = window
+      mockLocation = { href: '' }
+      vi.stubGlobal('window', {
+        location: mockLocation,
+        sessionStorage: {
+          setItem: vi.fn(),
+          removeItem: vi.fn(),
+          getItem: vi.fn()
+        },
+        dispatchEvent: vi.fn()
+      })
+      vi.mocked(Preferences.get).mockResolvedValue({ value: null })
+      vi.mocked(Preferences.set).mockResolvedValue(undefined)
+      vi.mocked(Preferences.remove).mockResolvedValue(undefined)
+    })
+
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    it('should place Stripe Connect query before hash', async () => {
+      vi.mocked(Preferences.get).mockImplementation(async (key) => {
+        if (key.key === 'stripe_reconciliation_in_flight') return { value: 'false' }
+        if (key.key === 'stripe_reconciliation_last_time') return { value: null }
+        if (key.key === 'pending_stripe_operation') return { value: 'connect_onboarding' }
+        if (key.key === 'pending_stripe_operation_business_id') return { value: 'test-business-id' }
+        if (key.key === 'pending_stripe_operation_timestamp') return { value: Date.now().toString() }
+        return { value: null }
+      })
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ canonicalStatus: 'connected' }) })
+
+      await handleExternalReturn('https://www.replyflowhq.com/dashboard/settings?stripe_onboarding=complete')
+
+      expect(mockLocation.href).toBe('/dashboard/settings?stripe_onboarding=complete#payments')
+    })
+
+    it('should preserve session_id for Stripe Checkout', async () => {
+      await handleExternalReturn('https://www.replyflowhq.com/billing/success?session_id=cs_test_123&native_callback=1&return_to_app=1')
+
+      expect(mockLocation.href).toBe('/billing/success?session_id=cs_test_123&native_callback=1&return_to_app=1')
+    })
+
+    it('should reject Stripe return from foreign hostname', async () => {
+      const result = await handleExternalReturn('https://evil.com/dashboard/settings?stripe_onboarding=complete')
+      expect(result).toBe(false)
+    })
+
+    it('should not short-circuit /auth/callback OAuth returns', async () => {
+      const result = await handleExternalReturn('https://www.replyflowhq.com/auth/callback?code=abc123&provider=google')
+      expect(result).toBe(false)
     })
   })
 

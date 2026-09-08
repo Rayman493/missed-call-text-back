@@ -36,6 +36,18 @@ const STRIPE_RECONCILIATION_LAST_TIME_KEY = 'stripe_reconciliation_last_time'
 const RECONCILIATION_DEDUP_WINDOW_MS = 5000 // Don't reconcile more than once every 5 seconds
 const OPERATION_EXPIRY_MS = 300000 // Pending operations expire after 5 minutes
 
+// Only these hostnames may trigger external-return reconciliation.
+// This prevents arbitrary third-party links from spoofing return flows.
+const APPROVED_EXTERNAL_RETURN_HOSTNAMES = [
+  'www.replyflowhq.com',
+  'replyflowhq.com',
+  'links.replyflowhq.com'
+]
+
+function isApprovedExternalReturnHostname(hostname: string): boolean {
+  return APPROVED_EXTERNAL_RETURN_HOSTNAMES.includes(hostname)
+}
+
 /**
  * Centralized External Return Registry
  *
@@ -111,42 +123,9 @@ const EXTERNAL_RETURN_FLOWS: ExternalReturnFlow[] = [
       }
     }
   },
-  {
-    name: 'AUTH_OAUTH',
-    matcher: (url) => {
-      // Check if this is an auth callback with OAuth code
-      // Matches: /auth/callback?code=...&provider=google
-      if (url.pathname === '/auth/callback') {
-        const code = url.searchParams.get('code')
-        const provider = url.searchParams.get('provider')
-        const error = url.searchParams.get('error')
-        const errorDescription = url.searchParams.get('error_description')
-
-        // Handle OAuth errors
-        if (error) {
-          console.log('[AUTH OAUTH RETURN] OAuth error:', error, errorDescription)
-          // Store error for display
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('oauth_error', errorDescription || error)
-          }
-          return true
-        }
-
-        // Handle successful OAuth callback
-        if (code && (provider === 'google' || provider === 'apple')) {
-          console.log('[AUTH OAUTH RETURN] Recognized OAuth callback for provider:', provider)
-          return true
-        }
-      }
-      return false
-    },
-    internalDestination: '/dashboard',
-    reconcile: async () => {
-      // OAuth reconciliation is handled by the auth callback route
-      // This just ensures we don't treat it as a generic deep link
-      console.log('[AUTH OAUTH RETURN] OAuth callback will be processed by auth callback route')
-    }
-  }
+  // NOTE: /auth/callback OAuth returns are intentionally NOT handled here.
+  // handleOAuthCallback in src/capacitor/init.ts must process the authorization
+  // code and exchange it for a session before any navigation occurs.
 ]
 
 /**
@@ -405,6 +384,11 @@ export async function handleExternalReturn(url: string): Promise<boolean> {
 
   // Check against centralized external return registry for HTTPS URLs
   if (urlObj.protocol === 'https:') {
+    if (!isApprovedExternalReturnHostname(urlObj.hostname)) {
+      console.warn('[EXTERNAL RETURN] Rejecting unrecognized hostname:', urlObj.hostname)
+      return false
+    }
+
     for (const flow of EXTERNAL_RETURN_FLOWS) {
       if (flow.matcher(urlObj)) {
         console.log('[EXTERNAL RETURN] Recognized flow:', flow.name)
@@ -439,10 +423,25 @@ export async function handleExternalReturn(url: string): Promise<boolean> {
         console.log('[EXTERNAL RETURN] Navigating to clean route with parameter:', flow.internalDestination)
         console.log('[NAV_SOURCE] source=EXTERNAL_RETURN_HANDLER_NAVIGATE destination=' + flow.internalDestination)
 
-        // For Stripe Connect, keep parameter so Settings useEffect can trigger
-        const navigationUrl = flow.name === 'STRIPE_CONNECT'
-          ? flow.internalDestination + '?stripe_onboarding=complete'
-          : flow.internalDestination
+        // Build safe internal navigation URL, preserving only the parameters
+        // each return flow actually needs.
+        let navigationUrl: string
+        if (flow.name === 'STRIPE_CONNECT') {
+          // Place query before fragment so Settings useEffect can read stripe_onboarding
+          navigationUrl = '/dashboard/settings?stripe_onboarding=complete#payments'
+        } else if (flow.name === 'STRIPE_CHECKOUT') {
+          const params = new URLSearchParams()
+          const sessionId = urlObj.searchParams.get('session_id')
+          if (sessionId && sessionId.startsWith('cs_')) {
+            params.set('session_id', sessionId)
+          }
+          if (urlObj.searchParams.has('native_callback')) params.set('native_callback', '1')
+          if (urlObj.searchParams.has('return_to_app')) params.set('return_to_app', '1')
+          if (urlObj.searchParams.has('recovery')) params.set('recovery', '1')
+          navigationUrl = `/billing/success${params.toString() ? '?' + params.toString() : ''}`
+        } else {
+          navigationUrl = flow.internalDestination
+        }
 
         window.location.href = navigationUrl
 

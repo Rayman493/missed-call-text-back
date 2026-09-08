@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import getStripe from '@/lib/stripe'
 import { createClient } from '@supabase/supabase-js'
-import { createBrowserClient } from '@/lib/supabase/browser'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 /**
  * Refresh subscription status from Stripe
@@ -34,8 +34,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Authenticate user
-    const supabase = createBrowserClient()
+    // Authenticate user using the secure server-side session (browser client
+    // has no session in an API route).
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
       console.log('[Billing Subscription Refresh] Unauthorized: no user session')
