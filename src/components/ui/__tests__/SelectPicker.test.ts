@@ -37,9 +37,12 @@ describe('SelectPicker', () => {
     expect(content).toContain('pr-10')
   })
 
-  it('places chevron to the left of the clear button when a value is selected', () => {
-    expect(content).toContain('right-10')
-    expect(content).toContain('right-3')
+  it('places chevron and clear button in a single flex icon container with no overlap', () => {
+    expect(content).toContain('absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1')
+    expect(content).toContain('pointer-events-none')
+    expect(content).toContain('pointer-events-auto')
+    expect(content).toContain('<X className=')
+    expect(content).toContain('<ChevronDown className=')
   })
 
   it('prevents clear button click from opening the dropdown', () => {

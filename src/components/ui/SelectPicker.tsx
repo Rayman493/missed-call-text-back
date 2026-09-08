@@ -237,9 +237,9 @@ export default function SelectPicker({
             aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
             className={`w-full border rounded-lg flex items-center gap-2 duration-150 text-left ${
               disabled
-                ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30 px-3 py-2.5'
+                ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30 px-3 py-2.5 pr-10'
                 : 'bg-background dark:bg-slate-900/40 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60 cursor-pointer px-3 py-2.5'
-            } ${hasValue ? 'pr-14' : 'pr-10'}`}
+            } ${!disabled && hasValue ? 'pr-14' : 'pr-10'}`}
           >
             <span className={selectedOption ? 'text-foreground truncate flex-1 min-w-0' : 'text-muted-foreground truncate flex-1 min-w-0'}>
               {selectedOption ? selectedOption.label : placeholder}
@@ -247,18 +247,26 @@ export default function SelectPicker({
           </button>
         )}
 
-        {!isSearching && hasValue && !disabled ? (
-          <button
-            type="button"
-            onClick={handleClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded transition-colors"
-            aria-label="Clear selection"
-          >
-            <X className="w-4 h-4 text-muted-foreground" />
-          </button>
-        ) : null}
+        {/* Dedicated icon slots on the right. The chevron is pointer-events-none
+            so clicks pass through to the trigger button. The clear button is
+            pointer-events-auto so it keeps its own click target. */}
         {!isSearching && (
-          <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground flex-shrink-0 duration-150 pointer-events-none ${hasValue && !disabled ? 'right-10' : ''} ${isOpen ? 'rotate-180' : ''}`} />
+          <div
+            className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none"
+            aria-hidden={!(hasValue && !disabled)}
+          >
+            {hasValue && !disabled && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="pointer-events-auto p-1 hover:bg-accent/40 rounded transition-colors"
+                aria-label="Clear selection"
+              >
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
+            <ChevronDown className={`w-4 h-4 text-muted-foreground flex-shrink-0 duration-150 ${isOpen ? 'rotate-180' : ''}`} />
+          </div>
         )}
       </div>
 

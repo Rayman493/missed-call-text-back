@@ -5,6 +5,7 @@ import { LeadService } from '@/lib/services/LeadService';
 import { ConversationService } from '@/lib/services/ConversationService';
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard';
 import { analyticsService } from '@/lib/analytics/analytics-service';
+import { getLeadDisplayName } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   console.log('[API LEADS GET] ========== ROUTE ENTERED ==========')
@@ -117,23 +118,63 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Normalize to the shape expected by the lead picker and lead list
-    const leads = rawLeads.map(lead => ({
-      id: lead.id,
-      business_id: lead.business_id,
-      caller_phone: lead.caller_phone,
-      name: lead.contact_name || lead.raw_metadata?.customerName || lead.raw_metadata?.callerName || lead.raw_metadata?.name || null,
-      status: lead.status,
-      created_at: lead.created_at,
-      updated_at: lead.created_at, // Use created_at as fallback since updated_at doesn't exist in live schema
-      last_activity_at: lead.created_at, // Use created_at as fallback
-      conversation_id: conversationMap[lead.id] || null,
-      raw_metadata: lead.raw_metadata,
-      deleted_at: lead.deleted_at,
-      deleted_by: null, // Column doesn't exist in live schema
-      restored_at: null, // Column doesn't exist in live schema
-      deletion_reason: null, // Column doesn't exist in live schema
-    }))
+    // Fetch the latest AI call record for each lead so the canonical display name
+    // (which may have been updated by the most recent intake) can be resolved.
+    // This is a single batched query for all returned leads.
+    const aiCallRecordsByLead: Record<string, any[]> = {}
+    if (leadIds.length > 0) {
+      try {
+        const { data: aiCallRecords } = await supabase
+          .from('ai_call_records')
+          .select('lead_id, created_at, extracted_info')
+          .eq('business_id', business.id)
+          .in('lead_id', leadIds)
+          .order('created_at', { ascending: false })
+
+        if (aiCallRecords) {
+          for (const record of aiCallRecords) {
+            if (!record.lead_id) continue
+            if (!aiCallRecordsByLead[record.lead_id]) {
+              aiCallRecordsByLead[record.lead_id] = []
+            }
+            aiCallRecordsByLead[record.lead_id].push(record)
+          }
+        }
+      } catch (e) {
+        console.error('[API LEADS GET] Exception during ai_call_records lookup:', e)
+      }
+    }
+
+    // Normalize to the shape expected by the lead picker and lead list.
+    // Use getLeadDisplayName with the latest ai_call_records so the dropdown
+    // always surfaces the current canonical customer name.
+    const leads = rawLeads.map(lead => {
+      const leadWithRecords = {
+        ...lead,
+        caller_phone: lead.caller_phone,
+        contact_name: lead.contact_name,
+        name: lead.contact_name || lead.raw_metadata?.customerName || lead.raw_metadata?.callerName || lead.raw_metadata?.name || null,
+        raw_metadata: lead.raw_metadata,
+        aiCallRecords: aiCallRecordsByLead[lead.id] || []
+      }
+
+      return {
+        id: lead.id,
+        business_id: lead.business_id,
+        caller_phone: lead.caller_phone,
+        name: getLeadDisplayName(leadWithRecords),
+        status: lead.status,
+        created_at: lead.created_at,
+        updated_at: lead.created_at, // Use created_at as fallback since updated_at doesn't exist in live schema
+        last_activity_at: lead.created_at, // Use created_at as fallback
+        conversation_id: conversationMap[lead.id] || null,
+        raw_metadata: lead.raw_metadata,
+        deleted_at: lead.deleted_at,
+        deleted_by: null, // Column doesn't exist in live schema
+        restored_at: null, // Column doesn't exist in live schema
+        deletion_reason: null, // Column doesn't exist in live schema
+      }
+    })
 
     console.log('[API LEADS GET] Fetched', leads.length, 'leads')
     console.log('[API LEADS GET] ========== ROUTE COMPLETE ==========')

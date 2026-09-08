@@ -43,7 +43,7 @@ describe('SearchableCustomerSelect', () => {
   })
 
   it('should filter customers using filterLeadsBySearchQuery', () => {
-    expect(content).toContain('const filteredCustomers = filterLeadsBySearchQuery(customers, searchQuery)')
+    expect(content).toContain('const filteredCustomers = filterLeadsBySearchQuery(mergedCustomers, searchQuery)')
   })
 
   it('should use filterLeadsBySearchQuery for name and phone matching', () => {
@@ -161,7 +161,7 @@ describe('SearchableCustomerSelect', () => {
   })
 
   it('should replace existing customer when prefillCustomer merges', () => {
-    expect(content).toContain("const filtered = prev.filter(c => c.id !== prefillCustomer.id)")
+    expect(content).toContain("const filtered = customers.filter(c => c.id !== prefillCustomer.id)")
     expect(content).toContain('[prefillCustomer, ...filtered]')
   })
 
@@ -195,8 +195,8 @@ describe('SearchableCustomerSelect', () => {
   })
 
   it('should prefer prefillCustomer when value matches selected ID', () => {
-    expect(content).toContain('if (prefillCustomer && value === prefillCustomer.id) return prefillCustomer')
-    expect(content).toContain('useMemo(() => {')
+    expect(content).toContain('const selectedCustomer = useMemo(() => {')
+    expect(content).toContain('mergedCustomers.find(c => c.id === value)')
   })
 
   // Truth-table behavioral assertions derived from the implementation

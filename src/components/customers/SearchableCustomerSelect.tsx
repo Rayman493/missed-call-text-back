@@ -55,17 +55,13 @@ export default function SearchableCustomerSelect({
     fetchCustomers()
   }, [])
 
-  // Merge prefillCustomer into customers list to ensure selected customer is available
-  useEffect(() => {
-    if (!prefillCustomer) return
-
-    setCustomers(prev => {
-      // Remove any existing entry so the prefill (authoritative parent data) wins
-      const filtered = prev.filter(c => c.id !== prefillCustomer.id)
-      // Add prefillCustomer to the beginning of the list
-      return [prefillCustomer, ...filtered]
-    })
-  }, [prefillCustomer])
+  // Keep the fetched customer list pristine. Reconciliation with the authoritative
+  // prefill happens at render time so it always wins over stale fetched data.
+  const mergedCustomers = useMemo(() => {
+    if (!prefillCustomer) return customers
+    const filtered = customers.filter(c => c.id !== prefillCustomer.id)
+    return [prefillCustomer, ...filtered]
+  }, [customers, prefillCustomer])
 
   const fetchCustomers = async () => {
     setIsLoading(true)
@@ -208,20 +204,19 @@ export default function SearchableCustomerSelect({
     }
   }, [isOpen])
 
-  // Filter customers using existing helper
-  const filteredCustomers = filterLeadsBySearchQuery(customers, searchQuery)
+  // Filter customers using existing helper against the reconciled list
+  const filteredCustomers = filterLeadsBySearchQuery(mergedCustomers, searchQuery)
 
-  // Prefer the authoritative parent-provided customer object for the selected
-  // ID so modal preselection always reflects the latest page data.
+  // Selected value is resolved from the reconciled list, which always gives the
+  // authoritative prefill priority over stale fetched data for the same ID.
   const selectedCustomer = useMemo(() => {
-    if (prefillCustomer && value === prefillCustomer.id) return prefillCustomer
-    return customers.find(c => c.id === value)
-  }, [prefillCustomer, value, customers])
+    return mergedCustomers.find(c => c.id === value)
+  }, [value, mergedCustomers])
   const hasValue = value !== null && value !== ''
 
   const handleSelect = (customerId: string | null) => {
     onChange(customerId)
-    const customer = customerId ? customers.find(c => c.id === customerId) || null : null
+    const customer = customerId ? mergedCustomers.find(c => c.id === customerId) || null : null
     onCustomerSelect?.(customer)
     setIsOpen(false)
     setSearchQuery('')

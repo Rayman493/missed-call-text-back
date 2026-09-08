@@ -8,6 +8,7 @@ import TimePicker from '@/components/ui/TimePicker'
 import SelectPicker from '@/components/ui/SelectPicker'
 import Modal from '@/components/ui/Modal'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
+import { getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface Task {
@@ -41,6 +42,7 @@ interface Job {
   id: string
   title: string
   customer_name: string | null
+  lead_id: string | null
 }
 
 export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdit, onShowToast, onTaskDeleted, preselectedLeadId, preselectedLeadCustomer }: NewTaskModalProps) {
@@ -50,6 +52,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
   const [dueTime, setDueTime] = useState('')
   const [reminderOffsetMinutes, setReminderOffsetMinutes] = useState<number | null>(null)
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(preselectedLeadCustomer || null)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -74,6 +77,11 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         setReminderOffsetMinutes(taskToEdit.reminder_offset_minutes || null)
         setSelectedLeadId(taskToEdit.lead_id)
         setSelectedJobId(taskToEdit.job_id)
+        setSelectedCustomer(
+          preselectedLeadCustomer && preselectedLeadCustomer.id === taskToEdit.lead_id
+            ? preselectedLeadCustomer
+            : null
+        )
       } else {
         setTitle('')
         setNotes('')
@@ -82,9 +90,10 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         setReminderOffsetMinutes(null)
         setSelectedLeadId(preselectedLeadId || null)
         setSelectedJobId(null)
+        setSelectedCustomer(preselectedLeadCustomer || null)
       }
     }
-  }, [isOpen, taskToEdit, preselectedLeadId])
+  }, [isOpen, taskToEdit, preselectedLeadId, preselectedLeadCustomer])
 
   const fetchJobs = async () => {
     try {
@@ -310,6 +319,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
             <SearchableCustomerSelect
               value={selectedLeadId}
               onChange={setSelectedLeadId}
+              onCustomerSelect={setSelectedCustomer}
               label="Customer"
               allowClear={true}
               prefillCustomer={preselectedLeadCustomer}
@@ -320,10 +330,19 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               onChange={setSelectedJobId}
               options={[
                 { value: '', label: 'No job' },
-                ...jobs.map(job => ({
-                  value: job.id,
-                  label: job.title + (job.customer_name ? ` - ${job.customer_name}` : '')
-                }))
+                ...jobs.map(job => {
+                  // Use the current canonical customer display name for jobs
+                  // belonging to the selected lead; otherwise fall back to the
+                  // persisted job.customer_name without mutating stored data.
+                  const isForSelected = selectedCustomer && job.lead_id === selectedCustomer.id
+                  const customerDisplay = isForSelected
+                    ? getCustomerDisplayName(selectedCustomer)
+                    : (job.customer_name || '')
+                  return {
+                    value: job.id,
+                    label: job.title + (customerDisplay ? ` - ${customerDisplay}` : '')
+                  }
+                })
               ]}
               placeholder="No job"
               label="Job"
