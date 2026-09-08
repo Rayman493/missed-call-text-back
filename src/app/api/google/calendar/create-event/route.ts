@@ -5,6 +5,7 @@ import { notificationServiceServer } from '@/lib/notifications-server'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 import { sendSms } from '@/lib/twilio'
 import { sanitizeMessageContent } from '@/lib/security'
+import { toGoogleCalendarEventId } from '@/lib/google/calendar-event-id'
 
 // Retry function for Google Calendar API calls with exponential backoff
 async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
@@ -291,9 +292,14 @@ export async function POST(request: NextRequest) {
     const requestId = request_id || crypto.randomUUID()
     const isClientProvided = !!request_id
 
+    // Stable external Google Calendar event id derived from the ReplyFlow
+    // request id. The original requestId is preserved for correlation and
+    // idempotency; only the Google-facing id is normalized.
+    const googleEventId = toGoogleCalendarEventId(requestId)
+
     // Base event body
     let eventBody: any = {
-      id: requestId,
+      id: googleEventId,
       summary: title,
       description: description || '',
       start,
@@ -302,7 +308,7 @@ export async function POST(request: NextRequest) {
       extendedProperties,
     }
 
-    console.log('[Calendar Create] Creating event with data:', { title, date, endDate: finalEndDate, allDay, requestId, isClientProvided })
+    console.log('[Calendar Create] Creating event with data:', { title, date, endDate: finalEndDate, allDay, requestId, googleEventId, isClientProvided })
 
     // If Google Meet requested, include conferenceData createRequest and conferenceDataVersion=1
     let createUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events`
@@ -335,8 +341,8 @@ export async function POST(request: NextRequest) {
     } else if (response.status === 409) {
       // Google already has an event with this ID (previous attempt succeeded but
       // response was lost). Fetch the existing event and continue.
-      console.log('[Calendar Create] Google returned 409 for request_id:', requestId, 'fetching existing event')
-      const existingEventUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(requestId)}?conferenceDataVersion=1`
+      console.log('[Calendar Create] Google returned 409 for request_id:', requestId, 'googleEventId:', googleEventId, 'fetching existing event')
+      const existingEventUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?conferenceDataVersion=1`
       const existingResponse = await fetchWithRetry(existingEventUrl, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${accessToken}` },
