@@ -461,11 +461,30 @@ class PushService {
   }
 
   /**
+   * Validate that a notification action URL is safe to navigate to.
+   * Rejects absolute URLs, protocol-relative URLs, and path traversal.
+   * Only relative internal paths starting with '/' are allowed.
+   */
+  private isSafeNotificationActionUrl(url: string): boolean {
+    if (!url || typeof url !== 'string') return false
+    // Reject any URL with a scheme (http:, https:, javascript:, mailto:, etc.)
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) return false
+    // Reject protocol-relative URLs
+    if (url.startsWith('//')) return false
+    // Must be a relative path starting with '/'
+    if (!url.startsWith('/')) return false
+    // Reject path traversal
+    if (url.includes('/../') || url.endsWith('/..')) return false
+    return true
+  }
+
+  /**
    * Handle push notification tap (app in background or terminated)
    */
   private handleNotificationActionPerformed(notification: any): void {
-    const actionId = notification.actionId
-    const data = notification.notification.data as PushNotificationData
+    const actionId = notification?.actionId
+    const notificationData = notification?.notification?.data as PushNotificationData | undefined
+    const data = notificationData || (notification?.data as PushNotificationData | undefined) || {}
 
     console.log('[PUSH SERVICE] Notification tapped:', {
       actionId,
@@ -473,9 +492,16 @@ class PushService {
     })
 
     // Navigate to the appropriate screen based on actionUrl
-    if (data?.actionUrl) {
-      console.log('[PUSH SERVICE] Navigating to:', data.actionUrl)
-      window.location.href = data.actionUrl
+    const actionUrl = data?.actionUrl
+    if (actionUrl && this.isSafeNotificationActionUrl(actionUrl)) {
+      console.log('[PUSH SERVICE] Navigating to:', actionUrl)
+      window.location.href = actionUrl
+    } else {
+      if (actionUrl) {
+        console.warn('[PUSH SERVICE] Rejecting unsafe notification actionUrl:', actionUrl)
+      }
+      console.log('[PUSH SERVICE] Falling back to /dashboard')
+      window.location.href = '/dashboard'
     }
   }
 
