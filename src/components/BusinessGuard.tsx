@@ -10,6 +10,7 @@ import AppLoadingScreen from '@/components/AppLoadingScreen'
 import GenericLoadingScreen from '@/components/GenericLoadingScreen'
 import StripeReturnLoadingScreen from '@/components/StripeReturnLoadingScreen'
 import CheckoutRedirectLoadingScreen from '@/components/CheckoutRedirectLoadingScreen'
+import { NotificationStartupPermission } from '@/components/notifications/NotificationStartupPermission'
 import { logRouteFlashDebug } from '@/lib/route-flash-debug'
 import { isStripeReturnUrl } from '@/lib/stripe-return'
 
@@ -306,7 +307,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         renderBranch: 'dashboard-content',
         reason: 'businessVerified + (business present OR cached business); skip loading overlay',
       })
-      return <>{children}</>
+      return <><NotificationStartupPermission />{children}</>
     }
 
     // If business is still loading or transiently missing, show loading (not onboarding/setup).
@@ -367,5 +368,5 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
     renderBranch: 'dashboard-content',
     reason: 'business loaded and guard passed; rendering children',
   })
-  return <>{children}</>
+  return <><NotificationStartupPermission />{children}</>
 }
