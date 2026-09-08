@@ -138,7 +138,7 @@ export default async function Home() {
                   From First Call to Final Payment.
                 </h1>
                 <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed sm:leading-relaxed md:leading-relaxed lg:leading-relaxed">
-                  Capture customer details from missed calls. Schedule jobs. Text with customers. Accept payments on the spot. Keep your customer workflow in one place.
+                  Capture customer details from missed calls. Manage conversations, schedule work, follow up automatically, and get paid — all in one place.
                 </p>
 
                 <div className="flex flex-col items-center gap-y-3 sm:gap-y-4">
@@ -238,8 +238,8 @@ export default async function Home() {
                           </div>
                           <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Step 2</span>
                         </div>
-                        <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">AI Voice Answers</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">"Hi, thanks for calling. How can I help you today?"</div>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">AI Voicemail Answers</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">"Sorry we missed your call. Please leave your name and what you need help with."</div>
                         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
                           <div className="flex items-center gap-1.5">
                             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse motion-reduce:animate-none" />
@@ -333,8 +333,8 @@ export default async function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Customer Reaches Out</h3>
-                <p className="text-xs text-slate-700 dark:text-slate-400">A customer calls, texts, or contacts you</p>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Customer Calls</h3>
+                <p className="text-xs text-slate-700 dark:text-slate-400">Customer calls your existing business number</p>
               </div>
               
               {/* Arrow */}
@@ -352,7 +352,7 @@ export default async function Home() {
                   </svg>
                 </div>
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">AI Captures Details</h3>
-                <p className="text-xs text-slate-700 dark:text-slate-400">AI answers live and collects customer information</p>
+                <p className="text-xs text-slate-700 dark:text-slate-400">AI answers forwarded calls and captures customer details</p>
               </div>
               
               {/* Arrow */}
@@ -369,8 +369,8 @@ export default async function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Customer & Conversation</h3>
-                <p className="text-xs text-slate-700 dark:text-slate-400">Customer record and conversation created</p>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Conversation & Follow-Up</h3>
+                <p className="text-xs text-slate-700 dark:text-slate-400">Text back, follow up, and keep customer context in one place</p>
               </div>
               
               {/* Arrow */}
@@ -420,8 +420,8 @@ export default async function Home() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Customer Reaches Out</h3>
-                  <p className="text-[10px] text-slate-700 dark:text-slate-400">A customer calls, texts, or contacts you</p>
+                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Customer Calls</h3>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-400">Customer calls your existing business number</p>
                 </div>
               </div>
               
@@ -441,7 +441,7 @@ export default async function Home() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">AI Captures Details</h3>
-                  <p className="text-[10px] text-slate-700 dark:text-slate-400">AI answers live and collects customer information</p>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-400">AI answers forwarded calls and captures customer details</p>
                 </div>
               </div>
               
@@ -460,8 +460,8 @@ export default async function Home() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Customer & Conversation</h3>
-                  <p className="text-[10px] text-slate-700 dark:text-slate-400">Customer record and conversation created</p>
+                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Conversation & Follow-Up</h3>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-400">Text back, follow up, and keep customer context in one place</p>
                 </div>
               </div>
               
@@ -529,16 +529,16 @@ export default async function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
               
-              {/* Keep Your Existing Number */}
+              {/* Customer Conversations in One Place */}
               <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <div className="w-11 h-11 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5">
                   <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">Keep Your Existing Number</h3>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">Customer Conversations in One Place</h3>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed max-w-[18rem]">
-                  Keep your current business number. Just forward missed calls to ReplyFlow and keep your workflow.
+                  Keep two-way texting, customer context, and previous requests tied to one customer record.
                 </p>
               </div>
 
@@ -551,7 +551,7 @@ export default async function Home() {
                 </div>
                 <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">AI Captures Customer Requests</h3>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed max-w-[18rem]">
-                  Customers receive an immediate professional response, even when you're busy.
+                  AI answers forwarded missed calls and captures useful customer and request information.
                 </p>
               </div>
 
@@ -575,9 +575,9 @@ export default async function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">Schedule & Manage Jobs</h3>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">Schedule & Manage Work</h3>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed max-w-[18rem]">
-                  Schedule appointments, view scheduled work, and manage job status.
+                  Schedule appointments, manage jobs and reminders, and view your day's stops on the schedule map.
                 </p>
               </div>
 
@@ -610,8 +610,8 @@ export default async function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
-                <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Built for Local Businesses</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-[18rem]">Designed specifically for service businesses that need to respond quickly to every opportunity.</p>
+                <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Built for Service Businesses</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-[18rem]">Keep customer requests, conversations, jobs, scheduling, and payments organized around everyday service work.</p>
               </div>
 
               {/* Desktop & Mobile Apps */}
@@ -621,8 +621,8 @@ export default async function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Desktop & Mobile Apps</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-[18rem]">Manage your business from your desktop. Keep it moving throughout the day with the ReplyFlow mobile app—communicate with customers, accept Tap to Pay, and request payments while you're on the go.</p>
+                <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Desktop & Mobile</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-[18rem]">Manage the same customer workflow from the office or while you're out working.</p>
               </div>
 
               {/* Setup in under 5 minutes */}
@@ -632,7 +632,7 @@ export default async function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Quick setup</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Quick Setup</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-[18rem]">Get started in minutes with guided onboarding. No technical expertise required.</p>
               </div>
 
@@ -643,7 +643,7 @@ export default async function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                 </div>
-                <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">14-day free trial</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">14-Day Free Trial</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-[18rem]">Try ReplyFlow risk-free before subscribing.</p>
               </div>
 
@@ -651,22 +651,22 @@ export default async function Home() {
               <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-2xl p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl flex items-center justify-center flex-shrink-0 mb-3">
                   <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </div>
-                <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">AI That Captures Leads</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-[18rem]">Our AI answers live and captures customer details. Leads are captured and ready for follow-up.</p>
+                <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Automatic Follow-Up</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-[18rem]">Stay on top of customers with reminders and automated follow-up instead of relying entirely on memory.</p>
               </div>
 
               {/* Tap to Pay & Payment Requests */}
               <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-2xl p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
-                <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/20 rounded-xl flex items-center justify-center flex-shrink-0 mb-3">
-                  <svg className="w-6 h-6 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center flex-shrink-0 mb-3">
+                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
                 </div>
-                <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Accept Payments Anywhere</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-[18rem]">Accept contactless payments with Tap to Pay on iPhone while meeting a customer, or send branded SMS payment requests before leaving the job site—all with no extra hardware required.</p>
+                <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Keep Your Existing Number</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-[18rem]">Forward missed calls to ReplyFlow without changing the number customers already know.</p>
               </div>
             </div>
 
@@ -681,8 +681,8 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Built for Local Businesses</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Designed specifically for service businesses that need to respond quickly to every opportunity.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Built for Service Businesses</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Keep customer requests, conversations, jobs, scheduling, and payments organized around everyday service work.</p>
                   </div>
                 </div>
               </div>
@@ -696,8 +696,8 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Desktop & Mobile Apps</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Manage your business from your desktop. Keep it moving throughout the day with the ReplyFlow mobile app—communicate with customers, accept Tap to Pay, and request payments while you're on the go.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Desktop & Mobile</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Manage the same customer workflow from the office or while you're out working.</p>
                   </div>
                 </div>
               </div>
@@ -711,7 +711,7 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Quick setup</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Quick Setup</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Get started in minutes with guided onboarding. No technical expertise required.</p>
                   </div>
                 </div>
@@ -726,7 +726,7 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">14-day free trial</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">14-Day Free Trial</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Try ReplyFlow risk-free before subscribing.</p>
                   </div>
                 </div>
@@ -737,12 +737,12 @@ export default async function Home() {
                 <div className="flex items-start gap-3">
                   <div className="w-11 h-11 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
                     <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">AI That Captures Leads</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Our AI answers live and captures customer details. Leads are captured and ready for follow-up.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Automatic Follow-Up</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Stay on top of customers with reminders and automated follow-up instead of relying entirely on memory.</p>
                   </div>
                 </div>
               </div>
@@ -750,14 +750,14 @@ export default async function Home() {
               {/* Tap to Pay & Payment Requests */}
               <div className="bg-white dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 rounded-2xl p-4 sm:p-5 shadow-sm">
                 <div className="flex items-start gap-3">
-                  <div className="w-11 h-11 bg-rose-50 dark:bg-rose-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  <div className="w-11 h-11 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Accept Payments Anywhere</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Accept contactless payments with Tap to Pay on iPhone while meeting a customer, or send branded SMS payment requests before leaving the job site—all with no extra hardware required.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-3 text-lg">Keep Your Existing Number</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Forward missed calls to ReplyFlow without changing the number customers already know.</p>
                   </div>
                 </div>
               </div>
