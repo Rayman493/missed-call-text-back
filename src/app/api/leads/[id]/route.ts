@@ -93,43 +93,60 @@ export async function PATCH(
       const updateData: Record<string, any> = {}
       const currentMetadata = currentLead.raw_metadata || {}
       const correctedFields = { ...(currentMetadata.corrected_fields || {}) }
+      const correctedFieldsUpdatedAt = { ...(currentMetadata.corrected_fields_updated_at || {}) }
+      const now = new Date().toISOString()
 
-      const setCorrected = (aliases: string[], value: string | null) => {
+      const firstCorrectedValue = (aliases: string[]): string | undefined => {
+        for (const alias of aliases) {
+          if (correctedFields[alias]) return correctedFields[alias]
+        }
+        return undefined
+      }
+
+      const setCorrected = (canonicalKey: string, aliases: string[], value: string | null) => {
         if (value === undefined) return
         const trimmed = value ? value.trim() : ''
+        const previous = firstCorrectedValue(aliases) || ''
         if (trimmed) {
           for (const alias of aliases) correctedFields[alias] = trimmed
         } else {
           for (const alias of aliases) delete correctedFields[alias]
         }
+        if (trimmed !== previous) {
+          correctedFieldsUpdatedAt[canonicalKey] = now
+        }
       }
 
       if (contact_name !== undefined) {
         updateData.contact_name = contact_name
-        setCorrected(MANUAL_FIELD_ALIASES.callerName, contact_name)
+        setCorrected('callerName', MANUAL_FIELD_ALIASES.callerName, contact_name)
       }
       if (caller_phone !== undefined) {
         updateData.caller_phone = caller_phone ? normalizePhoneNumberForStorage(caller_phone) : null
       }
       if (email !== undefined) {
-        const trimmed = email ? email.trim() : null
+        const trimmed = email ? email.trim() : ''
+        const previous = correctedFields.email || ''
         if (trimmed) correctedFields.email = trimmed
         else delete correctedFields.email
+        if (trimmed !== previous) {
+          correctedFieldsUpdatedAt.email = now
+        }
       }
       if (reasonForCalling !== undefined) {
-        setCorrected(MANUAL_FIELD_ALIASES.reasonForCalling, reasonForCalling)
+        setCorrected('reasonForCalling', MANUAL_FIELD_ALIASES.reasonForCalling, reasonForCalling)
       }
       if (importantDetails !== undefined) {
-        setCorrected(MANUAL_FIELD_ALIASES.importantDetails, importantDetails)
+        setCorrected('importantDetails', MANUAL_FIELD_ALIASES.importantDetails, importantDetails)
       }
       if (addressOrLocation !== undefined) {
-        setCorrected(MANUAL_FIELD_ALIASES.addressOrLocation, addressOrLocation)
+        setCorrected('addressOrLocation', MANUAL_FIELD_ALIASES.addressOrLocation, addressOrLocation)
       }
       if (desiredCompletionTime !== undefined) {
-        setCorrected(MANUAL_FIELD_ALIASES.desiredCompletionTime, desiredCompletionTime)
+        setCorrected('desiredCompletionTime', MANUAL_FIELD_ALIASES.desiredCompletionTime, desiredCompletionTime)
       }
       if (preferredCallbackTime !== undefined) {
-        setCorrected(MANUAL_FIELD_ALIASES.preferredCallbackTime, preferredCallbackTime)
+        setCorrected('preferredCallbackTime', MANUAL_FIELD_ALIASES.preferredCallbackTime, preferredCallbackTime)
       }
       if (company_name !== undefined) updateData.company_name = company_name
       if (notes !== undefined) updateData.notes = notes
@@ -137,8 +154,9 @@ export async function PATCH(
       const mergedRawMetadata = {
         ...currentMetadata,
         corrected_fields: correctedFields,
+        corrected_fields_updated_at: correctedFieldsUpdatedAt,
         customer_corrected_info: true,
-        last_correction_at: new Date().toISOString(),
+        last_correction_at: now,
         last_correction_source: 'manual_edit_customer'
       }
       updateData.raw_metadata = mergedRawMetadata
@@ -201,6 +219,7 @@ export async function PATCH(
       const incomingCorrected = raw_metadata.corrected_fields || {}
       const existingCorrected = currentMetadata.corrected_fields || {}
       const correctedFields = { ...existingCorrected }
+      const correctedFieldsUpdatedAt = { ...(currentMetadata.corrected_fields_updated_at || {}) }
       const previousValues = { ...(currentMetadata.previous_values || {}) }
       const correctionSources = { ...(currentMetadata.correction_sources || {}) }
       const manualFields = new Set<string>([...(currentMetadata.manualFields || []), ...(raw_metadata.manualFields || [])])
@@ -209,6 +228,7 @@ export async function PATCH(
         ...(raw_metadata.extracted_info || {}),
       }
       let changedCount = 0
+      const now = new Date().toISOString()
 
       for (const [canonicalField, aliases] of Object.entries(MANUAL_FIELD_ALIASES)) {
         const value = firstValue(incomingCorrected, aliases)
@@ -220,15 +240,17 @@ export async function PATCH(
         previousValues[canonicalField] = previous || 'unknown'
         correctionSources[canonicalField] = 'manual'
         manualFields.add(canonicalField)
-        if (previous !== value) changedCount++
+        if (previous !== value) {
+          changedCount++
+          correctedFieldsUpdatedAt[canonicalField] = now
+        }
       }
-
-      const now = new Date().toISOString()
       const mergedRawMetadata = {
         ...currentMetadata,
         ...raw_metadata,
         extracted_info: canonicalExtractedInfo,
         corrected_fields: correctedFields,
+        corrected_fields_updated_at: correctedFieldsUpdatedAt,
         previous_values: previousValues,
         correction_sources: correctionSources,
         manualFields: Array.from(manualFields),

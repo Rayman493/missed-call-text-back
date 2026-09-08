@@ -14,7 +14,8 @@ import { formatForDisplay } from '@/utils/phone-formatting'
  *   - Create Job / New Reminder / Schedule Appointment / Request Payment
  *
  * Rules:
- *   - Manual/current lead values beat stale historical AI intake.
+ *   - Manual corrections and AI intake are compared by recency, not by a
+ *     static "manual always wins" or "AI always wins" rule.
  *   - Placeholder/"Not collected" values are normalized to empty strings.
  *   - Historical ai_call_records are NOT consulted here.
  */
@@ -36,6 +37,12 @@ function firstClean(...values: unknown[]): string {
   return ''
 }
 
+function parseTimestamp(value: unknown): number | null {
+  if (!value || typeof value !== 'string') return null
+  const ms = new Date(value).getTime()
+  return isNaN(ms) ? null : ms
+}
+
 export interface CustomerContext {
   customerName: string
   reasonForCalling: string
@@ -47,6 +54,119 @@ export interface CustomerContext {
   email: string
 }
 
+interface NameSource {
+  value: string
+  timestamp: number | null
+}
+
+function getManualCustomerNameSource(lead: any): NameSource | null {
+  const raw = lead?.raw_metadata || {}
+  const corrected = raw.corrected_fields || {}
+  const correctedTimestamps = raw.corrected_fields_updated_at || {}
+
+  const value = firstClean(
+    lead?.contact_name,
+    lead?.name,
+    corrected.name,
+    corrected.callerName,
+    corrected.customerName,
+    corrected.caller_name,
+    corrected.customer_name
+  )
+  if (!value) return null
+
+  const timestamp =
+    parseTimestamp(correctedTimestamps.callerName) ??
+    parseTimestamp(correctedTimestamps.name) ??
+    parseTimestamp(correctedTimestamps.customerName) ??
+    parseTimestamp(raw.last_correction_at) ??
+    null
+
+  return { value, timestamp }
+}
+
+function getAICustomerNameSource(lead: any): NameSource | null {
+  const raw = lead?.raw_metadata || {}
+  const candidates: NameSource[] = []
+
+  const records = [...(lead?.aiCallRecords || lead?.ai_call_records || [])]
+    .filter((r: any) => r && (r.created_at || r.completed_at))
+    .sort((a: any, b: any) => {
+      const aTime = parseTimestamp(a?.completed_at || a?.created_at) || 0
+      const bTime = parseTimestamp(b?.completed_at || b?.created_at) || 0
+      return bTime - aTime
+    })
+
+  if (records.length > 0) {
+    for (const record of records) {
+      const extracted = record.extracted_info || {}
+      const value = firstClean(
+        extracted.callerName,
+        extracted.customerName,
+        extracted.caller_name,
+        extracted.customer_name,
+        extracted.name
+      )
+      if (value) {
+        candidates.push({
+          value,
+          timestamp: parseTimestamp(record.completed_at || record.created_at)
+        })
+      }
+    }
+  }
+
+  const extracted = raw.extracted_info || {}
+  const fallbackValue = firstClean(
+    extracted.callerName,
+    extracted.customerName,
+    extracted.caller_name,
+    extracted.customer_name,
+    extracted.name
+  )
+  if (fallbackValue) {
+    const fallbackTimestamp =
+      parseTimestamp(raw.voicemail_extraction?.extractedAt) ??
+      parseTimestamp(raw.sms_extraction?.extractedAt) ??
+      parseTimestamp(raw.extractedAt) ??
+      null
+    candidates.push({ value: fallbackValue, timestamp: fallbackTimestamp })
+  }
+
+  if (candidates.length === 0) return null
+
+  // Prefer the candidate with the newest authoritative timestamp.
+  // If no timestamps are available, use the most recent ai_call_record
+  // (already sorted first) for deterministic behavior.
+  const sorted = candidates.sort((a, b) => {
+    if (a.timestamp != null && b.timestamp != null) return b.timestamp - a.timestamp
+    if (a.timestamp != null) return -1
+    if (b.timestamp != null) return 1
+    return 0
+  })
+  return sorted[0]
+}
+
+function resolveCurrentCustomerName(lead: any): string {
+  const manual = getManualCustomerNameSource(lead)
+  const ai = getAICustomerNameSource(lead)
+
+  if (manual && ai) {
+    if (manual.timestamp != null && ai.timestamp != null) {
+      return manual.timestamp >= ai.timestamp ? manual.value : ai.value
+    }
+    if (manual.timestamp != null) return manual.value
+    if (ai.timestamp != null) return ai.value
+    // Both lack authoritative timestamps. Prefer the AI-captured value because
+    // a manual correction made without a timestamp cannot be proven newer.
+    return ai.value
+  }
+
+  if (manual) return manual.value
+  if (ai) return ai.value
+  return ''
+}
+
 export function getCurrentCustomerContext(lead: any): CustomerContext {
   const intake = getLeadAIIntake(lead || {})
   const raw = lead?.raw_metadata || {}
@@ -54,16 +174,7 @@ export function getCurrentCustomerContext(lead: any): CustomerContext {
   const corrected = raw.corrected_fields || {}
 
   return {
-    customerName: firstClean(
-      lead?.name,
-      lead?.contact_name,
-      corrected.name,
-      corrected.callerName,
-      corrected.customerName,
-      corrected.caller_name,
-      corrected.customer_name,
-      intake.customerName
-    ),
+    customerName: resolveCurrentCustomerName(lead),
     reasonForCalling: clean(intake.serviceRequested),
     details: clean(intake.additionalDetails),
     location: clean(intake.serviceAddress),

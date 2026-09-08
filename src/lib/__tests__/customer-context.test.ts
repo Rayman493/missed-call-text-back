@@ -22,6 +22,12 @@ describe('customer-context', () => {
         }
       ],
       raw_metadata: {
+        corrected_fields: {
+          name: 'Current Name'
+        },
+        corrected_fields_updated_at: {
+          callerName: '2024-06-01T00:00:00Z'
+        },
         extracted_info: {
           callerName: 'Stale AI Name',
           reasonForCalling: 'Stale Reason'
@@ -123,5 +129,153 @@ describe('customer-context', () => {
     expect(context.location).toBe('456 Oak Ave')
     expect(context.desiredCompletionTime).toBe('Today')
     expect(context.preferredCallbackTime).toBe('5 PM')
+  })
+
+  describe('current name recency', () => {
+    it('1: old AI -> later manual => manual wins', () => {
+      const lead = {
+        id: 'lead-1',
+        contact_name: 'Ryan',
+        caller_phone: '+15551234567',
+        aiCallRecords: [
+          {
+            created_at: '2024-01-01T00:00:00Z',
+            extracted_info: { callerName: 'Amanda' }
+          }
+        ],
+        raw_metadata: {
+          corrected_fields: { name: 'Ryan' },
+          corrected_fields_updated_at: { callerName: '2024-02-01T00:00:00Z' }
+        }
+      }
+
+      expect(getCurrentCustomerContext(lead).customerName).toBe('Ryan')
+      expect(getCanonicalCustomerDisplayName(lead)).toBe('Ryan')
+    })
+
+    it('2: old manual -> later completed AI => AI wins', () => {
+      const lead = {
+        id: 'lead-2',
+        contact_name: 'Ryan',
+        caller_phone: '+15551234567',
+        aiCallRecords: [
+          {
+            created_at: '2024-02-01T00:00:00Z',
+            completed_at: '2024-02-01T00:00:05Z',
+            extracted_info: { callerName: 'Michael' }
+          }
+        ],
+        raw_metadata: {
+          corrected_fields: { name: 'Ryan' },
+          corrected_fields_updated_at: { callerName: '2024-01-01T00:00:00Z' }
+        }
+      }
+
+      expect(getCurrentCustomerContext(lead).customerName).toBe('Michael')
+      expect(getCanonicalCustomerDisplayName(lead)).toBe('Michael')
+    })
+
+    it('3: AI -> later manual => manual wins', () => {
+      const lead = {
+        id: 'lead-3',
+        contact_name: 'Ryan',
+        caller_phone: '+15551234567',
+        aiCallRecords: [
+          {
+            created_at: '2024-01-01T00:00:00Z',
+            extracted_info: { callerName: 'Michael' }
+          }
+        ],
+        raw_metadata: {
+          corrected_fields: { name: 'Ryan' },
+          corrected_fields_updated_at: { callerName: '2024-02-01T00:00:00Z' }
+        }
+      }
+
+      expect(getCurrentCustomerContext(lead).customerName).toBe('Ryan')
+      expect(getCanonicalCustomerDisplayName(lead)).toBe('Ryan')
+    })
+
+    it('4: equal/ambiguous timestamps => deterministic safe behavior', () => {
+      const lead = {
+        id: 'lead-4',
+        contact_name: 'Ryan',
+        caller_phone: '+15551234567',
+        aiCallRecords: [
+          {
+            created_at: '2024-01-01T00:00:00Z',
+            extracted_info: { callerName: 'Michael' }
+          }
+        ],
+        raw_metadata: {
+          corrected_fields: { name: 'Ryan' }
+          // no timestamps on either side
+        }
+      }
+
+      // Without authoritative timestamps, the AI-captured value is preferred
+      // because a manual correction without a timestamp cannot be proven newer.
+      expect(getCurrentCustomerContext(lead).customerName).toBe('Michael')
+      expect(getCanonicalCustomerDisplayName(lead)).toBe('Michael')
+    })
+
+    it('5: null/blank manual value does not erase valid newer AI name', () => {
+      const lead = {
+        id: 'lead-5',
+        contact_name: '',
+        caller_phone: '+15551234567',
+        aiCallRecords: [
+          {
+            created_at: '2024-02-01T00:00:00Z',
+            extracted_info: { callerName: 'Michael' }
+          }
+        ],
+        raw_metadata: {
+          corrected_fields: { name: '' },
+          corrected_fields_updated_at: { callerName: '2024-03-01T00:00:00Z' }
+        }
+      }
+
+      expect(getCurrentCustomerContext(lead).customerName).toBe('Michael')
+      expect(getCanonicalCustomerDisplayName(lead)).toBe('Michael')
+    })
+
+    it('6: historical Previous Job Request still shows historical name', () => {
+      const historicalRecord = {
+        id: 'record-6',
+        created_at: '2024-01-01T00:00:00Z',
+        caller_phone: '+15551234567',
+        extracted_info: {
+          callerName: 'Amanda',
+          reasonForCalling: 'Old Request'
+        }
+      }
+
+      const context = getHistoricalJobRequestContext(historicalRecord)
+      expect(context.customerName).toBe('Amanda')
+    })
+
+    it('7: same lead renders identical current name across surfaces', () => {
+      const lead = {
+        id: 'lead-7',
+        contact_name: 'Ryan',
+        caller_phone: '+15551234567',
+        aiCallRecords: [
+          {
+            created_at: '2024-02-01T00:00:00Z',
+            extracted_info: { callerName: 'Michael' }
+          }
+        ],
+        raw_metadata: {
+          corrected_fields: { name: 'Ryan' },
+          corrected_fields_updated_at: { callerName: '2024-01-01T00:00:00Z' }
+        }
+      }
+
+      const contextName = getCurrentCustomerContext(lead).customerName
+      const displayName = getCanonicalCustomerDisplayName(lead)
+      expect(contextName).toBe('Michael')
+      expect(displayName).toBe('Michael')
+    })
   })
 })

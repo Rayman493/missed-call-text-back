@@ -12,43 +12,60 @@ function applySimpleUpdate(currentLead: any, payload: any) {
   const updateData: any = {}
   const currentMetadata = currentLead.raw_metadata || {}
   const correctedFields = { ...(currentMetadata.corrected_fields || {}) }
+  const correctedFieldsUpdatedAt = { ...(currentMetadata.corrected_fields_updated_at || {}) }
+  const now = '2024-01-01T00:00:00Z'
 
-  const setCorrected = (aliases: string[], value: string | null | undefined) => {
+  const firstCorrectedValue = (aliases: string[]): string | undefined => {
+    for (const alias of aliases) {
+      if (correctedFields[alias]) return correctedFields[alias]
+    }
+    return undefined
+  }
+
+  const setCorrected = (canonicalKey: string, aliases: string[], value: string | null | undefined) => {
     if (value === undefined) return
     const trimmed = value ? value.trim() : ''
+    const previous = firstCorrectedValue(aliases) || ''
     if (trimmed) {
       for (const alias of aliases) correctedFields[alias] = trimmed
     } else {
       for (const alias of aliases) delete correctedFields[alias]
     }
+    if (trimmed !== previous) {
+      correctedFieldsUpdatedAt[canonicalKey] = now
+    }
   }
 
   if (payload.contact_name !== undefined) {
     updateData.contact_name = payload.contact_name
-    setCorrected(['name', 'callerName', 'customerName', 'caller_name', 'customer_name'], payload.contact_name)
+    setCorrected('callerName', ['name', 'callerName', 'customerName', 'caller_name', 'customer_name'], payload.contact_name)
   }
   if (payload.caller_phone !== undefined) {
     updateData.caller_phone = payload.caller_phone ? payload.caller_phone.replace(/\D/g, '') : null
   }
   if (payload.email !== undefined) {
-    const trimmed = payload.email ? payload.email.trim() : null
+    const trimmed = payload.email ? payload.email.trim() : ''
+    const previous = correctedFields.email || ''
     if (trimmed) correctedFields.email = trimmed
     else delete correctedFields.email
+    if (trimmed !== previous) {
+      correctedFieldsUpdatedAt.email = now
+    }
   }
   if (payload.reasonForCalling !== undefined) {
-    setCorrected(['reasonForCalling', 'serviceRequested', 'reason', 'service_requested'], payload.reasonForCalling)
+    setCorrected('reasonForCalling', ['reasonForCalling', 'serviceRequested', 'reason', 'service_requested'], payload.reasonForCalling)
   }
   if (payload.importantDetails !== undefined) {
-    setCorrected(['importantDetails', 'details', 'issueDescription', 'additionalDetails'], payload.importantDetails)
+    setCorrected('importantDetails', ['importantDetails', 'details', 'issueDescription', 'additionalDetails'], payload.importantDetails)
   }
   if (payload.addressOrLocation !== undefined) {
-    setCorrected(['addressOrLocation', 'address', 'serviceAddress', 'service_address'], payload.addressOrLocation)
+    setCorrected('addressOrLocation', ['addressOrLocation', 'address', 'serviceAddress', 'service_address'], payload.addressOrLocation)
   }
   if (payload.desiredCompletionTime !== undefined) {
-    setCorrected(['desiredCompletion', 'desiredCompletionTime', 'desired_completion_time', 'urgency'], payload.desiredCompletionTime)
+    setCorrected('desiredCompletionTime', ['desiredCompletion', 'desiredCompletionTime', 'desired_completion_time', 'urgency'], payload.desiredCompletionTime)
   }
   if (payload.preferredCallbackTime !== undefined) {
-    setCorrected(['preferredCallbackTime', 'callbackTime', 'callback_time', 'preferred_callback_time'], payload.preferredCallbackTime)
+    setCorrected('preferredCallbackTime', ['preferredCallbackTime', 'callbackTime', 'callback_time', 'preferred_callback_time'], payload.preferredCallbackTime)
   }
   if (payload.company_name !== undefined) updateData.company_name = payload.company_name
   if (payload.notes !== undefined) updateData.notes = payload.notes
@@ -56,8 +73,9 @@ function applySimpleUpdate(currentLead: any, payload: any) {
   const mergedRawMetadata = {
     ...currentMetadata,
     corrected_fields: correctedFields,
+    corrected_fields_updated_at: correctedFieldsUpdatedAt,
     customer_corrected_info: true,
-    last_correction_at: '2024-01-01T00:00:00Z',
+    last_correction_at: now,
     last_correction_source: 'manual_edit_customer'
   }
   updateData.raw_metadata = mergedRawMetadata
