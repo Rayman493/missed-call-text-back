@@ -333,6 +333,7 @@ export async function sendSms(
 
       const simulatedSid = `SIM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const insertPayload = {
+        business_id: business.id,
         lead_id: options?.lead_id,
         conversation_id: options?.conversation_id,
         direction: 'outbound' as const,
@@ -754,6 +755,7 @@ export async function sendSms(
       });
 
       const insertPayload = {
+        business_id: business.id,
         lead_id: options?.lead_id,
         conversation_id: options?.conversation_id,
         direction: 'outbound' as const,
@@ -1166,6 +1168,7 @@ export async function sendMms(
     });
 
     const insertPayload = {
+      business_id: business.id,
       lead_id: options?.lead_id,
       conversation_id: options?.conversation_id,
       direction: 'outbound' as const,
@@ -1327,6 +1330,7 @@ async function logFailedMessage(
     });
 
     const insertPayload = {
+      business_id: business.id,
       lead_id: options?.lead_id,
       conversation_id: options?.conversation_id,
       direction: 'outbound' as const,

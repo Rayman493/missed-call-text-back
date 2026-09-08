@@ -35,14 +35,38 @@ function AuthFooter() {
 
 const supabase = createBrowserClient()
 
+// Safe redirect paths - prevent open redirect vulnerabilities on sign-in redirects
+const SAFE_REDIRECT_PATHS = [
+  '/',
+  '/dashboard',
+  '/onboarding',
+  '/onboarding/new-onboarding',
+  '/setup/forwarding',
+  '/auth/signin',
+  '/dashboard/settings',
+  '/complete-setup',
+]
+
+function isValidRedirectPath(path: string): boolean {
+  if (!path) return false
+  const pathWithoutQuery = path.split('?')[0].split('#')[0]
+  return SAFE_REDIRECT_PATHS.some(
+    safePath => pathWithoutQuery === safePath || pathWithoutQuery.startsWith(safePath + '/')
+  )
+}
+
 function AuthContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const mode = searchParams?.get('mode') || 'signup'
   const emailParam = searchParams?.get('email')
-  const redirectParam = searchParams?.get('redirect') || '/dashboard'
-  const returnToParam = searchParams?.get('returnTo')
-  
+  const rawRedirectParam = searchParams?.get('redirect') || '/dashboard'
+  const rawReturnToParam = searchParams?.get('returnTo')
+
+  // Validate redirect targets to prevent open redirects
+  const redirectParam = isValidRedirectPath(rawRedirectParam) ? rawRedirectParam : '/dashboard'
+  const returnToParam = rawReturnToParam && isValidRedirectPath(rawReturnToParam) ? rawReturnToParam : null
+
   // Detect if this is a return from Stripe checkout
   const isCheckoutReturn = redirectParam?.includes('checkout=success')
   
