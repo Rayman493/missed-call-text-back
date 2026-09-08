@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { requireTwilioAuth } from '@/lib/twilio/webhook'
+import { getMonotonicMessageStatus } from '@/lib/twilio/status-monotonic'
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -133,31 +134,47 @@ export async function POST(req: NextRequest) {
     }
     
     // Log correlation data
+    const incomingStatusRaw = MessageStatus.toLowerCase()
+    const monotonicStatus = getMonotonicMessageStatus(message.status, incomingStatusRaw)
+
     console.log('[twilio] status update correlation:', {
       message_id: message.id,
       conversation_id: message.conversation_id,
       lead_id: message.lead_id,
       message_sid: MessageSid,
       from_status: message.status,
-      to_status: MessageStatus.toLowerCase()
+      to_status: incomingStatusRaw,
+      monotonic_status: monotonicStatus
     })
-    
+
+    // Reject stale or backwards status callbacks before mutating state
+    if (monotonicStatus !== incomingStatusRaw) {
+      console.log('[twilio] status update skipped (stale or backwards):', {
+        message_id: message.id,
+        message_sid: MessageSid,
+        current_status: message.status,
+        incoming_status: incomingStatusRaw,
+        monotonic_status: monotonicStatus
+      })
+      return new Response('OK', { status: 200 })
+    }
+
     // Prepare update data based on status
     const updateData: any = {
-      status: MessageStatus.toLowerCase(),
+      status: monotonicStatus,
       status_updated_at: new Date().toISOString()
     }
-    
+
     // Set timestamps based on status
-    if (MessageStatus === 'sent') {
+    if (monotonicStatus === 'sent') {
       updateData.sent_at = new Date().toISOString()
-    } else if (MessageStatus === 'delivered') {
+    } else if (monotonicStatus === 'delivered') {
       updateData.delivered_at = new Date().toISOString()
-    } else if (MessageStatus === 'failed' || MessageStatus === 'undelivered') {
+    } else if (monotonicStatus === 'failed' || monotonicStatus === 'undelivered') {
       updateData.error_code = ErrorCode
       updateData.error_message = ErrorMessage
     }
-    
+
     // Update message status
     const { error: updateError } = await supabase
       .from('messages')
