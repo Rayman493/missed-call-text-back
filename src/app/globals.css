@@ -198,8 +198,7 @@ main {
   }
 
   .premium-input {
-    @apply border-border text-foreground placeholder:text-muted-foreground focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/20;
-    @apply bg-slate-50 dark:bg-slate-800/60;
+    @apply border border-border/60 bg-background text-foreground placeholder:text-muted-foreground focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/20;
   }
 
   .premium-surface {

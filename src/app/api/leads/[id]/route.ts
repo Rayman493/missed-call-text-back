@@ -71,13 +71,13 @@ export async function PATCH(
 
     const leadId = id;
     const body = await request.json();
-    const { status, deleted_at, deleted_by, deletion_reason, raw_metadata, contact_name, company_name, tags, notes, is_simple_update, caller_phone } = body;
+    const { status, deleted_at, deleted_by, deletion_reason, raw_metadata, contact_name, company_name, tags, notes, is_simple_update, caller_phone, email, reasonForCalling, importantDetails, addressOrLocation, desiredCompletionTime, preferredCallbackTime } = body;
 
     // Handle simple customer profile update (from EditCustomer modal)
     if (is_simple_update) {
       const { data: currentLead, error: currentLeadError } = await supabase
         .from('leads')
-        .select('id, raw_metadata, contact_name, company_name, notes')
+        .select('id, raw_metadata, contact_name, company_name, notes, caller_phone')
         .eq('id', leadId)
         .eq('business_id', business.id!)
         .single()
@@ -88,14 +88,60 @@ export async function PATCH(
       }
 
       // Preserve historical AI intake data - do NOT overwrite raw_metadata.extracted_info
-      // EditCustomer modal should only update canonical fields (contact_name, company_name, notes, caller_phone)
-      // AI Intake Details are historical and should only be edited via the AI Intake Details section
+      // or ai_call_records. EditCustomer modal updates canonical lead columns and
+      // raw_metadata.corrected_fields (manual overrides) only.
       const updateData: Record<string, any> = {}
+      const currentMetadata = currentLead.raw_metadata || {}
+      const correctedFields = { ...(currentMetadata.corrected_fields || {}) }
 
-      if (contact_name !== undefined) updateData.contact_name = contact_name
+      const setCorrected = (aliases: string[], value: string | null) => {
+        if (value === undefined) return
+        const trimmed = value ? value.trim() : ''
+        if (trimmed) {
+          for (const alias of aliases) correctedFields[alias] = trimmed
+        } else {
+          for (const alias of aliases) delete correctedFields[alias]
+        }
+      }
+
+      if (contact_name !== undefined) {
+        updateData.contact_name = contact_name
+        setCorrected(MANUAL_FIELD_ALIASES.callerName, contact_name)
+      }
+      if (caller_phone !== undefined) {
+        updateData.caller_phone = caller_phone ? normalizePhoneNumberForStorage(caller_phone) : null
+      }
+      if (email !== undefined) {
+        const trimmed = email ? email.trim() : null
+        if (trimmed) correctedFields.email = trimmed
+        else delete correctedFields.email
+      }
+      if (reasonForCalling !== undefined) {
+        setCorrected(MANUAL_FIELD_ALIASES.reasonForCalling, reasonForCalling)
+      }
+      if (importantDetails !== undefined) {
+        setCorrected(MANUAL_FIELD_ALIASES.importantDetails, importantDetails)
+      }
+      if (addressOrLocation !== undefined) {
+        setCorrected(MANUAL_FIELD_ALIASES.addressOrLocation, addressOrLocation)
+      }
+      if (desiredCompletionTime !== undefined) {
+        setCorrected(MANUAL_FIELD_ALIASES.desiredCompletionTime, desiredCompletionTime)
+      }
+      if (preferredCallbackTime !== undefined) {
+        setCorrected(MANUAL_FIELD_ALIASES.preferredCallbackTime, preferredCallbackTime)
+      }
       if (company_name !== undefined) updateData.company_name = company_name
       if (notes !== undefined) updateData.notes = notes
-      if (caller_phone !== undefined) updateData.caller_phone = caller_phone ? normalizePhoneNumberForStorage(caller_phone) : null
+
+      const mergedRawMetadata = {
+        ...currentMetadata,
+        corrected_fields: correctedFields,
+        customer_corrected_info: true,
+        last_correction_at: new Date().toISOString(),
+        last_correction_source: 'manual_edit_customer'
+      }
+      updateData.raw_metadata = mergedRawMetadata
 
       const { data: updatedLead, error: updateError } = await supabase
         .from('leads')

@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { getLeadAIIntake } from './ai-field-mapping'
+import { getCurrentCustomerContext } from './customer-context'
+import { isPlaceholderValue } from '@/components/payments/customer-search-helpers'
 
 /**
  * Format a number as USD currency with exactly 2 decimal places.
@@ -205,20 +206,16 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 
 /**
  * Get lead display name with graceful fallback.
- * Delegates to getLeadAIIntake for canonical name resolution, then falls back to
+ * Uses the canonical current customer context first, then falls back to
  * historical raw_metadata, then formatted phone.
- * Never displays "Not collected" as a customer name.
+ * Never displays placeholder values (e.g. "Not collected", "Unknown") as a customer name.
  */
 export function getLeadDisplayName(lead: any): string {
-  const aiIntake = getLeadAIIntake(lead)
-  // Use extracted customer name if available and not "Not collected"
-  if (aiIntake.customerName && aiIntake.customerName !== 'Not collected') {
-    return aiIntake.customerName
-  }
+  const context = getCurrentCustomerContext(lead)
 
-  // Try existing lead name if available and not "Not collected"
-  if (lead?.name && lead.name !== 'Not collected') {
-    return lead.name
+  // Current canonical name (manual/current lead values beat stale AI intake)
+  if (context.customerName) {
+    return context.customerName
   }
 
   // Try historical raw_metadata customer name (from initial AI intake)
@@ -226,8 +223,8 @@ export function getLeadDisplayName(lead: any): string {
   // even if the most recent ai_call_record doesn't contain them
   const rawMetadata = lead?.raw_metadata || {}
   const historicalCustomerName = rawMetadata.customerName || rawMetadata.callerName || rawMetadata.caller_name
-  if (historicalCustomerName && historicalCustomerName !== 'Not collected') {
-    return historicalCustomerName
+  if (historicalCustomerName && !isPlaceholderValue(historicalCustomerName)) {
+    return historicalCustomerName.trim()
   }
 
   // Try formatted phone numbers

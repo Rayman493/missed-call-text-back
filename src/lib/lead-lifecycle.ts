@@ -63,17 +63,17 @@ export const LEAD_LIFECYCLE_CONFIG: Record<LeadLifecycleStatus, LeadLifecycleCon
     label: 'Cancelled',
     description: 'Engagement cancelled'
   },
-  lost: {
-    color: getStatusColorConfig('lost').text,
-    bgColor: getStatusColorConfig('lost').iconBg,
-    label: 'Lost',
-    description: 'Customer lost'
-  },
   ignored: {
     color: getStatusColorConfig('ignored').text,
     bgColor: getStatusColorConfig('ignored').iconBg,
     label: 'Ignored',
     description: 'Customer ignored'
+  },
+  lost: {
+    color: getStatusColorConfig('lost').text,
+    bgColor: getStatusColorConfig('lost').iconBg,
+    label: 'Lost',
+    description: 'Customer lost'
   }
 }
 

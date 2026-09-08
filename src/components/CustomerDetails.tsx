@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { User, Mail, Phone, MapPin, Clock, MessageSquare, FileText } from 'lucide-react'
-import { getLeadAIIntake } from '@/lib/ai-field-mapping'
+import { getCurrentCustomerContext } from '@/lib/customer-context'
 import { formatPhoneNumber } from '@/lib/utils'
 
 interface CustomerDetailsProps {
@@ -11,16 +11,16 @@ interface CustomerDetailsProps {
 }
 
 export default function CustomerDetails({ leadData, lead }: CustomerDetailsProps) {
-  const intake = getLeadAIIntake(leadData || {})
+  const context = getCurrentCustomerContext(leadData || {})
 
-  const customerName = leadData?.name || leadData?.contact_name || intake.customerName || ''
-  const reasonForCalling = intake.serviceRequested || ''
-  const details = intake.additionalDetails || ''
-  const location = intake.serviceAddress || ''
-  const desiredCompletionTime = intake.desiredCompletion || ''
-  const preferredCallbackTime = intake.callbackTime || ''
-  const phoneNumber = leadData?.caller_phone || lead?.caller_phone || intake.customerPhone || ''
-  const email = leadData?.email || ''
+  const customerName = context.customerName
+  const reasonForCalling = context.reasonForCalling
+  const details = context.details
+  const location = context.location
+  const desiredCompletionTime = context.desiredCompletionTime
+  const preferredCallbackTime = context.preferredCallbackTime
+  const phoneNumber = context.phoneNumber
+  const email = context.email
 
   const renderField = (label: string, value: string, icon?: React.ReactNode) => {
     const hasValue = Boolean(value && value.trim())

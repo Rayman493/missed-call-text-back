@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
-import { Mail, Phone } from 'lucide-react'
+import { Mail, Phone, MessageSquare, FileText, MapPin, Clock } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
+import { getCurrentCustomerContext } from '@/lib/customer-context'
 
 interface EditCustomerModalProps {
   isOpen: boolean
@@ -17,10 +18,13 @@ interface EditCustomerModalProps {
 
 interface CustomerFormData {
   customerName: string
-  email: string
-  companyName: string
-  notes: string
+  reasonForCalling: string
+  details: string
+  location: string
+  desiredCompletionTime: string
+  preferredCallbackTime: string
   phoneNumber: string
+  email: string
 }
 
 export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, onCustomerUpdated }: EditCustomerModalProps) {
@@ -30,25 +34,32 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
 
   const [formData, setFormData] = useState<CustomerFormData>({
     customerName: '',
-    email: '',
-    companyName: '',
-    notes: '',
-    phoneNumber: ''
+    reasonForCalling: '',
+    details: '',
+    location: '',
+    desiredCompletionTime: '',
+    preferredCallbackTime: '',
+    phoneNumber: '',
+    email: ''
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const submitInFlightRef = useRef(false)
 
-  // Initialize form with existing lead data when modal opens
+  // Initialize form from the canonical current customer context
   useEffect(() => {
     if (isOpen && leadData) {
+      const context = getCurrentCustomerContext(leadData)
       setFormData({
-        customerName: leadData.name || leadData.contact_name || '',
-        email: leadData.email || '',
-        companyName: leadData.company_name || '',
-        notes: leadData.notes || '',
-        phoneNumber: leadData.caller_phone || ''
+        customerName: context.customerName,
+        reasonForCalling: context.reasonForCalling,
+        details: context.details,
+        location: context.location,
+        desiredCompletionTime: context.desiredCompletionTime,
+        preferredCallbackTime: context.preferredCallbackTime,
+        phoneNumber: context.phoneNumber,
+        email: context.email
       })
     }
   }, [isOpen, leadData])
@@ -93,15 +104,18 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
         throw new Error('Not authenticated')
       }
 
-      // Build update payload with canonical fields only
-      // AI Intake data (raw_metadata.extracted_info) is historical and should not be edited here
+      // Build update payload with canonical current fields only
+      // Historical AI intake data (ai_call_records) is never mutated here.
       const updatePayload: any = {
         is_simple_update: true,
         contact_name: formData.customerName.trim() || null,
-        email: formData.email.trim() || null,
-        company_name: formData.companyName.trim() || null,
-        notes: formData.notes.trim() || null,
-        caller_phone: formData.phoneNumber.trim() || null
+        reasonForCalling: formData.reasonForCalling.trim() || null,
+        importantDetails: formData.details.trim() || null,
+        addressOrLocation: formData.location.trim() || null,
+        desiredCompletionTime: formData.desiredCompletionTime.trim() || null,
+        preferredCallbackTime: formData.preferredCallbackTime.trim() || null,
+        caller_phone: formData.phoneNumber.trim() || null,
+        email: formData.email.trim() || null
       }
 
       const response = await fetch(`/api/leads/${leadId}`, {
@@ -161,6 +175,86 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
           />
         </div>
 
+        {/* Reason for Calling */}
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" />
+            Reason for Calling
+          </label>
+          <input
+            type="text"
+            value={formData.reasonForCalling}
+            onChange={(e) => setFormData({ ...formData, reasonForCalling: e.target.value })}
+            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+            placeholder="What service are they requesting?"
+            disabled={isSubmitting}
+          />
+        </div>
+
+        {/* Details */}
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Details
+          </label>
+          <textarea
+            value={formData.details}
+            onChange={(e) => setFormData({ ...formData, details: e.target.value })}
+            rows={3}
+            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none resize-none"
+            placeholder="Important details about the request"
+            disabled={isSubmitting}
+          />
+        </div>
+
+        {/* Location */}
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+            <MapPin className="w-4 h-4" />
+            Location
+          </label>
+          <input
+            type="text"
+            value={formData.location}
+            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+            placeholder="Service address"
+            disabled={isSubmitting}
+          />
+        </div>
+
+        {/* Desired Completion Time */}
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            Desired Completion Time
+          </label>
+          <input
+            type="text"
+            value={formData.desiredCompletionTime}
+            onChange={(e) => setFormData({ ...formData, desiredCompletionTime: e.target.value })}
+            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+            placeholder="e.g. Tomorrow, This week"
+            disabled={isSubmitting}
+          />
+        </div>
+
+        {/* Preferred Callback Time */}
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            Preferred Callback Time
+          </label>
+          <input
+            type="text"
+            value={formData.preferredCallbackTime}
+            onChange={(e) => setFormData({ ...formData, preferredCallbackTime: e.target.value })}
+            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+            placeholder="e.g. 3 PM"
+            disabled={isSubmitting}
+          />
+        </div>
+
         {/* Phone Number */}
         <div>
           <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
@@ -173,36 +267,6 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
             className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
             placeholder="(555) 123-4567"
-            disabled={isSubmitting}
-          />
-        </div>
-
-        {/* Company Name */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5">
-            Company Name
-          </label>
-          <input
-            type="text"
-            value={formData.companyName}
-            onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-            placeholder="Enter company name"
-            disabled={isSubmitting}
-          />
-        </div>
-
-        {/* Internal Notes */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5">
-            Internal Notes
-          </label>
-          <textarea
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            rows={3}
-            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none resize-none"
-            placeholder="Add internal notes about this customer"
             disabled={isSubmitting}
           />
         </div>

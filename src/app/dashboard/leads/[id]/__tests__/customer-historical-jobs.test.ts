@@ -55,7 +55,7 @@ describe('Previous Job Requests history', () => {
     expect(pageContent).toContain('setSelectedHistoricalRecord(record)')
     expect(pageContent).toContain('selectedHistoricalRecord')
     expect(pageContent).toContain('Previous job request —')
-    expect(pageContent).toContain('getHistoricalAIIntake')
+    expect(pageContent).toContain('getHistoricalJobRequestContext')
   })
 
   it('E: empty previous requests renders a clean empty state without hiding Jobs', () => {

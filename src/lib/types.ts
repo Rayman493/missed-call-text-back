@@ -200,8 +200,8 @@ export function normalizeLeadForApplication(dbRow: Lead): Lead {
   // Return a new object with compatibility aliases populated
   return {
     ...dbRow,
-    name: dbRow.contact_name ?? dbRow.raw_metadata?.extracted_info?.callerName ?? null,
-    email: dbRow.raw_metadata?.extracted_info?.email ?? null,
+    name: dbRow.contact_name ?? dbRow.raw_metadata?.corrected_fields?.name ?? dbRow.raw_metadata?.corrected_fields?.callerName ?? dbRow.raw_metadata?.extracted_info?.callerName ?? null,
+    email: dbRow.raw_metadata?.corrected_fields?.email ?? dbRow.raw_metadata?.extracted_info?.email ?? null,
     phone: dbRow.caller_phone
   };
 }

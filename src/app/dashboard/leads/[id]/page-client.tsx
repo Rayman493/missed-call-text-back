@@ -74,6 +74,7 @@ import { useSupportsBusinessNumber } from '@/lib/platform-capabilities'
 import { getNextAction } from '@/lib/lead-next-action'
 import { hasPhoneNumber } from '@/lib/utils'
 import { normalizeEditableContext, firstNonPlaceholder } from '@/components/payments/customer-search-helpers'
+import { getCurrentCustomerContext, getHistoricalJobRequestContext } from '@/lib/customer-context'
 
 // Helper functions for consistent formatting
 const formatDate = (dateString: string | null | undefined): string => {
@@ -81,24 +82,11 @@ const formatDate = (dateString: string | null | undefined): string => {
   return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-// Helper to get customer name from lead data
+// Helper to get current customer name from canonical context
 const getCustomerName = (lead: any, leadData: any) => {
-  const intake = getLeadAIIntake(leadData || lead)
-  const customerName = intake.customerName || leadData?.name || lead?.name || ''
-  return customerName
+  return getCurrentCustomerContext(leadData || lead).customerName
 }
 
-// Read a single historical ai_call_record intake without letting current lead
-// identity (name, corrections) contaminate the captured-at-call values.
-const getHistoricalAIIntake = (record: any) => {
-  return getLeadAIIntake({
-    aiCallRecords: [record],
-    raw_metadata: {},
-    name: null,
-    contact_name: null,
-    caller_phone: record?.caller_phone || null
-  })
-}
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -4626,7 +4614,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         }
                       >
                         {Boolean((leadData?.notes || '').trim()) ? (
-                          <div className="text-xs text-muted-foreground line-clamp-3 break-words">
+                          <div className="text-xs text-foreground line-clamp-3 break-words">
                             {(leadData?.notes || '').trim()}
                           </div>
                         ) : (
@@ -6179,40 +6167,40 @@ If you have questions, reply to this message.`
       >
         {(() => {
           const record = selectedHistoricalRecord
-          const intake = getHistoricalAIIntake(record)
+          const context = getHistoricalJobRequestContext(record)
           const transcript = Array.isArray(record?.transcript) ? record.transcript : []
           return (
             <div className="space-y-4">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Customer Name at Time of Call</p>
-                <p className="text-sm text-foreground">{intake.customerName || 'Not collected'}</p>
+                <p className="text-sm text-foreground">{context.customerName || 'Not collected'}</p>
               </div>
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Reason / Request</p>
-                <p className="text-sm text-foreground">{intake.serviceRequested || 'Not collected'}</p>
+                <p className="text-sm text-foreground">{context.reasonForCalling || 'Not collected'}</p>
               </div>
-              {intake.additionalDetails && intake.additionalDetails !== 'Not collected' && (
+              {context.details && (
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Additional Details</p>
-                  <p className="text-sm text-foreground">{intake.additionalDetails}</p>
+                  <p className="text-sm text-foreground">{context.details}</p>
                 </div>
               )}
-              {intake.serviceAddress && intake.serviceAddress !== 'Not collected' && (
+              {context.location && (
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Location</p>
-                  <p className="text-sm text-foreground">{intake.serviceAddress}</p>
+                  <p className="text-sm text-foreground">{context.location}</p>
                 </div>
               )}
-              {intake.desiredCompletion && intake.desiredCompletion !== 'Not collected' && (
+              {context.desiredCompletionTime && (
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Desired Completion Time</p>
-                  <p className="text-sm text-foreground">{intake.desiredCompletion}</p>
+                  <p className="text-sm text-foreground">{context.desiredCompletionTime}</p>
                 </div>
               )}
-              {intake.callbackTime && intake.callbackTime !== 'Not collected' && (
+              {context.preferredCallbackTime && (
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Preferred Callback Time</p>
-                  <p className="text-sm text-foreground">{intake.callbackTime}</p>
+                  <p className="text-sm text-foreground">{context.preferredCallbackTime}</p>
                 </div>
               )}
               {record.summary && (

@@ -4,7 +4,14 @@ import { readFileSync } from 'fs'
 describe('SearchableCustomerSelect canonical name behavior', () => {
   const content = readFileSync('src/components/customers/SearchableCustomerSelect.tsx', 'utf8')
 
-  it('A: reconciles prefillCustomer by ID so stale same-ID options are replaced', () => {
+  it('A: uses canonical getCustomerDisplayName for selected value text', () => {
+    expect(content).toContain('getCustomerDisplayName(')
+    expect(content).toContain('getDisplayText(')
+    expect(content).toContain('selectedCustomer = useMemo(() =>')
+    expect(content).toContain('mergedCustomers.find')
+  })
+
+  it('B: reconciles prefillCustomer by ID so stale same-ID options are replaced', () => {
     // The reconciled list removes any fetched entry with the same id and puts
     // the authoritative prefill version at the front.
     expect(content).toContain('const mergedCustomers = useMemo(() => {')

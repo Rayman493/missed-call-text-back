@@ -6,7 +6,8 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { calculateLeadStatusCounts } from '../lead-lifecycle'
+import { calculateLeadStatusCounts, LEAD_LIFECYCLE_CONFIG } from '../lead-lifecycle'
+import { getAllCustomerStatuses } from '../customer-status'
 
 describe('calculateLeadStatusCounts', () => {
   it('should count ignored leads correctly', () => {
@@ -119,5 +120,9 @@ describe('calculateLeadStatusCounts', () => {
     expect(counts.active).to.equal(0)
     expect(counts.completed).to.equal(0)
     expect(counts.ignored).to.equal(0)
+  })
+
+  it('lifecycle ordering matches canonical customer status config', () => {
+    expect(getAllCustomerStatuses()).toEqual(Object.keys(LEAD_LIFECYCLE_CONFIG))
   })
 })
