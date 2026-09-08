@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendOffboardingReminderEmail } from '@/lib/email'
-import { sendSms } from '@/lib/twilio'
+import { sendSystemSms } from '@/lib/twilio'
 import { verifyCronRequest } from '@/lib/cron-auth'
 
 // Reminder schedule:
@@ -132,32 +132,22 @@ Confirm you've disabled forwarding: ${process.env.NEXT_PUBLIC_APP_URL}/api/offbo
 This is reminder #${record.reminder_count + 1} of ${MAX_REMINDERS}.`
 
           try {
-            // We need a business object for sendSms, but we don't have the full business data
-            // For offboarding, we'll use a minimal object with just the phone number
-            const minimalBusiness = {
-              id: record.business_id || '',
-              business_phone_number: record.business_phone_number,
-              twilio_phone_number: record.twilio_phone_number,
-              twilio_messaging_service_sid: null,
-              twilio_phone_number_sid: null,
-              provisioning_status: null,
-            }
-
-            const smsSent = await sendSms(
-              minimalBusiness as any,
+            // Send from the dedicated ReplyFlow system sender to avoid race conditions
+            // where the business's Twilio number is being reserved/released.
+            const smsSent = await sendSystemSms(
               record.business_phone_number,
               reminderSmsMessage,
-              { lead_id: undefined, isOffboarding: true }
+              {
+                businessId: record.business_id,
+                businessPhoneNumber: record.business_phone_number,
+                messageType: 'offboarding_reminder',
+              }
             )
 
-            // sendSms returns an object; only a truthy sid means real Twilio success
+            // sendSystemSms returns an object; only a truthy sid means real Twilio success
             if (smsSent?.sid) {
               console.log(`[Offboarding Reminders] SMS sent successfully to ${record.business_phone_number}, SID: ${smsSent.sid}`)
               smsResult = 'sent'
-            } else if (smsSent?.reason === 'NO_TWILIO_NUMBER') {
-              // Number was recycled/released or no longer canonically assigned - intentionally unsendable
-              console.log(`[Offboarding Reminders] SMS skipped for ${record.business_phone_number} (Twilio number recycled/released)`)
-              smsResult = 'skipped'
             } else {
               console.error(`[Offboarding Reminders] SMS send failed for ${record.business_phone_number}:`, smsSent)
               smsResult = 'failed'

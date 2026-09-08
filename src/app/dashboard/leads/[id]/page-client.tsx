@@ -3010,7 +3010,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Derive scheduling prefill from AI intake
     const schedulingPrefill = deriveJobSchedulingPrefill(
       intake.desiredCompletion,
-      intake.callbackTime
+      intake.callbackTime,
+      business?.business_hours_timezone
     )
 
     // Use canonical request title helper (already filters placeholders)

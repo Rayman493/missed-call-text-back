@@ -153,3 +153,23 @@ export function formatBusinessLocalDate(timestamp: string | Date, timezone: stri
   const zonedDate = toZonedTime(date, normalizedTimezone)
   return zonedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
+
+/**
+ * Gets a date string suitable for HTML date inputs in a specific timezone.
+ *
+ * Returns YYYY-MM-DD for the provided date interpreted in the target timezone.
+ * Falls back to the browser's local timezone when no timezone is supplied.
+ *
+ * @param date - Reference date (defaults to now)
+ * @param timezone - Target IANA timezone (e.g., 'America/New_York', 'UTC')
+ * @returns YYYY-MM-DD string
+ */
+export function getDateInputValueInTimeZone(
+  date: Date = new Date(),
+  timezone?: string | null
+): string {
+  if (!timezone) {
+    return date.toLocaleDateString('en-CA')
+  }
+  return getBusinessLocalDateString(timezone, date)
+}

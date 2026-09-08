@@ -4,12 +4,14 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, AlertTriangle, Plus } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { useBusiness } from '@/contexts/BusinessContext'
 import Modal from '@/components/ui/Modal'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 import { getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
+import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
 
 const supabase = createBrowserClient()
 
@@ -30,6 +32,7 @@ interface NewAppointmentModalProps {
 
 export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSuccess, defaultDate, context = 'calendar', preselectedLeadId = null, preselectedLeadDisplay = null, preselectedLeadCustomer, allowAddCustomer, requireCustomer, lockCustomer }: NewAppointmentModalProps) {
   const router = useRouter()
+  const { business } = useBusiness()
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
@@ -54,14 +57,15 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
   const customerIsRequired = requireCustomer ?? (context === 'meetings')
   const customerLabel = customerIsRequired ? 'Customer (required)' : 'Customer (optional)'
 
-  // Initialize form with default date
+  // Initialize form with default date in the business timezone
   useEffect(() => {
+    const timezone = business?.business_hours_timezone
     if (defaultDate) {
-      setDate(defaultDate.toISOString().split('T')[0])
+      setDate(getDateInputValueInTimeZone(defaultDate, timezone))
     } else {
-      setDate(new Date().toISOString().split('T')[0])
+      setDate(getDateInputValueInTimeZone(new Date(), timezone))
     }
-  }, [defaultDate, isOpen])
+  }, [defaultDate, isOpen, business?.business_hours_timezone])
 
   // Configure customer preselection and context behavior on open
   useEffect(() => {

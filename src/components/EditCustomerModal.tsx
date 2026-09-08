@@ -62,6 +62,15 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
       return
     }
 
+    // Validate phone format if provided
+    if (formData.phoneNumber.trim()) {
+      const phoneDigits = formData.phoneNumber.replace(/\D/g, '')
+      if (phoneDigits.length < 10) {
+        setError('Please enter a valid phone number')
+        return
+      }
+    }
+
     // Validate email format if provided
     if (formData.email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

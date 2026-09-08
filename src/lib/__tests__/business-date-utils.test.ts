@@ -5,7 +5,8 @@ import {
   getBusinessDaysAgo,
   getBusinessDaysAgoRelative,
   getBusinessMonthStart,
-  normalizeBusinessTimezone
+  normalizeBusinessTimezone,
+  getDateInputValueInTimeZone
 } from '../business-date-utils'
 
 describe('Business Date Utils', () => {
@@ -188,6 +189,35 @@ describe('Business Date Utils', () => {
       const date = new Date('2026-01-15T12:00:00Z')
       const result = getBusinessDaysAgo('ESTT', 7, date)
       expect(result).toBe('2026-01-08T00:00:00.000Z')
+    })
+  })
+
+  describe('getDateInputValueInTimeZone - HTML input date string', () => {
+    it('falls back to browser local timezone when no timezone is provided', () => {
+      const date = new Date('2026-01-15T12:00:00Z')
+      const result = getDateInputValueInTimeZone(date)
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    })
+
+    it('America/New_York around UTC midnight stays on the previous day', () => {
+      // 2026-01-15T04:30:00Z = 2026-01-14 11:30 PM EST
+      const date = new Date('2026-01-15T04:30:00Z')
+      const result = getDateInputValueInTimeZone(date, 'America/New_York')
+      expect(result).toBe('2026-01-14')
+    })
+
+    it('America/New_York after local midnight stays on the current day', () => {
+      // 2026-01-15T05:30:00Z = 2026-01-15 12:30 AM EST
+      const date = new Date('2026-01-15T05:30:00Z')
+      const result = getDateInputValueInTimeZone(date, 'America/New_York')
+      expect(result).toBe('2026-01-15')
+    })
+
+    it('Europe/Paris west of UTC stays on the previous day', () => {
+      // 2026-01-15T00:30:00Z = 2026-01-15 1:30 AM CET
+      const date = new Date('2026-01-15T00:30:00Z')
+      const result = getDateInputValueInTimeZone(date, 'Europe/Paris')
+      expect(result).toBe('2026-01-15')
     })
   })
 })

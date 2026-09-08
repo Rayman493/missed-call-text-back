@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { X, Calendar, Clock, FileText, Tag, MapPin } from 'lucide-react'
+import { useBusiness } from '@/contexts/BusinessContext'
+import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
 
 interface EventComposerProps {
   isOpen: boolean
@@ -17,9 +19,11 @@ interface EventComposerProps {
 }
 
 export default function EventComposer({ isOpen, onClose, onSave, selectedDate, prefill }: EventComposerProps) {
+  const { business } = useBusiness()
+  const timezone = business?.business_hours_timezone
   const [title, setTitle] = useState(prefill?.title || '')
-  const [startDate, setStartDate] = useState(selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
-  const [endDate, setEndDate] = useState(selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
+  const [startDate, setStartDate] = useState(getDateInputValueInTimeZone(selectedDate ?? new Date(), timezone))
+  const [endDate, setEndDate] = useState(getDateInputValueInTimeZone(selectedDate ?? new Date(), timezone))
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('10:00') // Default 60 min duration
   const [allDay, setAllDay] = useState(false)
@@ -40,12 +44,12 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
   // Sync dates when selectedDate changes
   useEffect(() => {
     if (selectedDate) {
-      const dateStr = selectedDate.toISOString().split('T')[0]
+      const dateStr = getDateInputValueInTimeZone(selectedDate, timezone)
       setStartDate(dateStr)
       setEndDate(dateStr)
       setDateError('')
     }
-  }, [selectedDate])
+  }, [selectedDate, timezone])
 
   // Sync prefill values when modal opens
   useEffect(() => {

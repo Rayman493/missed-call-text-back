@@ -28,10 +28,10 @@ export default function RecoverSessionPage() {
     console.log('[Redirect Decision]', {
       reason: 'recovery_cta_clicked',
       from: '/auth/recover-session',
-      to: '/auth/signin?redirect=/dashboard?checkout=success',
+      to: '/auth/signin?returnTo=' + encodeURIComponent('/dashboard?checkout=success'),
       checkoutSuccess: true
     })
-    router.push('/auth/signin?redirect=/dashboard?checkout=success')
+    router.push('/auth/signin?returnTo=' + encodeURIComponent('/dashboard?checkout=success'))
   }
 
   return (

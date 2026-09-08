@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
-import { db } from '@/lib/supabase/admin';
+import { db, normalizePhoneNumberForStorage } from '@/lib/supabase/admin';
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard';
 
 const MANUAL_FIELD_ALIASES: Record<string, string[]> = {
@@ -71,7 +71,7 @@ export async function PATCH(
 
     const leadId = id;
     const body = await request.json();
-    const { status, deleted_at, deleted_by, deletion_reason, raw_metadata, contact_name, company_name, tags, notes, is_simple_update } = body;
+    const { status, deleted_at, deleted_by, deletion_reason, raw_metadata, contact_name, company_name, tags, notes, is_simple_update, caller_phone } = body;
 
     // Handle simple customer profile update (from EditCustomer modal)
     if (is_simple_update) {
@@ -88,13 +88,14 @@ export async function PATCH(
       }
 
       // Preserve historical AI intake data - do NOT overwrite raw_metadata.extracted_info
-      // EditCustomer modal should only update canonical fields (contact_name, company_name, notes)
+      // EditCustomer modal should only update canonical fields (contact_name, company_name, notes, caller_phone)
       // AI Intake Details are historical and should only be edited via the AI Intake Details section
       const updateData: Record<string, any> = {}
 
       if (contact_name !== undefined) updateData.contact_name = contact_name
       if (company_name !== undefined) updateData.company_name = company_name
       if (notes !== undefined) updateData.notes = notes
+      if (caller_phone !== undefined) updateData.caller_phone = caller_phone ? normalizePhoneNumberForStorage(caller_phone) : null
 
       const { data: updatedLead, error: updateError } = await supabase
         .from('leads')

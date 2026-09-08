@@ -8,7 +8,7 @@ export default function CheckoutRecoveryPage() {
   const router = useRouter()
 
   const handleContinue = () => {
-    router.push('/signin?redirect=/dashboard?checkout=success')
+    router.push('/auth/signin?returnTo=' + encodeURIComponent('/dashboard?checkout=success'))
   }
 
   return (

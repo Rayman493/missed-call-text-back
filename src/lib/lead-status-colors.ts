@@ -49,6 +49,17 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
     iconBg: 'bg-blue-500/10 dark:bg-blue-400/10',
     gradient: 'from-blue-500/5 via-blue-500/5 to-slate-50/50 dark:to-slate-900/50'
   },
+  'needs_reply': {
+    accent: 'bg-cyan-400',
+    border: 'border-cyan-500/20',
+    accentColor: 'rgb(34 211 238)',
+    badgeBg: 'bg-cyan-500/10 dark:bg-cyan-400/10',
+    badgeText: 'text-cyan-700 dark:text-cyan-300',
+    badgeBorder: 'ring-1 ring-inset ring-cyan-500/20 dark:ring-cyan-400/20',
+    text: 'text-cyan-400',
+    iconBg: 'bg-cyan-500/10 dark:bg-cyan-400/10',
+    gradient: 'from-cyan-500/5 via-cyan-500/5 to-slate-50/50 dark:to-slate-900/50'
+  },
   'active': {
     accent: 'bg-emerald-400',
     border: 'border-emerald-500/20',

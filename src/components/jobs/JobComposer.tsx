@@ -7,6 +7,8 @@ import { getCustomerStatusStyle } from '@/lib/customer-status'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 import { firstNonPlaceholder, normalizeEditableContext, getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
+import { useBusiness } from '@/contexts/BusinessContext'
+import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
 
 export type JobStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
 
@@ -95,6 +97,9 @@ export default function JobComposer({
 
   const locationInputRef = useRef<HTMLInputElement>(null)
 
+  const { business } = useBusiness()
+  const timezone = business?.business_hours_timezone
+
   useModalBackButton({ isOpen, onClose })
 
   // Handle customer selection - populate form fields from customer data
@@ -146,7 +151,7 @@ export default function JobComposer({
       setCustomerPhone(prefill?.customer_phone || '')
       setServiceAddress(prefill?.service_address || '')
       setNotes(prefill?.notes || '')
-      setScheduledDate(prefill?.scheduled_date || (defaultDate ? defaultDate.toISOString().split('T')[0] : ''))
+      setScheduledDate(prefill?.scheduled_date || (defaultDate ? getDateInputValueInTimeZone(defaultDate, timezone) : ''))
       setScheduledTime(prefill?.scheduled_time || '')
       setStatus('scheduled')
       setLeadId(prefill?.lead_id || null)

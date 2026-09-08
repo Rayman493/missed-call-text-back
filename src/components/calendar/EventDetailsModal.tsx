@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2, ClipboardList, MessageSquareText, CheckSquare } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useBusiness } from '@/contexts/BusinessContext'
+import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
 import AppointmentSmsModal from '@/components/calendar/AppointmentSmsModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
@@ -90,6 +92,8 @@ interface EventDetailsModalProps {
 }
 
 export default function EventDetailsModal({ isOpen, onClose, event, mode = 'details', onDelete, onRefresh, job, lead, businessName, onViewCustomer, onViewJob, onShowToast }: EventDetailsModalProps) {
+  const { business } = useBusiness()
+  const timezone = business?.business_hours_timezone
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -141,7 +145,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       
       if (event.start.dateTime) {
         const start = new Date(event.start.dateTime)
-        setEditedStartDate(start.toISOString().split('T')[0])
+        setEditedStartDate(getDateInputValueInTimeZone(start, timezone))
         setEditedStartTime(start.toTimeString().slice(0, 5))
       } else if (event.start.date) {
         setEditedStartDate(event.start.date)
@@ -152,7 +156,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         setEditedEndTime(end.toTimeString().slice(0, 5))
       }
     }
-  }, [event])
+  }, [event, timezone])
 
   // Update lead state when lead prop changes
   useEffect(() => {

@@ -151,17 +151,44 @@ describe('Edit Customer - Canonical Fields Only', () => {
     })
   })
 
-  describe('Phone safety', () => {
-    it('should not include phone in canonical update payload', () => {
+  describe('Phone updates', () => {
+    it('should persist normalized caller_phone for simple update', () => {
       const updatePayload = {
         is_simple_update: true,
         contact_name: 'John Doe',
-        email: 'john@example.com'
+        caller_phone: '(555) 123-4567'
       }
 
-      // Phone should not be in the update payload
-      expect(updatePayload).not.toHaveProperty('caller_phone')
-      expect(updatePayload).not.toHaveProperty('raw_metadata')
+      // Simulate the API normalization used by normalizePhoneNumberForStorage
+      const normalizePhone = (phone: string) => {
+        const digits = phone.replace(/\D/g, '')
+        if (!digits) return ''
+        if (digits.length === 10) return `+1${digits}`
+        if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+        return digits.startsWith('+') ? digits : `+${digits}`
+      }
+
+      const updateData: Record<string, any> = {}
+      if (updatePayload.contact_name !== undefined) updateData.contact_name = updatePayload.contact_name
+      if (updatePayload.caller_phone !== undefined) {
+        updateData.caller_phone = updatePayload.caller_phone ? normalizePhone(updatePayload.caller_phone) : null
+      }
+
+      expect(updateData).toHaveProperty('caller_phone', '+15551234567')
+    })
+
+    it('should allow clearing caller_phone with null', () => {
+      const updatePayload = {
+        is_simple_update: true,
+        contact_name: 'John Doe',
+        caller_phone: null
+      }
+
+      const updateData: Record<string, any> = {}
+      if (updatePayload.contact_name !== undefined) updateData.contact_name = updatePayload.contact_name
+      if (updatePayload.caller_phone !== undefined) updateData.caller_phone = null
+
+      expect(updateData.caller_phone).toBeNull()
     })
   })
 })

@@ -5,6 +5,8 @@
  * Prefers deterministic parsing over AI guessing.
  */
 
+import { getDateInputValueInTimeZone } from './business-date-utils'
+
 export interface JobSchedulingPrefill {
   date?: string // ISO date string (YYYY-MM-DD) if safely resolved
   time?: string // 24-hour time string (HH:MM) if specific
@@ -19,7 +21,7 @@ export interface JobSchedulingPrefill {
  * Uses business timezone (assumed to be the user's local timezone for now).
  * Returns undefined if the date cannot be safely resolved.
  */
-function parseDate(dateString: string, timezone: string = 'UTC'): string | undefined {
+function parseDate(dateString: string, timezone: string | null | undefined = 'UTC'): string | undefined {
   if (!dateString || typeof dateString !== 'string') return undefined
 
   const normalized = dateString.toLowerCase().trim()
@@ -37,7 +39,7 @@ function parseDate(dateString: string, timezone: string = 'UTC'): string | undef
 
   if (normalized === 'tomorrow') {
     targetDate.setDate(today.getDate() + 1)
-    return targetDate.toISOString().split('T')[0]
+    return getDateInputValueInTimeZone(targetDate, timezone)
   }
 
   // Day names (next occurrence)
@@ -61,7 +63,7 @@ function parseDate(dateString: string, timezone: string = 'UTC'): string | undef
       } else {
         targetDate.setDate(today.getDate() + (daysUntil === 0 ? 7 : daysUntil))
       }
-      return targetDate.toISOString().split('T')[0]
+      return getDateInputValueInTimeZone(targetDate, timezone)
     }
   }
 
@@ -152,7 +154,7 @@ function parseTime(timeString: string): string | undefined {
 export function deriveJobSchedulingPrefill(
   desiredCompletion: string | null | undefined,
   callbackTime: string | null | undefined,
-  timezone: string = 'UTC'
+  timezone?: string | null
 ): JobSchedulingPrefill {
   const result: JobSchedulingPrefill = {
     dateWasResolved: false,
