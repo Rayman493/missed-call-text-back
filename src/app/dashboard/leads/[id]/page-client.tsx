@@ -1676,6 +1676,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     return scheduledDate >= today
   })
 
+  // Previous/historical jobs are all jobs that are not active scheduled appointments
+  const previousJobs = leadJobs.filter((job: any) => !futureAppointments.some((a: any) => a.id === job.id))
+
   // Handle appointment confirmation sending
   const handleSendConfirmation = async (jobId: string, successText = 'Appointment confirmation sent.') => {
     if (isSendingConfirmation) return
@@ -4314,7 +4317,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </div>
                       </div>
 
-                      {/* Schedule - Jobs Only */}
+                      {/* Schedule - active/upcoming scheduled jobs only */}
                       <SidebarSection
                         title="Schedule"
                         className="mb-3"
@@ -4330,15 +4333,47 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </button>
                         }
                       >
-                        {leadJobs.length === 0 ? (
+                        {futureAppointments.length === 0 ? (
                           <p className="text-sm text-muted-foreground">No scheduled jobs</p>
                         ) : (
                           <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
-                            {/* Jobs */}
-                            {leadJobs.map((job: any) => (
+                            {/* Active scheduled jobs */}
+                            {futureAppointments.map((job: any) => (
                               <div key={job.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200">
                                 <div className="flex-shrink-0 w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center">
                                   <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                  </svg>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
+                                  <p className="text-xs text-muted-foreground/80">
+                                    {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
+                                    {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
+                                  </p>
+                                </div>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-slate-200/60 dark:border-border/30">
+                                  {formatJobStatus(job.status).text}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </SidebarSection>
+
+                      {/* Previous Jobs - historical jobs that are not active scheduled appointments */}
+                      <SidebarSection
+                        title="Previous Jobs"
+                        className="mb-3"
+                      >
+                        {previousJobs.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No previous jobs</p>
+                        ) : (
+                          <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
+                            {previousJobs.map((job: any) => (
+                              <div key={job.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200">
+                                <div className="flex-shrink-0 w-6 h-6 rounded bg-slate-500/10 flex items-center justify-center">
+                                  <svg className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                   </svg>
                                 </div>
@@ -4774,7 +4809,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
 
-          {/* Schedule */}
+          {/* Schedule - active/upcoming scheduled jobs only */}
           <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -4784,8 +4819,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </svg>
                 </div>
                 <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Schedule</span>
-                {leadJobs.length > 0 && (
-                  <span className="text-xs text-muted-foreground">({leadJobs.length})</span>
+                {futureAppointments.length > 0 && (
+                  <span className="text-xs text-muted-foreground">({futureAppointments.length})</span>
                 )}
               </div>
               <button
@@ -4799,11 +4834,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </button>
             </div>
             <div className="mt-2">
-              {leadJobs.length === 0 ? (
+              {futureAppointments.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-2">No scheduled jobs</p>
               ) : (
                 <div className="space-y-1">
-                  {leadJobs.slice(0, 3).map((job: any) => (
+                  {futureAppointments.slice(0, 3).map((job: any) => (
                     <div key={job.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-foreground truncate">{job.title || 'Job'}</p>
@@ -4817,13 +4852,57 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </span>
                     </div>
                   ))}
-                  {leadJobs.length > 3 && (
+                  {futureAppointments.length > 3 && (
                     <button
                       onClick={handleAppointmentClick}
                       className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                     >
-                      View all {leadJobs.length} jobs
+                      View all {futureAppointments.length} scheduled
                     </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Previous Jobs - historical jobs that are not active scheduled appointments */}
+          <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Previous Jobs</span>
+                {previousJobs.length > 0 && (
+                  <span className="text-xs text-muted-foreground">({previousJobs.length})</span>
+                )}
+              </div>
+            </div>
+            <div className="mt-2">
+              {previousJobs.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-2">No previous jobs</p>
+              ) : (
+                <div className="space-y-1">
+                  {previousJobs.slice(0, 3).map((job: any) => (
+                    <div key={job.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-foreground truncate">{job.title || 'Job'}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
+                          {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
+                        </p>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2 border border-border/50">
+                        {formatJobStatus(job.status).text}
+                      </span>
+                    </div>
+                  ))}
+                  {previousJobs.length > 3 && (
+                    <p className="text-center text-[10px] text-muted-foreground py-1">
+                      +{previousJobs.length - 3} more previous jobs
+                    </p>
                   )}
                 </div>
               )}
