@@ -26,7 +26,7 @@ import AppBackButton from '@/components/AppBackButton'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName, getInitialsFromName } from '@/lib/utils'
+import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName, getInitialsFromName, formatDateTime } from '@/lib/utils'
 import { getCustomerSourceInfo } from '@/lib/customer-source'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { PhoneIncoming, UserPlus, RefreshCw, Plus } from 'lucide-react'
@@ -86,6 +86,18 @@ const getCustomerName = (lead: any, leadData: any) => {
   const intake = getLeadAIIntake(leadData || lead)
   const customerName = intake.customerName || leadData?.name || lead?.name || ''
   return customerName
+}
+
+// Read a single historical ai_call_record intake without letting current lead
+// identity (name, corrections) contaminate the captured-at-call values.
+const getHistoricalAIIntake = (record: any) => {
+  return getLeadAIIntake({
+    aiCallRecords: [record],
+    raw_metadata: {},
+    name: null,
+    contact_name: null,
+    caller_phone: record?.caller_phone || null
+  })
 }
 
 function getErrorMessage(errorCode: string): string {
@@ -1523,6 +1535,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isSendingConfirmation, setIsSendingConfirmation] = useState(false)
   const [confirmationError, setConfirmationError] = useState<string | null>(null)
   const [leadJobs, setLeadJobs] = useState<any[]>([])
+  const [selectedHistoricalRecord, setSelectedHistoricalRecord] = useState<any | null>(null)
+  const [isHistoricalDetailOpen, setIsHistoricalDetailOpen] = useState(false)
   const [leadTasks, setLeadTasks] = useState<any[]>([])
   const [appointments, setAppointments] = useState<any[]>([])
   const [loadingAppointments, setLoadingAppointments] = useState(false)
@@ -1676,8 +1690,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     return scheduledDate >= today
   })
 
-  // Previous/historical jobs are all jobs that are not active scheduled appointments
-  const previousJobs = leadJobs.filter((job: any) => !futureAppointments.some((a: any) => a.id === job.id))
+  // Prior AI/call intake records for this customer/phone. lead-details returns
+  // aiCallRecords ordered by created_at descending; the newest is the current
+  // Customer Context, so everything after it is a previous job request.
+  const previousAiCallRecords = useMemo(() => {
+    const records = leadData?.aiCallRecords || []
+    return records.slice(1)
+  }, [leadData?.aiCallRecords])
 
   // Handle appointment confirmation sending
   const handleSendConfirmation = async (jobId: string, successText = 'Appointment confirmation sent.') => {
@@ -4361,16 +4380,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         )}
                       </SidebarSection>
 
-                      {/* Previous Jobs - historical jobs that are not active scheduled appointments */}
+                      {/* Jobs - actual job entities */}
                       <SidebarSection
-                        title="Previous Jobs"
+                        title="Jobs"
                         className="mb-3"
                       >
-                        {previousJobs.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">No previous jobs</p>
+                        {leadJobs.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No jobs</p>
                         ) : (
                           <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
-                            {previousJobs.map((job: any) => (
+                            {leadJobs.map((job: any) => (
                               <div key={job.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200">
                                 <div className="flex-shrink-0 w-6 h-6 rounded bg-slate-500/10 flex items-center justify-center">
                                   <svg className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4389,6 +4408,44 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 </span>
                               </div>
                             ))}
+                          </div>
+                        )}
+                      </SidebarSection>
+
+                      {/* Previous Job Requests - prior AI/call intake records */}
+                      <SidebarSection
+                        title="Previous Job Requests"
+                        className="mb-3"
+                      >
+                        {previousAiCallRecords.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No previous job requests</p>
+                        ) : (
+                          <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
+                            {previousAiCallRecords.map((record: any) => {
+                              const requestTitle = getLeadRequestTitle({ aiCallRecords: [record], raw_metadata: {}, name: null, contact_name: null }) || 'Previous request'
+                              const status = getAIIntakeStatus({ aiCallRecords: [record] })
+                              return (
+                                <button
+                                  key={record.id}
+                                  type="button"
+                                  onClick={() => { setSelectedHistoricalRecord(record); setIsHistoricalDetailOpen(true) }}
+                                  className="w-full flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200 text-left"
+                                >
+                                  <div className="flex-shrink-0 w-6 h-6 rounded bg-amber-500/10 flex items-center justify-center">
+                                    <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-medium text-foreground truncate">{requestTitle}</p>
+                                    <p className="text-xs text-muted-foreground/80">{formatDateTime(record.created_at)}</p>
+                                  </div>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border border-slate-200/60 dark:border-border/30 ${getAIIntakeStatusColor(status)}`}>
+                                    {getAIIntakeStatusLabel(status)}
+                                  </span>
+                                </button>
+                              )
+                            })}
                           </div>
                         )}
                       </SidebarSection>
@@ -4865,7 +4922,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* Previous Jobs - historical jobs that are not active scheduled appointments */}
+          {/* Jobs - actual job entities */}
           <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -4874,18 +4931,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </div>
-                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Previous Jobs</span>
-                {previousJobs.length > 0 && (
-                  <span className="text-xs text-muted-foreground">({previousJobs.length})</span>
+                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Jobs</span>
+                {leadJobs.length > 0 && (
+                  <span className="text-xs text-muted-foreground">({leadJobs.length})</span>
                 )}
               </div>
             </div>
             <div className="mt-2">
-              {previousJobs.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-2">No previous jobs</p>
+              {leadJobs.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-2">No jobs</p>
               ) : (
                 <div className="space-y-1">
-                  {previousJobs.slice(0, 3).map((job: any) => (
+                  {leadJobs.slice(0, 3).map((job: any) => (
                     <div key={job.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-foreground truncate">{job.title || 'Job'}</p>
@@ -4899,9 +4956,55 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </span>
                     </div>
                   ))}
-                  {previousJobs.length > 3 && (
+                  {leadJobs.length > 3 && (
                     <p className="text-center text-[10px] text-muted-foreground py-1">
-                      +{previousJobs.length - 3} more previous jobs
+                      +{leadJobs.length - 3} more jobs
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Previous Job Requests - prior AI/call intake records */}
+          <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Previous Job Requests</span>
+                {previousAiCallRecords.length > 0 && (
+                  <span className="text-xs text-muted-foreground">({previousAiCallRecords.length})</span>
+                )}
+              </div>
+            </div>
+            <div className="mt-2">
+              {previousAiCallRecords.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-2">No previous job requests</p>
+              ) : (
+                <div className="space-y-1">
+                  {previousAiCallRecords.slice(0, 3).map((record: any) => {
+                    const requestTitle = getLeadRequestTitle({ aiCallRecords: [record], raw_metadata: {}, name: null, contact_name: null }) || 'Previous request'
+                    return (
+                      <button
+                        key={record.id}
+                        type="button"
+                        onClick={() => { setSelectedHistoricalRecord(record); setIsHistoricalDetailOpen(true) }}
+                        className="w-full flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors text-left"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium text-foreground truncate">{requestTitle}</p>
+                          <p className="text-[10px] text-muted-foreground">{formatDateTime(record.created_at)}</p>
+                        </div>
+                      </button>
+                    )
+                  })}
+                  {previousAiCallRecords.length > 3 && (
+                    <p className="text-center text-[10px] text-muted-foreground py-1">
+                      +{previousAiCallRecords.length - 3} more previous job requests
                     </p>
                   )}
                 </div>
@@ -6063,6 +6166,77 @@ If you have questions, reply to this message.`
             </button>
           </div>
         </div>
+      </Modal>
+    )}
+
+    {/* Previous Job Request Detail Modal */}
+    {isHistoricalDetailOpen && selectedHistoricalRecord && (
+      <Modal
+        isOpen={isHistoricalDetailOpen}
+        onClose={() => { setIsHistoricalDetailOpen(false); setSelectedHistoricalRecord(null) }}
+        title={`Previous job request — ${formatDateTime(selectedHistoricalRecord.created_at)}`}
+        bottomSheetOnMobile
+      >
+        {(() => {
+          const record = selectedHistoricalRecord
+          const intake = getHistoricalAIIntake(record)
+          const transcript = Array.isArray(record?.transcript) ? record.transcript : []
+          return (
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Customer Name at Time of Call</p>
+                <p className="text-sm text-foreground">{intake.customerName || 'Not collected'}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Reason / Request</p>
+                <p className="text-sm text-foreground">{intake.serviceRequested || 'Not collected'}</p>
+              </div>
+              {intake.additionalDetails && intake.additionalDetails !== 'Not collected' && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Additional Details</p>
+                  <p className="text-sm text-foreground">{intake.additionalDetails}</p>
+                </div>
+              )}
+              {intake.serviceAddress && intake.serviceAddress !== 'Not collected' && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Location</p>
+                  <p className="text-sm text-foreground">{intake.serviceAddress}</p>
+                </div>
+              )}
+              {intake.desiredCompletion && intake.desiredCompletion !== 'Not collected' && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Desired Completion Time</p>
+                  <p className="text-sm text-foreground">{intake.desiredCompletion}</p>
+                </div>
+              )}
+              {intake.callbackTime && intake.callbackTime !== 'Not collected' && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Preferred Callback Time</p>
+                  <p className="text-sm text-foreground">{intake.callbackTime}</p>
+                </div>
+              )}
+              {record.summary && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">AI Summary</p>
+                  <p className="text-sm text-foreground">{record.summary}</p>
+                </div>
+              )}
+              {transcript.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Transcript</p>
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                    {transcript.map((entry: any, idx: number) => (
+                      <div key={idx} className="text-sm">
+                        <span className="font-medium text-muted-foreground">{entry.role ? `${entry.role}: ` : ''}</span>
+                        <span className="text-foreground">{entry.text || ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </Modal>
     )}
 

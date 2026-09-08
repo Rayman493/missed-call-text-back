@@ -1,94 +1,77 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'fs'
+import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 
-// Mirrors the active-vs-historical split in page-client.tsx
-function getFutureAppointments(jobs: any[]) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return jobs.filter((job: any) => {
-    if (!job.scheduled_date) return false
-    return new Date(job.scheduled_date) >= today
-  })
-}
+describe('Previous Job Requests history', () => {
+  const pageContent = readFileSync('src/app/dashboard/leads/[id]/page-client.tsx', 'utf8')
 
-function getPreviousJobs(jobs: any[]) {
-  const future = getFutureAppointments(jobs)
-  return jobs.filter((job: any) => !future.some((a: any) => a.id === job.id))
-}
-
-describe('Customer Historical Jobs regression', () => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const futureDate = new Date(today)
-  futureDate.setDate(futureDate.getDate() + 2)
-  const pastDate = new Date(today)
-  pastDate.setDate(pastDate.getDate() - 5)
-
-  it('A: customer with historical job and no active scheduled job keeps historical UI available', () => {
-    const leadJobs = [
-      { id: 'job-1', title: 'Previous repair', status: 'completed', scheduled_date: pastDate.toISOString() }
-    ]
-    const futureAppointments = getFutureAppointments(leadJobs)
-    const previousJobs = getPreviousJobs(leadJobs)
-
-    // Schedule section is empty
-    expect(futureAppointments.length).toBe(0)
-    // Previous Jobs section remains available
-    expect(previousJobs.length).toBe(1)
-    expect(previousJobs[0].id).toBe('job-1')
+  it('A: Jobs section is restored and no longer titled Previous Jobs', () => {
+    // The sidebar/mobile Jobs section must be titled exactly Jobs and use the
+    // actual lead job data, not a date/status split derived from appointments.
+    expect(pageContent).toContain('title="Jobs"')
+    expect(pageContent).toContain('leadJobs.map((job: any)')
+    expect(pageContent).not.toContain('title="Previous Jobs"')
   })
 
-  it('B: customer with historical + active jobs shows each in the correct section without duplicates', () => {
-    const leadJobs = [
-      { id: 'job-active', title: 'Upcoming appointment', status: 'scheduled', scheduled_date: futureDate.toISOString() },
-      { id: 'job-hist', title: 'Last year tune-up', status: 'completed', scheduled_date: pastDate.toISOString() }
+  it('B: latest AI call stays current context and older calls become previous requests', () => {
+    const records = [
+      { id: 'call-2', created_at: '2026-05-20T12:00:00Z', extracted_info: { reasonForCalling: 'Leaking kitchen faucet', callerName: 'Michael Thompson' } },
+      { id: 'call-1', created_at: '2026-05-15T12:00:00Z', extracted_info: { reasonForCalling: 'Fence repair', callerName: 'Amanda Lewis' } },
     ]
-    const futureAppointments = getFutureAppointments(leadJobs)
-    const previousJobs = getPreviousJobs(leadJobs)
 
-    expect(futureAppointments.length).toBe(1)
-    expect(futureAppointments[0].id).toBe('job-active')
-    expect(previousJobs.length).toBe(1)
-    expect(previousJobs[0].id).toBe('job-hist')
-    // No accidental overlap
-    const allDisplayedIds = [...futureAppointments, ...previousJobs].map(j => j.id)
-    expect(new Set(allDisplayedIds).size).toBe(2)
+    // The page takes aiCallRecords[1..] as previous requests (newest first).
+    const previousRequests = records.slice(1)
+    expect(previousRequests.length).toBe(1)
+    expect(previousRequests[0].id).toBe('call-1')
+
+    const currentIntake = getLeadAIIntake({ aiCallRecords: [records[0]], raw_metadata: {} })
+    expect(currentIntake.customerName).toBe('Michael Thompson')
+    expect(currentIntake.serviceRequested).toBe('Leaking kitchen faucet')
   })
 
-  it('C: customer with no historical jobs shows clean empty previous-jobs state', () => {
-    const leadJobs = [
-      { id: 'job-active', title: 'Upcoming appointment', status: 'scheduled', scheduled_date: futureDate.toISOString() }
-    ]
-    const previousJobs = getPreviousJobs(leadJobs)
+  it('C: historical request keeps the captured name after a display-name change', () => {
+    const historicalRecord = {
+      id: 'call-1',
+      created_at: '2026-05-15T12:00:00Z',
+      caller_phone: '+15555551212',
+      extracted_info: { callerName: 'Amanda Lewis', reasonForCalling: 'Fence repair' }
+    }
 
-    expect(previousJobs.length).toBe(0)
+    // Simulate the historical intake: no current lead name/contact_name is passed,
+    // so the name is read only from the historical extracted_info.
+    const historicalIntake = getLeadAIIntake({
+      aiCallRecords: [historicalRecord],
+      raw_metadata: {},
+      name: null,
+      contact_name: null,
+      caller_phone: historicalRecord.caller_phone
+    })
+
+    expect(historicalIntake.customerName).toBe('Amanda Lewis')
+    expect(historicalIntake.serviceRequested).toBe('Fence repair')
   })
 
-  it('D: historical jobs stay associated by stable lead ID, not display name', () => {
-    // Lead ID remained the same even though canonical display name changed
-    // from Amanda Lewis to Michael Thompson. Jobs are keyed by lead_id.
-    const leadId = 'lead-stable-123'
-    const jobsQueryResult = [
-      { id: 'job-hist', lead_id: leadId, customer_name: 'Amanda Lewis', status: 'completed', scheduled_date: pastDate.toISOString() }
-    ]
-    const filteredByLeadId = jobsQueryResult.filter((j: any) => j.lead_id === leadId)
-    const byCustomerName = jobsQueryResult.filter((j: any) => j.customer_name === 'Michael Thompson')
-
-    // Stable ID keeps the historical job visible
-    expect(filteredByLeadId.length).toBe(1)
-    // Display-name query would incorrectly drop it
-    expect(byCustomerName.length).toBe(0)
+  it('D: clicking a specific previous request opens a detail view for that record only', () => {
+    expect(pageContent).toContain('setSelectedHistoricalRecord(record)')
+    expect(pageContent).toContain('selectedHistoricalRecord')
+    expect(pageContent).toContain('Previous job request —')
+    expect(pageContent).toContain('getHistoricalAIIntake')
   })
 
-  it('E: multiple calls on the same customer keep previous jobs accessible', () => {
-    const leadId = 'lead-stable-123'
-    const leadJobs = [
-      { id: 'job-1', lead_id: leadId, title: 'First call job', status: 'completed', scheduled_date: pastDate.toISOString() },
-      { id: 'job-2', lead_id: leadId, title: 'Second call job', status: 'completed', scheduled_date: pastDate.toISOString() }
-    ]
-    const previousJobs = getPreviousJobs(leadJobs)
+  it('E: empty previous requests renders a clean empty state without hiding Jobs', () => {
+    expect(pageContent).toContain('No previous job requests')
+    expect(pageContent).toContain('No jobs')
+  })
 
-    expect(previousJobs.length).toBe(2)
-    expect(previousJobs.map(j => j.title)).toContain('First call job')
-    expect(previousJobs.map(j => j.title)).toContain('Second call job')
+  it('F: previous requests are sourced from lead-details aiCallRecords, scoped to lead/phone', () => {
+    // The UI consumes leadData.aiCallRecords which is already scoped by
+    // lead_id (or business+normalized phone) inside the authenticated lead-details route.
+    expect(pageContent).toContain('leadData?.aiCallRecords')
+    expect(pageContent).toContain('previousAiCallRecords')
+  })
+
+  it('G: mobile Previous Job Requests section opens the detail modal in bottom-sheet mode', () => {
+    expect(pageContent).toContain('Previous Job Requests</span>')
+    expect(pageContent).toContain('bottomSheetOnMobile')
   })
 })
