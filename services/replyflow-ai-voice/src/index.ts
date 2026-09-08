@@ -2180,6 +2180,9 @@ function isValidServiceRequest(text: string): boolean {
   const trimmed = text.trim();
   if (trimmed.length === 0) return false;
 
+  // Reject clear refusals so they are not stored as real service requests
+  if (isRefusal(trimmed)) return false;
+
   // Reject only truly unusable answers
   const unusableAnswers = [
     '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
@@ -2197,6 +2200,9 @@ function isValidCompletionTime(text: string): boolean {
   const trimmed = text.trim();
   if (trimmed.length === 0) return false;
 
+  // Reject clear refusals so they are not stored as real timing values
+  if (isRefusal(trimmed)) return false;
+
   // Reject only truly unusable answers
   const unusableAnswers = [
     '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
@@ -2213,6 +2219,9 @@ function isValidCallbackTime(text: string): boolean {
   if (!text || typeof text !== 'string') return false;
   const trimmed = text.trim();
   if (trimmed.length === 0) return false;
+
+  // Reject clear refusals so they are not stored as real callback preferences
+  if (isRefusal(trimmed)) return false;
 
   // Reject only truly unusable answers
   const unusableAnswers = [
@@ -10137,6 +10146,10 @@ Reply to this message if you'd like to update or add any information.
         if (isFillerOnly(trimmed)) {
           return { accepted: false, rejectionReason: 'filler_only' };
         }
+        // Reject refusals and unusable answers so they are not stored as real service requests
+        if (!isValidServiceRequest(transcript)) {
+          return { accepted: false, rejectionReason: 'invalid_service_request' };
+        }
         // Accept if it has service content or is at least 3 characters
         if (hasServiceContent(trimmed) || trimmed.length >= 3) {
           return { accepted: true };
@@ -10210,6 +10223,10 @@ Reply to this message if you'd like to update or add any information.
         if (isIncomplete(trimmed)) {
           return { accepted: false, rejectionReason: 'incomplete' };
         }
+        // Reject refusals and unusable answers so they are not stored as real addresses
+        if (!isValidServiceAddress(transcript)) {
+          return { accepted: false, rejectionReason: 'invalid_service_address' };
+        }
         return { accepted: true };
 
       case 'ask_completion_time':
@@ -10220,6 +10237,10 @@ Reply to this message if you'd like to update or add any information.
         // Reject clearly incomplete timing fragments like "it's five"
         if (isIncomplete(trimmed)) {
           return { accepted: false, rejectionReason: 'incomplete_timing' };
+        }
+        // Reject refusals and unusable answers so they are not stored as real timing values
+        if (!isValidCompletionTime(transcript)) {
+          return { accepted: false, rejectionReason: 'invalid_completion_time' };
         }
         // Accept meaningful timing expressions
         const timingPatterns = [
@@ -10244,6 +10265,10 @@ Reply to this message if you'd like to update or add any information.
         // Reject filler-only
         if (isFillerOnly(trimmed)) {
           return { accepted: false, rejectionReason: 'filler_only' };
+        }
+        // Reject refusals and unusable answers so they are not stored as real callback preferences
+        if (!isValidCallbackTime(transcript)) {
+          return { accepted: false, rejectionReason: 'invalid_callback_time' };
         }
         // Accept any meaningful response for callback time
         return { accepted: true };

@@ -67,6 +67,9 @@ export function isValidServiceRequest(text: string): boolean {
   const trimmed = text.trim();
   if (trimmed.length === 0) return false;
 
+  // Reject clear refusals so they are not stored as real service requests
+  if (isRefusal(trimmed)) return false;
+
   // Reject only truly unusable answers
   const unusableAnswers = [
     '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
@@ -84,6 +87,9 @@ export function isValidCompletionTime(text: string): boolean {
   const trimmed = text.trim();
   if (trimmed.length === 0) return false;
 
+  // Reject clear refusals so they are not stored as real timing values
+  if (isRefusal(trimmed)) return false;
+
   // Reject only truly unusable answers
   const unusableAnswers = [
     '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
@@ -100,6 +106,9 @@ export function isValidCallbackTime(text: string): boolean {
   if (!text || typeof text !== 'string') return false;
   const trimmed = text.trim();
   if (trimmed.length === 0) return false;
+
+  // Reject clear refusals so they are not stored as real callback preferences
+  if (isRefusal(trimmed)) return false;
 
   // Reject only truly unusable answers
   const unusableAnswers = [
