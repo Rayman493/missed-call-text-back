@@ -781,3 +781,19 @@ html.light select:-moz-autofill:focus {
     --modal-max-height: 90vh;
   }
 }
+
+/* Hide native date/time picker indicators while preserving click target
+ * Used by DatePicker/TimePicker where a custom icon is provided */
+.hide-native-picker::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.hide-native-picker {
+  -moz-appearance: textfield;
+}

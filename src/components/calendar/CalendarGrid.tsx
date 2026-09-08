@@ -20,6 +20,13 @@ interface CalendarGridProps {
     google_calendar_event_id: string | null
     lead_id: string | null
   }>
+  tasks?: Array<{
+    id: string
+    title: string
+    due_date: string | null
+    due_time: string | null
+    completed: boolean
+  }>
   selectedDay?: Date | null
   businessLocalToday?: Date | null
   renderEvent?: (event: any, day: Date) => ReactNode
@@ -29,12 +36,14 @@ interface CalendarGridProps {
   onToday?: () => void
   onAddEvent?: () => void
   onDayClick?: (day: number, isCurrentMonth: boolean) => void
+  onEventClick?: (item: { id: string; type: 'appointment' | 'job' | 'task' }) => void
 }
 
 export default function CalendarGrid({
   month,
   events,
   jobs = [],
+  tasks = [],
   selectedDay,
   businessLocalToday,
   renderEvent,
@@ -43,7 +52,8 @@ export default function CalendarGrid({
   onNextMonth,
   onToday,
   onAddEvent,
-  onDayClick
+  onDayClick,
+  onEventClick
 }: CalendarGridProps) {
   // SSR-safe screen size detection
   // Default to 2 (desktop) during SSR to avoid hydration mismatch
@@ -119,7 +129,7 @@ export default function CalendarGrid({
     const dayEvents: Array<{
       id: string
       summary: string
-      type: 'appointment' | 'job'
+      type: 'appointment' | 'job' | 'task'
       customer?: string
       time?: string
       status?: string
@@ -180,6 +190,17 @@ export default function CalendarGrid({
         customer: job.customer_name || undefined,
         time: job.scheduled_time || undefined,
         status: job.status.replace('_', ' ')
+      })
+    })
+
+    // Add tasks/reminders
+    tasks.filter(task => task.due_date === dayKey && !task.completed).forEach(task => {
+      dayEvents.push({
+        id: task.id,
+        summary: task.title,
+        type: 'task',
+        time: task.due_time || undefined,
+        status: 'Reminder'
       })
     })
 
@@ -275,6 +296,7 @@ export default function CalendarGrid({
               isWeekend={isWeekend}
               events={dayEvents}
               onClick={() => onDayClick?.(dayInfo.day, dayInfo.isCurrentMonth)}
+              onEventClick={onEventClick}
             />
           )
         })}

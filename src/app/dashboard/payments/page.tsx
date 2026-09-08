@@ -1279,7 +1279,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                     ) : (
                       <>
                         {visiblePayments.map((payment) => (
-                          <tr key={payment.id} className="hover:bg-slate-50 dark:hover:bg-[#1a2235] transition-colors">
+                          <tr key={payment.id} className="hover:bg-slate-50 dark:hover:bg-[#1a2235] transition-colors cursor-pointer" onClick={() => handleOpenEditModal(payment)}>
                             <td className="px-4 py-3 whitespace-nowrap">
                               <div className="flex items-center gap-2">
                                 <User className="h-4 w-4 text-muted-foreground" />
@@ -1312,7 +1312,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                               {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : '-'}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
-                              <div className="flex items-center w-full">
+                              <div className="flex items-center w-full" onClick={(e) => e.stopPropagation()}>
                                 <div className="flex items-center gap-2 min-w-0 whitespace-nowrap">
                                   {(payment.status === 'paid' || payment.status === 'pending') && (
                                     <button
@@ -1390,7 +1390,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                             </tr>
 
                             {showOlderPayments && olderPayments.map((payment) => (
-                              <tr key={payment.id} className="hover:bg-slate-50 dark:hover:bg-[#1a2235] transition-colors">
+                              <tr key={payment.id} className="hover:bg-slate-50 dark:hover:bg-[#1a2235] transition-colors cursor-pointer" onClick={() => handleOpenEditModal(payment)}>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <div className="flex items-center gap-2">
                                     <User className="h-4 w-4 text-muted-foreground" />
@@ -1423,7 +1423,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                   {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : '-'}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
-                                  <div className="flex items-center w-full">
+                                  <div className="flex items-center w-full" onClick={(e) => e.stopPropagation()}>
                                     <div className="flex items-center gap-2 min-w-0 whitespace-nowrap">
                                       {(payment.status === 'paid' || payment.status === 'pending') && (
                                         <button

@@ -147,6 +147,11 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   const [isEditing, setIsEditing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSmsOpen, setIsSmsOpen] = useState(false)
+
+  // Ownership: an event is ReplyFlow-owned if it carries our private metadata (created in ReplyFlow)
+  const isReplyFlowOwned = !!event.extendedProperties?.private?.replyflow_lead_id || !!event.extendedProperties?.private?.replyflow_meeting_url
+  const isJobEvent = !!job
+
   // Internal meeting metadata
   const [meetingStatus, setMeetingStatus] = useState<'upcoming' | 'completed' | null>(null)
   const [completedAt, setCompletedAt] = useState<string | null>(null)
@@ -1214,7 +1219,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                     <span className="truncate">Text Details</span>
                   </button>
                 )}
-                {!event.isHoliday && (
+                {!event.isHoliday && isReplyFlowOwned && !isJobEvent && (
                   <>
                     <button
                       onClick={handleEditClick}

@@ -18,6 +18,7 @@ interface CalendarDayCellProps {
   isWeekend?: boolean
   events?: CalendarEvent[]
   onClick?: () => void
+  onEventClick?: (event: CalendarEvent) => void
 }
 
 export default function CalendarDayCell({
@@ -27,7 +28,8 @@ export default function CalendarDayCell({
   isSelected,
   isWeekend = false,
   events = [],
-  onClick
+  onClick,
+  onEventClick
 }: CalendarDayCellProps) {
   const getEventIcon = (type: string) => {
     switch (type) {
@@ -105,8 +107,14 @@ export default function CalendarDayCell({
         {visibleEvents.map((event, index) => (
           <div
             key={`${event.id}-${index}`}
-            className={`flex items-center gap-1 text-[10px] sm:text-[11px] leading-tight ${getEventColor(event.type)}`}
+            className={`flex items-center gap-1 text-[10px] sm:text-[11px] leading-tight cursor-pointer hover:opacity-80 ${getEventColor(event.type)}`}
             title={event.summary}
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation()
+              onEventClick?.(event)
+            }}
           >
             <div className="flex items-center justify-center w-3 h-3 sm:w-3.5 sm:h-3.5 flex-none shrink-0">
               {getEventIcon(event.type)}

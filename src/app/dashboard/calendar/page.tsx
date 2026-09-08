@@ -938,6 +938,46 @@ export default function SchedulePage() {
     return jobs.filter(j => j.scheduled_date === dayKey)
   }
 
+  const getTasksForDay = (date: Date): Task[] => {
+    const dayKey = getDateKey(date)
+    return tasks.filter(t => t.due_date === dayKey && !t.completed)
+  }
+
+  const handleCalendarItemClick = (item: { id: string; type: 'appointment' | 'job' | 'task' }) => {
+    if (item.type === 'job') {
+      const job = jobs.find(j => j.id === item.id)
+      if (job) {
+        setSelectedJob(job)
+        setIsJobDetailsOpen(true)
+      }
+      return
+    }
+
+    if (item.type === 'task') {
+      const task = tasks.find(t => t.id === item.id)
+      if (task) {
+        setTaskToEdit(task)
+        setIsNewTaskModalOpen(true)
+      }
+      return
+    }
+
+    const event = events.find(e => e.id === item.id)
+    if (!event) return
+
+    // Job-linked calendar events are owned by the job; open job details
+    const linkedJob = jobs.find(j => j.google_calendar_event_id === event.id)
+    if (linkedJob) {
+      setSelectedJob(linkedJob)
+      setIsJobDetailsOpen(true)
+      return
+    }
+
+    setSelectedEvent(event)
+    setEventDetailsMode('details')
+    setIsEventDetailsOpen(true)
+  }
+
   useEffect(() => {
     if (business) {
       fetchCalendarStatus()
@@ -1612,6 +1652,7 @@ export default function SchedulePage() {
                           month={currentMonth}
                           events={visibleMonthEvents}
                           jobs={jobs}
+                          tasks={tasks}
                           selectedDay={selectedDay}
                           businessLocalToday={businessLocalToday}
                           onPreviousMonth={goToPreviousMonth}
@@ -1619,6 +1660,7 @@ export default function SchedulePage() {
                           onToday={goToToday}
                           onAddEvent={handleAddEvent}
                           onDayClick={handleDayClick}
+                          onEventClick={handleCalendarItemClick}
                         />
 
                         {/* Selected Day Events - shown inline below calendar */}
@@ -1653,24 +1695,26 @@ export default function SchedulePage() {
                             {(() => {
                               const dayEvents = getEventsForDay(selectedDay)
                               const dayJobs = getJobsForDay(selectedDay)
+                              const dayTasks = getTasksForDay(selectedDay)
 
-                              if (dayEvents.length === 0 && dayJobs.length === 0) {
+                              if (dayEvents.length === 0 && dayJobs.length === 0 && dayTasks.length === 0) {
                                 return (
                                   <div className="py-6">
                                     <EmptyState
                                       variant="calendar"
-                                      title="No appointments scheduled"
-                                      description="Add an appointment to this day to see it here."
+                                      title="Nothing scheduled"
+                                      description="Add an appointment, job, or reminder to this day to see it here."
                                       className="py-8"
                                     />
                                   </div>
                                 )
                               }
 
-                              // Combine and sort events and jobs by time
+                              // Combine and sort events, jobs, and reminders by time
                               const allItems = [
                                 ...dayEvents.map(e => ({ type: 'event' as const, data: e, time: e.start.dateTime || e.start.date })),
-                                ...dayJobs.map(j => ({ type: 'job' as const, data: j, time: j.scheduled_date }))
+                                ...dayJobs.map(j => ({ type: 'job' as const, data: j, time: j.scheduled_date })),
+                                ...dayTasks.map(t => ({ type: 'task' as const, data: t, time: t.due_time ? `${t.due_date}T${t.due_time}` : t.due_date }))
                               ].sort((a, b) => {
                                 const timeA = a.time ? new Date(a.time).getTime() : 0
                                 const timeB = b.time ? new Date(b.time).getTime() : 0
@@ -1683,38 +1727,113 @@ export default function SchedulePage() {
                                     if (item.type === 'event') {
                                       const event = item.data as CalendarEvent
                                       const time = formatEventTimeRange(event.start.dateTime, event.end.dateTime, event.start.date)
-                                      // @ts-ignore
-                                      const rfLead = event?.extendedProperties?.private?.replyflow_lead_id as string | undefined
+                                      const rfLead = (event as any)?.extendedProperties?.private?.replyflow_lead_id as string | undefined
+                                      const isReplyFlow = !!rfLead
                                       const job = jobs.find(j => j.google_calendar_event_id === event.id)
                                       const customerName = job?.customer_name || null
 
                                       return (
                                         <div
                                           key={event.id}
-                                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50"
+                                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                                         >
-                                          <div className="flex-shrink-0 mt-0.5">
-                                            <CalendarIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                          </div>
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-                                              {event.summary}
-                                            </p>
-                                            {customerName && (
+                                          <button
+                                            onClick={() => handleCalendarItemClick({ id: event.id, type: 'appointment' })}
+                                            className="flex items-start gap-3 flex-1 min-w-0 text-left"
+                                          >
+                                            <div className="flex-shrink-0 mt-0.5">
+                                              <CalendarIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <div className="flex items-center gap-1.5">
+                                                <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                                                  {event.summary}
+                                                </p>
+                                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${isReplyFlow ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                                                  {isReplyFlow ? 'ReplyFlow' : 'Google'}
+                                                </span>
+                                              </div>
+                                              {customerName && (
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                  {customerName}
+                                                </p>
+                                              )}
                                               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                                {customerName}
+                                                {time}
                                               </p>
-                                            )}
-                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                              {time}
-                                            </p>
-                                            {event.location && (
-                                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
-                                                <MapPin className="w-3 h-3 flex-shrink-0" />
-                                                <span className="truncate">{event.location}</span>
+                                              {event.location && (
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
+                                                  <MapPin className="w-3 h-3 flex-shrink-0" />
+                                                  <span className="truncate">{event.location}</span>
+                                                </p>
+                                              )}
+                                            </div>
+                                          </button>
+                                          {isReplyFlow ? (
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                handleCalendarItemClick({ id: event.id, type: 'appointment' })
+                                              }}
+                                              aria-label={`Edit appointment: ${event.summary}`}
+                                              className="flex-shrink-0 p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                                              title="Edit appointment"
+                                            >
+                                              <Pencil className="w-4 h-4" />
+                                            </button>
+                                          ) : (
+                                            <a
+                                              href={event.htmlLink || 'https://calendar.google.com'}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              aria-label={`Open in Google Calendar: ${event.summary}`}
+                                              className="flex-shrink-0 p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                                              title="Open in Google Calendar"
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <ExternalLink className="w-4 h-4" />
+                                            </a>
+                                          )}
+                                        </div>
+                                      )
+                                    } else if (item.type === 'task') {
+                                      const task = item.data as Task
+                                      const time = task.due_time
+                                        ? new Date(`2000-01-01T${task.due_time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                                        : 'No time'
+
+                                      return (
+                                        <div
+                                          key={task.id}
+                                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                        >
+                                          <button
+                                            onClick={() => handleCalendarItemClick({ id: task.id, type: 'task' })}
+                                            className="flex items-start gap-3 flex-1 min-w-0 text-left"
+                                          >
+                                            <div className="flex-shrink-0 mt-0.5">
+                                              <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                                                {task.title}
                                               </p>
-                                            )}
-                                          </div>
+                                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                {time} • {task.completed ? 'Completed' : 'Pending'}
+                                              </p>
+                                            </div>
+                                          </button>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              handleCalendarItemClick({ id: task.id, type: 'task' })
+                                            }}
+                                            aria-label={`Edit reminder: ${task.title}`}
+                                            className="flex-shrink-0 p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                                            title="Edit reminder"
+                                          >
+                                            <Pencil className="w-4 h-4" />
+                                          </button>
                                         </div>
                                       )
                                     } else {

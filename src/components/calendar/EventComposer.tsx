@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Calendar, Clock, FileText, Tag, MapPin } from 'lucide-react'
+import { X, Calendar, FileText, Tag, MapPin } from 'lucide-react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
 
@@ -219,13 +219,12 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
                   Start time <span className="text-red-400">*</span>
                 </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <div>
                   <input
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>
@@ -233,13 +232,12 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
                   End time <span className="text-red-400">*</span>
                 </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <div>
                   <input
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>

@@ -47,7 +47,7 @@ export default function TimePicker({
           disabled={disabled}
           placeholder={placeholder}
           step={60}
-          className={`w-full min-w-0 px-3 py-2.5 text-base sm:text-sm leading-5 border rounded-lg duration-150 appearance-none ${
+          className={`w-full min-w-0 px-3 py-2.5 text-base sm:text-sm leading-5 border rounded-lg duration-150 appearance-none hide-native-picker ${
             disabled
               ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30 pr-3'
               : 'bg-background dark:bg-slate-900/40 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60'

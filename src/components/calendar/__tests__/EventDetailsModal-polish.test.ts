@@ -57,4 +57,13 @@ describe('EventDetailsModal presentation polish', () => {
     expect(content).toContain('markComplete')
     expect(content).toContain('CheckSquare')
   })
+
+  it('derives ReplyFlow ownership from extendedProperties metadata', () => {
+    expect(content).toContain('isReplyFlowOwned')
+    expect(content).toContain('replyflow_lead_id')
+  })
+
+  it('gates Edit/Delete to ReplyFlow-owned events that are not job-linked', () => {
+    expect(content).toMatch(/isReplyFlowOwned\s*&&\s*!isJobEvent/)
+  })
 })
