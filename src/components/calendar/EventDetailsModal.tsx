@@ -6,6 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
+import { isReplyFlowOwnedEvent } from '@/lib/calendar-ownership'
 import AppointmentSmsModal from '@/components/calendar/AppointmentSmsModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
@@ -149,8 +150,28 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   const [isSmsOpen, setIsSmsOpen] = useState(false)
   const mutationInFlightRef = useRef(false)
 
-  // Ownership: an event is ReplyFlow-owned if it carries our private metadata (created in ReplyFlow)
-  const isReplyFlowOwned = !!event.extendedProperties?.private?.replyflow_lead_id || !!event.extendedProperties?.private?.replyflow_meeting_url
+  const [meetingRecord, setMeetingRecord] = useState<{ id: string; google_calendar_event_id: string | null } | null>(null)
+
+  useEffect(() => {
+    if (!business?.id || !event.id) return
+    let cancelled = false
+    supabase
+      .from('meeting_records')
+      .select('id, google_calendar_event_id')
+      .eq('business_id', business.id)
+      .eq('google_calendar_event_id', event.id)
+      .maybeSingle()
+      .then(({ data }: { data: any }) => {
+        if (!cancelled) {
+          setMeetingRecord(data)
+        }
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [business?.id, event.id])
+
+  // Ownership: an event is ReplyFlow-owned if local evidence links it to ReplyFlow
+  const isReplyFlowOwned = isReplyFlowOwnedEvent(event, { linkedJob: job, linkedMeeting: meetingRecord })
   const isJobEvent = !!job
 
   // Internal meeting metadata

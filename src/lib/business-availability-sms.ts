@@ -1,4 +1,4 @@
-import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate } from '@/lib/out-of-office'
+import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate, isBusinessOutOfOffice } from '@/lib/out-of-office'
 
 export type BusinessAvailabilityNoticeType = 'none' | 'after_hours' | 'out_of_office'
 
@@ -60,12 +60,7 @@ export function getBusinessAvailabilityNoticeForSms(business: any): BusinessAvai
   const businessName = business?.name && business.name.trim() ? business.name.trim() : null
 
   // Out of office takes precedence
-  if (business.out_of_office_enabled && business.out_of_office_start && business.out_of_office_end) {
-    const now = new Date()
-    const start = new Date(business.out_of_office_start)
-    const end = new Date(business.out_of_office_end)
-
-    if (now >= start && now <= end) {
+  if (isBusinessOutOfOffice(business)) {
       // Use custom message if present, otherwise use SMS-specific default
       if (business.out_of_office_message && business.out_of_office_message.trim()) {
         // Custom message: preserve merchant wording, just replace placeholders
@@ -95,7 +90,6 @@ export function getBusinessAvailabilityNoticeForSms(business: any): BusinessAvai
         return { type: 'out_of_office', notice }
       }
     }
-  }
 
   // After hours
   if (!isWithinBusinessHoursForSms(business)) {

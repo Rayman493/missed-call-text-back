@@ -205,6 +205,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         const sanitizedBody = sanitizeMessageContent(body)
         await db.createMessageWithConversation({
           lead_id: lead.id,
+          business_id: business.id,
           conversation_id: conversation.id,
           direction: 'inbound',
           body: sanitizedBody,
@@ -547,6 +548,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   
   const inboundMessage = await db.createMessageWithConversation({
     lead_id: lead.id,
+    business_id: business.id,
     conversation_id: conversation.id,
     direction: 'inbound',
     body: sanitizedBody,
@@ -563,8 +565,17 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     console.error('[INBOUND SMS ERROR]', {
       error: 'Failed to save message',
       leadId: lead.id,
-      conversationId: conversation.id
+      conversationId: conversation.id,
+      businessId: business.id
     })
+
+    return {
+      success: false,
+      error: 'Failed to persist inbound message',
+      twiml: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+</Response>`
+    }
   } else {
     console.log('[INBOUND MESSAGE INSERTED BEFORE CORRECTION]', {
       messageId: inboundMessage.id,

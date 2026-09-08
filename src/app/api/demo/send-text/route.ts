@@ -244,6 +244,7 @@ export async function POST(request: Request) {
 
     // Create message record in database (even if SMS failed, for demo purposes)
     const messageRecord = await db.createMessage({
+      business_id: business.id,
       conversation_id: conversation.id,
       lead_id: demoLead.id,
       direction: 'outbound',

@@ -37,6 +37,7 @@ import type { Job, JobStatus, JobPrefill } from '@/components/jobs/JobComposer'
 import { openOAuthFlow } from '@/capacitor/oauth'
 import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import { formatEventTimeRange } from '@/lib/calendar-date-utils'
+import { isReplyFlowOwnedEvent } from '@/lib/calendar-ownership'
 
 interface CalendarEvent {
   id: string
@@ -1727,9 +1728,8 @@ export default function SchedulePage() {
                                     if (item.type === 'event') {
                                       const event = item.data as CalendarEvent
                                       const time = formatEventTimeRange(event.start.dateTime, event.end.dateTime, event.start.date)
-                                      const rfLead = (event as any)?.extendedProperties?.private?.replyflow_lead_id as string | undefined
-                                      const isReplyFlow = !!rfLead
                                       const job = jobs.find(j => j.google_calendar_event_id === event.id)
+                                      const isReplyFlow = isReplyFlowOwnedEvent(event as any, { linkedJob: job })
                                       const customerName = job?.customer_name || null
 
                                       return (

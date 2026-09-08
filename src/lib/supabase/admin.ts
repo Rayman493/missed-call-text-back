@@ -1310,7 +1310,31 @@ export const db = {
     return data || []
   },
 
-  async createMessage(message: Omit<Message, 'id'>): Promise<Message | null> {
+  async createMessage(message: Omit<Message, 'id'> & { business_id: string }): Promise<Message | null> {
+    if (!message.business_id) {
+      console.error('[createMessage] business_id is required')
+      return null
+    }
+
+    // Idempotency: a supplied Twilio SID should never create a duplicate message.
+    if (message.twilio_message_sid) {
+      const { data: existing } = await supabaseAdmin
+        .from('messages')
+        .select('id, business_id, twilio_message_sid, status')
+        .eq('business_id', message.business_id)
+        .eq('twilio_message_sid', message.twilio_message_sid)
+        .maybeSingle()
+
+      if (existing) {
+        console.log('[createMessage] Existing message found for twilio_message_sid, skipping duplicate:', {
+          messageId: existing.id,
+          twilio_message_sid: message.twilio_message_sid,
+          business_id: message.business_id
+        })
+        return existing as Message
+      }
+    }
+
     const { data, error } = await supabaseAdmin
       .from('messages')
       .insert(message)
@@ -1826,7 +1850,31 @@ export const db = {
     return data
   },
 
-  async createMessageWithConversation(message: Omit<Message, 'id'>): Promise<Message | null> {
+  async createMessageWithConversation(message: Omit<Message, 'id'> & { business_id: string }): Promise<Message | null> {
+    if (!message.business_id) {
+      console.error('[createMessageWithConversation] business_id is required')
+      return null
+    }
+
+    // Idempotency: inbound Twilio webhooks may be delivered more than once.
+    if (message.twilio_message_sid) {
+      const { data: existing } = await supabaseAdmin
+        .from('messages')
+        .select('id, business_id, twilio_message_sid, status')
+        .eq('business_id', message.business_id)
+        .eq('twilio_message_sid', message.twilio_message_sid)
+        .maybeSingle()
+
+      if (existing) {
+        console.log('[createMessageWithConversation] Existing message found for twilio_message_sid, skipping duplicate:', {
+          messageId: existing.id,
+          twilio_message_sid: message.twilio_message_sid,
+          business_id: message.business_id
+        })
+        return existing as Message
+      }
+    }
+
     const { data, error } = await supabaseAdmin
       .from('messages')
       .insert(message)

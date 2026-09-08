@@ -4,6 +4,7 @@
  * Functions for checking and managing Out of Office Mode status
  */
 
+import { toZonedTime } from 'date-fns-tz/toZonedTime'
 import { Business } from './types'
 
 /**
@@ -84,20 +85,7 @@ export function formatReturnDate(date: Date): string {
  * @returns true if business is currently out of office, false otherwise
  */
 export function isBusinessOutOfOffice(business: Business | null | undefined): boolean {
-  if (!business) return false
-  
-  // Check if Out of Office Mode is enabled
-  if (!business.out_of_office_enabled) return false
-  
-  // Check if start and end dates are set
-  if (!business.out_of_office_start || !business.out_of_office_end) return false
-  
-  const now = new Date()
-  const start = new Date(business.out_of_office_start)
-  const end = new Date(business.out_of_office_end)
-  
-  // Check if current time is within the active range
-  return now >= start && now <= end
+  return getOutOfOfficeState(business) === 'active'
 }
 
 /**
@@ -171,6 +159,58 @@ export function getOutOfOfficeStatus(business: Business | null | undefined): {
     endDate: end,
     daysRemaining
   }
+}
+
+/**
+ * Canonical Out of Office state.
+ *
+ * Returns one of four states:
+ * - 'off': disabled, missing dates, invalid dates, or inverted window
+ * - 'scheduled': enabled and start is in the future
+ * - 'active': enabled and now is within the half-open window [start, end)
+ * - 'ended': enabled but the window has passed (now >= end)
+ *
+ * Boundaries are evaluated in the business timezone. The end boundary is
+ * half-open so that an exact end time means the OOO period has ended.
+ */
+export function getOutOfOfficeState(
+  business: Business | null | undefined | { name?: string; business_hours_timezone?: string | null; out_of_office_enabled?: boolean | null; out_of_office_start?: string | null; out_of_office_end?: string | null }
+): 'off' | 'scheduled' | 'active' | 'ended' {
+  if (!business || !business.out_of_office_enabled) {
+    return 'off'
+  }
+
+  if (!business.out_of_office_start || !business.out_of_office_end) {
+    return 'off'
+  }
+
+  const timezone = business.business_hours_timezone || DEFAULT_BUSINESS_HOURS_TIMEZONE
+
+  const startDate = new Date(business.out_of_office_start)
+  const endDate = new Date(business.out_of_office_end)
+
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    return 'off'
+  }
+
+  // Inverted or zero-length windows are invalid
+  if (endDate.getTime() <= startDate.getTime()) {
+    return 'off'
+  }
+
+  const nowZoned = toZonedTime(new Date(), timezone)
+  const startZoned = toZonedTime(startDate, timezone)
+  const endZoned = toZonedTime(endDate, timezone)
+
+  if (nowZoned < startZoned) {
+    return 'scheduled'
+  }
+
+  if (nowZoned >= endZoned) {
+    return 'ended'
+  }
+
+  return 'active'
 }
 
 /**

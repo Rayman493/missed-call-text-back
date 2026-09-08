@@ -38,6 +38,7 @@ import { formatJobStatus, formatPaymentStatus } from '@/lib/status-formatter'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
 import { isProviderAvailable, getAvailableProviders, PaymentProvider } from '@/lib/payment-links'
 import { formatEventTimeRange } from '@/lib/calendar-date-utils'
+import { reconcileLeadData } from '@/lib/payment-reconciliation'
 import Link from 'next/link'
 import { Lead, Message, Conversation } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -5898,8 +5899,8 @@ If you have questions, reply to this message.`
 
                   // Refresh lead data
                   const updatedData = await getLeadDetails(params.id)
-                  if (updatedData) {
-                    setLeadData(updatedData)
+                  if (updatedData?.lead) {
+                    setLeadData((prev: any) => reconcileLeadData(prev, updatedData.lead))
                   }
                 } catch (error) {
                   console.error('Error creating payment request:', error)

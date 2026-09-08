@@ -209,6 +209,7 @@ export function normalizeLeadForApplication(dbRow: Lead): Lead {
 export interface Message {
   id: string;
   lead_id: string;
+  business_id?: string;
   conversation_id?: string;
   direction: 'inbound' | 'outbound';
   body: string;
