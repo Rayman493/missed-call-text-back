@@ -216,6 +216,7 @@ function logOperation(operation: string) {
   const lastBusinessAddressRef = useRef<string | null>(null) // Track last business address for invalidation
   const businessGeocodingInProgressRef = useRef(false) // Track if business geocoding is in progress for current date
   const mapPreparationIdRef = useRef(0) // Monotonically increasing ID to prevent stale async results
+  const preparedDateKeyRef = useRef<string>('') // The date key for which mapItems was last published
 
   // Simple camera model refs
   const semanticContextKeyRef = useRef<string>('') // stores current context key
@@ -1033,7 +1034,7 @@ useEffect(() => {
   }, [jobs, calendarEvents, tasks, selectedDate, getCustomerAddressFromLead, leadCache])
 
   // Geocode addresses and prepare map items
-  const prepareMapItems = useCallback(async (preparationId: number) => {
+  const prepareMapItems = useCallback(async (preparationId: number): Promise<MapItem[] | null> => {
     const { filteredJobs, filteredEvents } = getItemsForDate()
     const items: MapItem[] = []
 
@@ -1304,7 +1305,7 @@ useEffect(() => {
         reason: 'superseded_by_newer_preparation',
         hasBusinessMarker: items.some(i => i.type === 'business')
       })
-      return
+      return null
     }
 
     // Add business location marker if available
@@ -1319,7 +1320,7 @@ useEffect(() => {
         reason: 'business_geocoding_in_progress',
         willRetry: true
       })
-      return
+      return null
     }
 
     if (businessCoords && business) {
@@ -1358,7 +1359,7 @@ useEffect(() => {
         reason: 'superseded_by_newer_preparation',
         hasBusinessMarker: items.some(i => i.type === 'business')
       })
-      return
+      return null
     }
 
     // DIAGNOSTIC: Log marker derivation
@@ -1372,8 +1373,7 @@ useEffect(() => {
       timestamp: Date.now()
     })
 
-    setMapItems(items)
-    setIsLoading(false)
+    return items
   }, [getItemsForDate, fetchLeadsByIds, leadCache, jobs, getCustomerNameFromLead])
 
   // Group items by location (for clustering)
@@ -1771,12 +1771,20 @@ useEffect(() => {
 
     const prepare = async () => {
       // Do NOT set isLoading to true - keep map visible during data preparation
-      await prepareMapItems(preparationId)
+      const items = await prepareMapItems(preparationId)
 
       // Check if this result is still relevant after async work completes
       const currentDateKey = selectedDate.toISOString().split('T')[0]
       if (dateKey !== currentDateKey || isCancelled) {
         return
+      }
+
+      // Only publish if prepareMapItems produced a completed marker set for this
+      // exact date. Null means stale/deferred; it must not overwrite mapItems.
+      if (items !== null) {
+        preparedDateKeyRef.current = dateKey
+        setMapItems(items)
+        setIsLoading(false)
       }
     }
 
@@ -1790,6 +1798,14 @@ useEffect(() => {
   // Update markers when map items change or map becomes ready
   useEffect(() => {
     if (!mapReady || !googleMapRef.current) {
+      return
+    }
+
+    // Do not update markers/camera for mapItems that belong to a different date.
+    // This prevents stale or intermediate marker sets from rendering or consuming
+    // the one framing opportunity when the user navigates dates.
+    const currentSelectedDateKey = selectedDate.toLocaleDateString('en-CA')
+    if (preparedDateKeyRef.current !== currentSelectedDateKey) {
       return
     }
 
