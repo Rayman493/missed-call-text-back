@@ -294,11 +294,67 @@ export async function finalizeIncompleteOnWebsocketCloseSimple(
       callSid: string,
       businessName: string,
       forwardedFrom: string,
-      supabase: any
+      supabase: any,
+      closingState?: any
     ) => Promise<void>;
   }
 ): Promise<void> {
-  if (!state.completionPersistenceStarted && (state.stageCaptures.length > 0 || Object.keys(state.intakeData).some((k: string) => state.intakeData[k]))) {
+  if (state.completionPersistenceSucceeded) {
+    console.log('[FINALIZATION] event: durable_completion_already_succeeded');
+    console.log('[FINALIZATION] callSid:', state.callSid);
+    console.log('[FINALIZATION] hasIntakeData:', Object.keys(state.intakeData).some((k: string) => state.intakeData[k]));
+    console.log('[FINALIZATION] hasStageCaptures:', state.stageCaptures.length > 0);
+    return;
+  }
+
+  if (state.completionPersistencePromise) {
+    console.log('[FINALIZATION] event: awaiting_completion_persistence');
+    console.log('[FINALIZATION] callSid:', state.callSid);
+    try {
+      await state.completionPersistencePromise;
+      console.log('[FINALIZATION] event: completion_persistence_await_resolved');
+      console.log('[FINALIZATION] callSid:', state.callSid);
+    } catch (e) {
+      console.log('[FINALIZATION] event: completion_persistence_await_failed');
+      console.log('[FINALIZATION] callSid:', state.callSid);
+      console.log('[FINALIZATION] error:', e);
+    }
+    if (state.completionPersistenceSucceeded) {
+      console.log('[FINALIZATION] event: durable_completion_succeeded_after_await');
+      console.log('[FINALIZATION] callSid:', state.callSid);
+      return;
+    }
+  }
+
+  const hasIntakeData = state.stageCaptures.length > 0 || Object.keys(state.intakeData).some((k: string) => state.intakeData[k]);
+
+  if (!hasIntakeData) {
+    console.log('[FINALIZATION SKIPPED] =========================================');
+    console.log('[FINALIZATION SKIPPED] reason: no_captured_data');
+    console.log('[FINALIZATION SKIPPED] completionPersistenceSucceeded:', state.completionPersistenceSucceeded);
+    console.log('[FINALIZATION SKIPPED] completionPersistenceFailed:', state.completionPersistenceFailed);
+    console.log('[FINALIZATION SKIPPED] hasStageCaptures:', state.stageCaptures.length > 0);
+    console.log('[FINALIZATION SKIPPED] hasIntakeData:', hasIntakeData);
+    console.log('[FINALIZATION SKIPPED] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZATION SKIPPED] =========================================');
+    console.log('[FINALIZATION] =========================================');
+    console.log('[FINALIZATION] disconnectSource: websocket_close');
+    console.log('[FINALIZATION] incomplete: false');
+    console.log('[FINALIZATION] persistenceAttempted: false');
+    console.log('[FINALIZATION] persistenceSucceeded: false');
+    console.log('[FINALIZATION] smsEligible: false');
+    console.log('[FINALIZATION] smsEligibilityReason: no_captured_data');
+    console.log('[FINALIZATION] smsDispatchAttempted: false');
+    console.log('[FINALIZATION] smsDispatchSucceeded: false');
+    console.log('[FINALIZATION] smsMessageSid: null');
+    console.log('[FINALIZATION] smsDispatchError: null');
+    console.log('[FINALIZATION] finalizationCompleted: true');
+    console.log('[FINALIZATION] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZATION] =========================================');
+    return;
+  }
+
+  {
     console.log('[PARTIAL FIELDS AT DISCONNECT] =========================================');
     console.log('[PARTIAL FIELDS AT DISCONNECT] customerName:', state.intakeData.customerName);
     console.log('[PARTIAL FIELDS AT DISCONNECT] serviceRequested:', state.intakeData.serviceRequested);
@@ -333,7 +389,10 @@ export async function finalizeIncompleteOnWebsocketCloseSimple(
           state.callSid,
           state.businessName,
           state.forwardedFrom,
-          deps.supabase
+          deps.supabase,
+          {
+            forceCompleteFallback: state.currentStage === 'complete' || state.completionPersistenceFailed,
+          }
         );
         console.log('[CALL RECORD PERSISTED] =========================================');
         console.log('[CALL RECORD PERSISTED] success: true');
@@ -402,28 +461,6 @@ export async function finalizeIncompleteOnWebsocketCloseSimple(
       console.log('[FINALIZATION] Timestamp:', new Date().toISOString());
       console.log('[FINALIZATION] =========================================');
     }
-  } else {
-    console.log('[FINALIZATION SKIPPED] =========================================');
-    console.log('[FINALIZATION SKIPPED] reason: completion_already_processed_or_no_data');
-    console.log('[FINALIZATION SKIPPED] completionPersistenceStarted:', state.completionPersistenceStarted);
-    console.log('[FINALIZATION SKIPPED] hasStageCaptures:', state.stageCaptures.length > 0);
-    console.log('[FINALIZATION SKIPPED] hasIntakeData:', Object.keys(state.intakeData).some((k: string) => state.intakeData[k]));
-    console.log('[FINALIZATION SKIPPED] Timestamp:', new Date().toISOString());
-    console.log('[FINALIZATION SKIPPED] =========================================');
-    console.log('[FINALIZATION] =========================================');
-    console.log('[FINALIZATION] disconnectSource: websocket_close');
-    console.log('[FINALIZATION] incomplete: false');
-    console.log('[FINALIZATION] persistenceAttempted: false');
-    console.log('[FINALIZATION] persistenceSucceeded: false');
-    console.log('[FINALIZATION] smsEligible: false');
-    console.log('[FINALIZATION] smsEligibilityReason: completion_already_processed_or_no_data');
-    console.log('[FINALIZATION] smsDispatchAttempted: false');
-    console.log('[FINALIZATION] smsDispatchSucceeded: false');
-    console.log('[FINALIZATION] smsMessageSid: null');
-    console.log('[FINALIZATION] smsDispatchError: null');
-    console.log('[FINALIZATION] finalizationCompleted: true');
-    console.log('[FINALIZATION] Timestamp:', new Date().toISOString());
-    console.log('[FINALIZATION] =========================================');
   }
 }
 
@@ -4917,20 +4954,24 @@ async function finalizeIncompleteIntake(
   const allRequiredFieldsCollected = intakeData ? areAllRequiredFieldsCollected(intakeData, effectiveServiceLocationType) : false;
   const finalClosingStarted = closingState?.finalClosingStarted || false;
   const terminalClosingResponseStarted = closingState?.terminalClosingResponseStarted || false;
+  const forceCompleteFallback = closingState?.forceCompleteFallback || false;
 
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] =========================================');
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] stage:', stage);
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] allRequiredFieldsCollected:', allRequiredFieldsCollected);
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] finalClosingStarted:', finalClosingStarted);
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] terminalClosingResponseStarted:', terminalClosingResponseStarted);
+  console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] forceCompleteFallback:', forceCompleteFallback);
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] Timestamp:', new Date().toISOString());
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] =========================================');
 
-  // Verify call is truly incomplete before claiming ownership
-  const willClaimCall = stage !== 'complete' &&
+  // Verify call is truly incomplete before claiming ownership, unless close handler
+  // explicitly forces a complete-call fallback because normal completion failed.
+  const willClaimCall = forceCompleteFallback ||
+                        (stage !== 'complete' &&
                         !allRequiredFieldsCollected &&
                         !finalClosingStarted &&
-                        !terminalClosingResponseStarted;
+                        !terminalClosingResponseStarted);
 
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] =========================================');
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] willClaimCall:', willClaimCall);
@@ -4981,8 +5022,12 @@ async function finalizeIncompleteIntake(
   const hasUserSpeech = transcript && transcript.some(entry => entry.role === 'user' && entry.text && entry.text.trim().length > 0);
 
   // Classify the incomplete outcome so the main app can choose the right SMS template
-  let incompleteOutcome: 'early_hangup' | 'partial_intake' | 'no_speech';
-  if (!hasUserSpeech) {
+  // If close handler forced a complete-call fallback and all required fields are present,
+  // persist as completed so the record reflects the actual intake state.
+  let incompleteOutcome: 'early_hangup' | 'partial_intake' | 'no_speech' | 'completed';
+  if (forceCompleteFallback && allRequiredFieldsCollected) {
+    incompleteOutcome = 'completed';
+  } else if (!hasUserSpeech) {
     incompleteOutcome = 'no_speech';
   } else if (hasUsefulFields) {
     incompleteOutcome = 'partial_intake';
@@ -5025,6 +5070,11 @@ async function finalizeIncompleteIntake(
   console.log('[EXTRACTION TRACE STAGE 7] Timestamp:', new Date().toISOString());
   console.log('[EXTRACTION TRACE STAGE 7] =========================================');
 
+  const recordSummary = incompleteOutcome === 'completed'
+    ? (canonicalInfo.serviceRequested || '')
+    : `Partial intake: ${intakeData?.customerName || 'Unknown'} called about ${intakeData?.serviceRequested || 'unknown issue'}. Some details may be missing.`;
+  const isCompleted = incompleteOutcome === 'completed';
+
   // Prefer the lead/conversation IDs pre-created by the voice route. If they are not
   // available (e.g., direct stream reconnect without custom parameters), fall back to
   // upserting/creating from the caller phone number.
@@ -5062,7 +5112,8 @@ async function finalizeIncompleteIntake(
                 ...(lead.raw_metadata || {}),
                 ...canonicalInfo,
                 extracted_info: canonicalInfo,
-                ai_intake_completed: false,
+                ai_intake_completed: isCompleted,
+                ai_intake_completed_at: isCompleted ? new Date().toISOString() : (lead.raw_metadata?.ai_intake_completed_at || undefined),
                 ai_intake_outcome: incompleteOutcome,
               }
             })
@@ -5093,7 +5144,8 @@ async function finalizeIncompleteIntake(
             raw_metadata: {
               ...canonicalInfo,
               extracted_info: canonicalInfo,
-              ai_intake_completed: false,
+              ai_intake_completed: isCompleted,
+              ai_intake_completed_at: isCompleted ? new Date().toISOString() : undefined,
             },
           }, {
             onConflict: 'business_id,caller_phone',
@@ -5184,7 +5236,7 @@ async function finalizeIncompleteIntake(
           .update({
             outcome: incompleteOutcome,
             extracted_info: canonicalInfo,
-            summary: extractedFields.summary,
+            summary: recordSummary,
             extraction_failed: false,
             lead_id: lead.id,
             conversation_id: conversation.id,
@@ -5214,7 +5266,7 @@ async function finalizeIncompleteIntake(
             transcript: transcript,
             outcome: incompleteOutcome,
             extracted_info: canonicalInfo,
-            summary: extractedFields.summary,
+            summary: recordSummary,
             extraction_failed: false
           });
         return result;
@@ -6821,8 +6873,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     firstAudioForwardedAfterPromptAt: 0 as number,
     firstAudioBlockedAfterPromptAt: 0 as number,
     simpleModeFinalTimeout: null as NodeJS.Timeout | null,
+    // Completion persistence lifecycle (race-safe promise model)
     completionPersistenceStarted: false,
     completionPersistenceFinished: false,
+    completionPersistenceSucceeded: false,
+    completionPersistenceFailed: false,
+    completionPersistencePromise: null as Promise<void> | null,
     // Stage timeout tracking
     stageStartTime: 0 as number,
     stageTimeout: null as NodeJS.Timeout | null,
@@ -8687,7 +8743,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       // Finalize with partial info and hang up
       state.currentStage = 'complete';
       sendPrompt('complete');
-      processSimpleModeCompletion().catch(console.error);
+      processSimpleModeCompletion().catch(() => {});
     }
   };
 
@@ -8937,38 +8993,49 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
   // Completion persistence function - runs exactly once when intake is complete
   const processSimpleModeCompletion = async () => {
-    console.log('[COMPLETION SOURCE] =========================================');
-    console.log('[COMPLETION SOURCE] event: completion_triggered');
-    console.log('[COMPLETION SOURCE] callSid:', state.callSid);
-    console.log('[COMPLETION SOURCE] currentStage:', state.currentStage);
-    console.log('[COMPLETION SOURCE] stageCaptures:', state.stageCaptures.length);
-    console.log('[COMPLETION SOURCE] transcript:', state.transcript);
-    console.log('[COMPLETION SOURCE] intakeData:', JSON.stringify(state.intakeData, null, 2));
-    console.log('[COMPLETION SOURCE] Timestamp:', new Date().toISOString());
-    console.log('[COMPLETION SOURCE] =========================================');
-
-    // STAGE 6: Completion Input Values
-    console.log('[EXTRACTION TRACE STAGE 6] =========================================');
-    console.log('[EXTRACTION TRACE STAGE 6] completionInput.customerName:', state.intakeData.customerName);
-    console.log('[EXTRACTION TRACE STAGE 6] completionInput.serviceRequested:', state.intakeData.serviceRequested);
-    console.log('[EXTRACTION TRACE STAGE 6] completionInput.issueDescription:', state.intakeData.issueDescription);
-    console.log('[EXTRACTION TRACE STAGE 6] completionInput.serviceAddress:', state.intakeData.serviceAddress);
-    console.log('[EXTRACTION TRACE STAGE 6] completionInput.desiredCompletionTime:', state.intakeData.desiredCompletionTime);
-    console.log('[EXTRACTION TRACE STAGE 6] completionInput.callbackTime:', state.intakeData.callbackTime);
-    console.log('[EXTRACTION TRACE STAGE 6] Timestamp:', new Date().toISOString());
-    console.log('[EXTRACTION TRACE STAGE 6] =========================================');
-
-    if (state.completionPersistenceStarted) {
-      console.log('[COMPLETION SOURCE] =========================================');
-      console.log('[COMPLETION SOURCE] event: completion_already_started');
-      console.log('[COMPLETION SOURCE] action: skipping_duplicate');
-      console.log('[COMPLETION SOURCE] =========================================');
+    if (state.completionPersistenceSucceeded) {
+      console.log('[COMPLETION SOURCE] event: completion_already_succeeded');
+      console.log('[COMPLETION SOURCE] callSid:', state.callSid);
+      return;
+    }
+    if (state.completionPersistencePromise) {
+      console.log('[COMPLETION SOURCE] event: completion_joined_existing');
+      console.log('[COMPLETION SOURCE] callSid:', state.callSid);
+      console.log('[COMPLETION SOURCE] currentStage:', state.currentStage);
+      console.log('[COMPLETION SOURCE] hasIntakeData:', Object.keys(state.intakeData).some((k: string) => state.intakeData[k]));
+      console.log('[COMPLETION SOURCE] hasStageCaptures:', state.stageCaptures.length > 0);
+      await state.completionPersistencePromise;
       return;
     }
 
     state.completionPersistenceStarted = true;
+    console.log('[COMPLETION SOURCE] event: completion_in_flight_created');
+    console.log('[COMPLETION SOURCE] callSid:', state.callSid);
+    console.log('[COMPLETION SOURCE] sessionId:', state.sessionId);
 
-    // Minimal name cleanup: split on comma, keep first part only
+    const promise = (async () => {
+      console.log('[COMPLETION SOURCE] =========================================');
+      console.log('[COMPLETION SOURCE] event: completion_triggered');
+      console.log('[COMPLETION SOURCE] callSid:', state.callSid);
+      console.log('[COMPLETION SOURCE] currentStage:', state.currentStage);
+      console.log('[COMPLETION SOURCE] stageCaptures:', state.stageCaptures.length);
+      console.log('[COMPLETION SOURCE] transcript:', state.transcript);
+      console.log('[COMPLETION SOURCE] intakeData:', JSON.stringify(state.intakeData, null, 2));
+      console.log('[COMPLETION SOURCE] Timestamp:', new Date().toISOString());
+      console.log('[COMPLETION SOURCE] =========================================');
+
+      // STAGE 6: Completion Input Values
+      console.log('[EXTRACTION TRACE STAGE 6] =========================================');
+      console.log('[EXTRACTION TRACE STAGE 6] completionInput.customerName:', state.intakeData.customerName);
+      console.log('[EXTRACTION TRACE STAGE 6] completionInput.serviceRequested:', state.intakeData.serviceRequested);
+      console.log('[EXTRACTION TRACE STAGE 6] completionInput.issueDescription:', state.intakeData.issueDescription);
+      console.log('[EXTRACTION TRACE STAGE 6] completionInput.serviceAddress:', state.intakeData.serviceAddress);
+      console.log('[EXTRACTION TRACE STAGE 6] completionInput.desiredCompletionTime:', state.intakeData.desiredCompletionTime);
+      console.log('[EXTRACTION TRACE STAGE 6] completionInput.callbackTime:', state.intakeData.callbackTime);
+      console.log('[EXTRACTION TRACE STAGE 6] Timestamp:', new Date().toISOString());
+      console.log('[EXTRACTION TRACE STAGE 6] =========================================');
+
+      // Minimal name cleanup: split on comma, keep first part only
     const cleanNameMinimal = (candidate: string): string => {
       if (!candidate) return '';
       const trimmed = candidate.trim();
@@ -9655,7 +9722,7 @@ Reply to this message if you'd like to update or add any information.
         summary: canonicalExtractedInfo.serviceRequested || '',
         outcome: 'completed',
       };
-      console.log('[SIMPLE MODE] ai_call_record insert payload:', {
+      console.log('[SIMPLE MODE] ai_call_record upsert payload:', {
         callSid: aiCallRecordPayload.call_sid,
         leadId: aiCallRecordPayload.lead_id,
         conversationId: aiCallRecordPayload.conversation_id,
@@ -9665,7 +9732,7 @@ Reply to this message if you'd like to update or add any information.
       });
       const { error: callRecordError } = await supabase
         .from('ai_call_records')
-        .insert(aiCallRecordPayload);
+        .upsert(aiCallRecordPayload, { onConflict: 'call_sid' });
 
       console.log('[AI RECORD WRITE DEBUG] =========================================');
       console.log('[AI RECORD WRITE DEBUG] callSid:', aiCallRecordPayload.call_sid);
@@ -9890,12 +9957,28 @@ Reply to this message if you'd like to update or add any information.
       }
     catch (error) {
       console.log('[SIMPLE MODE] Error processing completion:', error);
+      throw error;
     }
+    })();
 
-    state.completionPersistenceFinished = true;
-    console.log('[SIMPLE MODE] =========================================');
-    console.log('[SIMPLE MODE] event: simple_mode_completion_finished');
-    console.log('[SIMPLE MODE] =========================================');
+    state.completionPersistencePromise = promise;
+    try {
+      await promise;
+      state.completionPersistenceSucceeded = true;
+      console.log('[COMPLETION SOURCE] event: completion_persistence_succeeded');
+      console.log('[COMPLETION SOURCE] callSid:', state.callSid);
+    } catch (err) {
+      state.completionPersistenceFailed = true;
+      console.log('[COMPLETION SOURCE] event: completion_persistence_failed');
+      console.log('[COMPLETION SOURCE] callSid:', state.callSid);
+      console.log('[COMPLETION SOURCE] error:', err);
+      throw err;
+    } finally {
+      state.completionPersistencePromise = null;
+      state.completionPersistenceFinished = true;
+      console.log('[COMPLETION SOURCE] event: completion_promise_cleared');
+      console.log('[COMPLETION SOURCE] callSid:', state.callSid);
+    }
   };
 
   const clearSilentTimeout = (reason: string) => {
@@ -12134,7 +12217,7 @@ Reply to this message if you'd like to update or add any information.
                   sendPrompt('complete');
 
                   // Run completion persistence immediately after setting stage to complete
-                  processSimpleModeCompletion().catch(console.error);
+                  processSimpleModeCompletion().catch(() => {});
                 }
               }
               state.queuedTranscript = null;
@@ -13144,7 +13227,7 @@ Reply to this message if you'd like to update or add any information.
                 sendPrompt('complete', undefined, 'final_stage_completion', authorizedTurnId);
 
                 // Run completion persistence immediately after setting stage to complete
-                processSimpleModeCompletion().catch(console.error);
+                processSimpleModeCompletion().catch(() => {});
               }
             } else if (isFinalStage) {
                 // Log when final callback answer is ignored

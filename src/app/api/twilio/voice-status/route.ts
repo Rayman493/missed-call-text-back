@@ -376,7 +376,8 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
         const { error: updateError } = await supabase
           .from('ai_call_records')
           .update({ outcome: 'ai_failed' })
-          .eq('id', aiCallRecord.id);
+          .eq('id', aiCallRecord.id)
+          .eq('outcome', 'incomplete');
 
         if (updateError) {
           console.error('[FALLBACK] Failed to update ai_call_records outcome:', updateError);
