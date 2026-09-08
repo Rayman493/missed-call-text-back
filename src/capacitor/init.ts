@@ -475,11 +475,32 @@ async function handleDeepLink(url: string) {
   }
 }
 
+// Safe redirect paths for native OAuth callbacks - must match the server-side allow-list
+const SAFE_OAUTH_REDIRECT_PATHS = [
+  '/',
+  '/dashboard',
+  '/onboarding',
+  '/onboarding/new-onboarding',
+  '/setup/forwarding',
+  '/auth/signin',
+  '/dashboard/settings',
+  '/complete-setup',
+  '/billing/success',
+]
+
+function isValidOAuthNextPath(path: string): boolean {
+  if (!path) return false
+  const pathWithoutQuery = path.split('?')[0].split('#')[0]
+  return SAFE_OAUTH_REDIRECT_PATHS.some(
+    safePath => pathWithoutQuery === safePath || pathWithoutQuery.startsWith(safePath + '/')
+  )
+}
+
 /**
  * Handle OAuth callback from deep link
  * Extracts authorization code and exchanges it for session
  */
-async function handleOAuthCallback(url: string): Promise<boolean> {
+export async function handleOAuthCallback(url: string): Promise<boolean> {
   try {
     const urlObj = new URL(url)
 
@@ -523,7 +544,13 @@ async function handleOAuthCallback(url: string): Promise<boolean> {
         console.log('[OAUTH CALLBACK] Session established successfully')
 
         // Get the next parameter to determine where to redirect
-        const next = urlObj.searchParams.get('next') || '/dashboard'
+        let next = urlObj.searchParams.get('next') || '/dashboard'
+
+        // Validate the next path to prevent open redirects from deep-link callbacks
+        if (!isValidOAuthNextPath(next)) {
+          console.warn('[OAUTH CALLBACK] Rejecting unsafe next parameter:', next)
+          next = '/dashboard'
+        }
 
         // Navigate to the next destination
         window.location.href = next
