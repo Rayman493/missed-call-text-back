@@ -13,11 +13,11 @@ import {
   isValidServiceRequest,
   isValidCompletionTime,
   isValidCallbackTime,
-} from './intake-validation.ts';
+} from './intake-validation';
 import {
   EARLY_COMPLETION_PATTERNS,
   EARLY_CALLBACK_PATTERNS,
-} from './early-timing-patterns.ts';
+} from './early-timing-patterns';
 
 export interface IntakeData {
   customerName?: string;
