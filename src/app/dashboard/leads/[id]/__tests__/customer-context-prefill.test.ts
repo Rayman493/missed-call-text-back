@@ -27,7 +27,11 @@ describe('Customer context prefill normalization', () => {
     expect(content).toContain('const serviceRequestedFallback = normalizeEditableContext(intake.serviceRequested)')
   })
 
-  it('normalizes preselectedLeadCustomer name in NewAppointmentModal', () => {
-    expect(content).toContain('name: firstNonPlaceholder(leadData?.name, leadData?.contact_name)')
+  it('uses canonical getLeadDisplayName for preselectedLeadCustomer name', () => {
+    expect(content).toContain('name: getLeadDisplayName(leadData)')
+  })
+
+  it('uses canonical getLeadDisplayName for payment modal recipient description', () => {
+    expect(content).toContain('Send a payment request to {getLeadDisplayName(leadData || lead)')
   })
 })

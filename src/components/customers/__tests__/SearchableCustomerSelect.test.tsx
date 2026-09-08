@@ -186,9 +186,17 @@ describe('SearchableCustomerSelect', () => {
     expect(content).toContain('pr-10')
   })
 
-  it('should place chevron to the left of the clear button when a value is selected', () => {
-    expect(content).toContain('right-10')
-    expect(content).toContain('right-3')
+  it('should place clear and chevron in a single dedicated icon group with no overlap', () => {
+    expect(content).toContain('absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1')
+    expect(content).toContain('pointer-events-none')
+    expect(content).toContain('pointer-events-auto')
+    expect(content).toContain('pr-14')
+    expect(content).toContain('pr-10')
+  })
+
+  it('should prefer prefillCustomer when value matches selected ID', () => {
+    expect(content).toContain('if (prefillCustomer && value === prefillCustomer.id) return prefillCustomer')
+    expect(content).toContain('useMemo(() => {')
   })
 
   // Truth-table behavioral assertions derived from the implementation

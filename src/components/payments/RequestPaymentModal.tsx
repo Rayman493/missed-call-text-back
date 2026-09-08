@@ -30,6 +30,7 @@ interface RequestPaymentModalProps {
   onPaymentCreated?: () => void
   prefillLeadId?: string
   prefillDescription?: string
+  prefillCustomer?: { id: string; name: string | null; caller_phone: string | null; raw_metadata?: any } | null
   onShowToast?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
 }
 
@@ -40,6 +41,7 @@ export default function RequestPaymentModal({
   onPaymentCreated,
   prefillLeadId,
   prefillDescription,
+  prefillCustomer,
   onShowToast,
 }: RequestPaymentModalProps) {
   const [recipientType, setRecipientType] = useState<'lead' | 'manual'>('lead')
@@ -54,6 +56,14 @@ export default function RequestPaymentModal({
   const [leads, setLeads] = useState<Lead[]>([])
   const [isLoadingLeads, setIsLoadingLeads] = useState(false)
   const [leadsError, setLeadsError] = useState<string | null>(null)
+
+  // Ensure the preselected lead always displays the latest page data rather
+  // than a stale snapshot from the generic leads fetch.
+  const displayLeads = useMemo(() => {
+    if (!prefillCustomer) return leads
+    const filtered = leads.filter(l => l.id !== prefillCustomer.id)
+    return [{ ...prefillCustomer, raw_metadata: prefillCustomer.raw_metadata || {} }, ...filtered]
+  }, [leads, prefillCustomer])
   const amountInputRef = useRef<HTMLInputElement>(null)
   const createInFlightRef = useRef(false)
   const attemptIdRef = useRef<string | null>(null)
@@ -284,7 +294,7 @@ export default function RequestPaymentModal({
         conversationId = createData.conversation?.id
       } else {
         // Use existing lead
-        const selectedLead = leads.find(l => l.id === selectedLeadId)
+        const selectedLead = displayLeads.find(l => l.id === selectedLeadId)
         if (!selectedLead) {
           throw new Error('Lead not found')
         }
@@ -434,7 +444,7 @@ export default function RequestPaymentModal({
                     <option value="">
                       {isLoadingLeads ? 'Loading customers...' : 'Select a customer'}
                     </option>
-                    {leads.map((lead) => {
+                    {displayLeads.map((lead) => {
                       const displayName = (lead.name && lead.name !== 'Not collected') ? lead.name : 'Customer'
                       return (
                         <option key={lead.id} value={lead.id}>

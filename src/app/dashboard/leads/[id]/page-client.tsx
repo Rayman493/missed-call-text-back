@@ -5383,7 +5383,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             Request Payment
           </h3>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-            Send a payment request to {lead?.name || 'this customer'} via text message.
+            Send a payment request to {getLeadDisplayName(leadData || lead) || 'this customer'} via text message.
           </p>
           
           <div className="space-y-4">
@@ -5772,7 +5772,7 @@ If you have questions, reply to this message.`
       preselectedLeadDisplay={getLeadDisplayName(leadData)}
       preselectedLeadCustomer={{
         id: params.id,
-        name: firstNonPlaceholder(leadData?.name, leadData?.contact_name),
+        name: getLeadDisplayName(leadData),
         caller_phone: leadData?.caller_phone || null,
         raw_metadata: leadData?.raw_metadata || null
       }}
@@ -5799,7 +5799,7 @@ If you have questions, reply to this message.`
       preselectedLeadId={params.id}
       preselectedLeadCustomer={{
         id: params.id,
-        name: firstNonPlaceholder(leadData?.name, leadData?.contact_name),
+        name: getLeadDisplayName(leadData),
         caller_phone: leadData?.caller_phone || null,
         raw_metadata: leadData?.raw_metadata || null
       }}

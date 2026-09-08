@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useId } from 'react'
+import { useState, useEffect, useRef, useId, useMemo } from 'react'
 import { ChevronDown, X, Check, Search, Loader2 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { filterLeadsBySearchQuery, normalizePhoneDigits, getCustomerDisplayName, getCustomerSecondaryText } from '@/components/payments/customer-search-helpers'
@@ -211,7 +211,12 @@ export default function SearchableCustomerSelect({
   // Filter customers using existing helper
   const filteredCustomers = filterLeadsBySearchQuery(customers, searchQuery)
 
-  const selectedCustomer = customers.find(c => c.id === value)
+  // Prefer the authoritative parent-provided customer object for the selected
+  // ID so modal preselection always reflects the latest page data.
+  const selectedCustomer = useMemo(() => {
+    if (prefillCustomer && value === prefillCustomer.id) return prefillCustomer
+    return customers.find(c => c.id === value)
+  }, [prefillCustomer, value, customers])
   const hasValue = value !== null && value !== ''
 
   const handleSelect = (customerId: string | null) => {
@@ -304,18 +309,26 @@ export default function SearchableCustomerSelect({
           </button>
         )}
 
-        {!isOpen && hasValue && allowClear && !disabled ? (
-          <button
-            type="button"
-            onClick={handleClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded transition-colors"
-            aria-label="Clear selection"
-          >
-            <X className="w-4 h-4 text-muted-foreground" />
-          </button>
-        ) : null}
+        {/* Dedicated icon slots on the right. The chevron is pointer-events-none
+            so clicks pass through to the trigger button. The clear button is
+            pointer-events-auto so it keeps its own click target. */}
         {!isOpen && (
-          <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground flex-shrink-0 duration-150 pointer-events-none ${hasValue && allowClear && !disabled ? 'right-10' : ''} ${isOpen ? 'rotate-180' : ''}`} />
+          <div
+            className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none"
+            aria-hidden={!(hasValue && allowClear && !disabled)}
+          >
+            {hasValue && allowClear && !disabled && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="pointer-events-auto p-1 hover:bg-accent/40 rounded transition-colors"
+                aria-label="Clear selection"
+              >
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
+            <ChevronDown className={`w-4 h-4 text-muted-foreground flex-shrink-0 duration-150 ${isOpen ? 'rotate-180' : ''}`} />
+          </div>
         )}
       </div>
 
