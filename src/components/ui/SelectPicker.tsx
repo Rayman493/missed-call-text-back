@@ -41,6 +41,7 @@ export default function SelectPicker({
   const dropdownRef = useRef<HTMLDivElement>(null)
   const triggerId = useId()
   const labelId = useId()
+  const dropdownId = useId()
 
   // Calculate available space (respecting the visual viewport, including on-screen keyboard)
   // and determine dropup/dropdown direction and a dynamic max-height for the dropdown.
@@ -113,12 +114,17 @@ export default function SelectPicker({
     }
   }, [isOpen])
 
-  // Focus search input when opened and scroll the picker into view so the
-  // dropdown remains visible above the on-screen keyboard.
+  // Reset query and focus search input when a searchable picker is opened
   useEffect(() => {
-    if (isOpen && searchable && searchInputRef.current) {
-      searchInputRef.current.focus()
-      pickerRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    if (isOpen && searchable) {
+      setSearchQuery('')
+      const timer = setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus()
+          pickerRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        }
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [isOpen, searchable])
 
@@ -165,6 +171,7 @@ export default function SelectPicker({
 
   const selectedOption = options.find(opt => opt.value === value)
   const hasValue = value !== null && value !== ''
+  const isSearching = searchable && isOpen
 
   const handleSelect = (optionValue: string) => {
     onChange(optionValue || null)
@@ -195,27 +202,52 @@ export default function SelectPicker({
         </label>
       )}
 
-      {/* Trigger button - clear action is a separate sibling button to avoid nested buttons */}
+      {/* Trigger / search input area */}
       <div className="relative">
-        <button
-          id={triggerId}
-          type="button"
-          onClick={toggleOpen}
-          disabled={disabled}
-          aria-haspopup="listbox"
-          aria-expanded={isOpen}
-          aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
-          className={`w-full border rounded-lg flex items-center gap-2 duration-150 text-left ${
-            disabled
-              ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30 px-3 py-2.5'
-              : 'bg-background dark:bg-slate-900/40 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60 cursor-pointer px-3 py-2.5'
-          } ${hasValue ? 'pr-14' : 'pr-10'}`}
-        >
-          <span className={selectedOption ? 'text-foreground truncate flex-1 min-w-0' : 'text-muted-foreground truncate flex-1 min-w-0'}>
-            {selectedOption ? selectedOption.label : placeholder}
-          </span>
-        </button>
-        {hasValue && !disabled ? (
+        {isSearching ? (
+          <div
+            className="w-full flex items-center gap-2 bg-background dark:bg-slate-900/40 border border-border rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-primary/50 text-left"
+          >
+            <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <input
+              ref={searchInputRef}
+              id={triggerId}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+              className="flex-1 min-w-0 bg-transparent border-0 p-0 text-sm text-foreground placeholder-muted-foreground focus:outline-none"
+              role="combobox"
+              aria-expanded={isOpen}
+              aria-controls={dropdownId}
+              aria-autocomplete="list"
+              aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
+              data-scroll-lock-allow
+            />
+          </div>
+        ) : (
+          <button
+            id={triggerId}
+            type="button"
+            onClick={toggleOpen}
+            disabled={disabled}
+            aria-haspopup="listbox"
+            aria-expanded={isOpen}
+            aria-controls={dropdownId}
+            aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
+            className={`w-full border rounded-lg flex items-center gap-2 duration-150 text-left ${
+              disabled
+                ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30 px-3 py-2.5'
+                : 'bg-background dark:bg-slate-900/40 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60 cursor-pointer px-3 py-2.5'
+            } ${hasValue ? 'pr-14' : 'pr-10'}`}
+          >
+            <span className={selectedOption ? 'text-foreground truncate flex-1 min-w-0' : 'text-muted-foreground truncate flex-1 min-w-0'}>
+              {selectedOption ? selectedOption.label : placeholder}
+            </span>
+          </button>
+        )}
+
+        {!isSearching && hasValue && !disabled ? (
           <button
             type="button"
             onClick={handleClear}
@@ -225,34 +257,24 @@ export default function SelectPicker({
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         ) : null}
-        <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground flex-shrink-0 duration-150 pointer-events-none ${hasValue && !disabled ? 'right-10' : ''} ${isOpen ? 'rotate-180' : ''}`} />
+        {!isSearching && (
+          <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground flex-shrink-0 duration-150 pointer-events-none ${hasValue && !disabled ? 'right-10' : ''} ${isOpen ? 'rotate-180' : ''}`} />
+        )}
       </div>
 
       {/* Dropdown */}
       {isOpen && !disabled && (
         <div
+          id={dropdownId}
           ref={dropdownRef}
           className={`absolute z-[60] w-full bg-popover/95 backdrop-blur-sm rounded-lg shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] border border-border/40 max-h-[300px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 ${
             dropup ? 'bottom-full mb-2' : 'top-full mt-2'
           }`}
           style={{ maxHeight: maxDropdownHeight }}
+          role="listbox"
+          aria-label={label || 'Options'}
+          data-scroll-lock-allow
         >
-          {searchable && (
-            <div className="p-3 border-b border-border/20 shrink-0">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search..."
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-muted/50 border border-border/50 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary duration-150"
-                />
-              </div>
-            </div>
-          )}
-
           <div
             className="overflow-y-auto flex-1 overscroll-contain touch-pan-y"
             data-scroll-lock-allow
@@ -268,6 +290,7 @@ export default function SelectPicker({
                   <button
                     key={option.value}
                     type="button"
+                    role="option"
                     onClick={() => handleSelect(option.value)}
                     disabled={option.disabled}
                     className={`w-full px-3 py-2 text-sm text-left duration-150 flex items-center justify-between gap-2 ${

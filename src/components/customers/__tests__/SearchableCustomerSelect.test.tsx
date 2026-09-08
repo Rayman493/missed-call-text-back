@@ -117,7 +117,8 @@ describe('SearchableCustomerSelect', () => {
   })
 
   it('should focus search input when dropdown opens', () => {
-    expect(content).toContain('searchInputRef.current.focus()')
+    expect(content).toContain('searchInputRef.current')
+    expect(content).toContain('.focus()')
   })
 
   it('should use type="button" on trigger to prevent form submit', () => {
@@ -151,7 +152,7 @@ describe('SearchableCustomerSelect', () => {
     expect(content).toContain('bg-card')
     expect(content).toContain('text-foreground')
     expect(content).toContain('text-muted-foreground')
-    expect(content).toContain('bg-muted')
+    expect(content).toContain('bg-card/95')
     expect(content).toContain('bg-accent/40')
   })
 

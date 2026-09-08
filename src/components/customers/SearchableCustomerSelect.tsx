@@ -48,6 +48,7 @@ export default function SearchableCustomerSelect({
   const dropdownRef = useRef<HTMLDivElement>(null)
   const triggerId = useId()
   const labelId = useId()
+  const dropdownId = useId()
 
   // Fetch customers when component mounts
   useEffect(() => {
@@ -123,12 +124,18 @@ export default function SearchableCustomerSelect({
     }
   }, [isOpen])
 
-  // Focus search input when opened and scroll the picker into view so the
-  // dropdown remains visible above the on-screen keyboard.
+  // Reset query and focus search input when opened
   useEffect(() => {
-    if (isOpen && searchInputRef.current) {
-      searchInputRef.current.focus()
-      pickerRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    if (isOpen) {
+      setSearchQuery('')
+      // Small timeout to ensure the input is rendered before focusing on mobile
+      const timer = setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus()
+          pickerRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        }
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [isOpen])
 
@@ -252,27 +259,52 @@ export default function SearchableCustomerSelect({
         </label>
       )}
 
-      {/* Trigger button - clear action is a separate sibling button to avoid nested buttons */}
+      {/* Trigger / search input area */}
       <div className="relative">
-        <button
-          id={triggerId}
-          type="button"
-          onClick={toggleOpen}
-          disabled={disabled}
-          aria-haspopup="listbox"
-          aria-expanded={isOpen}
-          aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
-          className={`w-full bg-background dark:bg-slate-900/40 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 flex items-center gap-2 duration-150 text-left ${
-            disabled
-              ? 'opacity-50 cursor-not-allowed px-3 py-2.5'
-              : 'hover:border-border/60 cursor-pointer px-3 py-2.5'
-          } ${hasValue && allowClear && !disabled ? 'pr-14' : 'pr-10'}`}
-        >
-          <span className={selectedCustomer ? 'text-foreground truncate flex-1 min-w-0' : 'text-muted-foreground truncate flex-1 min-w-0'}>
-            {getDisplayText(selectedCustomer)}
-          </span>
-        </button>
-        {hasValue && allowClear && !disabled ? (
+        {isOpen ? (
+          <div
+            className="w-full flex items-center gap-2 bg-background dark:bg-slate-900/40 border border-border rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-primary/50 text-left"
+          >
+            <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <input
+              ref={searchInputRef}
+              id={triggerId}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search customers..."
+              className="flex-1 min-w-0 bg-transparent border-0 p-0 text-sm text-foreground placeholder-muted-foreground focus:outline-none"
+              role="combobox"
+              aria-expanded={isOpen}
+              aria-controls={dropdownId}
+              aria-autocomplete="list"
+              aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
+              data-scroll-lock-allow
+            />
+          </div>
+        ) : (
+          <button
+            id={triggerId}
+            type="button"
+            onClick={toggleOpen}
+            disabled={disabled}
+            aria-haspopup="listbox"
+            aria-expanded={isOpen}
+            aria-controls={dropdownId}
+            aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
+            className={`w-full bg-background dark:bg-slate-900/40 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 flex items-center gap-2 duration-150 text-left ${
+              disabled
+                ? 'opacity-50 cursor-not-allowed px-3 py-2.5'
+                : 'hover:border-border/60 cursor-pointer px-3 py-2.5'
+            } ${hasValue && allowClear && !disabled ? 'pr-14' : 'pr-10'}`}
+          >
+            <span className={selectedCustomer ? 'text-foreground truncate flex-1 min-w-0' : 'text-muted-foreground truncate flex-1 min-w-0'}>
+              {getDisplayText(selectedCustomer)}
+            </span>
+          </button>
+        )}
+
+        {!isOpen && hasValue && allowClear && !disabled ? (
           <button
             type="button"
             onClick={handleClear}
@@ -282,33 +314,24 @@ export default function SearchableCustomerSelect({
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         ) : null}
-        <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground flex-shrink-0 duration-150 pointer-events-none ${hasValue && allowClear && !disabled ? 'right-10' : ''} ${isOpen ? 'rotate-180' : ''}`} />
+        {!isOpen && (
+          <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground flex-shrink-0 duration-150 pointer-events-none ${hasValue && allowClear && !disabled ? 'right-10' : ''} ${isOpen ? 'rotate-180' : ''}`} />
+        )}
       </div>
 
       {/* Dropdown */}
       {isOpen && !disabled && (
         <div
+          id={dropdownId}
           ref={dropdownRef}
           className={`absolute z-[60] w-full bg-card/95 backdrop-blur-sm rounded-lg shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] border border-border/40 max-h-[300px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 ${
             dropup ? 'bottom-full mb-2' : 'top-full mt-2'
           }`}
           style={{ maxHeight: maxDropdownHeight }}
+          role="listbox"
+          aria-label="Customers"
+          data-scroll-lock-allow
         >
-          {/* Search input */}
-          <div className="p-3 border-b border-border/20">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name or phone..."
-                className="w-full pl-9 pr-3 py-2 text-base sm:text-sm bg-muted/50 border border-border/50 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary duration-150"
-              />
-            </div>
-          </div>
-
           {/* Results list */}
           <div
             className="overflow-y-auto flex-1 overscroll-contain touch-pan-y"
@@ -344,6 +367,7 @@ export default function SearchableCustomerSelect({
                 {showNoCustomerOption && (
                   <button
                     type="button"
+                    role="option"
                     onClick={() => handleSelect(null)}
                     className={`w-full px-3 py-2 text-sm text-left duration-150 flex items-center justify-between gap-2 ${
                       value === null ? 'bg-accent/40' : 'text-foreground hover:bg-accent/40'
@@ -361,6 +385,7 @@ export default function SearchableCustomerSelect({
                     <button
                       key={customer.id}
                       type="button"
+                      role="option"
                       onClick={() => handleSelect(customer.id)}
                       className={`w-full px-3 py-2 text-sm text-left duration-150 flex flex-col gap-0.5 ${
                         value === customer.id ? 'bg-accent/40' : 'text-foreground hover:bg-accent/40'
