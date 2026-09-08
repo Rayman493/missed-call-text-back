@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
-import { Mail, Phone, MessageSquare, FileText, MapPin, Clock } from 'lucide-react'
+import { Mail, Phone, MessageSquare, FileText, MapPin, Clock, User } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { getCurrentCustomerContext } from '@/lib/customer-context'
 
@@ -162,7 +162,8 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
 
         {/* Customer Name */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5">
+          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+            <User className="w-4 h-4" />
             Customer Name <span className="text-red-500">*</span>
           </label>
           <input

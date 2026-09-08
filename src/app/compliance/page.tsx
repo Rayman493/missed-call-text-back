@@ -28,7 +28,7 @@ export default function CompliancePage() {
   ]
 
   return (
-    <PageBackground>
+    <PageBackground className="dark">
       <SSRSafeNavbar forceDark={true} />
       
       {/* Hero Section */}

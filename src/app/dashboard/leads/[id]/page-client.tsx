@@ -3347,14 +3347,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           <div className="transition-all duration-200">
             {Boolean((leadData?.notes || '').trim()) ? (
-              <div className="p-2.5 bg-muted/50 border border-border/40 rounded-lg">
-                <p className="text-xs text-foreground leading-relaxed break-words">
+              <div className="p-3 bg-muted/50 border border-border/40 rounded-lg">
+                <p className="text-sm text-foreground leading-relaxed break-words">
                   {(leadData?.notes || '').trim()}
                 </p>
               </div>
             ) : (
               <div className="text-center py-2 sm:py-3">
-                <p className="text-xs sm:text-sm text-muted-foreground">No notes yet</p>
+                <p className="text-sm text-muted-foreground">No notes yet</p>
               </div>
             )}
           </div>
@@ -5222,11 +5222,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
             <div className="mt-2">
               {Boolean((leadData?.notes || '').trim()) ? (
-                <div className="text-xs text-foreground line-clamp-2 break-words">
+                <div className="text-sm text-foreground leading-snug line-clamp-3 break-words">
                   {(leadData?.notes || '').trim()}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground text-center py-2">No notes yet</p>
+                <p className="text-sm text-muted-foreground text-center py-2">No notes yet</p>
               )}
             </div>
           </div>
@@ -6171,57 +6171,72 @@ If you have questions, reply to this message.`
           const context = getHistoricalJobRequestContext(record)
           const transcript = Array.isArray(record?.transcript) ? record.transcript : []
           return (
-            <div className="space-y-4">
+            <div className="space-y-5 min-w-0">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Customer Name at Time of Call</p>
-                <p className="text-sm text-foreground">{context.customerName || 'Not collected'}</p>
+                <p className="text-sm text-foreground break-words">{context.customerName || 'Not collected'}</p>
               </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Reason / Request</p>
-                <p className="text-sm text-foreground">{context.reasonForCalling || 'Not collected'}</p>
+
+              <div className="p-3 bg-muted/40 border border-border/60 rounded-lg">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Reason / Request</p>
+                <p className="text-base font-semibold text-foreground break-words">
+                  {context.reasonForCalling || 'Not collected'}
+                </p>
               </div>
+
               {context.details && (
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Additional Details</p>
-                  <p className="text-sm text-foreground">{context.details}</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Details</p>
+                  <p className="text-sm text-foreground break-words">{context.details}</p>
                 </div>
               )}
+
               {context.location && (
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Location</p>
-                  <p className="text-sm text-foreground">{context.location}</p>
+                  <p className="text-sm text-foreground break-words">{context.location}</p>
                 </div>
               )}
-              {context.desiredCompletionTime && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Desired Completion Time</p>
-                  <p className="text-sm text-foreground">{context.desiredCompletionTime}</p>
-                </div>
-              )}
-              {context.preferredCallbackTime && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Preferred Callback Time</p>
-                  <p className="text-sm text-foreground">{context.preferredCallbackTime}</p>
-                </div>
-              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {context.desiredCompletionTime && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Desired Completion Time</p>
+                    <p className="text-sm text-foreground break-words">{context.desiredCompletionTime}</p>
+                  </div>
+                )}
+                {context.preferredCallbackTime && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Preferred Callback Time</p>
+                    <p className="text-sm text-foreground break-words">{context.preferredCallbackTime}</p>
+                  </div>
+                )}
+              </div>
+
               {record.summary && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">AI Summary</p>
-                  <p className="text-sm text-foreground">{record.summary}</p>
+                <div className="p-3 bg-muted border border-border rounded-lg">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">AI Summary</p>
+                  <p className="text-sm text-foreground leading-relaxed break-words">{record.summary}</p>
                 </div>
               )}
+
               {transcript.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Transcript</p>
-                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                <details className="group border border-border/50 rounded-lg overflow-hidden">
+                  <summary className="flex items-center justify-between cursor-pointer px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Transcript</span>
+                    <svg className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </summary>
+                  <div className="px-3 py-3 max-h-[200px] overflow-y-auto space-y-2 bg-background/50">
                     {transcript.map((entry: any, idx: number) => (
-                      <div key={idx} className="text-sm">
+                      <div key={idx} className="text-xs">
                         <span className="font-medium text-muted-foreground">{entry.role ? `${entry.role}: ` : ''}</span>
-                        <span className="text-foreground">{entry.text || ''}</span>
+                        <span className="text-foreground break-words">{entry.text || ''}</span>
                       </div>
                     ))}
                   </div>
-                </div>
+                </details>
               )}
             </div>
           )

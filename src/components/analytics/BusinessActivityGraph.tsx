@@ -32,7 +32,14 @@ export default function BusinessActivityGraph() {
   const [data, setData] = useState<ActivityData[]>([])
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
+  const [hiddenSeries, setHiddenSeries] = useState<string[]>([])
   const isTouchDevice = useTouchDevice()
+
+  const toggleSeries = (key: string) => {
+    setHiddenSeries((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    )
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -244,24 +251,36 @@ export default function BusinessActivityGraph() {
                   )}
                   <Legend
                     content={({ payload }: any) => (
-                      <div className="flex flex-wrap gap-3 justify-center pt-2">
+                      <div className="flex flex-wrap gap-2 sm:gap-3 justify-center pt-2">
                         {payload.map((entry: any, index: number) => {
                           const key = entry.dataKey as string
                           const label = SERIES_LABELS[key] || entry.dataKey
-                          const total = data.reduce((sum, day) => {
-                            const value = day[key as keyof ActivityData]
-                            return sum + (typeof value === 'number' ? value : 0)
-                          }, 0)
+                          const hidden = hiddenSeries.includes(key)
+                          const total = hidden
+                            ? 0
+                            : data.reduce((sum, day) => {
+                                const value = day[key as keyof ActivityData]
+                                return sum + (typeof value === 'number' ? value : 0)
+                              }, 0)
                           return (
-                            <div key={index} className="flex items-center gap-1.5">
-                              <div
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => toggleSeries(key)}
+                              aria-pressed={!hidden}
+                              className={`flex items-center gap-1.5 rounded-md px-2 py-1 transition-opacity duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                                hidden ? 'opacity-40 line-through' : 'opacity-100'
+                              }`}
+                            >
+                              <span
                                 className="w-2.5 h-2.5 rounded-full"
                                 style={{ backgroundColor: entry.color }}
+                                aria-hidden="true"
                               />
                               <span className="text-[10px] text-muted-foreground">
                                 {label}: <span className="font-medium text-foreground">{total}</span>
                               </span>
-                            </div>
+                            </button>
                           )
                         })}
                       </div>
@@ -280,6 +299,7 @@ export default function BusinessActivityGraph() {
                     dot={false}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#3b82f6', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Conversations"
+                    hide={hiddenSeries.includes('conversations')}
                   />
                   <Line
                     type="monotone"
@@ -289,6 +309,7 @@ export default function BusinessActivityGraph() {
                     dot={false}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#22c55e', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Appointments"
+                    hide={hiddenSeries.includes('appointments')}
                   />
                   <Line
                     type="monotone"
@@ -298,6 +319,7 @@ export default function BusinessActivityGraph() {
                     dot={false}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#f59e0b', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Payment Requests"
+                    hide={hiddenSeries.includes('paymentRequests')}
                   />
                   <Line
                     type="monotone"
@@ -307,6 +329,7 @@ export default function BusinessActivityGraph() {
                     dot={false}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#8b5cf6', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Completed Jobs"
+                    hide={hiddenSeries.includes('completedJobs')}
                   />
                 </LineChart>
               </ResponsiveContainer>
