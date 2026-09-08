@@ -64,6 +64,53 @@ const normalizeDisplayText = (text: string | null | undefined): string | null =>
   return meaningfulLines.join('\n')
 }
 
+// Render description text with clean, clickable links for deterministic URL types.
+// Stored data is never modified; only presentation is transformed.
+const renderDescription = (text: string | null): React.ReactNode => {
+  if (!text) return null
+  const lines = text.split('\n')
+  return lines.map((line, lineIndex) => {
+    const tokens = line.split(/(\s+)/)
+    return (
+      <p key={lineIndex} className="text-sm text-foreground leading-relaxed [word-break:break-word]">
+        {tokens.map((token, i) => {
+          const trimmed = token.trim()
+          if (!trimmed) return token
+          if (/^https?:\/\/calendar\.google\.com\/\S+$/i.test(trimmed)) {
+            return (
+              <a key={i} href={trimmed} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
+                Open in Google Calendar
+              </a>
+            )
+          }
+          if (/^https?:\/\/www\.google\.com\/calendar\/\S+$/i.test(trimmed)) {
+            return (
+              <a key={i} href={trimmed} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
+                Open in Google Calendar
+              </a>
+            )
+          }
+          if (/^mailto:\S+$/i.test(trimmed)) {
+            return (
+              <a key={i} href={trimmed} className="text-blue-600 hover:underline break-all">
+                Open source email
+              </a>
+            )
+          }
+          if (/^(https?:\/\/\S+)$/i.test(trimmed)) {
+            return (
+              <a key={i} href={trimmed} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
+                {trimmed}
+              </a>
+            )
+          }
+          return token
+        })}
+      </p>
+    )
+  })
+}
+
 interface EventDetailsModalProps {
   isOpen: boolean
   onClose: () => void
@@ -663,21 +710,21 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         <h2 id="event-title" className="sr-only">{event.summary}</h2>
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border/50 flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${event.isHoliday ? 'bg-emerald-500/10' : 'bg-primary/10'}`}>
-              <Calendar className={`w-4.5 h-4.5 ${event.isHoliday ? 'text-emerald-400' : 'text-primary'}`} />
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${event.isHoliday ? 'bg-emerald-500/10' : 'bg-primary/10'}`}>
+              <Calendar className={`w-4 h-4 ${event.isHoliday ? 'text-emerald-400' : 'text-primary'}`} />
             </div>
             <div className="min-w-0 flex-1">
               {lead?.name || job?.customer_name ? (
                 <>
-                  <h2 className="text-lg font-semibold text-foreground tracking-tight line-clamp-1">
+                  <h2 className="text-base md:text-lg font-semibold text-foreground tracking-tight line-clamp-1">
                     {lead?.name || job?.customer_name}
                   </h2>
-                  <p className="text-sm text-muted-foreground truncate">{mode === 'add-location' ? 'Add location' : event.summary}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground truncate">{mode === 'add-location' ? 'Add location' : event.summary}</p>
                 </>
               ) : (
-                <h2 className="text-lg font-semibold text-foreground tracking-tight line-clamp-1">
+                <h2 className="text-base md:text-lg font-semibold text-foreground tracking-tight line-clamp-1">
                   {mode === 'add-location' ? 'Add location' : event.summary}
                 </h2>
               )}
@@ -685,15 +732,15 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
           </div>
           <button
             onClick={onClose}
-            className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex-shrink-0"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex-shrink-0"
             aria-label="Close modal"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 stroke-[1.5]" />
           </button>
         </div>
 
         {/* Event Details */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-6 min-w-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 min-w-0" style={{ WebkitOverflowScrolling: 'touch' }}>
           {mode === 'add-location' ? (
             // Add-location mode: focused location input
             <div className="space-y-4">
@@ -739,29 +786,13 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
             </div>
           ) : (
             // Normal details/edit mode
-            <div className="space-y-4 md:space-y-6">
-            {/* Title */}
-            {!lead?.name && !job?.customer_name && (
-              <div>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={editedSummary}
-                    onChange={(e) => setEditedSummary(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                  />
-                ) : (
-                  <h3 className="text-lg font-semibold text-foreground">{event.summary}</h3>
-                )}
-              </div>
-            )}
-
-            {/* Two-column metadata grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            <div className="space-y-4 md:space-y-5">
+            {/* Summary grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
               {/* Date & Time */}
-              <div className="space-y-1.5 md:space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Date & Time</label>
-                <div className="flex items-center gap-2 text-sm">
+              <div className="space-y-1 min-w-0">
+                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Date & Time</label>
+                <div className="flex items-center gap-2 text-sm text-foreground font-medium min-w-0">
                   <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                   {isEditing ? (
                     <div className="flex gap-2 flex-1 min-w-0 flex-wrap">
@@ -790,28 +821,28 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                       )}
                     </div>
                   ) : (
-                    <span className="text-foreground">{formatDate(event.start.dateTime, event.start.date)}{!isAllDay && ` • ${formatTimeRange()}`}</span>
+                    <span className="min-w-0">{formatDate(event.start.dateTime, event.start.date)}{!isAllDay && ` • ${formatTimeRange()}`}</span>
                   )}
                 </div>
               </div>
 
               {/* Duration */}
               {!isEditing && calculateDuration() && (
-                <div className="space-y-1.5 md:space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">Duration</label>
-                  <div className="flex items-center gap-2 text-sm">
+                <div className="space-y-1 min-w-0">
+                  <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Duration</label>
+                  <div className="flex items-center gap-2 text-sm text-foreground font-medium min-w-0">
                     <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-foreground">{calculateDuration()}</span>
+                    <span className="min-w-0">{calculateDuration()}</span>
                   </div>
                 </div>
               )}
 
               {/* Location */}
-              <div className="space-y-1.5 md:space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Location</label>
-                <div className="flex items-start gap-2 text-sm">
+              <div className="space-y-1 min-w-0">
+                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Location</label>
+                <div className="flex items-start gap-2 text-sm min-w-0">
                   <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 text-foreground font-medium">
                     {isEditing ? (
                       <input
                         type="text"
@@ -821,16 +852,16 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                         className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       />
                     ) : (
-                      <span className="text-foreground break-words">{event.location || 'No location added'}</span>
+                      <span className="block break-words">{event.location || 'No location added'}</span>
                     )}
                   </div>
                 </div>
               </div>
 
               {/* Status */}
-              <div className="space-y-1.5 md:space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Status</label>
-                <div className="flex items-center gap-2">
+              <div className="space-y-1 min-w-0">
+                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</label>
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
                   {meetingStatus === 'completed' ? (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                       <CheckCircle2 className="w-3 h-3" />
@@ -867,10 +898,10 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
             )}
 
             {/* Customer */}
-            <div className="space-y-2.5 md:space-y-3">
-              <label className="text-xs font-medium text-muted-foreground">Customer</label>
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
+            <div className="space-y-1.5 min-w-0">
+              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Customer</label>
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex-1 min-w-0">
                   <SearchableCustomerSelect
                     value={currentLeadId}
                     onChange={() => {}} // No-op - persistence handled in onCustomerSelect
@@ -882,7 +913,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                 {currentLeadId && (
                   <button
                     onClick={(e) => { e.stopPropagation(); (onViewCustomer ? onViewCustomer(currentLeadId) : window.location.assign(`/dashboard/leads/${currentLeadId}`)) }}
-                    className="text-xs px-3 py-2.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
+                    className="h-10 px-3 text-xs font-medium rounded-lg bg-muted hover:bg-muted/80 text-foreground border border-border/50 transition-colors flex-shrink-0 inline-flex items-center"
                   >
                     View
                   </button>
@@ -892,16 +923,16 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
 
             {/* Related Job */}
             {job?.id && (
-              <div className="space-y-2.5 md:space-y-3">
-                <label className="text-xs font-medium text-muted-foreground">Related Job</label>
-                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <div className="space-y-1.5 min-w-0">
+                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Related Job</label>
+                <div className="flex items-center justify-between p-2.5 bg-muted/30 rounded-lg">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Briefcase className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                     <span className="text-sm text-foreground font-medium truncate">{job.title || 'Job'}</span>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); onViewJob?.(job.id) }}
-                    className="text-xs px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
+                    className="h-8 px-3 text-xs font-medium rounded-lg bg-muted hover:bg-muted/80 text-foreground border border-border/50 transition-colors flex-shrink-0 inline-flex items-center"
                   >
                     View job
                   </button>
@@ -911,8 +942,8 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
 
             {/* Description - only show if has content or editing */}
             {(normalizeDisplayText(event.description) || isEditing) && (
-              <div className="pt-2 md:pt-3 border-t border-border/50 space-y-2 md:space-y-2.5">
-                <label className="text-xs font-medium text-muted-foreground">Description</label>
+              <div className="pt-3 border-t border-border/50 space-y-1.5">
+                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Description</label>
                 {isEditing ? (
                   <textarea
                     value={editedDescription}
@@ -922,23 +953,29 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                     className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                   />
                 ) : (
-                  <p className="text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed">{normalizeDisplayText(event.description)}</p>
+                  <div className="space-y-2">
+                    {renderDescription(normalizeDisplayText(event.description))}
+                  </div>
                 )}
               </div>
             )}
 
             {/* Meeting Notes - collapsible */}
             {!event.isHoliday && (
-              <div className="pt-4 md:pt-5 border-t border-border/50 space-y-2 md:space-y-2.5">
+              <div className="pt-3 border-t border-border/50 space-y-1.5">
                 <button
                   onClick={() => setIsNotesOpen(!isNotesOpen)}
                   className="flex items-center justify-between w-full text-left"
                 >
-                  <label className="text-xs font-medium text-muted-foreground">Meeting Notes</label>
+                  <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Meeting Notes</label>
                   <FileText className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${isNotesOpen ? 'rotate-45' : ''}`} />
                 </button>
-                {isNotesOpen && (
-                  <div className="mt-2">
+                {!isNotesOpen ? (
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
+                    {notes?.trim() ? notes : 'No meeting notes'}
+                  </p>
+                ) : (
+                  <div className="mt-1.5">
                     <textarea
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
@@ -1062,18 +1099,20 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
 
             {/* Meeting Complete Action */}
             {!event.isHoliday && meetingStatus !== 'completed' && (
-              <div className="pt-3 md:pt-4 mt-4 md:mt-6 border-t border-border/50">
-                <button
-                  onClick={() => setShowCompleteConfirm(true)}
-                  className="w-full px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  <CheckSquare className="w-4 h-4" />
-                  <span>Mark Complete</span>
-                </button>
-                {showCompleteConfirm && (
-                  <div className="flex items-center gap-2 mt-3">
-                    <button onClick={() => setShowCompleteConfirm(false)} disabled={isCompleting} className="flex-1 px-3 py-2 text-sm bg-muted text-foreground rounded-lg">Cancel</button>
-                    <button onClick={markComplete} disabled={isCompleting} className="flex-1 px-3 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg">{isCompleting ? 'Completing...' : 'Confirm'}</button>
+              <div className="pt-3 border-t border-border/50 flex items-center justify-between gap-3">
+                <span className="hidden sm:block text-xs text-muted-foreground">Mark this meeting as complete once it has taken place.</span>
+                {!showCompleteConfirm ? (
+                  <button
+                    onClick={() => setShowCompleteConfirm(true)}
+                    className="ml-auto h-9 px-3 text-xs font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg border border-border/50 transition-colors inline-flex items-center gap-1.5"
+                  >
+                    <CheckSquare className="w-4 h-4" />
+                    Mark Complete
+                  </button>
+                ) : (
+                  <div className="ml-auto flex items-center gap-2">
+                    <button onClick={() => setShowCompleteConfirm(false)} disabled={isCompleting} className="h-9 px-3 text-xs font-medium bg-muted text-foreground rounded-lg">Cancel</button>
+                    <button onClick={markComplete} disabled={isCompleting} className="h-9 px-3 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg">{isCompleting ? 'Completing...' : 'Confirm'}</button>
                   </div>
                 )}
               </div>
@@ -1083,27 +1122,27 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-border/50 bg-card flex-shrink-0">
+        <div className="px-5 py-3 border-t border-border/50 bg-card flex-shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
           {error && (
             <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-red-400">{error}</p>
             </div>
           )}
-          
+
           {mode === 'add-location' ? (
             <div className="flex gap-2">
               <button
                 onClick={onClose}
                 disabled={isSaving}
-                className="flex-1 px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 h-10 px-4 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveLocation}
                 disabled={isSaving}
-                className="flex-1 px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 h-10 px-4 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
               >
                 {isSaving ? (
                   <>
@@ -1123,14 +1162,14 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               <button
                 onClick={handleCancelEdit}
                 disabled={isSaving}
-                className="flex-1 px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 h-10 px-4 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveChanges}
                 disabled={isSaving}
-                className="flex-1 px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 h-10 px-4 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
               >
                 {isSaving ? (
                   <>
@@ -1146,55 +1185,50 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               </button>
             </div>
           ) : (
-            <div className="space-y-3 md:space-y-4">
-              {/* Primary actions */}
-              {(event.meetingUrl || (!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)))) && (
-                <div className="grid grid-cols-2 gap-3">
-                  {event.meetingUrl && (
-                    <button
-                      onClick={openMeetingLink}
-                      className="px-4 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
-                    >
-                      <LinkIcon className="w-4 h-4 flex-shrink-0" />
-                      <span>Join</span>
-                    </button>
-                  )}
-                  {!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)) && (
-                    <button
-                      onClick={() => setIsSmsOpen(true)}
-                      className="px-4 py-2.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
-                    >
-                      <Send className="w-4 h-4 flex-shrink-0" />
-                      <span>Text Details</span>
-                    </button>
-                  )}
-                </div>
+            <div className="flex flex-col gap-2">
+              {event.meetingUrl && (
+                <button
+                  onClick={openMeetingLink}
+                  className="w-full h-10 px-4 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2"
+                >
+                  <LinkIcon className="w-4 h-4 flex-shrink-0" />
+                  Join
+                </button>
               )}
 
-              {/* Secondary actions */}
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={openGoogleCalendar}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-200 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700/50"
+                  disabled={!event.htmlLink}
+                  className="flex-1 min-w-[120px] h-10 px-3 text-xs sm:text-sm font-medium bg-muted hover:bg-muted/80 text-foreground border border-border/50 rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                 >
                   <ExternalLink className="w-4 h-4 flex-shrink-0" />
-                  <span>Google Calendar</span>
+                  <span className="truncate">Google Calendar</span>
                 </button>
+                {!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)) && (
+                  <button
+                    onClick={() => setIsSmsOpen(true)}
+                    className="flex-1 min-w-[120px] h-10 px-3 text-xs sm:text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2"
+                  >
+                    <Send className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">Text Details</span>
+                  </button>
+                )}
                 {!event.isHoliday && (
                   <>
                     <button
                       onClick={handleEditClick}
-                      className="px-4 py-2.5 text-sm font-medium bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 text-blue-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/50 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center gap-2"
+                      className="flex-1 min-w-[120px] h-10 px-3 text-xs sm:text-sm font-medium bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 text-foreground border border-border/50 rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2"
                     >
                       <Pencil className="w-4 h-4 flex-shrink-0" />
-                      <span>Edit</span>
+                      <span className="truncate">Edit</span>
                     </button>
                     <button
                       onClick={handleDeleteClick}
-                      className="px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 border border-red-200 dark:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors flex items-center gap-2"
+                      className="flex-1 min-w-[120px] h-10 px-3 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 border border-red-200 dark:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors inline-flex items-center justify-center gap-2"
                     >
                       <Trash2 className="w-4 h-4 flex-shrink-0" />
-                      <span>Delete</span>
+                      <span className="truncate">Delete</span>
                     </button>
                   </>
                 )}
