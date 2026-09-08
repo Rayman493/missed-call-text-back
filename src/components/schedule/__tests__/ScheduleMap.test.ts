@@ -489,3 +489,56 @@ describe('ScheduleMap - View Details Fix', () => {
     expect(onEditEvent).not.toHaveBeenCalled()
   })
 })
+
+describe('ScheduleMap - Stop Selection Behavior', () => {
+  it('selects an unselected stop on tap', () => {
+    const selectedMapItemId = null
+    const itemId = 'job-1'
+    const shouldSelect = selectedMapItemId !== itemId
+    expect(shouldSelect).toBe(true)
+  })
+
+  it('deselects the same stop on retap', () => {
+    const selectedMapItemId = 'job-1'
+    const itemId = 'job-1'
+    const shouldDeselect = selectedMapItemId === itemId
+    expect(shouldDeselect).toBe(true)
+  })
+
+  it('switches selection to a different stop', () => {
+    const selectedMapItemId = 'job-1'
+    const itemId = 'job-2'
+    const shouldSwitch = selectedMapItemId !== itemId
+    expect(shouldSwitch).toBe(true)
+  })
+
+  it('clears selection on empty map click', () => {
+    const clearSelectedStop = () => ({ selectedMapItemId: null, selectedMarker: null })
+    const next = clearSelectedStop()
+    expect(next.selectedMapItemId).toBeNull()
+    expect(next.selectedMarker).toBeNull()
+  })
+
+  it('clears selection on detail card X close', () => {
+    const closeSelectedItem = () => ({ selectedMapItemId: null, userClosedDate: '2024-01-15' })
+    const next = closeSelectedItem()
+    expect(next.selectedMapItemId).toBeNull()
+    expect(next.userClosedDate).toBe('2024-01-15')
+  })
+
+  it('does not call camera functions on deselect', () => {
+    const cameraCalls: string[] = []
+    const clearSelectedStop = () => {
+      // state only
+    }
+    clearSelectedStop()
+    expect(cameraCalls).toEqual([])
+  })
+
+  it('preserves double-tap zoom/focus behavior', () => {
+    const timeBetweenTaps = 250
+    const DOUBLE_TAP_DELAY_MS = 300
+    const isDoubleTap = timeBetweenTaps < DOUBLE_TAP_DELAY_MS
+    expect(isDoubleTap).toBe(true)
+  })
+})

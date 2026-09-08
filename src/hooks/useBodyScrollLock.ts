@@ -66,14 +66,11 @@ export function reconcileScrollLock(): void {
   }
 }
 
-// Generate unique owner ID for each hook instance with component identity
+// Generate unique owner ID for each hook instance. Do NOT pre-register the owner;
+// registration must happen inside lock() so the duplicate-acquire guard works.
 let ownerCounter = 0
-function generateOwnerId(componentName?: string): string {
-  const id = `owner-${++ownerCounter}`
-  if (componentName) {
-    activeOwners.set(id, { component: componentName, mountedAt: Date.now() })
-  }
-  return id
+function generateOwnerId(): string {
+  return `owner-${++ownerCounter}`
 }
 
 // Diagnostic function to check current lock state (can be called from browser console)
@@ -126,7 +123,7 @@ if (typeof window !== 'undefined') {
 }
 
 export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
-  const ownerIdRef = useRef<string>(generateOwnerId(componentName))
+  const ownerIdRef = useRef<string>(generateOwnerId())
 
   useEffect(() => {
     console.log('[MODAL_MOUNT] Scroll lock hook mounted', {

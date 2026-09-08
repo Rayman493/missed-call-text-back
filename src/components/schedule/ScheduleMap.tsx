@@ -182,6 +182,7 @@ function ScheduleMapComponent({
   const isUnmountingRef = useRef(false) // Track if component is unmounting to prevent clearing map ref on effect rerun
   const gestureRenderCountRef = useRef(0) // Track renders during active gesture for performance measurement
   const markersRef = useRef<Map<string, any>>(new Map()) // Marker registry keyed by item ID
+  const suppressMapClickRef = useRef(false) // Prevents marker click from bubbling into map click
 
 // Operation counters for gesture performance measurement
 const opCountersRef = useRef({
@@ -670,12 +671,18 @@ useEffect(() => {
     fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'show_all_markers')
   }, [fitBoundsWithMaxZoom, getResponsivePadding])
 
+  // Canonical helper to clear selected stop without touching camera or autofocus
+  const clearSelectedStop = useCallback(() => {
+    setSelectedMapItemId(null)
+    setSelectedMarker(null)
+  }, [])
+
   // Close selected item detail card
   const closeSelectedItem = useCallback(() => {
-    setSelectedMapItemId(null)
+    clearSelectedStop()
     const currentDateKey = selectedDate.toLocaleDateString('en-CA')
     userClosedDateRef.current = currentDateKey
-  }, [selectedDate])
+  }, [selectedDate, clearSelectedStop])
 
   // Navigate to next/previous stop
   const navigateToStop = useCallback((direction: 'next' | 'previous') => {
@@ -1478,6 +1485,7 @@ useEffect(() => {
     let dragendListener: any = null
     let zoomChangedListener: any = null
     let idleListener: any = null
+    let mapClickListener: any = null
 
     try {
       const isMobile = window.innerWidth < 768
@@ -1588,6 +1596,16 @@ useEffect(() => {
       })
 
       googleMapRef.current = map
+
+      // Click on empty map deselects the current stop without touching camera
+      mapClickListener = map.addListener('click', () => {
+        if (suppressMapClickRef.current) {
+          suppressMapClickRef.current = false
+          return
+        }
+        clearSelectedStop()
+      })
+
       setMapReady(true)
     } catch (error) {
       console.error('[ScheduleMap] Failed to initialize map:', error)
@@ -1637,6 +1655,13 @@ useEffect(() => {
       if (idleListener) {
         try {
           (window as any).google.maps.event.removeListener(idleListener)
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
+      if (mapClickListener) {
+        try {
+          (window as any).google.maps.event.removeListener(mapClickListener)
         } catch (e) {
           // Ignore cleanup errors
         }
@@ -1839,7 +1864,14 @@ useEffect(() => {
         opCountersRef.current.markerCreate++
         logOperation('markerCreate')
 
-        marker.addListener('click', () => {
+        marker.addListener('click', (event: any) => {
+          // Stop the marker click from also firing a map click and immediately clearing itself
+          if (event && typeof event.stop === 'function') {
+            event.stop()
+          }
+          suppressMapClickRef.current = true
+          setTimeout(() => { suppressMapClickRef.current = false }, 50)
+
           if (markerInfo.items.length === 1) {
             const item = markerInfo.items[0]
             const now = Date.now()
@@ -1851,6 +1883,10 @@ useEffect(() => {
               // Double-tap: focus on map (select + pan + zoom)
               focusStopOnMap(item.id, item.latitude, item.longitude)
               lastClickTimeRef.current.delete(item.id) // Reset to prevent triple-tap
+            } else if (selectedMapItemId === item.id) {
+              // Single tap on already selected stop: deselect only (state only)
+              clearSelectedStop()
+              lastClickTimeRef.current.set(item.id, now)
             } else {
               // Single-tap: just select
               selectMapItem(item.id, item.latitude, item.longitude)
@@ -2280,6 +2316,20 @@ useEffect(() => {
   }
 
   
+  const handleItemClick = (item: MapItem) => {
+    const now = Date.now()
+    const lastClick = lastClickTimeRef.current.get(item.id) ?? 0
+    const isDouble = now - lastClick < DOUBLE_TAP_DELAY_MS
+    lastClickTimeRef.current.set(item.id, now)
+    if (isDouble && item.type !== 'business') {
+      focusStopOnMap(item.id, item.latitude, item.longitude)
+    } else if (selectedMapItemId === item.id) {
+      clearSelectedStop()
+    } else {
+      selectMapItem(item.id, item.latitude, item.longitude)
+    }
+  }
+
   const filteredItems = getFilteredMapItems(mapItems)
   const sortedItems = getSortedMappedItems(filteredItems)
   const selectedItem = selectedMapItemId ? sortedItems.find(i => i.id === selectedMapItemId) : null
@@ -2376,13 +2426,7 @@ useEffect(() => {
                       }, 100)
                     }
                   } : null}
-                  onClick={() => selectMapItem(item.id, item.latitude, item.longitude)}
-                  onDoubleClick={() => {
-                    // Only add zoom behavior for stop markers (not business)
-                    if (item.type !== 'business') {
-                      focusStopOnMap(item.id, item.latitude, item.longitude)
-                    }
-                  }}
+                  onClick={() => handleItemClick(item)}
                   className={`flex-shrink-0 snap-start px-1.5 md:px-2 py-1 rounded-md border transition-colors min-w-[100px] md:min-w-[150px] max-w-[140px] md:max-w-[170px] ${
                     selectedMapItemId === item.id
                       ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-300/60 dark:border-blue-700/60 ring-1 ring-blue-200/50 dark:ring-blue-800/30'
@@ -2533,7 +2577,7 @@ useEffect(() => {
                         }, 100)
                       }
                     } : null}
-                    onClick={() => selectMapItem(item.id, item.latitude, item.longitude)}
+                    onClick={() => handleItemClick(item)}
                     className={`flex-shrink-0 snap-start px-1.5 py-1 rounded-md border transition-colors min-w-[100px] max-w-[140px] ${
                       selectedMapItemId === item.id
                         ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-300/60 dark:border-blue-700/60 ring-1 ring-blue-200/50 dark:ring-blue-800/30'
@@ -2829,7 +2873,7 @@ useEffect(() => {
               {selectedMarker.items.map((item, index) => (
                 <button
                   key={`${item.type}-${item.id}-${index}`}
-                  onClick={() => selectMapItem(item.id, item.latitude, item.longitude)}
+                  onClick={() => handleItemClick(item)}
                   className="w-full p-2 bg-slate-50 dark:bg-slate-900 rounded-lg text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <div className="flex items-center gap-2">

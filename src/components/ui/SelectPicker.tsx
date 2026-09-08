@@ -59,8 +59,8 @@ export default function SelectPicker({
       const safeGap = 16
       const desiredMax = 300
 
-      // Prefer the direction with more available space, but never shrink below 160px
-      const useDropup = spaceAbove > spaceBelow && (spaceAbove - safeGap) >= desiredMax
+      // Prefer upward when there is more space above, but make sure it fits at least the minimum height
+      const useDropup = spaceAbove > spaceBelow && (spaceAbove - safeGap) >= 160
       const available = useDropup ? spaceAbove - safeGap : spaceBelow - safeGap
       setDropup(useDropup)
       setMaxDropdownHeight(Math.min(desiredMax, Math.max(available, 160)))

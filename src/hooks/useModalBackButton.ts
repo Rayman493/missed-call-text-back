@@ -27,6 +27,9 @@ export function useModalBackButton({ isOpen, onClose }: UseModalBackButtonOption
   // Use a ref to track whether we've pushed history state for this modal instance
   const historyPushedRef = useRef(false)
 
+  // Track whether this modal was closed by the browser back button (popstate)
+  const closedByPopStateRef = useRef(false)
+
   // Create a stable wrapper function for registration that always invokes the latest onClose
   const stableCloseWrapper = useRef<(() => void) | null>(null)
 
@@ -75,6 +78,7 @@ export function useModalBackButton({ isOpen, onClose }: UseModalBackButtonOption
         console.log('[MODAL_BACK_BUTTON] Closing modal via popstate', {
           timestamp: Date.now()
         })
+        closedByPopStateRef.current = true
         onCloseRef.current()
       }
     }
@@ -106,7 +110,7 @@ export function useModalBackButton({ isOpen, onClose }: UseModalBackButtonOption
 
       // Clean up history state if we pushed it and modal closed through UI (not back)
       // Only clean up if stack is empty to avoid removing history for other open modals
-      if (historyPushedRef.current && !hasOpenModal()) {
+      if (historyPushedRef.current && !hasOpenModal() && !closedByPopStateRef.current) {
         console.log('[MODAL_BACK_BUTTON] Calling history.back() to cleanup', {
           timestamp: Date.now()
         })
@@ -124,8 +128,10 @@ export function useModalBackButton({ isOpen, onClose }: UseModalBackButtonOption
         })
       }
 
-      // Clear the stable wrapper
+      // Clear the stable wrapper and reset flags
       stableCloseWrapper.current = null
+      closedByPopStateRef.current = false
+      historyPushedRef.current = false
     }
   }, [isOpen]) // Removed onClose from dependencies - use ref instead
 }

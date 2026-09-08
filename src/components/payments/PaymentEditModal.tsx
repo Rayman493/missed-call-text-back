@@ -142,14 +142,16 @@ export default function PaymentEditModal({
     >
       {/* Header Summary */}
       <div className="px-4 py-3 md:px-5 md:py-4 bg-slate-50 dark:bg-slate-900/30 border-b border-slate-200 dark:border-slate-700 -mx-4 -my-3 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="text-xl font-semibold text-slate-900 dark:text-foreground">
+        <div className="flex flex-wrap items-center gap-3 min-w-0">
+          <div className="text-xl font-semibold text-slate-900 dark:text-foreground min-w-0">
             {formatCurrency(payment.amount_cents / 100)}
           </div>
-          {methodBadge}
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusStyle.badgeClass}`}>
-            {statusStyle.label}
-          </span>
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            {methodBadge}
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusStyle.badgeClass}`}>
+              {statusStyle.label}
+            </span>
+          </div>
         </div>
       </div>
 

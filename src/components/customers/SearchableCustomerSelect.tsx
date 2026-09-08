@@ -150,7 +150,7 @@ export default function SearchableCustomerSelect({
       const desiredMax = 300
 
       // Determine direction based on available space, but never shrink below 160px
-      const useDropup = spaceAbove > spaceBelow && (spaceAbove - safeGap) >= desiredMax
+      const useDropup = spaceAbove > spaceBelow && (spaceAbove - safeGap) >= 160
       const available = useDropup ? spaceAbove - safeGap : spaceBelow - safeGap
       setDropup(useDropup)
       setMaxDropdownHeight(Math.min(desiredMax, Math.max(available, 160)))
