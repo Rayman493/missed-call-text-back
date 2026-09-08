@@ -79,6 +79,7 @@ import {
 } from './lib/timing-policy';
 import { extractRawRequestTranscriptFromStageCaptures } from './request-transcript-selection';
 import { EARLY_COMPLETION_PATTERNS, EARLY_CALLBACK_PATTERNS } from './early-timing-patterns';
+import { enrichIntakeFromTranscript } from './intake-skip-ahead';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -4070,6 +4071,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
         console.log('[SCRIPTED FLOW] Stage transition will be handled by getIntakeResponse');
         console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
         console.log('[SCRIPTED FLOW] =========================================');
+        enrichIntakeFromTranscript(transcript, intake, intake.stage);
         return;
       }
 
@@ -4101,6 +4103,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
           console.log('[FIELD ASSIGNMENT] field: customerName | value:', parsedName, '| source: pre-service-phrase extraction');
         }
         console.log('[EXTRACTION BRANCH] reason-only branch complete | customerName:', intake.customerName, '| serviceRequested:', intake.serviceRequested);
+        enrichIntakeFromTranscript(transcript, intake, intake.stage);
         return; // Do NOT fall through to legacy extractName
       }
 
@@ -4325,7 +4328,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       console.log('[UNIFIED EXTRACTION] transcript:', transcript);
       console.log('[UNIFIED EXTRACTION] Timestamp:', new Date().toISOString());
       console.log('[UNIFIED EXTRACTION] =========================================');
-      extractFieldsFromTranscript(transcript, intake, intake.stage);
+      enrichIntakeFromTranscript(transcript, intake, intake.stage);
       console.log('[UNIFIED EXTRACTION COMPLETE] =========================================');
       console.log('[UNIFIED EXTRACTION COMPLETE] Timestamp:', new Date().toISOString());
       console.log('[UNIFIED EXTRACTION COMPLETE] =========================================');
@@ -8075,37 +8078,16 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       state.intakeData.customerName = customerNameAfterMerge;
       state.intakeData.serviceRequested = serviceRequestedAfterMerge;
 
-      // SEMANTIC FUTURE-FIELD EXTRACTION
-      // After canonical name/service merge, attempt to extract voluntarily supplied known future fields
-      // This allows callers to provide location, timing, callback, or details early
-      // The canonical merge logic protects existing valid values from being overwritten
-      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION] =========================================');
-      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION] currentStage:', state.intakeData.stage);
-      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION] rawTranscript:', rawTranscript);
-      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION] intakeBefore:', JSON.stringify({
-        customerName: state.intakeData.customerName,
-        serviceRequested: state.intakeData.serviceRequested,
-        issueDescription: state.intakeData.issueDescription,
-        serviceAddress: state.intakeData.serviceAddress,
-        desiredCompletionTime: state.intakeData.desiredCompletionTime,
-        callbackTime: state.intakeData.callbackTime
-      }, null, 2));
-      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION] Timestamp:', new Date().toISOString());
-      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION] =========================================');
-
-      extractFieldsFromTranscript(rawTranscript, state.intakeData, state.intakeData.stage);
-
-      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION RESULT] =========================================');
-      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION RESULT] intakeAfter:', JSON.stringify({
-        customerName: state.intakeData.customerName,
-        serviceRequested: state.intakeData.serviceRequested,
-        issueDescription: state.intakeData.issueDescription,
-        serviceAddress: state.intakeData.serviceAddress,
-        desiredCompletionTime: state.intakeData.desiredCompletionTime,
-        callbackTime: state.intakeData.callbackTime
-      }, null, 2));
-      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION RESULT] Timestamp:', new Date().toISOString());
-      console.log('[SEMANTIC FUTURE-FIELD EXTRACTION RESULT] =========================================');
+      // SEMANTIC SKIP-AHEAD EXTRACTION
+      // After canonical name/service merge, extract any future fields volunteered early
+      // while preserving existing values and keeping serviceRequested clean.
+      enrichIntakeFromTranscript(
+        rawTranscript,
+        state.intakeData,
+        state.intakeData.stage,
+        state.callSid,
+        state.currentTurnId
+      );
 
       // MERGE RESULT TRACE
       console.log('[ASK_NAME_REASON MERGE RESULT] =========================================');
@@ -8267,6 +8249,18 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
     if (!stage || stage !== 'ask_name_reason') {
       state.intakeData[extractedField] = capturedAnswer;
+    }
+
+    // Run semantic skip-ahead enrichment on the accepted answer for all stages.
+    // ask_name_reason performs its own enrichment immediately after name/service merge.
+    if (stage !== 'ask_name_reason') {
+      enrichIntakeFromTranscript(
+        rawTranscript,
+        state.intakeData,
+        stage,
+        state.callSid,
+        state.currentTurnId
+      );
     }
 
     const capture = {
