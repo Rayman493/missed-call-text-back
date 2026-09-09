@@ -300,6 +300,14 @@ export async function finalizeIncompleteOnWebsocketCloseSimple(
     ) => Promise<void>;
   }
 ): Promise<void> {
+  console.log('[FINALIZATION] event: close_handler_entered');
+  console.log('[FINALIZATION] callSid:', state.callSid);
+  console.log('[FINALIZATION] stateIdentity:', state.stateIdentity);
+  console.log('[FINALIZATION] completionPersistenceSucceeded:', state.completionPersistenceSucceeded);
+  console.log('[FINALIZATION] completionPersistenceFailed:', state.completionPersistenceFailed);
+  console.log('[FINALIZATION] completionPersistencePromise:', state.completionPersistencePromise ? 'set' : 'null');
+  console.log('[FINALIZATION] completionOuterPromise:', state.completionOuterPromise ? 'set' : 'null');
+
   if (state.completionPersistenceSucceeded) {
     console.log('[FINALIZATION] event: durable_completion_already_succeeded');
     console.log('[FINALIZATION] callSid:', state.callSid);
@@ -308,13 +316,16 @@ export async function finalizeIncompleteOnWebsocketCloseSimple(
     return;
   }
 
-  if (state.completionPersistencePromise) {
+  const promiseToAwait = state.completionOuterPromise || state.completionPersistencePromise;
+  if (promiseToAwait) {
     console.log('[FINALIZATION] event: awaiting_completion_persistence');
     console.log('[FINALIZATION] callSid:', state.callSid);
+    console.log('[FINALIZATION] awaiting:', state.completionOuterPromise ? 'completionOuterPromise' : 'completionPersistencePromise');
     try {
-      await state.completionPersistencePromise;
+      await promiseToAwait;
       console.log('[FINALIZATION] event: completion_persistence_await_resolved');
       console.log('[FINALIZATION] callSid:', state.callSid);
+      console.log('[FINALIZATION] completionPersistenceSucceeded_after_await:', state.completionPersistenceSucceeded);
     } catch (e) {
       console.log('[FINALIZATION] event: completion_persistence_await_failed');
       console.log('[FINALIZATION] callSid:', state.callSid);
@@ -6957,6 +6968,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     completionPersistenceSucceeded: false,
     completionPersistenceFailed: false,
     completionPersistencePromise: null as Promise<void> | null,
+    completionOuterPromise: null as Promise<void> | null,
+    stateIdentity: Math.random().toString(36).slice(2),
+    baselineLeadId: null as string | null,
+    baselineConversationId: null as string | null,
     // Stage timeout tracking
     stageStartTime: 0 as number,
     stageTimeout: null as NodeJS.Timeout | null,
@@ -8812,7 +8827,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       // Finalize with partial info and hang up
       state.currentStage = 'complete';
       sendPrompt('complete');
-      processSimpleModeCompletion().catch(() => {});
+      processSimpleModeCompletion().catch((err: any) => { console.log('[COMPLETION SOURCE] event: completion_call_site_rejected', { source: 'processSimpleModeCompletion', error: err instanceof Error ? err.message : String(err) }); });
     }
   };
 
@@ -9062,9 +9077,27 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
   // Completion persistence function - runs exactly once when intake is complete
   const processSimpleModeCompletion = async () => {
+    console.log('[COMPLETION OWNERSHIP] =========================================');
+    console.log('[COMPLETION OWNERSHIP] event: processSimpleModeCompletion_invoked');
+    console.log('[COMPLETION OWNERSHIP] callSid:', state.callSid);
+    console.log('[COMPLETION OWNERSHIP] stateIdentity:', state.stateIdentity);
+    console.log('[COMPLETION OWNERSHIP] currentStage:', state.currentStage);
+    console.log('[COMPLETION OWNERSHIP] completionPersistenceSucceeded:', state.completionPersistenceSucceeded);
+    console.log('[COMPLETION OWNERSHIP] completionPersistenceFailed:', state.completionPersistenceFailed);
+    console.log('[COMPLETION OWNERSHIP] completionPersistencePromise:', state.completionPersistencePromise ? 'set' : 'null');
+    console.log('[COMPLETION OWNERSHIP] completionOuterPromise:', state.completionOuterPromise ? 'set' : 'null');
+    console.log('[COMPLETION OWNERSHIP] Timestamp:', new Date().toISOString());
+    console.log('[COMPLETION OWNERSHIP] =========================================');
+
     if (state.completionPersistenceSucceeded) {
       console.log('[COMPLETION SOURCE] event: completion_already_succeeded');
       console.log('[COMPLETION SOURCE] callSid:', state.callSid);
+      return;
+    }
+    if (state.completionOuterPromise) {
+      console.log('[COMPLETION SOURCE] event: completion_joined_outer');
+      console.log('[COMPLETION SOURCE] callSid:', state.callSid);
+      await state.completionOuterPromise;
       return;
     }
     if (state.completionPersistencePromise) {
@@ -9687,83 +9720,145 @@ Reply to this message if you'd like to update or add any information.
       // CRITICAL FIX: Preserve historical intake data in lead.raw_metadata
       // Do NOT overwrite previous intake information on repeat callers
       // ai_call_records is the authoritative intake history - lead.raw_metadata is only a latest snapshot
-      const { data: existingLead } = await supabase
-        .from('leads')
-        .select('id, raw_metadata, status')
-        .eq('business_id', state.businessId)
-        .eq('caller_phone', state.callerPhone || '')
-        .maybeSingle();
+      console.log('[SIMPLE MODE LEAD RESOLUTION] =========================================');
+      console.log('[SIMPLE MODE LEAD RESOLUTION] baselineLeadId:', state.baselineLeadId);
+      console.log('[SIMPLE MODE LEAD RESOLUTION] callerPhone:', state.callerPhone);
+      console.log('[SIMPLE MODE LEAD RESOLUTION] Timestamp:', new Date().toISOString());
+      console.log('[SIMPLE MODE LEAD RESOLUTION] =========================================');
 
-      let lead;
-      if (existingLead) {
-        // Existing lead: preserve raw_metadata, only update status and completion timestamp
-        const { data: updatedLead, error: updateError } = await supabase
-          .from('leads')
-          .update({
-            status: 'new', // Reset to 'new' for new intake
-            raw_metadata: {
-              ...(existingLead.raw_metadata || {}),
-              // Only update completion metadata, NOT extracted_info fields
-              ai_intake_completed: true,
-              ai_intake_completed_at: new Date().toISOString(),
-              ai_intake_latest_call_sid: state.callSid,
-            }
-          })
-          .eq('id', existingLead.id)
-          .select()
-          .single();
+      let lead: any;
 
-        lead = updatedLead;
-        if (updateError) {
-          console.log('[SIMPLE MODE] lead update failed:', updateError);
-        } else {
-          console.log('[SIMPLE MODE] =========================================');
-          console.log('[SIMPLE MODE] event: simple_mode_lead_updated_preserving_history');
-          console.log('[SIMPLE MODE] leadId:', lead.id);
-          console.log('[SIMPLE MODE] action: preserved_existing_raw_metadata');
-          console.log('[SIMPLE MODE] =========================================');
+      // Prefer baseline lead passed by the voice route
+      if (state.baselineLeadId) {
+        const { data: existingBaselineLead, error: baselineLeadLookupError } = await retrySupabaseOperation(
+          async () => {
+            return await supabase
+              .from('leads')
+              .select('*')
+              .eq('id', state.baselineLeadId)
+              .maybeSingle();
+          },
+          'Lookup Baseline Lead (Completion)',
+          3,
+          1000
+        );
+
+        if (baselineLeadLookupError) {
+          console.log('[SIMPLE MODE] baseline lead lookup failed:', baselineLeadLookupError);
+        } else if (existingBaselineLead) {
+          lead = existingBaselineLead;
+          console.log('[SIMPLE MODE] using baseline lead:', lead.id);
         }
-      } else {
-        // New lead: create with current intake data
-        const { data: newLead, error: createError } = await supabase
-          .from('leads')
-          .insert({
-            business_id: state.businessId,
-            caller_phone: state.callerPhone || '',
-            status: 'new',
-            raw_metadata: {
-              ...canonicalExtractedInfo,
-              extracted_info: canonicalExtractedInfo,
-              ai_intake_completed: true,
-              ai_intake_completed_at: new Date().toISOString(),
-              ai_intake_latest_call_sid: state.callSid,
-            }
-          })
-          .select()
-          .single();
+      }
 
-        lead = newLead;
-        if (createError) {
-          console.log('[SIMPLE MODE] lead creation failed:', createError);
+      if (!lead) {
+        const { data: existingLead, error: existingLeadError } = await retrySupabaseOperation(
+          async () => {
+            return await supabase
+              .from('leads')
+              .select('id, raw_metadata, status')
+              .eq('business_id', state.businessId)
+              .eq('caller_phone', state.callerPhone || '')
+              .maybeSingle();
+          },
+          'Lookup Lead By Caller (Completion)',
+          3,
+          1000
+        );
+
+        if (existingLeadError) {
+          console.log('[SIMPLE MODE] lead lookup failed:', existingLeadError);
+        }
+
+        if (existingLead) {
+          // Existing lead: preserve raw_metadata, only update status and completion timestamp
+          const { data: updatedLead, error: updateError } = await retrySupabaseOperation(
+            async () => {
+              return await supabase
+                .from('leads')
+                .update({
+                  status: 'new', // Reset to 'new' for new intake
+                  raw_metadata: {
+                    ...(existingLead.raw_metadata || {}),
+                    // Only update completion metadata, NOT extracted_info fields
+                    ai_intake_completed: true,
+                    ai_intake_completed_at: new Date().toISOString(),
+                    ai_intake_latest_call_sid: state.callSid,
+                  }
+                })
+                .eq('id', existingLead.id)
+                .select()
+                .single();
+            },
+            'Update Existing Lead (Completion)',
+            3,
+            1000
+          );
+
+          lead = updatedLead;
+          if (updateError) {
+            console.log('[SIMPLE MODE] lead update failed:', updateError);
+          } else {
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: simple_mode_lead_updated_preserving_history');
+            console.log('[SIMPLE MODE] leadId:', lead?.id);
+            console.log('[SIMPLE MODE] action: preserved_existing_raw_metadata');
+            console.log('[SIMPLE MODE] =========================================');
+          }
         } else {
-          console.log('[SIMPLE MODE] =========================================');
-          console.log('[SIMPLE MODE] event: simple_mode_lead_created');
-          console.log('[SIMPLE MODE] leadId:', lead.id);
-          console.log('[SIMPLE MODE] =========================================');
+          // New lead: create with current intake data
+          const { data: newLead, error: createError } = await retrySupabaseOperation(
+            async () => {
+              return await supabase
+                .from('leads')
+                .insert({
+                  business_id: state.businessId,
+                  caller_phone: state.callerPhone || '',
+                  status: 'new',
+                  raw_metadata: {
+                    ...canonicalExtractedInfo,
+                    extracted_info: canonicalExtractedInfo,
+                    ai_intake_completed: true,
+                    ai_intake_completed_at: new Date().toISOString(),
+                    ai_intake_latest_call_sid: state.callSid,
+                  }
+                })
+                .select()
+                .single();
+            },
+            'Create New Lead (Completion)',
+            3,
+            1000
+          );
+
+          lead = newLead;
+          if (createError) {
+            console.log('[SIMPLE MODE] lead creation failed:', createError);
+          } else {
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: simple_mode_lead_created');
+            console.log('[SIMPLE MODE] leadId:', lead?.id);
+            console.log('[SIMPLE MODE] =========================================');
+          }
         }
       }
 
       if (!lead) {
         console.log('[SIMPLE MODE] lead creation/update failed - cannot proceed');
-        return;
+        throw new Error('Lead creation/update failed in processSimpleModeCompletion');
       }
 
       // Use the race-recovery helper function
-      const conversation = await getOrCreateConversation(supabase, lead.id, state.businessId, 'active');
+      const conversation = await retrySupabaseOperation(
+        async () => getOrCreateConversation(supabase, lead.id, state.businessId, 'active'),
+        'Get Or Create Conversation (Completion)',
+        3,
+        1000
+      );
 
       if (!conversation) {
         console.log('[SIMPLE MODE] conversation creation failed - conversation is null');
-        return;
+        throw new Error('Conversation creation returned null in processSimpleModeCompletion');
       }
 
       console.log('[SIMPLE MODE] =========================================');
@@ -9799,9 +9894,45 @@ Reply to this message if you'd like to update or add any information.
         callerPhone: aiCallRecordPayload.caller_phone,
         extractedInfoKeys: Object.keys(aiCallRecordPayload.extracted_info),
       });
-      const { error: callRecordError } = await supabase
-        .from('ai_call_records')
-        .upsert(aiCallRecordPayload, { onConflict: 'call_sid' });
+      let callRecordError: any = null;
+      try {
+        await retrySupabaseOperation(
+          async () => {
+            const result = await supabase
+              .from('ai_call_records')
+              .upsert(aiCallRecordPayload, { onConflict: 'call_sid' });
+            if (result.error) throw result.error;
+            return result;
+          },
+          'Upsert AI Call Record (Completion)',
+          3,
+          1000
+        );
+        console.log('[AI RECORD WRITE DEBUG] upsert succeeded');
+      } catch (e: any) {
+        callRecordError = e;
+        console.log('[AI RECORD WRITE DEBUG] upsert failed, attempting manual get/insert fallback');
+        // Fallback: manual get/insert avoids relying solely on upsert/onConflict behavior
+        const { data: existingRecord } = await supabase
+          .from('ai_call_records')
+          .select('id, outcome')
+          .eq('call_sid', state.callSid)
+          .maybeSingle();
+
+        if (!existingRecord) {
+          const { error: insertError } = await supabase
+            .from('ai_call_records')
+            .insert(aiCallRecordPayload);
+          if (insertError) {
+            callRecordError = insertError;
+          } else {
+            callRecordError = null;
+          }
+        } else {
+          // If the record already exists, it is authoritative; treat as success.
+          callRecordError = null;
+        }
+      }
 
       console.log('[AI RECORD WRITE DEBUG] =========================================');
       console.log('[AI RECORD WRITE DEBUG] callSid:', aiCallRecordPayload.call_sid);
@@ -9822,6 +9953,7 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] errorDetails:', callRecordError.details);
         console.log('[SIMPLE MODE] callSid:', state.callSid);
         console.log('[SIMPLE MODE] =========================================');
+        throw new Error(`AI call record persist failed: ${callRecordError.message}`);
       } else {
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: simple_mode_ai_call_record_created');
@@ -9935,23 +10067,38 @@ Reply to this message if you'd like to update or add any information.
         // ai_call_records is the authoritative intake history
         // lead.raw_metadata only stores completion timestamps and latest call_sid reference
         console.log('[simple_mode_lead_summary_update_start]', { leadId: lead.id, callSid: state.callSid });
-        const { data: currentLead } = await supabase
-          .from('leads')
-          .select('raw_metadata')
-          .eq('id', lead.id)
-          .single();
-        const { error: metaUpdateError } = await supabase
-          .from('leads')
-          .update({
-            raw_metadata: {
-              ...(currentLead?.raw_metadata || {}),
-              // Only update completion metadata, NOT extracted_info fields
-              ai_intake_completed: true,
-              ai_intake_completed_at: new Date().toISOString(),
-              ai_intake_latest_call_sid: state.callSid,
+        try {
+          const { data: currentLead } = await retrySupabaseOperation(
+            async () => {
+              return await supabase
+                .from('leads')
+                .select('raw_metadata')
+                .eq('id', lead.id)
+                .single();
             },
-          })
-          .eq('id', lead.id);
+            'Select Current Lead Metadata (Completion)',
+            3,
+            1000
+          );
+          const { error: metaUpdateError } = await retrySupabaseOperation(
+            async () => {
+              return await supabase
+                .from('leads')
+                .update({
+                  raw_metadata: {
+                    ...(currentLead?.raw_metadata || {}),
+                    // Only update completion metadata, NOT extracted_info fields
+                    ai_intake_completed: true,
+                    ai_intake_completed_at: new Date().toISOString(),
+                    ai_intake_latest_call_sid: state.callSid,
+                  },
+                })
+                .eq('id', lead.id);
+            },
+            'Update Lead Completion Metadata (Completion)',
+            3,
+            1000
+          );
           if (metaUpdateError) {
             console.log('[simple_mode_lead_summary_update_failed]', { leadId: lead.id, callSid: state.callSid, error: metaUpdateError.message });
           } else {
@@ -9961,6 +10108,9 @@ Reply to this message if you'd like to update or add any information.
               action: 'preserved_existing_raw_metadata',
             });
           }
+        } catch (metaError: any) {
+          console.log('[simple_mode_lead_summary_update_failed]', { leadId: lead.id, callSid: state.callSid, error: metaError?.message || String(metaError) });
+        }
           // ──────────────────────────────────────────────────────────────────
 
           // Log final structured intake data before sending SMS
@@ -10031,23 +10181,31 @@ Reply to this message if you'd like to update or add any information.
     })();
 
     state.completionPersistencePromise = promise;
-    try {
-      await promise;
-      state.completionPersistenceSucceeded = true;
-      console.log('[COMPLETION SOURCE] event: completion_persistence_succeeded');
-      console.log('[COMPLETION SOURCE] callSid:', state.callSid);
-    } catch (err) {
-      state.completionPersistenceFailed = true;
-      console.log('[COMPLETION SOURCE] event: completion_persistence_failed');
-      console.log('[COMPLETION SOURCE] callSid:', state.callSid);
-      console.log('[COMPLETION SOURCE] error:', err);
-      throw err;
-    } finally {
-      state.completionPersistencePromise = null;
-      state.completionPersistenceFinished = true;
-      console.log('[COMPLETION SOURCE] event: completion_promise_cleared');
-      console.log('[COMPLETION SOURCE] callSid:', state.callSid);
-    }
+    const outerPromise = (async () => {
+      try {
+        await promise;
+        state.completionPersistenceSucceeded = true;
+        console.log('[COMPLETION SOURCE] event: completion_persistence_succeeded');
+        console.log('[COMPLETION SOURCE] callSid:', state.callSid);
+        console.log('[COMPLETION SOURCE] stateIdentity:', state.stateIdentity);
+      } catch (err) {
+        state.completionPersistenceFailed = true;
+        console.log('[COMPLETION SOURCE] event: completion_persistence_failed');
+        console.log('[COMPLETION SOURCE] callSid:', state.callSid);
+        console.log('[COMPLETION SOURCE] stateIdentity:', state.stateIdentity);
+        console.log('[COMPLETION SOURCE] error:', err);
+        throw err;
+      } finally {
+        state.completionPersistencePromise = null;
+        state.completionOuterPromise = null;
+        state.completionPersistenceFinished = true;
+        console.log('[COMPLETION SOURCE] event: completion_promise_cleared');
+        console.log('[COMPLETION SOURCE] callSid:', state.callSid);
+        console.log('[COMPLETION SOURCE] stateIdentity:', state.stateIdentity);
+      }
+    })();
+    state.completionOuterPromise = outerPromise;
+    return outerPromise;
   };
 
   const clearSilentTimeout = (reason: string) => {
@@ -11340,6 +11498,17 @@ Reply to this message if you'd like to update or add any information.
         (ws as any).callerPhone = from;
         (ws as any).aiSessionTracker = state.aiSessionTracker;
 
+        state.baselineLeadId = customParams.leadId || customParams.lead_id || null;
+        state.baselineConversationId = customParams.conversationId || customParams.conversation_id || null;
+        (ws as any).leadId = state.baselineLeadId;
+        (ws as any).conversationId = state.baselineConversationId;
+
+        console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] event: simple_mode_baseline_ids_set');
+        console.log('[SIMPLE MODE] baselineLeadId:', state.baselineLeadId);
+        console.log('[SIMPLE MODE] baselineConversationId:', state.baselineConversationId);
+        console.log('[SIMPLE MODE] =========================================');
+
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: simple_mode_call_sid_set');
         console.log('[SIMPLE MODE] callSid:', state.callSid);
@@ -12213,7 +12382,7 @@ Reply to this message if you'd like to update or add any information.
                     // If resolver jumped straight to complete, start durable persistence immediately
                     // before the complete prompt begins, so close handlers can await the promise.
                     if (state.currentStage === 'complete') {
-                      processSimpleModeCompletion().catch(() => {});
+                      processSimpleModeCompletion().catch((err: any) => { console.log('[COMPLETION SOURCE] event: completion_call_site_rejected', { source: 'processSimpleModeCompletion', error: err instanceof Error ? err.message : String(err) }); });
                     }
 
                     sendPrompt(state.currentStage);
@@ -12301,12 +12470,12 @@ Reply to this message if you'd like to update or add any information.
 
                   // Start durable completion persistence before playing the final prompt so
                   // the close handler has a real promise to await.
-                  processSimpleModeCompletion().catch(() => {});
+                  processSimpleModeCompletion().catch((err: any) => { console.log('[COMPLETION SOURCE] event: completion_call_site_rejected', { source: 'processSimpleModeCompletion', error: err instanceof Error ? err.message : String(err) }); });
 
                   sendPrompt('complete');
 
                   // Re-invoke in case the prompt path raced past the initial call.
-                  processSimpleModeCompletion().catch(() => {});
+                  processSimpleModeCompletion().catch((err: any) => { console.log('[COMPLETION SOURCE] event: completion_call_site_rejected', { source: 'processSimpleModeCompletion', error: err instanceof Error ? err.message : String(err) }); });
                 }
               }
               state.queuedTranscript = null;
@@ -12357,8 +12526,9 @@ Reply to this message if you'd like to update or add any information.
               };
 
               // Wait for durable completion persistence before closing on fallback timeout.
-              if (state.completionPersistencePromise) {
-                state.completionPersistencePromise.then(doFallbackClose, doFallbackClose);
+              const closePromise = state.completionOuterPromise || state.completionPersistencePromise;
+              if (closePromise) {
+                closePromise.then(doFallbackClose, doFallbackClose);
               } else {
                 doFallbackClose();
               }
@@ -13292,7 +13462,7 @@ Reply to this message if you'd like to update or add any information.
 
                 // If the resolver jumped straight to complete, start durable persistence before the prompt.
                 if (state.currentStage === 'complete') {
-                  processSimpleModeCompletion().catch(() => {});
+                  processSimpleModeCompletion().catch((err: any) => { console.log('[COMPLETION SOURCE] event: completion_call_site_rejected', { source: 'processSimpleModeCompletion', error: err instanceof Error ? err.message : String(err) }); });
                 }
 
                 sendPrompt(state.currentStage, undefined, 'normal_stage_advancement', authorizedTurnId);
@@ -13329,12 +13499,12 @@ Reply to this message if you'd like to update or add any information.
 
                 // Start durable completion persistence before playing the final prompt so
                 // the close handler has a real promise to await.
-                processSimpleModeCompletion().catch(() => {});
+                processSimpleModeCompletion().catch((err: any) => { console.log('[COMPLETION SOURCE] event: completion_call_site_rejected', { source: 'processSimpleModeCompletion', error: err instanceof Error ? err.message : String(err) }); });
 
                 sendPrompt('complete', undefined, 'final_stage_completion', authorizedTurnId);
 
                 // Re-invoke in case the prompt path raced past the initial call.
-                processSimpleModeCompletion().catch(() => {});
+                processSimpleModeCompletion().catch((err: any) => { console.log('[COMPLETION SOURCE] event: completion_call_site_rejected', { source: 'processSimpleModeCompletion', error: err instanceof Error ? err.message : String(err) }); });
               }
             } else if (isFinalStage) {
                 // Log when final callback answer is ignored

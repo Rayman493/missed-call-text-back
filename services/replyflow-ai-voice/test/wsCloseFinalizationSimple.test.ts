@@ -247,4 +247,72 @@ describe('Simple Mode - WebSocket close finalization handoff', () => {
     await finalizeIncompleteOnWebsocketCloseSimple(state, deps);
     assert.equal(calls.length, 0, 'fallback not invoked when no data captured');
   });
+
+  it('awaits completionOuterPromise and does not fallback after durable success', async () => {
+    const calls: any[] = [];
+    const state: any = {
+      callSid: 'CA_outer_success',
+      businessId: 'biz_outer',
+      callerPhone: '+15550001111',
+      businessName: 'Biz',
+      forwardedFrom: '',
+      intakeData: { customerName: 'Jason Williams', serviceRequested: 'a toilet repaired', serviceAddress: '100 Main Street', desiredCompletionTime: 'Friday', callbackTime: 'tomorrow morning' },
+      stageCaptures: [{ stage: 'ask_name_reason', rawTranscript: 'My name is Jason Williams. I need a toilet repaired at 100 Main Street. I\'d like it done Friday and call me tomorrow morning.', capturedAnswer: 'My name is Jason Williams. I need a toilet repaired at 100 Main Street. I\'d like it done Friday and call me tomorrow morning.', extractedField: 'serviceRequested', source: 'test', timestamp: new Date().toISOString() }],
+      transcript: 'My name is Jason Williams. I need a toilet repaired at 100 Main Street. I\'d like it done Friday and call me tomorrow morning.',
+      completionPersistenceSucceeded: false,
+      completionPersistenceFailed: false,
+      completionPersistencePromise: null,
+      completionOuterPromise: null,
+      currentStage: 'complete',
+    };
+
+    let resolveOuter: (() => void) | null = null;
+    state.completionOuterPromise = new Promise<void>((res) => { resolveOuter = res; });
+
+    const deps = {
+      supabase: {} as any,
+      finalizeIncompleteIntake: async (...args: any[]) => {
+        calls.push(args);
+      }
+    };
+
+    const closePromise = finalizeIncompleteOnWebsocketCloseSimple(state, deps);
+    assert.equal(calls.length, 0, 'does not call fallback while outer completion is in flight');
+
+    state.completionPersistenceSucceeded = true;
+    if (resolveOuter) resolveOuter();
+
+    await closePromise;
+    assert.equal(calls.length, 0, 'does not call fallback after outer completion succeeds');
+  });
+
+  it('invokes fallback when completionOuterPromise rejects', async () => {
+    const calls: any[] = [];
+    const state: any = {
+      callSid: 'CA_outer_reject',
+      businessId: 'biz_reject',
+      callerPhone: '+15552223333',
+      businessName: 'Biz',
+      forwardedFrom: '',
+      intakeData: { customerName: 'Jason Williams', serviceRequested: 'a toilet repaired', serviceAddress: '100 Main Street', desiredCompletionTime: 'Friday', callbackTime: 'tomorrow morning' },
+      stageCaptures: [{ stage: 'ask_name_reason', rawTranscript: 'My name is Jason Williams. I need a toilet repaired at 100 Main Street. I\'d like it done Friday and call me tomorrow morning.', capturedAnswer: 'My name is Jason Williams. I need a toilet repaired at 100 Main Street. I\'d like it done Friday and call me tomorrow morning.', extractedField: 'serviceRequested', source: 'test', timestamp: new Date().toISOString() }],
+      transcript: 'My name is Jason Williams. I need a toilet repaired at 100 Main Street. I\'d like it done Friday and call me tomorrow morning.',
+      completionPersistenceSucceeded: false,
+      completionPersistenceFailed: true,
+      completionPersistencePromise: null,
+      completionOuterPromise: Promise.reject(new Error('outer completion rejected')),
+      currentStage: 'complete',
+    };
+
+    const deps = {
+      supabase: {} as any,
+      finalizeIncompleteIntake: async (...args: any[]) => {
+        calls.push(args);
+      }
+    };
+
+    await finalizeIncompleteOnWebsocketCloseSimple(state, deps);
+    assert.equal(calls.length, 1, 'fallback invoked after outer completion rejects');
+    assert.equal(calls[0][8]?.forceCompleteFallback, true, 'forces complete fallback for rejected outer completion');
+  });
 });

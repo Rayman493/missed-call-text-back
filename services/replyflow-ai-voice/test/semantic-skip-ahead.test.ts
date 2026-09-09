@@ -252,4 +252,17 @@ describe('Semantic Skip-Ahead Extraction', () => {
     expect(intake.serviceRequested?.toLowerCase()).to.include('need it');
     expect(result.applied).to.include.members(['desiredCompletionTime', 'callbackTime']);
   });
+
+  it('extracts all volunteered fields for the Jason Williams direct skip-ahead', () => {
+    const intake: IntakeData = { stage: 'ask_name_reason' };
+    const transcript = "My name is Jason Williams. I need a toilet repaired at 100 Main Street. I'd like it done Friday and call me tomorrow morning.";
+    const result = enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-jason-williams');
+
+    expect(intake.customerName).to.equal('Jason Williams');
+    expect(intake.serviceRequested).to.equal('a toilet repaired');
+    expect(intake.serviceAddress).to.equal('100 Main Street');
+    expect(intake.desiredCompletionTime).to.equal('Friday');
+    expect(intake.callbackTime).to.equal('tomorrow morning');
+    expect(result.applied).to.include.members(['customerName', 'serviceRequested', 'serviceAddress', 'desiredCompletionTime', 'callbackTime']);
+  });
 });
