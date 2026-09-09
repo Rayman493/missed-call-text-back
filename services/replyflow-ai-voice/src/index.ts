@@ -4806,7 +4806,7 @@ async function buildCanonicalExtractedInfo(
   // Prefer raw request transcript when available for richer semantic extraction
   const rawRequestText = rawRequestTranscript && rawRequestTranscript.trim() !== ''
     ? rawRequestTranscript
-    : (fields.serviceRequested || fields.request || fields.issueDescription || '');
+    : (fields.serviceRequested || fields.reasonForCalling || fields.request || fields.issueDescription || '');
 
   // Extract separate importantDetails if provided (canonical field name)
   const rawImportantDetails = fields.additionalDetails || fields.importantDetails || '';
@@ -4858,7 +4858,7 @@ async function buildCanonicalExtractedInfo(
   );
 
   return {
-    customerName: sanitizeEnglishIntakeField('customerName', fields.customerName || ''),
+    customerName: sanitizeEnglishIntakeField('customerName', fields.customerName || fields.callerName || ''),
     customerPhone: (callerPhone || fields.customerPhone || '').trim(),
     serviceRequested: serviceRequested,
     importantDetails: importantDetails,
