@@ -7,6 +7,7 @@ import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import { getCustomerStatusStyle } from '@/lib/customer-status'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
+import AddCustomerModal from '@/components/AddCustomerModal'
 import { firstNonPlaceholder, normalizeEditableContext, getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 import { useBusiness } from '@/contexts/BusinessContext'
@@ -98,6 +99,10 @@ export default function JobComposer({
   const [leadId, setLeadId] = useState<string | null>(null)
   const [leadDisplay, setLeadDisplay] = useState<string | null>(null)
 
+  // Inline Add Customer modal state
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
+  const [newlyCreatedCustomer, setNewlyCreatedCustomer] = useState<Customer | null>(null)
+
   const locationInputRef = useRef<HTMLInputElement>(null)
 
   const { business } = useBusiness()
@@ -120,6 +125,22 @@ export default function JobComposer({
       setCustomerPhone('')
       setServiceAddress('')
     }
+  }
+
+  // Handle successful customer creation from inline Add Customer modal
+  const handleLeadCreated = (leadId: string, leadData?: any) => {
+    // Build a Customer object from the returned lead data
+    const newCustomer: Customer = {
+      id: leadId,
+      name: leadData?.raw_metadata?.customerName || leadData?.raw_metadata?.callerName || leadData?.name || null,
+      caller_phone: leadData?.caller_phone || leadData?.raw_metadata?.customerPhone || null,
+      raw_metadata: leadData?.raw_metadata || null,
+    }
+    // Hydrate the selector with the new customer so it appears immediately
+    setNewlyCreatedCustomer(newCustomer)
+    // Auto-select the new customer
+    setLeadId(leadId)
+    handleCustomerSelect(newCustomer)
   }
 
   // Autofocus location input when initialFocus is 'location'
@@ -291,7 +312,8 @@ export default function JobComposer({
                 required={!editJob}
                 allowClear={!editJob}
                 placeholder="Search or select a customer..."
-                prefillCustomer={prefill?.prefillCustomer}
+                prefillCustomer={newlyCreatedCustomer || prefill?.prefillCustomer}
+                onAddCustomerClick={!editJob ? () => setIsAddCustomerOpen(true) : undefined}
               />
             </div>
 
@@ -408,6 +430,13 @@ export default function JobComposer({
             )}
         </div>
       </Modal>
+
+      {/* Inline Add Customer modal — reuses canonical AddCustomerModal */}
+      <AddCustomerModal
+        isOpen={isAddCustomerOpen}
+        onClose={() => setIsAddCustomerOpen(false)}
+        onLeadCreated={handleLeadCreated}
+      />
     </>
   )
 }

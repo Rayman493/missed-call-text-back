@@ -23,6 +23,7 @@ interface SearchableCustomerSelectProps {
   disabled?: boolean
   allowClear?: boolean // Allow clearing selection (for optional customers)
   prefillCustomer?: Customer | null // Pre-fill with a specific customer object (e.g., from parent context)
+  onAddCustomerClick?: () => void // Optional inline "Add customer" affordance
 }
 
 export default function SearchableCustomerSelect({
@@ -34,7 +35,8 @@ export default function SearchableCustomerSelect({
   required = false,
   disabled = false,
   allowClear = true,
-  prefillCustomer
+  prefillCustomer,
+  onAddCustomerClick
 }: SearchableCustomerSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -433,6 +435,18 @@ export default function SearchableCustomerSelect({
             )}
           </div>
         </div>
+      )}
+      {onAddCustomerClick && !disabled && (
+        <p className="text-xs text-muted-foreground mt-1.5">
+          Can't find them?{' '}
+          <button
+            type="button"
+            onClick={onAddCustomerClick}
+            className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+          >
+            Add customer
+          </button>
+        </p>
       )}
     </div>
   )
