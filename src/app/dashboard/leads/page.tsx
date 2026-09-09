@@ -70,7 +70,7 @@ import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import LeadCard from '@/components/LeadCard'
 import FocusSection from '@/components/FocusSection'
-import { Wrench, FileText, Clock } from 'lucide-react'
+import { Wrench, FileText, Clock, CreditCard } from 'lucide-react'
 
 // Helper to get compact summary for lead card
 // [simple_mode_structured_preview_generated]
@@ -1011,7 +1011,8 @@ export default function LeadsPage() {
                 value={leadStatusCounts.payment_requested}
                 label="Payment Requested"
                 description="Waiting for payment"
-                icon="�"
+                icon=""
+                iconNode={<CreditCard className="w-4 h-4" />}
                 iconColor="amber"
                 isInteractive={true}
                 isSelected={quickFilter === 'payment_requested' && statusFilter === 'all'}
