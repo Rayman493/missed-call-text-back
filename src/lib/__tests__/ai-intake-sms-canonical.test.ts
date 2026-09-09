@@ -342,4 +342,86 @@ describe('AI Intake SMS - Polished Format', () => {
       expect(sms).not.toContain('Best time to call you')
     })
   })
+
+  describe('Greeting with missing, refused, or invalid name', () => {
+    it('greets with a valid first name only', () => {
+      const extractedInfo = {
+        customerName: 'Sarah',
+        reasonForCalling: 'Plumbing repair'
+      }
+      const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
+      expect(sms).toContain('Hi Sarah, thanks for reaching out to Desktop Final Testing.')
+    })
+
+    it('falls back to no-name greeting when customerName is null', () => {
+      const extractedInfo = {
+        customerName: null,
+        reasonForCalling: 'Plumbing repair'
+      }
+      const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
+      expect(sms).toContain('Hi, thanks for reaching out to Desktop Final Testing.')
+      expect(sms).not.toContain('Hi null')
+      expect(sms).not.toContain('Hi ,')
+    })
+
+    it('falls back to no-name greeting when customerName is undefined', () => {
+      const extractedInfo = {
+        customerName: undefined,
+        reasonForCalling: 'Plumbing repair'
+      }
+      const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
+      expect(sms).toContain('Hi, thanks for reaching out to Desktop Final Testing.')
+      expect(sms).not.toContain('Hi undefined')
+      expect(sms).not.toContain('Hi ,')
+    })
+
+    it('falls back to no-name greeting when customerName is empty', () => {
+      const extractedInfo = {
+        customerName: '',
+        reasonForCalling: 'Plumbing repair'
+      }
+      const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
+      expect(sms).toContain('Hi, thanks for reaching out to Desktop Final Testing.')
+      expect(sms).not.toContain('Hi ,')
+    })
+
+    it('does not insert a name when nameRefused is true', () => {
+      const extractedInfo = {
+        customerName: '',
+        nameRefused: true,
+        reasonForCalling: 'Plumbing repair'
+      }
+      const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
+      expect(sms).toContain('Hi, thanks for reaching out to Desktop Final Testing.')
+      expect(sms).not.toContain('Hi null')
+      expect(sms).not.toContain('Hi ,')
+      expect(sms).not.toContain('Hi  ')
+      expect(sms).not.toContain('• Your name')
+    })
+
+    it('does not insert an invalid placeholder like "No information yet"', () => {
+      const extractedInfo = {
+        customerName: 'No information yet',
+        reasonForCalling: 'Plumbing repair'
+      }
+      const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
+      expect(sms).not.toContain('Hi No information yet')
+      expect(sms).toContain('Hi, thanks for reaching out')
+    })
+
+    it('preserves existing captured-field formatting when name is missing', () => {
+      const extractedInfo = {
+        reasonForCalling: 'Plumbing repair',
+        addressOrLocation: '123 Main St',
+        desiredCompletionTime: 'This week',
+        preferredCallbackTime: 'Morning'
+      }
+      const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
+      expect(sms).toContain('Hi, thanks for reaching out to Desktop Final Testing.')
+      expect(sms).toContain('• Request: Plumbing Repair')
+      expect(sms).toContain('• Address: 123 Main St')
+      expect(sms).toContain('• Desired completion: This week')
+      expect(sms).toContain('• Preferred callback: Morning')
+    })
+  })
 })

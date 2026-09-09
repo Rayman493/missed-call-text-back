@@ -3,7 +3,7 @@ import { sanitizeCustomerName, sanitizeServiceRequested, sanitizeAdditionalDetai
 // Placeholder names that should be rejected
 const PLACEHOLDER_NAMES = new Set([
   'unknown', 'not provided', 'not collected', 'n/a', 'caller', 'customer',
-  'unknown caller', 'unknown customer', 'not provided name'
+  'unknown caller', 'unknown customer', 'not provided name', 'no information yet'
 ])
 // Placeholder service values that should be treated as missing
 const PLACEHOLDER_SERVICES = new Set([
@@ -1694,16 +1694,19 @@ export const formatAiIntakeSummary = (
   const mode = typeof serviceLocationType === 'string' ? serviceLocationType.trim().toLowerCase() : 'onsite';
   const normalizedMode = (mode === 'onsite' || mode === 'customer_comes_to_business' || mode === 'remote') ? mode : 'onsite';
   const addressIsApplicable = normalizedMode === 'onsite';
+  // Greeting uses a normalized name only when there is a real, non-refused name.
+  // nameRefused satisfies the name requirement but must not be interpolated.
+  const greetingName = !intakeData?.nameRefused ? customerName : null;
   // Build greeting
   let greeting: string;
-  if (hasName && displayName) {
-    greeting = `Hi ${customerName}, thanks for reaching out to ${displayName}.`;
-  } else if (hasName) {
-    greeting = `Hi ${customerName}, thanks for reaching out.`;
+  if (greetingName && displayName) {
+    greeting = `Hi ${greetingName}, thanks for reaching out to ${displayName}.`;
+  } else if (greetingName) {
+    greeting = `Hi ${greetingName}, thanks for reaching out.`;
   } else if (displayName) {
-    greeting = `Thanks for reaching out to ${displayName}.`;
+    greeting = `Hi, thanks for reaching out to ${displayName}.`;
   } else {
-    greeting = 'Thanks for reaching out.';
+    greeting = 'Hi, thanks for reaching out.';
   }
   // Determine which meaningful fields are captured (only show actual captured values, not "Not collected")
   const capturedFields: string[] = [];
@@ -1793,6 +1796,8 @@ export const formatAdaptiveIntakeSms = (
   const serviceRequested = serviceRequestedIsPlaceholder ? serviceRequestedRaw : serviceRequestedTitle;
   // Determine which fields have actual meaningful values
   const hasName = (customerName && customerName.trim() !== '' && !isPlaceholderValue(customerName, PLACEHOLDER_NAMES)) || !!intakeData?.nameRefused;
+  // Greeting name must be a real, non-refused customer name.
+  const greetingName = !intakeData?.nameRefused ? customerName : null;
   const hasRequest = serviceRequested &&
                      serviceRequested.trim() !== '' &&
                      serviceRequested !== 'General Service' &&
@@ -1842,7 +1847,7 @@ export const formatAdaptiveIntakeSms = (
   });
   // Level A: Minimal information - no useful details
   if (meaningfulFieldCount === 0) {
-    const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
+    const greeting = greetingName ? `Hi ${greetingName}!` : 'Hi!';
     const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
     // Build dynamic list of missing fields to request
     // Canonical intake requirements from voice flow:
@@ -1868,7 +1873,7 @@ export const formatAdaptiveIntakeSms = (
   }
   // Level B: Service only - personalized acknowledgment
   if (meaningfulFieldCount === 1 && hasRequest) {
-    const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
+    const greeting = greetingName ? `Hi ${greetingName}!` : 'Hi!';
     const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
     // Build dynamic list of missing fields to request
     // Details are optional - do not ask for them
@@ -1890,7 +1895,7 @@ export const formatAdaptiveIntakeSms = (
   }
   // Level C: Partial intake - service + some context
   if (meaningfulFieldCount === 2) {
-    const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
+    const greeting = greetingName ? `Hi ${greetingName}!` : 'Hi!';
     const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
     let body = `${prefix}${greeting}${businessPart}\n\nHere's what we captured:\n\n`;
     // Service (always show if available)
@@ -1921,7 +1926,7 @@ export const formatAdaptiveIntakeSms = (
   // Request is REQUIRED for complete intake
   if (!hasRequest) {
     // Fall back to partial intake if request is missing
-    const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
+    const greeting = greetingName ? `Hi ${greetingName}!` : 'Hi!';
     const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
     let body = `${prefix}${greeting}${businessPart}\n\nHere's what we captured:\n\n`;
     // Service (missing)
@@ -1946,7 +1951,7 @@ export const formatAdaptiveIntakeSms = (
     body += `Reply here with the missing details or anything else you'd like to add.`;
     return body.trim();
   }
-  const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
+  const greeting = greetingName ? `Hi ${greetingName}!` : 'Hi!';
   const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
   let body = `${prefix}${greeting}${businessPart}\n\nHere's what we captured:\n\n`;
   if (hasRequest) {
