@@ -4842,6 +4842,17 @@ async function buildCanonicalExtractedInfo(
     }
   }
 
+  // If the model produced an empty or unhelpful title, trust the explicitly
+  // extracted service field so the canonical record is not left as "Unknown request".
+  const lowerService = serviceRequested.toLowerCase();
+  if (!serviceRequested || serviceRequested.length === 0 || lowerService.startsWith('unknown') || lowerService.includes('unknown request')) {
+    const explicitService = fields.serviceRequested || fields.reasonForCalling || fields.request || fields.issueDescription || rawRequestText;
+    serviceRequested = sanitizeEnglishIntakeField('serviceRequested', explicitService);
+    console.log('[CANONICAL REQUEST FALLBACK] event: using_explicit_service_field');
+    console.log('[CANONICAL REQUEST FALLBACK] explicitService:', explicitService);
+    console.log('[CANONICAL REQUEST FALLBACK] serviceRequested:', serviceRequested);
+  }
+
   console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
   console.log('[CANONICAL REQUEST DIAGNOSTIC] event: canonical_fields_preserved');
   console.log('[CANONICAL REQUEST DIAGNOSTIC] serviceRequested length:', serviceRequested.length);
@@ -5147,37 +5158,90 @@ async function finalizeIncompleteIntake(
 
   if (!lead) {
     console.log('[INCOMPLETE FINALIZATION] No baseline lead available, creating/updating lead for callerPhone:', callerPhone);
-    const { data: upsertedLead, error: leadError } = await retrySupabaseOperation(
+    // Manual get-or-create: the schema does not guarantee a unique (business_id, caller_phone)
+    // constraint, so an upsert with onConflict would raise 42P10. We lookup first, then update
+    // by primary key or insert a new row.
+    const { data: existingLead, error: leadLookupError } = await retrySupabaseOperation(
       async () => {
-        const result = await supabase
+        return await supabase
           .from('leads')
-          .upsert({
-            business_id: businessId,
-            caller_phone: callerPhone,
-            status: 'new',
-            raw_metadata: {
-              ...canonicalInfo,
-              extracted_info: canonicalInfo,
-              ai_intake_completed: isCompleted,
-              ai_intake_completed_at: isCompleted ? new Date().toISOString() : undefined,
-            },
-          }, {
-            onConflict: 'business_id,caller_phone',
-          })
-          .select()
-          .single();
-        return result;
+          .select('id, raw_metadata')
+          .eq('business_id', businessId)
+          .eq('caller_phone', callerPhone)
+          .limit(1)
+          .maybeSingle();
       },
-      'Create/Update Lead',
+      'Lookup Lead By Caller',
       3,
       1000
     );
-    if (leadError) {
-      console.error('[INCOMPLETE FINALIZATION] Lead creation failed:', leadError, 'callSid:', callSid);
+
+    if (leadLookupError) {
+      console.error('[INCOMPLETE FINALIZATION] Lead lookup failed:', leadLookupError, 'callSid:', callSid);
       return;
     }
-    lead = upsertedLead;
-    console.log('[INCOMPLETE FINALIZATION] Lead created/updated:', lead.id);
+
+    if (existingLead) {
+      const { data: updatedLead, error: updateError } = await retrySupabaseOperation(
+        async () => {
+          return await supabase
+            .from('leads')
+            .update({
+              status: 'new',
+              raw_metadata: {
+                ...(existingLead.raw_metadata || {}),
+                ...canonicalInfo,
+                extracted_info: canonicalInfo,
+                ai_intake_completed: isCompleted,
+                ai_intake_completed_at: isCompleted ? new Date().toISOString() : (existingLead.raw_metadata?.ai_intake_completed_at || undefined),
+                ai_intake_outcome: incompleteOutcome,
+              }
+            })
+            .eq('id', existingLead.id)
+            .select()
+            .single();
+        },
+        'Update Existing Lead',
+        3,
+        1000
+      );
+      if (updateError) {
+        console.error('[INCOMPLETE FINALIZATION] Lead update failed:', updateError, 'callSid:', callSid);
+        return;
+      }
+      lead = updatedLead;
+      console.log('[INCOMPLETE FINALIZATION] Lead updated:', lead.id);
+    } else {
+      const { data: newLead, error: createError } = await retrySupabaseOperation(
+        async () => {
+          return await supabase
+            .from('leads')
+            .insert({
+              business_id: businessId,
+              caller_phone: callerPhone,
+              status: 'new',
+              raw_metadata: {
+                ...canonicalInfo,
+                extracted_info: canonicalInfo,
+                ai_intake_completed: isCompleted,
+                ai_intake_completed_at: isCompleted ? new Date().toISOString() : undefined,
+                ai_intake_outcome: incompleteOutcome,
+              }
+            })
+            .select()
+            .single();
+        },
+        'Create New Lead',
+        3,
+        1000
+      );
+      if (createError) {
+        console.error('[INCOMPLETE FINALIZATION] Lead creation failed:', createError, 'callSid:', callSid);
+        return;
+      }
+      lead = newLead;
+      console.log('[INCOMPLETE FINALIZATION] Lead created:', lead.id);
+    }
   }
 
   if (baselineConversationId) {
@@ -12146,6 +12210,12 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
                     console.log('[STAGE TRANSITION] =========================================');
 
+                    // If resolver jumped straight to complete, start durable persistence immediately
+                    // before the complete prompt begins, so close handlers can await the promise.
+                    if (state.currentStage === 'complete') {
+                      processSimpleModeCompletion().catch(() => {});
+                    }
+
                     sendPrompt(state.currentStage);
                   } else {
                     // Missing one or both fields: reprompt with targeted prompt variant
@@ -12229,9 +12299,13 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
                   console.log('[STAGE TRANSITION] =========================================');
 
+                  // Start durable completion persistence before playing the final prompt so
+                  // the close handler has a real promise to await.
+                  processSimpleModeCompletion().catch(() => {});
+
                   sendPrompt('complete');
 
-                  // Run completion persistence immediately after setting stage to complete
+                  // Re-invoke in case the prompt path raced past the initial call.
                   processSimpleModeCompletion().catch(() => {});
                 }
               }
@@ -13216,6 +13290,11 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[ASK_NAME_REASON ROUTING DECISION] Timestamp:', new Date().toISOString());
                 console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
 
+                // If the resolver jumped straight to complete, start durable persistence before the prompt.
+                if (state.currentStage === 'complete') {
+                  processSimpleModeCompletion().catch(() => {});
+                }
+
                 sendPrompt(state.currentStage, undefined, 'normal_stage_advancement', authorizedTurnId);
               } else if (isFinalStage) {
                 // Final stage (ask_callback_time) completed - advance to complete
@@ -13248,9 +13327,13 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[ASK_NAME_REASON ROUTING DECISION] Timestamp:', new Date().toISOString());
                 console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
 
+                // Start durable completion persistence before playing the final prompt so
+                // the close handler has a real promise to await.
+                processSimpleModeCompletion().catch(() => {});
+
                 sendPrompt('complete', undefined, 'final_stage_completion', authorizedTurnId);
 
-                // Run completion persistence immediately after setting stage to complete
+                // Re-invoke in case the prompt path raced past the initial call.
                 processSimpleModeCompletion().catch(() => {});
               }
             } else if (isFinalStage) {

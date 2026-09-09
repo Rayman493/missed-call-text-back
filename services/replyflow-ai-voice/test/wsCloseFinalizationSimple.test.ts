@@ -180,6 +180,46 @@ describe('Simple Mode - WebSocket close finalization handoff', () => {
     assert.equal(calls[0][8]?.rawRequestTranscript, 'I need a toilet repaired at 100 Main Street', 'passes raw request transcript for canonical extraction');
   });
 
+  it('forces completed fallback when direct skip-ahead reaches complete without a persistence promise', async () => {
+    const calls: any[] = [];
+    const state: any = {
+      callSid: 'CA_jw_direct',
+      businessId: 'biz_jw',
+      callerPhone: '+15551234567',
+      businessName: 'Biz',
+      forwardedFrom: '',
+      intakeData: {
+        customerName: 'Jason Williams',
+        serviceRequested: 'a toilet repaired',
+        serviceAddress: '100 Main Street',
+        desiredCompletionTime: 'Friday',
+        callbackTime: 'tomorrow morning',
+      },
+      stageCaptures: [
+        { stage: 'ask_name_reason', rawTranscript: 'My name is Jason Williams. I need a toilet repaired at 100 Main Street. I\'d like it done Friday and call me tomorrow morning.', capturedAnswer: 'My name is Jason Williams. I need a toilet repaired at 100 Main Street. I\'d like it done Friday and call me tomorrow morning.', extractedField: 'serviceRequested', source: 'test', timestamp: new Date().toISOString() },
+      ],
+      transcript: 'My name is Jason Williams. I need a toilet repaired at 100 Main Street. I\'d like it done Friday and call me tomorrow morning.',
+      completionPersistenceSucceeded: false,
+      completionPersistenceFailed: false,
+      completionPersistencePromise: null,
+      currentStage: 'complete',
+      serviceLocationType: 'onsite',
+    };
+
+    const deps = {
+      supabase: {} as any,
+      finalizeIncompleteIntake: async (...args: any[]) => {
+        calls.push(args);
+      }
+    };
+
+    await finalizeIncompleteOnWebsocketCloseSimple(state, deps);
+    assert.equal(calls.length, 1, 'fallback invoked for completed direct skip-ahead');
+    assert.equal(calls[0][8]?.forceCompleteFallback, true, 'forces complete fallback when currentStage is complete');
+    assert.equal(calls[0][8]?.serviceLocationType, 'onsite', 'passes service location type');
+    assert.equal(calls[0][8]?.rawRequestTranscript, state.stageCaptures[0].rawTranscript, 'passes raw request transcript');
+  });
+
   it('does not invoke fallback when there is no captured data', async () => {
     const calls: any[] = [];
     const state: any = {
