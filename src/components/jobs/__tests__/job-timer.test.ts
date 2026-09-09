@@ -11,6 +11,7 @@ import {
 } from '@/lib/job-time-utils'
 
 const migrationContent = readFileSync('supabase/migrations/20260918000000_create_job_time_entries.sql', 'utf8')
+const uniquenessMigrationContent = readFileSync('supabase/migrations/20260918000001_unique_active_timer_per_business.sql', 'utf8')
 const routeContent = readFileSync('src/app/api/jobs/[id]/time-entries/route.ts', 'utf8')
 const entryRouteContent = readFileSync('src/app/api/jobs/[id]/time-entries/[entryId]/route.ts', 'utf8')
 const timerContent = readFileSync('src/components/jobs/JobTimer.tsx', 'utf8')
@@ -389,5 +390,82 @@ describe('Time Tracking — App Lifecycle Recovery', () => {
     expect(modalContent).toContain('handleStatusChange')
     expect(modalContent).toContain('handleDelete')
     expect(modalContent).toContain('onEdit')
+  })
+})
+
+describe('Time Tracking — Active-Timer Uniqueness Hardening (Batch 11 Follow-up)', () => {
+  it('migration creates a UNIQUE partial index on business_id WHERE ended_at IS NULL', () => {
+    expect(uniquenessMigrationContent).toContain('create unique index')
+    expect(uniquenessMigrationContent).toContain('job_time_entries_one_active_per_business_idx')
+    expect(uniquenessMigrationContent).toContain('on job_time_entries (business_id)')
+    expect(uniquenessMigrationContent).toContain('where ended_at is null')
+  })
+
+  it('migration drops the old non-unique partial index before creating the unique one', () => {
+    expect(uniquenessMigrationContent).toContain('drop index if exists job_time_entries_active_idx')
+  })
+
+  it('database enforces at most one active timer per business regardless of API races', () => {
+    // The unique partial index is the source of truth, not just API pre-checks
+    expect(uniquenessMigrationContent).toContain('create unique index if not exists')
+  })
+
+  it('same-job concurrent Start resolves idempotently (re-fetches existing active entry)', () => {
+    // After a 23505 unique violation, the route re-fetches and returns the existing entry
+    expect(routeContent).toContain("insertError?.code === '23505'")
+    expect(routeContent).toContain('racedActive.job_id === jobId')
+    // Returns the existing entry, not an error
+    expect(routeContent).toContain('return NextResponse.json({ entry: { id: racedActive.id')
+  })
+
+  it('different-job concurrent Start returns canonical 409 timer_already_active', () => {
+    expect(routeContent).toContain("insertError?.code === '23505'")
+    // After re-fetch, if the active entry is for a different job, return 409
+    expect(routeContent).toContain('racedActive.job_id === jobId')
+    // The else branch returns 409 with activeJob info
+    expect(routeContent).toContain("'timer_already_active'")
+    expect(routeContent).toContain('409')
+  })
+
+  it('raw PostgreSQL/Supabase unique violation text is never exposed to the client', () => {
+    // The 23505 branch returns clean JSON, never the raw error
+    // The non-23505 branch returns "Failed to start timer", never the raw error
+    expect(routeContent).not.toContain('duplicate key value violates unique constraint')
+    expect(routeContent).not.toContain('insertError.message')
+    // Raw error is only used in console.error (server logs), never in a response
+    expect(routeContent).not.toContain('NextResponse.json(insertError')
+    // The response in the 23505 branch uses clean messages
+    expect(routeContent).toContain("'Another timer is already running'")
+    expect(routeContent).toContain("'Failed to start timer'")
+  })
+
+  it('reopening an entry (PATCH ended_at → null) is protected by the same invariant', () => {
+    // PATCH route also handles 23505 from the unique index when reopening
+    expect(entryRouteContent).toContain("error?.code === '23505'")
+    expect(entryRouteContent).toContain("'timer_already_active'")
+    expect(entryRouteContent).toContain('409')
+  })
+
+  it('PATCH reopen race never exposes raw DB error text', () => {
+    expect(entryRouteContent).not.toContain('duplicate key value violates unique constraint')
+    expect(entryRouteContent).not.toContain('error.message')
+    // Clean error message only
+    expect(entryRouteContent).toContain("'Another timer is already active'")
+    expect(entryRouteContent).toContain("'Failed to update time entry'")
+  })
+
+  it('pre-check is still present for useful conflict messages', () => {
+    // The API still does the pre-check before insert to give a helpful message
+    expect(routeContent).toContain('.is(\'ended_at\', null)')
+    expect(routeContent).toContain('activeEntries.job_id === jobId')
+  })
+
+  it('normal Start/Stop behavior is unchanged', () => {
+    // Start still inserts with started_at and null ended_at
+    expect(routeContent).toContain('started_at: new Date().toISOString()')
+    expect(routeContent).toContain('ended_at: null')
+    // Stop still finds active entry and sets ended_at
+    expect(routeContent).toContain("update({ ended_at: endedAt })")
+    expect(routeContent).toContain('No active timer for this job')
   })
 })

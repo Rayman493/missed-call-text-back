@@ -93,6 +93,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       .single()
 
     if (error || !entry) {
+      // Race condition: reopening this entry (ended_at → null) collided with
+      // another concurrent Start or reopen. The unique partial index rejects us.
+      // PostgreSQL unique-violation code is 23505.
+      if (error?.code === '23505') {
+        return NextResponse.json({ error: 'Another timer is already active', code: 'timer_already_active' }, { status: 409 })
+      }
+      // Non-race update error — never expose raw DB error text
       console.error('[Time Entries API] PATCH error:', error)
       return NextResponse.json({ error: 'Failed to update time entry' }, { status: 500 })
     }

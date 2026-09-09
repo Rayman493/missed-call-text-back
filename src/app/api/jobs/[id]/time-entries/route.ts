@@ -111,6 +111,35 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         .single()
 
       if (insertError || !entry) {
+        // Race condition: another concurrent Start inserted first.
+        // The unique partial index (business_id WHERE ended_at IS NULL) rejects us.
+        // PostgreSQL unique-violation code is 23505.
+        if (insertError?.code === '23505') {
+          // Re-fetch the now-existing active entry to resolve idempotently
+          const { data: racedActive } = await supabase
+            .from('job_time_entries')
+            .select('id, job_id, started_at, jobs!inner(id, title)')
+            .eq('business_id', businessId)
+            .is('ended_at', null)
+            .maybeSingle()
+
+          if (racedActive) {
+            // Same-job race → return the existing active entry (idempotent)
+            if (racedActive.job_id === jobId) {
+              return NextResponse.json({ entry: { id: racedActive.id, job_id: racedActive.job_id, started_at: racedActive.started_at, ended_at: null } })
+            }
+            // Different-job race → return canonical 409
+            const otherJob = (racedActive as any).jobs
+            return NextResponse.json({
+              error: 'Another timer is already running',
+              activeJob: { id: racedActive.job_id, title: otherJob?.title || 'another job' },
+              code: 'timer_already_active',
+            }, { status: 409 })
+          }
+          // Fallback if re-fetch finds nothing (shouldn't happen)
+          return NextResponse.json({ error: 'Failed to start timer' }, { status: 500 })
+        }
+        // Non-race insert error — never expose raw DB error text
         console.error('[Time Entries API] Start error:', insertError)
         return NextResponse.json({ error: 'Failed to start timer' }, { status: 500 })
       }
