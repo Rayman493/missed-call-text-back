@@ -126,6 +126,71 @@ function hasMeaningfulDetails(intakeData: any): { hasDetails: boolean; detailsVa
   return { hasDetails: false, detailsValue: '' };
 }
 
+// Normalize text for loose comparison so "Lawn Mowing" and "lawn mowing." are treated as duplicates
+function normalizeForComparison(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[.,!?;:'"\-–—]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Resolve the canonical Details row value for an AI intake summary.
+// Always returns a non-empty string; falls back to a customer-friendly placeholder.
+function resolveDetailsValue(
+  intakeData: any,
+  serviceRequested: string
+): { detailsValue: string; hasDetails: boolean } {
+  const FALLBACK = 'No additional details provided';
+  if (!intakeData || typeof intakeData !== 'object') {
+    return { detailsValue: FALLBACK, hasDetails: false };
+  }
+
+  const isUsableDetails = (value: string | null | undefined): value is string => {
+    if (!value || typeof value !== 'string') return false;
+    const trimmed = value.trim();
+    if (trimmed === '') return false;
+    if (trimmed.toLowerCase() === 'not collected') return false;
+    if (isPlaceholderValue(trimmed, PLACEHOLDER_SERVICES)) return false;
+    return true;
+  };
+
+  const isDuplicateOfRequest = (value: string): boolean => {
+    if (!serviceRequested || serviceRequested.trim() === '') return false;
+    return normalizeForComparison(value) === normalizeForComparison(serviceRequested);
+  };
+
+  // Priority 1: canonical details fields
+  const detailFields = [
+    intakeData?.importantDetails,
+    intakeData?.additionalDetails,
+    intakeData?.issueDescription,
+    intakeData?.additional_details,
+    intakeData?.requestDetails,
+  ];
+  for (const candidate of detailFields) {
+    if (isUsableDetails(candidate) && !isDuplicateOfRequest(candidate)) {
+      return { detailsValue: candidate.trim(), hasDetails: true };
+    }
+  }
+
+  // Priority 2: reasonForCalling when it carries richer context than the normalized request
+  const reasonForCalling = intakeData?.reasonForCalling ?? intakeData?.serviceRequested ?? '';
+  if (isUsableDetails(reasonForCalling)) {
+    const normalizedReason = normalizeServiceReason(reasonForCalling);
+    if (
+      normalizedReason &&
+      normalizedReason !== 'Not collected' &&
+      !isPlaceholderValue(normalizedReason, PLACEHOLDER_SERVICES) &&
+      !isDuplicateOfRequest(normalizedReason)
+    ) {
+      return { detailsValue: normalizedReason, hasDetails: true };
+    }
+  }
+
+  return { detailsValue: FALLBACK, hasDetails: false };
+}
+
 // Helper function to safely trim and capitalize text
 // This is a low-level helper that does NOT apply conversational filler removal
 export const safeTrimAndCapitalize = (text: string | null | undefined): string => {
@@ -1659,8 +1724,6 @@ export const formatAiIntakeSummary = (
   const callbackTime = normalizeCallbackTime(
     intakeData?.callbackTime ?? intakeData?.preferredCallbackTime
   );
-  // Extract details field separately from request
-  const { hasDetails, detailsValue } = hasMeaningfulDetails(intakeData);
   // Use canonical request field for SMS (concise, professional summary)
   // Match completion checker alias resolution: serviceRequested || reasonForCalling || request || issueDescription
   const serviceRequestedRaw = normalizeServiceReason(
@@ -1677,6 +1740,8 @@ export const formatAiIntakeSummary = (
     serviceRequestedTitle === 'Not collected' ||
     isPlaceholderValue(serviceRequestedTitle, PLACEHOLDER_SERVICES);
   const serviceRequested = serviceRequestedIsPlaceholder ? serviceRequestedRaw : serviceRequestedTitle;
+  // Resolve the Details row using the richest canonical source available
+  const { detailsValue } = resolveDetailsValue(intakeData, serviceRequested);
   // Determine which fields have actual meaningful values
   const hasName = (customerName && customerName.trim() !== '' && !isPlaceholderValue(customerName, PLACEHOLDER_NAMES)) || !!intakeData?.nameRefused;
   const hasRequest = serviceRequested &&
@@ -1710,8 +1775,11 @@ export const formatAiIntakeSummary = (
   }
   // Determine which meaningful fields are captured (only show actual captured values, not "Not collected")
   const capturedFields: string[] = [];
-  if (hasRequest) capturedFields.push(`• Request: ${serviceRequested}`);
-  if (hasDetails) capturedFields.push(`• Details: ${detailsValue}`);
+  if (hasRequest) {
+    capturedFields.push(`• Request: ${serviceRequested}`);
+    // The Details row is always shown once a request is captured so the summary never feels incomplete.
+    capturedFields.push(`• Details: ${detailsValue}`);
+  }
   if (hasAddress) capturedFields.push(`• Address: ${serviceAddress}`);
   if (hasCompletionTime) capturedFields.push(`• Desired completion: ${desiredCompletionTime}`);
   if (hasCallbackTime) capturedFields.push(`• Preferred callback: ${callbackTime}`);
