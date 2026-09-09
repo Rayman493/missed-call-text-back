@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { getMarkerTapAction } from '@/lib/map-utils'
 
 describe('ScheduleMap - Date Comparison', () => {
   it('should use local timezone for date comparison', () => {
@@ -540,5 +541,26 @@ describe('ScheduleMap - Stop Selection Behavior', () => {
     const DOUBLE_TAP_DELAY_MS = 300
     const isDoubleTap = timeBetweenTaps < DOUBLE_TAP_DELAY_MS
     expect(isDoubleTap).toBe(true)
+  })
+})
+
+describe('ScheduleMap - Marker Tap Action', () => {
+  it('touch single tap always focuses', () => {
+    expect(getMarkerTapAction({ isTouchDevice: true, isSelected: false, isDoubleClick: false })).toBe('focus')
+    expect(getMarkerTapAction({ isTouchDevice: true, isSelected: true, isDoubleClick: false })).toBe('focus')
+    expect(getMarkerTapAction({ isTouchDevice: true, isSelected: false, isDoubleClick: true })).toBe('focus')
+  })
+
+  it('desktop single tap on unselected stop selects', () => {
+    expect(getMarkerTapAction({ isTouchDevice: false, isSelected: false, isDoubleClick: false })).toBe('select')
+  })
+
+  it('desktop single tap on selected stop deselects', () => {
+    expect(getMarkerTapAction({ isTouchDevice: false, isSelected: true, isDoubleClick: false })).toBe('deselect')
+  })
+
+  it('desktop double click focuses', () => {
+    expect(getMarkerTapAction({ isTouchDevice: false, isSelected: false, isDoubleClick: true })).toBe('focus')
+    expect(getMarkerTapAction({ isTouchDevice: false, isSelected: true, isDoubleClick: true })).toBe('focus')
   })
 })

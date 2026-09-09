@@ -5,7 +5,7 @@ import { MapPin, Calendar, Briefcase, AlertCircle, ChevronLeft, ChevronRight, Fi
 import Link from 'next/link'
 import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
-import { isValidCoordinate } from '@/lib/map-utils'
+import { isValidCoordinate, getMarkerTapAction } from '@/lib/map-utils'
 import { formatEventTimeRange, formatTime12Hour } from '@/lib/calendar-date-utils'
 import { createBrowserClient } from '@/lib/supabase/browser'
 
@@ -293,6 +293,16 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
     return 'roadmap'
   })
 
+  // Detect touch devices once; capability does not change during the session.
+  const isTouchDevice = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    const mql = window.matchMedia('(pointer: coarse)')
+    const hasCoarsePointer = mql.matches
+    const hasTouchStart = 'ontouchstart' in window
+    const hasMaxTouchPoints = typeof navigator !== 'undefined' && (navigator.maxTouchPoints ?? 0) > 0
+    return hasCoarsePointer || hasTouchStart || hasMaxTouchPoints
+  }, [])
+
   const [showAllMode, setShowAllMode] = useState(true)
   const [leadCache, setLeadCache] = useState<Map<string, { name: string | null; phone: string | null }>>(new Map()) // Cache for lead data to avoid N+1 queries
 
@@ -304,23 +314,18 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 const PRODUCTION_MAP_ID = 'c783fbbc07696bfd5be1f3c6'
 
 // Canonical helper to focus on a stop on the map (used by marker and card double-click)
+// Uses panToMarker for a single smooth camera animation instead of stacking pan/zoom calls.
 const focusStopOnMap = (itemId: string, latitude: number | null, longitude: number | null) => {
-  const targetZoom = 16
+  if (latitude === null || longitude === null) return
 
-  // Select the stop (only if coordinates are valid)
-  if (latitude !== null && longitude !== null) {
-    selectMapItem(itemId, latitude, longitude)
+  setSelectedMapItemId(itemId)
+  setShowAllMode(false)
 
-    // Pan to stop
-    if (googleMapRef.current) {
-      googleMapRef.current.panTo({ lat: latitude, lng: longitude })
-
-      // Zoom in only if current zoom is below target
-      const currentZoom = googleMapRef.current.getZoom() ?? 0
-      if (currentZoom < targetZoom) {
-        googleMapRef.current.setZoom(targetZoom)
-      }
-    }
+  if (googleMapRef.current) {
+    const currentZoom = googleMapRef.current.getZoom() ?? 0
+    // Zoom in if needed, but never zoom out on an already-focused stop.
+    const targetZoom = Math.max(currentZoom, 16)
+    panToMarker(latitude, longitude, { zoom: targetZoom }, 'focus_stop_on_map')
   }
 }
 
@@ -1893,18 +1898,21 @@ useEffect(() => {
             const now = Date.now()
             const lastClick = lastClickTimeRef.current.get(item.id) ?? 0
             const timeSinceLastClick = now - lastClick
+            const isDoubleClick = timeSinceLastClick < DOUBLE_TAP_DELAY_MS
 
-            // Check if this is a double-tap/click
-            if (timeSinceLastClick < DOUBLE_TAP_DELAY_MS) {
-              // Double-tap: focus on map (select + pan + zoom)
+            const action = getMarkerTapAction({
+              isTouchDevice,
+              isSelected: selectedMapItemId === item.id,
+              isDoubleClick
+            })
+
+            if (action === 'focus') {
               focusStopOnMap(item.id, item.latitude, item.longitude)
-              lastClickTimeRef.current.delete(item.id) // Reset to prevent triple-tap
-            } else if (selectedMapItemId === item.id) {
-              // Single tap on already selected stop: deselect only (state only)
+              lastClickTimeRef.current.delete(item.id)
+            } else if (action === 'deselect') {
               clearSelectedStop()
               lastClickTimeRef.current.set(item.id, now)
             } else {
-              // Single-tap: just select
               selectMapItem(item.id, item.latitude, item.longitude)
               lastClickTimeRef.current.set(item.id, now)
             }
@@ -1924,14 +1932,6 @@ useEffect(() => {
             setSelectedMarker(markerInfo) // Still show popup for easy access to other items
           }
         })
-
-        // Keep dblclick for desktop as a fallback (some browsers prefer native dblclick)
-        if (!isBusinessMarker && markerInfo.items.length === 1) {
-          marker.addListener('dblclick', () => {
-            const item = markerInfo.items[0]
-            focusStopOnMap(item.id, item.latitude, item.longitude)
-          })
-        }
 
         // Add hover feedback for desktop discoverability
         marker.addListener('mouseenter', () => {
@@ -2335,11 +2335,18 @@ useEffect(() => {
   const handleItemClick = (item: MapItem) => {
     const now = Date.now()
     const lastClick = lastClickTimeRef.current.get(item.id) ?? 0
-    const isDouble = now - lastClick < DOUBLE_TAP_DELAY_MS
+    const isDoubleClick = now - lastClick < DOUBLE_TAP_DELAY_MS
     lastClickTimeRef.current.set(item.id, now)
-    if (isDouble && item.type !== 'business') {
+
+    const action = getMarkerTapAction({
+      isTouchDevice,
+      isSelected: selectedMapItemId === item.id,
+      isDoubleClick
+    })
+
+    if (action === 'focus' && item.type !== 'business') {
       focusStopOnMap(item.id, item.latitude, item.longitude)
-    } else if (selectedMapItemId === item.id) {
+    } else if (action === 'deselect') {
       clearSelectedStop()
     } else {
       selectMapItem(item.id, item.latitude, item.longitude)

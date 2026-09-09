@@ -10,27 +10,27 @@ export function isValidCoordinate(lat: number | null | undefined, lng: number | 
   if (lat === null || lat === undefined || lng === null || lng === undefined) {
     return false
   }
-  
+
   // Check for NaN
   if (isNaN(lat) || isNaN(lng)) {
     return false
   }
-  
+
   // Check for 0,0 placeholder (Null Island)
   if (Math.abs(lat) < 0.001 && Math.abs(lng) < 0.001) {
     return false
   }
-  
+
   // Check for valid latitude range (-90 to 90)
   if (lat < -90 || lat > 90) {
     return false
   }
-  
+
   // Check for valid longitude range (-180 to 180)
   if (lng < -180 || lng > 180) {
     return false
   }
-  
+
   return true
 }
 
@@ -56,7 +56,39 @@ export function getResponsiveMapPadding(isMobile: boolean, bottomNavHeight: numb
       top: 60, // Header
       right: 40, // Right cushion
       bottom: 40, // Bottom cushion
-      left: 40 // Left cushion
+      left: 40 // Left edge cushion
     }
   }
+}
+
+export type MarkerTapAction = 'focus' | 'select' | 'deselect'
+
+/**
+ * Determine the intended action for a marker or schedule-item tap.
+ *
+ * On touch devices a single tap should always focus, because double-tap
+ * detection is unreliable on mobile (native map gestures, double-tap zoom,
+ * and inconsistent click timing can consume the second touch).
+ *
+ * On desktop, single click selects/deselects and double click focuses.
+ */
+export function getMarkerTapAction({
+  isTouchDevice,
+  isSelected,
+  isDoubleClick
+}: {
+  isTouchDevice: boolean
+  isSelected: boolean
+  isDoubleClick: boolean
+}): MarkerTapAction {
+  if (isTouchDevice) {
+    return 'focus'
+  }
+  if (isDoubleClick) {
+    return 'focus'
+  }
+  if (isSelected) {
+    return 'deselect'
+  }
+  return 'select'
 }
