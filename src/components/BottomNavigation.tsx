@@ -292,7 +292,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
           {/* Bottom Navigation Bar - Mobile Only - Improved touch targets */}
           <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe lg:hidden">
         <div className="mx-auto max-w-7xl px-2 pb-2 sm:px-4" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-          <div className="flex h-16 items-center justify-around rounded-3xl border border-border bg-card/95 px-1 shadow-lg backdrop-blur-xl dark:shadow-[0_1px_0_rgba(255,255,255,0.04),0_-20px_70px_rgba(2,6,23,0.62)]">
+          <div className="flex h-16 items-center justify-around rounded-3xl border border-border bg-slate-50/95 dark:bg-card/95 px-1 shadow-md backdrop-blur-xl dark:shadow-[0_1px_0_rgba(255,255,255,0.04),0_-20px_70px_rgba(2,6,23,0.62)]">
             {primaryNavItems.map((item) => {
               const Icon = item.icon
               return (
@@ -332,16 +332,10 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   }}
                   className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-colors duration-150 ${
                     isActive(item.href)
-                      ? 'text-foreground'
+                      ? 'text-foreground dark:text-white bg-blue-500/10 dark:bg-blue-500/15'
                       : 'text-muted-foreground active:text-foreground'
                   }`}
                 >
-                  {isActive(item.href) && (
-                    <>
-                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 bg-blue-500/[0.30] blur-[8px] rounded-full -z-10 dark:bg-blue-500/[0.40]" />
-                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 bg-blue-500/[0.08] blur-[16px] rounded-full -z-10 dark:bg-blue-500/[0.12]" />
-                    </>
-                  )}
                   <Icon className="w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200" />
                   <span className={`text-[10px] sm:text-[10px] font-normal transition-colors duration-200 ${
                     isActive(item.href) ? 'font-semibold' : ''
@@ -356,16 +350,10 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
               onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
               className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-colors duration-150 ${
                 isMoreMenuOpen
-                  ? 'text-foreground'
+                  ? 'text-foreground dark:text-white bg-blue-500/10 dark:bg-blue-500/15'
                   : 'text-muted-foreground active:text-foreground'
               }`}
             >
-              {isMoreMenuOpen && (
-                <>
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 bg-blue-500/[0.30] blur-[8px] rounded-full -z-10 dark:bg-blue-500/[0.40]" />
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 bg-blue-500/[0.08] blur-[16px] rounded-full -z-10 dark:bg-blue-500/[0.12]" />
-                </>
-              )}
                 <Settings className="w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200" />
               <span className={`text-[10px] sm:text-[10px] font-normal transition-colors duration-200 ${
                 isMoreMenuOpen ? 'font-semibold' : ''
