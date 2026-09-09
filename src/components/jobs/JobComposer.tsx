@@ -8,6 +8,7 @@ import TimePicker from '@/components/ui/TimePicker'
 import { getCustomerStatusStyle } from '@/lib/customer-status'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 import AddCustomerModal from '@/components/AddCustomerModal'
+import JobTimer from '@/components/jobs/JobTimer'
 import { firstNonPlaceholder, normalizeEditableContext, getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 import { useBusiness } from '@/contexts/BusinessContext'
@@ -430,6 +431,11 @@ export default function JobComposer({
                 style={{ WebkitOverflowScrolling: 'touch' }}
               />
             </div>
+
+            {/* Time Tracking — only in edit mode (requires persisted job.id) */}
+            {editJob && (
+              <JobTimer jobId={editJob.id} />
+            )}
 
             {error && (
               <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
