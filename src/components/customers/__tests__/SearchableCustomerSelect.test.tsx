@@ -254,4 +254,21 @@ describe('SearchableCustomerSelect', () => {
   it('scrolls the picker into view when opening the searchable dropdown', () => {
     expect(content).toContain('scrollIntoView')
   })
+
+  it('applies a scoped customer-dropdown-scroll class to the results list', () => {
+    expect(content).toContain('customer-dropdown-scroll')
+  })
+
+  it('keeps results list scroll ownership with overflow-y-auto and data-scroll-lock-allow', () => {
+    expect(content).toContain('overflow-y-auto flex-1 min-h-0 overscroll-contain touch-pan-y customer-dropdown-scroll')
+    expect(content).toContain('data-scroll-lock-allow')
+  })
+
+  it('adds right padding so customer text is not overlapped by the scrollbar', () => {
+    expect(content).toContain('customer-dropdown-scroll pr-1')
+  })
+
+  it('preserves WebkitOverflowScrolling momentum scrolling on the results list', () => {
+    expect(content).toContain("style={{ WebkitOverflowScrolling: 'touch' }}")
+  })
 })

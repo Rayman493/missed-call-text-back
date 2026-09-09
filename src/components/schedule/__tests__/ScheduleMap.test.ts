@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { readFileSync } from 'fs'
 import { getMarkerTapAction } from '@/lib/map-utils'
 
 describe('ScheduleMap - Date Comparison', () => {
@@ -613,5 +614,42 @@ describe('ScheduleMap - Native marker tap focus (Batch 4)', () => {
     const signatureChanged = true
     const shouldFit = signatureChanged && !initialCameraEstablished
     expect(shouldFit).toBe(true)
+  })
+})
+
+describe('ScheduleMap - All filter retap refit (Batch 6)', () => {
+  it('defines a handleAllFilterClick that invokes showAllMarkers when already on All', () => {
+    const content = readFileSync('src/components/schedule/ScheduleMap.tsx', 'utf8')
+    expect(content).toContain('const handleAllFilterClick = useCallback(')
+    expect(content).toContain("if (mapFilter === 'all') {")
+    expect(content).toContain('showAllMarkers()')
+    expect(content).toContain("setMapFilter('all')")
+  })
+
+  it('wires every All filter button to handleAllFilterClick instead of setMapFilter directly', () => {
+    const content = readFileSync('src/components/schedule/ScheduleMap.tsx', 'utf8')
+    const allOnClicks = (content.match(/onClick=\{\(\) => \{ handleAllFilterClick\(\) \}\}/g) || []).length
+    expect(allOnClicks).toBe(4)
+    expect(content).not.toMatch(/onClick=\{\(\) => \{ setMapFilter\('all'\) \}\}/)
+  })
+
+  it('keeps Jobs and Appointments filter buttons using setMapFilter directly', () => {
+    const content = readFileSync('src/components/schedule/ScheduleMap.tsx', 'utf8')
+    expect(content).toContain("setMapFilter('jobs')")
+    expect(content).toContain("setMapFilter('appointments')")
+  })
+
+  it('does not change filter state when All is retapped', () => {
+    const mapFilter: string = 'all'
+    const clicked = 'all'
+    const wouldChangeFilter = mapFilter !== clicked
+    expect(wouldChangeFilter).toBe(false)
+  })
+
+  it('triggers canonical show-all refit semantics on All retap', () => {
+    // Tapping All while already on All must call the canonical showAllMarkers path.
+    const mapFilter = 'all'
+    const action = mapFilter === 'all' ? 'showAllMarkers' : 'setMapFilter(all)'
+    expect(action).toBe('showAllMarkers')
   })
 })

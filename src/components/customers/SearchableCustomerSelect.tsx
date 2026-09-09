@@ -342,7 +342,7 @@ export default function SearchableCustomerSelect({
         >
           {/* Results list */}
           <div
-            className="overflow-y-auto flex-1 min-h-0 overscroll-contain touch-pan-y"
+            className="overflow-y-auto flex-1 min-h-0 overscroll-contain touch-pan-y customer-dropdown-scroll pr-1"
             data-scroll-lock-allow
             style={{ WebkitOverflowScrolling: 'touch' }}
           >

@@ -197,7 +197,7 @@ export default function BusinessActivityGraph() {
           <div className="h-[260px]">
             <ChartTouchWrapper>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={CHART_STYLES.margin}>
+                <LineChart data={data} margin={{ ...CHART_STYLES.margin, bottom: 12 }}>
                   <CartesianGrid
                     strokeDasharray={CHART_STYLES.gridStrokeDasharray}
                     stroke={CHART_STYLES.gridStroke}
@@ -251,45 +251,51 @@ export default function BusinessActivityGraph() {
                   )}
                   <Legend
                     content={({ payload }: any) => (
-                      <div className="flex flex-wrap gap-2 sm:gap-3 justify-center pt-2">
-                        {payload.map((entry: any, index: number) => {
-                          const key = entry.dataKey as string
-                          const label = SERIES_LABELS[key] || entry.dataKey
-                          const hidden = hiddenSeries.includes(key)
-                          const total = hidden
-                            ? 0
-                            : data.reduce((sum, day) => {
-                                const value = day[key as keyof ActivityData]
-                                return sum + (typeof value === 'number' ? value : 0)
-                              }, 0)
-                          return (
-                            <button
-                              key={index}
-                              type="button"
-                              onClick={() => toggleSeries(key)}
-                              aria-pressed={!hidden}
-                              className={`flex items-center gap-1.5 rounded-md px-2 py-1 transition-opacity duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                                hidden ? 'opacity-40 line-through' : 'opacity-100'
-                              }`}
-                            >
-                              <span
-                                className="w-2.5 h-2.5 rounded-full"
-                                style={{ backgroundColor: entry.color }}
-                                aria-hidden="true"
-                              />
-                              <span className="text-[10px] text-muted-foreground">
-                                {label}: <span className="font-medium text-foreground">{total}</span>
-                              </span>
-                            </button>
-                          )
-                        })}
+                      <div className="flex flex-col items-center justify-center gap-1 h-full px-2">
+                        <p className="text-[10px] text-muted-foreground/60 leading-none mb-0.5">
+                          Tap metrics to show or hide
+                        </p>
+                        <div className="flex flex-wrap gap-2 sm:gap-3 justify-center" role="group" aria-label="Metric filters">
+                          {payload.map((entry: any, index: number) => {
+                            const key = entry.dataKey as string
+                            const label = SERIES_LABELS[key] || entry.dataKey
+                            const hidden = hiddenSeries.includes(key)
+                            const total = hidden
+                              ? 0
+                              : data.reduce((sum, day) => {
+                                  const value = day[key as keyof ActivityData]
+                                  return sum + (typeof value === 'number' ? value : 0)
+                                }, 0)
+                            return (
+                              <button
+                                key={index}
+                                type="button"
+                                onClick={() => toggleSeries(key)}
+                                aria-pressed={!hidden}
+                                aria-label={`${hidden ? 'Show' : 'Hide'} ${label}`}
+                                className={`flex items-center gap-1.5 rounded-md px-2 py-1 min-h-[28px] transition-opacity duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                                  hidden ? 'opacity-40 line-through' : 'opacity-100'
+                                }`}
+                              >
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full"
+                                  style={{ backgroundColor: entry.color }}
+                                  aria-hidden="true"
+                                />
+                                <span className="text-[10px] text-muted-foreground">
+                                  {label}: <span className="font-medium text-foreground">{total}</span>
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
                       </div>
                     )}
-                    wrapperStyle={{ paddingTop: '12px' }}
+                    wrapperStyle={{ paddingTop: 0 }}
                     iconType="circle"
                     iconSize={CHART_STYLES.legendIconSize}
                     verticalAlign="bottom"
-                    height={28}
+                    height={64}
                   />
                   <Line
                     type="monotone"
