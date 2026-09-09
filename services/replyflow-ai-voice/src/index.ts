@@ -7330,6 +7330,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         }
 
         const trimmed = text.trim();
+
+        // Refusal must take precedence over generic name parsing so refusal prose
+        // is never treated as the caller's name.
+        if (isNameRefusal(trimmed)) {
+          parserRuleMatched = 'name_refused';
+          return { customerName: existingName ?? '', serviceRequested: existingService ?? '' };
+        }
+
         let customerName = existingName ?? trimmed;
         let serviceRequested = existingService ?? '';
 
@@ -7714,6 +7722,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         }
 
         const trimmed = text.trim();
+
+        // Refusal must take precedence over generic name parsing so refusal prose
+        // is never treated as the caller's name.
+        if (isNameRefusal(trimmed)) {
+          parserRuleMatched = 'name_refused';
+          return { customerName: existingName ?? '', serviceRequested: existingService ?? '' };
+        }
+
         let customerName = existingName ?? trimmed;
         let serviceRequested = existingService ?? '';
 
@@ -8406,7 +8422,11 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[ASK_NAME_REASON TRACE] =========================================');
 
       // Use the actual field that was filled for stage capture
-      if (extractedFieldActual === 'serviceRequested') {
+      if (isNameRefused) {
+        // Explicit name refusal is recorded as refusal metadata, never as a customerName value.
+        capturedAnswer = '';
+        extractedField = 'nameRefused';
+      } else if (extractedFieldActual === 'serviceRequested') {
         capturedAnswer = parseResult.serviceRequested;
         extractedField = 'serviceRequested';
       } else if (extractedFieldActual === 'customerName') {

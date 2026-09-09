@@ -107,11 +107,22 @@ function normalizeNameCandidate(s: string): string {
 const NAME_SERVICE_BLOCKERS = /\b(?:need|want|looking|get|got|have|cut|install|installed|repair|repaired|fix|fixed|done|completed|finished|mowed|cleaned|checked|painted|replaced|removed|trimmed|serviced|leak|leaking|broke|broken|snapped|fence|grass|sink|water|heater|gutter|roof|plumber|garage|door|cable|tile|floor|wall|ceiling|furnace|ac|electrical|wire|outlet|switch|light|bulb|appliance|machine|device|system|unit)\b/i;
 
 const NAME_REFUSAL_PATTERNS = [
-  /\b(?:i['"]?d\s+rather\s+not\s+(?:give|say|tell)\s+(?:my\s+)?name|i['"]?d\s+rather\s+not\s+say)\b/i,
-  /\b(?:i\s+don['"]?t\s+want\s+to\s+(?:give|say|tell)\s+(?:my\s+)?name)\b/i,
-  /\b(?:i['"]?d\s+prefer\s+not\s+to\s+(?:say|give\s+(?:my\s+)?name|tell\s+(?:my\s+)?name))\b/i,
-  /\bi['"]?d\s+rather\s+not\b/i,
-  /\b(?:no\s+name|no\s+name\s+given|no\s+name\s+please)\b/i,
+  // "I'd rather not give/say/tell my name" plus ASR pronoun distortions and missing subject.
+  // Tolerates: they'd, we'd, I'd, and bare "Rather not give my name".
+  /\b(?:i['"]?d|they['"]?d|we['"]?d)?\s*rather\s+not\s+(?:give|say|tell)\s+(?:my\s+)?name\b/i,
+  // Generic "I'd rather not" / "rather not say" fallback.
+  /\b(?:i['"]?d|they['"]?d|we['"]?d)?\s*rather\s+not\b/i,
+  // "I don't want to give/say/tell/provide my name"
+  /\b(?:i\s+)?don['"]?t\s+want\s+to\s+(?:give|say|tell|provide)\s+(?:my\s+)?name\b/i,
+  // "I'd/I prefer not to say" / "I'd prefer not to give my name"
+  /\b(?:i['"]?d\s+)?prefer\s+not\s+to\s+(?:say|give\s+(?:my\s+)?name|tell\s+(?:my\s+)?name)\b/i,
+  // "Can we skip my name?" / "Let's skip my name"
+  /\b(?:can\s+we|let['"]?s|could\s+we)\s+skip\s+(?:my\s+)?name\b/i,
+  // "No name" / "No name given"
+  /\bno\s+name(?:\s+(?:given|please))?\b/i,
+  // "You don't need my name" / "Don't need my name"
+  /\b(?:you\s+)?(?:don['"]?t|do\s+not)\s+need\s+(?:my\s+)?name\b/i,
+  // "I'd like to stay/remain anonymous" and variants
   /\bi['"]?d\s+like\s+to\s+(?:stay|remain)\s+anonymous\b/i,
   /\bi\s+want\s+to\s+(?:stay|remain)\s+anonymous\b/i,
   /\bi['"]?d\s+like\s+to\s+keep\s+this\s+anonymous\b/i,
@@ -665,6 +676,7 @@ export function enrichIntakeFromTranscript(
   if (name) detected.push('customerName');
   if (nameRefused) {
     detected.push('nameRefused');
+    applied.push('nameRefused');
     intake.nameRefused = true;
     // A high-confidence name refusal replaces any same-turn customerName candidate
     // and clears a stale name that may have been written before extraction ran.
@@ -702,7 +714,8 @@ export function enrichIntakeFromTranscript(
         completionMatch,
         callbackMatch,
       ]);
-    } else if (isServiceStage) {
+    } else if (isServiceStage && !nameRefused) {
+      // A name-refusal utterance must never be reinterpreted as a service request.
       const serviceCandidate = extractServiceRequestCandidate(
         transcript,
         intake.customerName || name || undefined
