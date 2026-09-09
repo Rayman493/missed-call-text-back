@@ -4733,6 +4733,7 @@ async function buildCanonicalExtractedInfo(
   importantDetails: string
   additionalDetails: string
   serviceAddress: string
+  desiredCompletionTime: string
   desiredCompletion: string
   callbackTime: string
   serviceLocationType?: string
@@ -4745,6 +4746,7 @@ async function buildCanonicalExtractedInfo(
       importantDetails: '',
       additionalDetails: '',
       serviceAddress: '',
+      desiredCompletionTime: '',
       desiredCompletion: '',
       callbackTime: '',
     }
@@ -4848,6 +4850,13 @@ async function buildCanonicalExtractedInfo(
   }
   console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
 
+  const sanitizedCompletion = sanitizeEnglishIntakeField(
+    'desiredCompletionTime',
+    fields.desiredCompletionTime ||
+    fields.desiredCompletion ||
+    ''
+  );
+
   return {
     customerName: sanitizeEnglishIntakeField('customerName', fields.customerName || ''),
     customerPhone: (callerPhone || fields.customerPhone || '').trim(),
@@ -4855,12 +4864,10 @@ async function buildCanonicalExtractedInfo(
     importantDetails: importantDetails,
     additionalDetails: importantDetails, // Alias for backward compatibility
     serviceAddress: sanitizeEnglishIntakeField('serviceAddress', fields.serviceAddress || fields.addressOrLocation || ''),
-    desiredCompletion: sanitizeEnglishIntakeField(
-      'desiredCompletion',
-      fields.desiredCompletion ||
-      fields.desiredCompletionTime ||
-      ''
-    ),
+    // Emit both canonical keys so downstream SMS/dashboard consumers recognize the value
+    // regardless of whether they read desiredCompletionTime or the legacy desiredCompletion.
+    desiredCompletionTime: sanitizedCompletion,
+    desiredCompletion: sanitizedCompletion,
     callbackTime: sanitizeEnglishIntakeField('callbackTime', fields.callbackTime || fields.preferredCallbackTime || ''),
     serviceLocationType: serviceLocationType,
   }

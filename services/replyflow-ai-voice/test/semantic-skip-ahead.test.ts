@@ -117,4 +117,34 @@ describe('Semantic Skip-Ahead Extraction', () => {
     expect(intake.callbackTime).to.be.undefined;
     expect(result.applied).to.not.include('callbackTime');
   });
+
+  it('extracts early timing/location/callback after ask_name parser pre-fills name and service', () => {
+    const intake: IntakeData = {
+      stage: 'ask_name',
+      customerName: 'Christopher Miller',
+      serviceRequested: "a new water heater installed at 85 Liberty Avenue. I'd like it done by next Friday, and you can call me back anytime after 4 pm",
+      request: "a new water heater installed at 85 Liberty Avenue. I'd like it done by next Friday, and you can call me back anytime after 4 pm",
+    };
+    const transcript = "Hi, my name is Christopher Miller. I need a new water heater installed at 85 Liberty Avenue. I'd like it done by next Friday, and you can call me back anytime after 4 p.m.";
+    const result = enrichIntakeFromTranscript(transcript, intake, 'ask_name', 'CA-test');
+
+    expect(intake.serviceAddress).to.equal('85 Liberty Avenue');
+    expect(intake.desiredCompletionTime).to.equal('next Friday');
+    expect(intake.callbackTime).to.equal('anytime after 4 pm');
+    expect(result.applied).to.include.members(['serviceAddress', 'desiredCompletionTime', 'callbackTime']);
+  });
+
+  it('does not overwrite a pre-filled broad service request with a shorter candidate when the candidate is embedded inside it', () => {
+    const intake: IntakeData = {
+      stage: 'ask_name',
+      customerName: 'Christopher Miller',
+      serviceRequested: "a new water heater installed at 85 Liberty Avenue. I'd like it done by next Friday, and you can call me back anytime after 4 pm",
+    };
+    const transcript = "Hi, my name is Christopher Miller. I need a new water heater installed at 85 Liberty Avenue. I'd like it done by next Friday, and you can call me back anytime after 4 p.m.";
+    enrichIntakeFromTranscript(transcript, intake, 'ask_name', 'CA-test');
+
+    // The original broad service text should remain intact; clean-up is the
+    // canonical formatter/model responsibility, not this merge step.
+    expect(intake.serviceRequested).to.equal("a new water heater installed at 85 Liberty Avenue. I'd like it done by next Friday, and you can call me back anytime after 4 pm");
+  });
 });

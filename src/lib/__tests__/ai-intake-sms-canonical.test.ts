@@ -320,4 +320,26 @@ describe('AI Intake SMS - Polished Format', () => {
       // Both should appear as they are meaningfully different
     })
   })
+
+  describe('Skip-ahead durable persistence (Christopher Miller case)', () => {
+    it('should not list any captured fields as missing when all skip-ahead values are present', () => {
+      const extractedInfo = {
+        customerName: 'Christopher Miller',
+        serviceRequested: 'A new water heater installed',
+        serviceAddress: '85 Liberty Avenue',
+        desiredCompletionTime: 'Next Friday',
+        callbackTime: 'Anytime after 4 pm',
+      }
+      const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'ReplyFlow Plumbing')
+      expect(sms).toContain('Hi Christopher Miller, thanks for reaching out to ReplyFlow Plumbing.')
+      expect(sms).toContain('• Request: Water Heater Installation')
+      expect(sms).toContain('• Address: 85 Liberty Avenue')
+      expect(sms).toContain('• Desired completion: Next friday')
+      expect(sms).toContain('• Preferred callback: Anytime after 4 pm')
+      expect(sms).not.toContain('Still needed:')
+      expect(sms).not.toContain('Service address')
+      expect(sms).not.toContain('When you\'d like it completed')
+      expect(sms).not.toContain('Best time to call you')
+    })
+  })
 })
