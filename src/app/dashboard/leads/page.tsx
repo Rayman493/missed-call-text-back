@@ -25,6 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
+import { shouldPreventMenuOpen } from '@/components/lead-status-gesture'
 import {
   formatPhoneNumber,
   formatRelativeTime,
@@ -219,6 +220,9 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [quickFilter, setQuickFilter] = useState<'all' | 'active' | 'new' | 'completed' | 'ignored' | 'cancelled'>('all')
   const [showFilters, setShowFilters] = useState(false)
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false)
+  const filterPointerStartRef = useRef<{ x: number; y: number } | null>(null)
+  const filterMovedRef = useRef(false)
   const [refreshing, setRefreshing] = useState(false)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
@@ -1078,10 +1082,43 @@ export default function LeadsPage() {
                 </div>
 
                 {/* Filter dropdown button */}
-                <DropdownMenu>
+                <DropdownMenu open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
+                      onPointerDown={(e) => {
+                        if (e.button !== 0) return
+                        filterPointerStartRef.current = { x: e.clientX, y: e.clientY }
+                        filterMovedRef.current = false
+                      }}
+                      onPointerMove={(e) => {
+                        if (!filterPointerStartRef.current) return
+                        if (shouldPreventMenuOpen(
+                          filterPointerStartRef.current.x,
+                          filterPointerStartRef.current.y,
+                          e.clientX,
+                          e.clientY
+                        )) {
+                          filterMovedRef.current = true
+                        }
+                      }}
+                      onPointerUp={(e) => {
+                        if (e.button !== 0) return
+                        const wasScroll = filterMovedRef.current
+                        filterPointerStartRef.current = null
+                        filterMovedRef.current = false
+                        if (!wasScroll) {
+                          setFilterMenuOpen(true)
+                        }
+                      }}
+                      onPointerCancel={() => {
+                        filterPointerStartRef.current = null
+                        filterMovedRef.current = false
+                      }}
+                      onPointerLeave={() => {
+                        filterPointerStartRef.current = null
+                        filterMovedRef.current = false
+                      }}
                       className="h-10 px-3 inline-flex items-center justify-center gap-2 bg-background border border-border/50 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all whitespace-nowrap"
                       title="Filter by status"
                     >

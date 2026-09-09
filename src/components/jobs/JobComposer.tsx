@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Briefcase, Plus } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
+import DatePicker from '@/components/ui/DatePicker'
+import TimePicker from '@/components/ui/TimePicker'
 import { getCustomerStatusStyle } from '@/lib/customer-status'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 import { firstNonPlaceholder, normalizeEditableContext, getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
@@ -293,20 +295,9 @@ export default function JobComposer({
               />
             </div>
 
-            {/* Customer Name + Phone (read-only when customer selected) */}
+            {/* Customer Phone (read-only when linked customer selected; name shown in picker) */}
             {leadId && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
-                    Customer Name
-                  </label>
-                  <input
-                    type="text"
-                    value={customerName}
-                    readOnly
-                    className="w-full px-4 py-2.5 sm:px-3 sm:py-2 text-sm bg-muted border border-border rounded-lg text-foreground"
-                  />
-                </div>
                 <div>
                   <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
                     Phone
@@ -359,28 +350,16 @@ export default function JobComposer({
 
             {/* Date + Time */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={scheduledDate}
-                  onChange={e => setScheduledDate(e.target.value)}
-                  className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-11"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
-                  Time
-                </label>
-                <input
-                  type="time"
-                  value={scheduledTime}
-                  onChange={e => setScheduledTime(e.target.value)}
-                  className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-11"
-                />
-              </div>
+              <DatePicker
+                value={scheduledDate}
+                onChange={setScheduledDate}
+                label="Date"
+              />
+              <TimePicker
+                value={scheduledTime}
+                onChange={setScheduledTime}
+                label="Time"
+              />
             </div>
             <p className="text-[10px] text-muted-foreground/70">
               Optional. Add a date and time to place this job on your schedule.

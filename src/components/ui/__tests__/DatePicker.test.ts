@@ -30,11 +30,15 @@ describe('DatePicker', () => {
   })
 
   it('reserves trailing space for the control and clear button', () => {
-    expect(content).toContain("value ? 'pr-16' : 'pr-10'")
+    expect(content).toContain("value ? 'pr-20' : 'pr-12'")
+  })
+
+  it('uses a canonical trailing-control wrapper aligned to the right edge', () => {
+    expect(content).toContain('absolute inset-y-0 right-0 flex items-center')
   })
 
   it('positions clear button at the right edge in place of the decorative icon', () => {
-    expect(content).toContain('right-3')
+    expect(content).toContain('pr-3')
   })
 
   it('prevents clear button click from opening the native date picker', () => {
@@ -42,8 +46,8 @@ describe('DatePicker', () => {
     expect(content).toContain('preventDefault')
   })
 
-  it('centers trailing icons vertically', () => {
-    expect(content).toContain('top-1/2 -translate-y-1/2')
+  it('centers trailing icons vertically via the flex wrapper', () => {
+    expect(content).toContain('flex items-center')
   })
 
   it('allows the field to shrink in narrow grid columns', () => {

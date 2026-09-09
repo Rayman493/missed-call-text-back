@@ -4322,9 +4322,42 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </div>
                         <div className="space-y-4">
                           {/* Customer Details - Canonical Read-Only Display */}
-                          <CustomerDetails leadData={leadData} lead={lead} />
+                          <CustomerDetails key={`details-${leadData?.id || params.id}`} leadData={leadData} lead={lead} />
                         </div>
                       </div>
+
+                      {/* Previous Job Requests - prior AI/call intake records (historical customer context) */}
+                      <SidebarSection
+                        title="Previous Job Requests"
+                        className="mb-3"
+                      >
+                        {previousAiCallRecords.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No previous job requests</p>
+                        ) : (
+                          <div className="max-h-[300px] overflow-y-auto -mx-1 px-1 space-y-2">
+                            {previousAiCallRecords.map((record: any) => {
+                              const requestTitle = getLeadRequestTitle({ aiCallRecords: [record], raw_metadata: {}, name: null, contact_name: null }) || 'Previous request'
+                              const status = getAIIntakeStatus({ aiCallRecords: [record] })
+                              return (
+                                <button
+                                  key={record.id}
+                                  type="button"
+                                  onClick={() => { setSelectedHistoricalRecord(record); setIsHistoricalDetailOpen(true) }}
+                                  className="w-full flex items-start justify-between gap-3 p-3 bg-muted/30 hover:bg-muted/50 rounded-xl border border-border/40 dark:border-transparent transition-colors text-left"
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-semibold text-foreground break-words">{requestTitle}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{formatDateTime(record.created_at)}</p>
+                                  </div>
+                                  <span className={`inline-flex items-center self-start text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border ${getAIIntakeStatusColor(status)}`}>
+                                    {getAIIntakeStatusLabel(status)}
+                                  </span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </SidebarSection>
 
                       {/* Schedule - active/upcoming scheduled jobs only */}
                       <SidebarSection
@@ -4398,39 +4431,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 </span>
                               </div>
                             ))}
-                          </div>
-                        )}
-                      </SidebarSection>
-
-                      {/* Previous Job Requests - prior AI/call intake records */}
-                      <SidebarSection
-                        title="Previous Job Requests"
-                        className="mb-3"
-                      >
-                        {previousAiCallRecords.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">No previous job requests</p>
-                        ) : (
-                          <div className="max-h-[300px] overflow-y-auto -mx-1 px-1 space-y-2">
-                            {previousAiCallRecords.map((record: any) => {
-                              const requestTitle = getLeadRequestTitle({ aiCallRecords: [record], raw_metadata: {}, name: null, contact_name: null }) || 'Previous request'
-                              const status = getAIIntakeStatus({ aiCallRecords: [record] })
-                              return (
-                                <button
-                                  key={record.id}
-                                  type="button"
-                                  onClick={() => { setSelectedHistoricalRecord(record); setIsHistoricalDetailOpen(true) }}
-                                  className="w-full flex items-start justify-between gap-3 p-3 bg-muted/30 hover:bg-muted/50 rounded-xl border border-border/40 dark:border-transparent transition-colors text-left"
-                                >
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-semibold text-foreground break-words">{requestTitle}</p>
-                                    <p className="text-xs text-muted-foreground mt-0.5">{formatDateTime(record.created_at)}</p>
-                                  </div>
-                                  <span className={`inline-flex items-center self-start text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border ${getAIIntakeStatusColor(status)}`}>
-                                    {getAIIntakeStatusLabel(status)}
-                                  </span>
-                                </button>
-                              )
-                            })}
                           </div>
                         )}
                       </SidebarSection>

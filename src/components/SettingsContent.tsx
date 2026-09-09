@@ -43,13 +43,14 @@ import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import { openStripeConnectOnboarding } from '@/lib/stripe-connect'
 import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state'
+import type { Business } from '@/lib/types'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
 import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate, DEFAULT_BUSINESS_HOURS_TIMEZONE, DEFAULT_BUSINESS_HOURS_START, DEFAULT_BUSINESS_HOURS_END, getBusinessHoursFieldWithDefault, getOutOfOfficeStatus } from '@/lib/out-of-office'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
-import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, RefreshCw, ChevronDown, ChevronUp, ShieldCheck, Phone } from 'lucide-react'
+import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, RefreshCw, ChevronDown, ChevronUp, ShieldCheck, Phone, Unlink } from 'lucide-react'
 import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import Modal from '@/components/ui/Modal'
@@ -144,6 +145,26 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   const [isAdding, setIsAdding] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState('')
   const [label, setLabel] = useState('')
+
+  // Track visualViewport height for the Add Personal Contact modal so it
+  // adapts when the on-screen keyboard opens on mobile.
+  const [vvh, setVvh] = useState<number | null>(null)
+  useEffect(() => {
+    if (!showAddModal || typeof window === 'undefined' || !window.visualViewport) {
+      setVvh(null)
+      return
+    }
+    const update = () => {
+      if (window.visualViewport) setVvh(window.visualViewport.height)
+    }
+    update()
+    window.visualViewport.addEventListener('resize', update)
+    window.visualViewport.addEventListener('scroll', update)
+    return () => {
+      window.visualViewport?.removeEventListener('resize', update)
+      window.visualViewport?.removeEventListener('scroll', update)
+    }
+  }, [showAddModal])
 
   // Import contacts modal state
   const [showImportModal, setShowImportModal] = useState(false)
@@ -747,7 +768,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     hasUnsavedChanges,
     isSaving,
     saveError,
-    updateBusiness,
+    updateBusiness: updateBusinessRaw,
     saveChanges,
     discardChanges,
     clearSaveError,
@@ -892,9 +913,15 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     onBusinessUpdated: (updatedBusiness) => {
       setBusiness(updatedBusiness)
       setSaveSuccess(true)
-      showToast('Settings saved', 'success')
     }
   })
+
+  // Wrap updateBusiness to immediately clear success state when the user edits
+  // during the success window, returning the bar to dirty state.
+  const updateBusiness = useCallback((updates: Partial<Business>) => {
+    if (saveSuccess) setSaveSuccess(false)
+    updateBusinessRaw(updates)
+  }, [saveSuccess, updateBusinessRaw])
 
   // Toast functions
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
@@ -2674,20 +2701,20 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
               <div className="max-w-[1200px] mx-auto">
 
             {/* Page Header - normal flow */}
-            <div className="pt-8 pb-6">
-              <div className="mb-4">
+            <div className="pt-4 sm:pt-8 pb-4 sm:pb-6">
+              <div className="mb-2 sm:mb-4">
                 <AppBackButton fallbackHref="/dashboard" />
               </div>
-              <h1 className="text-3xl font-bold text-foreground tracking-tight mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-1 sm:mb-2">
                 Settings
               </h1>
-              <p className="text-base text-muted-foreground leading-relaxed">
+              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
                 Manage your business settings, integrations, and preferences.
               </p>
             </div>
 
             {/* Settings Navigation Tabs - sticky only */}
-            <div ref={settingsTabsContainerRef} className="sticky z-40 border-b border-border/50 bg-background/95 backdrop-blur-sm py-5 top-0" style={{ backgroundColor: 'var(--background)' }}>
+            <div ref={settingsTabsContainerRef} className="sticky z-40 border-b border-border/50 bg-background/95 backdrop-blur-sm py-3 sm:py-5 top-0" style={{ backgroundColor: 'var(--background)' }}>
               <nav ref={settingsTabsNavRef} className="flex items-center gap-2 overflow-x-auto custom-scrollbar-horizontal">
                 {settingsSections.map((section) => (
                   <button
@@ -3478,16 +3505,44 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           <div className="flex-1 pr-4 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
                               <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Out of Office</h3>
-                              {formBusiness.out_of_office_enabled ? (
-                                <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
-                                  <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                                  Active
-                                </span>
-                              ) : (
-                                <span className="text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
-                                  Disabled
-                                </span>
-                              )}
+                              {(() => {
+                                // Use canonical runtime state so expanded view agrees with collapsed view
+                                if (!formBusiness.out_of_office_enabled) {
+                                  return (
+                                    <span className="text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
+                                      Disabled
+                                    </span>
+                                  )
+                                }
+                                if (!formBusiness.out_of_office_start || !formBusiness.out_of_office_end) {
+                                  return (
+                                    <span className="text-xs px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full font-medium">
+                                      Needs dates
+                                    </span>
+                                  )
+                                }
+                                const oooStatus = getOutOfOfficeStatus(formBusiness)
+                                if (oooStatus.status === 'active') {
+                                  return (
+                                    <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
+                                      <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                                      Active
+                                    </span>
+                                  )
+                                }
+                                if (oooStatus.status === 'scheduled') {
+                                  return (
+                                    <span className="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
+                                      Scheduled
+                                    </span>
+                                  )
+                                }
+                                return (
+                                  <span className="text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
+                                    {oooStatus.status === 'expired' ? 'Ended' : 'Inactive'}
+                                  </span>
+                                )
+                              })()}
                             </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mb-1.5">
                               Automatically reply while you're away.
@@ -3862,7 +3917,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             disabled={isConnectingCalendar || isDisconnectingCalendar || isLoadingCalendar}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap ${
                               calendarConnected
-                                ? 'border border-red-200 dark:border-red-800/60 bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+                                ? 'border border-red-300 dark:border-red-700/70 bg-red-50/60 dark:bg-red-900/20 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 active:bg-red-200/70 dark:active:bg-red-900/50'
                                 : 'bg-blue-600 hover:bg-blue-700 text-white'
                             }`}
                           >
@@ -3871,8 +3926,13 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                 <LoadingSpinner size="sm" />
                                 <span>{isConnectingCalendar || isDisconnectingCalendar ? 'Processing...' : 'Checking...'}</span>
                               </>
+                            ) : calendarConnected ? (
+                              <>
+                                <Unlink className="w-3.5 h-3.5" />
+                                <span>Disconnect</span>
+                              </>
                             ) : (
-                              <span>{calendarConnected ? 'Disconnect' : 'Connect'}</span>
+                              <span>Connect</span>
                             )}
                           </button>
                       </div>
@@ -5115,8 +5175,21 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
           {/* Add Personal Contact Modal */}
           {showAddModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[80] p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-4">
-              <div className="bg-card rounded-lg max-w-md w-full max-h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] sm:max-h-[85vh] flex flex-col overflow-hidden">
+            <div
+              className="fixed inset-x-0 top-0 flex items-center justify-center z-[80] p-4"
+              style={{ height: `${vvh ?? (typeof window !== 'undefined' ? window.innerHeight : 1000)}px` }}
+            >
+              {/* visualViewport-aware backdrop + container */}
+              <div
+                className="absolute inset-0 bg-black/50"
+                onClick={() => setShowAddModal(false)}
+              />
+              <div
+                className="relative bg-card rounded-lg max-w-md w-full flex flex-col overflow-hidden"
+                style={{
+                  maxHeight: `calc(${vvh ?? window?.innerHeight ?? 1000}px - 2rem)`
+                }}
+              >
                 <div className="flex-shrink-0 p-4 sm:p-6 border-b border-border/60">
                   <h2 className="text-xl font-bold text-slate-900 dark:text-foreground mb-4">
                     Add Personal Contact
@@ -5125,7 +5198,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     Add people here when you never want ReplyFlow to respond to their missed calls. Friends, family, schools, doctors, and other personal contacts are common examples. When a personal contact calls, ReplyFlow stays out of the conversation (no AI Voice, no automated texts, no lead, no follow-ups—just a simple voicemail). You can remove contacts from this list at any time.
                   </p>
                 </div>
-                <div data-scroll-lock-allow className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
+                <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 sm:p-6 space-y-3">
                   <div>
                     <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
                       Phone Number <span className="text-red-500">*</span>

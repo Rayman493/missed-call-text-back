@@ -51,23 +51,23 @@ export default function TimePicker({
             disabled
               ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30 pr-3'
               : 'bg-background dark:bg-slate-900/40 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60'
-          } ${value ? 'pr-16' : 'pr-10'}`}
+          } ${value ? 'pr-20' : 'pr-12'}`}
         />
         {!disabled && (
-          <>
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3 gap-1 pointer-events-none">
             {value ? (
               <button
                 type="button"
                 onClick={clearTime}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-accent/40 rounded duration-150 z-10"
+                className="p-1 hover:bg-accent/40 rounded duration-150 pointer-events-auto z-10"
                 aria-label="Clear time"
               >
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             ) : (
-              <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Clock className="w-4 h-4 text-muted-foreground" />
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

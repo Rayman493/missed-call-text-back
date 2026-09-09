@@ -517,7 +517,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
   const fetchAICallRecords = async () => {
     try {
-      setLoading(true)
+      // Only show loading skeleton on initial load, not on background refetches
+      // This prevents AI context cards from disappearing during refresh/scroll
+      if (aiCallRecords.length === 0) {
+        setLoading(true)
+      }
       
       // Try to find AI call records by lead_id first
       let { data } = await supabase

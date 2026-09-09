@@ -373,6 +373,17 @@ export default function NavbarNotifications() {
       {/* Notifications Dropdown */}
       {isOpen && typeof window !== 'undefined' &&
         createPortal(
+          <>
+          {/* Full-screen interaction backdrop: captures the first outside tap so
+              underlying page elements (cards, nav, CTAs) do not fire. */}
+          <div
+            className="fixed inset-0 z-40"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              setIsOpen(false)
+            }}
+            aria-hidden="true"
+          />
           <div
             ref={dropdownRef}
             className="fixed z-50 w-[min(400px,calc(100vw-2rem))] sm:w-96 bg-card backdrop-blur-xl border border-border rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden flex flex-col"
@@ -540,7 +551,8 @@ export default function NavbarNotifications() {
                 </Link>
               </div>
             )}
-          </div>,
+          </div>
+          </>,
           document.body
         )
       }

@@ -923,23 +923,34 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                   />
                 ) : (
                   <>
-                    {visiblePayments.map((payment) => (
-                      <div key={payment.id} className="bg-muted/50 dark:bg-[#0f172a] rounded-lg p-3 border border-border dark:border-slate-700">
+                    {visiblePayments.map((payment) => {
+                      const isFinalStatus = ['paid', 'failed', 'cancelled'].includes(payment.status)
+                      const finalTimestamp =
+                        payment.status === 'paid' ? payment.paid_at :
+                        payment.status === 'failed' ? payment.created_at :
+                        payment.status === 'cancelled' ? payment.created_at :
+                        null
+                      const canEdit = payment.status === 'paid' || payment.status === 'pending'
+                      return (
+                      <div key={payment.id} className="bg-muted/50 dark:bg-[#0f172a] rounded-lg p-3 border border-border dark:border-slate-700 flex flex-col">
+                        {/* Header: Payment + Tap to Pay badge + Status badge */}
                         <div className="flex items-start justify-between gap-3 mb-2.5">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-foreground font-medium text-sm">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <CreditCard className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="text-foreground font-medium text-sm truncate">
                               {getCustomerName(payment)}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
                             {getPaymentMethodBadge(payment.payment_method_type, payment.payment_provider)}
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
                               {getStatusLabel(payment.status)}
                             </span>
                           </div>
                         </div>
-                        <div className="space-y-1.5 text-xs">
+
+                        {/* Body */}
+                        <div className="space-y-1.5 text-xs flex-1">
                           {payment.leads && (
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Phone</span>
@@ -958,16 +969,26 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                           )}
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Requested</span>
-                            <span className="text-foreground">{new Date(payment.created_at).toLocaleDateString()}</span>
+                            <span className="text-foreground">{new Date(payment.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                           </div>
-                          {payment.paid_at && (
+                          {/* Canonical final-status row: only render with a real timestamp */}
+                          {isFinalStatus && finalTimestamp && (
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Paid</span>
-                              <span className="text-foreground">{new Date(payment.paid_at).toLocaleDateString()}</span>
+                              <span className="text-muted-foreground">{getStatusLabel(payment.status)}</span>
+                              <span className="text-foreground">{new Date(finalTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                            </div>
+                          )}
+                          {/* Reserve structural row space when no final timestamp exists */}
+                          {isFinalStatus && !finalTimestamp && (
+                            <div className="flex justify-between min-h-[1.25rem]">
+                              <span className="text-muted-foreground">{getStatusLabel(payment.status)}</span>
+                              <span>&nbsp;</span>
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center w-full mt-2.5 pt-2.5 border-t border-slate-700">
+
+                        {/* Divider */}
+                        <div className="flex items-center w-full mt-2.5 pt-2.5 border-t border-slate-700 min-h-[2.25rem]">
                           <div className="flex items-center gap-2 min-w-0">
                             {payment.leads && (
                               <button
@@ -977,7 +998,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                 View Customer
                               </button>
                             )}
-                            {(payment.status === 'paid' || payment.status === 'pending') && (
+                            {canEdit && (
                               <button
                                 onClick={() => handleOpenEditModal(payment)}
                                 className="p-1.5 text-muted-foreground hover:text-foreground"
@@ -1044,7 +1065,8 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                           )}
                         </div>
                       </div>
-                    ))}
+                      )
+                    })}
 
                     {/* Expandable older payments section */}
                     {olderPayments.length > 0 && (

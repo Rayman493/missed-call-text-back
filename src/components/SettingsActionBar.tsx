@@ -27,12 +27,12 @@ export default function SettingsActionBar({
   const [keyboardOffset, setKeyboardOffset] = useState(0)
   const [bottomNavVisible, setBottomNavVisible] = useState(false)
 
-  // Auto-hide success state after 3 seconds (increased from 1 second for mobile visibility)
+  // Auto-hide success state after 4 seconds
   useEffect(() => {
     if (saveSuccess) {
       const timer = setTimeout(() => {
         clearSuccess()
-      }, 3000)
+      }, 4000)
       return () => clearTimeout(timer)
     }
   }, [saveSuccess, clearSuccess])
@@ -138,7 +138,7 @@ export default function SettingsActionBar({
             <div className="flex min-w-0 items-center gap-2.5">
               <div className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${saveSuccess ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
               <span className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                {saveSuccess ? 'Saved' : showMobileBar ? 'Unsaved Changes' : 'Unsaved Changes'}
+                {saveSuccess ? 'Settings Saved' : showMobileBar ? 'Unsaved Changes' : 'Unsaved Changes'}
               </span>
             </div>
             
@@ -171,7 +171,7 @@ export default function SettingsActionBar({
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M5 13l4 4L19 7" />
                     </svg>
-                    Saved
+                    Settings Saved
                   </>
                 ) : isSaving ? (
                   <>
@@ -179,7 +179,7 @@ export default function SettingsActionBar({
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    Saving...
+                    Saving…
                   </>
                 ) : (
                   showMobileBar ? 'Save' : 'Save Changes'

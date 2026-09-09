@@ -189,7 +189,13 @@ export default function LeadStatusDropdown({
             left: 12,
           }}
           avoidCollisions
+          onPointerDownOutside={(e) => {
+            // Ensure the first outside tap after scrolling closes the dropdown
+            // Radix already handles this, but we make it explicit for mobile scroll-then-dismiss
+            setIsOpen(false)
+          }}
           className="w-[260px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-140px))] bg-popover border border-border rounded-lg shadow-lg shadow-black/10 overflow-y-auto overscroll-contain z-[10000]"
+          data-scroll-lock-allow
         >
           {/* Section Label */}
           <div className="px-2.5 py-1.5">
