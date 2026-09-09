@@ -891,6 +891,11 @@ export function useTapToPayOrchestration({
         if (!response.ok) {
           console.error('[TTP Hook] Failed to check attempt status', response.status)
           clearTimeout(timeoutId)
+          if (response.status === 403) {
+            // Attempt exists but is not owned by the current user/business.
+            // The local marker is stale; remove it so a fresh attempt can start.
+            terminalService.clearUnresolvedAttempt()
+          }
           setPaymentState('ready')
           setLastSuccessfulStage('none')
           dispatchTTPEvent('RECOVERY_PROMISE_REJECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, `status_${response.status}`)
@@ -915,6 +920,7 @@ export function useTapToPayOrchestration({
           clearTimeout(timeoutId)
           // Clear stale attempt and transition to ready, not canceled
           // Canceled state is only for current session cancellations
+          terminalService.clearUnresolvedAttempt()
           setPaymentState('ready')
           setLastSuccessfulStage('none')
           dispatchTTPEvent('RECOVERY_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, 'previous_attempt_cleared')

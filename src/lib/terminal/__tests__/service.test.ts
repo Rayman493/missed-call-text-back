@@ -291,3 +291,147 @@ describe('TerminalBridgeService', () => {
     })
   })
 })
+
+describe('TerminalBridgeService.resolvePreviousAttemptBeforeNewPayment stale-attempt cleanup', () => {
+  let cleanupService: TerminalBridgeService
+
+  beforeEach(() => {
+    cleanupService = TerminalBridgeService.getInstance()!
+    localStorage.clear()
+    vi.clearAllMocks()
+  })
+
+  it('clears stale marker and proceeds when reconciliation returns 404', async () => {
+    const staleAttemptId = 'stale-attempt-123'
+    localStorage.setItem('terminal_unresolved_attempt', staleAttemptId)
+    localStorage.setItem('terminal_last_attempt_outcome', 'ambiguous')
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: async () => 'Payment request not found',
+    }) as any
+
+    const result = await cleanupService.resolvePreviousAttemptBeforeNewPayment()
+
+    expect(result.action).toBe('proceed')
+    expect(result.reason).toBe('stale_marker_cleared')
+    expect(localStorage.getItem('terminal_unresolved_attempt')).toBeNull()
+    expect(localStorage.getItem('terminal_last_attempt_outcome')).toBeNull()
+  })
+
+  it('does NOT clear marker for 500 server errors', async () => {
+    const staleAttemptId = 'stale-attempt-123'
+    localStorage.setItem('terminal_unresolved_attempt', staleAttemptId)
+    localStorage.setItem('terminal_last_attempt_outcome', 'ambiguous')
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: async () => 'Internal server error',
+    }) as any
+
+    const result = await cleanupService.resolvePreviousAttemptBeforeNewPayment()
+
+    expect(result.action).toBe('block')
+    expect(localStorage.getItem('terminal_unresolved_attempt')).toBe(staleAttemptId)
+  })
+
+  it('does NOT clear marker for network failures', async () => {
+    const staleAttemptId = 'stale-attempt-123'
+    localStorage.setItem('terminal_unresolved_attempt', staleAttemptId)
+    localStorage.setItem('terminal_last_attempt_outcome', 'ambiguous')
+
+    global.fetch = vi.fn().mockRejectedValue(new Error('Network error'))
+
+    const result = await cleanupService.resolvePreviousAttemptBeforeNewPayment()
+
+    expect(result.action).toBe('block')
+    expect(localStorage.getItem('terminal_unresolved_attempt')).toBe(staleAttemptId)
+  })
+
+  it('recovers paid attempt authoritatively and clears marker', async () => {
+    const staleAttemptId = 'stale-attempt-123'
+    localStorage.setItem('terminal_unresolved_attempt', staleAttemptId)
+    localStorage.setItem('terminal_last_attempt_outcome', 'ambiguous')
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: 'paid', stripe_payment_intent_id: 'pi_123' }),
+    }) as any
+
+    const result = await cleanupService.resolvePreviousAttemptBeforeNewPayment()
+
+    expect(result.action).toBe('recover')
+    expect(result.reason).toBe('previous_succeeded')
+    expect(localStorage.getItem('terminal_unresolved_attempt')).toBeNull()
+  })
+
+  it('preserves marker for legitimate pending/processing attempt on same account', async () => {
+    const legitimateAttemptId = 'legit-attempt-456'
+    localStorage.setItem('terminal_unresolved_attempt', legitimateAttemptId)
+    localStorage.setItem('terminal_last_attempt_outcome', 'ambiguous')
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: 'processing' }),
+    }) as any
+
+    const result = await cleanupService.resolvePreviousAttemptBeforeNewPayment()
+
+    expect(result.action).toBe('block')
+    expect(result.reason).toBe('previous_processing')
+    expect(localStorage.getItem('terminal_unresolved_attempt')).toBe(legitimateAttemptId)
+  })
+
+  it('does not reuse old attempt ID after stale marker is cleared', async () => {
+    const staleAttemptId = 'stale-attempt-123'
+    localStorage.setItem('terminal_unresolved_attempt', staleAttemptId)
+    localStorage.setItem('terminal_last_attempt_outcome', 'ambiguous')
+
+    global.fetch = vi.fn((url: string | Request | URL) => {
+      const urlString = typeof url === 'string' ? url : String(url)
+      if (urlString.includes('reconcile-payment')) {
+        return Promise.resolve({
+          ok: false,
+          status: 404,
+          text: async () => 'Payment request not found',
+        } as any)
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          paymentIntentId: 'pi_new',
+          clientSecret: 'pi_new_secret',
+          localPaymentId: 'local_new',
+        }),
+      } as any)
+    }) as any
+
+    vi.mocked(Terminal.collectPayment).mockResolvedValue({ status: 'canceled' } as any)
+
+    await cleanupService.resolvePreviousAttemptBeforeNewPayment()
+
+    // Simulate a connected reader so startTapToPayPayment skips connect/reconnect
+    ;(cleanupService as any).connectionStatus = 'connected'
+    ;(cleanupService as any).lastReaderId = 'reader-1'
+
+    await cleanupService.startTapToPayPayment({
+      amountCents: 1000,
+      currency: 'usd',
+    })
+
+    const paymentIntentCalls = (global.fetch as any).mock.calls.filter((call: any[]) => {
+      const url = typeof call[0] === 'string' ? call[0] : String(call[0])
+      return url.includes('/api/terminal/payment-intent')
+    })
+
+    expect(paymentIntentCalls.length).toBeGreaterThan(0)
+    const paymentIntentBody = JSON.parse(paymentIntentCalls[0][1].body as string)
+    expect(paymentIntentBody.terminalAttemptId).toBeDefined()
+    expect(paymentIntentBody.terminalAttemptId).not.toBe(staleAttemptId)
+  })
+})

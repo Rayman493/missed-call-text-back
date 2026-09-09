@@ -1761,6 +1761,15 @@ export class TerminalBridgeService {
           }),
         })
 
+        if (response.status === 404) {
+          // Server has no record for this terminal attempt under the current business.
+          // The local marker is stale (likely from a previous account/business context).
+          console.log('[TAP_ATTEMPT] attempt_id=' + unresolvedAttemptId + ' stage=resolve_previous stale_marker_cleared reason=no_record_for_current_business')
+          this.clearUnresolvedAttempt()
+          this.clearAttemptOutcome()
+          return { action: 'proceed', reason: 'stale_marker_cleared' }
+        }
+
         if (!response.ok) {
           console.error('[TAP_ATTEMPT] stage=resolve_previous recovery_failed status=' + response.status)
           return { action: 'block', reason: 'recovery_failed' }

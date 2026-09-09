@@ -514,11 +514,16 @@ export default function TapToPayModal({
         }
       } else {
         console.error('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=recovery_check_failed')
+        if (response.status === 403) {
+          // Attempt exists but is not owned by the current user/business.
+          // The local marker is stale; remove it so a fresh attempt can start.
+          terminalService?.clearUnresolvedAttempt()
+        }
         if (isMounted.current) {
           setPaymentState('ambiguous')
           setError('Unable to check payment status. Please try again.')
         }
-        // Do NOT clear unresolved attempt - keep for retry
+        // Do NOT clear unresolved attempt for other non-ok statuses - keep for retry
       }
     } catch (error) {
       console.error('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=recovery_check_error error=' + (error instanceof Error ? error.message : 'Unknown'))
