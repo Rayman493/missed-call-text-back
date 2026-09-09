@@ -2063,7 +2063,9 @@ export function useTapToPayOrchestration({
       
       const paymentStartTime = Date.now()
       dispatchTTPEvent('PAYMENT_COLLECTION_PROMISE_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId())
-      
+
+      let paymentResult: any
+      let paymentError: any
       const paymentPromise = withTimeout(
         terminalService.startTapToPayPayment({
           amountCents,
@@ -2076,6 +2078,9 @@ export function useTapToPayOrchestration({
         TIMEOUTS.COLLECT_PAYMENT,
         terminalService.getSessionId() || 'unknown',
         terminalService.getCurrentAttemptId() || 'unknown'
+      ).then(
+        (res) => { paymentResult = res },
+        (err) => { paymentError = err }
       )
 
       // Wait for PaymentIntent before showing waiting state
@@ -2106,11 +2111,11 @@ export function useTapToPayOrchestration({
       dispatchTTPEvent('COLLECT_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'waiting_for_card', 'collect_payment')
 
       const localAttemptToken = activeAttemptTokenRef.current
-      let paymentResult: any
 
       // Specific try-catch for payment collection to handle cancellation before generic error handler
       try {
-        paymentResult = await paymentPromise
+        await paymentPromise
+        if (paymentError) throw paymentError
 
         // Check if this result belongs to the active attempt
         if (!isResultFromActiveAttempt(localAttemptToken, 'startTapToPayPayment')) {
@@ -2464,6 +2469,35 @@ export function useTapToPayOrchestration({
       stack: err.stack,
       lastSuccessfulStage
     })
+
+    // Definitive paid outcome from authority guard or atomic claim - reconcile as success
+    if (err.code === 'payment_already_completed' || err.status === 'paid') {
+      console.log('[TTP Hook] PAYMENT_ALREADY_COMPLETED_RECONCILED', {
+        localPaymentId: err.localPaymentId,
+        paymentIntentId: err.paymentIntentId,
+        attemptId: terminalService.getCurrentAttemptId(),
+        sessionId: terminalService.getSessionId()
+      })
+      terminalService.terminalizeSucceededAttempt()
+      if (err.localPaymentId) {
+        setPaymentRequestId(err.localPaymentId)
+      }
+      setLastCompletedAttempt({
+        attemptId: terminalService.getCurrentAttemptId(),
+        outcome: 'success',
+        completedAt: new Date().toISOString(),
+        paymentRequestId: err.localPaymentId || null,
+      })
+      updatePaymentStateRef('success', 'payment_already_completed')
+      setIsPaymentInProgress(false)
+      permissionLock.setTapToPayActive(false)
+      startInFlight.current = false
+      activeAttemptRef.current = false
+      activeAttemptIdRef.current = null
+      activeAttemptTokenRef.current = null
+      onPaymentComplete?.()
+      return
+    }
 
     // Check if this is a definitive card decline vs ambiguous error
     const isDefinitiveDecline = isDefinitiveCardDecline(err)

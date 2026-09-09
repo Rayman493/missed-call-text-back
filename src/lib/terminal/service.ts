@@ -1186,9 +1186,10 @@ export class TerminalBridgeService {
       let errorCode = 'local_payment_record_failed'
       let declineCode: string | undefined
       let errorType: string | undefined
+      let errorData: any
 
       try {
-        const errorData = JSON.parse(errorText)
+        errorData = JSON.parse(errorText)
         if (errorData.message) errorMessage = errorData.message
         if (errorData.error) errorCode = errorData.error
         if (errorData.decline_code) declineCode = errorData.decline_code
@@ -1218,6 +1219,10 @@ export class TerminalBridgeService {
       const error = new Error(errorMessage)
       ;(error as any).code = errorCode
       ;(error as any).stage = 'payment_intent_create'
+      ;(error as any).status = errorData?.status
+      ;(error as any).localPaymentId = errorData?.localPaymentId
+      ;(error as any).paymentIntentId = errorData?.paymentIntentId
+      ;(error as any).unresolvedAttemptId = errorData?.unresolvedAttemptId
       throw error
     }
 
@@ -1812,6 +1817,14 @@ export class TerminalBridgeService {
     this.attemptStartMs = null
     this.currentPhase = undefined
     // Note: We do NOT clear currentPaymentIntentId or currentLocalPaymentId to preserve them for receipt context
+  }
+
+  // Terminalize a succeeded attempt (called from orchestration when authority guard confirms paid)
+  // This clears unresolved markers and records success so the UI can settle without ambiguity
+  terminalizeSucceededAttempt() {
+    console.log('[TAP_ATTEMPT] stage=terminalize_succeeded_attempt')
+    this.clearUnresolvedAttempt()
+    this.persistAttemptOutcome('succeeded')
   }
 
   // Persist last attempt outcome to distinguish terminal failures from genuine ambiguity

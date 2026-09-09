@@ -183,8 +183,38 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Payment service unavailable' }, { status: 503 })
       }
 
+      async function finalizeOldAttemptAsPaid(attempt: any) {
+        await supabaseAdmin
+          .from('payment_requests')
+          .update({ status: 'paid', paid_at: new Date().toISOString() })
+          .eq('id', attempt.id)
+
+        if (attempt.lead_id) {
+          const { data: lead } = await supabaseAdmin
+            .from('leads')
+            .select('id, status')
+            .eq('id', attempt.lead_id)
+            .single()
+
+          if (lead) {
+            await supabaseAdmin
+              .from('leads')
+              .update({ payment_status: 'paid', last_payment_paid_at: new Date().toISOString() })
+              .eq('id', lead.id)
+
+            if (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active') {
+              await supabaseAdmin
+                .from('leads')
+                .update({ status: 'paid' })
+                .eq('id', lead.id)
+            }
+          }
+        }
+      }
+
       for (const attempt of unresolvedAttempts) {
-        console.log('[TAP_ATTEMPT] stage=authority_guard_reconcile attempt_id=' + attempt.terminal_attempt_id + ' payment_intent_id=' + attempt.stripe_payment_intent_id + ' local_status=' + attempt.status)
+        const isSameAttempt = attempt.terminal_attempt_id === attemptId
+        console.log('[TAP_ATTEMPT] stage=authority_guard_reconcile attempt_id=' + attempt.terminal_attempt_id + ' current_attempt_id=' + attemptId + ' is_same_attempt=' + isSameAttempt + ' payment_intent_id=' + attempt.stripe_payment_intent_id + ' local_status=' + attempt.status)
 
         if (!attempt.stripe_payment_intent_id) {
           // No PaymentIntent ID - cannot reconcile, fail conservatively
@@ -202,26 +232,30 @@ export async function POST(request: NextRequest) {
             { stripeAccount: stripeAccountId } as any
           )
 
-          console.log('[TAP_ATTEMPT] stage=authority_guard_stripe_status attempt_id=' + attempt.terminal_attempt_id + ' stripe_status=' + paymentIntent.status)
+          console.log('[TAP_ATTEMPT] stage=authority_guard_stripe_status attempt_id=' + attempt.terminal_attempt_id + ' current_attempt_id=' + attemptId + ' stripe_status=' + paymentIntent.status)
 
           // Authoritative Stripe status determines safety
           if (paymentIntent.status === 'succeeded') {
-            // Payment succeeded - resolve local and reject new PaymentIntent
-            console.log('[TAP_ATTEMPT] stage=authority_guard_succeeded attempt_id=' + attempt.terminal_attempt_id)
-            await supabaseAdmin
-              .from('payment_requests')
-              .update({ status: 'paid', paid_at: new Date().toISOString() })
-              .eq('id', attempt.id)
+            if (isSameAttempt) {
+              // Same logical payment resumed after Stripe succeeded - return existing canonical success
+              console.log('[TAP_ATTEMPT] stage=authority_guard_same_payment_success attempt_id=' + attempt.terminal_attempt_id + ' payment_request_id=' + attempt.id)
+              return NextResponse.json({
+                error: 'payment_already_completed',
+                status: 'paid',
+                message: 'This payment has already been completed',
+                localPaymentId: attempt.id,
+                paymentIntentId: attempt.stripe_payment_intent_id,
+              }, { status: 409 })
+            }
 
-            return NextResponse.json({
-              error: 'Payment already completed',
-              status: 'paid',
-              message: 'This payment has already been completed',
-              localPaymentId: attempt.id
-            }, { status: 409 })
+            // Older succeeded attempt for a different payment - finalize it and continue with the new payment
+            console.log('[TAP_ATTEMPT] stage=authority_guard_old_attempt_finalized attempt_id=' + attempt.terminal_attempt_id + ' payment_request_id=' + attempt.id)
+            await finalizeOldAttemptAsPaid(attempt)
+            console.log('[TAP_ATTEMPT] stage=authority_guard_continue_new_payment after_finalizing_old attempt_id=' + attempt.terminal_attempt_id)
+            continue
           } else if (paymentIntent.status === 'processing' || paymentIntent.status === 'requires_capture' || paymentIntent.status === 'requires_confirmation' || paymentIntent.status === 'requires_action') {
-            // Payment still processing - block new PaymentIntent
-            console.log('[TAP_ATTEMPT] stage=authority_guard_processing attempt_id=' + attempt.terminal_attempt_id + ' stripe_status=' + paymentIntent.status)
+            // Payment still processing - block new PaymentIntent for safety
+            console.log('[TAP_ATTEMPT] stage=authority_guard_block_processing attempt_id=' + attempt.terminal_attempt_id + ' current_attempt_id=' + attemptId + ' stripe_status=' + paymentIntent.status)
             return NextResponse.json({
               error: 'Payment is still processing',
               status: 'processing',
@@ -229,21 +263,39 @@ export async function POST(request: NextRequest) {
               unresolvedAttemptId: attempt.terminal_attempt_id
             }, { status: 409 })
           } else if (paymentIntent.status === 'canceled') {
-            // Payment canceled - safe to proceed with new PaymentIntent
-            console.log('[TAP_ATTEMPT] stage=authority_guard_canceled attempt_id=' + attempt.terminal_attempt_id)
+            // Payment canceled - mark local state and decide whether to continue
+            console.log('[TAP_ATTEMPT] stage=authority_guard_canceled attempt_id=' + attempt.terminal_attempt_id + ' is_same_attempt=' + isSameAttempt)
             await supabaseAdmin
               .from('payment_requests')
               .update({ status: 'canceled' })
               .eq('id', attempt.id)
-            // Continue to create new PaymentIntent
+
+            if (isSameAttempt) {
+              return NextResponse.json({
+                error: 'previous_attempt_canceled',
+                status: 'canceled',
+                message: 'Previous attempt was canceled',
+                localPaymentId: attempt.id
+              }, { status: 409 })
+            }
+            // Continue to create new PaymentIntent for a genuinely new payment
           } else if (paymentIntent.status === 'requires_payment_method') {
-            // Payment failed before payment method - safe to proceed with new PaymentIntent
-            console.log('[TAP_ATTEMPT] stage=authority_guard_requires_payment_method attempt_id=' + attempt.terminal_attempt_id)
+            // Payment failed before payment method - mark local state and decide whether to continue
+            console.log('[TAP_ATTEMPT] stage=authority_guard_requires_payment_method attempt_id=' + attempt.terminal_attempt_id + ' is_same_attempt=' + isSameAttempt)
             await supabaseAdmin
               .from('payment_requests')
               .update({ status: 'failed' })
               .eq('id', attempt.id)
-            // Continue to create new PaymentIntent
+
+            if (isSameAttempt) {
+              return NextResponse.json({
+                error: 'previous_attempt_failed',
+                status: 'failed',
+                message: 'Previous attempt failed',
+                localPaymentId: attempt.id
+              }, { status: 409 })
+            }
+            // Continue to create new PaymentIntent for a genuinely new payment
           } else {
             // Unknown status - fail conservatively
             console.error('[TAP_ATTEMPT] stage=authority_guard_unknown_status attempt_id=' + attempt.terminal_attempt_id + ' stripe_status=' + paymentIntent.status)
