@@ -147,4 +147,57 @@ describe('Semantic Skip-Ahead Extraction', () => {
     // canonical formatter/model responsibility, not this merge step.
     expect(intake.serviceRequested).to.equal("a new water heater installed at 85 Liberty Avenue. I'd like it done by next Friday, and you can call me back anytime after 4 pm");
   });
+
+  it('extracts natural relative timing from a service request (get my grass cut in the next two weeks or so)', () => {
+    const intake: IntakeData = { stage: 'ask_name_reason' };
+    const transcript = "Yeah, I'm just looking to get my grass cut in the next two weeks or so";
+    const result = enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CAe0d4832e09b97b81f46a74a344393f56');
+
+    expect(intake.serviceRequested).to.exist;
+    expect(intake.serviceRequested).to.not.include('two weeks');
+    expect(intake.desiredCompletionTime).to.exist;
+    expect(intake.desiredCompletionTime?.toLowerCase()).to.include('next two weeks');
+    expect(result.applied).to.include('desiredCompletionTime');
+  });
+
+  it('extracts "within the next two weeks" for fence installation', () => {
+    const intake: IntakeData = { stage: 'ask_name_reason' };
+    const transcript = 'I need a fence installed within the next two weeks';
+    const result = enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-test');
+
+    expect(intake.serviceRequested).to.include('fence installed');
+    expect(intake.serviceRequested).to.not.include('within');
+    expect(intake.desiredCompletionTime).to.exist;
+    expect(intake.desiredCompletionTime?.toLowerCase()).to.include('within the next two weeks');
+    expect(result.applied).to.include('desiredCompletionTime');
+  });
+
+  it('does not treat "My sink has been leaking for the last two weeks" as a completion preference', () => {
+    const intake: IntakeData = { stage: 'ask_name_reason' };
+    const transcript = 'My sink has been leaking for the last two weeks';
+    const result = enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-test');
+
+    expect(intake.desiredCompletionTime).to.be.undefined;
+    expect(result.applied).to.not.include('desiredCompletionTime');
+  });
+
+  it('does not treat "It broke yesterday afternoon" as a completion preference', () => {
+    const intake: IntakeData = { stage: 'ask_name_reason' };
+    const transcript = 'It broke yesterday afternoon';
+    const result = enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-test');
+
+    expect(intake.desiredCompletionTime).to.be.undefined;
+    expect(result.applied).to.not.include('desiredCompletionTime');
+  });
+
+  it('extracts "sometime this week" from a done preference', () => {
+    const intake: IntakeData = { stage: 'ask_name_reason' };
+    const transcript = "I'd like it done sometime this week";
+    const result = enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-test');
+
+    expect(intake.desiredCompletionTime).to.exist;
+    expect(intake.desiredCompletionTime?.toLowerCase()).to.include('this week');
+    expect(intake.serviceRequested?.toLowerCase()).to.not.include('this week');
+    expect(result.applied).to.include('desiredCompletionTime');
+  });
 });

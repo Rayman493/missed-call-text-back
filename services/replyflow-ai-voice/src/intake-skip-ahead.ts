@@ -56,13 +56,13 @@ function isFillerPhrase(text: string): boolean {
 }
 
 function stripServicePrefix(s: string): string {
-  return s
-    .replace(
-      /^(?:i want to|i would like to|i'd like to|i need to|i need|i'm looking to|i am looking to|looking to|calling about|i'm calling about|i am calling about|need someone to|to get my|get my)\s+/i,
-      ''
-    )
-    .replace(/^[.,;:]\s*/, '')
-    .trim();
+  const prefixRe = /^(?:(?:yeah|yep|yes|okay|ok|alright|well|so|uh|um)[,\s]+|(?:i want to|i would like to|i'd like to|i need to|i need|i'm(?:\s+just)?\s+looking to|i am(?:\s+just)?\s+looking to|(?:just\s+)?looking to|calling about|i'm calling about|i am calling about|need someone to|to get my|get my)\s+)/i;
+  let prev: string;
+  do {
+    prev = s;
+    s = s.replace(prefixRe, '').replace(/^[.,;:]\s*/, '').trim();
+  } while (s !== prev);
+  return s;
 }
 
 function normalizeNameCandidate(s: string): string {
@@ -78,6 +78,9 @@ function normalizeNameCandidate(s: string): string {
     .trim();
 }
 
+// Reject name candidates that clearly contain service/problem language.
+const NAME_SERVICE_BLOCKERS = /\b(?:need|want|looking|get|got|have|cut|install|installed|repair|repaired|fix|fixed|done|completed|finished|mowed|cleaned|checked|painted|replaced|removed|trimmed|serviced|leak|leaking|broke|broken|snapped|fence|grass|sink|water|heater|gutter|roof|plumber|garage|door|cable|tile|floor|wall|ceiling|furnace|ac|electrical|wire|outlet|switch|light|bulb|appliance|machine|device|system|unit)\b/i;
+
 function extractCustomerName(transcript: string): string | null {
   const trimmed = transcript.trim();
   const patterns = [
@@ -92,7 +95,7 @@ function extractCustomerName(transcript: string): string | null {
     const match = trimmed.match(pattern);
     if (match && match[1]) {
       const normalized = normalizeNameCandidate(match[1].trim());
-      if (normalized && normalized.length > 1 && !isFillerPhrase(normalized)) {
+      if (normalized && normalized.length > 1 && !isFillerPhrase(normalized) && !NAME_SERVICE_BLOCKERS.test(normalized)) {
         return normalized;
       }
     }
@@ -172,6 +175,44 @@ function findCompletionMatch(transcript: string): ExtractedMatch | null {
         };
       }
     }
+  }
+  return null;
+}
+
+// High-confidence natural relative timing phrases (e.g. "in the next two weeks").
+// The pattern intentionally avoids explicit intent markers like "I'd like it done";
+// context checks below prevent past/incident phrases from being misclassified.
+const SERVICE_CONTEXT_VERBS = /\b(?:get|need|want|would like|done|completed|finished|installed|repaired|fixed|cut|mowed|cleaned|checked|painted|replaced|removed|trimmed|serviced)\b/i;
+const PAST_CONTEXT_MARKERS = /\b(?:ago|last|since|started|broke|snapped|noticed|leaking|was|were|been|has been|had been|have been|would be|could be|should be|got|had|yesterday)\b/i;
+const NEGATIVE_TIMING_PREFIX = /\b(?:for|since|over|the last|the past|last|ago)\s*$/i;
+const NATURAL_COMPLETION_RE =
+  '\\b(((?:in|within|sometime in|sometime within|sometime this|sometime next|by|this|next|today|tomorrow)\\s+(?:the\\s+)?(?:next|coming|following|upcoming)?\\s*(?:two|three|four|a few|couple of|couple|one|1|2|3|4|5|several)?\\s*(?:days?|weeks?|months?|weekend|(?:mon|tues|wednes|thurs|fri|satur|sun)days?|today|tomorrow|morning|afternoon|evening|night))(?:\\s+(?:or so|about|around|ish|give or take))?)(?=\\s*(?:,?\\s*and\\b|[.!?](?:\\s|$)|;|$))';
+
+function findNaturalCompletionMatch(transcript: string): ExtractedMatch | null {
+  const re = new RegExp(NATURAL_COMPLETION_RE, 'gi');
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(transcript)) !== null) {
+    const value = (match[2] || match[1]).trim();
+    const fullMatch = match[1].trim();
+    if (!isValidCompletionTime(value)) {
+      continue;
+    }
+    const preceding = transcript.slice(Math.max(0, match.index - 80), match.index);
+    const immediatePrefix = transcript.slice(Math.max(0, match.index - 30), match.index);
+    if (NEGATIVE_TIMING_PREFIX.test(immediatePrefix)) {
+      continue;
+    }
+    if (PAST_CONTEXT_MARKERS.test(preceding)) {
+      continue;
+    }
+    if (!SERVICE_CONTEXT_VERBS.test(preceding)) {
+      continue;
+    }
+    return {
+      value,
+      fullMatch,
+      startIndex: match.index,
+    };
   }
   return null;
 }
@@ -275,6 +316,7 @@ function extractServiceRequestCandidate(
   const matches: (ExtractedMatch | null)[] = [
     findAddressMatch(s),
     findCompletionMatch(s),
+    findNaturalCompletionMatch(s),
     findCallbackMatch(s),
   ];
   const earliestMatch = matches
@@ -354,7 +396,7 @@ export function enrichIntakeFromTranscript(
 
   const name = extractCustomerName(transcript);
   const addressMatch = findAddressMatch(transcript);
-  const completionMatch = findCompletionMatch(transcript);
+  const completionMatch = findCompletionMatch(transcript) ?? findNaturalCompletionMatch(transcript);
   const callbackMatch = findCallbackMatch(transcript);
 
   if (name) detected.push('customerName');
