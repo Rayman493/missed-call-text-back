@@ -119,6 +119,10 @@ public class MainActivity extends BridgeActivity {
 
         super.onCreate(savedInstanceState);
 
+        // Initialize the Capacitor WebView immediately after bridge creation.
+        // This must be assigned before any code dereferences it.
+        webView = getBridge().getWebView();
+
         // Get reference to checkout plugin for callback forwarding
         try {
             checkoutPlugin = (ReplyflowWebCheckoutPlugin) getBridge().getPlugin("ReplyflowWebCheckoutPlugin").getInstance();
@@ -145,7 +149,7 @@ public class MainActivity extends BridgeActivity {
         }
 
         // Notify WebView of external return if one was detected
-        if (externalReturnType != null) {
+        if (externalReturnType != null && webView != null) {
             // Schedule WebView notification after a short delay to ensure WebView is ready
             webView.postDelayed(new Runnable() {
                 @Override
@@ -166,9 +170,6 @@ public class MainActivity extends BridgeActivity {
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(channel);
         }
-
-        // Get the Capacitor WebView (used for offline overlay parent)
-        webView = getBridge().getWebView();
 
         // Query web build marker and URL after WebView is ready
         if (webView != null) {
