@@ -183,6 +183,11 @@ export const normalizeCustomerName = (text: string | null | undefined): string |
   if (looksLikePhoneNumber(original)) {
     return null;
   }
+  // Reject explicit name refusals so they are never interpolated into greetings
+  const nameRefusalPattern = /\b(?:i['"]?d\s+rather\s+not|i\s+don['"]?t\s+want\s+to|i['"]?d\s+prefer\s+not\s+to|i\s+won['"]?t|i\s+can['"]?t|i['"]?d\s+like\s+to\s+(?:stay|remain|keep\s+this)|i\s+want\s+to\s+(?:stay|remain))\s+(?:give|say|tell|share|provide)?\s*(?:my\s+)?(?:name|address)?\b/i
+  if (nameRefusalPattern.test(original)) {
+    return null;
+  }
   let normalized = original;
   // Name-specific conversational prefixes (strictly anchored)
   const namePrefixPatterns = [

@@ -16,14 +16,37 @@ describe('Refusal and partial-location handling', () => {
       "I'd rather not say",
       "No name",
       "I'd like to stay anonymous",
+      "I'd like to remain anonymous",
+      "I want to remain anonymous",
     ];
     for (const text of refusals) {
       expect(isNameRefusal(text), `should detect refusal in "${text}"`).to.be.true;
       const intake: any = {};
       enrichIntakeFromTranscript(text, intake, 'ask_name');
       expect(intake.nameRefused, `nameRefused flag for "${text}"`).to.be.true;
-      expect(intake.customerName, `customerName for "${text}"`).to.be.undefined;
+      expect(intake.customerName, `customerName for "${text}"`).to.be.empty;
     }
+  });
+
+  it('clears a stale customerName when a high-confidence name refusal is extracted', () => {
+    const intake: any = { customerName: 'Previously Set Name' };
+    enrichIntakeFromTranscript("I'd rather not give my name", intake, 'ask_name');
+    expect(intake.nameRefused).to.be.true;
+    expect(intake.customerName).to.be.empty;
+  });
+
+  it('allows a later real name to replace a previous name refusal', () => {
+    const intake: any = { nameRefused: true, customerName: '' };
+    enrichIntakeFromTranscript('My name is Jason Williams', intake, 'ask_name');
+    expect(intake.nameRefused).to.be.true;
+    expect(intake.customerName).to.equal('Jason Williams');
+  });
+
+  it('preserves a real name and does not erase it from an unrelated ambiguous utterance', () => {
+    const intake: any = { customerName: 'Jason Williams' };
+    enrichIntakeFromTranscript('Actually the sink is leaking worse', intake, 'ask_request');
+    expect(intake.nameRefused).to.be.undefined;
+    expect(intake.customerName).to.equal('Jason Williams');
   });
 
   it('extracts a usable partial location from privacy-aware answers', () => {

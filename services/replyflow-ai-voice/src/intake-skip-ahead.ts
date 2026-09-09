@@ -89,8 +89,9 @@ const NAME_REFUSAL_PATTERNS = [
   /\b(?:i['"]?d\s+prefer\s+not\s+to\s+(?:say|give\s+(?:my\s+)?name|tell\s+(?:my\s+)?name))\b/i,
   /\bi['"]?d\s+rather\s+not\b/i,
   /\b(?:no\s+name|no\s+name\s+given|no\s+name\s+please)\b/i,
-  /\bi['"]?d\s+like\s+to\s+stay\s+anonymous\b/i,
-  /\bi\s+want\s+to\s+stay\s+anonymous\b/i,
+  /\bi['"]?d\s+like\s+to\s+(?:stay|remain)\s+anonymous\b/i,
+  /\bi\s+want\s+to\s+(?:stay|remain)\s+anonymous\b/i,
+  /\bi['"]?d\s+like\s+to\s+keep\s+this\s+anonymous\b/i,
 ];
 
 export function isNameRefusal(transcript: string): boolean {
@@ -623,6 +624,9 @@ export function enrichIntakeFromTranscript(
   if (nameRefused) {
     detected.push('nameRefused');
     intake.nameRefused = true;
+    // A high-confidence name refusal replaces any same-turn customerName candidate
+    // and clears a stale name that may have been written before extraction ran.
+    intake.customerName = '';
   }
   if (addressMatch) detected.push('serviceAddress');
   if (locationRefused) {

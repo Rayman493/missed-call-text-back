@@ -55,6 +55,12 @@ describe('normalizeCustomerNameForSms', () => {
     expect(normalizeCustomerNameForSms('')).toBeNull();
     expect(normalizeCustomerNameForSms(null)).toBeNull();
   })
+
+  it('rejects explicit name refusals', () => {
+    expect(normalizeCustomerNameForSms("I'd rather not give my name")).toBeNull();
+    expect(normalizeCustomerNameForSms("I don't want to give my name")).toBeNull();
+    expect(normalizeCustomerNameForSms("I'd like to remain anonymous")).toBeNull();
+  })
 })
 
 describe('polishTimingWrapper', () => {

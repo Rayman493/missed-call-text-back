@@ -52,6 +52,31 @@ describe('buildCanonicalExtractedInfo correction precedence', () => {
     expect(result.serviceAddress).to.equal('100 Main Street');
   });
 
+  it('never canonicalizes a name refusal sentence as customerName when nameRefused is true', async () => {
+    const fields = {
+      customerName: "I'd rather not give my name",
+      nameRefused: true,
+      serviceRequested: 'water under sink',
+      serviceAddress: 'Pittsburgh',
+      desiredCompletionTime: 'Whenever you can',
+      callbackTime: 'Anytime',
+    };
+
+    const result = await buildCanonicalExtractedInfo(
+      fields,
+      '+15551234567',
+      'onsite',
+      'CA_name_refused'
+    );
+
+    expect(result.customerName).to.equal('');
+    expect(result.nameRefused).to.be.true;
+    expect(result.serviceRequested).to.equal('water under sink');
+    expect(result.serviceAddress).to.equal('Pittsburgh');
+    expect(result.desiredCompletionTime).to.equal('Whenever you can');
+    expect(result.callbackTime).to.equal('Anytime');
+  });
+
   it('does not call the model when explicit service and details are absent', async () => {
     const fields = {
       customerName: '',

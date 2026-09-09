@@ -71,7 +71,9 @@ export const CANONICAL_FIELDS = {
   addressOrLocation: 'addressOrLocation',
   preferredCallbackTime: 'preferredCallbackTime',
   summary: 'summary',
-  serviceLocationType: 'serviceLocationType'
+  serviceLocationType: 'serviceLocationType',
+  nameRefused: 'nameRefused',
+  locationRefused: 'locationRefused'
 } as const
 
 /**
@@ -124,6 +126,12 @@ const FIELD_ALIASES: Record<string, keyof typeof CANONICAL_FIELDS> = {
   
   'serviceLocationType': 'serviceLocationType',
   'service_location_type': 'serviceLocationType',
+
+  'nameRefused': 'nameRefused',
+  'name_refused': 'nameRefused',
+
+  'locationRefused': 'locationRefused',
+  'location_refused': 'locationRefused',
 }
 
 /**
@@ -140,6 +148,8 @@ export function normalizeExtractedInfo(extractedInfo: any): {
   preferredCallbackTime?: string
   summary?: string
   serviceLocationType?: string
+  nameRefused?: boolean
+  locationRefused?: boolean
 } {
   const normalized: any = {}
 
@@ -176,7 +186,7 @@ export function normalizeExtractedInfo(extractedInfo: any): {
 export function getExtractedField(
   extractedInfo: any,
   canonicalField: keyof typeof CANONICAL_FIELDS
-): string | undefined {
+): string | boolean | undefined {
   const normalized = normalizeExtractedInfo(extractedInfo)
   return normalized[canonicalField]
 }
@@ -193,6 +203,9 @@ export function canonicalizeExtractedInfo(extractedInfo: any): {
   addressOrLocation?: string
   preferredCallbackTime?: string
   summary?: string
+  serviceLocationType?: string
+  nameRefused?: boolean
+  locationRefused?: boolean
 } {
   const canonical: any = {}
 
@@ -309,6 +322,8 @@ export interface LeadAIIntake {
   desiredCompletion: string | null
   callbackTime: string | null
   conciseRequestTitle: string | null
+  nameRefused?: boolean
+  locationRefused?: boolean
 }
 
 /**
@@ -413,20 +428,27 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
     effectiveExtractedInfo.serviceRequested
   ], pick));
 
+  // A high-confidence name refusal in the current AI intake overrides the name
+  // resolution chain so the refusal sentence is never surfaced as the customer name.
+  const nameRefused = !!(effectiveNormalized.nameRefused ?? effectiveExtractedInfo.nameRefused)
+
   const result = {
     // Customer name: current-call captured name beats lead profile identity
     // Priority: manual corrections > current-call normalized > current-call raw > lead profile
     // NO historical raw_metadata fallback
-    customerName: normalizeCustomerName(traceFieldSelection('customerName', [
-      corrected.name,
-      corrected.callerName,
-      corrected.customerName,
-      corrected.caller_name,
-      effectiveNormalized.callerName,
-      effectiveExtractedInfo.customerName,
-      lead?.name,
-      lead?.contact_name
-    ], pickNotPhone)),
+    // If the current call explicitly refused the name, the canonical name is null.
+    customerName: nameRefused
+      ? null
+      : normalizeCustomerName(traceFieldSelection('customerName', [
+          corrected.name,
+          corrected.callerName,
+          corrected.customerName,
+          corrected.caller_name,
+          effectiveNormalized.callerName,
+          effectiveExtractedInfo.customerName,
+          lead?.name,
+          lead?.contact_name
+        ], pickNotPhone)),
     customerPhone: pick(
       lead?.caller_phone,
       lead?.phone,
@@ -487,6 +509,8 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       effectiveNormalized.reasonForCalling ||
       effectiveExtractedInfo.serviceRequested
     ),
+    nameRefused,
+    locationRefused: !!(effectiveNormalized.locationRefused ?? effectiveExtractedInfo.locationRefused),
   }
 
   // Development-only trace log

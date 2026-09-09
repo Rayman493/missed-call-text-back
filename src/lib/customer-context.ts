@@ -85,6 +85,12 @@ function getManualCustomerNameSource(lead: any): NameSource | null {
   return { value, timestamp }
 }
 
+function isNameRefusalLike(value: string): boolean {
+  const lower = value.toLowerCase()
+  return /\b(?:rather not|prefer not to|don't want to|do not want to|won't|will not|can't|cannot|stay anonymous|remain anonymous|keep this anonymous)\b/.test(lower) &&
+    /\b(?:my name|give|say|tell|address)\b/.test(lower)
+}
+
 function getAICustomerNameSource(lead: any): NameSource | null {
   const raw = lead?.raw_metadata || {}
   const candidates: NameSource[] = []
@@ -100,6 +106,8 @@ function getAICustomerNameSource(lead: any): NameSource | null {
   if (records.length > 0) {
     for (const record of records) {
       const extracted = record.extracted_info || {}
+      // A name-refused intake must not contribute a customer name candidate.
+      if (extracted.nameRefused === true) continue
       const value = firstClean(
         extracted.callerName,
         extracted.customerName,
@@ -107,7 +115,7 @@ function getAICustomerNameSource(lead: any): NameSource | null {
         extracted.customer_name,
         extracted.name
       )
-      if (value) {
+      if (value && !isNameRefusalLike(value)) {
         candidates.push({
           value,
           timestamp: parseTimestamp(record.completed_at || record.created_at)
@@ -117,20 +125,23 @@ function getAICustomerNameSource(lead: any): NameSource | null {
   }
 
   const extracted = raw.extracted_info || {}
-  const fallbackValue = firstClean(
-    extracted.callerName,
-    extracted.customerName,
-    extracted.caller_name,
-    extracted.customer_name,
-    extracted.name
-  )
-  if (fallbackValue) {
-    const fallbackTimestamp =
-      parseTimestamp(raw.voicemail_extraction?.extractedAt) ??
-      parseTimestamp(raw.sms_extraction?.extractedAt) ??
-      parseTimestamp(raw.extractedAt) ??
-      null
-    candidates.push({ value: fallbackValue, timestamp: fallbackTimestamp })
+  // A name-refused lead metadata must not contribute a customer name candidate.
+  if (extracted.nameRefused !== true) {
+    const fallbackValue = firstClean(
+      extracted.callerName,
+      extracted.customerName,
+      extracted.caller_name,
+      extracted.customer_name,
+      extracted.name
+    )
+    if (fallbackValue && !isNameRefusalLike(fallbackValue)) {
+      const fallbackTimestamp =
+        parseTimestamp(raw.voicemail_extraction?.extractedAt) ??
+        parseTimestamp(raw.sms_extraction?.extractedAt) ??
+        parseTimestamp(raw.extractedAt) ??
+        null
+      candidates.push({ value: fallbackValue, timestamp: fallbackTimestamp })
+    }
   }
 
   if (candidates.length === 0) return null

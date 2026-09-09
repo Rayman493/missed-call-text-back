@@ -4911,7 +4911,10 @@ export async function buildCanonicalExtractedInfo(
   );
 
   return {
-    customerName: sanitizeEnglishIntakeField('customerName', fields.customerName || fields.callerName || ''),
+    // A high-confidence name refusal must never canonialize the refusal sentence.
+    customerName: fields.nameRefused
+      ? ''
+      : sanitizeEnglishIntakeField('customerName', fields.customerName || fields.callerName || ''),
     customerPhone: (callerPhone || fields.customerPhone || '').trim(),
     serviceRequested: serviceRequested,
     importantDetails: importantDetails,
@@ -8499,6 +8502,11 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       // refused a precise address; instead mark the location as refused.
       if (stage === 'ask_location' && !state.intakeData[extractedField] && isLocationRefusal(rawTranscript)) {
         state.intakeData.locationRefused = true;
+        capturedAnswer = '';
+      } else if (stage === 'ask_name' && isNameRefusal(rawTranscript)) {
+        // Explicit name refusal overrides any fallback to the raw transcript.
+        state.intakeData.nameRefused = true;
+        state.intakeData.customerName = '';
         capturedAnswer = '';
       } else {
         capturedAnswer = state.intakeData[extractedField] || capturedAnswer;

@@ -278,4 +278,31 @@ describe('customer-context', () => {
       expect(displayName).toBe('Michael')
     })
   })
+
+  it('G: a name-refused AI intake does not surface the refusal sentence as the customer name', () => {
+    const lead = {
+      id: 'lead-refused',
+      caller_phone: '+15551234567',
+      aiCallRecords: [
+        {
+          created_at: '2024-03-01T00:00:00Z',
+          extracted_info: {
+            callerName: "I'd rather not give my name",
+            nameRefused: true,
+            reasonForCalling: 'Water under sink'
+          }
+        }
+      ],
+      raw_metadata: {
+        extracted_info: {
+          callerName: "I'd rather not give my name",
+          nameRefused: true,
+          reasonForCalling: 'Water under sink'
+        }
+      }
+    }
+
+    expect(getCurrentCustomerContext(lead).customerName).toBe('')
+    expect(getCanonicalCustomerDisplayName(lead)).toBe('+1 (555) 123-4567')
+  })
 })
