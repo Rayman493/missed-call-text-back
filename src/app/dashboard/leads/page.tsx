@@ -36,7 +36,7 @@ import {
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { copyToClipboard } from '@/lib/clipboard'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
-import { getCustomerStatusStyle, getCustomerStatusLabel, getAllCustomerStatuses, normalizeCustomerStatus } from '@/lib/customer-status'
+import { getCustomerStatusStyle, getCustomerStatusLabel, getCustomerStatusIcon, getAllCustomerStatuses, normalizeCustomerStatus } from '@/lib/customer-status'
 import { cn } from '@/lib/theme'
 import { 
   getSubscriptionStatusText, 
@@ -104,34 +104,22 @@ function getCompactSummary(lead: any): string {
   return 'New customer request'
 }
 
-// Status filter icons mapped to canonical statuses (presentation only)
-const STATUS_FILTER_ICONS: Record<string, string> = {
-  all: '●',
-  new: '📞',
-  needs_reply: '💬',
-  active: '💬',
-  scheduled: '📅',
-  payment_requested: '💳',
-  paid: '✅',
-  completed: '✓',
-  cancelled: '🟠',
-  ignored: '🟠',
-  lost: '❌',
-}
-
 // Status filter options derived from the canonical customer status ordering
 const statusFilterOptions = [
-  { value: 'all', label: 'All', icon: STATUS_FILTER_ICONS['all'] },
+  { value: 'all', label: 'All' },
   ...getAllCustomerStatuses().map((status) => ({
     value: status,
     label: getCustomerStatusLabel(status),
-    icon: STATUS_FILTER_ICONS[status],
   })),
 ]
 
-function getStatusFilterIcon(filter: string): string {
-  const option = statusFilterOptions.find(opt => opt.value === filter)
-  return option?.icon || '●'
+function getStatusFilterIcon(filter: string) {
+  if (filter === 'all') {
+    return <span className="w-2 h-2 rounded-full bg-current" />
+  }
+  const Icon = getCustomerStatusIcon(filter)
+  const style = getCustomerStatusStyle(filter)
+  return <Icon className={`w-4 h-4 ${style.textClass}`} />
 }
 
 function getStatusFilterLabel(filter: string): string {
@@ -1115,7 +1103,7 @@ export default function LeadsPage() {
                         left: 12,
                       }}
                       avoidCollisions
-                      className="w-[200px] max-w-[calc(100vw-24px)] max-h-[min(400px,calc(100dvh-140px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 z-[10000] overflow-y-auto overscroll-contain"
+                      className="w-[200px] max-w-[calc(100vw-24px)] max-h-[min(400px,calc(100dvh-140px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 z-[10000] overflow-y-auto overscroll-contain touch-pan-y"
                     >
                       <div className="px-2.5 py-1.5">
                         <div className="px-0.5 py-0.5 text-[9px] font-medium text-muted-foreground/50 uppercase tracking-[0.12em]">
@@ -1123,181 +1111,41 @@ export default function LeadsPage() {
                         </div>
                       </div>
                       <div className="px-1 py-1 space-y-0.5">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setQuickFilter('all')
-                            setStatusFilter('all')
-                            // Clear status query parameter
-                            const params = new URLSearchParams(searchParams?.toString())
-                            params.delete('status')
-                            const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
-                            router.replace(newUrl)
-                          }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
-                        >
-                          <span className="text-sm text-foreground">All</span>
-                          {quickFilter === 'all' && statusFilter === 'all' && (
-                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setQuickFilter('active')
-                            setStatusFilter('all')
-                            // Clear status query parameter
-                            const params = new URLSearchParams(searchParams?.toString())
-                            params.delete('status')
-                            const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
-                            router.replace(newUrl)
-                          }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
-                        >
-                          <span className="text-sm text-foreground">Active</span>
-                          {quickFilter === 'active' && statusFilter === 'all' && (
-                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setQuickFilter('new')
-                            setStatusFilter('all')
-                            // Clear status query parameter
-                            const params = new URLSearchParams(searchParams?.toString())
-                            params.delete('status')
-                            const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
-                            router.replace(newUrl)
-                          }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
-                        >
-                          <span className="text-sm text-foreground">Needs Reply</span>
-                          {quickFilter === 'new' && statusFilter === 'all' && (
-                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setStatusFilter('scheduled')
-                            setQuickFilter('all')
-                            // Set status query parameter
-                            const params = new URLSearchParams(searchParams?.toString())
-                            params.set('status', 'scheduled')
-                            router.replace(`${pathname}?${params.toString()}`)
-                          }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
-                        >
-                          <span className="text-sm text-foreground">Scheduled</span>
-                          {statusFilter === 'scheduled' && (
-                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setStatusFilter('payment_requested')
-                            setQuickFilter('all')
-                            // Set status query parameter
-                            const params = new URLSearchParams(searchParams?.toString())
-                            params.set('status', 'payment_requested')
-                            router.replace(`${pathname}?${params.toString()}`)
-                          }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
-                        >
-                          <span className="text-sm text-foreground">Payment Requested</span>
-                          {statusFilter === 'payment_requested' && (
-                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setStatusFilter('paid')
-                            setQuickFilter('all')
-                            // Set status query parameter
-                            const params = new URLSearchParams(searchParams?.toString())
-                            params.set('status', 'paid')
-                            router.replace(`${pathname}?${params.toString()}`)
-                          }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
-                        >
-                          <span className="text-sm text-foreground">Paid</span>
-                          {statusFilter === 'paid' && (
-                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setStatusFilter('completed')
-                            setQuickFilter('all')
-                            // Set status query parameter
-                            const params = new URLSearchParams(searchParams?.toString())
-                            params.set('status', 'completed')
-                            router.replace(`${pathname}?${params.toString()}`)
-                          }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
-                        >
-                          <span className="text-sm text-foreground">Completed</span>
-                          {statusFilter === 'completed' && (
-                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setStatusFilter('lost')
-                            setQuickFilter('all')
-                            // Set status query parameter
-                            const params = new URLSearchParams(searchParams?.toString())
-                            params.set('status', 'lost')
-                            router.replace(`${pathname}?${params.toString()}`)
-                          }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
-                        >
-                          <span className="text-sm text-foreground">Lost</span>
-                          {statusFilter === 'lost' && (
-                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setQuickFilter('ignored')
-                            setStatusFilter('all')
-                            // Clear status query parameter (ignored uses quickFilter)
-                            const params = new URLSearchParams(searchParams?.toString())
-                            params.delete('status')
-                            const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
-                            router.replace(newUrl)
-                          }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
-                        >
-                          <span className="text-sm text-foreground">Ignored</span>
-                          {quickFilter === 'ignored' && (
-                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </DropdownMenuItem>
+                        {statusFilterOptions.map((option) => {
+                          const isSelected = option.value === 'all'
+                            ? statusFilter === 'all' && quickFilter === 'all'
+                            : statusFilter === option.value && quickFilter === 'all'
+
+                          return (
+                            <DropdownMenuItem
+                              key={option.value}
+                              onSelect={() => {
+                                setQuickFilter('all')
+                                setStatusFilter(option.value)
+                                const params = new URLSearchParams(searchParams?.toString())
+                                if (option.value === 'all') {
+                                  params.delete('status')
+                                } else {
+                                  params.set('status', option.value)
+                                }
+                                const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+                                router.replace(newUrl)
+                              }}
+                              onPointerDown={(e) => e.stopPropagation()}
+                              className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs">{getStatusFilterIcon(option.value)}</span>
+                                <span className="text-sm text-foreground">{option.label}</span>
+                              </div>
+                              {isSelected && (
+                                <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </DropdownMenuItem>
+                          )
+                        })}
                       </div>
                     </DropdownMenuContent>
                   </DropdownMenuPortal>
@@ -1377,27 +1225,44 @@ export default function LeadsPage() {
                       sideOffset={8}
                       collisionPadding={12}
                       avoidCollisions
-                      className="w-full max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-120px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain z-[10000]"
+                      className="w-full max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-120px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain touch-pan-y z-[10000]"
                     >
-                      {statusFilterOptions.map((option) => (
-                        <DropdownMenuItem
-                          key={option.value}
-                          onSelect={() => setStatusFilter(option.value)}
-                          className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 outline-none focus:bg-muted/50 cursor-pointer"
-                        >
-                          <span className="text-xs">{option.icon}</span>
-                          <div className="flex-1">
-                            <div className="text-xs font-medium text-foreground">
-                              {option.label}
+                      {statusFilterOptions.map((option) => {
+                        const isSelected = option.value === 'all'
+                          ? statusFilter === 'all' && quickFilter === 'all'
+                          : statusFilter === option.value && quickFilter === 'all'
+
+                        return (
+                          <DropdownMenuItem
+                            key={option.value}
+                            onSelect={() => {
+                              setQuickFilter('all')
+                              setStatusFilter(option.value)
+                              const params = new URLSearchParams(searchParams?.toString())
+                              if (option.value === 'all') {
+                                params.delete('status')
+                              } else {
+                                params.set('status', option.value)
+                              }
+                              const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+                              router.replace(newUrl)
+                            }}
+                            className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 outline-none focus:bg-muted/50 cursor-pointer"
+                          >
+                            <span className="text-xs">{getStatusFilterIcon(option.value)}</span>
+                            <div className="flex-1">
+                              <div className="text-xs font-medium text-foreground">
+                                {option.label}
+                              </div>
                             </div>
-                          </div>
-                          {statusFilter === option.value && (
-                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </DropdownMenuItem>
-                      ))}
+                            {isSelected && (
+                              <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </DropdownMenuItem>
+                        )
+                      })}
                     </DropdownMenuContent>
                   </DropdownMenuPortal>
                 </DropdownMenu>

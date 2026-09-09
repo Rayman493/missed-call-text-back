@@ -46,7 +46,7 @@ import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
-import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate, DEFAULT_BUSINESS_HOURS_TIMEZONE, DEFAULT_BUSINESS_HOURS_START, DEFAULT_BUSINESS_HOURS_END, getBusinessHoursFieldWithDefault } from '@/lib/out-of-office'
+import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate, DEFAULT_BUSINESS_HOURS_TIMEZONE, DEFAULT_BUSINESS_HOURS_START, DEFAULT_BUSINESS_HOURS_END, getBusinessHoursFieldWithDefault, getOutOfOfficeStatus } from '@/lib/out-of-office'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
 import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, RefreshCw, ChevronDown, ChevronUp, ShieldCheck, Phone } from 'lucide-react'
@@ -1088,86 +1088,6 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     } catch (error) {
       console.error('[Settings] Error converting datetime:', error)
       return ''
-    }
-  }
-
-  // Helper to compare timezone-less ISO strings directly without Date conversion
-  // Returns -1 if a < b, 0 if a == b, 1 if a > b, or null if invalid
-  const compareISOStrings = (a: string | null | undefined, b: string | null | undefined): number | null => {
-    if (!a || !b) return null
-
-    try {
-      const matchA = a.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
-      const matchB = b.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
-
-      if (!matchA || !matchB) return null
-
-      const [, yearA, monthA, dayA, hoursA, minutesA, secondsA] = matchA
-      const [, yearB, monthB, dayB, hoursB, minutesB, secondsB] = matchB
-
-      const dateA = new Date(
-        parseInt(yearA),
-        parseInt(monthA) - 1,
-        parseInt(dayA),
-        parseInt(hoursA),
-        parseInt(minutesA),
-        parseInt(secondsA)
-      )
-
-      const dateB = new Date(
-        parseInt(yearB),
-        parseInt(monthB) - 1,
-        parseInt(dayB),
-        parseInt(hoursB),
-        parseInt(minutesB),
-        parseInt(secondsB)
-      )
-
-      if (dateA < dateB) return -1
-      if (dateA > dateB) return 1
-      return 0
-    } catch (error) {
-      console.error('[Settings] Error comparing ISO strings:', error)
-      return null
-    }
-  }
-
-  // Helper to check if current time is within ISO date range
-  const isNowBetweenISOStrings = (start: string | null | undefined, end: string | null | undefined): boolean | null => {
-    if (!start || !end) return null
-
-    try {
-      const matchStart = start.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
-      const matchEnd = end.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
-
-      if (!matchStart || !matchEnd) return null
-
-      const [, yearStart, monthStart, dayStart, hoursStart, minutesStart, secondsStart] = matchStart
-      const [, yearEnd, monthEnd, dayEnd, hoursEnd, minutesEnd, secondsEnd] = matchEnd
-
-      const startDate = new Date(
-        parseInt(yearStart),
-        parseInt(monthStart) - 1,
-        parseInt(dayStart),
-        parseInt(hoursStart),
-        parseInt(minutesStart),
-        parseInt(secondsStart)
-      )
-
-      const endDate = new Date(
-        parseInt(yearEnd),
-        parseInt(monthEnd) - 1,
-        parseInt(dayEnd),
-        parseInt(hoursEnd),
-        parseInt(minutesEnd),
-        parseInt(secondsEnd)
-      )
-
-      const now = new Date()
-      return now >= startDate && now <= endDate
-    } catch (error) {
-      console.error('[Settings] Error checking if now is between ISO strings:', error)
-      return null
     }
   }
 
@@ -3461,23 +3381,16 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                 )
                               }
 
-                              const isActive = isNowBetweenISOStrings(
-                                formBusiness.out_of_office_start,
-                                formBusiness.out_of_office_end
-                              )
-                              const comparison = compareISOStrings(
-                                new Date().toISOString().slice(0, 19).replace('T', 'T'),
-                                formBusiness.out_of_office_start
-                              )
+                              const oooStatus = getOutOfOfficeStatus(formBusiness)
 
-                              if (isActive === true) {
+                              if (oooStatus.status === 'active') {
                                 return (
                                   <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                                     <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                                     Active
                                   </span>
                                 )
-                              } else if (comparison === 1) {
+                              } else if (oooStatus.status === 'scheduled') {
                                 return (
                                   <span className="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
                                     Scheduled
@@ -3486,7 +3399,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               } else {
                                 return (
                                   <span className="text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
-                                    Ended
+                                    {oooStatus.status === 'expired' ? 'Ended' : 'Inactive'}
                                   </span>
                                 )
                               }
@@ -3494,36 +3407,23 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           </div>
                           {formBusiness.out_of_office_enabled && formBusiness.out_of_office_start && formBusiness.out_of_office_end ? (
                             (() => {
-                              const isActive = isNowBetweenISOStrings(
-                                formBusiness.out_of_office_start,
-                                formBusiness.out_of_office_end
-                              )
+                              const oooStatus = getOutOfOfficeStatus(formBusiness)
+                              const tz = formBusiness.business_hours_timezone || DEFAULT_BUSINESS_HOURS_TIMEZONE
+                              const formatOooDate = (d?: Date) =>
+                                d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: tz }) : ''
 
-                              if (isActive === true) {
-                                const matchEnd = formBusiness.out_of_office_end.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
-                                if (matchEnd) {
-                                  const [, year, month, day] = matchEnd
-                                  const endDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-                                  return (
-                                    <p className="text-xs text-muted-foreground">
-                                      Back {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                    </p>
-                                  )
-                                }
-                              } else if (isActive === false) {
-                                const matchStart = formBusiness.out_of_office_start.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
-                                const matchEnd = formBusiness.out_of_office_end.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/)
-                                if (matchStart && matchEnd) {
-                                  const [, yearStart, monthStart, dayStart] = matchStart
-                                  const [, yearEnd, monthEnd, dayEnd] = matchEnd
-                                  const startDate = new Date(parseInt(yearStart), parseInt(monthStart) - 1, parseInt(dayStart))
-                                  const endDate = new Date(parseInt(yearEnd), parseInt(monthEnd) - 1, parseInt(dayEnd))
-                                  return (
-                                    <p className="text-xs text-muted-foreground">
-                                      {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                    </p>
-                                  )
-                                }
+                              if (oooStatus.status === 'active' && oooStatus.endDate) {
+                                return (
+                                  <p className="text-xs text-muted-foreground">
+                                    Back {formatOooDate(oooStatus.endDate)}
+                                  </p>
+                                )
+                              } else if (oooStatus.startDate && oooStatus.endDate) {
+                                return (
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatOooDate(oooStatus.startDate)} – {formatOooDate(oooStatus.endDate)}
+                                  </p>
+                                )
                               }
                               return null
                             })()

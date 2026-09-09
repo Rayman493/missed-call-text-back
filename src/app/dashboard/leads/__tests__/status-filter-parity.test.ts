@@ -6,9 +6,10 @@ describe('Customers page status filter parity', () => {
   const content = readFileSync('src/app/dashboard/leads/page.tsx', 'utf8')
   const canonicalStatuses = getAllCustomerStatuses()
 
-  it('imports getAllCustomerStatuses and getCustomerStatusLabel', () => {
+  it('imports canonical status helpers', () => {
     expect(content).toContain('getAllCustomerStatuses')
     expect(content).toContain('getCustomerStatusLabel')
+    expect(content).toContain('getCustomerStatusIcon')
   })
 
   it('derives statusFilterOptions from getAllCustomerStatuses()', () => {
@@ -17,18 +18,15 @@ describe('Customers page status filter parity', () => {
     expect(content).toContain('label: getCustomerStatusLabel(status)')
   })
 
-  it('includes the canonical status values in the filter', () => {
-    for (const status of canonicalStatuses) {
-      expect(content).toContain(status)
+  it('renders canonical statuses through the shared options', () => {
+    expect(content).toContain('statusFilterOptions.map')
+    expect(content).toContain('getStatusFilterIcon(option.value)')
+  })
+
+  it('does not skip terminal or key workflow statuses', () => {
+    for (const status of ['new', 'needs_reply', 'cancelled', 'ignored', 'lost']) {
+      expect(canonicalStatuses).toContain(status)
     }
-  })
-
-  it('does not skip needs_reply in the filter', () => {
-    expect(content).toContain('needs_reply')
-  })
-
-  it('does not skip cancelled in the filter', () => {
-    expect(content).toContain('cancelled')
   })
 })
 

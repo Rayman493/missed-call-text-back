@@ -68,7 +68,7 @@ export default function CalendarDayCell({
         min-h-[48px] sm:min-h-[64px] md:min-h-[80px] p-1 sm:p-1.5 md:p-2 rounded-md border transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-start justify-start gap-1
         ${isCurrentMonth
           ? isWeekend
-            ? 'bg-slate-50/60 dark:bg-slate-800/25 border-slate-200/40 dark:border-slate-700/25 hover:bg-slate-100/80 dark:hover:bg-slate-800/40'
+            ? 'bg-slate-100/70 dark:bg-slate-800/25 border-slate-200/40 dark:border-slate-700/25 hover:bg-slate-200/70 dark:hover:bg-slate-800/40'
             : 'bg-white dark:bg-slate-900/20 border-slate-200/40 dark:border-slate-700/25 hover:bg-slate-50/60 dark:hover:bg-slate-800/35'
           : 'bg-slate-50/40 dark:bg-slate-950/20 border-slate-100/40 dark:border-slate-800/20 opacity-50'
         }

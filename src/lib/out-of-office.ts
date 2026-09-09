@@ -84,7 +84,9 @@ export function formatReturnDate(date: Date): string {
  * @param business - The business object to check
  * @returns true if business is currently out of office, false otherwise
  */
-export function isBusinessOutOfOffice(business: Business | null | undefined): boolean {
+export function isBusinessOutOfOffice(
+  business: Business | null | undefined | { name?: string; business_hours_timezone?: string | null; out_of_office_enabled?: boolean | null; out_of_office_start?: string | null; out_of_office_end?: string | null }
+): boolean {
   return getOutOfOfficeState(business) === 'active'
 }
 
@@ -113,6 +115,9 @@ export function getOutOfOfficeMessage(business: Business | null | undefined): st
 /**
  * Get Out of Office status information for display
  *
+ * Derives status from the canonical getOutOfOfficeState so the UI, dashboard
+ * banner, and runtime logic share the same timezone-aware decision.
+ *
  * @param business - The business object
  * @returns Status object with status type and relevant dates
  */
@@ -122,43 +127,28 @@ export function getOutOfOfficeStatus(business: Business | null | undefined): {
   endDate?: Date
   daysRemaining?: number
 } {
-  if (!business || !business.out_of_office_enabled) {
-    return { status: 'inactive' }
+  const state = getOutOfOfficeState(business)
+
+  const startDate = business?.out_of_office_start ? new Date(business.out_of_office_start) : undefined
+  const endDate = business?.out_of_office_end ? new Date(business.out_of_office_end) : undefined
+
+  if (state === 'scheduled') {
+    return { status: 'scheduled', startDate, endDate }
   }
 
-  const now = new Date()
-  const start = business.out_of_office_start ? new Date(business.out_of_office_start) : null
-  const end = business.out_of_office_end ? new Date(business.out_of_office_end) : null
-
-  if (!start || !end) {
-    return { status: 'inactive' }
+  if (state === 'active') {
+    const now = new Date()
+    const daysRemaining = endDate
+      ? Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      : undefined
+    return { status: 'active', startDate, endDate, daysRemaining }
   }
 
-  if (now < start) {
-    return {
-      status: 'scheduled',
-      startDate: start,
-      endDate: end
-    }
+  if (state === 'ended') {
+    return { status: 'expired', startDate, endDate }
   }
 
-  if (now > end) {
-    return {
-      status: 'expired',
-      startDate: start,
-      endDate: end
-    }
-  }
-
-  // Currently active
-  const daysRemaining = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-
-  return {
-    status: 'active',
-    startDate: start,
-    endDate: end,
-    daysRemaining
-  }
+  return { status: 'inactive', startDate, endDate }
 }
 
 /**
@@ -220,33 +210,22 @@ export function getOutOfOfficeState(
  * @param business - The business object (can be partial)
  * @returns The formatted out of office notice, or null if not active
  */
-export function getOutOfOfficeNotice(business: Business | null | undefined | { name?: string; out_of_office_enabled?: boolean; out_of_office_start?: string; out_of_office_end?: string; out_of_office_message?: string }): string | null {
-  if (!business) return null
+export function getOutOfOfficeNotice(business: Business | null | undefined | { name?: string; business_hours_timezone?: string | null; out_of_office_enabled?: boolean; out_of_office_start?: string; out_of_office_end?: string; out_of_office_message?: string }): string | null {
+  // Reuse the canonical active check so expired windows (including exact end) never reply
+  if (!business || !isBusinessOutOfOffice(business)) return null
 
-  // Check if Out of Office Mode is enabled
-  if (!business.out_of_office_enabled) return null
-
-  // Check if start and end dates are set
-  if (!business.out_of_office_start || !business.out_of_office_end) return null
-
-  const now = new Date()
-  const start = new Date(business.out_of_office_start)
-  const end = new Date(business.out_of_office_end)
-
-  // Check if current time is within the active range
-  if (now < start || now > end) return null
-
+  const end = new Date(business.out_of_office_end!)
   const businessName = business.name || 'the business'
   const returnDate = formatReturnDate(end)
-  
+
   // Use the canonical template
   const defaultMessage = getDefaultOutOfOfficeTemplate()
   let message = business.out_of_office_message || defaultMessage
-  
+
   // Replace placeholders
   message = message.replace(/\{\{business_name\}\}/gi, businessName)
   message = message.replace(/\{\{return_date\}\}/gi, returnDate)
-  
+
   // Add SMS-specific formatting
   const notice = `\n\nOut of Office Notice:\n${message}`
 

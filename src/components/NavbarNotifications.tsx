@@ -375,15 +375,15 @@ export default function NavbarNotifications() {
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed z-50 w-[min(400px,calc(100vw-2rem))] sm:w-96 bg-card backdrop-blur-xl border border-border rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden"
+            className="fixed z-50 w-[min(400px,calc(100vw-2rem))] sm:w-96 bg-card backdrop-blur-xl border border-border rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden flex flex-col"
             style={{
               top: `${buttonPosition?.top || 0}px`,
               right: `${buttonPosition?.right || 0}px`,
-              maxHeight: isMobile ? 'calc(100vh - 120px)' : '600px',
+              maxHeight: isMobile ? 'calc(100dvh - 120px)' : '600px',
             }}
           >
             {/* Header */}
-            <div className="px-3 py-2.5 border-b border-border bg-muted/20">
+            <div className="px-3 py-2.5 border-b border-border bg-muted/20 shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="relative">
@@ -413,10 +413,12 @@ export default function NavbarNotifications() {
 
             {/* Notifications List - Phase 4: Restore grouping with audit logging */}
             <div
-              className="max-h-[400px] overflow-y-auto p-1.5"
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-1.5"
+              data-scroll-lock-allow
               style={{
                 scrollbarWidth: 'thin',
-                scrollbarColor: 'rgba(148, 163, 184, 0.4) transparent'
+                scrollbarColor: 'rgba(148, 163, 184, 0.4) transparent',
+                WebkitOverflowScrolling: 'touch'
               }}
             >
               {notifications.length > 0 ? (
@@ -525,7 +527,7 @@ export default function NavbarNotifications() {
 
             {/* Footer */}
             {notifications.length > 0 && (
-              <div className="px-2.5 py-2 border-t border-border bg-muted/20">
+              <div className="px-2.5 py-2 border-t border-border bg-muted/20 shrink-0">
                 <Link
                   href="/dashboard/notifications"
                   onClick={() => setIsOpen(false)}
