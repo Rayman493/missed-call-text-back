@@ -8,7 +8,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Toast, { ToastContainer } from '@/components/Toast'
 import Link from 'next/link'
-import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink, Pencil, Bell, Trash2, Video } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink, Pencil, Bell, Trash2, Video, Clock } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
@@ -38,6 +38,7 @@ import { openOAuthFlow } from '@/capacitor/oauth'
 import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import { formatEventTimeRange } from '@/lib/calendar-date-utils'
 import { isReplyFlowOwnedEvent } from '@/lib/calendar-ownership'
+import { formatDuration } from '@/lib/job-time-utils'
 
 interface CalendarEvent {
   id: string
@@ -2655,6 +2656,18 @@ function JobsTab({
                 <span className="inline-flex items-center gap-1">
                   <MapPin className="w-3 h-3" />
                   {addressFirstLine}
+                </span>
+              )}
+              {job.time_summary?.has_active_timer && (
+                <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium">
+                  <Clock className="w-3 h-3" />
+                  Timer running
+                </span>
+              )}
+              {!job.time_summary?.has_active_timer && job.time_summary && job.time_summary.completed_ms > 0 && (
+                <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                  <Clock className="w-3 h-3" />
+                  {formatDuration(job.time_summary.completed_ms)} tracked
                 </span>
               )}
             </div>

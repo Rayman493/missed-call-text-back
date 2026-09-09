@@ -52,7 +52,42 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 })
     }
 
-    return NextResponse.json({ jobs: jobs || [] })
+    // Fetch per-job time-entry summaries in a single query (avoids N+1).
+    // Returns { completed_ms, has_active_timer } per job_id.
+    const jobIds = (jobs || []).map((j: any) => j.id)
+    let timeSummaryMap: Record<string, { completed_ms: number; has_active_timer: boolean }> = {}
+    if (jobIds.length > 0) {
+      const { data: timeEntries, error: timeError } = await supabase
+        .from('job_time_entries')
+        .select('job_id, started_at, ended_at')
+        .in('job_id', jobIds)
+
+      if (!timeError && timeEntries) {
+        for (const entry of timeEntries) {
+          const jid = entry.job_id as string
+          if (!timeSummaryMap[jid]) {
+            timeSummaryMap[jid] = { completed_ms: 0, has_active_timer: false }
+          }
+          if (entry.ended_at && entry.started_at) {
+            const start = new Date(entry.started_at as string).getTime()
+            const end = new Date(entry.ended_at as string).getTime()
+            if (end > start) {
+              timeSummaryMap[jid].completed_ms += (end - start)
+            }
+          } else if (!entry.ended_at) {
+            timeSummaryMap[jid].has_active_timer = true
+          }
+        }
+      }
+    }
+
+    // Attach time_summary to each job
+    const jobsWithSummary = (jobs || []).map((job: any) => ({
+      ...job,
+      time_summary: timeSummaryMap[job.id] || { completed_ms: 0, has_active_timer: false },
+    }))
+
+    return NextResponse.json({ jobs: jobsWithSummary })
   } catch (error) {
     console.error('[Jobs API] GET unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

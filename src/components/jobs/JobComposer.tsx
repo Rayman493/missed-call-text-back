@@ -10,6 +10,7 @@ import SearchableCustomerSelect, { Customer } from '@/components/customers/Searc
 import AddCustomerModal from '@/components/AddCustomerModal'
 import JobTimer from '@/components/jobs/JobTimer'
 import { firstNonPlaceholder, normalizeEditableContext, getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
+import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
@@ -54,6 +55,10 @@ export interface Job {
   calendar_last_synced_at: string | null
   created_at: string
   updated_at: string
+  time_summary?: {
+    completed_ms: number
+    has_active_timer: boolean
+  }
 }
 
 interface JobComposerProps {
@@ -112,25 +117,42 @@ export default function JobComposer({
   useModalBackButton({ isOpen, onClose })
 
   // Handle customer selection - populate form fields from customer data.
-  // Service Address is only prefilled when the user has not already entered a
-  // value, so explicit user input is never overwritten by customer metadata.
+  // Service Address, Job Title, and Notes are only prefilled when the user has
+  // not already entered a value, so explicit user input is never overwritten by
+  // customer metadata. Customer Name and Phone are identity fields and are
+  // always refreshed from the selected customer.
   const handleCustomerSelect = (customer: Customer | null) => {
     if (customer) {
       setLeadDisplay(getCustomerDisplayName(customer) || 'Customer')
-      // Extract AI intake fields from raw_metadata
+      // Extract canonical AI intake fields from raw_metadata
+      const intake = getLeadAIIntake(customer)
       const metadata = customer.raw_metadata || {}
-      setCustomerName(firstNonPlaceholder(metadata.customerName, metadata.callerName, customer.name) || '')
-      setCustomerPhone(firstNonPlaceholder(metadata.customerPhone, customer.caller_phone) || '')
+      setCustomerName(firstNonPlaceholder(intake.customerName, metadata.customerName, metadata.callerName, customer.name) || '')
+      setCustomerPhone(firstNonPlaceholder(intake.customerPhone, metadata.customerPhone, customer.caller_phone) || '')
       // Only prefill Service Address if the user hasn't already typed one
       setServiceAddress(prev => {
         if (prev && prev.trim()) return prev
-        return normalizeEditableContext(metadata.serviceAddress) || ''
+        return normalizeEditableContext(intake.serviceAddress || metadata.serviceAddress) || ''
+      })
+      // Only prefill Job Title if the user hasn't already typed one
+      // Uses canonical request title (filters out conversational filler)
+      setTitle(prev => {
+        if (prev && prev.trim()) return prev
+        const canonicalTitle = getLeadRequestTitle(customer)
+        return canonicalTitle || ''
+      })
+      // Only prefill Notes if the user hasn't already typed any
+      // Uses canonical additional details (not callback time or desired completion)
+      setNotes(prev => {
+        if (prev && prev.trim()) return prev
+        return normalizeEditableContext(intake.additionalDetails) || ''
       })
     } else {
       setLeadDisplay(null)
       setCustomerName('')
       setCustomerPhone('')
       setServiceAddress('')
+      // Do not clear title/notes on customer deselect — user may have typed them
     }
   }
 
