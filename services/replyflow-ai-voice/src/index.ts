@@ -88,7 +88,7 @@ import {
 } from './lib/timing-policy';
 import { extractRawRequestTranscriptFromStageCaptures } from './request-transcript-selection';
 import { EARLY_COMPLETION_PATTERNS, EARLY_CALLBACK_PATTERNS } from './early-timing-patterns';
-import { enrichIntakeFromTranscript } from './intake-skip-ahead';
+import { enrichIntakeFromTranscript, hasUsableLocation, isNameRefusal, isLocationRefusal } from './intake-skip-ahead';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -1308,10 +1308,12 @@ interface AISessionStateTracker {
 interface IntakeData {
   stage: IntakeStage;
   customerName?: string;
+  nameRefused?: boolean;
   serviceRequested?: string;
   issueDescription?: string;
   request?: string;
   serviceAddress?: string;
+  locationRefused?: boolean;
   locationType?: 'service_address' | 'business_location' | 'caller_location' | 'online';
   callbackTime?: string;
   desiredCompletionTime?: string;
@@ -3114,10 +3116,11 @@ function resolveNextRequiredStage(
   const normalizedMode = typeof serviceLocationType === 'string' ? serviceLocationType.trim().toLowerCase() : 'onsite';
   const isOnsite = normalizedMode === 'onsite';
 
-  // Check field satisfaction
-  const hasName = Boolean(intake.customerName && intake.customerName.trim().length > 0);
+  // Check field satisfaction. Explicit refusal flags count as handled for navigation
+  // while leaving the corresponding canonical field empty.
+  const hasName = Boolean(intake.customerName && intake.customerName.trim().length > 0) || !!intake.nameRefused;
   const hasRequest = Boolean(intake.serviceRequested && intake.serviceRequested.trim().length > 0);
-  const hasLocation = Boolean(intake.serviceAddress && intake.serviceAddress.trim().length > 0);
+  const hasLocation = Boolean(intake.serviceAddress && intake.serviceAddress.trim().length > 0) || !!intake.locationRefused;
   const hasCompletionTime = Boolean(intake.desiredCompletionTime && intake.desiredCompletionTime.trim().length > 0);
   const hasCallbackTime = Boolean(intake.callbackTime && intake.callbackTime.trim().length > 0);
 
@@ -4768,6 +4771,8 @@ export async function buildCanonicalExtractedInfo(
   desiredCompletionTime: string
   desiredCompletion: string
   callbackTime: string
+  nameRefused?: boolean
+  locationRefused?: boolean
   serviceLocationType?: string
 }> {
   if (!fields) {
@@ -4917,6 +4922,8 @@ export async function buildCanonicalExtractedInfo(
     desiredCompletionTime: sanitizedCompletion,
     desiredCompletion: sanitizedCompletion,
     callbackTime: sanitizeEnglishIntakeField('callbackTime', fields.callbackTime || fields.preferredCallbackTime || ''),
+    nameRefused: !!fields.nameRefused,
+    locationRefused: !!fields.locationRefused,
     serviceLocationType: serviceLocationType,
   }
 }
@@ -4929,12 +4936,13 @@ function isAIIntakeComplete(extractedFields: any): boolean {
   console.log('[AI INTAKE COMPLETENESS CHECK] Input keys:', Object.keys(extractedFields));
   console.log('[AI INTAKE COMPLETENESS CHECK] Input values:', JSON.stringify(extractedFields, null, 2));
 
-  // Require ALL 5 fields individually (no OR logic)
+  // Require ALL 5 fields individually (no OR logic), but allow explicit refusal
+  // flags to satisfy name/location without fabricating values.
   // Use canonical resolution for request: serviceRequested || request || issueDescription
   // Note: issueDescription is canonically resolved into serviceRequested by buildCanonicalExtractedInfo
-  const hasName = !!extractedFields.customerName;
+  const hasName = !!extractedFields.customerName || !!extractedFields.nameRefused;
   const hasRequest = !!extractedFields.serviceRequested || !!extractedFields.request || !!extractedFields.issueDescription;
-  const hasLocation = !!extractedFields.serviceAddress;
+  const hasLocation = !!extractedFields.serviceAddress || !!extractedFields.locationRefused;
   const hasDesiredCompletionTime = !!extractedFields.desiredCompletionTime || !!extractedFields.desiredCompletion;
   const hasCallbackTime = !!extractedFields.callbackTime;
 
@@ -7581,6 +7589,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       };
 
       parseNameAndServiceCalled = true;
+
+      // Detect high-confidence name refusal before parsing so the refusal text
+      // is never stored as the customer's name.
+      const isNameRefused = isNameRefusal(rawTranscript);
+      if (isNameRefused) {
+        state.intakeData.nameRefused = true;
+        state.intakeData.customerName = '';
+      }
+
       const parseResult = parseNameAndService(rawTranscript, state.intakeData.serviceRequested, state.intakeData.customerName);
 
       // Validation functions
@@ -7643,7 +7660,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         console.log('[ASK_NAME EDGE CASE: REASON ONLY] =========================================');
         state.intakeData.serviceRequested = parseResult.serviceRequested;
         state.intakeData.request = parseResult.serviceRequested; // Maintain compatibility
-        state.needsNameReprompt = true; // Flag to trigger targeted name-only reprompt
+        // If the caller explicitly refused their name, do not demand it again.
+        state.needsNameReprompt = !isNameRefused;
         capturedAnswer = parseResult.serviceRequested;
         extractedField = 'request';
       }
@@ -7655,6 +7673,17 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         console.log('[ASK_NAME NORMAL: NAME ONLY] =========================================');
         state.intakeData.customerName = parseResult.customerName;
         capturedAnswer = parseResult.customerName;
+        extractedField = 'customerName';
+      }
+      // Edge case 3: Caller explicitly refuses their name with no service.
+      else if (isNameRefused) {
+        console.log('[ASK_NAME EDGE CASE: NAME REFUSED] =========================================');
+        console.log('[ASK_NAME EDGE CASE: NAME REFUSED] action: mark_refused_and_proceed');
+        console.log('[ASK_NAME EDGE CASE: NAME REFUSED] Timestamp:', new Date().toISOString());
+        console.log('[ASK_NAME EDGE CASE: NAME REFUSED] =========================================');
+        state.intakeData.nameRefused = true;
+        state.intakeData.customerName = '';
+        capturedAnswer = '';
         extractedField = 'customerName';
       }
       // Fallback: No valid data
@@ -7671,6 +7700,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     else if (stage === 'ask_name_reason') {
       const stateCustomerNameBefore = state.intakeData.customerName;
       const stateServiceRequestedBefore = state.intakeData.serviceRequested;
+
+      // Detect high-confidence name refusal before parsing so the refusal text
+      // is never stored as the customer's name.
+      const isNameRefused = isNameRefusal(rawTranscript);
+      if (isNameRefused) {
+        state.intakeData.nameRefused = true;
+        state.intakeData.customerName = '';
+      }
 
       // SIMPLE MODE STAGE 1: Raw Input Trace
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 1] =========================================');
@@ -8266,7 +8303,13 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       }
 
       // Apply merge decisions
-      state.intakeData.customerName = customerNameAfterMerge;
+      // Explicit name refusal overrides any parsed name candidate.
+      if (isNameRefused) {
+        state.intakeData.customerName = '';
+        state.intakeData.nameRefused = true;
+      } else {
+        state.intakeData.customerName = customerNameAfterMerge;
+      }
       state.intakeData.serviceRequested = serviceRequestedAfterMerge;
 
       // SEMANTIC SKIP-AHEAD EXTRACTION
@@ -8452,7 +8495,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     }
 
     if (!stage || stage !== 'ask_name_reason') {
-      capturedAnswer = state.intakeData[extractedField] || capturedAnswer;
+      // For location, never fall back to the raw transcript if the caller explicitly
+      // refused a precise address; instead mark the location as refused.
+      if (stage === 'ask_location' && !state.intakeData[extractedField] && isLocationRefusal(rawTranscript)) {
+        state.intakeData.locationRefused = true;
+        capturedAnswer = '';
+      } else {
+        capturedAnswer = state.intakeData[extractedField] || capturedAnswer;
+      }
       state.intakeData[extractedField] = capturedAnswer;
     }
 
@@ -10641,11 +10691,12 @@ Reply to this message if you'd like to update or add any information.
         if (isIncomplete(trimmed)) {
           return { accepted: false, rejectionReason: 'incomplete' };
         }
-        // Reject refusals and unusable answers so they are not stored as real addresses
-        if (!isValidServiceAddress(transcript)) {
-          return { accepted: false, rejectionReason: 'invalid_service_address' };
+        // Accept if the raw transcript is a valid address OR if semantic extraction
+        // can derive a usable partial/area location (e.g. "I'm in Pittsburgh").
+        if (isValidServiceAddress(transcript) || hasUsableLocation(transcript)) {
+          return { accepted: true };
         }
-        return { accepted: true };
+        return { accepted: false, rejectionReason: 'invalid_service_address' };
 
       case 'ask_completion_time':
         // Reject filler-only
@@ -10660,9 +10711,11 @@ Reply to this message if you'd like to update or add any information.
         if (!isValidCompletionTime(transcript)) {
           return { accepted: false, rejectionReason: 'invalid_completion_time' };
         }
-        // Accept meaningful timing expressions
+        // Accept meaningful timing expressions, including vague/flexible timing.
         const timingPatterns = [
           /as soon as possible/i,
+          /as soon as you can/i,
+          /asap/i,
           /today/i,
           /tomorrow/i,
           /this week/i,
@@ -10670,6 +10723,8 @@ Reply to this message if you'd like to update or add any information.
           /morning/i,
           /afternoon/i,
           /evening/i,
+          /whenever/i,
+          /no rush/i,
           /\d+\s*(hour|day|week)/i
         ];
         const hasTimingPattern = timingPatterns.some(p => p.test(trimmed));

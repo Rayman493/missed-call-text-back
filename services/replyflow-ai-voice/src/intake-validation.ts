@@ -146,9 +146,11 @@ export function isValidCallbackTime(text: string): boolean {
  */
 export interface IntakeData {
   customerName?: string;
+  nameRefused?: boolean;
   serviceRequested?: string;
   issueDescription?: string;
   serviceAddress?: string;
+  locationRefused?: boolean;
   desiredCompletionTime?: string;
   callbackTime?: string;
   [key: string]: any;
@@ -206,10 +208,11 @@ export function resolveNextRequiredStage(
   const normalizedMode = typeof serviceLocationType === 'string' ? serviceLocationType.trim().toLowerCase() : 'onsite';
   const isOnsite = normalizedMode === 'onsite';
 
-  // Check field satisfaction
-  const hasName = Boolean(intake.customerName && intake.customerName.trim().length > 0);
+  // Check field satisfaction. Explicit refusal flags count as handled for navigation
+  // while leaving the corresponding canonical field empty.
+  const hasName = Boolean(intake.customerName && intake.customerName.trim().length > 0) || !!intake.nameRefused;
   const hasRequest = Boolean(intake.serviceRequested && intake.serviceRequested.trim().length > 0);
-  const hasLocation = Boolean(intake.serviceAddress && intake.serviceAddress.trim().length > 0);
+  const hasLocation = Boolean(intake.serviceAddress && intake.serviceAddress.trim().length > 0) || !!intake.locationRefused;
   const hasCompletionTime = Boolean(intake.desiredCompletionTime && intake.desiredCompletionTime.trim().length > 0);
   const hasCallbackTime = Boolean(intake.callbackTime && intake.callbackTime.trim().length > 0);
 

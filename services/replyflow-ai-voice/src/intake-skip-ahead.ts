@@ -21,10 +21,12 @@ import {
 
 export interface IntakeData {
   customerName?: string;
+  nameRefused?: boolean;
   serviceRequested?: string;
   request?: string;
   issueDescription?: string;
   serviceAddress?: string;
+  locationRefused?: boolean;
   desiredCompletionTime?: string;
   callbackTime?: string;
   stage?: string;
@@ -81,8 +83,37 @@ function normalizeNameCandidate(s: string): string {
 // Reject name candidates that clearly contain service/problem language.
 const NAME_SERVICE_BLOCKERS = /\b(?:need|want|looking|get|got|have|cut|install|installed|repair|repaired|fix|fixed|done|completed|finished|mowed|cleaned|checked|painted|replaced|removed|trimmed|serviced|leak|leaking|broke|broken|snapped|fence|grass|sink|water|heater|gutter|roof|plumber|garage|door|cable|tile|floor|wall|ceiling|furnace|ac|electrical|wire|outlet|switch|light|bulb|appliance|machine|device|system|unit)\b/i;
 
+const NAME_REFUSAL_PATTERNS = [
+  /\b(?:i['"]?d\s+rather\s+not\s+(?:give|say|tell)\s+(?:my\s+)?name|i['"]?d\s+rather\s+not\s+say)\b/i,
+  /\b(?:i\s+don['"]?t\s+want\s+to\s+(?:give|say|tell)\s+(?:my\s+)?name)\b/i,
+  /\b(?:i['"]?d\s+prefer\s+not\s+to\s+(?:say|give\s+(?:my\s+)?name|tell\s+(?:my\s+)?name))\b/i,
+  /\bi['"]?d\s+rather\s+not\b/i,
+  /\b(?:no\s+name|no\s+name\s+given|no\s+name\s+please)\b/i,
+  /\bi['"]?d\s+like\s+to\s+stay\s+anonymous\b/i,
+  /\bi\s+want\s+to\s+stay\s+anonymous\b/i,
+];
+
+export function isNameRefusal(transcript: string): boolean {
+  const lower = (transcript || '').trim().toLowerCase();
+  return NAME_REFUSAL_PATTERNS.some(pattern => pattern.test(lower));
+}
+
+const LOCATION_REFUSAL_PATTERNS = [
+  /\bi\s+don['"]?t\s+want\s+to\s+(?:give|provide|share)\s+(?:my\s+|the\s+)?(?:exact\s+)?address\b/i,
+  /\bi['"]?d\s+rather\s+not\s+(?:give|provide|share)\s+(?:my\s+|the\s+)?(?:exact\s+)?address\b/i,
+  /\bi['"]?d\s+prefer\s+not\s+to\s+(?:give|provide|share)\s+(?:my\s+|the\s+)?(?:exact\s+)?address\b/i,
+  /\bi\s+won['"]?t\s+(?:give|provide|share)\s+(?:my\s+|the\s+)?(?:exact\s+)?address\b/i,
+  /\bi\s+can['"]?t\s+(?:give|provide|share)\s+(?:my\s+|the\s+)?(?:exact\s+)?address\b/i,
+];
+
+export function isLocationRefusal(transcript: string): boolean {
+  const lower = (transcript || '').trim().toLowerCase();
+  return LOCATION_REFUSAL_PATTERNS.some(pattern => pattern.test(lower));
+}
+
 function extractCustomerName(transcript: string): string | null {
   const trimmed = transcript.trim();
+  if (isNameRefusal(trimmed)) return null;
   const patterns = [
     /\bmy name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
     /\bmy name's\s+(.+?)(?:\.|,|;|\band\b|$)/i,
@@ -119,6 +150,21 @@ const ADDRESS_PATTERNS: { pattern: RegExp; type: string }[] = [
       /\b(\d+\s+[a-z]+\s+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+[a-z]+)?)\b/i,
     type: 'street-address',
   },
+  // Privacy-aware partial location: city, neighborhood, or broad area.
+  // Accepts phrases like "I'm in Pittsburgh", "Near Squirrel Hill", "Bethel Park".
+  {
+    pattern:
+      /\b(?:i['"]?m\s+in|i\s+am\s+in|we['"]?re\s+in|we\s+are\s+in|located\s+in|somewhere\s+in|in\s+the\s+area\s+of|near)\s+([a-z][a-z\s\-]+?)(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
+    type: 'area',
+  },
+  // Standalone city/neighborhood area (e.g. "Bethel Park", "Just Pittsburgh for now").
+  // The prefix is case-insensitive by hand; the city tokens must be capitalized
+  // to avoid matching normal sentences.
+  {
+    pattern:
+      /\b(?:[jJ][uU][sS][tT]\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?=\s*(?:for\s+now|,?\s*and\b|[.!?](?:\s|$)|;|$))/,
+    type: 'area',
+  },
 ];
 
 function isConfidentEarlyServiceAddress(
@@ -131,6 +177,12 @@ function isConfidentEarlyServiceAddress(
   if (type === 'street-address') return true;
   if (type === 'bare-numbered') {
     return /^\d/.test(trimmed) || /\b(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)\b/.test(trimmed);
+  }
+  if (type === 'area') {
+    // A usable partial location must be more than a vague directional word
+    // and should not be a day/time word that commonly appears in other answers.
+    const nonLocationWords = /^(here|there|somewhere|nearby|close|around|monday|tuesday|wednesday|thursday|friday|saturday|sunday|morning|afternoon|evening|night|today|tomorrow|yes|yeah|okay|ok|whenever|anytime)$/i;
+    return trimmed.length > 2 && !nonLocationWords.test(trimmed);
   }
   return false;
 }
@@ -156,6 +208,15 @@ function findAddressMatch(transcript: string): ExtractedMatch | null {
   return null;
 }
 
+export function extractPartialLocation(transcript: string): string | null {
+  const match = findAddressMatch(transcript);
+  return match?.value || null;
+}
+
+export function hasUsableLocation(transcript: string): boolean {
+  return extractPartialLocation(transcript) !== null;
+}
+
 // Completion patterns are evaluated in order; more specific first.
 const COMPLETION_PATTERNS: RegExp[] = [
   /\b((?:i'd like|i would like|i want|i need)\s+it\s+(?:done|completed|finished)\s+(?:by|on|in)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
@@ -166,7 +227,8 @@ const COMPLETION_PATTERNS: RegExp[] = [
   // Correction/short-form completions: "make it Monday instead" or "I need it Saturday".
   /\b((?:make it|make that|set it for|set it to)\s+([^.,;]+?))(?=\s+instead\b|\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
   /\b((?:i'd like|i would like|i want|i need)\s+it\s+(?:by\s+|on\s+|for\s+)?([^.,;]{2,30}?))(?=\s+instead\b|\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
-  /\b((?:no rush|whenever|as soon as possible|asap))(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
+  // Vague completion phrases: keep the full semantic phrase, e.g. "Whenever you can".
+  /\b((?:whenever\s+you\s+(?:can|could)|whenever|whenever\s+is\s+(?:fine|good|ok)|no\s+rush|as\s+soon\s+as\s+(?:you\s+can|possible)|asap))(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
   ...EARLY_COMPLETION_PATTERNS,
 ];
 
@@ -174,8 +236,11 @@ function findCompletionMatch(transcript: string): ExtractedMatch | null {
   for (const pattern of COMPLETION_PATTERNS) {
     const match = transcript.match(pattern);
     if (match) {
-      const value = (match[2] || match[1]).trim();
-      const fullMatch = match[1].trim();
+      // Early completion patterns capture only the suffix in group 1. Use the full match
+      // when group 1 is a suffix so phrases like "whenever you can" are preserved.
+      const rawValue = match[2] || (match[1] && match[1].startsWith(' ') ? match[0] : match[1]);
+      const value = (rawValue || '').trim();
+      const fullMatch = (match[0] || match[1] || '').trim();
       if (isValidCompletionTime(value)) {
         return {
           value,
@@ -234,18 +299,32 @@ const CALLBACK_PATTERNS: RegExp[] = [
   /\b((?:call me(?: back)?|you can call me(?: back)?|reach me|contact me)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
   /\b((?:i'?m|i am)\s+(?:available|free)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
   /\b((?:morning|afternoon|evening|night)s?\s+(?:are|work|is|would|will|'d|'ll)\s+(?:best|good|fine|ok|easier|easiest|prefer(?:red)?)(?:\s+[^.,;]+?)?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
-  /\b(anytime(?:\s+(?:is|works|best|good|fine|after|before|between)\s+[^.,;]+?)?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
+  /\b(any(?:\s)?time(?:\s+(?:is|works|best|good|fine|ok|after|before|between)(?:\s+[^.,;]+?)?)?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
+  /\b((?:call me(?: back)?|you can call me(?: back)?|reach me|contact me)?\s+whenever(?:\s+(?:is|works|best|good|fine|ok))?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
   /\b((?:best time|good time)\s+(?:to|at|in|on|after|before|between|is)\s+[^.,;]+?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
   /\b((?:you can reach me|reach me|contact me)\s+(?:at|in|on|after|before|between|anytime|morning|afternoon|evening|night)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
   ...EARLY_CALLBACK_PATTERNS,
 ];
+
+function normalizeCallbackTime(value: string): string {
+  const lower = value.toLowerCase().trim();
+  // Preserve explicit constraints such as "Anytime after 4".
+  if (/\b(after|before|between|from|until)\b/.test(lower) || /\d/.test(lower)) {
+    return value.replace(/[.,;]\s*$/, '').trim();
+  }
+  // Collapse plain vague callback phrases to canonical "Anytime".
+  if (/^(?:any(?:\s)?time|whenever)(?:\s+(?:is|works|best|good|fine|ok))?\b/.test(lower)) {
+    return 'Anytime';
+  }
+  return value.replace(/[.,;]\s*$/, '').trim();
+}
 
 function findCallbackMatch(transcript: string): ExtractedMatch | null {
   for (const pattern of CALLBACK_PATTERNS) {
     const match = transcript.match(pattern);
     if (match) {
       const rawValue = (match[2] || match[1]).trim();
-      const value = rawValue
+      const value = normalizeCallbackTime(rawValue)
         .replace(/\s+instead(?:\s+of\s+.*)?$/i, '')
         .replace(/[.,;]\s*$/, '')
         .trim();
@@ -534,19 +613,32 @@ export function enrichIntakeFromTranscript(
   console.log('[SEMANTIC SKIP-AHEAD EXTRACTION] =========================================');
 
   const name = extractCustomerName(transcript);
+  const nameRefused = isNameRefusal(transcript);
   const addressMatch = findAddressMatch(transcript);
+  const locationRefused = isLocationRefusal(transcript);
   const completionMatch = findCompletionMatch(transcript) ?? findNaturalCompletionMatch(transcript);
   const callbackMatch = findCallbackMatch(transcript);
 
   if (name) detected.push('customerName');
+  if (nameRefused) {
+    detected.push('nameRefused');
+    intake.nameRefused = true;
+  }
   if (addressMatch) detected.push('serviceAddress');
+  if (locationRefused) {
+    detected.push('locationRefused');
+    intake.locationRefused = true;
+  }
   if (completionMatch) detected.push('desiredCompletionTime');
   if (callbackMatch) detected.push('callbackTime');
 
-  // Determine a clean service request value.
+  // Determine a clean service request value. Only derive/fill the service field
+  // when the current stage is actually collecting the request, so a city-only
+  // answer at ask_location does not overwrite the service.
   const existingServiceRequested = (intake.serviceRequested || '').trim();
   const existingRequest = (intake.request || '').trim();
   const existingService = existingServiceRequested || existingRequest;
+  const isServiceStage = ['ask_name', 'ask_name_reason', 'ask_request'].includes(currentStage);
   let cleanedService: string | null = null;
 
   if (isCorrection && existingService) {
@@ -564,7 +656,7 @@ export function enrichIntakeFromTranscript(
         completionMatch,
         callbackMatch,
       ]);
-    } else {
+    } else if (isServiceStage) {
       const serviceCandidate = extractServiceRequestCandidate(
         transcript,
         intake.customerName || name || undefined
@@ -576,8 +668,7 @@ export function enrichIntakeFromTranscript(
     }
   }
 
-  // Always allow service cleaning/replacement because the canonical service must
-  // never absorb location/timing/callback text.
+  // Only allow service replacement when we are on a service stage or correcting.
   const validCleanedService = cleanedService && cleanedService.trim() && isValidServiceRequest(cleanedService.trim())
     ? cleanedService.trim()
     : null;
@@ -602,7 +693,7 @@ export function enrichIntakeFromTranscript(
       applied,
       skippedBecauseAlreadyPresent,
       isCorrection,
-      true
+      isServiceStage
     );
   }
 
