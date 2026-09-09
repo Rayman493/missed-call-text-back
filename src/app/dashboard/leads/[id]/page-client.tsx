@@ -61,7 +61,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import Modal from '@/components/ui/Modal'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
-import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle, Pencil } from 'lucide-react'
+import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle, Pencil, ChevronDown } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import NewTaskModal from '@/components/schedule/NewTaskModal'
 import EditCustomerModal from '@/components/EditCustomerModal'
@@ -4410,7 +4410,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         {previousAiCallRecords.length === 0 ? (
                           <p className="text-sm text-muted-foreground">No previous job requests</p>
                         ) : (
-                          <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
+                          <div className="max-h-[300px] overflow-y-auto -mx-1 px-1 space-y-2">
                             {previousAiCallRecords.map((record: any) => {
                               const requestTitle = getLeadRequestTitle({ aiCallRecords: [record], raw_metadata: {}, name: null, contact_name: null }) || 'Previous request'
                               const status = getAIIntakeStatus({ aiCallRecords: [record] })
@@ -4419,18 +4419,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                   key={record.id}
                                   type="button"
                                   onClick={() => { setSelectedHistoricalRecord(record); setIsHistoricalDetailOpen(true) }}
-                                  className="w-full flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200 text-left"
+                                  className="w-full flex items-start justify-between gap-3 p-3 bg-muted/30 hover:bg-muted/50 rounded-xl border border-border/40 dark:border-transparent transition-colors text-left"
                                 >
-                                  <div className="flex-shrink-0 w-6 h-6 rounded bg-amber-500/10 flex items-center justify-center">
-                                    <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                  </div>
                                   <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-medium text-foreground truncate">{requestTitle}</p>
-                                    <p className="text-xs text-muted-foreground/80">{formatDateTime(record.created_at)}</p>
+                                    <p className="text-sm font-semibold text-foreground break-words">{requestTitle}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{formatDateTime(record.created_at)}</p>
                                   </div>
-                                  <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border border-slate-200/60 dark:border-border/30 ${getAIIntakeStatusColor(status)}`}>
+                                  <span className={`inline-flex items-center self-start text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border ${getAIIntakeStatusColor(status)}`}>
                                     {getAIIntakeStatusLabel(status)}
                                   </span>
                                 </button>
@@ -4957,38 +4952,37 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Previous Job Requests - prior AI/call intake records */}
-          <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
+          <div className="bg-muted/30 border border-border/30 rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
                 <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Previous Job Requests</span>
                 {previousAiCallRecords.length > 0 && (
                   <span className="text-xs text-muted-foreground">({previousAiCallRecords.length})</span>
                 )}
               </div>
             </div>
-            <div className="mt-2">
+            <div>
               {previousAiCallRecords.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-2">No previous job requests</p>
+                <p className="text-sm text-muted-foreground text-center py-2">No previous job requests</p>
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-2">
                   {previousAiCallRecords.slice(0, 3).map((record: any) => {
                     const requestTitle = getLeadRequestTitle({ aiCallRecords: [record], raw_metadata: {}, name: null, contact_name: null }) || 'Previous request'
+                    const status = getAIIntakeStatus({ aiCallRecords: [record] })
                     return (
                       <button
                         key={record.id}
                         type="button"
                         onClick={() => { setSelectedHistoricalRecord(record); setIsHistoricalDetailOpen(true) }}
-                        className="w-full flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors text-left"
+                        className="w-full flex items-start justify-between gap-3 p-3 bg-muted/50 hover:bg-muted/70 rounded-xl border border-border/40 dark:border-transparent transition-colors text-left"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-foreground truncate">{requestTitle}</p>
-                          <p className="text-[10px] text-muted-foreground">{formatDateTime(record.created_at)}</p>
+                          <p className="text-sm font-semibold text-foreground break-words">{requestTitle}</p>
+                          <p className="text-[10px] text-muted-foreground mt-1">{formatDateTime(record.created_at)}</p>
                         </div>
+                        <span className={`inline-flex items-center self-start text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border ${getAIIntakeStatusColor(status)}`}>
+                          {getAIIntakeStatusLabel(status)}
+                          </span>
                       </button>
                     )
                   })}
@@ -6176,68 +6170,74 @@ If you have questions, reply to this message.`
           const record = selectedHistoricalRecord
           const context = getHistoricalJobRequestContext(record)
           const transcript = Array.isArray(record?.transcript) ? record.transcript : []
+          const status = getAIIntakeStatus({ aiCallRecords: [record] })
+          const requestTitle = getLeadRequestTitle({ aiCallRecords: [record], raw_metadata: {}, name: null, contact_name: null }) || 'Previous request'
+          const fallback = (value: string) => value && value.trim() ? value.trim() : 'Not provided'
           return (
             <div className="space-y-5 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">{formatDateTime(record.created_at)}</p>
+                  <h3 className="text-lg font-semibold text-foreground break-words mt-0.5">{requestTitle}</h3>
+                </div>
+                <span className={`inline-flex items-center self-start text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border ${getAIIntakeStatusColor(status)}`}>
+                  {getAIIntakeStatusLabel(status)}
+                </span>
+              </div>
+
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Customer Name at Time of Call</p>
-                <p className="text-sm text-foreground break-words">{context.customerName || 'Not collected'}</p>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Customer at time of call</p>
+                <p className="text-sm text-foreground break-words">{fallback(context.customerName)}</p>
               </div>
 
               <div className="p-3 bg-muted/40 border border-border/60 rounded-lg">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Reason / Request</p>
-                <p className="text-base font-semibold text-foreground break-words">
-                  {context.reasonForCalling || 'Not collected'}
-                </p>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">Request</p>
+                <p className="text-base font-semibold text-foreground break-words">{fallback(context.reasonForCalling)}</p>
               </div>
 
-              {context.details && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Details</p>
-                  <p className="text-sm text-foreground break-words">{context.details}</p>
-                </div>
-              )}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Details</p>
+                <p className="text-sm text-foreground leading-relaxed break-words">{fallback(context.details)}</p>
+              </div>
 
-              {context.location && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Location</p>
-                  <p className="text-sm text-foreground break-words">{context.location}</p>
-                </div>
-              )}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Location</p>
+                <p className="text-sm text-foreground break-words">{fallback(context.location)}</p>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {context.desiredCompletionTime && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Desired Completion Time</p>
-                    <p className="text-sm text-foreground break-words">{context.desiredCompletionTime}</p>
-                  </div>
-                )}
-                {context.preferredCallbackTime && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Preferred Callback Time</p>
-                    <p className="text-sm text-foreground break-words">{context.preferredCallbackTime}</p>
-                  </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Desired completion</p>
+                  <p className="text-sm text-foreground break-words">{fallback(context.desiredCompletionTime)}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Preferred callback</p>
+                  <p className="text-sm text-foreground break-words">{fallback(context.preferredCallbackTime)}</p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-muted/50 border border-border/40 rounded-lg">
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">AI Summary</p>
+                {record.summary && record.summary.trim() ? (
+                  <p className="text-sm text-foreground leading-relaxed break-words">{record.summary}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No summary available for this call.</p>
                 )}
               </div>
 
-              {record.summary && (
-                <div className="p-3 bg-muted border border-border rounded-lg">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">AI Summary</p>
-                  <p className="text-sm text-foreground leading-relaxed break-words">{record.summary}</p>
-                </div>
-              )}
-
               {transcript.length > 0 && (
-                <details className="group border border-border/50 rounded-lg overflow-hidden">
-                  <summary className="flex items-center justify-between cursor-pointer px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Transcript</span>
-                    <svg className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                <details className="group border border-border/50 rounded-xl overflow-hidden">
+                  <summary className="flex items-center justify-between cursor-pointer px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div>
+                      <span className="text-sm font-medium text-foreground">Transcript</span>
+                      <p className="text-xs text-muted-foreground">View call transcript</p>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-180" />
                   </summary>
-                  <div className="px-3 py-3 max-h-[200px] overflow-y-auto space-y-2 bg-background/50">
+                  <div className="px-4 py-4 max-h-[280px] overflow-y-auto space-y-3 bg-background/50">
                     {transcript.map((entry: any, idx: number) => (
-                      <div key={idx} className="text-xs">
-                        <span className="font-medium text-muted-foreground">{entry.role ? `${entry.role}: ` : ''}</span>
+                      <div key={idx} className="text-sm">
+                        <span className="font-medium text-muted-foreground capitalize">{entry.role ? `${entry.role}: ` : ''}</span>
                         <span className="text-foreground break-words">{entry.text || ''}</span>
                       </div>
                     ))}
