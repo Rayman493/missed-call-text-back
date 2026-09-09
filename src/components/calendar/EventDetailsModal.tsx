@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2, ClipboardList, MessageSquareText, CheckSquare } from 'lucide-react'
+import { X, Calendar, Clock, MapPin, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2, ClipboardList, MessageSquareText, CheckSquare } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useBusiness } from '@/contexts/BusinessContext'
@@ -179,7 +179,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   const [completedAt, setCompletedAt] = useState<string | null>(null)
   const [notes, setNotes] = useState<string>('')
   const [isNotesSaving, setIsNotesSaving] = useState(false)
-  const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
   // Meet artifacts & capability
@@ -996,60 +995,34 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               </div>
             )}
 
-            {/* Meeting Notes - collapsible */}
-            {!event.isHoliday && (
+            {/* Google Calendar Notes - read-only external context (separate from private Meeting Notes) */}
+            {!event.isHoliday && !isEditing && normalizeDisplayText(event.description) && (
               <div className="pt-3 border-t border-border/50 space-y-1.5">
-                <button
-                  onClick={() => setIsNotesOpen(!isNotesOpen)}
-                  className="flex items-center justify-between w-full text-left"
-                >
-                  <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Meeting Notes</label>
-                  <FileText className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${isNotesOpen ? 'rotate-45' : ''}`} />
-                </button>
-                {(() => {
-                  // External Google-authoritative events: display Google description as
-                  // read-only meeting notes (no write-back to Google).
-                  const isExternalGoogleEvent = !isReplyFlowOwned && !isJobEvent
-                  if (isExternalGoogleEvent) {
-                    const googleNotes = normalizeDisplayText(event.description)
-                    if (!googleNotes) {
-                      return (
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
-                          No meeting notes
-                        </p>
-                      )
-                    }
-                    return (
-                      <div className="space-y-2">
-                        {renderDescription(googleNotes)}
-                      </div>
-                    )
-                  }
-                  // ReplyFlow-owned events: editable internal notes (existing behavior)
-                  if (!isNotesOpen) {
-                    return (
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
-                        {notes?.trim() ? notes : 'No meeting notes'}
-                      </p>
-                    )
-                  }
-                  return (
-                    <div className="mt-1.5">
-                      <textarea
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        rows={3}
-                        className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-                        placeholder="Private notes for your team. Not sent to customer."
-                      />
-                      <div className="mt-2">
-                        <button onClick={saveNotes} disabled={isNotesSaving} className="px-3 py-1.5 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg disabled:opacity-50">
-                          {isNotesSaving ? 'Saving...' : 'Save Notes'}
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })()}
+                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Google Calendar Notes</label>
+                <div className="space-y-2">
+                  {renderDescription(normalizeDisplayText(event.description))}
+                </div>
+              </div>
+            )}
+
+            {/* Meeting Notes - always editable private notes owned by ReplyFlow */}
+            {!event.isHoliday && !isEditing && (
+              <div className="pt-3 border-t border-border/50 space-y-1.5">
+                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Meeting Notes</label>
+                <div className="mt-1.5">
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                    placeholder="Private notes for your team. Not sent to customer."
+                  />
+                  <div className="mt-2">
+                    <button onClick={saveNotes} disabled={isNotesSaving} className="px-3 py-1.5 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg disabled:opacity-50">
+                      {isNotesSaving ? 'Saving...' : 'Save Notes'}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1118,7 +1091,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                     ) : aiSummary ? (
                       <p className="text-xs text-foreground whitespace-pre-wrap">{aiSummary}</p>
                     ) : (
-                      <p className="text-xs text-muted-foreground">Summary will be available after the meeting.</p>
+                      <p className="text-xs text-muted-foreground">Available when meeting transcription is enabled on a supported Google Meet account.</p>
                     )}
                     {/* Transcript view button */}
                     {((transcriptStatus === 'available' || transcriptStatus === 'processed') || (transcriptText && transcriptText.trim().length > 0)) && (
