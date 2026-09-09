@@ -23,14 +23,22 @@ describe('Customers top four status cards', () => {
     expect(content).toContain('iconColor="green"')
   })
 
-  it('third card is Completed with slate icon', () => {
-    expect(content).toContain('label="Completed"')
-    expect(content).toContain('iconColor="slate"')
+  it('third card is Scheduled with purple icon', () => {
+    expect(content).toContain('label="Scheduled"')
+    expect(content).toContain('iconColor="purple"')
   })
 
-  it('fourth card is Ignored with orange icon', () => {
-    expect(content).toContain('label="Ignored"')
-    expect(content).toContain('iconColor="orange"')
+  it('fourth card is Payment Requested with amber icon', () => {
+    expect(content).toContain('label="Payment Requested"')
+    expect(content).toContain('iconColor="amber"')
+  })
+
+  it('Completed is NOT one of the four top cards', () => {
+    expect(content).not.toContain('label="Completed"')
+  })
+
+  it('Ignored is NOT one of the four top cards', () => {
+    expect(content).not.toContain('label="Ignored"')
   })
 
   it('uses canonical calculateLeadStatusCounts for counts', () => {
@@ -45,11 +53,35 @@ describe('Customers top four status cards', () => {
     expect(content).toContain('value={leadStatusCounts.active}')
   })
 
-  it('Completed uses completed count', () => {
-    expect(content).toContain('value={leadStatusCounts.completed}')
+  it('Scheduled uses scheduled count', () => {
+    expect(content).toContain('value={leadStatusCounts.scheduled}')
   })
 
-  it('Ignored uses ignored count', () => {
-    expect(content).toContain('value={leadStatusCounts.ignored}')
+  it('Payment Requested uses payment_requested count', () => {
+    expect(content).toContain('value={leadStatusCounts.payment_requested}')
+  })
+
+  it('does not use completed count in the four cards', () => {
+    expect(content).not.toContain('value={leadStatusCounts.completed}')
+  })
+
+  it('does not use ignored count in the four cards', () => {
+    expect(content).not.toContain('value={leadStatusCounts.ignored}')
+  })
+
+  it('Needs Reply uses suggested description', () => {
+    expect(content).toContain('description="Needs your response"')
+  })
+
+  it('Active uses suggested description', () => {
+    expect(content).toContain('description="Conversations in progress"')
+  })
+
+  it('Scheduled uses suggested description', () => {
+    expect(content).toContain('description="Upcoming customers"')
+  })
+
+  it('Payment Requested uses suggested description', () => {
+    expect(content).toContain('description="Waiting for payment"')
   })
 })

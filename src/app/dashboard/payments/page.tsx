@@ -36,6 +36,8 @@ interface PaymentRequest {
   status: string
   created_at: string
   paid_at: string | null
+  failed_at: string | null
+  cancelled_at: string | null
   checkout_url: string | null
   expires_at: string | null
   payment_provider: string | null
@@ -925,10 +927,12 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                   <>
                     {visiblePayments.map((payment) => {
                       const isFinalStatus = ['paid', 'failed', 'cancelled'].includes(payment.status)
+                      // Use canonical final-state timestamps only — never fall back to created_at
+                      // created_at represents request creation, not a state transition
                       const finalTimestamp =
                         payment.status === 'paid' ? payment.paid_at :
-                        payment.status === 'failed' ? payment.created_at :
-                        payment.status === 'cancelled' ? payment.created_at :
+                        payment.status === 'failed' ? payment.failed_at :
+                        payment.status === 'cancelled' ? payment.cancelled_at :
                         null
                       const canEdit = payment.status === 'paid' || payment.status === 'pending'
                       return (

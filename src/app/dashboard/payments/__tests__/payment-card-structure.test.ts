@@ -31,10 +31,10 @@ describe('Payment card canonical structure', () => {
     expect(content).toContain("month: 'short', day: 'numeric', year: 'numeric'")
   })
 
-  it('renders canonical final-status row only when a timestamp exists', () => {
+  it('renders canonical final-status row only when a real timestamp exists', () => {
     expect(content).toContain('isFinalStatus')
     expect(content).toContain('finalTimestamp')
-    expect(content).toContain('isFinalStatus && finalTimestamp')
+    expect(content).toContain('isFinalStatus && finalTimestamp && (')
   })
 
   it('reserves structural row space when no final timestamp exists', () => {
@@ -42,9 +42,28 @@ describe('Payment card canonical structure', () => {
     expect(content).toContain('min-h-[1.25rem]')
   })
 
-  it('never invents timestamps for final statuses', () => {
-    // The final-status row should only render when finalTimestamp is truthy
-    expect(content).toContain('{isFinalStatus && finalTimestamp && (')
+  it('uses paid_at for Paid status (canonical payment timestamp)', () => {
+    expect(content).toContain("payment.status === 'paid' ? payment.paid_at")
+  })
+
+  it('uses failed_at for Failed status (canonical failure timestamp)', () => {
+    expect(content).toContain("payment.status === 'failed' ? payment.failed_at")
+  })
+
+  it('uses cancelled_at for Cancelled status (canonical cancellation timestamp)', () => {
+    expect(content).toContain("payment.status === 'cancelled' ? payment.cancelled_at")
+  })
+
+  it('does NOT fall back to created_at for final-state timestamps', () => {
+    // created_at must not be used as a final-state date
+    // It should only appear in the Requested row (request creation timestamp)
+    expect(content).not.toContain("payment.status === 'failed' ? payment.created_at")
+    expect(content).not.toContain("payment.status === 'cancelled' ? payment.created_at")
+  })
+
+  it('includes failed_at and cancelled_at in the PaymentRequest interface', () => {
+    expect(content).toContain('failed_at: string | null')
+    expect(content).toContain('cancelled_at: string | null')
   })
 
   it('uses a divider with consistent min height', () => {

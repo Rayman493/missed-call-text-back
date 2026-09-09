@@ -218,7 +218,7 @@ export default function LeadsPage() {
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [quickFilter, setQuickFilter] = useState<'all' | 'active' | 'new' | 'completed' | 'ignored' | 'cancelled'>('all')
+  const [quickFilter, setQuickFilter] = useState<'all' | 'active' | 'new' | 'scheduled' | 'payment_requested' | 'completed' | 'ignored' | 'cancelled'>('all')
   const [showFilters, setShowFilters] = useState(false)
   const [filterMenuOpen, setFilterMenuOpen] = useState(false)
   const filterPointerStartRef = useRef<{ x: number; y: number } | null>(null)
@@ -613,6 +613,10 @@ export default function LeadsPage() {
       matchesQuickFilter = leadStatus === 'active'
     } else if (quickFilter === 'new') {
       matchesQuickFilter = leadStatus === 'new'
+    } else if (quickFilter === 'scheduled') {
+      matchesQuickFilter = leadStatus === 'scheduled'
+    } else if (quickFilter === 'payment_requested') {
+      matchesQuickFilter = leadStatus === 'payment_requested'
     } else if (quickFilter === 'completed') {
       matchesQuickFilter = leadStatus === 'completed'
     } else if (quickFilter === 'ignored') {
@@ -919,11 +923,7 @@ export default function LeadsPage() {
               <StatCard
                 value={leadStatusCounts.new}
                 label="Needs Reply"
-                description={
-                  leadStatusCounts.new === 0
-                    ? 'Awaiting your response'
-                    : 'Needs your response'
-                }
+                description="Needs your response"
                 icon="👥"
                 iconColor="blue"
                 isInteractive={true}
@@ -952,11 +952,7 @@ export default function LeadsPage() {
               <StatCard
                 value={leadStatusCounts.active}
                 label="Active"
-                description={
-                  leadStatusCounts.active === 0
-                    ? 'No active customers'
-                    : 'Customers being worked on'
-                }
+                description="Conversations in progress"
                 icon="💬"
                 iconColor="green"
                 isInteractive={true}
@@ -983,19 +979,15 @@ export default function LeadsPage() {
                 ariaLabel="Filter active customers"
               />
               <StatCard
-                value={leadStatusCounts.completed}
-                label="Completed"
-                description={
-                  leadStatusCounts.completed === 0
-                    ? 'No completed customers yet'
-                    : 'Successfully completed'
-                }
+                value={leadStatusCounts.scheduled}
+                label="Scheduled"
+                description="Upcoming customers"
                 icon="📅"
-                iconColor="slate"
+                iconColor="purple"
                 isInteractive={true}
-                isSelected={quickFilter === 'completed' && statusFilter === 'all'}
+                isSelected={quickFilter === 'scheduled' && statusFilter === 'all'}
                 onClick={() => {
-                  if (quickFilter === 'completed') {
+                  if (quickFilter === 'scheduled') {
                     setQuickFilter('all')
                     setStatusFilter('all')
                     // Clear status query parameter
@@ -1004,7 +996,7 @@ export default function LeadsPage() {
                     const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
                     router.replace(newUrl)
                   } else {
-                    setQuickFilter('completed')
+                    setQuickFilter('scheduled')
                     setStatusFilter('all')
                     // Clear status query parameter for consistency
                     const params = new URLSearchParams(searchParams?.toString())
@@ -1013,22 +1005,18 @@ export default function LeadsPage() {
                     router.replace(newUrl)
                   }
                 }}
-                ariaLabel="Filter completed customers"
+                ariaLabel="Filter scheduled customers"
               />
               <StatCard
-                value={leadStatusCounts.ignored}
-                label="Ignored"
-                description={
-                  leadStatusCounts.ignored === 0
-                    ? 'No ignored customers'
-                    : 'Hidden from main list'
-                }
-                icon="🚫"
-                iconColor="orange"
+                value={leadStatusCounts.payment_requested}
+                label="Payment Requested"
+                description="Waiting for payment"
+                icon="�"
+                iconColor="amber"
                 isInteractive={true}
-                isSelected={quickFilter === 'ignored' && statusFilter === 'all'}
+                isSelected={quickFilter === 'payment_requested' && statusFilter === 'all'}
                 onClick={() => {
-                  if (quickFilter === 'ignored') {
+                  if (quickFilter === 'payment_requested') {
                     setQuickFilter('all')
                     setStatusFilter('all')
                     // Clear status query parameter
@@ -1037,7 +1025,7 @@ export default function LeadsPage() {
                     const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
                     router.replace(newUrl)
                   } else {
-                    setQuickFilter('ignored')
+                    setQuickFilter('payment_requested')
                     setStatusFilter('all')
                     // Clear status query parameter for consistency
                     const params = new URLSearchParams(searchParams?.toString())
@@ -1046,7 +1034,7 @@ export default function LeadsPage() {
                     router.replace(newUrl)
                   }
                 }}
-                ariaLabel="Filter ignored customers"
+                ariaLabel="Filter customers with payment requested"
               />
             </div>
 
@@ -1345,6 +1333,8 @@ export default function LeadsPage() {
                   searchQuery ? 'No customers match your search' :
                   quickFilter === 'new' ? 'No customers need a reply' :
                   quickFilter === 'active' ? 'No active customers' :
+                  quickFilter === 'scheduled' ? 'No scheduled customers' :
+                  quickFilter === 'payment_requested' ? 'No payment requests pending' :
                   quickFilter === 'completed' ? 'No completed customers yet' :
                   quickFilter === 'ignored' ? 'No ignored customers' :
                   'No customers yet'
@@ -1353,6 +1343,8 @@ export default function LeadsPage() {
                   searchQuery ? 'Try a different name, phone number, or request.' :
                   quickFilter === 'new' ? 'All customers have been responded to or are in other stages.' :
                   quickFilter === 'active' ? 'No conversations are currently in progress.' :
+                  quickFilter === 'scheduled' ? 'Scheduled customers will appear here when jobs are booked.' :
+                  quickFilter === 'payment_requested' ? 'Customers awaiting payment will appear here.' :
                   quickFilter === 'completed' ? 'Completed customers will appear here when jobs are finished.' :
                   quickFilter === 'ignored' ? 'No customers are currently blocked from automation.' :
                   'Customers from missed calls, messages, and manual entries will appear here.'

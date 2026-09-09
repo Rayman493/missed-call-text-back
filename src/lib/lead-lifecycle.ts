@@ -218,12 +218,16 @@ export function transitionLeadStatus(currentStatus: LeadLifecycleStatus, targetS
 export function calculateLeadStatusCounts(leads: any[]): {
   new: number
   active: number
+  scheduled: number
+  payment_requested: number
   completed: number
   ignored: number
 } {
   return {
     new: leads.filter(l => getLeadLifecycleStatus(l) === 'new' && !l.deleted_at).length,
     active: leads.filter(l => getLeadLifecycleStatus(l) === 'active' && !l.deleted_at && l.payment_status !== 'paid').length,
+    scheduled: leads.filter(l => getLeadLifecycleStatus(l) === 'scheduled' && !l.deleted_at).length,
+    payment_requested: leads.filter(l => getLeadLifecycleStatus(l) === 'payment_requested' && !l.deleted_at).length,
     completed: leads.filter(l => getLeadLifecycleStatus(l) === 'completed' && !l.deleted_at).length,
     ignored: leads.filter(l => getLeadLifecycleStatus(l) === 'ignored' && !l.deleted_at).length
   }
