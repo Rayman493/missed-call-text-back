@@ -4752,7 +4752,7 @@ async function extractRequestTitleAndDetailsWithModel(
 
 // Build canonical extracted_info for leads.raw_metadata and ai_call_records.
 // Keeps field names aligned with getLeadAIIntake expectations.
-async function buildCanonicalExtractedInfo(
+export async function buildCanonicalExtractedInfo(
   fields: any,
   callerPhone?: string,
   serviceLocationType?: string,
@@ -4834,28 +4834,31 @@ async function buildCanonicalExtractedInfo(
   console.log('[CANONICAL REQUEST DIAGNOSTIC] issueDescription length:', fields.issueDescription?.length || 0);
   console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
 
-  // Extract the full request text (may contain both request and details in Simple Mode)
-  // Prefer raw request transcript when available for richer semantic extraction
+  // Extract the full request text (fallback when no explicit canonical service is present)
   const rawRequestText = rawRequestTranscript && rawRequestTranscript.trim() !== ''
     ? rawRequestTranscript
     : (fields.serviceRequested || fields.reasonForCalling || fields.request || fields.issueDescription || '');
 
-  // Extract separate importantDetails if provided (canonical field name)
-  const rawImportantDetails = fields.additionalDetails || fields.importantDetails || '';
+  // Explicitly corrected/resolved canonical service takes precedence over model re-extraction
+  // from the raw request transcript. Re-extracting from the original raw transcript would
+  // discard corrections such as "Actually it's the shower, not the toilet".
+  const explicitService = fields.serviceRequested || fields.reasonForCalling || fields.request || '';
+  const hasExplicitService = explicitService.trim().length > 0;
+
+  // Capture any available important details; issueDescription is what Simple Mode stores
+  const rawImportantDetails = fields.additionalDetails || fields.importantDetails || fields.issueDescription || '';
 
   let serviceRequested: string;
   let importantDetails: string;
 
-  if (rawImportantDetails && rawImportantDetails.trim() !== '') {
-    // Separate importantDetails provided - preserve both fields distinctly
-    serviceRequested = sanitizeEnglishIntakeField('serviceRequested', rawRequestText);
+  if (hasExplicitService) {
+    // Trust the canonical fields. Do not let the original raw request transcript overwrite a correction.
+    serviceRequested = sanitizeEnglishIntakeField('serviceRequested', explicitService);
     importantDetails = sanitizeEnglishIntakeField('importantDetails', rawImportantDetails);
-  } else {
-    // No separate importantDetails provided - perform model-based semantic extraction from single response
-    // Extract concise request title and additional details from the combined text
+  } else if (rawRequestText.trim() !== '') {
+    // No explicit canonical service - perform model-based semantic extraction from the raw text
     const semanticExtraction = await extractRequestTitleAndDetailsWithModel(rawRequestText, callSid || 'unknown');
 
-    // Validate semantic extraction result
     if (!semanticExtraction.fallbackUsed && semanticExtraction.result.requestTitle) {
       serviceRequested = sanitizeEnglishIntakeField('serviceRequested', semanticExtraction.result.requestTitle);
       importantDetails = sanitizeEnglishIntakeField('importantDetails', semanticExtraction.result.additionalDetails);
@@ -4869,16 +4872,18 @@ async function buildCanonicalExtractedInfo(
       serviceRequested = sanitizeEnglishIntakeField('serviceRequested', rawRequestText);
       importantDetails = '';
     }
+  } else {
+    serviceRequested = '';
+    importantDetails = '';
   }
 
-  // If the model produced an empty or unhelpful title, trust the explicitly
-  // extracted service field so the canonical record is not left as "Unknown request".
+  // If the resolved service is empty or unhelpful, use any available field.
   const lowerService = serviceRequested.toLowerCase();
   if (!serviceRequested || serviceRequested.length === 0 || lowerService.startsWith('unknown') || lowerService.includes('unknown request')) {
-    const explicitService = fields.serviceRequested || fields.reasonForCalling || fields.request || fields.issueDescription || rawRequestText;
-    serviceRequested = sanitizeEnglishIntakeField('serviceRequested', explicitService);
+    const fallbackService = fields.serviceRequested || fields.reasonForCalling || fields.request || fields.issueDescription || rawRequestText;
+    serviceRequested = sanitizeEnglishIntakeField('serviceRequested', fallbackService);
     console.log('[CANONICAL REQUEST FALLBACK] event: using_explicit_service_field');
-    console.log('[CANONICAL REQUEST FALLBACK] explicitService:', explicitService);
+    console.log('[CANONICAL REQUEST FALLBACK] explicitService:', fallbackService);
     console.log('[CANONICAL REQUEST FALLBACK] serviceRequested:', serviceRequested);
   }
 
