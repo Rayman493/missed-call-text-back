@@ -38,7 +38,7 @@ describe('Refusal and partial-location handling', () => {
   it('allows a later real name to replace a previous name refusal', () => {
     const intake: any = { nameRefused: true, customerName: '' };
     enrichIntakeFromTranscript('My name is Jason Williams', intake, 'ask_name');
-    expect(intake.nameRefused).to.be.true;
+    expect(intake.nameRefused).to.be.false;
     expect(intake.customerName).to.equal('Jason Williams');
   });
 

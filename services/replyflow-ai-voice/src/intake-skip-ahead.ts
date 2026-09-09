@@ -13,6 +13,7 @@ import {
   isValidServiceRequest,
   isValidCompletionTime,
   isValidCallbackTime,
+  isValidCustomerName,
 } from './intake-validation';
 import {
   EARLY_COMPLETION_PATTERNS,
@@ -149,7 +150,7 @@ function extractCustomerName(transcript: string): string | null {
     const match = trimmed.match(pattern);
     if (match && match[1]) {
       const normalized = normalizeNameCandidate(match[1].trim());
-      if (normalized && normalized.length > 1 && !isFillerPhrase(normalized) && !NAME_SERVICE_BLOCKERS.test(normalized)) {
+      if (normalized && normalized.length > 1 && !isFillerPhrase(normalized) && !NAME_SERVICE_BLOCKERS.test(normalized) && isValidCustomerName(normalized)) {
         return normalized;
       }
     }
@@ -733,6 +734,12 @@ export function enrichIntakeFromTranscript(
     isCorrection,
     currentStageField === 'customerName'
   );
+
+  // A valid name extracted after an explicit refusal clears the refusal flag.
+  if (applied.includes('customerName') && intake.nameRefused) {
+    console.log('[name_refusal_cleared_by_explicit_name]', { newName: intake.customerName, source: 'enrichIntakeFromTranscript' });
+    intake.nameRefused = false;
+  }
 
   if (validCleanedService) {
     applyField(

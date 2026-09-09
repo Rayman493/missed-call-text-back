@@ -11,9 +11,12 @@
  * - ai_call_records outcome update
  */
 
+import { normalizeCustomerName } from './ai-intake-formatter'
+
 export interface ExtractedInfo {
   customerName?: string
   callerName?: string
+  nameRefused?: boolean
   serviceRequested?: string
   reasonForCalling?: string
   issueDescription?: string
@@ -28,10 +31,40 @@ export interface ExtractedInfo {
 }
 
 /**
+ * Validate a name value for completion purposes.
+ * Explicit refusals are handled separately; this checks that a populated
+ * value actually looks like a real name, not a location, timing, or service description.
+ */
+function isValidExtractedName(name: string | null | undefined): boolean {
+  const normalized = normalizeCustomerName(name)
+  if (!normalized) return false
+
+  const lower = normalized.trim().toLowerCase()
+  const words = lower.split(/\s+/)
+
+  if (words.length === 0 || words.length > 2) return false
+
+  const placeholderNames = new Set([
+    'unknown', 'not provided', 'not collected', 'n/a', 'caller', 'customer',
+    'unknown caller', 'unknown customer', 'not provided name'
+  ])
+  if (placeholderNames.has(lower)) return false
+
+  const nonNameTokens = new Set([
+    'in', 'at', 'on', 'after', 'before', 'tomorrow', 'today', 'afternoon',
+    'morning', 'evening', 'night', 'week', 'time', 'any', 'broken', 'fence',
+    'service', 'repair', 'maintenance', 'install', 'installation'
+  ])
+  if (words.some(word => nonNameTokens.has(word))) return false
+
+  return true
+}
+
+/**
  * Check if AI intake is complete based on extracted information
  * 
  * Required fields (with alternative names):
- * - customerName or callerName
+ * - customerName or callerName (or explicit nameRefused)
  * - serviceRequested or reasonForCalling or request (canonical resolution, includes issueDescription)
  * - serviceAddress or addressOrLocation (onsite only)
  * - desiredCompletionTime or desiredCompletion
@@ -47,10 +80,12 @@ export function isCompleteAIIntake(
     return false
   }
 
-  // Check customer name (multiple field name variations)
+  // Check customer name: explicit refusal satisfies the name requirement.
+  // Otherwise a populated value must look like a real name.
   const hasCustomerName = Boolean(
-    extractedInfo.customerName || 
-    extractedInfo.callerName
+    extractedInfo.nameRefused ||
+    isValidExtractedName(extractedInfo.customerName) ||
+    isValidExtractedName(extractedInfo.callerName)
   )
 
   // Check service requested (multiple field name variations)
@@ -124,7 +159,7 @@ export function getCompletedFieldCount(extractedInfo: ExtractedInfo | null | und
 
   let count = 0
 
-  if (extractedInfo.customerName || extractedInfo.callerName) count++
+  if (extractedInfo.nameRefused || isValidExtractedName(extractedInfo.customerName) || isValidExtractedName(extractedInfo.callerName)) count++
   if (extractedInfo.serviceRequested || extractedInfo.reasonForCalling || extractedInfo.request || extractedInfo.issueDescription) count++
   if (extractedInfo.serviceAddress || extractedInfo.addressOrLocation) count++
   if (extractedInfo.desiredCompletionTime || extractedInfo.desiredCompletion) count++

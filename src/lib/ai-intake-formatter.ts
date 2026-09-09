@@ -1666,11 +1666,19 @@ export const formatAiIntakeSummary = (
   const serviceRequestedRaw = normalizeServiceReason(
     intakeData?.serviceRequested ?? intakeData?.reasonForCalling ?? intakeData?.request ?? intakeData?.issueDescription
   );
-  const serviceRequested = intakeData?.request
+  const serviceRequestedTitle = intakeData?.request
     ? generateCanonicalRequestTitle(intakeData.request)
     : generateCanonicalRequestTitle(serviceRequestedRaw);
+  // If the title generator collapsed to a placeholder but the raw normalized reason is meaningful,
+  // preserve the actual request so it is not reported as missing.
+  const serviceRequestedIsPlaceholder =
+    !serviceRequestedTitle ||
+    serviceRequestedTitle === 'General Service' ||
+    serviceRequestedTitle === 'Not collected' ||
+    isPlaceholderValue(serviceRequestedTitle, PLACEHOLDER_SERVICES);
+  const serviceRequested = serviceRequestedIsPlaceholder ? serviceRequestedRaw : serviceRequestedTitle;
   // Determine which fields have actual meaningful values
-  const hasName = customerName && customerName.trim() !== '' && !isPlaceholderValue(customerName, PLACEHOLDER_NAMES);
+  const hasName = (customerName && customerName.trim() !== '' && !isPlaceholderValue(customerName, PLACEHOLDER_NAMES)) || !!intakeData?.nameRefused;
   const hasRequest = serviceRequested &&
                      serviceRequested.trim() !== '' &&
                      serviceRequested !== 'General Service' &&
@@ -1772,11 +1780,19 @@ export const formatAdaptiveIntakeSms = (
   const { hasDetails, detailsValue } = hasMeaningfulDetails(intakeData);
   // Use canonical title for SMS Service field (concise, professional summary)
   // Priority: intakeData.request (canonical) → serviceRequested (canonicalized) → fallback
-  const serviceRequested = intakeData?.request
+  const serviceRequestedTitle = intakeData?.request
     ? generateCanonicalRequestTitle(intakeData.request)
     : generateCanonicalRequestTitle(serviceRequestedRaw);
+  // If the title generator collapsed to a placeholder but the raw normalized reason is meaningful,
+  // preserve the actual request so it is not reported as missing.
+  const serviceRequestedIsPlaceholder =
+    !serviceRequestedTitle ||
+    serviceRequestedTitle === 'General Service' ||
+    serviceRequestedTitle === 'Not collected' ||
+    isPlaceholderValue(serviceRequestedTitle, PLACEHOLDER_SERVICES);
+  const serviceRequested = serviceRequestedIsPlaceholder ? serviceRequestedRaw : serviceRequestedTitle;
   // Determine which fields have actual meaningful values
-  const hasName = customerName && customerName.trim() !== '' && !isPlaceholderValue(customerName, PLACEHOLDER_NAMES);
+  const hasName = (customerName && customerName.trim() !== '' && !isPlaceholderValue(customerName, PLACEHOLDER_NAMES)) || !!intakeData?.nameRefused;
   const hasRequest = serviceRequested &&
                      serviceRequested.trim() !== '' &&
                      serviceRequested !== 'General Service' &&

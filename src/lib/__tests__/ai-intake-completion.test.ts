@@ -1,4 +1,4 @@
-import { isCompleteAIIntake, determineAIOutcomeFromExtractedInfo } from '../ai-intake-completion'
+import { isCompleteAIIntake, determineAIOutcomeFromExtractedInfo, getCompletedFieldCount } from '../ai-intake-completion'
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message)
@@ -73,6 +73,31 @@ const base = {
     callbackTime: 'Tomorrow afternoon',
   }
   assert(isCompleteAIIntake(info, 'onsite') === true, 'issueDescription should satisfy serviceRequested requirement via canonical resolution')
+}
+
+// Explicit name refusal satisfies the name requirement for completion
+{
+  const info = {
+    nameRefused: true,
+    serviceRequested: 'Fence repair',
+    serviceAddress: '123 Main St',
+    desiredCompletionTime: 'This week',
+    callbackTime: 'After 3 PM',
+  }
+  assert(isCompleteAIIntake(info, 'onsite') === true, 'nameRefused should satisfy the name requirement')
+  assert(getCompletedFieldCount(info) === 5, 'nameRefused should count as a completed field')
+}
+
+// Contaminated customerName with no refusal and no real name does not satisfy the name requirement
+{
+  const info = {
+    customerName: 'in Bethel Park',
+    serviceRequested: 'Fence repair',
+    serviceAddress: 'Bethel Park',
+    desiredCompletionTime: 'This week',
+    callbackTime: 'After 3 PM',
+  }
+  assert(isCompleteAIIntake(info, 'onsite') === false, 'contaminated customerName should not satisfy the name requirement')
 }
 
 console.log('[AI INTAKE COMPLETION TESTS] All checks passed')

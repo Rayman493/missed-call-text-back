@@ -449,7 +449,7 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
         console.log('[AI OUTCOME SYNC] outcome remains incomplete');
         // Calculate missing fields based on canonical requirements (matching isCompleteAIIntake)
         const missingFields: string[] = [];
-        const hasCustomerName = Boolean(normalizedExtractedInfo.callerName);
+        const hasCustomerName = Boolean(normalizedExtractedInfo.nameRefused || normalizedExtractedInfo.callerName);
         const hasServiceRequested = Boolean(normalizedExtractedInfo.reasonForCalling);
         const hasServiceAddress = Boolean(normalizedExtractedInfo.addressOrLocation);
         const hasDesiredCompletionTime = Boolean(normalizedExtractedInfo.desiredCompletionTime);

@@ -131,7 +131,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
   return Promise.race([promise, timeoutPromise]) as Promise<T>;
 }
 
-import { isNameRequirementSatisfied, selectSimpleModePromptKey } from './intake-validation';
+import { isNameRequirementSatisfied, selectSimpleModePromptKey, isValidCustomerName } from './intake-validation';
 
 // Minimal shared authorization guard for settle-window callbacks (production + tests)
 // Returns true if the callback is authorized to finalize, otherwise logs a single
@@ -1399,7 +1399,7 @@ function getLocationPrompt(category: ServiceLocationCategory): string {
 // Intake state machine functions
 function getMissingRequiredFields(intake: IntakeData): string[] {
   const missing: string[] = [];
-  if (!intake.customerName) missing.push('customer name');
+  if (!isNameRequirementSatisfied(intake)) missing.push('customer name');
   if (!intake.serviceRequested) missing.push('service requested');
   if (!intake.issueDescription) missing.push('issue description');
 
@@ -1421,7 +1421,7 @@ function getMissingRequiredFields(intake: IntakeData): string[] {
 function isGoodEnoughForBetaIntake(intake: IntakeData): boolean {
   console.log('[GOOD ENOUGH INTAKE CHECK] =========================================');
   console.log('[GOOD ENOUGH INTAKE CHECK] Checking if intake is good enough for beta');
-  console.log('[GOOD ENOUGH INTAKE CHECK] customerName:', !!intake.customerName);
+  console.log('[GOOD ENOUGH INTAKE CHECK] nameSatisfied:', isNameRequirementSatisfied(intake));
   console.log('[GOOD ENOUGH INTAKE CHECK] serviceRequested:', !!intake.serviceRequested);
   console.log('[GOOD ENOUGH INTAKE CHECK] issueDescription:', !!intake.issueDescription);
   console.log('[GOOD ENOUGH INTAKE CHECK] serviceAddress:', !!intake.serviceAddress);
@@ -3589,7 +3589,9 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
     switch (intake.stage) {
       case 'ask_name':
         // Only set if field is not already captured and name has not been refused
-        if (!intake.customerName && !intake.nameRefused) {
+        if (intake.nameRefused) {
+          console.log('[name_write_blocked_after_refusal]', { stage: intake.stage, attempted: transcript.trim() });
+        } else if (!intake.customerName && isValidCustomerName(transcript.trim())) {
           intake.customerName = transcript.trim();
           console.log('[SCRIPTED FLOW] =========================================');
           console.log('[SCRIPTED FLOW] field saved');
@@ -3602,7 +3604,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
           console.log('[FIELD LOCK PROTECTION] field: customerName');
           console.log('[FIELD LOCK PROTECTION] current value:', intake.customerName);
           console.log('[FIELD LOCK PROTECTION] attempted overwrite:', transcript.trim());
-          console.log('[FIELD LOCK PROTECTION] reason: field already captured, overwrite prevented');
+          console.log('[FIELD LOCK PROTECTION] reason: field already captured or failed validation, overwrite prevented');
           console.log('[FIELD LOCK PROTECTION] Timestamp:', new Date().toISOString());
           console.log('[FIELD LOCK PROTECTION] =========================================');
         }
@@ -3657,6 +3659,10 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
               console.log('[SCRIPTED FLOW] =========================================');
 
               intake.customerName = strippedTranscript;
+              if (intake.nameRefused) {
+                console.log('[name_refusal_cleared_by_explicit_name]', { newName: strippedTranscript, source: 'ask_name_reason_name_only_heuristic' });
+                intake.nameRefused = false;
+              }
               console.log('[SCRIPTED FLOW] =========================================');
               console.log('[SCRIPTED FLOW] customerName locked from heuristic');
               console.log('[SCRIPTED FLOW] customerName:', intake.customerName);
@@ -4080,8 +4086,12 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
 
       // If both parsed, set both fields and advance to ask_request
       if (parsedName && parsedReason) {
-        if (!intake.customerName) {
+        if (!intake.customerName && isValidCustomerName(parsedName)) {
           intake.customerName = parsedName;
+          if (intake.nameRefused) {
+            console.log('[name_refusal_cleared_by_explicit_name]', { newName: parsedName, source: 'extractMultipleAnswers_both_parsed' });
+            intake.nameRefused = false;
+          }
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[FIELD ASSIGNMENT] field: customerName');
           console.log('[FIELD ASSIGNMENT] oldValue:', intake.customerName);
@@ -4116,8 +4126,12 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
 
       // If only name parsed, set name and let flow continue to ask_request
       if (parsedName && !parsedReason) {
-        if (!intake.customerName) {
+        if (!intake.customerName && isValidCustomerName(parsedName)) {
           intake.customerName = parsedName;
+          if (intake.nameRefused) {
+            console.log('[name_refusal_cleared_by_explicit_name]', { newName: parsedName, source: 'extractMultipleAnswers_name_only' });
+            intake.nameRefused = false;
+          }
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[FIELD ASSIGNMENT] field: customerName');
           console.log('[FIELD ASSIGNMENT] oldValue:', intake.customerName);
@@ -4137,8 +4151,12 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
           intake.serviceRequested = parsedReason;
           console.log('[FIELD ASSIGNMENT] field: serviceRequested | value:', parsedReason, '| source: reasonPattern');
         }
-        if (!intake.customerName && parsedName) {
+        if (!intake.customerName && parsedName && isValidCustomerName(parsedName)) {
           intake.customerName = parsedName;
+          if (intake.nameRefused) {
+            console.log('[name_refusal_cleared_by_explicit_name]', { newName: parsedName, source: 'extractMultipleAnswers_reason_only' });
+            intake.nameRefused = false;
+          }
           console.log('[FIELD ASSIGNMENT] field: customerName | value:', parsedName, '| source: pre-service-phrase extraction');
         }
         console.log('[EXTRACTION BRANCH] reason-only branch complete | customerName:', intake.customerName, '| serviceRequested:', intake.serviceRequested);
@@ -4165,8 +4183,12 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       if (!intake.customerName) {
         const oldName = intake.customerName;
         const name = extractName(transcript);
-        if (name && name.length > 1 && !isFillerPhrase(name)) {
+        if (name && name.length > 1 && !isFillerPhrase(name) && isValidCustomerName(name)) {
           intake.customerName = name;
+          if (intake.nameRefused) {
+            console.log('[name_refusal_cleared_by_explicit_name]', { newName: name, source: 'extractName_fallback' });
+            intake.nameRefused = false;
+          }
           console.log('[CUSTOMER NAME EXTRACTION] =========================================');
           console.log('[CUSTOMER NAME EXTRACTION] stage:', intake.stage);
           console.log('[CUSTOMER NAME EXTRACTION] transcript:', transcript);
@@ -4403,74 +4425,6 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
   }, null, 2));
   console.log('[FIELD EXTRACTION RESULT] Timestamp:', new Date().toISOString());
   console.log('[FIELD EXTRACTION RESULT] =========================================');
-}
-
-// Helper function to validate customer name
-function isValidCustomerName(name: string): boolean {
-  if (!name || typeof name !== 'string') {
-    return false;
-  }
-
-  // Reject refusal patterns first
-  if (isRefusal(name)) {
-    return false;
-  }
-
-  const trimmedName = name.trim().toLowerCase();
-
-  // Reject if too short or too long
-  if (trimmedName.length < 2 || trimmedName.length > 50) {
-    return false;
-  }
-
-  // Blocklist of common non-name values that should not be saved as customerName
-  const blockedValues = [
-    // Service types
-    'financial management', 'property management', 'south park', 'dog grooming', 'grass cutting',
-    'plumbing', 'hvac', 'electrical', 'landscaping', 'roofing', 'cleaning', 'pest control',
-    'painting', 'carpentry', 'masonry', 'excavation', 'concrete', 'windows', 'doors',
-    'insulation', 'solar', 'security', 'fencing', 'deck', 'pool', 'moving', 'storage',
-    'junk removal', 'lawn care', 'toilet', 'installation', 'maintenance', 'repair',
-    'service', 'consultation', 'appointment', 'quote', 'estimate', 'inspection',
-
-    // Locations
-    'south park', 'north park', 'east park', 'west park', 'downtown', 'uptown',
-
-    // Generic phrases
-    'customer', 'client', 'caller', 'someone', 'anyone', 'nobody', 'unknown',
-    'help', 'need', 'want', 'call', 'phone', 'message',
-
-    // Business-related
-    'business', 'company', 'office', 'store', 'shop',
-
-    // Time-related
-    'morning', 'afternoon', 'evening', 'today', 'tomorrow', 'week'
-  ];
-
-  // Reject generic introductory scaffolding that is not a name
-  const introScaffolding = /^(?:my name is|name is|i am|i'm|this is)\b/i;
-  if (introScaffolding.test(name.trim())) {
-    return false;
-  }
-
-  // Check if name is blocked
-  if (blockedValues.some(blocked => trimmedName === blocked || trimmedName.includes(blocked))) {
-    return false;
-  }
-
-  // Check if it contains only common service words
-  const serviceWords = ['service', 'repair', 'maintenance', 'installation', 'cleaning', 'management', 'inspection'];
-  if (serviceWords.some(word => trimmedName.includes(word))) {
-    return false;
-  }
-
-  // Check if it's a multi-word phrase that looks like a service description
-  const words = trimmedName.split(/\s+/);
-  if (words.length > 2) {
-    return false;
-  }
-
-  return true;
 }
 
 // Helper function to normalize extracted field names to session intake field names
@@ -4966,7 +4920,10 @@ function isAIIntakeComplete(extractedFields: any): boolean {
   // flags to satisfy name/location without fabricating values.
   // Use canonical resolution for request: serviceRequested || request || issueDescription
   // Note: issueDescription is canonically resolved into serviceRequested by buildCanonicalExtractedInfo
-  const hasName = !!extractedFields.customerName || !!extractedFields.nameRefused;
+  const hasName = isNameRequirementSatisfied({
+    customerName: extractedFields.customerName,
+    nameRefused: extractedFields.nameRefused
+  });
   const hasRequest = !!extractedFields.serviceRequested || !!extractedFields.request || !!extractedFields.issueDescription;
   const hasLocation = !!extractedFields.serviceAddress || !!extractedFields.locationRefused;
   const hasDesiredCompletionTime = !!extractedFields.desiredCompletionTime || !!extractedFields.desiredCompletion;

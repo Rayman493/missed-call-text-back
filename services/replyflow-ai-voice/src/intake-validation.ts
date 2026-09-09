@@ -135,6 +135,77 @@ export function isValidCallbackTime(text: string): boolean {
 }
 
 /**
+ * Validate customer name - reject refusals, non-answers, and cross-contamination
+ * Only accepts values that look like a real person name.
+ */
+export function isValidCustomerName(name: string): boolean {
+  if (!name || typeof name !== 'string') {
+    return false;
+  }
+
+  // Reject refusal patterns first
+  if (isRefusal(name)) {
+    return false;
+  }
+
+  const trimmedName = name.trim().toLowerCase();
+
+  // Reject if too short or too long
+  if (trimmedName.length < 2 || trimmedName.length > 50) {
+    return false;
+  }
+
+  // Blocklist of common non-name values that should not be saved as customerName
+  const blockedValues = [
+    // Service types
+    'financial management', 'property management', 'south park', 'dog grooming', 'grass cutting',
+    'plumbing', 'hvac', 'electrical', 'landscaping', 'roofing', 'cleaning', 'pest control',
+    'painting', 'carpentry', 'masonry', 'excavation', 'concrete', 'windows', 'doors',
+    'insulation', 'solar', 'security', 'fencing', 'deck', 'pool', 'moving', 'storage',
+    'junk removal', 'lawn care', 'toilet', 'installation', 'maintenance', 'repair',
+    'service', 'consultation', 'appointment', 'quote', 'estimate', 'inspection',
+
+    // Locations
+    'south park', 'north park', 'east park', 'west park', 'downtown', 'uptown',
+
+    // Generic phrases
+    'customer', 'client', 'caller', 'someone', 'anyone', 'nobody', 'unknown',
+    'help', 'need', 'want', 'call', 'phone', 'message',
+
+    // Business-related
+    'business', 'company', 'office', 'store', 'shop',
+
+    // Time-related
+    'morning', 'afternoon', 'evening', 'today', 'tomorrow', 'week'
+  ];
+
+  // Reject generic introductory scaffolding that is not a name
+  const introScaffolding = /^(?:my name is|name is|i am|i'm|this is)\b/i;
+  if (introScaffolding.test(name.trim())) {
+    return false;
+  }
+
+  // Check if name is blocked
+  if (blockedValues.some(blocked => trimmedName === blocked || trimmedName.includes(blocked))) {
+    return false;
+  }
+
+  // Check if it contains only common service words
+  const serviceWords = ['service', 'repair', 'maintenance', 'installation', 'cleaning', 'management', 'inspection'];
+  if (serviceWords.some(word => trimmedName.includes(word))) {
+    return false;
+  }
+
+  // Check if it's a multi-word phrase that looks like a service description
+  const words = trimmedName.split(/\s+/);
+  if (words.length > 2) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Canonical field merge with protection rules
  *
  * Merge rules:
@@ -164,8 +235,15 @@ export interface IntakeData {
  * for every name-satisfaction decision in the intake flow.
  */
 export function isNameRequirementSatisfied(intake: IntakeData): boolean {
-  const hasValidCustomerName = !!intake.customerName && intake.customerName.trim().length > 0;
-  return hasValidCustomerName || !!intake.nameRefused;
+  const hasValidCustomerName = !!intake.customerName && isValidCustomerName(intake.customerName);
+  const satisfied = hasValidCustomerName || !!intake.nameRefused;
+  console.log('[name_requirement_satisfied]', {
+    customerName: intake.customerName,
+    nameRefused: intake.nameRefused,
+    satisfied,
+    hasValidCustomerName
+  });
+  return satisfied;
 }
 
 export function mergeExtractedField(
@@ -179,6 +257,17 @@ export function mergeExtractedField(
   // If candidate is undefined or empty, do not clear existing value
   if (candidate === undefined || candidate === null || (typeof candidate === 'string' && candidate.trim().length === 0)) {
     return false;
+  }
+
+  // Hard refusal invariant: once nameRefused is true, only an explicit valid name may repopulate customerName.
+  if (fieldName === 'customerName' && intake.nameRefused) {
+    if (!isValidCustomerName(candidate)) {
+      console.log('[name_write_blocked_after_refusal]', { candidate: candidate.trim(), transcript });
+      return false;
+    }
+    // An explicit valid name after refusal clears the refusal flag.
+    console.log('[name_refusal_cleared_by_explicit_name]', { newName: candidate.trim(), transcript });
+    intake.nameRefused = false;
   }
 
   // If existing value is present and valid, do not overwrite with invalid candidate
