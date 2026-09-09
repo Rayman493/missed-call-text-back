@@ -174,3 +174,77 @@ describe('Inline Add Customer — Failure/Cancel Safety', () => {
     // No state resets in that handler
   })
 })
+
+describe('Inline Add Customer — Draft Preservation Hardening', () => {
+  it('handleCustomerSelect does NOT unconditionally overwrite Service Address', () => {
+    // The old code called setServiceAddress(...) directly.
+    // The hardened code uses the functional updater with an empty-field check.
+    expect(jobComposerContent).toContain('setServiceAddress(prev =>')
+    expect(jobComposerContent).toContain("if (prev && prev.trim()) return prev")
+    expect(jobComposerContent).toContain('normalizeEditableContext(metadata.serviceAddress) || ')
+  })
+
+  it('Service Address is only prefilled when the field is empty/untouched', () => {
+    // The empty-field check preserves existing user input
+    expect(jobComposerContent).toContain('Only prefill Service Address if the user hasn\'t already typed one')
+  })
+
+  it('customer name still updates unconditionally (identity field)', () => {
+    expect(jobComposerContent).toContain('setCustomerName(firstNonPlaceholder(metadata.customerName, metadata.callerName, customer.name) || ')
+  })
+
+  it('customer phone still updates unconditionally (identity field)', () => {
+    expect(jobComposerContent).toContain('setCustomerPhone(firstNonPlaceholder(metadata.customerPhone, customer.caller_phone) || ')
+  })
+
+  it('leadId still updates unconditionally (identity field)', () => {
+    expect(jobComposerContent).toContain('setLeadId(leadId)')
+  })
+
+  it('Job Title is never touched by handleCustomerSelect', () => {
+    // handleCustomerSelect should not call setTitle
+    const handlerMatch = jobComposerContent.match(/const handleCustomerSelect[\s\S]*?\n  \}/)
+    expect(handlerMatch).not.toBeNull()
+    expect(handlerMatch![0]).not.toContain('setTitle')
+  })
+
+  it('Scheduled Date is never touched by handleCustomerSelect', () => {
+    const handlerMatch = jobComposerContent.match(/const handleCustomerSelect[\s\S]*?\n  \}/)
+    expect(handlerMatch).not.toBeNull()
+    expect(handlerMatch![0]).not.toContain('setScheduledDate')
+  })
+
+  it('Scheduled Time is never touched by handleCustomerSelect', () => {
+    const handlerMatch = jobComposerContent.match(/const handleCustomerSelect[\s\S]*?\n  \}/)
+    expect(handlerMatch).not.toBeNull()
+    expect(handlerMatch![0]).not.toContain('setScheduledTime')
+  })
+
+  it('Status is never touched by handleCustomerSelect', () => {
+    const handlerMatch = jobComposerContent.match(/const handleCustomerSelect[\s\S]*?\n  \}/)
+    expect(handlerMatch).not.toBeNull()
+    expect(handlerMatch![0]).not.toContain('setStatus')
+  })
+
+  it('Notes is never touched by handleCustomerSelect', () => {
+    const handlerMatch = jobComposerContent.match(/const handleCustomerSelect[\s\S]*?\n  \}/)
+    expect(handlerMatch).not.toBeNull()
+    expect(handlerMatch![0]).not.toContain('setNotes')
+  })
+
+  it('handleLeadCreated does not directly set title/date/time/status/notes', () => {
+    const handlerMatch = jobComposerContent.match(/const handleLeadCreated[\s\S]*?\n  \}/)
+    expect(handlerMatch).not.toBeNull()
+    expect(handlerMatch![0]).not.toContain('setTitle')
+    expect(handlerMatch![0]).not.toContain('setScheduledDate')
+    expect(handlerMatch![0]).not.toContain('setScheduledTime')
+    expect(handlerMatch![0]).not.toContain('setStatus')
+    expect(handlerMatch![0]).not.toContain('setNotes')
+  })
+
+  it('cancel (onClose) does not touch any Job draft field', () => {
+    // The onClose handler only sets isAddCustomerOpen to false
+    const closeMatch = jobComposerContent.match(/onClose=\{?\(\) => setIsAddCustomerOpen\(false\)\}?/)
+    expect(closeMatch).not.toBeNull()
+  })
+})

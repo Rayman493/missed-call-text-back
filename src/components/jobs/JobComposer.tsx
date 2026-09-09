@@ -110,7 +110,9 @@ export default function JobComposer({
 
   useModalBackButton({ isOpen, onClose })
 
-  // Handle customer selection - populate form fields from customer data
+  // Handle customer selection - populate form fields from customer data.
+  // Service Address is only prefilled when the user has not already entered a
+  // value, so explicit user input is never overwritten by customer metadata.
   const handleCustomerSelect = (customer: Customer | null) => {
     if (customer) {
       setLeadDisplay(getCustomerDisplayName(customer) || 'Customer')
@@ -118,7 +120,11 @@ export default function JobComposer({
       const metadata = customer.raw_metadata || {}
       setCustomerName(firstNonPlaceholder(metadata.customerName, metadata.callerName, customer.name) || '')
       setCustomerPhone(firstNonPlaceholder(metadata.customerPhone, customer.caller_phone) || '')
-      setServiceAddress(normalizeEditableContext(metadata.serviceAddress) || '')
+      // Only prefill Service Address if the user hasn't already typed one
+      setServiceAddress(prev => {
+        if (prev && prev.trim()) return prev
+        return normalizeEditableContext(metadata.serviceAddress) || ''
+      })
     } else {
       setLeadDisplay(null)
       setCustomerName('')
