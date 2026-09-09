@@ -103,7 +103,21 @@ describe('SearchableCustomerSelect', () => {
   })
 
   it('should close dropdown on click outside', () => {
-    expect(content).toContain('handleClickOutside')
+    expect(content).toContain('handlePointerDown')
+  })
+
+  it('should close dropdown when focus moves to another field', () => {
+    expect(content).toContain('handleFocusOut')
+    expect(content).toContain('focusout')
+    expect(content).toContain('relatedTarget')
+  })
+
+  it('should keep dropdown open when focus moves within the picker', () => {
+    expect(content).toContain('pickerRef.current.contains(next)')
+  })
+
+  it('should use pointerdown for reliable mouse + touch outside detection', () => {
+    expect(content).toContain("'pointerdown'")
   })
 
   it('should close dropdown after selecting a customer', () => {

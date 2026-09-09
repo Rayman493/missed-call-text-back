@@ -8,6 +8,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'fs'
 
 describe('TodayCommandCenter', () => {
   describe('Empty State Copy', () => {
@@ -391,6 +392,93 @@ describe('TodayCommandCenter', () => {
     it('no navigation occurs on expand/collapse', () => {
       const navigationOccurs = false
       expect(navigationOccurs).toBe(false)
+    })
+  })
+
+  describe('Agenda Premium Polish + Google Meet Join (Batch 7)', () => {
+    const content = readFileSync('src/components/schedule/TodayCommandCenter.tsx', 'utf8')
+
+    it('uses consistent rounded-xl section card treatment', () => {
+      expect(content).toMatch(/rounded-xl overflow-hidden/)
+    })
+
+    it('uses softer section borders', () => {
+      expect(content).toMatch(/border-slate-200\/60 dark:border-slate-700\/40/)
+    })
+
+    it('reserves a stable chevron slot so headers do not shift', () => {
+      expect(content).toContain('w-[44px] flex-shrink-0 flex items-center justify-center')
+    })
+
+    it('reserves chevron slot on Reminders section', () => {
+      expect(content).toMatch(/Reminders[\s\S]*w-\[44px\] flex-shrink-0/)
+    })
+
+    it('reserves chevron slot on Jobs section', () => {
+      expect(content).toMatch(/Jobs[\s\S]*w-\[44px\] flex-shrink-0/)
+    })
+
+    it('reserves chevron slot on Appointments section', () => {
+      expect(content).toMatch(/Appointments[\s\S]*w-\[44px\] flex-shrink-0/)
+    })
+
+    it('shows Google Meet label for Meet appointments', () => {
+      expect(content).toContain('Google Meet')
+      expect(content).toContain('isMeetAppointment')
+    })
+
+    it('renders Join affordance for Meet appointments with meeting URL', () => {
+      expect(content).toMatch(/isMeetAppointment && event\.meetingUrl/)
+      expect(content).toContain('Join')
+      expect(content).toContain('aria-label="Join Google Meet"')
+    })
+
+    it('Join uses the event meeting URL', () => {
+      expect(content).toMatch(/href=\{event\.meetingUrl\}/)
+    })
+
+    it('does not show Join for non-Meet appointments', () => {
+      // isMeetAppointment requires both meetingUrl AND meet.google.com host
+      expect(content).toContain('/meet\\.google\\.com/i.test(event.meetingUrl)')
+    })
+
+    it('preserves edit controls on appointments', () => {
+      expect(content).toContain('aria-label="Edit appointment"')
+    })
+
+    it('preserves collapse behavior with chevron toggle', () => {
+      expect(content).toContain('setExpandedAppointments(!expandedAppointments)')
+    })
+
+    it('preserves counts and status data semantics', () => {
+      expect(content).toContain('Reminders •')
+      expect(content).toContain('Jobs •')
+      expect(content).toContain('Appointments')
+    })
+
+    it('uses mobile-safe layout without overflow', () => {
+      expect(content).toContain('min-w-0')
+      expect(content).toContain('flex-shrink-0')
+    })
+
+    it('preserves + Appointment create action', () => {
+      expect(content).toContain('+ Appointment')
+    })
+
+    it('preserves + Job create action', () => {
+      expect(content).toContain('+ Job')
+    })
+
+    it('preserves + Reminder create action', () => {
+      expect(content).toContain('+ Reminder')
+    })
+
+    it('imports Video icon for Meet affordance', () => {
+      expect(content).toContain('Video')
+    })
+
+    it('imports ExternalLink icon for Join button', () => {
+      expect(content).toContain('ExternalLink')
     })
   })
 })

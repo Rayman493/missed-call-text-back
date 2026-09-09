@@ -66,4 +66,42 @@ describe('EventDetailsModal presentation polish', () => {
   it('gates Edit/Delete to ReplyFlow-owned events that are not job-linked', () => {
     expect(content).toMatch(/isReplyFlowOwned\s*&&\s*!isJobEvent/)
   })
+
+  it('displays Google Calendar description as meeting notes for external Google events', () => {
+    expect(content).toContain('isExternalGoogleEvent')
+    expect(content).toContain('googleNotes')
+    expect(content).toContain('normalizeDisplayText(event.description)')
+  })
+
+  it('renders external Google meeting notes through the safe renderDescription utility', () => {
+    expect(content).toMatch(/isExternalGoogleEvent[\s\S]*renderDescription\(googleNotes\)/)
+  })
+
+  it('shows No meeting notes when external Google event description is empty/null', () => {
+    expect(content).toMatch(/isExternalGoogleEvent[\s\S]*No meeting notes/)
+  })
+
+  it('keeps external Google event meeting notes read-only (no textarea, no Save Notes)', () => {
+    // The textarea and Save Notes button should only appear in the ReplyFlow-owned branch
+    const externalBranchMatch = content.match(/isExternalGoogleEvent[\s\S]*?return\s+\(/)
+    expect(externalBranchMatch).toBeTruthy()
+    // The external branch should not contain a textarea or Save Notes button
+    const externalBranch = content.split('isExternalGoogleEvent')[1]?.split('// ReplyFlow-owned')[0] || ''
+    expect(externalBranch).not.toContain('<textarea')
+    expect(externalBranch).not.toContain('Save Notes')
+  })
+
+  it('preserves editable notes for ReplyFlow-owned events', () => {
+    expect(content).toContain('setNotes')
+    expect(content).toContain('saveNotes')
+    expect(content).toContain('Save Notes')
+  })
+
+  it('does not write back to Google when displaying external notes', () => {
+    // External branch only renders; it does not call saveNotes or PATCH/PUT
+    const externalBranch = content.split('isExternalGoogleEvent')[1]?.split('// ReplyFlow-owned')[0] || ''
+    expect(externalBranch).not.toContain('saveNotes')
+    expect(externalBranch).not.toContain('PATCH')
+    expect(externalBranch).not.toContain('PUT')
+  })
 })

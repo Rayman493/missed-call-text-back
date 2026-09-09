@@ -90,9 +90,9 @@ export default function SearchableCustomerSelect({
     }
   }
 
-  // Close on outside click
+  // Close on outside click (pointerdown covers mouse + touch reliably)
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handlePointerDown = (event: PointerEvent) => {
       if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
         setIsOpen(false)
         setSearchQuery('')
@@ -100,8 +100,26 @@ export default function SearchableCustomerSelect({
     }
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
+      document.addEventListener('pointerdown', handlePointerDown)
+      return () => document.removeEventListener('pointerdown', handlePointerDown)
+    }
+  }, [isOpen])
+
+  // Close when focus leaves the picker (e.g., user taps another field)
+  useEffect(() => {
+    const handleFocusOut = (event: FocusEvent) => {
+      const next = event.relatedTarget as Node | null
+      // If focus is moving to an element inside the picker (e.g., a customer row),
+      // keep the dropdown open so the selection click can complete.
+      if (next && pickerRef.current && pickerRef.current.contains(next)) return
+      setIsOpen(false)
+      setSearchQuery('')
+    }
+
+    const pickerEl = pickerRef.current
+    if (isOpen && pickerEl) {
+      pickerEl.addEventListener('focusout', handleFocusOut)
+      return () => pickerEl.removeEventListener('focusout', handleFocusOut)
     }
   }, [isOpen])
 

@@ -2489,7 +2489,7 @@ useEffect(() => {
 
       {/* Desktop: Combined row with stop previews on left and filters on right */}
       {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
-        <div className="hidden md:flex mb-1 z-10 items-center gap-3">
+        <div className="hidden md:flex mb-1 z-10 items-center gap-3 min-h-[48px]">
           {/* Stop previews - Left side, takes available space */}
           <div className="flex-1">
             <div className="flex gap-2 overflow-x-auto items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -2591,10 +2591,10 @@ useEffect(() => {
         </div>
       </div>
       ) : (
-        <div className="hidden md:flex mb-1 z-10 items-center gap-3">
+        <div className="hidden md:flex mb-1 z-10 items-center gap-3 min-h-[48px]">
           {/* No mapped stops - Left side */}
           <div className="flex-1">
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400 pb-2">
               No mapped stops
             </p>
           </div>
@@ -2640,7 +2640,7 @@ useEffect(() => {
       {/* Mobile: Combined row with stop preview on left and filter on right */}
       <div className="md:hidden mb-1 z-10">
         {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-h-[44px]">
             {/* Stop preview - Left side, takes available space */}
             <div className="flex-1 min-w-0">
               <div className="flex gap-2 overflow-x-auto items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -2742,8 +2742,8 @@ useEffect(() => {
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center justify-between gap-2 min-h-[44px]">
+            <p className="text-xs text-slate-500 dark:text-slate-400 pb-2">
               No mapped stops
             </p>
             <div className="flex-shrink-0">

@@ -18,7 +18,21 @@ describe('SelectPicker', () => {
   })
 
   it('has click-outside handler to close', () => {
-    expect(content).toContain('handleClickOutside')
+    expect(content).toContain('handlePointerDown')
+  })
+
+  it('closes dropdown when focus moves to another field', () => {
+    expect(content).toContain('handleFocusOut')
+    expect(content).toContain('focusout')
+    expect(content).toContain('relatedTarget')
+  })
+
+  it('keeps dropdown open when focus moves within the picker', () => {
+    expect(content).toContain('pickerRef.current.contains(next)')
+  })
+
+  it('uses pointerdown for reliable mouse + touch outside detection', () => {
+    expect(content).toContain("'pointerdown'")
   })
 
   it('has Escape handler to close', () => {

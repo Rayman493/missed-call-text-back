@@ -64,4 +64,32 @@ describe('ScheduleMap - Layout Structure', () => {
       expect(content).not.toMatch(absolutePattern)
     })
   })
+
+  describe('Filter-Layout Stability (Batch 7)', () => {
+    it('should reserve a deterministic min-height on the desktop populated branch', () => {
+      // Prevents vertical map shift when switching All/Jobs/Appointments
+      expect(content).toMatch(/hidden md:flex mb-1 z-10 items-center gap-3 min-h-\[48px\]/)
+    })
+
+    it('should reserve a deterministic min-height on the desktop empty branch', () => {
+      expect(content).toMatch(/hidden md:flex mb-1 z-10 items-center gap-3 min-h-\[48px\][\s\S]*No mapped stops/)
+    })
+
+    it('should reserve a deterministic min-height on the mobile populated branch', () => {
+      expect(content).toMatch(/md:hidden mb-1 z-10[\s\S]*flex items-center gap-2 min-h-\[44px\]/)
+    })
+
+    it('should reserve a deterministic min-height on the mobile empty branch', () => {
+      expect(content).toMatch(/flex items-center justify-between gap-2 min-h-\[44px\][\s\S]*No mapped stops/)
+    })
+
+    it('should add pb-2 to the empty-state paragraph to match populated branch height', () => {
+      expect(content).toMatch(/No mapped stops[\s\S]*pb-2/)
+    })
+
+    it('should not use giant spacers or transforms for layout stability', () => {
+      expect(content).not.toMatch(/h-\[100px\].*No mapped stops/)
+      expect(content).not.toMatch(/translate-y.*No mapped stops/)
+    })
+  })
 })
