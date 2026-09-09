@@ -4481,11 +4481,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <button
                             type="button"
                             onClick={() => openTaskModal('sidebar_tasks_add_button')}
-                            className="inline-flex items-center justify-center w-8 h-8 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                            className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                             aria-label="Add reminder"
-                            title="Add task"
+                            title="Add reminder"
                           >
-                            <Plus className="w-4 h-4" />
+                            <Plus className="w-3.5 h-3.5" />
+                            Add
                           </button>
                         }
                       >
@@ -4578,11 +4579,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <button
                             type="button"
                             onClick={handleAppointmentClick}
-                            className="inline-flex items-center justify-center w-8 h-8 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                            className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                             aria-label="Schedule appointment"
                             title="Schedule appointment"
                           >
-                            <Plus className="w-4 h-4" />
+                            <Plus className="w-3.5 h-3.5" />
+                            Add
                           </button>
                         }
                       >

@@ -9,6 +9,7 @@ import { formatCurrency } from '@/lib/utils'
 import { useBusiness } from '@/contexts/BusinessContext'
 import RequestPaymentModal from '@/components/payments/RequestPaymentModal'
 import TapToPayModal from '@/components/payments/TapToPayModal'
+import JobTimer from '@/components/jobs/JobTimer'
 import { isNativeCapacitor } from '@/lib/terminal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
@@ -598,6 +599,9 @@ export default function JobDetailsModal({
                 ))}
               </div>
             </div>
+
+            {/* Time Tracking */}
+            <JobTimer jobId={job.id} />
           </div>
 
           {/* Footer */}

@@ -153,6 +153,26 @@ describe('Agenda Management Depth — Header Alignment (Batch 10)', () => {
     expect(pageClientContent).toContain('text-blue-600 dark:text-blue-400 hover:underline')
   })
 
+  it('all three desktop agenda Add buttons use consistent compact text+plus pattern (Batch 11)', () => {
+    // Schedule, Reminders, Appointments should all use the same compact text+plus treatment
+    const compactAddPattern = /text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900\/20/g
+    const matches = pageClientContent.match(compactAddPattern) || []
+    expect(matches.length).toBeGreaterThanOrEqual(3) // Schedule + Reminders + Appointments
+  })
+
+  it('no desktop agenda section uses the old icon-only w-8 h-8 Add button (Batch 11)', () => {
+    // The old pattern was w-8 h-8 bg-background hover:bg-muted/50 border for Add buttons
+    // Reminders, Jobs (Schedule), and Appointments should no longer use this for their Add actions
+    // Payments and Internal Notes may still use it since they are not agenda sections
+    const oldIconButtons = pageClientContent.match(/w-8 h-8 bg-background hover:bg-muted\/50 border border-border\/50 text-foreground text-sm font-medium rounded-lg/g) || []
+    expect(oldIconButtons.length).toBeLessThanOrEqual(2)
+  })
+
+  it('all three desktop agenda Add buttons use Plus w-3.5 h-3.5 (consistent icon size)', () => {
+    const plusIcons = pageClientContent.match(/Plus className="w-3.5 h-3.5"/g) || []
+    expect(plusIcons.length).toBeGreaterThanOrEqual(3) // Schedule + Reminders + Appointments
+  })
+
   it('chevron only appears when items exceed collapsed limit (mobile)', () => {
     expect(pageClientContent).toContain('length > 3 && (')
   })
