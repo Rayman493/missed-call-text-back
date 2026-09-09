@@ -8,7 +8,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Toast, { ToastContainer } from '@/components/Toast'
 import Link from 'next/link'
-import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink, Pencil, Bell } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink, Pencil, Bell, Trash2, Video } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
@@ -72,10 +72,14 @@ function RemindersList({
   tasks,
   onEditTask,
   onAddTask,
+  onToggleComplete,
+  onDeleteTask,
 }: {
   tasks: any[]
   onEditTask: (task: any) => void
   onAddTask: () => void
+  onToggleComplete: (taskId: string, completed: boolean) => void
+  onDeleteTask: (taskId: string) => void
 }) {
   const todayStr = new Date().toLocaleDateString('en-CA')
   const sorted = [...tasks].sort((a, b) => {
@@ -106,10 +110,10 @@ function RemindersList({
     return `${dateStr} at ${hour}:${String(m).padStart(2, '0')} ${ampm}`
   }
 
-  const renderGroup = (title: string, list: any[], accent?: 'red' | 'blue') => (
+  const renderGroup = (title: string, count: number, list: any[], accent?: 'red' | 'blue') => (
     <div className="mb-5">
       <h3 className={`text-xs font-semibold uppercase tracking-wider mb-3 ${accent === 'red' ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
-        {title}
+        {title} <span className="text-slate-400 dark:text-slate-500 normal-case font-normal">({count})</span>
       </h3>
       <div className="space-y-2">
         {list.map(task => (
@@ -123,30 +127,45 @@ function RemindersList({
                   : 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
             }`}
           >
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <button
+                onClick={() => onToggleComplete(task.id, task.completed)}
+                className="flex-shrink-0 w-5 h-5 mt-0.5 rounded border-2 border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400 transition-colors flex items-center justify-center"
+                aria-label={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
+              >
+                {task.completed && (
+                  <CheckCircle2 className="w-3 h-3 text-green-500" />
+                )}
+              </button>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${task.completed ? 'text-green-500' : 'text-slate-300 dark:text-slate-600'}`} />
-                  <p className={`text-sm font-medium truncate ${task.completed ? 'text-slate-500 dark:text-slate-400 line-through' : 'text-slate-900 dark:text-foreground'}`}>
-                    {task.title}
-                  </p>
-                </div>
+                <p className={`text-sm font-medium truncate ${task.completed ? 'text-slate-500 dark:text-slate-400 line-through' : 'text-slate-900 dark:text-foreground'}`}>
+                  {task.title}
+                </p>
                 {task.due_date && (
-                  <p className={`text-xs mt-1 ml-6 ${overdue.includes(task) ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                  <p className={`text-xs mt-1 ${overdue.includes(task) ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
                     {formatDue(task)}
                   </p>
                 )}
                 {task.notes && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 ml-6 truncate">{task.notes}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">{task.notes}</p>
                 )}
               </div>
-              <button
-                onClick={() => onEditTask(task)}
-                className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
-                aria-label="Edit reminder"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  onClick={() => onEditTask(task)}
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                  aria-label="Edit reminder"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => onDeleteTask(task.id)}
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                  aria-label="Delete reminder"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -162,7 +181,7 @@ function RemindersList({
         </div>
         <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">No reminders yet</h3>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 max-w-xs mx-auto leading-relaxed">
-          Create a reminder to follow up with customers or track tasks.
+          Add a reminder to keep follow-ups on track.
         </p>
         <button
           onClick={onAddTask}
@@ -177,11 +196,11 @@ function RemindersList({
 
   return (
     <div>
-      {overdue.length > 0 && renderGroup(`Overdue (${overdue.length})`, overdue, 'red')}
-      {today.length > 0 && renderGroup('Today', today)}
-      {upcoming.length > 0 && renderGroup('Upcoming', upcoming)}
-      {noDate.length > 0 && renderGroup('No due date', noDate)}
-      {completed.length > 0 && renderGroup('Completed', completed)}
+      {overdue.length > 0 && renderGroup('Overdue', overdue.length, overdue, 'red')}
+      {today.length > 0 && renderGroup('Today', today.length, today)}
+      {upcoming.length > 0 && renderGroup('Upcoming', upcoming.length, upcoming)}
+      {noDate.length > 0 && renderGroup('No Due Date', noDate.length, noDate)}
+      {completed.length > 0 && renderGroup('Completed', completed.length, completed)}
     </div>
   )
 }
@@ -240,46 +259,97 @@ function MeetingsTab({
     return ev.start.date ? dateStr : `${dateStr} • ${timeStr}`
   }
 
-  const renderGroup = (title: string, list: CalendarEvent[]) => (
-    <div className="mb-4">
-      <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">{title}</h3>
+  const renderGroup = (title: string, count: number, list: CalendarEvent[]) => (
+    <div className="mb-5">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
+        {title} <span className="text-slate-400 dark:text-slate-500 normal-case font-normal">({count})</span>
+      </h3>
       <div className="space-y-2">
         {list.map(ev => {
           // Resolve job/lead for quick labels (client-side best-effort)
           const job = jobs.find(j => j.google_calendar_event_id === ev.id)
           const customerName = job?.customer_name || null
+          const typeLabel = labelType(ev)
+          const isMeet = typeLabel === 'Google Meet'
           return (
-            <div key={ev.id} className="rounded-xl border border-border/50 bg-card p-3 cursor-pointer hover:bg-muted/50 dark:hover:bg-slate-900 shadow-sm hover:shadow-md transition-all duration-200" onClick={() => onOpenEvent(ev)}>
+            <div key={ev.id} className="rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-900/60 p-4 hover:shadow-sm transition-all">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
+                <button
+                  onClick={() => onOpenEvent(ev)}
+                  className="min-w-0 flex-1 text-left"
+                >
                   <h3 className="min-w-0 line-clamp-1 text-sm font-semibold text-slate-900 dark:text-foreground">{ev.summary}</h3>
                   {customerName && (
                     <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{customerName}</div>
                   )}
-                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{formatDayTime(ev)}</div>
-                </div>
-                <div className="flex flex-col items-end gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{formatDayTime(ev)}</div>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    {isMeet && (
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                        <Video className="w-3 h-3" />
+                        Google Meet
+                      </span>
+                    )}
+                    {typeLabel === 'In Person' && (
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
+                        <MapPin className="w-3 h-3" />
+                        In Person
+                      </span>
+                    )}
+                    {typeLabel === 'Virtual' && (
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium">
+                        <Video className="w-3 h-3" />
+                        Virtual
+                      </span>
+                    )}
+                    {typeLabel === 'Appointment' && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
+                        Appointment
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                   {completedMap?.has(ev.id) && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-600/20 text-green-300 whitespace-nowrap">Completed</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 whitespace-nowrap font-medium">Completed</span>
                   )}
                   {!completedMap?.has(ev.id) && (() => {
                     const endRaw = ev.end?.dateTime || ev.end?.date
                     const isPastDue = endRaw ? new Date(endRaw).getTime() < Date.now() : false
                     return isPastDue ? (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 whitespace-nowrap">Past</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 whitespace-nowrap font-medium">Past</span>
                     ) : (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap">Scheduled</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap font-medium">Scheduled</span>
                     )
                   })()}
-                  <div className="flex gap-1.5 mt-1">
-                    {ev.meetingUrl && (
-                      <a href={ev.meetingUrl} target="_blank" rel="noreferrer" className="text-[10px] px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Join</a>
-                    )}
-                    {job?.lead_id && (
-                      <button className="text-[10px] px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => onViewCustomer(job.lead_id)}>View</button>
-                    )}
-                  </div>
                 </div>
+              </div>
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                {ev.meetingUrl && (
+                  <a
+                    href={ev.meetingUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Join
+                  </a>
+                )}
+                <button
+                  onClick={() => onOpenEvent(ev)}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                >
+                  View
+                </button>
+                {job?.lead_id && (
+                  <button
+                    className="text-xs text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium"
+                    onClick={() => onViewCustomer(job.lead_id)}
+                  >
+                    Customer
+                  </button>
+                )}
               </div>
             </div>
           )
@@ -297,30 +367,44 @@ function MeetingsTab({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-semibold text-foreground">Meetings</h2>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">Appointments</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Manage meetings and scheduled customer time.
+          </p>
+        </div>
         <button
           onClick={onNewMeeting}
-          className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98] flex-shrink-0"
         >
-          New Appointment
+          <Plus className="w-4 h-4" />
+          <span className="hidden sm:inline">New Appointment</span>
+          <span className="sm:hidden">New</span>
         </button>
       </div>
       {todays.length === 0 && later.length === 0 && recentlyCompleted.length === 0 ? (
-        <div className="bg-muted/30 rounded-xl border border-border/20 p-8 text-center">
-          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-            <CalendarIcon className="w-6 h-6 text-muted-foreground" />
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6 sm:p-8 text-center">
+          <div className="w-11 h-11 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
+            <CalendarIcon className="w-5 h-5 text-slate-400" />
           </div>
-          <h3 className="text-sm font-semibold text-foreground mb-2">No meetings scheduled</h3>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            Appointments you create or sync from Google Calendar will appear here.
+          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">No appointments scheduled</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 max-w-xs mx-auto leading-relaxed">
+            Schedule an appointment to keep customer time organized.
           </p>
+          <button
+            onClick={onNewMeeting}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98]"
+          >
+            <Plus className="w-4 h-4" />
+            New Appointment
+          </button>
         </div>
       ) : (
         <>
-          {renderGroup('Today', todays)}
-          {renderGroup('Upcoming', later)}
-          {recentlyCompleted.length > 0 && renderGroup('Recently Completed', recentlyCompleted)}
+          {todays.length > 0 && renderGroup('Today', todays.length, todays)}
+          {later.length > 0 && renderGroup('Upcoming', later.length, later)}
+          {recentlyCompleted.length > 0 && renderGroup('Recently Completed', recentlyCompleted.length, recentlyCompleted)}
         </>
       )}
     </div>
@@ -429,6 +513,47 @@ export default function SchedulePage() {
   const handleAgendaEditTask = useCallback((task: any) => {
     setTaskToEdit(task)
     setIsNewTaskModalOpen(true)
+  }, [])
+
+  const handleToggleTaskComplete = useCallback(async (taskId: string, completed: boolean) => {
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) return
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: !completed }),
+      })
+      if (!response.ok) return
+      setTasks(prev => prev.map(t =>
+        t.id === taskId
+          ? { ...t, completed: !completed, completed_at: !completed ? new Date().toISOString() : null }
+          : t
+      ))
+      setTaskRefreshTrigger(prev => prev + 1)
+    } catch (error) {
+      console.error('[Schedule] Failed to toggle task:', error)
+    }
+  }, [])
+
+  const handleDeleteTask = useCallback(async (taskId: string) => {
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) return
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+      if (!response.ok) return
+      setTasks(prev => prev.filter(t => t.id !== taskId))
+      setTaskRefreshTrigger(prev => prev + 1)
+    } catch (error) {
+      console.error('[Schedule] Failed to delete task:', error)
+    }
   }, [])
 
   const handleMapEditEvent = useCallback((event: any) => {
@@ -1566,6 +1691,7 @@ export default function SchedulePage() {
                           }
                         }}
                         taskRefreshTrigger={taskRefreshTrigger}
+                        onNavigateTab={(tab) => setScheduleTab(tab)}
                       />
                     </>
                   )}
@@ -1577,7 +1703,7 @@ export default function SchedulePage() {
                         <div>
                           <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">Reminders</h2>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            Manage your reminders and follow-ups.
+                            Manage reminders and follow-ups.
                           </p>
                         </div>
                         <button
@@ -1593,6 +1719,8 @@ export default function SchedulePage() {
                         tasks={tasks}
                         onEditTask={handleAgendaEditTask}
                         onAddTask={() => setIsNewTaskModalOpen(true)}
+                        onToggleComplete={handleToggleTaskComplete}
+                        onDeleteTask={handleDeleteTask}
                       />
                     </div>
                   )}
@@ -1606,6 +1734,12 @@ export default function SchedulePage() {
                       onJobClick={(job) => {
                         setSelectedJob(job as Job)
                         setIsJobDetailsOpen(true)
+                      }}
+                      onEditJob={(job) => {
+                        setEditingJob(job)
+                        setJobPrefill(undefined)
+                        setNewJobDefaultDate(undefined)
+                        setIsJobComposerOpen(true)
                       }}
                     />
                   )}
@@ -2444,11 +2578,13 @@ function JobsTab({
   isLoading,
   onNewJob,
   onJobClick,
+  onEditJob,
 }: {
   jobs: Job[]
   isLoading: boolean
   onNewJob: () => void
   onJobClick: (job: Job) => void
+  onEditJob?: (job: Job) => void
 }) {
   const hasLoadedOnceRef = useRef(false)
   useEffect(() => {
@@ -2471,16 +2607,25 @@ function JobsTab({
     return `${dateStr} at ${hour}:${String(m).padStart(2, '0')} ${ampm}`
   }
 
+  const PAYMENT_LABELS: Record<string, string> = {
+    none: '',
+    requested: 'Payment Requested',
+    paid: 'Paid',
+  }
+  const PAYMENT_COLORS: Record<string, string> = {
+    requested: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+    paid: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  }
+
   const JobCard = ({ job, variant }: { job: Job; variant: 'active' | 'completed' | 'cancelled' }) => {
     const isActive = variant === 'active'
     const isCompleted = variant === 'completed'
     const addressFirstLine = job.service_address?.split(',')[0]
+    const paymentLabel = PAYMENT_LABELS[job.payment_status || 'none']
 
     return (
-      <button
-        key={job.id}
-        onClick={() => onJobClick(job)}
-        className={`w-full text-left rounded-xl p-6 transition-all hover:shadow-sm active:scale-[0.99] ${
+      <div
+        className={`rounded-xl p-4 sm:p-5 transition-all hover:shadow-sm ${
           isActive
             ? 'bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
             : isCompleted
@@ -2489,7 +2634,10 @@ function JobsTab({
         }`}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
+          <button
+            onClick={() => onJobClick(job)}
+            className="min-w-0 flex-1 text-left"
+          >
             <p className={`truncate ${isActive ? 'text-base font-semibold text-slate-900 dark:text-foreground' : 'text-sm font-medium text-slate-700 dark:text-slate-300'}`}>
               {job.title}
             </p>
@@ -2510,12 +2658,35 @@ function JobsTab({
                 </span>
               )}
             </div>
+          </button>
+          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+            <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[job.status]}`}>
+              {STATUS_LABELS[job.status]}
+            </span>
+            {paymentLabel && (
+              <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${PAYMENT_COLORS[job.payment_status || 'none']}`}>
+                {paymentLabel}
+              </span>
+            )}
           </div>
-          <span className={`flex-shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[job.status]}`}>
-            {STATUS_LABELS[job.status]}
-          </span>
         </div>
-      </button>
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+          <button
+            onClick={() => onJobClick(job)}
+            className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
+          >
+            View
+          </button>
+          {onEditJob && (
+            <button
+              onClick={() => onEditJob(job)}
+              className="text-xs text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium"
+            >
+              Edit
+            </button>
+          )}
+        </div>
+      </div>
     )
   }
 
@@ -2531,26 +2702,28 @@ function JobsTab({
 
   return (
     <div>
-      {/* Toolbar */}
+      {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-4">
         <div>
-          <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-foreground">Jobs
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
+            Jobs
             {isLoading && hasLoadedOnceRef.current && (
-              <span className="inline-flex items-center justify-center w-3.5 h-3.5">
+              <span className="inline-flex items-center justify-center w-3.5 h-3.5 ml-2 align-middle">
                 <span className="w-3 h-3 border-2 border-slate-300 dark:border-slate-600 border-t-transparent rounded-full animate-spin" />
               </span>
             )}
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 max-w-sm">
-            Manage the customer work you're doing from scheduled to completed.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Manage customer work from scheduled to completed.
           </p>
         </div>
         <button
           onClick={onNewJob}
           className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98] flex-shrink-0"
         >
-          <Briefcase className="w-4 h-4" />
-          New Job
+          <Plus className="w-4 h-4" />
+          <span className="hidden sm:inline">New Job</span>
+          <span className="sm:hidden">New</span>
         </button>
       </div>
 
@@ -2559,15 +2732,15 @@ function JobsTab({
           <div className="w-11 h-11 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
             <Briefcase className="w-5 h-5 text-slate-400" />
           </div>
-          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">No active jobs yet.</h3>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">No active jobs</h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 max-w-xs mx-auto leading-relaxed">
-            Create a job to track work for your customers.
+            Create a job to start tracking customer work.
           </p>
           <button
             onClick={onNewJob}
             className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98]"
           >
-            <Briefcase className="w-4 h-4" />
+            <Plus className="w-4 h-4" />
             New Job
           </button>
         </div>
@@ -2577,7 +2750,7 @@ function JobsTab({
           {active.length > 0 && (
             <div>
               <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground uppercase tracking-wider mb-3">
-                Active Jobs
+                Active Jobs <span className="text-slate-400 dark:text-slate-500 normal-case font-normal">({active.length})</span>
               </h3>
               <div className="space-y-3">
                 {active.map(job => <JobCard key={job.id} job={job} variant="active" />)}
@@ -2589,7 +2762,7 @@ function JobsTab({
           {completed.length > 0 && (
             <div>
               <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
-                Completed Jobs
+                Completed Jobs <span className="text-slate-400 dark:text-slate-500 normal-case font-normal">({completed.length})</span>
               </h3>
               <div className="space-y-3">
                 {completed.map(job => <JobCard key={job.id} job={job} variant="completed" />)}
@@ -2601,7 +2774,7 @@ function JobsTab({
           {cancelled.length > 0 && (
             <div>
               <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
-                Cancelled Jobs
+                Cancelled Jobs <span className="text-slate-400 dark:text-slate-500 normal-case font-normal">({cancelled.length})</span>
               </h3>
               <div className="space-y-3">
                 {cancelled.map(job => <JobCard key={job.id} job={job} variant="cancelled" />)}

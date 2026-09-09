@@ -49,6 +49,7 @@ interface TodayCommandCenterProps {
   onDeleteAppointment?: (event: CalendarEvent) => void
   onEditTask?: (task: Task) => void
   taskRefreshTrigger?: number
+  onNavigateTab?: (tab: 'reminders' | 'jobs' | 'appointments') => void
 }
 
 export default function TodayCommandCenter({
@@ -64,15 +65,11 @@ export default function TodayCommandCenter({
   onDeleteAppointment,
   onEditTask,
   taskRefreshTrigger,
+  onNavigateTab,
 }: TodayCommandCenterProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoadingTasks, setIsLoadingTasks] = useState(true)
   const supabase = createBrowserClient()
-
-  // Independent expanded state for each section
-  const [expandedReminders, setExpandedReminders] = useState(false)
-  const [expandedJobs, setExpandedJobs] = useState(false)
-  const [expandedAppointments, setExpandedAppointments] = useState(false)
 
   const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local timezone
 
@@ -530,382 +527,118 @@ export default function TodayCommandCenter({
         )}
       </div>
 
-      {/* Secondary Sections */}
-      <div className="space-y-3">
-        {/* Reminders */}
+      {/* Needs Attention — compact cross-category highlights */}
+      {overdueTasks.length > 0 && (
         <div className="bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-slate-400" />
+              <AlertCircle className="w-4 h-4 text-red-500" />
               <h3 className="text-sm font-semibold text-foreground">
-                Reminders
+                Needs Attention
               </h3>
             </div>
-            <div className="flex items-center gap-2">
-              {onAddTask && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    console.log('[TODAY_COMMAND_CENTER] + Reminder clicked', { timestamp: Date.now(), pathname: window.location.pathname })
-                    onAddTask()
-                  }}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2.5 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                >
-                  + Reminder
-                </button>
-              )}
-              <div className="w-[44px] flex-shrink-0 flex items-center justify-center">
-                {hasMoreReminders && (
-              <button
-                onClick={() => setExpandedReminders(!expandedReminders)}
-                className="flex-shrink-0 w-8 h-8 md:w-8 md:h-8 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
-                aria-expanded={expandedReminders}
-                aria-label={expandedReminders ? 'Show fewer reminders' : 'Show all reminders'}
-              >
-                {expandedReminders ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-              )}
-              </div>
-            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-medium">
+              {overdueTasks.length} overdue
+            </span>
           </div>
-          <div className="p-3">
-            {sortedBrowseTasks.length === 0 ? (
-              <div className="text-center py-4">
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                  No reminders
-                </p>
-                {onAddTask && (
+          <div className="p-3 space-y-0.5">
+            {overdueTasks.slice(0, 5).map(task => (
+              <div
+                key={task.id}
+                className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+              >
+                <button
+                  onClick={() => toggleTaskComplete(task.id, task.completed)}
+                  className="flex-shrink-0 w-5 h-5 rounded border-2 border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400 transition-colors flex items-center justify-center"
+                >
+                  {task.completed && (
+                    <CheckCircle2 className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                  )}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{task.title}</p>
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
+                    Overdue {task.due_date && `• ${formatDate(task.due_date)}`}
+                  </p>
+                </div>
+                {onEditTask && (
                   <button
-                    type="button"
-                    onPointerDown={() => {
-                      console.log('[QUICK_CLICK_EVENT_TRACE]', {
-                        source: 'TodayCommandCenter.AddReminder',
-                        eventType: 'pointerdown',
-                        pathname: window.location.pathname,
-                        timestamp: Date.now()
-                      })
-                    }}
-                    onPointerUp={() => {
-                      console.log('[QUICK_CLICK_EVENT_TRACE]', {
-                        source: 'TodayCommandCenter.AddReminder',
-                        eventType: 'pointerup',
-                        pathname: window.location.pathname,
-                        timestamp: Date.now()
-                      })
-                    }}
-                    onClick={() => {
-                      console.log('[QUICK_CLICK_EVENT_TRACE]', {
-                        source: 'TodayCommandCenter.AddReminder',
-                        eventType: 'click',
-                        pathname: window.location.pathname,
-                        timestamp: Date.now()
-                      })
-                      console.log('[TODAY_COMMAND_CENTER] + Add Reminder clicked', { timestamp: Date.now(), pathname: window.location.pathname })
-                      onAddTask()
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
+                    onClick={() => onEditTask(task)}
+                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    aria-label="Edit reminder"
                   >
-                    + Add Reminder
+                    <Pencil className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
-            ) : (
-              <div className="space-y-0.5">
-                {(expandedReminders || !hasMoreReminders ? sortedBrowseTasks : sortedBrowseTasks.slice(0, COLLAPSED_LIMIT)).map(task => {
-                  const taskOverdue = task.due_date && task.due_date < todayStr
-                  const taskToday = task.due_date === todayStr
-                  return (
-                    <div
-                      key={task.id}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
-                    >
-                      <button
-                        onClick={() => toggleTaskComplete(task.id, task.completed)}
-                        className="flex-shrink-0 w-5 h-5 rounded border-2 border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400 transition-colors flex items-center justify-center"
-                      >
-                        {task.completed && (
-                          <CheckCircle2 className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                        )}
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {task.title}
-                        </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {taskOverdue && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-medium">
-                              Overdue
-                            </span>
-                          )}
-                          {taskToday && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
-                              Today
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex-shrink-0 text-right min-w-[80px]">
-                        {task.due_date && (
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(task.due_date)}
-                          </p>
-                        )}
-                        {task.due_time && (
-                          <p className="text-xs text-muted-foreground">
-                            {formatTime12Hour(task.due_time)}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {onEditTask && (
-                          <button
-                            onClick={() => onEditTask(task)}
-                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100"
-                            aria-label="Edit reminder"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+            ))}
+            {overdueTasks.length > 5 && onNavigateTab && (
+              <button
+                onClick={() => onNavigateTab('reminders')}
+                className="w-full text-left px-2 py-1.5 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                View all {overdueTasks.length} overdue →
+              </button>
             )}
           </div>
         </div>
+      )}
 
-        {/* Jobs */}
-        <div className="bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
-            <div className="flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-slate-400" />
-              <h3 className="text-sm font-semibold text-foreground">
-                Jobs
-              </h3>
-            </div>
-            <div className="flex items-center gap-2">
-              {onAddJob && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    console.log('[TODAY_COMMAND_CENTER] + Job clicked', { timestamp: Date.now(), pathname: window.location.pathname })
-                    onAddJob()
-                  }}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2.5 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                >
-                  + Job
-                </button>
-              )}
-              <div className="w-[44px] flex-shrink-0 flex items-center justify-center">
-                {hasMoreJobs && (
-              <button
-                onClick={() => setExpandedJobs(!expandedJobs)}
-                className="flex-shrink-0 w-8 h-8 md:w-8 md:h-8 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
-                aria-expanded={expandedJobs}
-                aria-label={expandedJobs ? 'Show fewer jobs' : 'Show all jobs'}
-              >
-                {expandedJobs ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-              )}
-              </div>
-            </div>
+      {/* Compact category navigation links */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Reminders summary card */}
+        <button
+          onClick={() => onNavigateTab?.('reminders')}
+          className="text-left bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all"
+        >
+          <div className="flex items-center gap-2 mb-1.5">
+            <CheckCircle2 className="w-4 h-4 text-slate-400" />
+            <h3 className="text-sm font-semibold text-foreground">Reminders</h3>
           </div>
-          <div className="p-3">
-            {sortedBrowseJobs.length === 0 ? (
-              <div className="text-center py-4">
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                  No upcoming jobs
-                </p>
-                {onAddJob && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      console.log('[TODAY_COMMAND_CENTER] + Create Job clicked', { timestamp: Date.now(), pathname: window.location.pathname })
-                      onAddJob()
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
-                  >
-                    + Create Job
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-0.5">
-                {(expandedJobs || !hasMoreJobs ? sortedBrowseJobs : sortedBrowseJobs.slice(0, COLLAPSED_LIMIT)).map(job => {
-                  const jobToday = job.scheduled_date === todayStr
-                  return (
-                    <div
-                      key={job.id}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
-                    >
-                      <button
-                        onClick={() => onJobClick?.(job)}
-                        className="flex items-center gap-3 flex-1 min-w-0 text-left"
-                      >
-                        <Briefcase className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {job.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate mt-0.5">
-                            {job.customer_name || 'No customer'}
-                          </p>
-                        </div>
-                      </button>
-                      <div className="flex-shrink-0 text-right min-w-[80px]">
-                        {job.scheduled_date && (
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(job.scheduled_date)}
-                          </p>
-                        )}
-                        {job.scheduled_time && (
-                          <p className="text-xs text-muted-foreground">
-                            {formatTime12Hour(job.scheduled_time)}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {onEditJob && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onEditJob(job) }}
-                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100"
-                            aria-label="Edit job"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {todayTasks.length + overdueTasks.length} active
+            {overdueTasks.length > 0 && (
+              <span className="text-red-600 dark:text-red-400"> • {overdueTasks.length} overdue</span>
             )}
-          </div>
-        </div>
+          </p>
+          <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 font-medium">View Reminders →</p>
+        </button>
 
-        {/* Appointments */}
-        <div className="bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-slate-400" />
-              <h3 className="text-sm font-semibold text-foreground">
-                Appointments
-              </h3>
-            </div>
-            <div className="flex items-center gap-2">
-              {onAddAppointment && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    console.log('[TODAY_COMMAND_CENTER] + Appointment clicked', { timestamp: Date.now(), pathname: window.location.pathname })
-                    onAddAppointment()
-                  }}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2.5 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                >
-                  + Appointment
-                </button>
-              )}
-              <div className="w-[44px] flex-shrink-0 flex items-center justify-center">
-                {hasMoreAppointments && (
-              <button
-                onClick={() => setExpandedAppointments(!expandedAppointments)}
-                className="flex-shrink-0 w-8 h-8 md:w-8 md:h-8 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
-                aria-expanded={expandedAppointments}
-                aria-label={expandedAppointments ? 'Show fewer appointments' : 'Show all appointments'}
-              >
-                {expandedAppointments ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-              )}
-              </div>
-            </div>
+        {/* Jobs summary card */}
+        <button
+          onClick={() => onNavigateTab?.('jobs')}
+          className="text-left bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all"
+        >
+          <div className="flex items-center gap-2 mb-1.5">
+            <Briefcase className="w-4 h-4 text-slate-400" />
+            <h3 className="text-sm font-semibold text-foreground">Jobs</h3>
           </div>
-          <div className="p-3">
-            {sortedBrowseAppointments.length === 0 ? (
-              <div className="text-center py-4">
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                  No upcoming appointments
-                </p>
-                {onAddAppointment && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      console.log('[TODAY_COMMAND_CENTER] + Schedule Appointment clicked', { timestamp: Date.now(), pathname: window.location.pathname })
-                      onAddAppointment()
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
-                  >
-                    + Schedule Appointment
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-0.5">
-                {(expandedAppointments || !hasMoreAppointments ? sortedBrowseAppointments : sortedBrowseAppointments.slice(0, COLLAPSED_LIMIT)).map(event => {
-                  const eventDateRaw = event.start?.dateTime || event.start?.date
-                  const eventDate = eventDateRaw ? new Date(eventDateRaw) : null
-                  const eventDateOnly = eventDateRaw?.split('T')[0]
-                  const isToday = eventDateOnly === todayStr
-                  const isMeetAppointment = !!event.meetingUrl && /meet\.google\.com/i.test(event.meetingUrl)
-                  return (
-                    <div
-                      key={event.id}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
-                    >
-                      <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {event.summary}
-                        </p>
-                        {isMeetAppointment && (
-                          <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5 flex items-center gap-1">
-                            <Video className="w-3 h-3" />
-                            Google Meet
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex-shrink-0 text-right min-w-[80px]">
-                        {eventDateOnly && (
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(eventDateOnly)}
-                          </p>
-                        )}
-                        {event.start.dateTime && (
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {isMeetAppointment && event.meetingUrl && (
-                          <a
-                            href={event.meetingUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                            aria-label="Join Google Meet"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            Join
-                          </a>
-                        )}
-                        {onEditAppointment && (
-                          <button
-                            onClick={() => onEditAppointment(event)}
-                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100"
-                            aria-label="Edit appointment"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {browseJobs.length} active
+            {todayJobs.length > 0 && (
+              <span className="text-blue-600 dark:text-blue-400"> • {todayJobs.length} today</span>
             )}
+          </p>
+          <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 font-medium">View Jobs →</p>
+        </button>
+
+        {/* Appointments summary card */}
+        <button
+          onClick={() => onNavigateTab?.('appointments')}
+          className="text-left bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all"
+        >
+          <div className="flex items-center gap-2 mb-1.5">
+            <Calendar className="w-4 h-4 text-slate-400" />
+            <h3 className="text-sm font-semibold text-foreground">Appointments</h3>
           </div>
-        </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {todayAppointments.length} today
+            {browseAppointments.length > 0 && (
+              <span> • {browseAppointments.length} upcoming</span>
+            )}
+          </p>
+          <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 font-medium">View Appointments →</p>
+        </button>
       </div>
     </div>
   )
