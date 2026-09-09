@@ -49,6 +49,15 @@ const BUILD_COMMIT_SHA = process.env.BUILD_COMMIT_SHA || "unknown";
 const BUILD_TIMESTAMP = process.env.BUILD_TIMESTAMP || "unknown";
 const DEPLOYMENT_VERSION = process.env.DEPLOYMENT_VERSION || "unknown";
 
+// Explicit runtime marker to prove which build is executing
+let PACKAGE_VERSION = "unknown";
+try {
+  PACKAGE_VERSION = require("../package.json").version || "unknown";
+} catch {}
+const COMPLETION_OWNERSHIP_BUILD_V3 = true;
+const AI_VOICE_ENTRY_FILE = typeof __filename !== "undefined" ? __filename : "unknown";
+const AI_VOICE_RUNTIME_START_AT = new Date().toISOString();
+
 import { createServer } from 'http';
 import { Server as WebSocketServer } from 'ws';
 import WebSocket from 'ws';
@@ -684,6 +693,15 @@ export function finalizeSimpleModeSettledAnswer(
 
 // Version log - guaranteed to appear on startup
 console.log('[AI VOICE STARTUP] Service initializing');
+console.log('[COMPLETION OWNERSHIP BUILD V3] =========================================');
+console.log('[COMPLETION OWNERSHIP BUILD V3] active:', COMPLETION_OWNERSHIP_BUILD_V3);
+console.log('[COMPLETION OWNERSHIP BUILD V3] packageVersion:', PACKAGE_VERSION);
+console.log('[COMPLETION OWNERSHIP BUILD V3] entryFile:', AI_VOICE_ENTRY_FILE);
+console.log('[COMPLETION OWNERSHIP BUILD V3] runtimeStart:', AI_VOICE_RUNTIME_START_AT);
+console.log('[COMPLETION OWNERSHIP BUILD V3] buildCommitSha:', BUILD_COMMIT_SHA);
+console.log('[COMPLETION OWNERSHIP BUILD V3] buildTimestamp:', BUILD_TIMESTAMP);
+console.log('[COMPLETION OWNERSHIP BUILD V3] deployVersion:', DEPLOYMENT_VERSION);
+console.log('[COMPLETION OWNERSHIP BUILD V3] =========================================');
 console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
 
 // VERSION PROOF STARTUP LOGS
@@ -5842,16 +5860,13 @@ async function createFallbackLead(
     };
     console.log('[LEAD INSERT PAYLOAD]', leadInsertPayload);
 
-    const { data: lead, error: leadError } = await supabase
-      .from('leads')
-      .upsert(leadInsertPayload, {
-        onConflict: 'business_id,caller_phone',
-      })
-      .select()
-      .single();
+    const { data: lead, error: leadError } = await getOrCreateLeadByBusinessAndCaller(
+      supabase,
+      leadInsertPayload
+    );
 
-    if (leadError) {
-      console.log('[LEAD CREATED FROM FALLBACK] Lead creation error:', leadError);
+    if (leadError || !lead) {
+      console.log('[LEAD CREATED FROM FALLBACK] Lead creation error:', leadError || 'lead_not_created');
       return;
     }
 
@@ -6829,6 +6844,87 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
       twilioAccountSid: process.env.TWILIO_ACCOUNT_SID
     });
   }
+}
+
+// Canonical safe lead resolver: never relies on an ON CONFLICT target that the
+// schema may not guarantee. Selects by (business_id, caller_phone); if absent, inserts.
+// If a baseline leadId is supplied by Twilio custom parameters, prefer it.
+export async function getOrCreateLeadByBusinessAndCaller(
+  supabase: any,
+  payload: { business_id: string; caller_phone: string; status?: string; raw_metadata?: any },
+  baselineLeadId?: string | null
+): Promise<{ data: any | null; error: any }> {
+  console.log('[LEAD GET_OR_CREATE] =========================================');
+  console.log('[LEAD GET_OR_CREATE] baselineLeadId:', baselineLeadId);
+  console.log('[LEAD GET_OR_CREATE] businessId:', payload.business_id);
+  console.log('[LEAD GET_OR_CREATE] callerPhone:', payload.caller_phone);
+  console.log('[LEAD GET_OR_CREATE] Timestamp:', new Date().toISOString());
+  console.log('[LEAD GET_OR_CREATE] =========================================');
+
+  if (baselineLeadId) {
+    const { data: baselineLead, error: baselineError } = await retrySupabaseOperation(
+      async () => supabase.from('leads').select('*').eq('id', baselineLeadId).maybeSingle(),
+      'Lookup Baseline Lead',
+      3,
+      1000
+    );
+    if (baselineError) {
+      console.log('[LEAD GET_OR_CREATE] baseline lead lookup error:', baselineError);
+    } else if (baselineLead) {
+      console.log('[LEAD GET_OR_CREATE] using baseline lead:', baselineLead.id);
+      return { data: baselineLead, error: null };
+    }
+  }
+
+  const { data: existing, error: lookupError } = await retrySupabaseOperation(
+    async () => supabase
+      .from('leads')
+      .select('*')
+      .eq('business_id', payload.business_id)
+      .eq('caller_phone', payload.caller_phone)
+      .maybeSingle(),
+    'Lookup Lead By Business And Caller',
+    3,
+    1000
+  );
+  if (lookupError) {
+    console.log('[LEAD GET_OR_CREATE] lookup error:', lookupError);
+    return { data: null, error: lookupError };
+  }
+  if (existing) {
+    console.log('[LEAD GET_OR_CREATE] existing lead found:', existing.id);
+    return { data: existing, error: null };
+  }
+
+  const { data: inserted, error: insertError } = await retrySupabaseOperation(
+    async () => supabase.from('leads').insert(payload).select().single(),
+    'Insert New Lead',
+    3,
+    1000
+  );
+
+  if (insertError) {
+    if (insertError.code === '23505') {
+      console.log('[LEAD GET_OR_CREATE] insert race detected, re-selecting');
+      const { data: raceExisting, error: raceError } = await retrySupabaseOperation(
+        async () => supabase
+          .from('leads')
+          .select('*')
+          .eq('business_id', payload.business_id)
+          .eq('caller_phone', payload.caller_phone)
+          .maybeSingle(),
+        'Race Recovery Lookup Lead',
+        3,
+        1000
+      );
+      return { data: raceExisting || null, error: raceError || null };
+    }
+    console.log('[LEAD GET_OR_CREATE] insert error:', insertError);
+    return { data: null, error: insertError };
+  }
+
+  console.log('[LEAD GET_OR_CREATE] created lead:', inserted?.id);
+  return { data: inserted || null, error: null };
 }
 
 // Helper function to get or create conversation with 23505 race recovery
@@ -8436,9 +8532,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
     try {
       // First, ensure lead exists
-      const { data: lead } = await supabase
-        .from('leads')
-        .upsert({
+      const { data: lead } = await getOrCreateLeadByBusinessAndCaller(
+        supabase,
+        {
           business_id: state.businessId,
           caller_phone: state.callerPhone || '',
           status: 'new',
@@ -8448,11 +8544,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
             ai_intake_completed: false,
             ai_intake_partial: true,
           }
-        }, {
-          onConflict: 'business_id,caller_phone',
-        })
-        .select()
-        .single();
+        },
+        state.baselineLeadId
+      );
 
       if (!lead) {
         console.log('[PARTIAL INTAKE PERSIST] =========================================');
@@ -9875,6 +9969,9 @@ Reply to this message if you'd like to update or add any information.
         transcriptToPersist.push({ role: 'user', text: state.transcript });
       }
 
+      const allRequiredFieldsCollected = areAllRequiredFieldsCollected(state.intakeData, state.serviceLocationType);
+      const finalOutcome = allRequiredFieldsCollected ? 'completed' : 'partial_intake';
+
       const aiCallRecordPayload = {
         lead_id: lead.id,
         conversation_id: conversation.id,
@@ -9884,7 +9981,7 @@ Reply to this message if you'd like to update or add any information.
         transcript: transcriptToPersist,
         extracted_info: canonicalExtractedInfo,
         summary: canonicalExtractedInfo.serviceRequested || '',
-        outcome: 'completed',
+        outcome: finalOutcome,
       };
       console.log('[SIMPLE MODE] ai_call_record upsert payload:', {
         callSid: aiCallRecordPayload.call_sid,
@@ -10251,9 +10348,9 @@ Reply to this message if you'd like to update or add any information.
     console.log('[SIMPLE MODE] event: silent_sms_send_start');
 
     try {
-      const { data: lead, error: leadError } = await supabase
-        .from('leads')
-        .upsert({
+      const { data: lead, error: leadError } = await getOrCreateLeadByBusinessAndCaller(
+        supabase,
+        {
           business_id: state.businessId,
           caller_phone: state.callerPhone || '',
           status: 'new',
@@ -10261,11 +10358,9 @@ Reply to this message if you'd like to update or add any information.
             ai_intake_completed: false,
             ai_intake_outcome: 'no_speech',
           }
-        }, {
-          onConflict: 'business_id,caller_phone',
-        })
-        .select()
-        .single();
+        },
+        state.baselineLeadId
+      );
 
       if (leadError || !lead) {
         console.log('[SILENT SMS FAILED] reason: lead_creation_failed -', leadError?.message || 'lead_not_created');
@@ -10626,11 +10721,62 @@ Reply to this message if you'd like to update or add any information.
     console.log('[TURN TIMING] =========================================');
   };
 
+  // Canonical entry into the complete stage. Establishes durable completion ownership
+  // before any complete prompt audio is dispatched. Must be the ONLY place that
+  // authorizes the transition to currentStage === 'complete'.
+  function enterSimpleModeComplete(source: string) {
+    const promptKey = 'complete';
+    const allRequiredFieldsCollected = areAllRequiredFieldsCollected(state.intakeData, state.serviceLocationType);
+
+    console.log('[ENTER COMPLETE] =========================================');
+    console.log('[ENTER COMPLETE] source:', source);
+    console.log('[ENTER COMPLETE] callSid:', state.callSid);
+    console.log('[ENTER COMPLETE] stateIdentity:', state.stateIdentity);
+    console.log('[ENTER COMPLETE] currentStageBefore:', state.currentStage);
+    console.log('[ENTER COMPLETE] allRequiredFieldsCollected:', allRequiredFieldsCollected);
+    console.log('[ENTER COMPLETE] completionOuterPromiseBefore:', state.completionOuterPromise ? 'set' : 'null');
+    console.log('[ENTER COMPLETE] Timestamp:', new Date().toISOString());
+    console.log('[ENTER COMPLETE] =========================================');
+
+    // Invariant A: complete stage must have a completion owner
+    if (state.currentStage !== 'complete') {
+      state.currentStage = 'complete';
+    }
+
+    if (!state.completionOuterPromise && !state.completionPersistencePromise) {
+      console.log('[ENTER COMPLETE] establishing completion owner');
+      processSimpleModeCompletion().catch((err: any) => {
+        console.log('[COMPLETION SOURCE] event: completion_call_site_rejected', {
+          source: 'enterSimpleModeComplete',
+          callSid: state.callSid,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+    } else {
+      console.log('[ENTER COMPLETE] completion owner already exists');
+    }
+
+    console.log('[COMPLETE INVARIANT A] =========================================');
+    console.log('[COMPLETE INVARIANT A] ownerExists:', !!(state.completionOuterPromise || state.completionPersistencePromise || state.completionPersistenceStarted));
+    console.log('[COMPLETE INVARIANT A] completionOuterPromise:', state.completionOuterPromise ? 'set' : 'null');
+    console.log('[COMPLETE INVARIANT A] currentStage:', state.currentStage);
+    console.log('[COMPLETE INVARIANT A] Timestamp:', new Date().toISOString());
+    console.log('[COMPLETE INVARIANT A] =========================================');
+
+    return promptKey;
+  }
+
   // Helper to send prompt using cached PCMU audio or Realtime response.create
   // Returns true if prompt audio was dispatched, false if suppressed before audio delivery
   const sendPrompt = async (stage: string, promptKeyOverride?: string, source?: string, turnId?: number, deliveryAttempt?: number): Promise<boolean> => {
     const authorizedAt = Date.now();
     state.turnTiming.promptScheduledAt = authorizedAt;
+
+    // Invariant B: any dispatch of the complete prompt MUST own completion persistence first.
+    const effectiveCompleteKey = stage === 'complete' || promptKeyOverride === 'complete' ? 'complete' : null;
+    if (effectiveCompleteKey) {
+      enterSimpleModeComplete(source || 'sendPrompt_complete');
+    }
 
     // Update silence duration based on stage before sending prompt
     const silenceDurationMs = getStageSilenceMs(stage);
@@ -14781,9 +14927,9 @@ Return only JSON, no other text.`;
 
         if (!lead) {
           console.log('[COMPLETE FINALIZATION STEP 4] No baseline lead, creating/updating lead by callerPhone');
-          const { data: upsertedLead, error: leadError } = await supabase
-            .from('leads')
-            .upsert({
+          const { data: upsertedLead, error: leadError } = await getOrCreateLeadByBusinessAndCaller(
+            supabase,
+            {
               business_id: sessionBusinessId,
               caller_phone: sessionCallerPhone,
               status: 'new',
@@ -14792,11 +14938,9 @@ Return only JSON, no other text.`;
                 extracted_info: canonicalExtractedInfo,
                 ai_intake_completed: false,
               },
-            }, {
-              onConflict: 'business_id,caller_phone',
-            })
-            .select()
-            .single();
+            },
+            (ws as any).baselineLeadId
+          );
 
           if (leadError) {
             console.log('[COMPLETE FINALIZATION STEP 4 FAILED] =========================================');
@@ -14810,7 +14954,7 @@ Return only JSON, no other text.`;
 
           lead = upsertedLead;
           console.log('[LEAD CREATE SUCCESS] Lead created successfully');
-          console.log('[AI LEAD UPSERT RESULT]', { leadId: lead.id, businessId: sessionBusinessId, callerPhone: sessionCallerPhone });
+          console.log('[AI LEAD UPSERT RESULT]', { leadId: lead?.id, businessId: sessionBusinessId, callerPhone: sessionCallerPhone });
         }
 
         console.log('[COMPLETE FINALIZATION STEP 4 SUCCESS] =========================================');
@@ -15292,22 +15436,20 @@ Return only JSON, no other text.`;
           operation: 'lead upsert for fallback ai_call_records linking'
         });
         const fallbackCanonicalInfo = await buildCanonicalExtractedInfo({ customerPhone: sessionCallerPhone }, sessionCallerPhone || '', (ws as any).callSessionState?.serviceLocationType, sessionCallSid);
-        const { data: fallbackLead, error: fallbackLeadError } = await supabase
-          .from('leads')
-          .upsert({
+        const { data: fallbackLead, error: fallbackLeadError } = await getOrCreateLeadByBusinessAndCaller(
+          supabase,
+          {
             business_id: sessionBusinessId,
             caller_phone: sessionCallerPhone,
             status: 'new',
-                        raw_metadata: {
+            raw_metadata: {
               ...fallbackCanonicalInfo,
               extracted_info: fallbackCanonicalInfo,
               ai_intake_completed: false,
             },
-          }, {
-            onConflict: 'business_id,caller_phone',
-          })
-          .select()
-          .single();
+          },
+          (ws as any).baselineLeadId
+        );
 
         console.log('[AI LEAD LOOKUP RESULT]', {
           leadId: fallbackLead?.id || 'null',
@@ -19422,17 +19564,15 @@ Return only JSON, no other text.`;
                 };
                 console.log('[LEAD CREATE START]', { payload: leadInsertPayload });
 
-                const { data: lead, error: leadError } = await supabase
-                  .from('leads')
-                  .upsert(leadInsertPayload, {
-                    onConflict: 'business_id,caller_phone',
-                  })
-                  .select()
-                  .single();
+                const { data: lead, error: leadError } = await getOrCreateLeadByBusinessAndCaller(
+                  supabase,
+                  leadInsertPayload,
+                  (ws as any).baselineLeadId
+                );
 
-                if (leadError) {
-                  console.log('[LEAD CREATE ERROR]', { error: leadError.message });
-                  throw leadError;
+                if (leadError || !lead) {
+                  console.log('[LEAD CREATE ERROR]', { error: leadError?.message || 'lead_not_created' });
+                  throw leadError || new Error('Lead creation returned null');
                 }
                 console.log('[LEAD CREATE SUCCESS]', { leadId: lead.id });
                 console.log('[AI LEAD UPSERTED]', { leadId: lead.id });
@@ -19750,26 +19890,24 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                 try {
                   console.log('[AI INGEST] creating lead and conversation for fallback case...');
                   const fallbackCanonicalInfo = await buildCanonicalExtractedInfo({ customerPhone: sessionCallerPhone }, sessionCallerPhone || '', (ws as any).callSessionState?.serviceLocationType, sessionCallSid);
-                  const { data: fallbackLead, error: fallbackLeadError } = await supabase
-                    .from('leads')
-                    .upsert({
+                  const { data: fallbackLead, error: fallbackLeadError } = await getOrCreateLeadByBusinessAndCaller(
+                    supabase,
+                    {
                       business_id: sessionBusinessId,
                       caller_phone: sessionCallerPhone,
                       status: 'new',
-                                            raw_metadata: {
+                      raw_metadata: {
                         ...fallbackCanonicalInfo,
                         extracted_info: fallbackCanonicalInfo,
                         ai_intake_completed: false,
                       },
-                    }, {
-                      onConflict: 'business_id,caller_phone',
-                    })
-                    .select()
-                    .single();
+                    },
+                    (ws as any).baselineLeadId
+                  );
 
-                  if (fallbackLeadError) {
-                    console.log('[AI INGEST] fallback lead creation error', fallbackLeadError);
-                    throw fallbackLeadError;
+                  if (fallbackLeadError || !fallbackLead) {
+                    console.log('[AI INGEST] fallback lead creation error', fallbackLeadError || 'fallback_lead_not_created');
+                    throw fallbackLeadError || new Error('Fallback lead creation returned null');
                   }
 
                   // Use the race-recovery helper function
@@ -20020,25 +20158,23 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                 });
 
                 const emergencyCanonicalInfo = await buildCanonicalExtractedInfo({ customerPhone: callerPhone }, callerPhone || '', undefined, callSid);
-                const { data: emergencyLead, error: emergencyLeadError } = await supabase
-                  .from('leads')
-                  .upsert({
+                const { data: emergencyLead, error: emergencyLeadError } = await getOrCreateLeadByBusinessAndCaller(
+                  supabase,
+                  {
                     business_id: businessId,
                     caller_phone: callerPhone,
                     status: 'new',
-                                        raw_metadata: {
+                    raw_metadata: {
                       ...emergencyCanonicalInfo,
                       extracted_info: emergencyCanonicalInfo,
                       ai_intake_completed: false,
                     },
-                  }, {
-                    onConflict: 'business_id,caller_phone',
-                  })
-                  .select()
-                  .single();
+                  },
+                  (ws as any).baselineLeadId
+                );
 
-                if (emergencyLeadError) {
-                  console.log('[EMERGENCY LEAD RECOVERY] Emergency lead creation failed', emergencyLeadError);
+                if (emergencyLeadError || !emergencyLead) {
+                  console.log('[EMERGENCY LEAD RECOVERY] Emergency lead creation failed', emergencyLeadError || 'emergency_lead_not_created');
                   return;
                 }
 
