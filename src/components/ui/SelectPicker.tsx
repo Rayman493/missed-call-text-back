@@ -284,7 +284,7 @@ export default function SelectPicker({
           data-scroll-lock-allow
         >
           <div
-            className="overflow-y-auto flex-1 overscroll-contain touch-pan-y"
+            className="overflow-y-auto flex-1 min-h-0 overscroll-contain touch-pan-y"
             data-scroll-lock-allow
             style={{ WebkitOverflowScrolling: 'touch' }}
           >

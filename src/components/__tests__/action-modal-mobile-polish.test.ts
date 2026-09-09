@@ -290,3 +290,49 @@ describe('Action Modal Polish + Mobile Viewport Hardening', () => {
     })
   })
 })
+
+describe('Mobile Form Control Polish', () => {
+  it('Modal body reserves bottom space for the sticky footer', () => {
+    const fs = require('fs')
+    const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
+    expect(content).toContain("paddingBottom: 'max(80px, calc(64px + var(--modal-bottom-reserve)))'")
+  })
+
+  it('TimePicker uses a stable min-height and vertically-centered trailing icon', () => {
+    const fs = require('fs')
+    const content = fs.readFileSync('src/components/ui/TimePicker.tsx', 'utf8')
+    expect(content).toContain('min-h-11')
+    expect(content).toContain('top-1/2 -translate-y-1/2')
+  })
+
+  it('DatePicker uses a stable min-height and vertically-centered trailing icon', () => {
+    const fs = require('fs')
+    const content = fs.readFileSync('src/components/ui/DatePicker.tsx', 'utf8')
+    expect(content).toContain('min-h-11')
+    expect(content).toContain('top-1/2 -translate-y-1/2')
+  })
+
+  it('SearchableCustomerSelect dropdown is an independent scroll owner', () => {
+    const fs = require('fs')
+    const content = fs.readFileSync('src/components/customers/SearchableCustomerSelect.tsx', 'utf8')
+    expect(content).toContain('overflow-y-auto flex-1 min-h-0 overscroll-contain touch-pan-y')
+    expect(content).toContain("WebkitOverflowScrolling: 'touch'")
+    expect(content).toContain('data-scroll-lock-allow')
+  })
+
+  it('SelectPicker dropdown is an independent scroll owner', () => {
+    const fs = require('fs')
+    const content = fs.readFileSync('src/components/ui/SelectPicker.tsx', 'utf8')
+    expect(content).toContain('overflow-y-auto flex-1 min-h-0 overscroll-contain touch-pan-y')
+    expect(content).toContain("WebkitOverflowScrolling: 'touch'")
+    expect(content).toContain('data-scroll-lock-allow')
+  })
+
+  it('JobComposer raw time and date inputs have a stable min-height', () => {
+    const fs = require('fs')
+    const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
+    expect(content).toContain('type="date"')
+    expect(content).toContain('type="time"')
+    expect(content).toContain('min-h-11')
+  })
+})

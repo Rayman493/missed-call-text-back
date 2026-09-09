@@ -157,7 +157,11 @@ export default function Modal({
           <div
             className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-4 sm:px-5 py-4"
             data-scroll-lock-allow
-            style={{ WebkitOverflowScrolling: 'touch', maxHeight: contentMaxHeight || undefined }}
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              maxHeight: contentMaxHeight || undefined,
+              paddingBottom: 'max(80px, calc(64px + var(--modal-bottom-reserve)))'
+            }}
           >
             {children}
           </div>

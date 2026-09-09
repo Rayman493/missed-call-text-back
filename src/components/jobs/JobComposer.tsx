@@ -367,7 +367,7 @@ export default function JobComposer({
                   type="date"
                   value={scheduledDate}
                   onChange={e => setScheduledDate(e.target.value)}
-                  className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-11"
                 />
               </div>
               <div>
@@ -378,7 +378,7 @@ export default function JobComposer({
                   type="time"
                   value={scheduledTime}
                   onChange={e => setScheduledTime(e.target.value)}
-                  className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-11"
                 />
               </div>
             </div>
