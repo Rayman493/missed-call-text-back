@@ -158,6 +158,60 @@ describe('AI Summary empty-state clarity', () => {
   })
 })
 
+describe('AI Summary structured rendering (Batch 10)', () => {
+  it('renders Meeting Overview section label', () => {
+    expect(content).toContain('Meeting Overview')
+  })
+
+  it('renders Customer / Attendee Needs section label', () => {
+    expect(content).toContain('Customer / Attendee Needs')
+  })
+
+  it('renders Key Discussion Points section label', () => {
+    expect(content).toContain('Key Discussion Points')
+  })
+
+  it('renders Decisions / Outcomes section label', () => {
+    expect(content).toContain('Decisions / Outcomes')
+  })
+
+  it('renders Follow-Up section label (not Follow-Up Items)', () => {
+    expect(content).toContain('Follow-Up')
+    // Old label should not be present
+    expect(content).not.toContain('Follow-Up Items')
+  })
+
+  it('renders decisions array from structured summary', () => {
+    expect(content).toContain('aiSummaryStructured.decisions')
+    expect(content).toMatch(/Array\.isArray\(aiSummaryStructured\.decisions\)/)
+  })
+
+  it('does not render old pricingMentioned or nextSteps sections', () => {
+    expect(content).not.toContain('pricingMentioned')
+    expect(content).not.toContain('Pricing Mentioned')
+    expect(content).not.toContain('Next Steps')
+  })
+
+  it('collapsed view shows only one summary line (not both structured and plain)', () => {
+    // The old code had two separate conditionals that could both render.
+    // Now it should be a single conditional with fallback.
+    const collapsedSection = content.split('!isTranscriptOpen && (aiSummaryStructured')[1]?.split('isTranscriptOpen &&')[0] || ''
+    expect(collapsedSection).toContain('aiSummaryStructured?.overview || aiSummary')
+  })
+
+  it('does not render raw JSON', () => {
+    expect(content).not.toContain('JSON.stringify(aiSummaryStructured)')
+    expect(content).not.toContain('aiSummaryStructured as any')
+  })
+
+  it('uses subtle hierarchy (font-semibold, not large cards)', () => {
+    const summarySection = content.split('aiSummaryStructured ?')[1]?.split('Transcript')[0] || ''
+    expect(summarySection).toContain('font-semibold')
+    expect(summarySection).not.toContain('text-lg')
+    expect(summarySection).not.toContain('text-xl')
+  })
+})
+
 describe('Preserved behaviors', () => {
   it('preserves Join button only for valid Meet URLs', () => {
     expect(content).toMatch(/event\.meetingUrl\s*&&/)

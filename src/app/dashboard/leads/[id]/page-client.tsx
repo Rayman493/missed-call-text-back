@@ -61,7 +61,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import Modal from '@/components/ui/Modal'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
-import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle, Pencil, ChevronDown } from 'lucide-react'
+import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle, Pencil, ChevronDown, Video, ExternalLink } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import NewTaskModal from '@/components/schedule/NewTaskModal'
 import EditCustomerModal from '@/components/EditCustomerModal'
@@ -413,6 +413,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         customerHealth: false,
         quickActions: false,
         aiIntake: false,
+        schedule: false,
+        jobs: false,
+        reminders: false,
+        appointments: false,
       }
     }
 
@@ -423,6 +427,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       customerHealth: false,
       quickActions: false,
       aiIntake: false,
+      schedule: false,
+      jobs: false,
+      reminders: false,
+      appointments: false,
     }
   })
 
@@ -4363,15 +4371,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <SidebarSection
                         title="Schedule"
                         className="mb-3"
+                        collapsible
+                        isCollapsed={collapsedSections.schedule}
+                        onToggleCollapse={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: !prev.schedule }))}
                         headerAction={
                           <button
                             type="button"
                             onClick={handleCreateJobClick}
-                            className="inline-flex items-center justify-center w-8 h-8 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                            className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                             aria-label="Add scheduled job"
                             title="Add scheduled job"
                           >
-                            <Plus className="w-4 h-4" />
+                            <Plus className="w-3.5 h-3.5" />
+                            Add
                           </button>
                         }
                       >
@@ -4389,14 +4401,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
+                                  <p className="text-xs text-muted-foreground/80 truncate">
+                                    {job.customer_name || leadData?.name || 'No customer'}
+                                  </p>
                                   <p className="text-xs text-muted-foreground/80">
                                     {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
                                     {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
                                   </p>
                                 </div>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-slate-200/60 dark:border-border/30">
-                                  {formatJobStatus(job.status).text}
-                                </span>
+                                <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-slate-200/60 dark:border-border/30">
+                                    {formatJobStatus(job.status).text}
+                                  </span>
+                                  {job.payment_status && job.payment_status !== 'none' && (
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${job.payment_status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'}`}>
+                                      {job.payment_status === 'paid' ? 'Paid' : 'Payment Req'}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -4407,6 +4429,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <SidebarSection
                         title="Jobs"
                         className="mb-3"
+                        collapsible
+                        isCollapsed={collapsedSections.jobs}
+                        onToggleCollapse={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
                       >
                         {leadJobs.length === 0 ? (
                           <p className="text-sm text-muted-foreground">No jobs</p>
@@ -4421,14 +4446,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
+                                  <p className="text-xs text-muted-foreground/80 truncate">
+                                    {job.customer_name || leadData?.name || 'No customer'}
+                                  </p>
                                   <p className="text-xs text-muted-foreground/80">
                                     {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
                                     {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
                                   </p>
                                 </div>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-slate-200/60 dark:border-border/30">
-                                  {formatJobStatus(job.status).text}
-                                </span>
+                                <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-slate-200/60 dark:border-border/30">
+                                    {formatJobStatus(job.status).text}
+                                  </span>
+                                  {job.payment_status && job.payment_status !== 'none' && (
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${job.payment_status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'}`}>
+                                      {job.payment_status === 'paid' ? 'Paid' : 'Payment Req'}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -4439,6 +4474,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <SidebarSection
                         title="Reminders"
                         className="mb-3"
+                        collapsible
+                        isCollapsed={collapsedSections.reminders}
+                        onToggleCollapse={() => setCollapsedSections((prev: any) => ({ ...prev, reminders: !prev.reminders }))}
                         headerAction={
                           <button
                             type="button"
@@ -4455,7 +4493,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <p className="text-sm text-muted-foreground">No open reminders</p>
                         ) : (
                           <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
-                            {leadTasks.map((task: any) => (
+                            {leadTasks.map((task: any) => {
+                              const todayStr = new Date().toISOString().split('T')[0]
+                              const taskOverdue = task.due_date && task.due_date < todayStr && !task.completed
+                              const taskToday = task.due_date === todayStr && !task.completed
+                              return (
                               <div key={task.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200">
                                 <div className="flex-shrink-0 w-6 h-6 rounded bg-purple-500/10 flex items-center justify-center">
                                   <svg className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4464,16 +4506,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <p className="text-sm font-medium text-foreground truncate">{task.title || 'Reminder'}</p>
-                                  <p className="text-xs text-muted-foreground/80">
-                                    {task.due_date ? formatDate(task.due_date) : 'No due date'}
-                                    {task.due_time ? ` • ${task.due_time}` : ''}
-                                  </p>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    {taskOverdue && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-medium">
+                                        Overdue
+                                      </span>
+                                    )}
+                                    {taskToday && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                                        Today
+                                      </span>
+                                    )}
+                                    <p className="text-xs text-muted-foreground/80">
+                                      {task.due_date ? formatDate(task.due_date) : 'No due date'}
+                                      {task.due_time ? ` • ${task.due_time}` : ''}
+                                    </p>
+                                  </div>
                                 </div>
                                 <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-slate-200/60 dark:border-border/30">
                                   {task.completed ? 'Done' : 'Open'}
                                 </span>
                               </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         )}
                       </SidebarSection>
@@ -4516,6 +4571,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <SidebarSection
                         title="Appointments"
                         className="mb-3"
+                        collapsible
+                        isCollapsed={collapsedSections.appointments}
+                        onToggleCollapse={() => setCollapsedSections((prev: any) => ({ ...prev, appointments: !prev.appointments }))}
                         headerAction={
                           <button
                             type="button"
@@ -4567,6 +4625,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                   timeStr = new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
                                 }
                                 const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                                const isMeetAppointment = !!event.meetingUrl && /meet\.google\.com/i.test(event.meetingUrl)
                                 return (
                                   <div key={event.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200">
                                     <div className="flex-shrink-0 w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center">
@@ -4574,15 +4633,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                     </div>
                                     <div className="min-w-0 flex-1">
                                       <p className="text-sm font-medium text-foreground truncate">{event.summary}</p>
+                                      {isMeetAppointment && (
+                                        <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5 flex items-center gap-1">
+                                          <Video className="w-3 h-3" />
+                                          Google Meet
+                                        </p>
+                                      )}
                                       <p className="text-xs text-muted-foreground/80">
                                         {dateStr} • {timeStr}
                                       </p>
                                     </div>
-                                    {isPast && (
-                                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap border border-border/30">
-                                        Past
-                                      </span>
-                                    )}
+                                    <div className="flex-shrink-0 flex items-center gap-1">
+                                      {isMeetAppointment && event.meetingUrl && (
+                                        <a
+                                          href={event.meetingUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                                          aria-label="Join Google Meet"
+                                        >
+                                          <ExternalLink className="w-3 h-3" />
+                                          Join
+                                        </a>
+                                      )}
+                                      {isPast && (
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap border border-border/30">
+                                          Past
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 )
                               })
@@ -4865,38 +4944,62 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <span className="text-xs text-muted-foreground">({futureAppointments.length})</span>
                 )}
               </div>
-              <button
-                onClick={handleCreateJobClick}
-                className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCreateJobClick}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add
+                </button>
+                <div className="w-6 flex-shrink-0 flex items-center justify-center">
+                  {futureAppointments.length > 3 && (
+                    <button
+                      onClick={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: !prev.schedule }))}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      aria-expanded={!collapsedSections.schedule}
+                      aria-label={collapsedSections.schedule ? 'Show all scheduled jobs' : 'Show fewer scheduled jobs'}
+                    >
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${collapsedSections.schedule ? 'rotate-0' : 'rotate-180'}`} />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
             <div className="mt-2">
               {futureAppointments.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-2">No scheduled jobs</p>
               ) : (
                 <div className="space-y-1">
-                  {futureAppointments.slice(0, 3).map((job: any) => (
+                  {(collapsedSections.schedule ? futureAppointments.slice(0, 3) : futureAppointments).map((job: any) => (
                     <div key={job.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-foreground truncate">{job.title || 'Job'}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {job.customer_name || leadData?.name || 'No customer'}
+                        </p>
                         <p className="text-[10px] text-muted-foreground">
                           {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
                           {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
                         </p>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2 border border-border/50">
-                        {formatJobStatus(job.status).text}
-                      </span>
+                      <div className="flex-shrink-0 flex flex-col items-end gap-1 ml-2">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap border border-border/50">
+                          {formatJobStatus(job.status).text}
+                        </span>
+                        {job.payment_status && job.payment_status !== 'none' && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${job.payment_status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'}`}>
+                            {job.payment_status === 'paid' ? 'Paid' : 'Pay Req'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))}
-                  {futureAppointments.length > 3 && (
+                  {futureAppointments.length > 3 && collapsedSections.schedule && (
                     <button
-                      onClick={handleAppointmentClick}
+                      onClick={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: false }))}
                       className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                     >
                       View all {futureAppointments.length} scheduled
@@ -4921,27 +5024,49 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <span className="text-xs text-muted-foreground">({leadJobs.length})</span>
                 )}
               </div>
+              <div className="w-6 flex-shrink-0 flex items-center justify-center">
+                {leadJobs.length > 3 && (
+                  <button
+                    onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    aria-expanded={!collapsedSections.jobs}
+                    aria-label={collapsedSections.jobs ? 'Show all jobs' : 'Show fewer jobs'}
+                  >
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${collapsedSections.jobs ? 'rotate-0' : 'rotate-180'}`} />
+                  </button>
+                )}
+              </div>
             </div>
             <div className="mt-2">
               {leadJobs.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-2">No jobs</p>
               ) : (
                 <div className="space-y-1">
-                  {leadJobs.slice(0, 3).map((job: any) => (
+                  {(collapsedSections.jobs ? leadJobs.slice(0, 3) : leadJobs).map((job: any) => (
                     <div key={job.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-foreground truncate">{job.title || 'Job'}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {job.customer_name || leadData?.name || 'No customer'}
+                        </p>
                         <p className="text-[10px] text-muted-foreground">
                           {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
                           {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
                         </p>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2 border border-border/50">
-                        {formatJobStatus(job.status).text}
-                      </span>
+                      <div className="flex-shrink-0 flex flex-col items-end gap-1 ml-2">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap border border-border/50">
+                          {formatJobStatus(job.status).text}
+                        </span>
+                        {job.payment_status && job.payment_status !== 'none' && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${job.payment_status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'}`}>
+                            {job.payment_status === 'paid' ? 'Paid' : 'Pay Req'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))}
-                  {leadJobs.length > 3 && (
+                  {leadJobs.length > 3 && collapsedSections.jobs && (
                     <p className="text-center text-[10px] text-muted-foreground py-1">
                       +{leadJobs.length - 3} more jobs
                     </p>
@@ -5008,38 +5133,69 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <span className="text-xs text-muted-foreground">({leadTasks.length})</span>
                 )}
               </div>
-              <button
-                onClick={() => openTaskModal('task_list_add_button')}
-                className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => openTaskModal('task_list_add_button')}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add
+                </button>
+                <div className="w-6 flex-shrink-0 flex items-center justify-center">
+                  {leadTasks.length > 3 && (
+                    <button
+                      onClick={() => setCollapsedSections((prev: any) => ({ ...prev, reminders: !prev.reminders }))}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      aria-expanded={!collapsedSections.reminders}
+                      aria-label={collapsedSections.reminders ? 'Show all reminders' : 'Show fewer reminders'}
+                    >
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${collapsedSections.reminders ? 'rotate-0' : 'rotate-180'}`} />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
             <div className="mt-2">
               {leadTasks.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-2">No open reminders</p>
               ) : (
                 <div className="space-y-1">
-                  {leadTasks.slice(0, 3).map((task: any) => (
+                  {(collapsedSections.reminders ? leadTasks.slice(0, 3) : leadTasks).map((task: any) => {
+                    const todayStr = new Date().toISOString().split('T')[0]
+                    const taskOverdue = task.due_date && task.due_date < todayStr && !task.completed
+                    const taskToday = task.due_date === todayStr && !task.completed
+                    return (
                     <div key={task.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-foreground truncate">{task.title || 'Reminder'}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {task.due_date ? formatDate(task.due_date) : 'No due date'}
-                          {task.due_time ? ` • ${task.due_time}` : ''}
-                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {taskOverdue && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-medium">
+                              Overdue
+                            </span>
+                          )}
+                          {taskToday && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                              Today
+                            </span>
+                          )}
+                          <p className="text-[10px] text-muted-foreground">
+                            {task.due_date ? formatDate(task.due_date) : 'No due date'}
+                            {task.due_time ? ` • ${task.due_time}` : ''}
+                          </p>
+                        </div>
                       </div>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2 border border-border/50">
                         {task.completed ? 'Done' : 'Open'}
                       </span>
                     </div>
-                  ))}
-                  {leadTasks.length > 3 && (
+                    )
+                  })}
+                  {leadTasks.length > 3 && collapsedSections.reminders && (
                     <button
-                      onClick={() => openTaskModal('task_list_view_all_button')}
+                      onClick={() => setCollapsedSections((prev: any) => ({ ...prev, reminders: false }))}
                       className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                     >
                       View all {leadTasks.length} reminders
@@ -5120,15 +5276,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <span className="text-xs text-muted-foreground">{appointments.length}</span>
                 )}
               </div>
-              <button
-                onClick={handleAppointmentClick}
-                className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleAppointmentClick}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add
+                </button>
+                <div className="w-6 flex-shrink-0 flex items-center justify-center">
+                  {appointments.length > 3 && (
+                    <button
+                      onClick={() => setCollapsedSections((prev: any) => ({ ...prev, appointments: !prev.appointments }))}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      aria-expanded={!collapsedSections.appointments}
+                      aria-label={collapsedSections.appointments ? 'Show all appointments' : 'Show fewer appointments'}
+                    >
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${collapsedSections.appointments ? 'rotate-0' : 'rotate-180'}`} />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
             <div className="mt-2">
               {loadingAppointments ? (
@@ -5159,7 +5329,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       }
                       return dateA.getTime() - dateB.getTime() // earliest upcoming first
                     })
-                    return sorted.slice(0, 3).map((event: any) => {
+                    const visible = collapsedSections.appointments ? sorted.slice(0, 3) : sorted
+                    return visible.map((event: any) => {
                       const startDate = new Date(event.start?.dateTime || event.start?.date)
                       const isPast = startDate < now
                       const isAllDay = !!(event.start?.date && !event.start?.dateTime)
@@ -5170,17 +5341,38 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         timeStr = formatEventTimeRange(event.start?.dateTime, event.end?.dateTime, event.start?.date)
                       }
                       const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      const isMeetAppointment = !!event.meetingUrl && /meet\.google\.com/i.test(event.meetingUrl)
                       return (
                         <div key={event.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-medium text-foreground truncate">{event.summary}</p>
+                            {isMeetAppointment && (
+                              <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5 flex items-center gap-1">
+                                <Video className="w-3 h-3" />
+                                Google Meet
+                              </p>
+                            )}
                             <p className="text-[10px] text-muted-foreground">{dateStr} {timeStr ? '• ' + timeStr : ''}</p>
                           </div>
-                          {isPast && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2">
-                              Past
-                            </span>
-                          )}
+                          <div className="flex-shrink-0 flex items-center gap-1 ml-2">
+                            {isMeetAppointment && event.meetingUrl && (
+                              <a
+                                href={event.meetingUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                                aria-label="Join Google Meet"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                Join
+                              </a>
+                            )}
+                            {isPast && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap">
+                                Past
+                              </span>
+                            )}
+                          </div>
                         </div>
                       )
                     })

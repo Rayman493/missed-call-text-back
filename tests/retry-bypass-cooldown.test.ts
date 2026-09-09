@@ -28,7 +28,7 @@ function mk(overrides: Partial<{
     }
   }
 
-  const openai: OpenAIClient = { async summarize(_t: string) { return { summary: 'S', structured: { overview: 'o', customerNeeds: [], keyDiscussionPoints: [], decisions: [], pricingMentioned: [], nextSteps: [], followUpItems: [] } } } }
+  const openai: OpenAIClient = { async summarize(_t: string) { return { summary: 'S', structured: { overview: 'o', customerNeeds: [], keyDiscussionPoints: [], decisions: [], followUpItems: [] } } } }
 
   const repo: Repository = {
     async getBusinessByUser() { return { id: 'biz1' } as any },

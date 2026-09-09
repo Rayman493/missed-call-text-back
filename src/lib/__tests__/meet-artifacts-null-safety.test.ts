@@ -27,8 +27,6 @@ describe('MeetArtifactProcessor - null safety for startTime', () => {
           customerNeeds: [],
           keyDiscussionPoints: [],
           decisions: [],
-          pricingMentioned: [],
-          nextSteps: [],
           followUpItems: [],
         },
       }),

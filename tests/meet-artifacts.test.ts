@@ -34,8 +34,6 @@ function mkProcessor(overrides: Partial<{
           customerNeeds: ['X'],
           keyDiscussionPoints: ['Y'],
           decisions: [],
-          pricingMentioned: [],
-          nextSteps: ['Call back'],
           followUpItems: []
         }
       }
@@ -154,7 +152,7 @@ describe('MeetArtifactProcessor – hardening', () => {
       async listTranscriptEntries() { calls.google.listTranscriptEntries++; return { entries: [], nextPageToken: undefined } },
     }
     const openai: OpenAIClient = {
-      async summarize(_t: string) { calls.openai.summarize++; return { summary: '', structured: { overview: '', customerNeeds: [], keyDiscussionPoints: [], decisions: [], pricingMentioned: [], nextSteps: [], followUpItems: [] } } },
+      async summarize(_t: string) { calls.openai.summarize++; return { summary: '', structured: { overview: '', customerNeeds: [], keyDiscussionPoints: [], decisions: [], followUpItems: [] } } },
     }
     const repo: Repository = {
       async getBusinessByUser() { return { id: 'biz1' } as any },
@@ -199,7 +197,7 @@ describe('MeetArtifactProcessor – hardening', () => {
       async listTranscriptEntries() { calls.google.listTranscriptEntries++; return { entries: [], nextPageToken: undefined } },
     }
     const openai: OpenAIClient = {
-      async summarize(_t: string) { calls.openai.summarize++; return { summary: 'new', structured: { overview: 'n', customerNeeds: [], keyDiscussionPoints: [], decisions: [], pricingMentioned: [], nextSteps: [], followUpItems: [] } } },
+      async summarize(_t: string) { calls.openai.summarize++; return { summary: 'new', structured: { overview: 'n', customerNeeds: [], keyDiscussionPoints: [], decisions: [], followUpItems: [] } } },
     }
     const repo: Repository = {
       async getBusinessByUser() { return { id: 'biz1' } as any },

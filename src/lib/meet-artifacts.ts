@@ -2,6 +2,8 @@
 // NOTE: This file defines types and orchestration only; no external calls are made here.
 // Actual Google API and OpenAI calls should be injected for testability.
 
+import type { StructuredSummary, SummaryResult } from './openai-summary'
+
 export type TranscriptStatus =
   | 'pending'
   | 'available'
@@ -56,18 +58,7 @@ export interface GoogleMeetClient {
 }
 
 export interface OpenAIClient {
-  summarize(transcript: string): Promise<{
-    summary: string
-    structured: {
-      overview: string
-      customerNeeds: string[]
-      keyDiscussionPoints: string[]
-      decisions: string[]
-      pricingMentioned: string[]
-      nextSteps: string[]
-      followUpItems: string[]
-    }
-  }>
+  summarize(transcript: string): Promise<SummaryResult>
 }
 
 export interface Repository {

@@ -42,22 +42,22 @@ export function SidebarSection({
           <div className="flex items-center gap-2">
             {headerAction}
             {collapsible && (
-              <button
-                type="button"
-                onClick={onToggleCollapse}
-                className="flex-shrink-0 text-muted-foreground/70 hover:text-muted-foreground transition-colors"
-                aria-expanded={!isCollapsed}
-                aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${title}`}
-              >
-                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? 'rotate-0' : 'rotate-180'}`} />
-              </button>
+              <div className="w-6 flex-shrink-0 flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={onToggleCollapse}
+                  className="flex-shrink-0 text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+                  aria-expanded={!isCollapsed}
+                  aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${title}`}
+                >
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? 'rotate-0' : 'rotate-180'}`} />
+                </button>
+              </div>
             )}
           </div>
         </div>
       </div>
-      <div className="p-4">
-        {!isCollapsed ? children : null}
-      </div>
+      {!isCollapsed && <div className="p-4">{children}</div>}
     </div>
   )
 }

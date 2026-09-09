@@ -1039,11 +1039,8 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                   <span className="text-xs font-medium text-muted-foreground">AI Summary</span>
                   <X className={`w-3 h-3 text-muted-foreground transition-transform ${isTranscriptOpen ? 'rotate-45' : ''}`} />
                 </button>
-                {!isTranscriptOpen && aiSummaryStructured?.overview && (
-                  <p className="text-sm text-foreground mt-2 line-clamp-1">{aiSummaryStructured.overview}</p>
-                )}
-                {!isTranscriptOpen && aiSummary && (
-                  <p className="text-sm text-foreground mt-2 line-clamp-1">{aiSummary}</p>
+                {!isTranscriptOpen && (aiSummaryStructured?.overview || aiSummary) && (
+                  <p className="text-sm text-foreground mt-2 line-clamp-1">{aiSummaryStructured?.overview || aiSummary}</p>
                 )}
                 {isTranscriptOpen && (
                   <div className="mt-2">
@@ -1059,13 +1056,13 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                       <div className="space-y-3 text-xs text-foreground">
                         {aiSummaryStructured.overview && (
                           <div>
-                            <div className="font-semibold mb-1">Overview</div>
+                            <div className="font-semibold mb-1">Meeting Overview</div>
                             <p className="leading-relaxed">{aiSummaryStructured.overview}</p>
                           </div>
                         )}
                         {Array.isArray(aiSummaryStructured.customerNeeds) && aiSummaryStructured.customerNeeds.length > 0 && (
                           <div>
-                            <div className="font-semibold mb-1">Customer Needs</div>
+                            <div className="font-semibold mb-1">Customer / Attendee Needs</div>
                             <ul className="list-disc list-inside space-y-1 pl-1.5 leading-relaxed">
                               {aiSummaryStructured.customerNeeds.map((x: string, i: number) => (<li key={i}>{x}</li>))}
                             </ul>
@@ -1079,9 +1076,17 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                             </ul>
                           </div>
                         )}
+                        {Array.isArray(aiSummaryStructured.decisions) && aiSummaryStructured.decisions.length > 0 && (
+                          <div>
+                            <div className="font-semibold mb-1">Decisions / Outcomes</div>
+                            <ul className="list-disc list-inside space-y-1 pl-1.5 leading-relaxed">
+                              {aiSummaryStructured.decisions.map((x: string, i: number) => (<li key={i}>{x}</li>))}
+                            </ul>
+                          </div>
+                        )}
                         {Array.isArray(aiSummaryStructured.followUpItems) && aiSummaryStructured.followUpItems.length > 0 && (
                           <div>
-                            <div className="font-semibold mb-1">Follow-Up Items</div>
+                            <div className="font-semibold mb-1">Follow-Up</div>
                             <ul className="list-disc list-inside space-y-1 pl-1.5 leading-relaxed">
                               {aiSummaryStructured.followUpItems.map((x: string, i: number) => (<li key={i}>{x}</li>))}
                             </ul>
