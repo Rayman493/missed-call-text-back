@@ -8,7 +8,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Toast, { ToastContainer } from '@/components/Toast'
 import Link from 'next/link'
-import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink, Pencil } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink, Pencil, Bell } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
@@ -65,6 +65,125 @@ interface Task {
   job_id: string | null
   created_at: string
   business_id?: string
+}
+
+// Lightweight RemindersList component (scoped, no new files)
+function RemindersList({
+  tasks,
+  onEditTask,
+  onAddTask,
+}: {
+  tasks: any[]
+  onEditTask: (task: any) => void
+  onAddTask: () => void
+}) {
+  const todayStr = new Date().toLocaleDateString('en-CA')
+  const sorted = [...tasks].sort((a, b) => {
+    // Overdue first, then by due date
+    const aOverdue = a.due_date && a.due_date < todayStr && !a.completed
+    const bOverdue = b.due_date && b.due_date < todayStr && !b.completed
+    if (aOverdue && !bOverdue) return -1
+    if (!aOverdue && bOverdue) return 1
+    const aDate = a.due_date || '9999-12-31'
+    const bDate = b.due_date || '9999-12-31'
+    return aDate.localeCompare(bDate)
+  })
+
+  const overdue = sorted.filter(t => t.due_date && t.due_date < todayStr && !t.completed)
+  const today = sorted.filter(t => t.due_date === todayStr && !t.completed)
+  const upcoming = sorted.filter(t => t.due_date && t.due_date > todayStr && !t.completed)
+  const completed = sorted.filter(t => t.completed)
+  const noDate = sorted.filter(t => !t.due_date && !t.completed)
+
+  const formatDue = (task: any) => {
+    if (!task.due_date) return null
+    const d = new Date(task.due_date + 'T00:00:00')
+    const dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    if (!task.due_time) return dateStr
+    const [h, m] = task.due_time.split(':').map(Number)
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    const hour = h % 12 || 12
+    return `${dateStr} at ${hour}:${String(m).padStart(2, '0')} ${ampm}`
+  }
+
+  const renderGroup = (title: string, list: any[], accent?: 'red' | 'blue') => (
+    <div className="mb-5">
+      <h3 className={`text-xs font-semibold uppercase tracking-wider mb-3 ${accent === 'red' ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
+        {title}
+      </h3>
+      <div className="space-y-2">
+        {list.map(task => (
+          <div
+            key={task.id}
+            className={`rounded-xl border p-4 transition-all hover:shadow-sm ${
+              task.completed
+                ? 'bg-slate-50 dark:bg-slate-800/30 border-slate-200/50 dark:border-slate-700/30 opacity-70'
+                : accent === 'red'
+                  ? 'bg-red-50/30 dark:bg-red-900/10 border-red-200/50 dark:border-red-800/30'
+                  : 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${task.completed ? 'text-green-500' : 'text-slate-300 dark:text-slate-600'}`} />
+                  <p className={`text-sm font-medium truncate ${task.completed ? 'text-slate-500 dark:text-slate-400 line-through' : 'text-slate-900 dark:text-foreground'}`}>
+                    {task.title}
+                  </p>
+                </div>
+                {task.due_date && (
+                  <p className={`text-xs mt-1 ml-6 ${overdue.includes(task) ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                    {formatDue(task)}
+                  </p>
+                )}
+                {task.notes && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 ml-6 truncate">{task.notes}</p>
+                )}
+              </div>
+              <button
+                onClick={() => onEditTask(task)}
+                className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-label="Edit reminder"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  if (tasks.length === 0) {
+    return (
+      <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6 sm:p-8 text-center">
+        <div className="w-11 h-11 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
+          <Bell className="w-5 h-5 text-slate-400" />
+        </div>
+        <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">No reminders yet</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 max-w-xs mx-auto leading-relaxed">
+          Create a reminder to follow up with customers or track tasks.
+        </p>
+        <button
+          onClick={onAddTask}
+          className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98]"
+        >
+          <Plus className="w-4 h-4" />
+          Add Reminder
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {overdue.length > 0 && renderGroup(`Overdue (${overdue.length})`, overdue, 'red')}
+      {today.length > 0 && renderGroup('Today', today)}
+      {upcoming.length > 0 && renderGroup('Upcoming', upcoming)}
+      {noDate.length > 0 && renderGroup('No due date', noDate)}
+      {completed.length > 0 && renderGroup('Completed', completed)}
+    </div>
+  )
 }
 
 // Lightweight MeetingsTab component (scoped, no new files)
@@ -239,9 +358,9 @@ export default function SchedulePage() {
   const [selectedEventJob, setSelectedEventJob] = useState<Job | null>(null)
   const [selectedEventLead, setSelectedEventLead] = useState<{ id: string; name: string | null; caller_phone: string | null } | null>(null)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
-  const [scheduleTab, setScheduleTab] = useState<'agenda' | 'calendar' | 'map'>(() => {
+  const [scheduleTab, setScheduleTab] = useState<'agenda' | 'reminders' | 'jobs' | 'appointments' | 'calendar' | 'map'>(() => {
     const tabParam = searchParams.get('tab')
-    if (tabParam === 'agenda' || tabParam === 'calendar' || tabParam === 'map') {
+    if (tabParam === 'agenda' || tabParam === 'reminders' || tabParam === 'jobs' || tabParam === 'appointments' || tabParam === 'calendar' || tabParam === 'map') {
       return tabParam
     }
     return 'agenda'
@@ -1279,6 +1398,39 @@ export default function SchedulePage() {
                         Agenda
                       </button>
                       <button
+                        onClick={() => setScheduleTab('reminders')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-all duration-200 ease-out ${
+                          scheduleTab === 'reminders'
+                            ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-sm'
+                        }`}
+                      >
+                        <Bell className={`w-4 h-4 ${scheduleTab === 'reminders' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                        Reminders
+                      </button>
+                      <button
+                        onClick={() => setScheduleTab('jobs')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-all duration-200 ease-out ${
+                          scheduleTab === 'jobs'
+                            ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-sm'
+                        }`}
+                      >
+                        <Briefcase className={`w-4 h-4 ${scheduleTab === 'jobs' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                        Jobs
+                      </button>
+                      <button
+                        onClick={() => setScheduleTab('appointments')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-all duration-200 ease-out ${
+                          scheduleTab === 'appointments'
+                            ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-sm'
+                        }`}
+                      >
+                        <CalendarIcon className={`w-4 h-4 ${scheduleTab === 'appointments' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                        Appointments
+                      </button>
+                      <button
                         onClick={() => setScheduleTab('calendar')}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-all duration-200 ease-out ${
                           scheduleTab === 'calendar'
@@ -1303,13 +1455,13 @@ export default function SchedulePage() {
                     </div>
                   </div>
 
-                  {/* Mobile tab toggle (responsive grid, no horizontal scrolling) */}
+                  {/* Mobile tab toggle (horizontal scroll for 6 tabs) */}
                   <div className="md:hidden mb-4 mt-2">
                     <div className="bg-slate-100/50 dark:bg-slate-800/40 rounded-md p-0.5 border border-slate-200/40 dark:border-slate-700/25">
-                      <div className="grid grid-cols-3 gap-0.5">
+                      <div className="flex gap-0.5 overflow-x-auto no-scrollbar">
                         <button
                           onClick={() => setScheduleTab('agenda')}
-                          className={`flex items-center justify-center gap-1 py-2 px-0.5 rounded-md font-medium transition-all duration-200 ease-out ${
+                          className={`flex items-center justify-center gap-1 py-2 px-2.5 rounded-md font-medium transition-all duration-200 ease-out whitespace-nowrap flex-shrink-0 ${
                             scheduleTab === 'agenda'
                               ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-xs'
                               : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-xs'
@@ -1319,8 +1471,41 @@ export default function SchedulePage() {
                           <span>Agenda</span>
                         </button>
                         <button
+                          onClick={() => setScheduleTab('reminders')}
+                          className={`flex items-center justify-center gap-1 py-2 px-2.5 rounded-md font-medium transition-all duration-200 ease-out whitespace-nowrap flex-shrink-0 ${
+                            scheduleTab === 'reminders'
+                              ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-xs'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-xs'
+                          }`}
+                        >
+                          <Bell className={`w-3 h-3 ${scheduleTab === 'reminders' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                          <span>Reminders</span>
+                        </button>
+                        <button
+                          onClick={() => setScheduleTab('jobs')}
+                          className={`flex items-center justify-center gap-1 py-2 px-2.5 rounded-md font-medium transition-all duration-200 ease-out whitespace-nowrap flex-shrink-0 ${
+                            scheduleTab === 'jobs'
+                              ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-xs'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-xs'
+                          }`}
+                        >
+                          <Briefcase className={`w-3 h-3 ${scheduleTab === 'jobs' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                          <span>Jobs</span>
+                        </button>
+                        <button
+                          onClick={() => setScheduleTab('appointments')}
+                          className={`flex items-center justify-center gap-1 py-2 px-2.5 rounded-md font-medium transition-all duration-200 ease-out whitespace-nowrap flex-shrink-0 ${
+                            scheduleTab === 'appointments'
+                              ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-xs'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-xs'
+                          }`}
+                        >
+                          <CalendarIcon className={`w-3 h-3 ${scheduleTab === 'appointments' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                          <span>Appts</span>
+                        </button>
+                        <button
                           onClick={() => setScheduleTab('calendar')}
-                          className={`flex items-center justify-center gap-1 py-2 px-0.5 rounded-md font-medium transition-all duration-200 ease-out ${
+                          className={`flex items-center justify-center gap-1 py-2 px-2.5 rounded-md font-medium transition-all duration-200 ease-out whitespace-nowrap flex-shrink-0 ${
                             scheduleTab === 'calendar'
                               ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-xs'
                               : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-xs'
@@ -1331,7 +1516,7 @@ export default function SchedulePage() {
                         </button>
                         <button
                           onClick={() => setScheduleTab('map')}
-                          className={`flex items-center justify-center gap-1 py-2 px-0.5 rounded-md font-medium transition-all duration-200 ease-out ${
+                          className={`flex items-center justify-center gap-1 py-2 px-2.5 rounded-md font-medium transition-all duration-200 ease-out whitespace-nowrap flex-shrink-0 ${
                             scheduleTab === 'map'
                               ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-xs'
                               : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-xs'
@@ -1383,6 +1568,62 @@ export default function SchedulePage() {
                         taskRefreshTrigger={taskRefreshTrigger}
                       />
                     </>
+                  )}
+
+                  {/* Reminders Tab */}
+                  {scheduleTab === 'reminders' && (
+                    <div>
+                      <div className="flex items-center justify-between gap-3 mb-4">
+                        <div>
+                          <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">Reminders</h2>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            Manage your reminders and follow-ups.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setIsNewTaskModalOpen(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98] flex-shrink-0"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span className="hidden sm:inline">Add Reminder</span>
+                          <span className="sm:hidden">Add</span>
+                        </button>
+                      </div>
+                      <RemindersList
+                        tasks={tasks}
+                        onEditTask={handleAgendaEditTask}
+                        onAddTask={() => setIsNewTaskModalOpen(true)}
+                      />
+                    </div>
+                  )}
+
+                  {/* Jobs Tab */}
+                  {scheduleTab === 'jobs' && (
+                    <JobsTab
+                      jobs={jobs}
+                      isLoading={isLoadingJobs}
+                      onNewJob={openNewJob}
+                      onJobClick={(job) => {
+                        setSelectedJob(job as Job)
+                        setIsJobDetailsOpen(true)
+                      }}
+                    />
+                  )}
+
+                  {/* Appointments Tab */}
+                  {scheduleTab === 'appointments' && (
+                    <MeetingsTab
+                      events={events}
+                      jobs={jobs}
+                      onOpenEvent={(event) => {
+                        setSelectedEvent(event)
+                        setEventDetailsMode('details')
+                        setIsEventDetailsOpen(true)
+                      }}
+                      onViewCustomer={handleMapViewCustomer}
+                      onNewMeeting={handleNewAppointment}
+                      completedMap={new Map()}
+                    />
                   )}
 
                   {/* Connected State — Calendar Tab */}
