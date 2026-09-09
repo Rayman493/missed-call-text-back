@@ -4789,6 +4789,8 @@ export async function buildCanonicalExtractedInfo(
     }
   }
 
+  const normalizedCustomerName = ((fields.customerName || fields.callerName || '')).trim().toLowerCase();
+
   // Repair combined name+service if necessary prior to sanitization
   try {
     const stripNamePrefixes = (s: string) => s
@@ -4839,10 +4841,14 @@ export async function buildCanonicalExtractedInfo(
   console.log('[CANONICAL REQUEST DIAGNOSTIC] issueDescription length:', fields.issueDescription?.length || 0);
   console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
 
+  // A name-only transcript must never be used as raw request input for model extraction.
+  const isRawRequestNameOnly = !!rawRequestTranscript && normalizedCustomerName && rawRequestTranscript.trim().toLowerCase() === normalizedCustomerName;
+  const issueDescriptionForRequest = fields.issueDescription && normalizedCustomerName && fields.issueDescription.trim().toLowerCase() === normalizedCustomerName ? '' : fields.issueDescription;
+
   // Extract the full request text (fallback when no explicit canonical service is present)
-  const rawRequestText = rawRequestTranscript && rawRequestTranscript.trim() !== ''
+  const rawRequestText = rawRequestTranscript && rawRequestTranscript.trim() !== '' && !isRawRequestNameOnly
     ? rawRequestTranscript
-    : (fields.serviceRequested || fields.reasonForCalling || fields.request || fields.issueDescription || '');
+    : (fields.serviceRequested || fields.reasonForCalling || fields.request || issueDescriptionForRequest || '');
 
   // Explicitly corrected/resolved canonical service takes precedence over model re-extraction
   // from the raw request transcript. Re-extracting from the original raw transcript would
@@ -4851,7 +4857,8 @@ export async function buildCanonicalExtractedInfo(
   const hasExplicitService = explicitService.trim().length > 0;
 
   // Capture any available important details; issueDescription is what Simple Mode stores
-  const rawImportantDetails = fields.additionalDetails || fields.importantDetails || fields.issueDescription || '';
+  const issueDescriptionForDetails = fields.issueDescription && normalizedCustomerName && fields.issueDescription.trim().toLowerCase() === normalizedCustomerName ? '' : fields.issueDescription;
+  const rawImportantDetails = fields.additionalDetails || fields.importantDetails || issueDescriptionForDetails || '';
 
   let serviceRequested: string;
   let importantDetails: string;
@@ -4903,6 +4910,18 @@ export async function buildCanonicalExtractedInfo(
   }
   console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
 
+  // Final downstream guard: a name must never canonialize as a service or address.
+  if (serviceRequested && normalizedCustomerName && serviceRequested.trim().toLowerCase() === normalizedCustomerName) {
+    console.log('[CANONICAL REQUEST COLLISION GUARD] event: cleared_service_request_matching_customer_name');
+    console.log('[CANONICAL REQUEST COLLISION GUARD] serviceRequested:', serviceRequested);
+    console.log('[CANONICAL REQUEST COLLISION GUARD] customerName:', normalizedCustomerName);
+    serviceRequested = '';
+  }
+
+  const rawServiceAddress = fields.serviceAddress || fields.addressOrLocation || '';
+  const isServiceAddressNameOnly = !!rawServiceAddress && normalizedCustomerName && rawServiceAddress.trim().toLowerCase() === normalizedCustomerName && !fields.locationRefused;
+  const canonicalServiceAddress = isServiceAddressNameOnly ? '' : rawServiceAddress;
+
   const sanitizedCompletion = sanitizeEnglishIntakeField(
     'desiredCompletionTime',
     fields.desiredCompletionTime ||
@@ -4919,7 +4938,7 @@ export async function buildCanonicalExtractedInfo(
     serviceRequested: serviceRequested,
     importantDetails: importantDetails,
     additionalDetails: importantDetails, // Alias for backward compatibility
-    serviceAddress: sanitizeEnglishIntakeField('serviceAddress', fields.serviceAddress || fields.addressOrLocation || ''),
+    serviceAddress: sanitizeEnglishIntakeField('serviceAddress', canonicalServiceAddress),
     // Emit both canonical keys so downstream SMS/dashboard consumers recognize the value
     // regardless of whether they read desiredCompletionTime or the legacy desiredCompletion.
     desiredCompletionTime: sanitizedCompletion,

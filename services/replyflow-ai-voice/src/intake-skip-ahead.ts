@@ -57,6 +57,28 @@ function isFillerPhrase(text: string): boolean {
   );
 }
 
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Detect whether a turn at ask_name is a bare name answer with no meaningful
+ * service/location/timing content. Used to prevent a name-only utterance from
+ * contaminating unrelated canonical fields.
+ */
+function isNameOnlyTurn(transcript: string, customerName: string): boolean {
+  const name = customerName.trim().toLowerCase();
+  const text = transcript.trim().toLowerCase();
+  if (!name || !text.includes(name)) return false;
+  let remaining = text.replace(new RegExp(escapeRegex(name), 'g'), '').trim();
+  remaining = remaining
+    .replace(/^[,.\s]*(?:my name is|my name's|name is|i am|i'm|this is|it is|it's|hi|hello|hey|yes|yeah|yep|um|uh|ok|okay|alright|all right|well|so)[,.\s]*/i, '')
+    .replace(/[,.\s]*(?:here)[,.\s]*$/i, '')
+    .replace(/^[,.\s]+/, '')
+    .replace(/[,.\s]+$/, '');
+  return remaining === '';
+}
+
 function stripServicePrefix(s: string): string {
   const prefixRe = /^(?:(?:yeah|yep|yes|okay|ok|alright|well|so|uh|um)[,\s]+|(?:i want to|i would like to|i'd like to|i need to|i need|i'm(?:\s+just)?\s+looking to|i am(?:\s+just)?\s+looking to|(?:just\s+)?looking to|calling about|i'm calling about|i am calling about|need someone to|to get my|get my)\s+)/i;
   let prev: string;
@@ -615,10 +637,29 @@ export function enrichIntakeFromTranscript(
 
   const name = extractCustomerName(transcript);
   const nameRefused = isNameRefusal(transcript);
-  const addressMatch = findAddressMatch(transcript);
   const locationRefused = isLocationRefusal(transcript);
-  const completionMatch = findCompletionMatch(transcript) ?? findNaturalCompletionMatch(transcript);
-  const callbackMatch = findCallbackMatch(transcript);
+
+  // A bare name answer at ask_name must not be interpreted as a location, timing,
+  // or service request. This is the primary field-ownership guard for name-only turns.
+  const nameOnlyTurn =
+    currentStage === 'ask_name' &&
+    !!intake.customerName &&
+    isNameOnlyTurn(transcript, intake.customerName);
+
+  let addressMatch = findAddressMatch(transcript);
+  let completionMatch = findCompletionMatch(transcript) ?? findNaturalCompletionMatch(transcript);
+  let callbackMatch = findCallbackMatch(transcript);
+
+  if (nameOnlyTurn) {
+    addressMatch = null;
+    completionMatch = null;
+    callbackMatch = null;
+    console.log('[NAME-ONLY TURN GUARD] event: name_only_turn_detected');
+    console.log('[NAME-ONLY TURN GUARD] customerName:', intake.customerName);
+    console.log('[NAME-ONLY TURN GUARD] action: cleared non-name extractions');
+    console.log('[NAME-ONLY TURN GUARD] Timestamp:', new Date().toISOString());
+    console.log('[NAME-ONLY TURN GUARD] =========================================');
+  }
 
   if (name) detected.push('customerName');
   if (nameRefused) {
@@ -673,9 +714,14 @@ export function enrichIntakeFromTranscript(
   }
 
   // Only allow service replacement when we are on a service stage or correcting.
-  const validCleanedService = cleanedService && cleanedService.trim() && isValidServiceRequest(cleanedService.trim())
+  let validCleanedService = cleanedService && cleanedService.trim() && isValidServiceRequest(cleanedService.trim())
     ? cleanedService.trim()
     : null;
+
+  // A bare name-only answer must never become a service request.
+  if (nameOnlyTurn) {
+    validCleanedService = null;
+  }
 
   applyField(
     intake,
