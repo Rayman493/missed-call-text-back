@@ -5,7 +5,7 @@ const {
   isLocationRefusal,
   extractPartialLocation,
 } = require('../src/intake-skip-ahead');
-const { resolveNextRequiredStage } = require('../src/intake-validation');
+const { resolveNextRequiredStage, resolveNextSimpleModeStage, selectSimpleModePromptKey, isNameRequirementSatisfied } = require('../src/intake-validation');
 
 describe('Refusal and partial-location handling', () => {
   it('detects a name refusal and does not store the refusal text as customerName', () => {
@@ -141,5 +141,55 @@ describe('Refusal and partial-location handling', () => {
     enrichIntakeFromTranscript(text, intake, 'ask_location');
     expect(intake.serviceAddress).to.equal('220 Oak Street');
     expect(intake.locationRefused).to.be.undefined;
+  });
+
+  it('treats nameRefused as satisfying the name requirement', () => {
+    expect(isNameRequirementSatisfied({ customerName: 'Evan Parker' })).to.be.true;
+    expect(isNameRequirementSatisfied({ nameRefused: true })).to.be.true;
+    expect(isNameRequirementSatisfied({})).to.be.false;
+    expect(isNameRequirementSatisfied({ customerName: '' })).to.be.false;
+  });
+
+  it('routes to ask_request and a service-only prompt after name refusal', () => {
+    const intake: any = {
+      nameRefused: true,
+    };
+    const next = resolveNextSimpleModeStage(intake, 'onsite');
+    expect(next).to.equal('ask_request');
+    const promptKey = selectSimpleModePromptKey(next, intake, {});
+    expect(promptKey).to.equal('ask_request');
+    expect(promptKey).to.not.equal('ask_name');
+    expect(promptKey).to.not.equal('ask_name_reason');
+  });
+
+  it('rejects "I\'d rather not give my name yet" and leaves customerName empty', () => {
+    const text = "I'd rather not give my name yet";
+    expect(isNameRefusal(text)).to.be.true;
+    const intake: any = {};
+    enrichIntakeFromTranscript(text, intake, 'ask_name');
+    expect(intake.nameRefused).to.be.true;
+    expect(intake.customerName).to.be.oneOf([undefined, null, '']);
+  });
+
+  it('advances normally after a name refusal plus a service request', () => {
+    const intake: any = {
+      nameRefused: true,
+    };
+    enrichIntakeFromTranscript('I need someone to look at a broken fence in my backyard.', intake, 'ask_request');
+    expect(intake.customerName).to.be.oneOf([undefined, null, '']);
+    expect(intake.nameRefused).to.be.true;
+    expect(intake.serviceRequested).to.be.ok;
+    const next = resolveNextSimpleModeStage(intake, 'onsite');
+    expect(next).to.equal('ask_location');
+  });
+
+  it('reprompts request, not name, after name refusal followed by silence', () => {
+    const intake: any = { nameRefused: true };
+    const next = resolveNextSimpleModeStage(intake, 'onsite');
+    expect(next).to.equal('ask_request');
+    const promptKey = selectSimpleModePromptKey(next, intake, { needsServiceReprompt: true });
+    expect(promptKey).to.equal('ask_request');
+    expect(promptKey).to.not.equal('ask_name');
+    expect(promptKey).to.not.equal('ask_name_reason');
   });
 });

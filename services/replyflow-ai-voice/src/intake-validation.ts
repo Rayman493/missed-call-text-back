@@ -153,7 +153,19 @@ export interface IntakeData {
   locationRefused?: boolean;
   desiredCompletionTime?: string;
   callbackTime?: string;
+  stage?: string;
   [key: string]: any;
+}
+
+/**
+ * Canonical name-requirement satisfaction check.
+ * The name stage is satisfied when a valid name is present OR the caller
+ * explicitly refused to provide it. This helper is the single source of truth
+ * for every name-satisfaction decision in the intake flow.
+ */
+export function isNameRequirementSatisfied(intake: IntakeData): boolean {
+  const hasValidCustomerName = !!intake.customerName && intake.customerName.trim().length > 0;
+  return hasValidCustomerName || !!intake.nameRefused;
 }
 
 export function mergeExtractedField(
@@ -210,7 +222,7 @@ export function resolveNextRequiredStage(
 
   // Check field satisfaction. Explicit refusal flags count as handled for navigation
   // while leaving the corresponding canonical field empty.
-  const hasName = Boolean(intake.customerName && intake.customerName.trim().length > 0) || !!intake.nameRefused;
+  const hasName = isNameRequirementSatisfied(intake);
   const hasRequest = Boolean(intake.serviceRequested && intake.serviceRequested.trim().length > 0);
   const hasLocation = Boolean(intake.serviceAddress && intake.serviceAddress.trim().length > 0) || !!intake.locationRefused;
   const hasCompletionTime = Boolean(intake.desiredCompletionTime && intake.desiredCompletionTime.trim().length > 0);
@@ -227,8 +239,10 @@ export function resolveNextRequiredStage(
     return 'complete';
   }
 
-  // Scan canonical order for first unsatisfied stage
-  // Note: This uses the legacy stage names from the resolver
+  // Scan canonical order for first unsatisfied stage.
+  // ask_name_reason is satisfied as soon as the name requirement is met (real name
+  // or explicit refusal); request collection moves to ask_request so callers are
+  // never re-asked for a name after refusing.
   const canonicalSequence: IntakeStage[] = isOnsite
     ? ['ask_name_reason', 'ask_request', 'ask_location_or_context', 'ask_timing', 'ask_callback_time']
     : ['ask_name_reason', 'ask_request', 'ask_timing', 'ask_callback_time'];
@@ -238,7 +252,7 @@ export function resolveNextRequiredStage(
 
     switch (stage) {
       case 'ask_name_reason':
-        stageSatisfied = hasName && hasRequest;
+        stageSatisfied = isNameRequirementSatisfied(intake);
         break;
       case 'ask_request':
         stageSatisfied = hasRequest;
@@ -293,14 +307,14 @@ export function resolveNextSimpleModeStage(
 export function selectSimpleModePromptKey(stage: string, intakeData: IntakeData, repromptContext?: { needsServiceReprompt?: boolean; needsNameReprompt?: boolean }): string {
   // For ask_name_reason, select variant based on field satisfaction and reprompt context
   if (stage === 'ask_name_reason') {
-    const hasValidCustomerName = !!intakeData.customerName && intakeData.customerName.trim().length > 0;
+    const nameSatisfied = isNameRequirementSatisfied(intakeData);
     const hasValidServiceRequested = !!intakeData.serviceRequested && intakeData.serviceRequested.trim().length > 0;
 
     // Check if this is a corrective same-stage reprompt
     const isCorrectiveReprompt = (repromptContext?.needsServiceReprompt || repromptContext?.needsNameReprompt);
 
-    if (hasValidCustomerName && !hasValidServiceRequested) {
-      // Name present, service missing
+    if (nameSatisfied && !hasValidServiceRequested) {
+      // Name satisfied (given or refused), request missing → service-only prompt
       if (isCorrectiveReprompt) {
         // Corrective: short targeted reminder after identity-only/unusable answer
         return 'ask_name_reason_service_only';
@@ -308,9 +322,13 @@ export function selectSimpleModePromptKey(stage: string, intakeData: IntakeData,
         // Normal: canonical request/details question inviting additional details
         return 'ask_request';
       }
-    } else if (!hasValidCustomerName && hasValidServiceRequested) {
+    } else if (!nameSatisfied && hasValidServiceRequested) {
       // Service present, name missing → name-only prompt
       return 'ask_name_reason_name_only';
+    }
+    // If the name has already been refused, never re-ask for it.
+    if (intakeData.nameRefused) {
+      return 'ask_request';
     }
     // Both missing or both present → use standard combined prompt
     // (both present case should advance past this stage, but this is the fallback)

@@ -131,7 +131,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
   return Promise.race([promise, timeoutPromise]) as Promise<T>;
 }
 
-import { selectSimpleModePromptKey } from './intake-validation';
+import { isNameRequirementSatisfied, selectSimpleModePromptKey } from './intake-validation';
 
 // Minimal shared authorization guard for settle-window callbacks (production + tests)
 // Returns true if the callback is authorized to finalize, otherwise logs a single
@@ -1437,7 +1437,7 @@ function isGoodEnoughForBetaIntake(intake: IntakeData): boolean {
   // - desiredCompletionTime OR callbackTime (timing info)
   // - callbackTime OR "as soon as possible" fallback
 
-  const hasName = !!intake.customerName;
+  const hasName = isNameRequirementSatisfied(intake);
   const hasJobDescription = !!(intake.serviceRequested || intake.issueDescription);
   const hasLocation = !!intake.serviceAddress;
   const hasTiming = !!(intake.desiredCompletionTime || intake.callbackTime);
@@ -1479,7 +1479,7 @@ function areAllRequiredFieldsCollected(intake: IntakeData, serviceLocationType: 
   // issueDescription (Additional Details) is OPTIONAL - not required for completion
   // This matches the canonical semantics: ask_request collects required reason + optional details
   const allCollected = !!(
-    intake.customerName &&
+    isNameRequirementSatisfied(intake) &&
     intake.serviceRequested &&
     (requiresServiceAddress ? intake.serviceAddress : true) &&
     intake.desiredCompletionTime &&
@@ -1500,7 +1500,7 @@ function areAllRequiredFieldsCollected(intake: IntakeData, serviceLocationType: 
 
   if (!allCollected) {
     const missingFields = [];
-    if (!intake.customerName) missingFields.push('customerName');
+    if (!isNameRequirementSatisfied(intake)) missingFields.push('customerName');
     if (!intake.serviceRequested) missingFields.push('serviceRequested');
     // issueDescription is optional - not included in missing fields
     if (!intake.serviceAddress) missingFields.push('serviceAddress');
@@ -1516,7 +1516,7 @@ function areAllRequiredFieldsCollected(intake: IntakeData, serviceLocationType: 
 }
 
 function getNextMissingField(intake: IntakeData): string | null {
-  if (!intake.customerName) {
+  if (!isNameRequirementSatisfied(intake)) {
     console.log('[NEXT_MISSING_FIELD] customerName');
     return 'customerName';
   }
@@ -3118,7 +3118,7 @@ function resolveNextRequiredStage(
 
   // Check field satisfaction. Explicit refusal flags count as handled for navigation
   // while leaving the corresponding canonical field empty.
-  const hasName = Boolean(intake.customerName && intake.customerName.trim().length > 0) || !!intake.nameRefused;
+  const hasName = isNameRequirementSatisfied(intake);
   const hasRequest = Boolean(intake.serviceRequested && intake.serviceRequested.trim().length > 0);
   const hasLocation = Boolean(intake.serviceAddress && intake.serviceAddress.trim().length > 0) || !!intake.locationRefused;
   const hasCompletionTime = Boolean(intake.desiredCompletionTime && intake.desiredCompletionTime.trim().length > 0);
@@ -3148,7 +3148,10 @@ function resolveNextRequiredStage(
     return 'complete';
   }
 
-  // Scan canonical order for first unsatisfied stage
+  // Scan canonical order for first unsatisfied stage.
+  // ask_name_reason is satisfied as soon as the name requirement is met (real name
+  // or explicit refusal); request collection moves to ask_request so callers are
+  // never re-asked for a name after refusing.
   const canonicalSequence: IntakeStage[] = isOnsite
     ? ['ask_name_reason', 'ask_request', 'ask_location_or_context', 'ask_timing', 'ask_callback_time']
     : ['ask_name_reason', 'ask_request', 'ask_timing', 'ask_callback_time'];
@@ -3158,11 +3161,11 @@ function resolveNextRequiredStage(
 
     switch (stage) {
       case 'ask_name_reason':
-        stageSatisfied = hasName && hasRequest;
+        stageSatisfied = isNameRequirementSatisfied(intake);
         break;
       case 'ask_request':
         // If name is missing, we're still in ask_name_reason
-        // If request is missing but name is present, we need ask_request
+        // If request is missing but name is present (or refused), we need ask_request
         stageSatisfied = hasRequest;
         break;
       case 'ask_location_or_context':
@@ -3585,8 +3588,8 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
   if (transcript && transcript.trim().length > 0) {
     switch (intake.stage) {
       case 'ask_name':
-        // Only set if field is not already captured - prevent overwriting valid answers
-        if (!intake.customerName) {
+        // Only set if field is not already captured and name has not been refused
+        if (!intake.customerName && !intake.nameRefused) {
           intake.customerName = transcript.trim();
           console.log('[SCRIPTED FLOW] =========================================');
           console.log('[SCRIPTED FLOW] field saved');
@@ -3801,13 +3804,14 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
       return true;
     };
 
-    const hasValidName = isValidCustomerName(intake.customerName || '');
+    const nameSatisfied = isNameRequirementSatisfied(intake);
     const hasValidService = isValidServiceRequested(intake.serviceRequested || '');
 
     console.log('[TARGETED REPROMPT SELECTION] =========================================');
     console.log('[TARGETED REPROMPT SELECTION] currentCustomerName:', intake.customerName || 'none');
+    console.log('[TARGETED REPROMPT SELECTION] nameRefused:', intake.nameRefused || false);
     console.log('[TARGETED REPROMPT SELECTION] currentServiceRequested:', intake.serviceRequested || 'none');
-    console.log('[TARGETED REPROMPT SELECTION] hasValidName:', hasValidName);
+    console.log('[TARGETED REPROMPT SELECTION] nameSatisfied:', nameSatisfied);
     console.log('[TARGETED REPROMPT SELECTION] hasValidService:', hasValidService);
     console.log('[TARGETED REPROMPT SELECTION] Timestamp:', new Date().toISOString());
     console.log('[TARGETED REPROMPT SELECTION] =========================================');
@@ -3816,7 +3820,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
     let promptToSend: string;
     let repromptType: string;
 
-    if (!hasValidName && !hasValidService) {
+    if (!nameSatisfied && !hasValidService) {
       // Both fields missing: use full combined reprompt
       nextStage = 'ask_name_reason';
       promptToSend = APPROVED_PROMPTS.ask_name_reason;
@@ -3828,20 +3832,20 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
       console.log('[TARGETED REPROMPT SELECTED] nextStage:', nextStage);
       console.log('[TARGETED REPROMPT SELECTED] Timestamp:', new Date().toISOString());
       console.log('[TARGETED REPROMPT SELECTED] =========================================');
-    } else if (hasValidName && !hasValidService) {
-      // Name valid, service missing: targeted service-only reprompt
+    } else if (nameSatisfied && !hasValidService) {
+      // Name satisfied (given or refused), service missing: targeted service-only reprompt
       nextStage = 'ask_name_reason_service_only';
       promptToSend = APPROVED_PROMPTS.ask_name_reason_service_only;
       repromptType = 'service_only';
       console.log('[TARGETED REPROMPT SELECTED] =========================================');
       console.log('[TARGETED REPROMPT SELECTED] type: service_only');
-      console.log('[TARGETED REPROMPT SELECTED] reason: name valid, service missing');
+      console.log('[TARGETED REPROMPT SELECTED] reason: name satisfied, service missing');
       console.log('[TARGETED REPROMPT SELECTED] preservedName:', intake.customerName);
       console.log('[TARGETED REPROMPT SELECTED] prompt:', promptToSend);
       console.log('[TARGETED REPROMPT SELECTED] nextStage:', nextStage);
       console.log('[TARGETED REPROMPT SELECTED] Timestamp:', new Date().toISOString());
       console.log('[TARGETED REPROMPT SELECTED] =========================================');
-    } else if (!hasValidName && hasValidService) {
+    } else if (!nameSatisfied && hasValidService) {
       // Service valid, name missing: targeted name-only reprompt
       nextStage = 'ask_name_reason_name_only';
       promptToSend = APPROVED_PROMPTS.ask_name_reason_name_only;
