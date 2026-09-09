@@ -141,8 +141,12 @@ function findAddressMatch(transcript: string): ExtractedMatch | null {
     if (match && match[1]) {
       const candidate = match[1].trim();
       if (isConfidentEarlyServiceAddress(candidate, type)) {
+        const value = candidate
+          .replace(/[.,;]\s*$/, '')
+          .replace(/\s+instead(?:\s+of\s+.*)?$/i, '')
+          .trim();
         return {
-          value: candidate.replace(/[.,;]\s*$/, ''),
+          value,
           fullMatch: (match[0] || candidate).trim(),
           startIndex: match.index || 0,
         };
@@ -159,6 +163,9 @@ const COMPLETION_PATTERNS: RegExp[] = [
   /\b((?:i'd like|i would like|i want|i need)\s+(?:it\s+)?(?:done|completed|finished)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
   /\b((?:i'd like|i would like|i want|i need)\s+(?:someone|somebody)\s+(?:to come\s+)?(?:out|here)\s+(?:by|on|in)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
   /\b((?:can you|could you)\s+(?:come|get here|make it)\s+(?:by|on|in)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
+  // Correction/short-form completions: "make it Monday instead" or "I need it Saturday".
+  /\b((?:make it|make that|set it for|set it to)\s+([^.,;]+?))(?=\s+instead\b|\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
+  /\b((?:i'd like|i would like|i want|i need)\s+it\s+(?:by\s+|on\s+|for\s+)?([^.,;]{2,30}?))(?=\s+instead\b|\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
   /\b((?:no rush|whenever|as soon as possible|asap))(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
   ...EARLY_COMPLETION_PATTERNS,
 ];
@@ -237,7 +244,11 @@ function findCallbackMatch(transcript: string): ExtractedMatch | null {
   for (const pattern of CALLBACK_PATTERNS) {
     const match = transcript.match(pattern);
     if (match) {
-      const value = (match[2] || match[1]).trim();
+      const rawValue = (match[2] || match[1]).trim();
+      const value = rawValue
+        .replace(/\s+instead(?:\s+of\s+.*)?$/i, '')
+        .replace(/[.,;]\s*$/, '')
+        .trim();
       const fullMatch = match[1].trim();
       if (isValidCallbackTime(value)) {
         return {
@@ -363,6 +374,124 @@ function mergeIfMissing(
   applied.push(field as string);
 }
 
+// Map a Simple Mode stage to the canonical scalar it is collecting.
+const STAGE_FIELD_MAP: Record<string, keyof IntakeData> = {
+  ask_name: 'customerName',
+  ask_request: 'request',
+  ask_name_reason: 'serviceRequested',
+  ask_location: 'serviceAddress',
+  ask_completion_time: 'desiredCompletionTime',
+  ask_callback_time: 'callbackTime',
+};
+
+const CORRECTION_MARKERS = [
+  'actually', 'instead', 'not the', 'not a', 'i meant', 'i mean',
+  'change that', 'change it', 'make it', 'make that', 'use this',
+  'use that', 'sorry', 'correction', 'correct that', 'update',
+  'it is', "it's", 'it was'
+];
+
+function detectCorrectionIntent(transcript: string): { isCorrection: boolean; confidence: 'high' | 'low' } {
+  const lower = transcript.toLowerCase();
+  const markerCount = CORRECTION_MARKERS.reduce((count, marker) => {
+    // Count multi-word markers once.
+    if (lower.includes(marker)) return count + 1;
+    return count;
+  }, 0);
+
+  // High-confidence: explicit correction markers or a "not X, Y" / "Y, not X" structure.
+  const hasNotStructure = /\bnot\s+(?:the\s+)?[a-z]+\b/.test(lower);
+  const hasInsteadStructure = /\binstead\b/.test(lower);
+  const hasActually = /\bactually\b/.test(lower);
+  const hasMeant = /\bi meant\b/.test(lower);
+  const highConfidence = markerCount >= 2 || (markerCount >= 1 && (hasNotStructure || hasInsteadStructure));
+  const mediumConfidence = hasActually || hasMeant || (markerCount >= 1 && hasNotStructure);
+
+  if (highConfidence || mediumConfidence) {
+    return { isCorrection: true, confidence: highConfidence ? 'high' : 'low' };
+  }
+  return { isCorrection: false, confidence: 'low' };
+}
+
+// Extract a replacement service when the caller explicitly corrects the request.
+// Examples:
+//   "It's the shower, not the toilet" -> "shower repair"
+//   "Actually use a lawn cut instead" -> "lawn cut"
+function extractCorrectionServiceRequest(transcript: string, existingService?: string): string | null {
+  const explicitPatterns = [
+    // "Actually it's the shower, not the toilet"
+    /\b(?:actually,?\s*it's|actually,?\s*it is|it's|it is|it was|sorry,?\s*it's)\s+(?:a\s+|the\s+)?([a-z][a-z\s\-]+?)(?:,|;|\.\s|\s+not\b|\s+instead\b|\s+and\s+(?:the\s+)?(?:address|call|phone))/i,
+    // "Change it to a sink repair", "Make it a shower", "Use 500 Pine Street" (last is caught by address)
+    /\b(?:change that to|change it to|make it|make that|use)\s+(?:a\s+|the\s+)?([a-z][a-z\s\-]+?)(?:,|;|\.\s|\s+not\b|\s+instead\b|\s+and\s+(?:the\s+)?(?:address|call|phone))/i,
+  ];
+
+  for (const pattern of explicitPatterns) {
+    const match = transcript.match(pattern);
+    if (match && match[1]) {
+      let candidate = match[1].trim().replace(/[.,;]$/, '');
+      // Strip trailing negated phrase if any leaked in (e.g., "shower, not the toilet").
+      candidate = candidate.replace(/\s*,?\s*not\s+.*$/i, '').trim();
+      candidate = candidate.replace(/\s*,?\s*instead(?:\s+of\s+.*)?$/i, '').trim();
+
+      const serviceNouns = /\b(shower|toilet|sink|tub|faucet|roof|fence|gate|lock|door|window|pipe|gutter|floor|wall|ceiling|ac|heater|furnace|boiler|garage|light|outlet|switch|wire|appliance|machine|device|lawn|grass|yard)\b/i;
+      const actionWords = /\b(repair|repaired|fix|fixed|leak|leaking|broken|broke|stopped|cut|mowed|cleaned|painted|replaced|removed|trimmed|serviced|installed)\b/i;
+      const hasServiceNoun = serviceNouns.test(candidate);
+      const hasActionWord = actionWords.test(candidate);
+
+      // Reject corrections that do not look like a service at all (e.g., "make it Monday").
+      if (!hasServiceNoun && !hasActionWord) {
+        continue;
+      }
+
+      // If the corrected core is a plain service noun and the original request
+      // included action language (repair, fix, leak, leaking), append "repair"
+      // to keep the canonical form actionable.
+      if (hasServiceNoun && !hasActionWord && actionWords.test(existingService || '')) {
+        candidate = `${candidate} repair`;
+      }
+      if (isValidServiceRequest(candidate)) return candidate;
+    }
+  }
+  return null;
+}
+
+/**
+ * Apply a candidate value to a canonical field. Replacement is allowed when the
+ * caller has explicit correction intent or when the utterance is the direct
+ * answer to the current stage prompt.
+ */
+function applyField(
+  intake: IntakeData,
+  field: keyof IntakeData,
+  candidate: string | null | undefined,
+  validator: (text: string) => boolean,
+  applied: string[],
+  skipped: string[],
+  isCorrection: boolean,
+  isCurrentStageField: boolean
+): void {
+  if (candidate === undefined || candidate === null || candidate.trim() === '') {
+    return;
+  }
+  const trimmed = candidate.trim();
+  if (!validator(trimmed)) {
+    return;
+  }
+  const existing = (intake as any)[field];
+  const existingTrimmed = typeof existing === 'string' ? existing.trim() : '';
+  if (existingTrimmed.length === 0 || isCorrection || isCurrentStageField) {
+    // Don't replace with an identical value to avoid noisy applied logs.
+    if (existingTrimmed !== trimmed) {
+      (intake as any)[field] = trimmed;
+      if (!applied.includes(field as string)) {
+        applied.push(field as string);
+      }
+    }
+    return;
+  }
+  skipped.push(field as string);
+}
+
 /**
  * Extract all supported intake fields from a single caller utterance, fill only
  * currently-empty fields, and clean the service request so it does not absorb
@@ -382,12 +511,16 @@ export function enrichIntakeFromTranscript(
   const detected: string[] = [];
   const applied: string[] = [];
   const skippedBecauseAlreadyPresent: string[] = [];
+  const { isCorrection, confidence } = detectCorrectionIntent(transcript);
+  const currentStageField = STAGE_FIELD_MAP[currentStage] || null;
 
   console.log('[SEMANTIC SKIP-AHEAD EXTRACTION] =========================================');
   console.log('[SEMANTIC SKIP-AHEAD EXTRACTION] event: semantic_skip_ahead_extraction');
   console.log('[SEMANTIC SKIP-AHEAD EXTRACTION] callSid:', callSid);
   console.log('[SEMANTIC SKIP-AHEAD EXTRACTION] sourceStage:', currentStage);
   console.log('[SEMANTIC SKIP-AHEAD EXTRACTION] sourceTurnId:', sourceTurnId);
+  console.log('[SEMANTIC SKIP-AHEAD EXTRACTION] isCorrection:', isCorrection);
+  console.log('[SEMANTIC SKIP-AHEAD EXTRACTION] correctionConfidence:', confidence);
   console.log('[SEMANTIC SKIP-AHEAD EXTRACTION] rawTranscript:', transcript);
   console.log('[SEMANTIC SKIP-AHEAD EXTRACTION] intakeBefore:', JSON.stringify({
     customerName: intake.customerName,
@@ -414,59 +547,123 @@ export function enrichIntakeFromTranscript(
   const existingServiceRequested = (intake.serviceRequested || '').trim();
   const existingRequest = (intake.request || '').trim();
   const existingService = existingServiceRequested || existingRequest;
-  let cleanedService = existingService;
+  let cleanedService: string | null = null;
 
-  if (existingService) {
-    cleanedService = cleanServiceRequest(existingService, [
-      addressMatch,
-      completionMatch,
-      callbackMatch,
-    ]);
-  } else {
-    const serviceCandidate = extractServiceRequestCandidate(
-      transcript,
-      intake.customerName || name || undefined
-    );
-    if (serviceCandidate) {
-      cleanedService = serviceCandidate;
+  if (isCorrection && existingService) {
+    const correctedService = extractCorrectionServiceRequest(transcript, existingService);
+    if (correctedService) {
+      cleanedService = correctedService;
       detected.push('serviceRequested');
     }
   }
 
-  // Apply fills only to missing fields.
-  mergeIfMissing(intake, 'customerName', name, () => true, applied, skippedBecauseAlreadyPresent);
-
-  // Preserve the raw request transcript before canonical cleanup overwrites serviceRequested.
-  // The 'request' field keeps the caller's verbatim wording for diagnostics and model fallback.
-  if (!existingRequest && existingService) {
-    mergeIfMissing(intake, 'request', existingService, isValidServiceRequest, applied, skippedBecauseAlreadyPresent);
+  if (!cleanedService) {
+    if (existingService) {
+      cleanedService = cleanServiceRequest(existingService, [
+        addressMatch,
+        completionMatch,
+        callbackMatch,
+      ]);
+    } else {
+      const serviceCandidate = extractServiceRequestCandidate(
+        transcript,
+        intake.customerName || name || undefined
+      );
+      if (serviceCandidate) {
+        cleanedService = serviceCandidate;
+        detected.push('serviceRequested');
+      }
+    }
   }
 
-  // Allow extracted structural cleanup to replace a polluted canonical service field.
-  // This is safe because the raw transcript remains in `request` and stageCaptures.
+  // Always allow service cleaning/replacement because the canonical service must
+  // never absorb location/timing/callback text.
   const validCleanedService = cleanedService && cleanedService.trim() && isValidServiceRequest(cleanedService.trim())
     ? cleanedService.trim()
     : null;
+
+  applyField(
+    intake,
+    'customerName',
+    name,
+    () => true,
+    applied,
+    skippedBecauseAlreadyPresent,
+    isCorrection,
+    currentStageField === 'customerName'
+  );
+
   if (validCleanedService) {
-    if (intake.serviceRequested !== validCleanedService) {
-      intake.serviceRequested = validCleanedService;
-      if (!applied.includes('serviceRequested')) {
-        applied.push('serviceRequested');
-      }
-    }
-  } else {
-    mergeIfMissing(intake, 'serviceRequested', cleanedService, isValidServiceRequest, applied, skippedBecauseAlreadyPresent);
+    applyField(
+      intake,
+      'serviceRequested',
+      validCleanedService,
+      isValidServiceRequest,
+      applied,
+      skippedBecauseAlreadyPresent,
+      isCorrection,
+      true
+    );
   }
 
-  mergeIfMissing(intake, 'request', intake.serviceRequested, isValidServiceRequest, applied, skippedBecauseAlreadyPresent);
-  mergeIfMissing(intake, 'serviceAddress', addressMatch?.value, isValidServiceAddress, applied, skippedBecauseAlreadyPresent);
-  mergeIfMissing(intake, 'desiredCompletionTime', completionMatch?.value, isValidCompletionTime, applied, skippedBecauseAlreadyPresent);
-  mergeIfMissing(intake, 'callbackTime', callbackMatch?.value, isValidCallbackTime, applied, skippedBecauseAlreadyPresent);
+  // Keep the raw-ish `request` field in sync with the canonical service.
+  applyField(
+    intake,
+    'request',
+    intake.serviceRequested,
+    isValidServiceRequest,
+    applied,
+    skippedBecauseAlreadyPresent,
+    isCorrection,
+    currentStageField === 'request'
+  );
+
+  applyField(
+    intake,
+    'serviceAddress',
+    addressMatch?.value,
+    isValidServiceAddress,
+    applied,
+    skippedBecauseAlreadyPresent,
+    isCorrection,
+    currentStageField === 'serviceAddress'
+  );
+
+  applyField(
+    intake,
+    'desiredCompletionTime',
+    completionMatch?.value,
+    isValidCompletionTime,
+    applied,
+    skippedBecauseAlreadyPresent,
+    isCorrection,
+    currentStageField === 'desiredCompletionTime'
+  );
+
+  applyField(
+    intake,
+    'callbackTime',
+    callbackMatch?.value,
+    isValidCallbackTime,
+    applied,
+    skippedBecauseAlreadyPresent,
+    isCorrection,
+    currentStageField === 'callbackTime'
+  );
 
   const issueDescription = findIssueDescription(transcript, intake.serviceRequested || '');
   if (issueDescription) {
     detected.push('issueDescription');
-    mergeIfMissing(intake, 'issueDescription', issueDescription, () => true, applied, skippedBecauseAlreadyPresent);
+    applyField(
+      intake,
+      'issueDescription',
+      issueDescription,
+      () => true,
+      applied,
+      skippedBecauseAlreadyPresent,
+      isCorrection,
+      false
+    );
   }
 
   console.log('[SEMANTIC SKIP-AHEAD EXTRACTION RESULT] =========================================');

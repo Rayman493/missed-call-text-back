@@ -8433,12 +8433,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[FIELD WRITE INVARIANT] timestamp:', new Date().toISOString());
     console.log('[FIELD WRITE INVARIANT] =========================================');
 
-    if (!stage || stage !== 'ask_name_reason') {
-      state.intakeData[extractedField] = capturedAnswer;
-    }
-
-    // Run semantic skip-ahead enrichment on the accepted answer for all stages.
-    // ask_name_reason performs its own enrichment immediately after name/service merge.
+    // Run semantic enrichment BEFORE writing the stage-local field so corrections
+    // and multi-field utterances resolve into canonical values before the raw
+    // transcript can pollute the current stage.
     if (stage !== 'ask_name_reason') {
       enrichIntakeFromTranscript(
         rawTranscript,
@@ -8447,6 +8444,11 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         state.callSid,
         state.currentTurnId
       );
+    }
+
+    if (!stage || stage !== 'ask_name_reason') {
+      capturedAnswer = state.intakeData[extractedField] || capturedAnswer;
+      state.intakeData[extractedField] = capturedAnswer;
     }
 
     const capture = {
