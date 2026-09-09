@@ -115,4 +115,35 @@ describe('buildCanonicalExtractedInfo name contamination guard', () => {
     expect(result.serviceRequested).to.not.equal('');
     expect(result.serviceAddress).to.equal('100 Main Street');
   });
+
+  it('clears serviceRequested copied from customerName during final normalization', async () => {
+    // Simulates the late contamination where processSimpleModeCompletion
+    // repair would copy the name into serviceRequested before canonicalization.
+    const result = await buildCanonicalExtractedInfo(
+      { customerName: 'Evan Parker', serviceRequested: 'Evan Parker' },
+      '+15551234567',
+      'onsite',
+      'CAtest'
+    );
+    expect(result.customerName).to.equal('Evan Parker');
+    expect(result.serviceRequested).to.equal('');
+    expect(result.reasonForCalling).to.be.oneOf([undefined, null, '']);
+    expect(result.request).to.be.oneOf([undefined, null, '']);
+  });
+
+  it('does not derive a fallback reason from a name-only raw request transcript', async () => {
+    // Even if the raw request transcript is the same as the name, no request
+    // should be fabricated.
+    const result = await buildCanonicalExtractedInfo(
+      { customerName: 'Evan Parker' },
+      '+15551234567',
+      'onsite',
+      'CAtest',
+      'Evan Parker'
+    );
+    expect(result.customerName).to.equal('Evan Parker');
+    expect(result.serviceRequested).to.equal('');
+    expect(result.reasonForCalling).to.be.oneOf([undefined, null, '']);
+    expect(result.request).to.be.oneOf([undefined, null, '']);
+  });
 });

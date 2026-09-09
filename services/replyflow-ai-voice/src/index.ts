@@ -9340,7 +9340,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Helper function to parse caller name and service from name/reason answer
     const parseNameAndService = (text: string, existingService?: string, existingName?: string): { customerName: string; serviceRequested: string } => {
       if (!text || typeof text !== 'string') {
-        return { customerName: existingName ?? '', serviceRequested: existingService ?? 'General inquiry' };
+        return { customerName: existingName ?? '', serviceRequested: existingService ?? '' };
       }
 
       const trimmed = text.trim();
@@ -9364,9 +9364,37 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         console.log('[COMPLETION REPAIR SERVICE-ONLY CONTINUATION] =========================================');
 
         const normalizedInput = stripConversationalFillers(trimmed);
-        serviceRequested = normalizedInput;
         customerName = existingName;
-        parserRuleMatched = 'service_only_continuation';
+
+        // HARD FIELD INVARIANT: a request may never be derived from the customer's name.
+        // If the repair source is just the already-known name (or a name-only confirmation),
+        // do not fabricate serviceRequested from it.
+        const isNameOnlyRepairSource = (input: string, name: string): boolean => {
+          const lowerInput = input.trim().toLowerCase();
+          const lowerName = name.trim().toLowerCase();
+          if (!lowerName) return false;
+          if (lowerInput === lowerName) return true;
+          let remaining = lowerInput.split(lowerName).join('').trim();
+          // Strip common name-intro/filler words and punctuation
+          remaining = remaining
+            .replace(/^[,.\s]*(?:hi|hello|hey|yes|yeah|yep|um|uh|well|so|okay|ok|alright|all right)[,.\s]+/i, '')
+            .replace(/[,.\s]*(?:my name is|my name's|name is|i am|i'm|this is|it is|it's|here)[,.\s]*$/i, '')
+            .replace(/^[,.\s]+/, '')
+            .replace(/[,.\s]+$/, '');
+          return remaining === '';
+        };
+
+        if (isNameOnlyRepairSource(normalizedInput, existingName)) {
+          console.log('[COMPLETION REPAIR IDENTITY-ONLY] event: identity_only_repair_source_detected');
+          console.log('[COMPLETION REPAIR IDENTITY-ONLY] existingName:', existingName);
+          console.log('[COMPLETION REPAIR IDENTITY-ONLY] rawInput:', trimmed);
+          console.log('[COMPLETION REPAIR IDENTITY-ONLY] action: keep_service_empty');
+          parserRuleMatched = 'name_only';
+          serviceRequested = '';
+        } else {
+          serviceRequested = normalizedInput;
+          parserRuleMatched = 'service_only_continuation';
+        }
         return { customerName, serviceRequested };
       }
 
@@ -9536,14 +9564,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         }
       }
 
-      // If after all attempts we still have no service, default only if we couldn't find anything
+      // If after all attempts we still have no service, leave it empty.
+      // A request field may only derive from request/service evidence.
       if (!serviceRequested) {
-        serviceRequested = 'General inquiry';
-        parserRuleMatched = parserRuleMatched === 'none' ? 'default_fallback' : parserRuleMatched;
+        serviceRequested = '';
+        parserRuleMatched = parserRuleMatched === 'none' ? 'default_fallback_empty' : parserRuleMatched;
       }
 
       // If customerName is still the full text and we extracted a service, remove the service portion
-      if (customerName === trimmed && serviceRequested && serviceRequested !== 'General inquiry') {
+      if (customerName === trimmed && serviceRequested) {
         const serviceIdx = trimmed.toLowerCase().indexOf(serviceRequested.toLowerCase());
         if (serviceIdx > 0) {
           const nameCandidate = normalizeNameCandidate(trimmed.slice(0, serviceIdx).trim());
@@ -9815,6 +9844,15 @@ Reply to this message if you'd like to update or add any information.
           existingCustomerNameValid ? state.intakeData.customerName : undefined
         );
         console.log('[parseNameAndService output]', parseResult);
+
+        // Final hard invariant: serviceRequested may never equal customerName.
+        // This is defense-in-depth after parseNameAndService.
+        if (existingCustomerNameValid && parseResult.serviceRequested && customerName &&
+            parseResult.serviceRequested.trim().toLowerCase() === customerName.trim().toLowerCase()) {
+          console.log('[COMPLETION FINAL COLLISION GUARD] event: service_requested_equals_customer_name');
+          console.log('[COMPLETION FINAL COLLISION GUARD] action: clear_service_requested');
+          parseResult.serviceRequested = '';
+        }
 
         console.log('[COMPLETION REPAIR OUTPUT] =========================================');
         console.log('[COMPLETION REPAIR OUTPUT] parseResult.customerName:', parseResult.customerName);
