@@ -382,6 +382,7 @@ export async function finalizeIncompleteOnWebsocketCloseSimple(
 
     try {
       if (state.callSid && state.businessId && state.callerPhone) {
+        const rawRequestTranscript = extractRawRequestTranscriptFromStageCaptures(state.stageCaptures);
         await deps.finalizeIncompleteIntake(
           transcriptToPersist,
           state.intakeData,
@@ -393,6 +394,8 @@ export async function finalizeIncompleteOnWebsocketCloseSimple(
           deps.supabase,
           {
             forceCompleteFallback: state.currentStage === 'complete' || state.completionPersistenceFailed,
+            serviceLocationType: state.serviceLocationType,
+            rawRequestTranscript,
           }
         );
         console.log('[CALL RECORD PERSISTED] =========================================');
@@ -4960,11 +4963,12 @@ async function finalizeIncompleteIntake(
 
   // INCOMPLETE FINALIZATION OWNERSHIP CHECK
   const stage = intakeData?.stage || 'unknown';
-  const effectiveServiceLocationType = serviceLocationType || 'onsite';
+  const effectiveServiceLocationType = closingState?.serviceLocationType || serviceLocationType || 'onsite';
   const allRequiredFieldsCollected = intakeData ? areAllRequiredFieldsCollected(intakeData, effectiveServiceLocationType) : false;
   const finalClosingStarted = closingState?.finalClosingStarted || false;
   const terminalClosingResponseStarted = closingState?.terminalClosingResponseStarted || false;
   const forceCompleteFallback = closingState?.forceCompleteFallback || false;
+  const rawRequestTranscript = closingState?.rawRequestTranscript || null;
 
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] =========================================');
   console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] stage:', stage);
@@ -5071,7 +5075,7 @@ async function finalizeIncompleteIntake(
   console.log('[EXTRACTION TRACE STAGE 5] Timestamp:', new Date().toISOString());
   console.log('[EXTRACTION TRACE STAGE 5] =========================================');
 
-  const canonicalInfo = await buildCanonicalExtractedInfo(extractedFields, callerPhone || '', undefined, undefined);
+  const canonicalInfo = await buildCanonicalExtractedInfo(extractedFields, callerPhone || '', effectiveServiceLocationType, callSid, rawRequestTranscript);
 
   // STAGE 7: Canonical Mapping Values
   console.log('[EXTRACTION TRACE STAGE 7] =========================================');
@@ -11096,10 +11100,20 @@ Reply to this message if you'd like to update or add any information.
           console.log('[SIMPLE MODE] delayMs:', 2000);
           console.log('[SIMPLE MODE] =========================================');
           setTimeout(() => {
-            logSimple('call_complete');
-            ws.close();
-            if (state.openAiWs) {
-              state.openAiWs.close();
+            const doCompleteClose = () => {
+              logSimple('call_complete');
+              ws.close();
+              if (state.openAiWs) {
+                state.openAiWs.close();
+              }
+            };
+
+            // Wait for durable completion persistence to finish before tearing down the websocket.
+            // If it already succeeded, the close handler will skip the incomplete fallback.
+            if (state.completionPersistencePromise) {
+              state.completionPersistencePromise.then(doCompleteClose, doCompleteClose);
+            } else {
+              doCompleteClose();
             }
           }, 2000);
         }
@@ -12260,10 +12274,19 @@ Reply to this message if you'd like to update or add any information.
               console.log('[SIMPLE MODE] event: final_goodbye_fallback_timeout');
               console.log('[SIMPLE MODE] fallbackMs:', 15000);
               console.log('[SIMPLE MODE] =========================================');
-              logSimple('call_complete');
-              ws.close();
-              if (state.openAiWs) {
-                state.openAiWs.close();
+              const doFallbackClose = () => {
+                logSimple('call_complete');
+                ws.close();
+                if (state.openAiWs) {
+                  state.openAiWs.close();
+                }
+              };
+
+              // Wait for durable completion persistence before closing on fallback timeout.
+              if (state.completionPersistencePromise) {
+                state.completionPersistencePromise.then(doFallbackClose, doFallbackClose);
+              } else {
+                doFallbackClose();
               }
             }, 15000);
           }

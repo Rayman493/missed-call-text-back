@@ -134,18 +134,24 @@ describe('Semantic Skip-Ahead Extraction', () => {
     expect(result.applied).to.include.members(['serviceAddress', 'desiredCompletionTime', 'callbackTime']);
   });
 
-  it('does not overwrite a pre-filled broad service request with a shorter candidate when the candidate is embedded inside it', () => {
+  it('cleans a pre-filled polluted canonical service request using structural matches', () => {
     const intake: IntakeData = {
       stage: 'ask_name',
       customerName: 'Christopher Miller',
       serviceRequested: "a new water heater installed at 85 Liberty Avenue. I'd like it done by next Friday, and you can call me back anytime after 4 pm",
+      request: "a new water heater installed at 85 Liberty Avenue. I'd like it done by next Friday, and you can call me back anytime after 4 pm",
     };
     const transcript = "Hi, my name is Christopher Miller. I need a new water heater installed at 85 Liberty Avenue. I'd like it done by next Friday, and you can call me back anytime after 4 p.m.";
-    enrichIntakeFromTranscript(transcript, intake, 'ask_name', 'CA-test');
+    const result = enrichIntakeFromTranscript(transcript, intake, 'ask_name', 'CA-test');
 
-    // The original broad service text should remain intact; clean-up is the
-    // canonical formatter/model responsibility, not this merge step.
-    expect(intake.serviceRequested).to.equal("a new water heater installed at 85 Liberty Avenue. I'd like it done by next Friday, and you can call me back anytime after 4 pm");
+    // Structural extraction should remove address/timing/callback from the canonical
+    // service field while keeping the raw transcript in `request`.
+    expect(intake.serviceRequested).to.equal('a new water heater installed');
+    expect(intake.serviceRequested).to.not.include('85 Liberty Avenue');
+    expect(intake.serviceRequested).to.not.include('next Friday');
+    expect(intake.serviceRequested).to.not.include('call me back');
+    expect(intake.request).to.include('85 Liberty Avenue');
+    expect(result.applied).to.include('serviceRequested');
   });
 
   it('extracts natural relative timing from a service request (get my grass cut in the next two weeks or so)', () => {
@@ -199,5 +205,51 @@ describe('Semantic Skip-Ahead Extraction', () => {
     expect(intake.desiredCompletionTime?.toLowerCase()).to.include('this week');
     expect(intake.serviceRequested?.toLowerCase()).to.not.include('this week');
     expect(result.applied).to.include('desiredCompletionTime');
+  });
+
+  it('extracts all Jason Williams fields and disambiguates completion Friday from callback tomorrow morning', () => {
+    const intake: IntakeData = { stage: 'ask_name_reason' };
+    const transcript = "My name is Jason Williams. I need a toilet repaired at 100 Main Street. I'd like it done Friday and call me tomorrow morning.";
+    const result = enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CAc73fab4aaa525fadcddc4f7511befe77');
+
+    expect(intake.customerName).to.equal('Jason Williams');
+    expect(intake.serviceRequested).to.equal('a toilet repaired');
+    expect(intake.serviceAddress).to.equal('100 Main Street');
+    expect(intake.desiredCompletionTime).to.equal('Friday');
+    expect(intake.callbackTime).to.equal('tomorrow morning');
+    expect(result.applied).to.include.members(['customerName', 'serviceRequested', 'serviceAddress', 'desiredCompletionTime', 'callbackTime']);
+  });
+
+  it('treats "call me Friday morning" as callback only', () => {
+    const intake: IntakeData = { stage: 'ask_callback_time' };
+    const transcript = 'Call me Friday morning';
+    const result = enrichIntakeFromTranscript(transcript, intake, 'ask_callback_time', 'CA-test');
+
+    expect(intake.callbackTime).to.equal('Friday morning');
+    expect(intake.desiredCompletionTime).to.be.undefined;
+    expect(result.applied).to.include('callbackTime');
+    expect(result.applied).to.not.include('desiredCompletionTime');
+  });
+
+  it('treats "I\'d like it done Friday morning" as completion only', () => {
+    const intake: IntakeData = { stage: 'ask_completion_time' };
+    const transcript = "I'd like it done Friday morning";
+    const result = enrichIntakeFromTranscript(transcript, intake, 'ask_completion_time', 'CA-test');
+
+    expect(intake.desiredCompletionTime).to.equal('Friday morning');
+    expect(intake.callbackTime).to.be.undefined;
+    expect(result.applied).to.include('desiredCompletionTime');
+    expect(result.applied).to.not.include('callbackTime');
+  });
+
+  it('disambiguates completion next Tuesday from callback after 3', () => {
+    const intake: IntakeData = { stage: 'ask_name_reason' };
+    const transcript = 'I need it next Tuesday, and you can reach me after 3';
+    const result = enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-test');
+
+    expect(intake.desiredCompletionTime).to.equal('next Tuesday');
+    expect(intake.callbackTime).to.equal('after 3');
+    expect(intake.serviceRequested?.toLowerCase()).to.include('need it');
+    expect(result.applied).to.include.members(['desiredCompletionTime', 'callbackTime']);
   });
 });

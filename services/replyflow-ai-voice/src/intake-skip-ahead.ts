@@ -155,6 +155,8 @@ function findAddressMatch(transcript: string): ExtractedMatch | null {
 // Completion patterns are evaluated in order; more specific first.
 const COMPLETION_PATTERNS: RegExp[] = [
   /\b((?:i'd like|i would like|i want|i need)\s+it\s+(?:done|completed|finished)\s+(?:by|on|in)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
+  // Same intent without a preposition, e.g. "I'd like it done Friday" or "I want it done tomorrow morning".
+  /\b((?:i'd like|i would like|i want|i need)\s+(?:it\s+)?(?:done|completed|finished)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
   /\b((?:i'd like|i would like|i want|i need)\s+(?:someone|somebody)\s+(?:to come\s+)?(?:out|here)\s+(?:by|on|in)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
   /\b((?:can you|could you)\s+(?:come|get here|make it)\s+(?:by|on|in)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
   /\b((?:no rush|whenever|as soon as possible|asap))(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
@@ -184,6 +186,7 @@ function findCompletionMatch(transcript: string): ExtractedMatch | null {
 // context checks below prevent past/incident phrases from being misclassified.
 const SERVICE_CONTEXT_VERBS = /\b(?:get|need|want|would like|done|completed|finished|installed|repaired|fixed|cut|mowed|cleaned|checked|painted|replaced|removed|trimmed|serviced)\b/i;
 const PAST_CONTEXT_MARKERS = /\b(?:ago|last|since|started|broke|snapped|noticed|leaking|was|were|been|has been|had been|have been|would be|could be|should be|got|had|yesterday)\b/i;
+const CALLBACK_CONTEXT_MARKERS = /\b(?:call me(?: back)?|you can call me(?: back)?|reach me|contact me|you can reach me)\b/i;
 const NEGATIVE_TIMING_PREFIX = /\b(?:for|since|over|the last|the past|last|ago)\s*$/i;
 const NATURAL_COMPLETION_RE =
   '\\b(((?:in|within|sometime in|sometime within|sometime this|sometime next|by|this|next|today|tomorrow)\\s+(?:the\\s+)?(?:next|coming|following|upcoming)?\\s*(?:two|three|four|a few|couple of|couple|one|1|2|3|4|5|several)?\\s*(?:days?|weeks?|months?|weekend|(?:mon|tues|wednes|thurs|fri|satur|sun)days?|today|tomorrow|morning|afternoon|evening|night))(?:\\s+(?:or so|about|around|ish|give or take))?)(?=\\s*(?:,?\\s*and\\b|[.!?](?:\\s|$)|;|$))';
@@ -203,6 +206,9 @@ function findNaturalCompletionMatch(transcript: string): ExtractedMatch | null {
       continue;
     }
     if (PAST_CONTEXT_MARKERS.test(preceding)) {
+      continue;
+    }
+    if (CALLBACK_CONTEXT_MARKERS.test(immediatePrefix)) {
       continue;
     }
     if (!SERVICE_CONTEXT_VERBS.test(preceding)) {
@@ -405,7 +411,9 @@ export function enrichIntakeFromTranscript(
   if (callbackMatch) detected.push('callbackTime');
 
   // Determine a clean service request value.
-  const existingService = (intake.serviceRequested || intake.request || '').trim();
+  const existingServiceRequested = (intake.serviceRequested || '').trim();
+  const existingRequest = (intake.request || '').trim();
+  const existingService = existingServiceRequested || existingRequest;
   let cleanedService = existingService;
 
   if (existingService) {
@@ -427,7 +435,29 @@ export function enrichIntakeFromTranscript(
 
   // Apply fills only to missing fields.
   mergeIfMissing(intake, 'customerName', name, () => true, applied, skippedBecauseAlreadyPresent);
-  mergeIfMissing(intake, 'serviceRequested', cleanedService, isValidServiceRequest, applied, skippedBecauseAlreadyPresent);
+
+  // Preserve the raw request transcript before canonical cleanup overwrites serviceRequested.
+  // The 'request' field keeps the caller's verbatim wording for diagnostics and model fallback.
+  if (!existingRequest && existingService) {
+    mergeIfMissing(intake, 'request', existingService, isValidServiceRequest, applied, skippedBecauseAlreadyPresent);
+  }
+
+  // Allow extracted structural cleanup to replace a polluted canonical service field.
+  // This is safe because the raw transcript remains in `request` and stageCaptures.
+  const validCleanedService = cleanedService && cleanedService.trim() && isValidServiceRequest(cleanedService.trim())
+    ? cleanedService.trim()
+    : null;
+  if (validCleanedService) {
+    if (intake.serviceRequested !== validCleanedService) {
+      intake.serviceRequested = validCleanedService;
+      if (!applied.includes('serviceRequested')) {
+        applied.push('serviceRequested');
+      }
+    }
+  } else {
+    mergeIfMissing(intake, 'serviceRequested', cleanedService, isValidServiceRequest, applied, skippedBecauseAlreadyPresent);
+  }
+
   mergeIfMissing(intake, 'request', intake.serviceRequested, isValidServiceRequest, applied, skippedBecauseAlreadyPresent);
   mergeIfMissing(intake, 'serviceAddress', addressMatch?.value, isValidServiceAddress, applied, skippedBecauseAlreadyPresent);
   mergeIfMissing(intake, 'desiredCompletionTime', completionMatch?.value, isValidCompletionTime, applied, skippedBecauseAlreadyPresent);

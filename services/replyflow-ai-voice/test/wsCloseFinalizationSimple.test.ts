@@ -140,6 +140,46 @@ describe('Simple Mode - WebSocket close finalization handoff', () => {
     assert.equal(calls.length, 1, 'fallback invoked when no completion was started');
   });
 
+  it('passes serviceLocationType and rawRequestTranscript to fallback finalization for completed calls', async () => {
+    const calls: any[] = [];
+    const state: any = {
+      callSid: 'CA_complete',
+      businessId: 'biz_c',
+      callerPhone: '+15559998888',
+      businessName: 'Biz',
+      forwardedFrom: '',
+      intakeData: {
+        customerName: 'Dana',
+        serviceRequested: 'a toilet repaired',
+        serviceAddress: '100 Main Street',
+        desiredCompletionTime: 'Friday',
+        callbackTime: 'tomorrow morning',
+      },
+      stageCaptures: [
+        { stage: 'ask_request', rawTranscript: 'I need a toilet repaired at 100 Main Street', capturedAnswer: 'I need a toilet repaired at 100 Main Street', extractedField: 'serviceRequested', source: 'test', timestamp: new Date().toISOString() },
+      ],
+      transcript: '',
+      completionPersistenceSucceeded: false,
+      completionPersistenceFailed: true,
+      completionPersistencePromise: null,
+      currentStage: 'complete',
+      serviceLocationType: 'onsite',
+    };
+
+    const deps = {
+      supabase: {} as any,
+      finalizeIncompleteIntake: async (...args: any[]) => {
+        calls.push(args);
+      }
+    };
+
+    await finalizeIncompleteOnWebsocketCloseSimple(state, deps);
+    assert.equal(calls.length, 1, 'fallback invoked for completed call with failed completion');
+    assert.equal(calls[0][8]?.forceCompleteFallback, true, 'forces complete fallback');
+    assert.equal(calls[0][8]?.serviceLocationType, 'onsite', 'preserves service location type');
+    assert.equal(calls[0][8]?.rawRequestTranscript, 'I need a toilet repaired at 100 Main Street', 'passes raw request transcript for canonical extraction');
+  });
+
   it('does not invoke fallback when there is no captured data', async () => {
     const calls: any[] = [];
     const state: any = {
