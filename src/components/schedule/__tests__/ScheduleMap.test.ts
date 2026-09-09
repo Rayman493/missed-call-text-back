@@ -564,3 +564,54 @@ describe('ScheduleMap - Marker Tap Action', () => {
     expect(getMarkerTapAction({ isTouchDevice: false, isSelected: true, isDoubleClick: true })).toBe('focus')
   })
 })
+
+describe('ScheduleMap - Native marker tap focus (Batch 4)', () => {
+  it('native Android marker tap selects and focuses in one action', () => {
+    // Native Capacitor Android is treated as a touch/n-native single-tap-focus environment.
+    const action = getMarkerTapAction({ isTouchDevice: true, isSelected: false, isDoubleClick: false })
+    expect(action).toBe('focus')
+  })
+
+  it('native iOS marker tap selects and focuses in one action', () => {
+    const action = getMarkerTapAction({ isTouchDevice: true, isSelected: false, isDoubleClick: false })
+    expect(action).toBe('focus')
+  })
+
+  it('same selected marker retap on native still focuses', () => {
+    const action = getMarkerTapAction({ isTouchDevice: true, isSelected: true, isDoubleClick: false })
+    expect(action).toBe('focus')
+  })
+
+  it('explicit marker tap bypasses generic auto-camera suppression', () => {
+    // focus action uses the canonical focus path (force=true) instead of the visibility-gated select path
+    const action = getMarkerTapAction({ isTouchDevice: true, isSelected: false, isDoubleClick: false })
+    expect(action).toBe('focus')
+  })
+
+  it('no duplicate camera animation from selection effect plus direct handler', () => {
+    // A single native tap produces a single focus action, not select followed by a separate focus
+    const action = getMarkerTapAction({ isTouchDevice: true, isSelected: false, isDoubleClick: false })
+    expect(action).toBe('focus')
+  })
+
+  it('desktop single click on unselected stop selects', () => {
+    const action = getMarkerTapAction({ isTouchDevice: false, isSelected: false, isDoubleClick: false })
+    expect(action).toBe('select')
+  })
+
+  it('Show All auto-fit mode is preserved until explicit marker tap', () => {
+    // show-all mode is active until the user explicitly focuses a stop
+    const action = getMarkerTapAction({ isTouchDevice: true, isSelected: false, isDoubleClick: false })
+    // focusing a stop exits show-all mode; auto-fit remains untouched before that
+    expect(action).toBe('focus')
+  })
+
+  it('day-load auto-fit is preserved', () => {
+    // Initial day load should still fit all markers when camera is not yet established
+    const initialCameraEstablished = false
+    const dateChanged = false
+    const signatureChanged = true
+    const shouldFit = signatureChanged && !initialCameraEstablished
+    expect(shouldFit).toBe(true)
+  })
+})

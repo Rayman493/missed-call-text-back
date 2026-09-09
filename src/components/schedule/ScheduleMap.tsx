@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import { isValidCoordinate, getMarkerTapAction } from '@/lib/map-utils'
+import { Capacitor } from '@capacitor/core'
 import { formatEventTimeRange, formatTime12Hour } from '@/lib/calendar-date-utils'
 import { createBrowserClient } from '@/lib/supabase/browser'
 
@@ -303,6 +304,12 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
     return hasCoarsePointer || hasTouchStart || hasMaxTouchPoints
   }, [])
 
+  // Deterministic native platform detection for iOS/Android Capacitor builds.
+  // Touch heuristics are kept as a fallback for mobile web.
+  const isNativeMobile = useMemo(() => {
+    return Capacitor.isNativePlatform() || isTouchDevice
+  }, [isTouchDevice])
+
   const [showAllMode, setShowAllMode] = useState(true)
   const [leadCache, setLeadCache] = useState<Map<string, { name: string | null; phone: string | null }>>(new Map()) // Cache for lead data to avoid N+1 queries
 
@@ -313,8 +320,9 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
   // Production VECTOR rendering configuration
 const PRODUCTION_MAP_ID = 'c783fbbc07696bfd5be1f3c6'
 
-// Canonical helper to focus on a stop on the map (used by marker and card double-click)
+// Canonical helper to focus on a stop on the map (used by native/touch marker taps and desktop double-clicks).
 // Uses panToMarker for a single smooth camera animation instead of stacking pan/zoom calls.
+// force=true lets an explicit marker tap refocus even when the map is already centered on the stop.
 const focusStopOnMap = (itemId: string, latitude: number | null, longitude: number | null) => {
   if (latitude === null || longitude === null) return
 
@@ -325,7 +333,7 @@ const focusStopOnMap = (itemId: string, latitude: number | null, longitude: numb
     const currentZoom = googleMapRef.current.getZoom() ?? 0
     // Zoom in if needed, but never zoom out on an already-focused stop.
     const targetZoom = Math.max(currentZoom, 16)
-    panToMarker(latitude, longitude, { zoom: targetZoom }, 'focus_stop_on_map')
+    panToMarker(latitude, longitude, { zoom: targetZoom, force: true }, 'focus_stop_on_map')
   }
 }
 
@@ -628,29 +636,33 @@ useEffect(() => {
     })
   }, [])
 
-  // Pan to marker without resetting bounds
-  const panToMarker = useCallback((lat: number, lng: number, options?: { zoom?: number; setCameraOwnerToUser?: boolean; checkVisibility?: boolean }, reason: string = 'unknown') => {
+  // Pan to marker without resetting bounds.
+  // Use force=true for explicit user-driven focus so it cannot be suppressed by visibility/no-op guards.
+  const panToMarker = useCallback((lat: number, lng: number, options?: { zoom?: number; setCameraOwnerToUser?: boolean; checkVisibility?: boolean; force?: boolean }, reason: string = 'unknown') => {
     if (!googleMapRef.current) return
 
-    const { zoom, setCameraOwnerToUser = false, checkVisibility = false } = options || {}
+    const { zoom, setCameraOwnerToUser = false, checkVisibility = false, force = false } = options || {}
 
-    // Check if marker is already comfortably visible (if requested)
-    if (checkVisibility) {
+    // Check if marker is already comfortably visible (if requested).
+    // Explicit focus commands pass force=true to override this guard.
+    if (checkVisibility && !force) {
       const bounds = googleMapRef.current.getBounds()
       const position = { lat, lng }
-      if (bounds.contains(position)) {
-        // Still update selection state without moving camera
+      if (bounds && bounds.contains(position)) {
+        console.log('[ScheduleMap] marker_focus_suppressed', { reason, lat, lng, cause: 'already_visible', platform: Capacitor.getPlatform() })
         return
       }
     }
 
-    // Check if this is actually a camera change (avoid no-op calls)
+    // Check if this is actually a camera change (avoid no-op calls).
+    // Explicit focus commands pass force=true to refocus even when already centered.
     const currentCenter = googleMapRef.current.getCenter()
     const currentZoom = googleMapRef.current.getZoom()
     const isSameCenter = Math.abs(currentCenter.lat() - lat) < 0.000001 && Math.abs(currentCenter.lng() - lng) < 0.000001
     const isSameZoom = zoom === undefined || Math.abs(currentZoom - zoom) < 0.01
 
-    if (isSameCenter && isSameZoom) {
+    if (isSameCenter && isSameZoom && !force) {
+      console.log('[ScheduleMap] marker_focus_suppressed', { reason, lat, lng, cause: 'already_centered', platform: Capacitor.getPlatform() })
       return
     }
 
@@ -659,6 +671,7 @@ useEffect(() => {
     if (zoom !== undefined) {
       googleMapRef.current.setZoom(zoom)
     }
+    console.log('[ScheduleMap] marker_focus_applied', { reason, lat, lng, zoom, platform: Capacitor.getPlatform() })
   }, [])
 
   // Reset to show all markers
@@ -1893,43 +1906,59 @@ useEffect(() => {
           suppressMapClickRef.current = true
           setTimeout(() => { suppressMapClickRef.current = false }, 50)
 
-          if (markerInfo.items.length === 1) {
-            const item = markerInfo.items[0]
+          const platform = Capacitor.getPlatform()
+          const isNative = Capacitor.isNativePlatform()
+
+          // Resolve which item to act on; for grouped markers use the earliest scheduled item.
+          const sortedItems = [...markerInfo.items].sort((a, b) => {
+            const timeA = a.scheduledTime || '00:00'
+            const timeB = b.scheduledTime || '00:00'
+            const timeCompare = timeA.localeCompare(timeB)
+            if (timeCompare !== 0) return timeCompare
+            // Stable tie-breaker: use item ID for identical times
+            return a.id.localeCompare(b.id)
+          })
+          const item = sortedItems[0]
+          const isSingle = markerInfo.items.length === 1
+
+          console.log('[ScheduleMap] marker_interaction', { platform, native: isNative, markerId: item.id, itemCount: markerInfo.items.length, isSingle })
+
+          if (isNativeMobile) {
+            // Native / touch: one normal tap always selects and focuses the stop.
+            console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_tap', stopId: item.id, platform })
+            focusStopOnMap(item.id, item.latitude, item.longitude)
+            if (!isSingle) {
+              setSelectedMarker(markerInfo) // Still show popup for easy access to other items
+            }
+          } else {
+            // Desktop mouse: single click selects/deselects, double click focuses.
             const now = Date.now()
             const lastClick = lastClickTimeRef.current.get(item.id) ?? 0
-            const timeSinceLastClick = now - lastClick
-            const isDoubleClick = timeSinceLastClick < DOUBLE_TAP_DELAY_MS
+            const isDoubleClick = now - lastClick < DOUBLE_TAP_DELAY_MS
 
             const action = getMarkerTapAction({
-              isTouchDevice,
+              isTouchDevice: false,
               isSelected: selectedMapItemId === item.id,
               isDoubleClick
             })
 
             if (action === 'focus') {
+              console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_dblclick', stopId: item.id, platform })
               focusStopOnMap(item.id, item.latitude, item.longitude)
               lastClickTimeRef.current.delete(item.id)
+              if (!isSingle) {
+                setSelectedMarker(markerInfo)
+              }
             } else if (action === 'deselect') {
               clearSelectedStop()
               lastClickTimeRef.current.set(item.id, now)
             } else {
               selectMapItem(item.id, item.latitude, item.longitude)
               lastClickTimeRef.current.set(item.id, now)
+              if (!isSingle) {
+                setSelectedMarker(markerInfo)
+              }
             }
-          } else {
-            // For grouped markers, select the first item chronologically as default
-            // This ensures map/list synchronization works even when multiple items share a location
-            const sortedItems = [...markerInfo.items].sort((a, b) => {
-              const timeA = a.scheduledTime || '00:00'
-              const timeB = b.scheduledTime || '00:00'
-              const timeCompare = timeA.localeCompare(timeB)
-              if (timeCompare !== 0) return timeCompare
-              // Stable tie-breaker: use item ID for identical times
-              return a.id.localeCompare(b.id)
-            })
-            const firstItem = sortedItems[0]
-            selectMapItem(firstItem.id, firstItem.latitude, firstItem.longitude)
-            setSelectedMarker(markerInfo) // Still show popup for easy access to other items
           }
         })
 
@@ -2333,18 +2362,33 @@ useEffect(() => {
 
   
   const handleItemClick = (item: MapItem) => {
+    const platform = Capacitor.getPlatform()
+
+    if (isNativeMobile) {
+      // Native / touch card/list tap: one tap focuses the stop.
+      if (item.type !== 'business') {
+        console.log('[ScheduleMap] marker_focus_requested', { source: 'card_tap', stopId: item.id, platform })
+        focusStopOnMap(item.id, item.latitude, item.longitude)
+      } else {
+        selectMapItem(item.id, item.latitude, item.longitude)
+      }
+      return
+    }
+
+    // Desktop mouse card/list: single click selects/deselects, double click focuses.
     const now = Date.now()
     const lastClick = lastClickTimeRef.current.get(item.id) ?? 0
     const isDoubleClick = now - lastClick < DOUBLE_TAP_DELAY_MS
     lastClickTimeRef.current.set(item.id, now)
 
     const action = getMarkerTapAction({
-      isTouchDevice,
+      isTouchDevice: false,
       isSelected: selectedMapItemId === item.id,
       isDoubleClick
     })
 
     if (action === 'focus' && item.type !== 'business') {
+      console.log('[ScheduleMap] marker_focus_requested', { source: 'card_dblclick', stopId: item.id, platform })
       focusStopOnMap(item.id, item.latitude, item.longitude)
     } else if (action === 'deselect') {
       clearSelectedStop()
