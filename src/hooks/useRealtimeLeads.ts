@@ -9,11 +9,12 @@ export function useRealtimeLeads(
   businessId: string | undefined,
   onNewLead: (lead: any) => void,
   onNewMessage: (message: any) => void,
-  onLeadUpdate: (lead: any) => void
+  onLeadUpdate: (lead: any) => void,
+  onAICallRecord?: (record: any) => void
 ) {
   const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null)
   const channelsRef = useRef<RealtimeChannel[]>([])
-  const callbacksRef = useRef({ onNewLead, onNewMessage, onLeadUpdate })
+  const callbacksRef = useRef({ onNewLead, onNewMessage, onLeadUpdate, onAICallRecord })
 
   // Lazy initialization - only create client once
   if (!supabaseRef.current) {
@@ -24,8 +25,8 @@ export function useRealtimeLeads(
 
   // Update callbacks ref without triggering effect re-run
   useEffect(() => {
-    callbacksRef.current = { onNewLead, onNewMessage, onLeadUpdate }
-  }, [onNewLead, onNewMessage, onLeadUpdate])
+    callbacksRef.current = { onNewLead, onNewMessage, onLeadUpdate, onAICallRecord }
+  }, [onNewLead, onNewMessage, onLeadUpdate, onAICallRecord])
 
   useEffect(() => {
     if (!businessId || !supabase) return
@@ -97,7 +98,47 @@ export function useRealtimeLeads(
         }
       })
 
-    channelsRef.current = [leadsChannel, messagesChannel]
+    // Subscribe to ai_call_records table changes for intake completion updates
+    const aiCallRecordsChannel = supabase
+      .channel(`ai-call-records-${businessId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'ai_call_records',
+          filter: `business_id=eq.${businessId}`
+        },
+        (payload: any) => {
+          console.log('[Realtime] New AI call record:', payload.new)
+          if (callbacksRef.current.onAICallRecord) {
+            callbacksRef.current.onAICallRecord(payload.new)
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'ai_call_records',
+          filter: `business_id=eq.${businessId}`
+        },
+        (payload: any) => {
+          console.log('[Realtime] AI call record updated:', payload.new)
+          if (callbacksRef.current.onAICallRecord) {
+            callbacksRef.current.onAICallRecord(payload.new)
+          }
+        }
+      )
+      .subscribe((status: string) => {
+        console.log('[Realtime] AI call records channel status:', status)
+        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          console.log('[Realtime] AI call records channel disconnected, will reconnect on next effect')
+        }
+      })
+
+    channelsRef.current = [leadsChannel, messagesChannel, aiCallRecordsChannel]
 
     // Cleanup function
     return () => {

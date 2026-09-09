@@ -60,6 +60,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
+import { mergeAICallRecordIntoLeads } from '@/lib/realtime-lead-merge'
 import { getLeadLifecycleStatus, calculateLeadStatusCounts } from '@/lib/lead-lifecycle'
 import { CustomerStatus } from '@/lib/customer-status'
 import StatCard from '@/components/StatCard'
@@ -510,6 +511,22 @@ export default function LeadsPage() {
         )
         const deduplicated = mergeDuplicateLeads(updatedLeads)
         // Sort by latest activity
+        deduplicated.sort((a, b) => {
+          const aActivity = getLatestActivity(a)
+          const bActivity = getLatestActivity(b)
+          return new Date(bActivity).getTime() - new Date(aActivity).getTime()
+        })
+        return deduplicated
+      })
+    },
+    (aiCallRecord) => {
+      setLeads(prev => {
+        // Merge the new/updated ai_call_record into the affected lead.
+        // This keeps the preview card fresh when an intake completes without
+        // requiring a full page refresh.
+        const updatedLeads = mergeAICallRecordIntoLeads(prev, aiCallRecord)
+
+        const deduplicated = mergeDuplicateLeads(updatedLeads)
         deduplicated.sort((a, b) => {
           const aActivity = getLatestActivity(a)
           const bActivity = getLatestActivity(b)

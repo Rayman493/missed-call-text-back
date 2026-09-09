@@ -91,6 +91,7 @@ describe('useRealtimeLeads - Supabase Instance Stability', () => {
     expect(effectDependencies).not.toContain('onNewLead')
     expect(effectDependencies).not.toContain('onNewMessage')
     expect(effectDependencies).not.toContain('onLeadUpdate')
+    expect(effectDependencies).not.toContain('onAICallRecord')
   })
 
   it('changed businessId cleans up old channels', () => {
