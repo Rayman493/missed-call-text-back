@@ -133,14 +133,28 @@ describe('Part 4 — Premium Map Marker Visuals', () => {
     expect(markerFn).toContain('#059669')
   })
 
-  it('job marker uses blue (#2563EB)', () => {
-    expect(markerFn).toContain('#2563EB')
-    expect(markerFn).toContain("type === 'job'")
+  it('premium per-stop palette exists with distinct colors', () => {
+    expect(scheduleMap).toContain('PREMIUM_STOP_PALETTE')
+    expect(scheduleMap).toContain('#1E40AF') // deep blue
+    expect(scheduleMap).toContain('#0D9488') // teal
+    expect(scheduleMap).toContain('#7C3AED') // violet
   })
 
-  it('appointment marker uses amber (#D97706)', () => {
-    expect(markerFn).toContain('#D97706')
-    expect(markerFn).toContain("type === 'appointment'")
+  it('stop colors are assigned by stop number from palette (not single semantic color)', () => {
+    expect(markerFn).toContain('PREMIUM_STOP_PALETTE[(stopNumber - 1) % PREMIUM_STOP_PALETTE.length]')
+  })
+
+  it('job markers no longer use single #2563EB for all stops', () => {
+    expect(markerFn).not.toContain("type === 'job'")
+  })
+
+  it('appointment markers no longer use single #D97706 for all stops', () => {
+    expect(markerFn).not.toContain("type === 'appointment'\n          ? '#D97706'")
+  })
+
+  it('Job vs Appointment type distinction via dashed ring for appointments', () => {
+    expect(markerFn).toContain('isAppointment')
+    expect(markerFn).toContain('setLineDash')
   })
 
   it('business marker uses vector home icon (not emoji)', () => {
@@ -160,6 +174,16 @@ describe('Part 4 — Premium Map Marker Visuals', () => {
   it('has white outer ring for satellite/map readability', () => {
     expect(markerFn).toContain("'#FFFFFF'")
     expect(markerFn).toContain('ringWidth')
+  })
+
+  it('has drop shadow for premium depth', () => {
+    expect(markerFn).toContain('shadowColor')
+    expect(markerFn).toContain('shadowBlur')
+  })
+
+  it('has inner highlight gradient for premium feel', () => {
+    expect(markerFn).toContain('highlightGrad')
+    expect(markerFn).toContain('createLinearGradient')
   })
 
   it('handles >99 stops with "99+" label', () => {

@@ -415,7 +415,7 @@ export default function TodayCommandCenter({
               <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 leading-tight">
                 Today
               </h3>
-              <p className="text-[10px] text-blue-600/70 dark:text-blue-300/60 font-normal leading-tight mt-0.5">
+              <p className="text-xs text-blue-600/70 dark:text-blue-300/60 font-normal leading-tight mt-0.5">
                 {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               </p>
             </div>
@@ -435,10 +435,10 @@ export default function TodayCommandCenter({
           </div>
         ) : sortedWorkItems.length === 0 ? (
           <div className="px-3 pb-3 pt-1 flex-1 flex flex-col justify-center">
-            <p className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-0.5">
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-0.5">
               Your day is clear
             </p>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500">
+            <p className="text-xs text-slate-400 dark:text-slate-500">
               Nothing scheduled for today.
             </p>
           </div>
@@ -467,23 +467,23 @@ export default function TodayCommandCenter({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-medium text-foreground truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {item.title}
                     </p>
                     {item.isOverdue && (
-                      <span className="text-[9px] px-1 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-medium flex-shrink-0">
+                      <span className="text-[10px] px-1 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-medium flex-shrink-0">
                         Overdue
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     {item.time && (
-                      <span className={`text-[10px] ${item.isOverdue ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                      <span className={`text-xs ${item.isOverdue ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
                         {item.time}
                       </span>
                     )}
                     {item.customer && (
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         • {item.customer}
                       </span>
                     )}
@@ -497,7 +497,7 @@ export default function TodayCommandCenter({
                         className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100"
                         aria-label="Edit reminder"
                       >
-                        <Pencil className="w-3 h-3" />
+                        <Pencil className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
@@ -506,7 +506,7 @@ export default function TodayCommandCenter({
                   <div className="flex items-center gap-0.5">
                     <button
                       onClick={() => onJobClick?.(item.data)}
-                      className="flex-shrink-0 text-[10px] text-blue-600 dark:text-blue-400 hover:underline"
+                      className="flex-shrink-0 text-xs text-blue-600 dark:text-blue-400 hover:underline"
                     >
                       View
                     </button>
@@ -516,7 +516,7 @@ export default function TodayCommandCenter({
                         className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100"
                         aria-label="Edit job"
                       >
-                        <Pencil className="w-3 h-3" />
+                        <Pencil className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>

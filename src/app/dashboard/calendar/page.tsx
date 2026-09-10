@@ -2709,6 +2709,17 @@ function JobsTab({
                 {paymentLabel}
               </span>
             )}
+            {onEditJob && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onEditJob(job) }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEditJob(job) } }}
+                className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors mt-0.5"
+                aria-label="Edit job"
+              >
+                <Pencil className="w-3 h-3" />
+                <span className="hidden sm:inline">Edit</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

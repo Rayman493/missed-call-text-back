@@ -2218,7 +2218,21 @@ useEffect(() => {
     }
   }, [])
 
-  // Create numbered marker icon with premium semantic styling
+  // Premium per-stop palette — rich but restrained, readable with white numbers on Map and Satellite
+  const PREMIUM_STOP_PALETTE = [
+    '#1E40AF', // deep blue
+    '#0D9488', // teal
+    '#7C3AED', // violet
+    '#D97706', // amber
+    '#DC2626', // coral
+    '#4338CA', // indigo
+    '#059669', // emerald
+    '#E11D48', // rose
+    '#0891B2', // cyan
+    '#9333EA', // plum
+  ]
+
+  // Create numbered marker icon with premium consumer-map styling
   const createNumberedMarkerIcon = (stopNumber: number, type: MapItemType, isSelected: boolean = false): any => {
     // Use actual device pixel ratio for HiDPI canvas backing store
     const dpr = window.devicePixelRatio || 1
@@ -2232,49 +2246,65 @@ useEffect(() => {
     }
 
     const isBusiness = type === 'business'
+    const isAppointment = type === 'appointment'
 
-    // Semantic color system: business=green, job=blue, appointment=amber
+    // Per-stop palette: each stop gets a distinct, deterministic color
     const color = isBusiness
       ? '#059669'
-      : type === 'job'
-        ? '#2563EB'
-        : type === 'appointment'
-          ? '#D97706'
-          : STOP_COLOR_PALETTE[(stopNumber - 1) % STOP_COLOR_PALETTE.length]
+      : PREMIUM_STOP_PALETTE[(stopNumber - 1) % PREMIUM_STOP_PALETTE.length]
 
     // Selected markers are ~15% larger with stronger ring
     const size = isSelected ? 42 : 36
-    const strokeWidth = isSelected ? 3 : 2
+    const ringWidth = isSelected ? 3 : 2.5
     const textColor = '#FFFFFF'
+    const center = size / 2
 
     // Create canvas for marker
-    // Canvas backing store uses physical pixels for crisp rendering
     const canvas = document.createElement('canvas')
     canvas.width = size * dpr
     canvas.height = size * dpr
     const ctx = canvas.getContext('2d')!
-    // Scale drawing context so we draw in logical coordinates
     ctx.scale(dpr, dpr)
 
-    // Draw subtle outer ring (high-contrast white halo for readability over satellite/map)
-    const ringWidth = isSelected ? 3 : 2
+    // Draw subtle drop shadow for depth
+    ctx.save()
+    ctx.shadowColor = 'rgba(0,0,0,0.3)'
+    ctx.shadowBlur = isSelected ? 6 : 4
+    ctx.shadowOffsetY = isSelected ? 2 : 1.5
+
+    // Draw filled circle background (the shadow applies to this fill)
+    const fillRadius = size / 2 - ringWidth - 0.5
     ctx.beginPath()
-    ctx.arc(size / 2, size / 2, size / 2 - ringWidth / 2, 0, 2 * Math.PI)
+    ctx.arc(center, center, fillRadius, 0, 2 * Math.PI)
+    ctx.fillStyle = color
+    ctx.fill()
+    ctx.restore()
+
+    // Draw inner highlight (subtle top gradient for premium feel)
+    const highlightGrad = ctx.createLinearGradient(0, 0, 0, size)
+    highlightGrad.addColorStop(0, 'rgba(255,255,255,0.18)')
+    highlightGrad.addColorStop(0.5, 'rgba(255,255,255,0)')
+    ctx.beginPath()
+    ctx.arc(center, center, fillRadius, 0, 2 * Math.PI)
+    ctx.fillStyle = highlightGrad
+    ctx.fill()
+
+    // Draw white outer ring — type distinction via stroke style
+    // Jobs: solid white ring | Appointments: dashed white ring
+    if (isAppointment && !isBusiness) {
+      ctx.setLineDash([3.5, 2.5])
+    }
+    ctx.beginPath()
+    ctx.arc(center, center, size / 2 - ringWidth / 2, 0, 2 * Math.PI)
     ctx.strokeStyle = '#FFFFFF'
     ctx.lineWidth = ringWidth
     ctx.stroke()
+    ctx.setLineDash([])
 
-    // Draw filled circle background
-    const innerRadius = size / 2 - ringWidth - 1
-    ctx.beginPath()
-    ctx.arc(size / 2, size / 2, innerRadius, 0, 2 * Math.PI)
-    ctx.fillStyle = color
-    ctx.fill()
-
-    // Draw selected emphasis ring (amber accent)
+    // Draw selected emphasis ring (amber accent outside the white ring)
     if (isSelected) {
       ctx.beginPath()
-      ctx.arc(size / 2, size / 2, size / 2 - 0.5, 0, 2 * Math.PI)
+      ctx.arc(center, center, size / 2 - 0.5, 0, 2 * Math.PI)
       ctx.strokeStyle = '#F59E0B'
       ctx.lineWidth = 1.5
       ctx.stroke()
@@ -2286,9 +2316,9 @@ useEffect(() => {
     ctx.textBaseline = 'middle'
     if (isBusiness) {
       // Draw a clean home icon using vector paths (not emoji for crisp rendering)
-      const cx = size / 2
-      const cy = size / 2
-      const s = size * 0.32 // icon scale
+      const cx = center
+      const cy = center
+      const s = size * 0.30 // icon scale
       ctx.beginPath()
       // Roof
       ctx.moveTo(cx, cy - s * 0.65)
@@ -2306,7 +2336,7 @@ useEffect(() => {
       const label = stopNumber > 99 ? '99+' : stopNumber.toString()
       const fontSize = label.length > 2 ? size * 0.3 : size * 0.42
       ctx.font = `bold ${fontSize}px system-ui, -apple-system, sans-serif`
-      ctx.fillText(label, size / 2, size / 2)
+      ctx.fillText(label, center, center + 0.5) // slight nudge for visual centering
     }
 
     const icon = {
