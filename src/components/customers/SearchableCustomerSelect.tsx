@@ -283,7 +283,7 @@ export default function SearchableCustomerSelect({
       <div className="relative">
         {isOpen ? (
           <div
-            className="w-full flex items-center gap-2 bg-background dark:bg-slate-900/40 border border-border rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-primary/50 text-left"
+            className="w-full flex items-center gap-2 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500/60 text-left"
           >
             <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             <input
@@ -312,10 +312,10 @@ export default function SearchableCustomerSelect({
             aria-expanded={isOpen}
             aria-controls={dropdownId}
             aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
-            className={`w-full bg-background dark:bg-slate-900/40 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 flex items-center gap-2 duration-150 text-left ${
+            className={`w-full bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 flex items-center gap-2 duration-150 text-left ${
               disabled
                 ? 'opacity-50 cursor-not-allowed px-3 py-2.5'
-                : 'hover:border-border/60 cursor-pointer px-3 py-2.5'
+                : 'hover:border-slate-700/80 cursor-pointer px-3 py-2.5'
             } ${hasValue && allowClear && !disabled ? 'pr-14' : 'pr-10'}`}
           >
             <span className={selectedCustomer ? 'text-foreground truncate flex-1 min-w-0' : 'text-muted-foreground truncate flex-1 min-w-0'}>

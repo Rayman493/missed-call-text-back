@@ -311,7 +311,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Call customer about quote"
-                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-800/60 border border-border/50 dark:border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                 required
               />
             </div>
@@ -409,7 +409,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add any details about this reminder..."
                 rows={3}
-                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-800/60 border border-border/50 dark:border-border/40 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-y"
                 autoCapitalize="sentences"
                 autoCorrect="on"
                 spellCheck={true}

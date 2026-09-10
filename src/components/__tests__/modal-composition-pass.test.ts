@@ -116,7 +116,11 @@ describe('Modal Composition — Description Deduplication', () => {
 // ---------------------------------------------------------------------------
 
 describe('Modal Composition — Surface Hierarchy', () => {
-  it('EventDetailsModal inputs use bg-muted/30 dark:bg-slate-800/60', () => {
+  it('EventDetailsModal editable inputs use canonical surface (dark:bg-slate-900/55)', () => {
+    expect(eventDetailsContent).toContain('bg-muted/30 dark:bg-slate-900/55')
+  })
+
+  it('EventDetailsModal read-only Related Job card uses lighter surface (dark:bg-slate-800/60)', () => {
     expect(eventDetailsContent).toContain('bg-muted/30 dark:bg-slate-800/60')
   })
 
@@ -128,15 +132,19 @@ describe('Modal Composition — Surface Hierarchy', () => {
     expect(eventDetailsContent).not.toContain('bg-slate-800 border border-slate-700 rounded text-sm text-white')
   })
 
-  it('NewTaskModal inputs use bg-muted/30 dark:bg-slate-800/60', () => {
-    expect(newTaskModalContent).toContain('bg-muted/30 dark:bg-slate-800/60')
+  it('NewTaskModal inputs use canonical editable surface (bg-muted/30 dark:bg-slate-900/55)', () => {
+    expect(newTaskModalContent).toContain('bg-muted/30 dark:bg-slate-900/55')
   })
 
   it('NewTaskModal no longer uses bg-background for inputs', () => {
     expect(newTaskModalContent).not.toContain('bg-background border border-border rounded-lg')
   })
 
-  it('JobComposer inputs use bg-muted/30 dark:bg-slate-800/60', () => {
+  it('JobComposer editable inputs use canonical surface (dark:bg-slate-900/55)', () => {
+    expect(jobComposerContent).toContain('bg-muted/30 dark:bg-slate-900/55')
+  })
+
+  it('JobComposer read-only preference card uses lighter surface (dark:bg-slate-800/60)', () => {
     expect(jobComposerContent).toContain('bg-muted/30 dark:bg-slate-800/60')
   })
 

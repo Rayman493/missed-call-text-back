@@ -353,7 +353,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                   autoCapitalize="sentences"
                   autoComplete="on"
                   spellCheck={true}
-                  className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                 />
               </div>
 
@@ -454,7 +454,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                   autoCapitalize="sentences"
                   autoComplete="on"
                   spellCheck={true}
-                  className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                 />
               </div>
 
@@ -466,7 +466,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                     value={customMeetingUrl}
                     onChange={(e) => setCustomMeetingUrl(e.target.value)}
                     placeholder="https://zoom.us/... or https://teams.microsoft.com/..."
-                    className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                   />
                 </div>
               )}
@@ -481,7 +481,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                   autoCapitalize="sentences"
                   autoComplete="on"
                   spellCheck={true}
-                  className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                  className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-none"
                 />
               </div>
             </div>

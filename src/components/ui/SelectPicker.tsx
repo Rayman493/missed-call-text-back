@@ -222,7 +222,7 @@ export default function SelectPicker({
       <div className="relative">
         {isSearching ? (
           <div
-            className="w-full flex items-center gap-2 bg-background dark:bg-slate-900/40 border border-border rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-primary/50 text-left"
+            className="w-full flex items-center gap-2 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500/60 text-left"
           >
             <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             <input
@@ -253,8 +253,8 @@ export default function SelectPicker({
             aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
             className={`w-full border rounded-lg flex items-center gap-2 duration-150 text-left ${
               disabled
-                ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30 px-3 py-2.5 pr-10'
-                : 'bg-background dark:bg-slate-900/40 text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60 cursor-pointer px-3 py-2.5'
+                ? 'bg-muted/50 dark:bg-slate-900/40 text-muted-foreground/50 cursor-not-allowed border-border/30 px-3 py-2.5 pr-10'
+                : 'bg-muted/30 dark:bg-slate-900/55 text-foreground border-border/50 dark:border-slate-700/60 hover:border-slate-700/80 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 cursor-pointer px-3 py-2.5'
             } ${!disabled && hasValue ? 'pr-14' : 'pr-10'}`}
           >
             <span className={selectedOption ? 'text-foreground truncate flex-1 min-w-0' : 'text-muted-foreground truncate flex-1 min-w-0'}>
