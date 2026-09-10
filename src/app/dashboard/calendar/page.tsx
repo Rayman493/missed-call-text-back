@@ -1519,6 +1519,28 @@ export default function SchedulePage() {
                         Agenda
                       </button>
                       <button
+                        onClick={() => setScheduleTab('calendar')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-all duration-200 ease-out ${
+                          scheduleTab === 'calendar'
+                            ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-sm'
+                        }`}
+                      >
+                        <CalendarIcon className={`w-4 h-4 ${scheduleTab === 'calendar' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                        Calendar
+                      </button>
+                      <button
+                        onClick={() => setScheduleTab('map')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-all duration-200 ease-out ${
+                          scheduleTab === 'map'
+                            ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-sm'
+                        }`}
+                      >
+                        <MapIcon className={`w-4 h-4 ${scheduleTab === 'map' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                        Map
+                      </button>
+                      <button
                         onClick={() => setScheduleTab('reminders')}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-all duration-200 ease-out ${
                           scheduleTab === 'reminders'
@@ -1551,28 +1573,6 @@ export default function SchedulePage() {
                         <CalendarIcon className={`w-4 h-4 ${scheduleTab === 'appointments' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Appointments
                       </button>
-                      <button
-                        onClick={() => setScheduleTab('calendar')}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-all duration-200 ease-out ${
-                          scheduleTab === 'calendar'
-                            ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-sm'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-sm'
-                        }`}
-                      >
-                        <CalendarIcon className={`w-4 h-4 ${scheduleTab === 'calendar' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                        Calendar
-                      </button>
-                      <button
-                        onClick={() => setScheduleTab('map')}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-all duration-200 ease-out ${
-                          scheduleTab === 'map'
-                            ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-sm'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-sm'
-                        }`}
-                      >
-                        <MapIcon className={`w-4 h-4 ${scheduleTab === 'map' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                        Map
-                      </button>
                     </div>
                   </div>
 
@@ -1590,6 +1590,28 @@ export default function SchedulePage() {
                         >
                           <CheckCircle2 className={`w-3 h-3 ${scheduleTab === 'agenda' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                           <span>Agenda</span>
+                        </button>
+                        <button
+                          onClick={() => setScheduleTab('calendar')}
+                          className={`flex items-center justify-center gap-1 py-2 px-2.5 rounded-md font-medium transition-all duration-200 ease-out whitespace-nowrap flex-shrink-0 ${
+                            scheduleTab === 'calendar'
+                              ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-xs'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-xs'
+                          }`}
+                        >
+                          <CalendarIcon className={`w-3 h-3 ${scheduleTab === 'calendar' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                          <span>Calendar</span>
+                        </button>
+                        <button
+                          onClick={() => setScheduleTab('map')}
+                          className={`flex items-center justify-center gap-1 py-2 px-2.5 rounded-md font-medium transition-all duration-200 ease-out whitespace-nowrap flex-shrink-0 ${
+                            scheduleTab === 'map'
+                              ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-xs'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-xs'
+                          }`}
+                        >
+                          <MapIcon className={`w-3 h-3 ${scheduleTab === 'map' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                          <span>Map</span>
                         </button>
                         <button
                           onClick={() => setScheduleTab('reminders')}
@@ -1623,28 +1645,6 @@ export default function SchedulePage() {
                         >
                           <CalendarIcon className={`w-3 h-3 ${scheduleTab === 'appointments' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                           <span>Appts</span>
-                        </button>
-                        <button
-                          onClick={() => setScheduleTab('calendar')}
-                          className={`flex items-center justify-center gap-1 py-2 px-2.5 rounded-md font-medium transition-all duration-200 ease-out whitespace-nowrap flex-shrink-0 ${
-                            scheduleTab === 'calendar'
-                              ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-xs'
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-xs'
-                          }`}
-                        >
-                          <CalendarIcon className={`w-3 h-3 ${scheduleTab === 'calendar' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                          <span>Calendar</span>
-                        </button>
-                        <button
-                          onClick={() => setScheduleTab('map')}
-                          className={`flex items-center justify-center gap-1 py-2 px-2.5 rounded-md font-medium transition-all duration-200 ease-out whitespace-nowrap flex-shrink-0 ${
-                            scheduleTab === 'map'
-                              ? 'bg-white dark:bg-slate-700/60 text-slate-900 dark:text-foreground text-xs'
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/30 text-xs'
-                          }`}
-                        >
-                          <MapIcon className={`w-3 h-3 ${scheduleTab === 'map' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                          <span>Map</span>
                         </button>
                       </div>
                     </div>
