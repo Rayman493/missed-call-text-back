@@ -59,6 +59,17 @@ export default function Modal({
     return () => document.removeEventListener('keydown', handleEscape)
   }, [isOpen, onClose])
 
+  // Deterministic initial focus: when the modal opens, move focus to the
+  // dialog panel itself (a non-input element with tabIndex=-1). This is the
+  // standard accessible dialog pattern and prevents Android WebView from
+  // auto-focusing the first <input> element (which would open the keyboard).
+  // No setTimeout, no requestAnimationFrame — synchronous on mount.
+  useEffect(() => {
+    if (isOpen && modalRef.current) {
+      modalRef.current.focus()
+    }
+  }, [isOpen])
+
   // Log overlay mount/unmount for debugging
   useEffect(() => {
     if (isOpen) {
@@ -129,6 +140,7 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
+        tabIndex={-1}
         className={`
           relative w-full max-w-lg
           max-h-[var(--modal-max-height)]

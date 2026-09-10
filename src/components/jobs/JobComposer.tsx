@@ -327,7 +327,7 @@ export default function JobComposer({
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="e.g. Tree removal, Roof repair, AC installation"
-                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
+                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
               />
             </div>
 
@@ -357,7 +357,7 @@ export default function JobComposer({
                     type="tel"
                     value={customerPhone}
                     readOnly
-                    className="w-full px-4 py-2.5 sm:px-3 sm:py-2 text-sm bg-muted border border-border rounded-lg text-foreground"
+                    className="w-full px-3 py-2.5 text-sm bg-muted border border-border rounded-lg text-foreground"
                   />
                 </div>
               </div>
@@ -374,7 +374,7 @@ export default function JobComposer({
                 value={serviceAddress}
                 onChange={e => setServiceAddress(e.target.value)}
                 placeholder="123 Main St, City, State"
-                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
+                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
               />
             </div>
 
@@ -449,7 +449,7 @@ export default function JobComposer({
                 onChange={e => setNotes(e.target.value)}
                 rows={3}
                 placeholder="Any additional notes about this job..."
-                className="w-full max-h-40 overflow-y-auto overscroll-contain px-4 py-2.5 sm:px-3 sm:py-2 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-y"
+                className="w-full max-h-40 overflow-y-auto overscroll-contain px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-y"
                 style={{ WebkitOverflowScrolling: 'touch' }}
               />
             </div>

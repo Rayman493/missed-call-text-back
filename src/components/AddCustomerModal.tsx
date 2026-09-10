@@ -253,7 +253,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 value={formData.customerName}
                 onChange={(e) => handleInputChange('customerName', e.target.value)}
                 placeholder="John Smith"
-                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                 disabled={isSubmitting}
               />
             </div>
@@ -268,7 +268,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 value={formData.reasonForCalling}
                 onChange={(e) => handleInputChange('reasonForCalling', e.target.value)}
                 placeholder="e.g., Piano lessons, HVAC repair, Consultation"
-                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                 disabled={isSubmitting}
                 autoCapitalize="sentences"
                 autoCorrect="on"
@@ -285,7 +285,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 onChange={(e) => handleInputChange('notes', e.target.value)}
                 placeholder="Any additional details..."
                 rows={2}
-                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-none"
                 disabled={isSubmitting}
                 autoCapitalize="sentences"
                 autoCorrect="on"
@@ -304,7 +304,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 value={formData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
                 placeholder="123 Main St, City, State"
-                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                 disabled={isSubmitting}
               />
               <p className="text-xs text-muted-foreground/70 mt-1.5">
@@ -322,7 +322,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 value={formData.desiredCompletionTime}
                 onChange={(e) => handleInputChange('desiredCompletionTime', e.target.value)}
                 placeholder="e.g., tomorrow, next week, by Friday"
-                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                 disabled={isSubmitting}
                 autoCapitalize="sentences"
                 autoCorrect="on"
@@ -339,7 +339,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 value={formData.preferredCallbackTime}
                 onChange={(e) => handleInputChange('preferredCallbackTime', e.target.value)}
                 placeholder="e.g., afternoon, 2pm, morning"
-                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                 disabled={isSubmitting}
                 autoCapitalize="sentences"
                 autoCorrect="on"
@@ -358,7 +358,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 value={formData.phoneNumber}
                 onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                 placeholder="(412) 253-3598"
-                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                 disabled={isSubmitting}
               />
             </div>
@@ -378,7 +378,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 placeholder="john@example.com"
-                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                 disabled={isSubmitting}
               />
             </div>

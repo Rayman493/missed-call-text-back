@@ -312,11 +312,11 @@ export default function SearchableCustomerSelect({
             aria-expanded={isOpen}
             aria-controls={dropdownId}
             aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
-            className={`w-full bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 flex items-center gap-2 duration-150 text-left ${
+            className={`w-full bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 flex items-center gap-2 duration-150 text-left pr-[44px] ${
               disabled
                 ? 'opacity-50 cursor-not-allowed px-3 py-2.5'
                 : 'hover:border-slate-700/80 cursor-pointer px-3 py-2.5'
-            } ${hasValue && allowClear && !disabled ? 'pr-14' : 'pr-10'}`}
+            }`}
           >
             <span className={selectedCustomer ? 'text-foreground truncate flex-1 min-w-0' : 'text-muted-foreground truncate flex-1 min-w-0'}>
               {getDisplayText(selectedCustomer)}
@@ -329,7 +329,7 @@ export default function SearchableCustomerSelect({
             pointer-events-auto so it keeps its own click target. */}
         {!isOpen && (
           <div
-            className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none"
             aria-hidden={!(hasValue && allowClear && !disabled)}
           >
             {hasValue && allowClear && !disabled && (

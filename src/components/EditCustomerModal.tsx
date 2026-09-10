@@ -162,7 +162,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
 
         {/* Customer Name */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+          <label className="block text-xs text-muted-foreground font-medium mb-1.5 flex items-center gap-2">
             <User className="w-4 h-4" />
             Customer Name <span className="text-red-500">*</span>
           </label>
@@ -170,7 +170,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             type="text"
             value={formData.customerName}
             onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
             placeholder="Enter customer name"
             disabled={isSubmitting}
           />
@@ -178,7 +178,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
 
         {/* Reason for Calling */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+          <label className="block text-xs text-muted-foreground font-medium mb-1.5 flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
             Reason for Calling
           </label>
@@ -186,7 +186,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             type="text"
             value={formData.reasonForCalling}
             onChange={(e) => setFormData({ ...formData, reasonForCalling: e.target.value })}
-            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
             placeholder="What service are they requesting?"
             disabled={isSubmitting}
           />
@@ -194,7 +194,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
 
         {/* Details */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+          <label className="block text-xs text-muted-foreground font-medium mb-1.5 flex items-center gap-2">
             <FileText className="w-4 h-4" />
             Details
           </label>
@@ -202,7 +202,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             value={formData.details}
             onChange={(e) => setFormData({ ...formData, details: e.target.value })}
             rows={3}
-            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none resize-none"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-none"
             placeholder="Important details about the request"
             disabled={isSubmitting}
           />
@@ -210,7 +210,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
 
         {/* Location */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+          <label className="block text-xs text-muted-foreground font-medium mb-1.5 flex items-center gap-2">
             <MapPin className="w-4 h-4" />
             Location
           </label>
@@ -218,7 +218,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             type="text"
             value={formData.location}
             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
             placeholder="Service address"
             disabled={isSubmitting}
           />
@@ -226,7 +226,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
 
         {/* Desired Completion Time */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+          <label className="block text-xs text-muted-foreground font-medium mb-1.5 flex items-center gap-2">
             <Clock className="w-4 h-4" />
             Desired Completion Time
           </label>
@@ -234,7 +234,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             type="text"
             value={formData.desiredCompletionTime}
             onChange={(e) => setFormData({ ...formData, desiredCompletionTime: e.target.value })}
-            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
             placeholder="e.g. Tomorrow, This week"
             disabled={isSubmitting}
           />
@@ -242,7 +242,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
 
         {/* Preferred Callback Time */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+          <label className="block text-xs text-muted-foreground font-medium mb-1.5 flex items-center gap-2">
             <Clock className="w-4 h-4" />
             Preferred Callback Time
           </label>
@@ -250,7 +250,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             type="text"
             value={formData.preferredCallbackTime}
             onChange={(e) => setFormData({ ...formData, preferredCallbackTime: e.target.value })}
-            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
             placeholder="e.g. 3 PM"
             disabled={isSubmitting}
           />
@@ -258,7 +258,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
 
         {/* Phone Number */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+          <label className="block text-xs text-muted-foreground font-medium mb-1.5 flex items-center gap-2">
             <Phone className="w-4 h-4" />
             Phone Number
           </label>
@@ -266,7 +266,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             type="tel"
             value={formData.phoneNumber}
             onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
             placeholder="(555) 123-4567"
             disabled={isSubmitting}
           />
@@ -274,7 +274,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
 
         {/* Email */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
+          <label className="block text-xs text-muted-foreground font-medium mb-1.5 flex items-center gap-2">
             <Mail className="w-4 h-4" />
             Email
           </label>
@@ -282,7 +282,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             type="email"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
             placeholder="customer@example.com"
             disabled={isSubmitting}
           />
@@ -293,7 +293,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-muted"
             disabled={isSubmitting}
           >
             Cancel
@@ -301,7 +301,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed rounded-lg transition-colors"
+            className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:active:scale-100"
           >
             {isSubmitting ? 'Saving...' : 'Save Changes'}
           </button>

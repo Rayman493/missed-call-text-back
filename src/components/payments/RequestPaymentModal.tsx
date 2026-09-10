@@ -68,15 +68,10 @@ export default function RequestPaymentModal({
   const createInFlightRef = useRef(false)
   const attemptIdRef = useRef<string | null>(null)
 
-  // Prevent initial focus on amount input when modal opens
-  useEffect(() => {
-    if (isOpen && amountInputRef.current) {
-      // Use setTimeout to ensure this runs after any browser autofocus
-      setTimeout(() => {
-        amountInputRef.current?.blur()
-      }, 0)
-    }
-  }, [isOpen])
+  // Note: initial focus on modal open is handled deterministically by the
+  // shared Modal component (it focuses the dialog panel with tabIndex=-1).
+  // No per-modal focus/blur management is needed here. The Amount input
+  // receives focus only when the user explicitly taps it.
 
   // Handle Android back button
   useModalBackButton({ isOpen, onClose })
@@ -380,14 +375,14 @@ export default function RequestPaymentModal({
           <button
             onClick={onClose}
             disabled={isCreatingPayment}
-            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-muted"
           >
             Cancel
           </button>
           <button
             onClick={handleCreatePayment}
             disabled={isCreatingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0 || (recipientType === 'lead' && !selectedLeadId) || (recipientType === 'manual' && !manualPhone) || !hasAnyPaymentMethod}
-            className="px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:active:scale-100"
           >
             {isCreatingPayment ? 'Sending Request...' : 'Send Payment Request'}
           </button>
@@ -439,7 +434,7 @@ export default function RequestPaymentModal({
                     value={selectedLeadId}
                     onChange={(e) => setSelectedLeadId(e.target.value)}
                     disabled={isCreatingPayment || isLoadingLeads}
-                    className="w-full px-3 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground disabled:opacity-60 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                    className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 disabled:opacity-60 disabled:cursor-not-allowed appearance-none cursor-pointer pr-[44px]"
                   >
                     <option value="">
                       {isLoadingLeads ? 'Loading customers...' : 'Select a customer'}
@@ -485,7 +480,7 @@ export default function RequestPaymentModal({
                   onChange={(e) => setManualPhone(formatManualPhoneInput(e.target.value))}
                   placeholder="(555) 123-4567"
                   disabled={isCreatingPayment}
-                  className="w-full px-3 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
                 <input
                   type="text"
@@ -493,7 +488,7 @@ export default function RequestPaymentModal({
                   onChange={(e) => setManualName(e.target.value)}
                   placeholder="Customer name (optional)"
                   disabled={isCreatingPayment}
-                  className="w-full px-3 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
             )}
@@ -520,8 +515,8 @@ export default function RequestPaymentModal({
                 step="0.01"
                 min="0.01"
                 disabled={isCreatingPayment}
-                className={`w-full pl-8 pr-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-background text-foreground disabled:opacity-60 disabled:cursor-not-allowed ${
-                  error && error.includes('amount') ? 'border-red-500 focus:border-red-500' : 'border-border focus:border-blue-500'
+                className={`w-full pl-8 pr-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed ${
+                  error && error.includes('amount') ? 'border-red-500 focus:border-red-500' : 'border-border/50 dark:border-slate-700/60 focus:border-blue-500/60'
                 }`}
               />
             </div>
@@ -649,7 +644,7 @@ export default function RequestPaymentModal({
               placeholder="What is this payment for?"
               rows={2}
               disabled={isCreatingPayment}
-              className="w-full px-3 py-2.5 min-h-[60px] border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground resize-none disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2.5 min-h-[60px] bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-none disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 

@@ -787,19 +787,46 @@ html.light select:-moz-autofill:focus {
 }
 
 /* Hide native date/time picker indicators while preserving click target
- * Used by DatePicker/TimePicker where a custom icon is provided */
+ * Used by DatePicker/TimePicker where a custom icon is provided.
+ *
+ * ROOT CAUSE of "4:16 A" clipping on Android WebView:
+ * The previous CSS used `position: absolute; width: 100%; height: 100%` which
+ * overlaid the ENTIRE input as an invisible click target. On Android WebView,
+ * this invisible overlay interfered with the native time/date text rendering,
+ * causing the last character ("M" in "AM") to be clipped.
+ *
+ * FIX: Constrain the invisible native indicator to the right-side affordance
+ * slot only (44px wide), so the text area is never covered. The custom
+ * calendar/clock icon and clear-X button sit in the same 44px slot.
+ */
 .hide-native-picker::-webkit-calendar-picker-indicator {
   opacity: 0;
   position: absolute;
   right: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
   cursor: pointer;
+  z-index: 5;
 }
 
 .hide-native-picker {
   -moz-appearance: textfield;
+}
+
+/* Ensure native date/time text fills the available input width without
+ * clipping. The fields-wrapper should not impose its own min-width that
+ * exceeds the input's content box. */
+.hide-native-picker::-webkit-datetime-edit {
+  display: inline-block;
+  width: 100%;
+  overflow: hidden;
+}
+.hide-native-picker::-webkit-datetime-edit-fields-wrapper {
+  display: inline-flex;
+  min-width: 0;
+  padding: 0;
 }
 
 /* Customer dropdown results: always-visible narrow scrollbar on all devices.
