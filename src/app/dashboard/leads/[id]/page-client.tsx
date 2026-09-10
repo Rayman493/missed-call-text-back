@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
 import {
@@ -14,6 +14,7 @@ import {
 import { createPortal } from 'react-dom'
 import ConversationComposer from '@/components/ConversationComposer'
 import MobileConversationComposer from '@/components/MobileConversationComposer'
+import AttachmentActionSheet from '@/components/conversation/AttachmentActionSheet'
 import BusinessNumberPanel from '@/components/BusinessNumberPanel'
 import AutomaticFollowUpsControl from '@/components/AutomaticFollowUpsControl'
 import MobileConversationMessageList from '@/components/MobileConversationMessageList'
@@ -441,6 +442,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [mobileImages, setMobileImages] = useState<File[]>([])
   const mobileFileInputRef = useRef<HTMLInputElement>(null)
   const clearComposerImagesRef = useRef<(() => void) | null>(null)
+  const [isAttachmentSheetOpen, setIsAttachmentSheetOpen] = useState(false)
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
   const [calendarConnected, setCalendarConnected] = useState(false)
   const [isLoadingCalendarStatus, setIsLoadingCalendarStatus] = useState(false)
@@ -531,6 +533,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const bottomSentinelRef = useRef<HTMLDivElement>(null)
   const isInitialAutoScrollingRef = useRef(false)
   const initialScrollDoneRef = useRef<string | null>(null)
+  // Picker session state machine — deterministic lifecycle, no timing guesses
+  // idle → external (native picker open) → returned_pending (visibilitychange) → completed
+  // SELECTION ALWAYS WINS: change(files) from external, returned_pending, OR completed
+  // CANCELLATION: cancel event or setTimeout(0) fallback from external or returned_pending only
+  // visibilitychange is NON-AUTHORITATIVE — it marks returned_pending but does NOT finalize
+  type PickerSession = 'idle' | 'external' | 'returned_pending' | 'completed'
+  const pickerSessionRef = useRef<PickerSession>('idle')
+  const pickerAnchorRef = useRef<number>(0)
+  // State counter to trigger useLayoutEffect for layout-stable scroll restoration
+  const [pickerReturnGeneration, setPickerReturnGeneration] = useState(0)
+  // Ref to handlePickerReturn for stable visibilitychange listener (avoids re-attach)
+  const handlePickerReturnRef = useRef<(files: File[] | null) => void>(() => {})
+  // Local send scroll generation — triggers useLayoutEffect after optimistic render
+  const [localSendScrollGeneration, setLocalSendScrollGeneration] = useState(0)
+  // Realtime scroll generation — triggers useLayoutEffect after realtime INSERT render
+  // Uses near-bottom rules (force=false), unlike local send which forces.
+  const [realtimeScrollGeneration, setRealtimeScrollGeneration] = useState(0)
+  // Coalesced image load scroll — prevents overlapping smooth scroll animations
+  const imageScrollRafRef = useRef<number | null>(null)
   // Full-screen conversation state and refs
   const [isFullScreen, setIsFullScreen] = useState(false)
   const fullScreenToggleBtnRef = useRef<HTMLButtonElement>(null)
@@ -745,6 +766,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
+  // === Attachment validation (used by picker session handler) ===
   const validateAttachmentFile = (file: File): { valid: boolean; error?: string } => {
     // Check file type - Twilio MMS supports JPEG, PNG, GIF, PDF, CSV, MP4
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf', 'text/csv', 'video/mp4']
@@ -769,6 +791,159 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     return { valid: true }
   }
+
+  // === Picker Session State Machine ===
+  // Deterministic lifecycle: idle → external → returned_pending → completed
+  //
+  // CRITICAL RACE FIX: visibilitychange fires BEFORE change on Android WebView.
+  // Old code immediately finalized cancellation on visibilitychange, swallowing
+  // the subsequent change event with the selected file.
+  //
+  // New model:
+  //   visibilitychange: external → returned_pending (NON-AUTHORITATIVE — no finalize)
+  //   change(files): external|returned_pending|completed → completed (SELECTION WINS)
+  //   cancel: external|returned_pending → completed (authoritative cancel)
+  //   setTimeout(0) fallback: returned_pending → completed (old WebView without cancel)
+  //
+  // The setTimeout(0) is event-order synchronization, NOT a layout delay.
+  // It yields to the event loop so the browser's pending change/cancel task
+  // can dispatch before the fallback finalizes. In practice, the browser
+  // queues the change event before our setTimeout(0), so change fires first.
+
+  const handlePickerLaunch = useCallback(() => {
+    // Capture scroll anchor BEFORE native picker opens
+    const isDesktop = window.innerWidth >= 1024
+    const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+    if (container) {
+      pickerAnchorRef.current = container.scrollTop
+    }
+    // Reset session from any previous state (idle or completed)
+    pickerSessionRef.current = 'external'
+    // Close the action sheet — native picker is about to take over
+    setIsAttachmentSheetOpen(false)
+  }, [])
+
+  const handlePickerReturn = useCallback((files: File[] | null) => {
+    // SELECTION ALWAYS WINS — even after fallback cancellation set 'completed'
+    // A real change event with files must NEVER be suppressed by a prior
+    // non-authoritative visibilitychange signal.
+    if (files && files.length > 0) {
+      if (pickerSessionRef.current === 'idle') return // no active/recent session
+      // Process files from external, returned_pending, OR completed (override fallback)
+      pickerSessionRef.current = 'completed'
+
+      const validFiles: File[] = []
+      const errors: string[] = []
+
+      if (mobileImages.length + files.length > 10) {
+        setError('Maximum 10 images allowed')
+      } else {
+        files.forEach(file => {
+          const validation = validateAttachmentFile(file)
+          if (validation.valid) {
+            validFiles.push(file)
+          } else {
+            errors.push(validation.error || 'Invalid file')
+          }
+        })
+        if (errors.length > 0) {
+          setError(errors[0])
+        }
+        if (validFiles.length > 0) {
+          setMobileImages(prev => [...prev, ...validFiles])
+        }
+      }
+
+      // Trigger layout-stable scroll restoration via useLayoutEffect
+      setPickerReturnGeneration(prev => prev + 1)
+      return
+    }
+
+    // CANCELLATION (files = null) — only from external or returned_pending
+    // NOT from completed (selection already processed or cancel already handled)
+    if (pickerSessionRef.current === 'external' || pickerSessionRef.current === 'returned_pending') {
+      pickerSessionRef.current = 'completed'
+      setPickerReturnGeneration(prev => prev + 1)
+    }
+    // If 'completed' → ignore (duplicate cancel or selection already won)
+  }, [mobileImages, validateAttachmentFile])
+
+  // Keep ref in sync so visibilitychange listener (attached once) calls latest
+  handlePickerReturnRef.current = handlePickerReturn
+
+  // Layout-stable scroll restoration — fires after DOM commit, before paint.
+  // No rAF, no setTimeout. The state update from handlePickerReturn triggers
+  // a re-render, and useLayoutEffect fires after the DOM is committed.
+  // NOTE: does NOT reset to 'idle' — keeps 'completed' so a late change event
+  // can still override a fallback cancellation. Session resets to 'external'
+  // on next handlePickerLaunch.
+  useLayoutEffect(() => {
+    if (pickerReturnGeneration > 0 && pickerSessionRef.current === 'completed') {
+      const isDesktop = window.innerWidth >= 1024
+      const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+      if (container) {
+        container.scrollTop = pickerAnchorRef.current
+      }
+    }
+  }, [pickerReturnGeneration])
+
+  // Non-authoritative visibilitychange — marks returned_pending, does NOT finalize.
+  // Queues a setTimeout(0) fallback for old WebViews without cancel event support.
+  // The setTimeout(0) yields to the event loop so the browser's pending
+  // change/cancel task can dispatch first. This is event-order synchronization,
+  // NOT a layout timing delay.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && pickerSessionRef.current === 'external') {
+        // Mark returned_pending — do NOT finalize cancellation
+        pickerSessionRef.current = 'returned_pending'
+        // Queue fallback: if no change/cancel fires, finalize cancellation.
+        // setTimeout(0) is the minimal event-loop yield that allows the
+        // browser's pending change event task to dispatch before this callback.
+        setTimeout(() => {
+          if (pickerSessionRef.current === 'returned_pending') {
+            // No change or cancel event fired — old WebView fallback
+            handlePickerReturnRef.current(null)
+          }
+          // If 'completed' → change/cancel already handled, no-op
+        }, 0)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, []) // attached once — uses ref for latest handlePickerReturn
+
+  // === Coalesced Image Load Scroll ===
+  // Prevents overlapping smooth scroll animations for multi-image MMS.
+  // Multiple onImageLoad calls within the same frame are coalesced into one scroll.
+  const handleCoalescedImageLoad = useCallback(() => {
+    if (imageScrollRafRef.current !== null) return // already scheduled
+    imageScrollRafRef.current = requestAnimationFrame(() => {
+      imageScrollRafRef.current = null
+      // Force scroll for LOCAL send intent — user just sent, newest content wins
+      scrollToBottom('auto', true)
+    })
+  }, [])
+
+  // === Local Send Scroll — deterministic, no setTimeout ===
+  // Fires after the optimistic message is rendered (DOM committed, before paint).
+  useLayoutEffect(() => {
+    if (localSendScrollGeneration > 0) {
+      const isDesktop = window.innerWidth >= 1024
+      const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+      if (container) {
+        container.scrollTop = container.scrollHeight
+      }
+    }
+  }, [localSendScrollGeneration])
+
+  // Realtime message scroll — deterministic, respects near-bottom rules.
+  // If user is intentionally scrolled up, preserve their position (show jump button).
+  useLayoutEffect(() => {
+    if (realtimeScrollGeneration > 0) {
+      scrollToBottom('smooth', false)
+    }
+  }, [realtimeScrollGeneration])
 
   const handleMobileImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -2286,7 +2461,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             )
 
             if (isNewMessage) {
-              setTimeout(() => scrollToBottom('smooth'), 100)
+              // Deterministic: useLayoutEffect fires after the new message is rendered.
+              // No setTimeout — respects near-bottom rules (force=false).
+              setRealtimeScrollGeneration(prev => prev + 1)
             }
 
             return {
@@ -2600,6 +2777,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }
     })
 
+    // LOCAL SEND ALWAYS WINS: scroll to bottom immediately after optimistic
+    // message insertion so the newest message is visible. For text, this is
+    // instantaneous. For MMS, the image onLoad handler will re-scroll after
+    // the media height becomes known.
+    requestAnimationFrame(() => {
+      scrollToBottom('auto', true)
+    })
+
     // Clear the composer immediately after creating optimistic message
     // This prevents the text from appearing in both the composer and thread
     setMessage('')
@@ -2875,10 +3060,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       }
 
-      // Scroll to bottom to show the new message
-      setTimeout(() => {
-        scrollToBottom('smooth')
-      }, 50)
+      // Scroll to bottom to show the new message — LOCAL SEND ALWAYS WINS
+      // Deterministic: useLayoutEffect fires after optimistic message is rendered.
+      // No setTimeout — local-send intent takes priority over any pre-picker anchor.
+      setLocalSendScrollGeneration(prev => prev + 1)
     } catch (err) {
       // Update optimistic message to failed state (both SMS and MMS)
       const currentMessages = leadData?.messages || []
@@ -4312,7 +4497,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     sending={sending}
                     handleRetry={handleRetry}
                     getErrorMessage={getErrorMessage}
-                    onImageLoad={() => scrollToBottom('smooth', true)}
+                    onImageLoad={handleCoalescedImageLoad}
                     highlightedItemId={highlightedTimelineItemId}
                   />
                 )}
@@ -4877,10 +5062,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     )}
                     <div className="flex items-center gap-1 bg-muted/40 dark:bg-muted/30 border border-border/20 rounded-lg p-1 hover:shadow-md transition-all duration-200 focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-500/40 focus-within:bg-muted/60 dark:focus-within:bg-muted/40">
-                      {/* Attachment Button */}
+                      {/* Attachment Button — opens premium action sheet.
+                          Scroll anchor is captured in handlePickerLaunch when
+                          a picker type is selected, NOT when the sheet opens. */}
                       <button
                         type="button"
-                        onClick={() => mobileFileInputRef.current?.click()}
+                        onClick={() => {
+                          setIsAttachmentSheetOpen(true)
+                        }}
                         className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 dark:hover:bg-muted/30 transition-all duration-200 flex-none rounded-lg h-11 w-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:ring-offset-2 focus:ring-offset-background"
                         disabled={sending}
                         aria-label="Attach file"
@@ -6172,6 +6361,22 @@ If you have questions, reply to this message.`
       }}
     />
 
+    {/* Premium Attachment Action Sheet — Take Photo / Choose Photo / Choose File
+        Lifecycle separation:
+        - onClose: action sheet dismissed (backdrop/escape) — NO picker was launched, NO restoration
+        - onPickerLaunch: user selected a picker type — native picker about to open, capture anchor
+        - onPickerReturn: native picker returned (change/cancel/visibilitychange) — restore anchor via useLayoutEffect
+    */}
+    <AttachmentActionSheet
+      isOpen={isAttachmentSheetOpen}
+      onClose={() => {
+        // Action sheet dismissed without launching a picker — no restoration needed
+        setIsAttachmentSheetOpen(false)
+      }}
+      onPickerLaunch={handlePickerLaunch}
+      onPickerReturn={handlePickerReturn}
+    />
+
     {/* New Unified Appointment Modal for Customer context */}
     <NewAppointmentModal
       isOpen={isNewAppointmentOpen}
@@ -6634,7 +6839,7 @@ If you have questions, reply to this message.`
                     sending={sending}
                     handleRetry={handleRetry}
                     getErrorMessage={getErrorMessage}
-                    onImageLoad={() => scrollToBottom('smooth', true)}
+                    onImageLoad={handleCoalescedImageLoad}
                     highlightedItemId={highlightedTimelineItemId}
                   />
                 </div>

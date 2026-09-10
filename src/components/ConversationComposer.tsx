@@ -3,6 +3,7 @@ import { Paperclip, X, MessageSquare, Clock, Lightbulb, FileText, FileSpreadshee
 import { supportsBusinessNumber } from '@/lib/platform-capabilities'
 import { focusService } from '@/lib/focus/focus-service'
 import type { FocusItem } from '@/lib/focus/focus-types'
+import AttachmentActionSheet from '@/components/conversation/AttachmentActionSheet'
 
 interface ConversationComposerProps {
   message: string
@@ -47,6 +48,7 @@ export default function ConversationComposer({
   const [error, setError] = useState<string | null>(null)
   const [isAtMaxHeight, setIsAtMaxHeight] = useState(false)
   const [focusItem, setFocusItem] = useState<FocusItem | null>(null)
+  const [isAttachmentSheetOpen, setIsAttachmentSheetOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -407,10 +409,10 @@ export default function ConversationComposer({
           className="relative"
         >
           <div className="flex items-center gap-2 bg-muted/30 border border-border/20 rounded-lg p-2 hover:bg-muted/40 transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/30 focus-within:bg-muted/50 shadow-sm">
-            {/* Attachment Button */}
+            {/* Attachment Button — opens premium action sheet */}
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => setIsAttachmentSheetOpen(true)}
               className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all duration-200 flex-shrink-0 rounded-md h-11 w-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/10 focus:ring-offset-2 focus:ring-offset-background"
               disabled={sending}
               aria-label="Attach file"
@@ -479,6 +481,32 @@ export default function ConversationComposer({
           </div>
         </div>
       </div>
+
+      {/* Premium Attachment Action Sheet — Take Photo / Choose Photo / Choose File
+          Lifecycle: onClose = sheet dismiss (no picker), onPickerLaunch = native picker
+          about to open, onPickerReturn = native picker returned (files or null for cancel) */}
+      <AttachmentActionSheet
+        isOpen={isAttachmentSheetOpen}
+        onClose={() => setIsAttachmentSheetOpen(false)}
+        onPickerLaunch={() => {
+          // Close the sheet — native picker is about to take over
+          setIsAttachmentSheetOpen(false)
+        }}
+        onPickerReturn={(files) => {
+          if (!files) return // cancel — no files selected
+          files.forEach(file => {
+            const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+            setAttachments(prev => [...prev, {
+              file,
+              preview,
+              id: Math.random().toString(36).substr(2, 9),
+              fileType: file.type.startsWith('image/') ? 'image' as const :
+                        file.type.startsWith('video/') ? 'video' as const : 'document' as const,
+              filename: file.name
+            }])
+          })
+        }}
+      />
     </div>
   )
 }

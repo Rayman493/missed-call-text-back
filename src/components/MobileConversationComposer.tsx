@@ -8,6 +8,7 @@ import {
   DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
 import { supportsBusinessNumber } from '@/lib/platform-capabilities'
+import AttachmentActionSheet from '@/components/conversation/AttachmentActionSheet'
 
 interface MobileConversationComposerProps {
   message: string
@@ -43,6 +44,7 @@ export default function MobileConversationComposer({
   const [isAtMaxHeight, setIsAtMaxHeight] = useState(false)
   const [images, setImages] = useState<ImagePreview[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [isAttachmentSheetOpen, setIsAttachmentSheetOpen] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
@@ -252,10 +254,10 @@ export default function MobileConversationComposer({
             onDrop={handleDrop}
             className="flex items-center gap-2 rounded-2xl border border-border/50 bg-muted/50 px-2.5 py-2 shadow-sm transition-all duration-200 focus-within:border-blue-400/40 focus-within:bg-muted/70"
           >
-            {/* Attachment Button */}
+            {/* Attachment Button — opens premium action sheet */}
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => setIsAttachmentSheetOpen(true)}
               className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all duration-200 flex-shrink-0 rounded-md h-11 w-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/10 focus:ring-offset-2 focus:ring-offset-background"
               disabled={sending}
               aria-label="Attach image"
@@ -396,6 +398,32 @@ export default function MobileConversationComposer({
           )}
         </div>
       </div>
+
+      {/* Premium Attachment Action Sheet — Take Photo / Choose Photo / Choose File
+          Lifecycle: onClose = sheet dismiss (no picker), onPickerLaunch = native picker
+          about to open, onPickerReturn = native picker returned (files or null for cancel) */}
+      <AttachmentActionSheet
+        isOpen={isAttachmentSheetOpen}
+        onClose={() => setIsAttachmentSheetOpen(false)}
+        onPickerLaunch={() => {
+          setIsAttachmentSheetOpen(false)
+        }}
+        onPickerReturn={(files) => {
+          if (!files) return // cancel — no files selected
+          const newImages: ImagePreview[] = []
+          files.forEach(file => {
+            if (!file.type.startsWith('image/')) return
+            if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) return
+            const preview = URL.createObjectURL(file)
+            newImages.push({
+              file,
+              preview,
+              id: Math.random().toString(36).substr(2, 9)
+            })
+          })
+          setImages(prev => [...prev, ...newImages])
+        }}
+      />
     </div>
   )
 }
