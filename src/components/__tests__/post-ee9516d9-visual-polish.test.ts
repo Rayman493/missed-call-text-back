@@ -97,13 +97,13 @@ describe('Part 2 — Premium Map Markers', () => {
     expect(markerFn).not.toContain('Math.random()')
   })
 
-  it('Job vs Appointment type distinction via dashed ring', () => {
+  it('Job vs Appointment type distinction via subtle inner ring (not dashed)', () => {
     expect(markerFn).toContain('isAppointment')
-    expect(markerFn).toContain('setLineDash([3.5, 2.5])')
-    expect(markerFn).toContain('setLineDash([])')
+    expect(markerFn).toContain('rgba(255,255,255,0.45)')
+    expect(markerFn).not.toContain('setLineDash')
   })
 
-  it('Jobs use solid white ring (dashed only for appointments)', () => {
+  it('Jobs use solid white ring (inner ring only for appointments)', () => {
     expect(markerFn).toContain("if (isAppointment && !isBusiness)")
   })
 

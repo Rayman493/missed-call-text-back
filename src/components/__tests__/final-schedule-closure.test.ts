@@ -152,9 +152,10 @@ describe('Part 4 — Premium Map Marker Visuals', () => {
     expect(markerFn).not.toContain("type === 'appointment'\n          ? '#D97706'")
   })
 
-  it('Job vs Appointment type distinction via dashed ring for appointments', () => {
+  it('Job vs Appointment type distinction via subtle inner ring for appointments', () => {
     expect(markerFn).toContain('isAppointment')
-    expect(markerFn).toContain('setLineDash')
+    expect(markerFn).toContain('rgba(255,255,255,0.45)')
+    expect(markerFn).not.toContain('setLineDash')
   })
 
   it('business marker uses vector home icon (not emoji)', () => {

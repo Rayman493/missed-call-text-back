@@ -2289,17 +2289,22 @@ useEffect(() => {
     ctx.fillStyle = highlightGrad
     ctx.fill()
 
-    // Draw white outer ring — type distinction via stroke style
-    // Jobs: solid white ring | Appointments: dashed white ring
-    if (isAppointment && !isBusiness) {
-      ctx.setLineDash([3.5, 2.5])
-    }
+    // Draw white outer ring — solid for all types
     ctx.beginPath()
     ctx.arc(center, center, size / 2 - ringWidth / 2, 0, 2 * Math.PI)
     ctx.strokeStyle = '#FFFFFF'
     ctx.lineWidth = ringWidth
     ctx.stroke()
-    ctx.setLineDash([])
+
+    // Appointment type distinction: subtle thin inner ring just inside the white ring
+    // Jobs: single solid white ring | Appointments: double ring (white + thin inner accent)
+    if (isAppointment && !isBusiness) {
+      ctx.beginPath()
+      ctx.arc(center, center, size / 2 - ringWidth - 1.5, 0, 2 * Math.PI)
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)'
+      ctx.lineWidth = 0.8
+      ctx.stroke()
+    }
 
     // Draw selected emphasis ring (amber accent outside the white ring)
     if (isSelected) {
@@ -2526,36 +2531,144 @@ useEffect(() => {
           </button>
         </div>
 
-        {/* Mobile: Centered date navigation with Today */}
-        <div className="md:hidden flex flex-col items-center gap-2">
-          <div className="flex items-center justify-center gap-2">
-            <button
-              onClick={onPreviousDay}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
-              aria-label="Previous day"
-            >
-              <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            </button>
-            <div className="text-center w-[140px] flex-none">
-              <h2 className="text-base font-semibold text-slate-900 dark:text-foreground truncate">
-                {formatDateShort(selectedDate)}
-              </h2>
-            </div>
-            <button
-              onClick={onNextDay}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
-              aria-label="Next day"
-            >
-              <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            </button>
+        {/* Mobile: Date navigation row */}
+        <div className="md:hidden flex items-center justify-center gap-2">
+          <button
+            onClick={onPreviousDay}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Previous day"
+          >
+            <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+          </button>
+          <div className="text-center w-[140px] flex-none">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-foreground truncate">
+              {formatDateShort(selectedDate)}
+            </h2>
           </div>
           <button
-            onClick={onGoToToday}
-            className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors"
+            onClick={onNextDay}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Next day"
           >
-            Today
+            <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
           </button>
         </div>
+      </div>
+
+      {/* Mobile: Today button row */}
+      <div className="md:hidden mt-3 mb-1 z-10 flex justify-center">
+        <button
+          onClick={onGoToToday}
+          className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors"
+        >
+          Today
+        </button>
+      </div>
+
+      {/* Mobile: Filter row (All | Jobs | Appts) */}
+      <div className="md:hidden mt-3 mb-1 z-10">
+        <div className="flex items-center justify-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 w-fit mx-auto">
+          <button
+            onClick={() => { handleAllFilterClick() }}
+            className={`px-3 py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap ${
+              mapFilter === 'all'
+                ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => { setMapFilter('jobs') }}
+            className={`px-3 py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap ${
+              mapFilter === 'jobs'
+                ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+            }`}
+          >
+            Jobs
+          </button>
+          <button
+            onClick={() => { setMapFilter('appointments') }}
+            className={`px-3 py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap ${
+              mapFilter === 'appointments'
+                ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+            }`}
+          >
+            Appts
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile: Stop cards row */}
+      <div className="md:hidden mt-3 mb-2 z-10">
+        {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
+          <div className="flex gap-2 overflow-x-auto items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {sortedItems.filter(item => item.type !== 'business').map((item, index) => (
+              <button
+                key={item.id}
+                ref={selectedMapItemId === item.id ? (el: any) => {
+                  if (el) {
+                    setTimeout(() => {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+                    }, 100)
+                  }
+                } : null}
+                onClick={() => handleItemClick(item)}
+                className={`flex-shrink-0 snap-start px-1.5 py-1 rounded-md border transition-colors min-w-[100px] max-w-[140px] ${
+                  selectedMapItemId === item.id
+                    ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-300/60 dark:border-blue-700/60 ring-1 ring-blue-200/50 dark:ring-blue-800/30'
+                    : item.type === 'business'
+                      ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200/60 dark:border-green-700/60 hover:bg-green-100/50 dark:hover:bg-green-900/15'
+                      : 'bg-white/70 dark:bg-slate-800/60 border-slate-200/60 dark:border-slate-700/60 hover:bg-slate-50/70 dark:hover:bg-slate-700/30'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  {item.type === 'business' ? (
+                    <div className="w-4 h-4 rounded flex items-center justify-center text-[8px] bg-green-100/50 dark:bg-green-900/15 text-green-600 dark:text-green-400 flex-shrink-0">
+                      🏠
+                    </div>
+                  ) : (
+                    <div className={`w-4 h-4 rounded flex items-center justify-center font-bold text-[8px] flex-shrink-0 ${
+                      item.type === 'job' ? 'bg-purple-100/50 dark:bg-purple-900/15 text-purple-600 dark:text-purple-400' : 'bg-blue-100/50 dark:bg-blue-900/15 text-blue-600 dark:text-blue-400'
+                    }`}>
+                      {item.stopNumber}
+                    </div>
+                  )}
+                  <div className="text-left min-w-0 flex-1">
+                    {item.type === 'business' ? (
+                      <>
+                        <p className="text-[9px] font-medium text-foreground truncate">
+                          {item.title}
+                        </p>
+                        <p className="text-[8px] text-slate-500 dark:text-slate-400 truncate">
+                          Home Base
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[9px] font-medium text-foreground truncate">
+                          {item.title || (item.type === 'job' ? 'Job' : item.type === 'appointment' ? 'Appointment' : 'Task')}
+                        </p>
+                        <p className="text-[8px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
+                          {item.type === 'job' && <Briefcase size={10} />}
+                          {item.type === 'appointment' && <Calendar size={10} />}
+                          {item.type === 'task' && <CheckCircle size={10} />}
+                          {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime)}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-500 dark:text-slate-400 pb-2 text-center">
+            No mapped stops
+          </p>
+        )}
       </div>
 
       {/* Desktop: Combined row with stop previews on left and filters on right */}
@@ -2707,153 +2820,6 @@ useEffect(() => {
           </div>
         </div>
       )}
-
-      {/* Mobile: Combined row with stop preview on left and filter on right */}
-      <div className="md:hidden mb-1 z-10">
-        {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
-          <div className="flex items-center gap-2 min-h-[44px]">
-            {/* Stop preview - Left side, takes available space */}
-            <div className="flex-1 min-w-0">
-              <div className="flex gap-2 overflow-x-auto items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                {sortedItems.filter(item => item.type !== 'business').map((item, index) => (
-                  <button
-                    key={item.id}
-                    ref={selectedMapItemId === item.id ? (el: any) => {
-                      if (el) {
-                        setTimeout(() => {
-                          el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
-                        }, 100)
-                      }
-                    } : null}
-                    onClick={() => handleItemClick(item)}
-                    className={`flex-shrink-0 snap-start px-1.5 py-1 rounded-md border transition-colors min-w-[100px] max-w-[140px] ${
-                      selectedMapItemId === item.id
-                        ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-300/60 dark:border-blue-700/60 ring-1 ring-blue-200/50 dark:ring-blue-800/30'
-                        : item.type === 'business'
-                          ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200/60 dark:border-green-700/60 hover:bg-green-100/50 dark:hover:bg-green-900/15'
-                          : 'bg-white/70 dark:bg-slate-800/60 border-slate-200/60 dark:border-slate-700/60 hover:bg-slate-50/70 dark:hover:bg-slate-700/30'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      {item.type === 'business' ? (
-                        <div className="w-4 h-4 rounded flex items-center justify-center text-[8px] bg-green-100/50 dark:bg-green-900/15 text-green-600 dark:text-green-400 flex-shrink-0">
-                          🏠
-                        </div>
-                      ) : (
-                        <div className={`w-4 h-4 rounded flex items-center justify-center font-bold text-[8px] flex-shrink-0 ${
-                          item.type === 'job' ? 'bg-purple-100/50 dark:bg-purple-900/15 text-purple-600 dark:text-purple-400' : 'bg-blue-100/50 dark:bg-blue-900/15 text-blue-600 dark:text-blue-400'
-                        }`}>
-                          {item.stopNumber}
-                        </div>
-                      )}
-                      <div className="text-left min-w-0 flex-1">
-                        {item.type === 'business' ? (
-                          <>
-                            <p className="text-[9px] font-medium text-foreground truncate">
-                              {item.title}
-                            </p>
-                            <p className="text-[8px] text-slate-500 dark:text-slate-400 truncate">
-                              Home Base
-                            </p>
-                          </>
-                        ) : (
-                          <>
-                            <p className="text-[9px] font-medium text-foreground truncate">
-                              {item.title || (item.type === 'job' ? 'Job' : item.type === 'appointment' ? 'Appointment' : 'Task')}
-                            </p>
-                            <p className="text-[8px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
-                              {item.type === 'job' && <Briefcase size={10} />}
-                              {item.type === 'appointment' && <Calendar size={10} />}
-                              {item.type === 'task' && <CheckCircle size={10} />}
-                              {formatTimeRangeHHMM(item.scheduledTime, item.scheduledEndTime)}
-                            </p>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Filter - Right side, flex-shrink-0 */}
-            <div className="flex-shrink-0">
-              <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
-                <button
-                  onClick={() => { handleAllFilterClick() }}
-                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
-                    mapFilter === 'all'
-                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => { setMapFilter('jobs') }}
-                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
-                    mapFilter === 'jobs'
-                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  Jobs
-                </button>
-                <button
-                  onClick={() => { setMapFilter('appointments') }}
-                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
-                    mapFilter === 'appointments'
-                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  Appts
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between gap-2 min-h-[44px]">
-            <p className="text-xs text-slate-500 dark:text-slate-400 pb-2">
-              No mapped stops
-            </p>
-            <div className="flex-shrink-0">
-              <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
-                <button
-                  onClick={() => { handleAllFilterClick() }}
-                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
-                    mapFilter === 'all'
-                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => { setMapFilter('jobs') }}
-                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
-                    mapFilter === 'jobs'
-                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  Jobs
-                </button>
-                <button
-                  onClick={() => { setMapFilter('appointments') }}
-                  className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${
-                    mapFilter === 'appointments'
-                      ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  Appts
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Map Container - fills parent height (parent owns viewport sizing) */}
       <div className="flex-1 h-full min-h-0 relative rounded-xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60">

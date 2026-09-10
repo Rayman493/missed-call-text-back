@@ -3,9 +3,9 @@ import { readFileSync } from 'fs'
 
 const calendarPage = readFileSync('src/app/dashboard/calendar/page.tsx', 'utf8')
 
-// Extract desktop tab block (hidden md:flex) — ends before Mobile tab toggle comment
+// Extract desktop tab block (hidden md:flex) — ends before Mobile tab rail comment
 const desktopTabStart = calendarPage.indexOf('hidden md:flex mb-3')
-const desktopTabEnd = calendarPage.indexOf('{/* Mobile tab toggle', desktopTabStart)
+const desktopTabEnd = calendarPage.indexOf('{/* Mobile tab rail', desktopTabStart)
 const desktopTabBlock = desktopTabStart >= 0 ? calendarPage.substring(desktopTabStart, desktopTabEnd) : ''
 
 // Extract mobile tab block (md:hidden mb-4 mt-2) — ends before Agenda Tab comment
@@ -75,7 +75,7 @@ describe('Schedule Tab Order Polish', () => {
 
   describe('Mobile Appointments label', () => {
     it('mobile Appointments label remains "Appts"', () => {
-      expect(mobileTabBlock).toContain('<span>Appts</span>')
+      expect(mobileTabBlock).toContain('>Appts</span>')
     })
 
     it('desktop Appointments label remains "Appointments"', () => {
@@ -116,24 +116,48 @@ describe('Schedule Tab Order Polish', () => {
     })
   })
 
-  describe('Horizontal scroll preserved on mobile', () => {
-    it('mobile tab container has overflow-x-auto', () => {
-      expect(mobileTabBlock).toContain('overflow-x-auto')
+  describe('Fixed six-column mobile rail (no horizontal scroll)', () => {
+    it('mobile tab container uses grid grid-cols-6', () => {
+      expect(mobileTabBlock).toContain('grid grid-cols-6')
     })
 
-    it('mobile tab container has no-scrollbar class', () => {
-      expect(mobileTabBlock).toContain('no-scrollbar')
+    it('mobile tab container has no overflow-x-auto', () => {
+      expect(mobileTabBlock).not.toContain('overflow-x-auto')
     })
 
-    it('mobile tab buttons have whitespace-nowrap and flex-shrink-0', () => {
-      expect(mobileTabBlock).toContain('whitespace-nowrap')
-      expect(mobileTabBlock).toContain('flex-shrink-0')
+    it('mobile tab container has no no-scrollbar class', () => {
+      expect(mobileTabBlock).not.toContain('no-scrollbar')
+    })
+
+    it('mobile tab buttons have min-w-0 (not flex-shrink-0)', () => {
+      expect(mobileTabBlock).toContain('min-w-0')
+      expect(mobileTabBlock).not.toContain('flex-shrink-0')
+    })
+
+    it('mobile tab buttons use flex-col (icon above label)', () => {
+      expect(mobileTabBlock).toContain('flex flex-col')
+    })
+
+    it('mobile tab labels use text-[10px] for compact fit', () => {
+      expect(mobileTabBlock).toContain('text-[10px]')
+    })
+
+    it('mobile tab labels use truncate for overflow safety', () => {
+      expect(mobileTabBlock).toContain('truncate')
+    })
+
+    it('all six mobile tab labels exist', () => {
+      expect(mobileTabBlock).toContain('>Agenda</span>')
+      expect(mobileTabBlock).toContain('>Calendar</span>')
+      expect(mobileTabBlock).toContain('>Map</span>')
+      expect(mobileTabBlock).toContain('>Reminders</span>')
+      expect(mobileTabBlock).toContain('>Jobs</span>')
+      expect(mobileTabBlock).toContain('>Appts</span>')
     })
   })
 
   describe('No two-row wrapping', () => {
-    it('mobile tabs use flex (not flex-wrap)', () => {
-      expect(mobileTabBlock).toContain('flex gap-0.5')
+    it('mobile tabs use grid (not flex-wrap)', () => {
       expect(mobileTabBlock).not.toContain('flex-wrap')
     })
 

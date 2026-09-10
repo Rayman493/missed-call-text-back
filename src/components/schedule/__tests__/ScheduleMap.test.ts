@@ -629,7 +629,7 @@ describe('ScheduleMap - All filter retap refit (Batch 6)', () => {
   it('wires every All filter button to handleAllFilterClick instead of setMapFilter directly', () => {
     const content = readFileSync('src/components/schedule/ScheduleMap.tsx', 'utf8')
     const allOnClicks = (content.match(/onClick=\{\(\) => \{ handleAllFilterClick\(\) \}\}/g) || []).length
-    expect(allOnClicks).toBe(4)
+    expect(allOnClicks).toBe(3)
     expect(content).not.toMatch(/onClick=\{\(\) => \{ setMapFilter\('all'\) \}\}/)
   })
 

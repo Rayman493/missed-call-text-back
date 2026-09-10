@@ -342,7 +342,8 @@ describe('Schedule Polish — No Behavioral Changes', () => {
     expect(jobTimerContent).toContain('handleStop')
   })
 
-  it('Schedule tabs are still horizontally scrollable on mobile', () => {
-    expect(pageContent).toContain('overflow-x-auto')
+  it('Schedule tabs use fixed six-column grid on mobile (no horizontal scroll)', () => {
+    expect(pageContent).toContain('grid grid-cols-6')
+    expect(pageContent).not.toContain('overflow-x-auto')
   })
 })
