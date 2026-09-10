@@ -740,13 +740,13 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       }}
       data-scroll-lock-allow
     >
-      <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-2xl flex max-h-[var(--modal-max-height)] md:max-h-[90vh] flex-col overflow-hidden animate-in zoom-in-95 duration-200 my-4 md:my-0"
+      <div className="bg-card rounded-2xl border border-border/60 shadow-2xl shadow-black/10 dark:shadow-black/40 w-full max-w-2xl flex max-h-[var(--modal-max-height)] flex-col overflow-hidden animate-in zoom-in-95 duration-200"
            data-scroll-lock-allow>
         {/* Visually hidden title for accessibility */}
         <h2 id="event-title" className="sr-only">{event.summary}</h2>
         
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/60 dark:border-border/50 flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${event.isHoliday ? 'bg-emerald-500/10' : 'bg-primary/10'}`}>
               <Calendar className={`w-4 h-4 ${event.isHoliday ? 'text-emerald-400' : 'text-primary'}`} />
@@ -776,7 +776,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         </div>
 
         {/* Event Details */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 min-w-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 min-w-0" style={{ WebkitOverflowScrolling: 'touch' }}>
           {mode === 'add-location' ? (
             // Add-location mode: focused location input
             <div className="space-y-4">
@@ -822,7 +822,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
             </div>
           ) : (
             // Normal details/edit mode
-            <div className="space-y-4 md:space-y-5">
+            <div className="space-y-3.5">
             {/* Summary grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
               {/* Date & Time */}
@@ -836,7 +836,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                         type="date"
                         value={editedStartDate}
                         onChange={(e) => setEditedStartDate(e.target.value)}
-                        className="flex-1 min-w-[120px] px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="flex-1 min-w-[120px] px-2 py-1 bg-muted/30 dark:bg-slate-800/60 border border-border/50 dark:border-border/40 rounded text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       />
                       {!isAllDay && (
                         <>
@@ -844,14 +844,14 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                             type="time"
                             value={editedStartTime}
                             onChange={(e) => setEditedStartTime(e.target.value)}
-                            className="flex-1 min-w-[80px] px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                            className="flex-1 min-w-[80px] px-2 py-1 bg-muted/30 dark:bg-slate-800/60 border border-border/50 dark:border-border/40 rounded text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                           />
-                          <span className="text-slate-400 self-center flex-shrink-0">to</span>
+                          <span className="text-muted-foreground self-center flex-shrink-0">to</span>
                           <input
                             type="time"
                             value={editedEndTime}
                             onChange={(e) => setEditedEndTime(e.target.value)}
-                            className="flex-1 min-w-[80px] px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                            className="flex-1 min-w-[80px] px-2 py-1 bg-muted/30 dark:bg-slate-800/60 border border-border/50 dark:border-border/40 rounded text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                           />
                         </>
                       )}
@@ -949,9 +949,11 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                 {currentLeadId && (
                   <button
                     onClick={(e) => { e.stopPropagation(); (onViewCustomer ? onViewCustomer(currentLeadId) : window.location.assign(`/dashboard/leads/${currentLeadId}`)) }}
-                    className="h-10 px-3 text-xs font-medium rounded-lg bg-muted hover:bg-muted/80 text-foreground border border-border/50 transition-colors flex-shrink-0 inline-flex items-center"
+                    className="h-10 w-10 flex items-center justify-center rounded-lg text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 hover:bg-muted/50 border border-border/50 transition-colors flex-shrink-0"
+                    aria-label="Open customer details"
+                    title="Open customer details"
                   >
-                    View
+                    <ExternalLink className="w-4 h-4" />
                   </button>
                 )}
               </div>
@@ -961,32 +963,38 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
             {job?.id && (
               <div className="space-y-1.5 min-w-0">
                 <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Related Job</label>
-                <div className="flex items-center justify-between p-2.5 bg-muted/30 rounded-lg">
+                <div className="flex items-center justify-between p-2.5 bg-muted/30 dark:bg-slate-800/60 rounded-lg border border-border/40 dark:border-border/30">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Briefcase className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                     <span className="text-sm text-foreground font-medium truncate">{job.title || 'Job'}</span>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); onViewJob?.(job.id) }}
-                    className="h-8 px-3 text-xs font-medium rounded-lg bg-muted hover:bg-muted/80 text-foreground border border-border/50 transition-colors flex-shrink-0 inline-flex items-center"
+                    className="h-7 px-2.5 text-xs font-medium rounded-md bg-muted hover:bg-muted/80 text-foreground border border-border/50 transition-colors flex-shrink-0 inline-flex items-center gap-1"
                   >
-                    View job
+                    <ExternalLink className="w-3 h-3" />
+                    Open
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Description - only show if has content or editing */}
+            {/* Description / Google Calendar Notes
+             * Google sends the same text in event.description. When read-only we label it
+             * "Google Calendar Notes" to clarify provenance; when editing we use "Description".
+             * The two previous sections rendered identical content twice — this consolidates them. */}
             {(normalizeDisplayText(event.description) || isEditing) && (
-              <div className="pt-3 border-t border-border/50 space-y-1.5">
-                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Description</label>
+              <div className="pt-3 border-t border-border/40 space-y-1.5">
+                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                  {isEditing ? 'Description' : 'Google Calendar Notes'}
+                </label>
                 {isEditing ? (
                   <textarea
                     value={editedDescription}
                     onChange={(e) => setEditedDescription(e.target.value)}
                     placeholder="Add description"
                     rows={3}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                    className="w-full px-3 py-2 bg-muted/30 dark:bg-slate-800/60 border border-border/50 dark:border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
                   />
                 ) : (
                   <div className="space-y-2">
@@ -996,26 +1004,16 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               </div>
             )}
 
-            {/* Google Calendar Notes - read-only external context (separate from private Meeting Notes) */}
-            {!event.isHoliday && !isEditing && normalizeDisplayText(event.description) && (
-              <div className="pt-3 border-t border-border/50 space-y-1.5">
-                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Google Calendar Notes</label>
-                <div className="space-y-2">
-                  {renderDescription(normalizeDisplayText(event.description))}
-                </div>
-              </div>
-            )}
-
             {/* Meeting Notes - always editable private notes owned by ReplyFlow */}
             {!event.isHoliday && !isEditing && (
-              <div className="pt-3 border-t border-border/50 space-y-1.5">
+              <div className="pt-3 border-t border-border/40 space-y-1.5">
                 <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Meeting Notes</label>
                 <div className="mt-1.5">
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                    className="w-full px-3 py-2 bg-muted/30 dark:bg-slate-800/60 border border-border/50 dark:border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
                     placeholder="Private notes for your team. Not sent to customer."
                   />
                   <div className="mt-2">
@@ -1032,7 +1030,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               const hasAiContent = event.meetingUrl?.includes('meet.google.com') || transcriptStatus || aiSummary || aiSummaryStructured
               return hasAiContent && !event.isHoliday
             })() && (
-              <div className="pt-4 md:pt-5 border-t border-border/50">
+              <div className="pt-3 border-t border-border/40">
                 <button
                   onClick={() => setIsTranscriptOpen(!isTranscriptOpen)}
                   aria-expanded={isTranscriptOpen}
@@ -1045,9 +1043,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                     <ChevronDown className="w-4 h-4 text-muted-foreground" />
                   )}
                 </button>
-                {!isTranscriptOpen && (aiSummaryStructured?.overview || aiSummary) && (
-                  <p className="text-sm text-foreground mt-2 line-clamp-1">{aiSummaryStructured?.overview || aiSummary}</p>
-                )}
                 {isTranscriptOpen && (
                   <div className="mt-2">
                     {meetCapability === 'reauthorization_required' && (
@@ -1189,7 +1184,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-border/50 bg-card flex-shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+        <div className="px-5 py-3 border-t border-border/60 dark:border-border/50 bg-card flex-shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
           {error && (
             <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
@@ -1252,54 +1247,65 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               </button>
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Secondary actions (left cluster) */}
+              <button
+                onClick={openGoogleCalendar}
+                disabled={!event.htmlLink}
+                className="h-9 px-3 text-xs font-medium bg-muted hover:bg-muted/80 text-foreground border border-border/50 rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
+              >
+                <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate hidden sm:inline">Google Calendar</span>
+                <span className="truncate sm:hidden">Calendar</span>
+              </button>
+              {!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)) && (
+                <button
+                  onClick={() => setIsSmsOpen(true)}
+                  className="h-9 px-3 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="truncate">Text Details</span>
+                </button>
+              )}
+              {!event.isHoliday && isReplyFlowOwned && !isJobEvent && (
+                <button
+                  onClick={handleEditClick}
+                  className="h-9 px-3 text-xs font-medium text-foreground hover:bg-muted/50 border border-border/50 rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-1.5"
+                >
+                  <Pencil className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="truncate">Edit</span>
+                </button>
+              )}
+              {!event.isHoliday && isReplyFlowOwned && !isJobEvent && (
+                <button
+                  onClick={handleDeleteClick}
+                  className="h-9 w-9 px-0 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg transition-colors inline-flex items-center justify-center"
+                  aria-label="Delete appointment"
+                  title="Delete"
+                >
+                  <Trash2 className="w-3.5 h-3.5 flex-shrink-0" />
+                </button>
+              )}
+
+              {/* Primary action (far right) */}
               {event.meetingUrl && (
                 <button
                   onClick={openMeetingLink}
-                  className="w-full h-10 px-4 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2"
+                  className="ml-auto h-9 px-4 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2 shadow-sm"
                 >
                   <LinkIcon className="w-4 h-4 flex-shrink-0" />
                   Join
                 </button>
               )}
-
-              <div className="flex flex-wrap gap-2">
+              {!event.meetingUrl && !event.isHoliday && isReplyFlowOwned && !isJobEvent && (
                 <button
-                  onClick={openGoogleCalendar}
-                  disabled={!event.htmlLink}
-                  className="flex-1 min-w-[120px] h-10 px-3 text-xs sm:text-sm font-medium bg-muted hover:bg-muted/80 text-foreground border border-border/50 rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                  onClick={handleEditClick}
+                  className="ml-auto h-9 px-4 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2 shadow-sm"
                 >
-                  <ExternalLink className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">Google Calendar</span>
+                  <Pencil className="w-4 h-4 flex-shrink-0" />
+                  Edit
                 </button>
-                {!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)) && (
-                  <button
-                    onClick={() => setIsSmsOpen(true)}
-                    className="flex-1 min-w-[120px] h-10 px-3 text-xs sm:text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2"
-                  >
-                    <Send className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">Text Details</span>
-                  </button>
-                )}
-                {!event.isHoliday && isReplyFlowOwned && !isJobEvent && (
-                  <>
-                    <button
-                      onClick={handleEditClick}
-                      className="flex-1 min-w-[120px] h-10 px-3 text-xs sm:text-sm font-medium bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 text-foreground border border-border/50 rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2"
-                    >
-                      <Pencil className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">Edit</span>
-                    </button>
-                    <button
-                      onClick={handleDeleteClick}
-                      className="flex-1 min-w-[120px] h-10 px-3 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 border border-red-200 dark:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors inline-flex items-center justify-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">Delete</span>
-                    </button>
-                  </>
-                )}
-              </div>
+              )}
             </div>
           )}
         </div>

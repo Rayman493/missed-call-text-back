@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Briefcase, User, Plus, Trash2, Check } from 'lucide-react'
+import { X, Briefcase, User, Plus, Trash2, Check, CheckSquare } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
@@ -294,12 +294,12 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         </>
       }
     >
-      <div className="space-y-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Section: Customer Context */}
-          <div className="space-y-4">
-            <div className="pb-2 border-b border-border/50">
-              <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">Customer Context</p>
+          <div className="space-y-3">
+            <div className="pb-1.5 border-b border-border/40">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Customer Context</p>
             </div>
 
             <div>
@@ -311,7 +311,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Call customer about quote"
-                className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-800/60 border border-border/50 dark:border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 required
               />
             </div>
@@ -352,9 +352,9 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
           </div>
 
           {/* Section: Timing */}
-          <div className="space-y-4">
-            <div className="pb-2 border-b border-border/50">
-              <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">Timing</p>
+          <div className="space-y-3">
+            <div className="pb-1.5 border-b border-border/40">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Timing</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -395,9 +395,9 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
           </div>
 
           {/* Section: Details */}
-          <div className="space-y-4">
-            <div className="pb-2 border-b border-border/50">
-              <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">Details</p>
+          <div className="space-y-3">
+            <div className="pb-1.5 border-b border-border/40">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Details</p>
             </div>
 
             <div>
@@ -409,7 +409,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add any details about this reminder..."
                 rows={3}
-                className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-800/60 border border-border/50 dark:border-border/40 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                 autoCapitalize="sentences"
                 autoCorrect="on"
                 spellCheck={true}
@@ -417,26 +417,29 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
             </div>
           </div>
 
-          {/* Edit Mode Actions */}
+          {/* Edit Mode Actions — compact management region */}
           {taskToEdit && (
-            <div className="pt-4 border-t border-border/50 space-y-2">
+            <div className="pt-3 border-t border-border/40 flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleToggleComplete}
                 disabled={isTogglingComplete}
-                className="w-full px-4 py-2.5 border border-border rounded-lg text-foreground bg-muted hover:bg-muted/80 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-3 py-2 border border-border/50 rounded-lg text-xs font-medium text-foreground bg-muted hover:bg-muted/80 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
               >
-                {isTogglingComplete ? 'Updating...' : (taskToEdit.completed ? 'Reopen Task' : 'Mark as Complete')}
+                <CheckSquare className="w-3.5 h-3.5" />
+                {isTogglingComplete ? 'Updating...' : (taskToEdit.completed ? 'Reopen Task' : 'Mark Complete')}
               </button>
 
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="w-full px-4 py-2.5 border border-red-200 dark:border-red-900/30 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="px-3 py-2 border border-red-200 dark:border-red-900/30 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                aria-label="Delete task"
+                title="Delete task"
               >
                 <Trash2 className="w-4 h-4" />
-                {isDeleting ? 'Deleting...' : 'Delete Task'}
+                <span className="text-xs font-medium">{isDeleting ? 'Deleting...' : 'Delete'}</span>
               </button>
             </div>
           )}

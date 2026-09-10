@@ -133,17 +133,18 @@ export default function Modal({
           relative w-full max-w-lg
           max-h-[var(--modal-max-height)]
           overflow-hidden
-          rounded-xl border border-border/60
+          rounded-xl border border-border/60 dark:border-border/50
           bg-card dark:bg-slate-800/95
-          shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.04)]
+          shadow-[0_8px_24px_rgb(0,0,0,0.10),0_2px_8px_rgb(0,0,0,0.06)]
+          dark:shadow-[0_8px_24px_rgb(0,0,0,0.30),0_2px_8px_rgb(0,0,0,0.20)]
           flex flex-col min-h-0 min-w-0 animate-in zoom-in-95 duration-200 motion-reduce:animate-none motion-reduce:transition-none
           ${className}
         `}
         onClick={(e) => e.stopPropagation()}
       >
           {title && (
-            <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-border dark:border-border/50 shrink-0">
-              <h2 id={titleId} className="text-lg font-semibold text-foreground min-w-0 truncate">{title}</h2>
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-border dark:border-border/50 shrink-0">
+              <h2 id={titleId} className="text-base font-semibold text-foreground min-w-0 truncate">{title}</h2>
               <button
                 onClick={onClose}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"

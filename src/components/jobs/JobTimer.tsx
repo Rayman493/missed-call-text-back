@@ -153,7 +153,7 @@ export default function JobTimer({ jobId }: JobTimerProps) {
 
   if (loading) {
     return (
-      <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+      <div className="p-3 rounded-lg bg-muted/30 dark:bg-slate-800/60 border border-border/40 dark:border-border/30">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Time Tracked</p>
         <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
@@ -161,7 +161,7 @@ export default function JobTimer({ jobId }: JobTimerProps) {
   }
 
   return (
-    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+    <div className="p-3 rounded-lg bg-muted/30 dark:bg-slate-800/60 border border-border/40 dark:border-border/30">
       <div className="flex items-center justify-between mb-2">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Time Tracked</p>
         {activeEntry && (

@@ -327,7 +327,7 @@ export default function JobComposer({
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="e.g. Tree removal, Roof repair, AC installation"
-                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-muted/30 dark:bg-slate-800/60 border border-border/50 dark:border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               />
             </div>
 
@@ -374,13 +374,13 @@ export default function JobComposer({
                 value={serviceAddress}
                 onChange={e => setServiceAddress(e.target.value)}
                 placeholder="123 Main St, City, State"
-                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full px-4 py-2.5 sm:px-3 sm:py-2 bg-muted/30 dark:bg-slate-800/60 border border-border/50 dark:border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               />
             </div>
 
             {/* Customer Preference Context */}
             {(prefill?.requested_completion_label || prefill?.callback_preference_label) && (
-              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+              <div className="bg-muted/30 dark:bg-slate-800/60 rounded-lg border border-border/40 dark:border-border/30 p-3">
                 <p className="text-[10px] font-medium text-slate-600 dark:text-slate-400 mb-2 uppercase tracking-wider">
                   Customer preference
                 </p>
@@ -449,7 +449,7 @@ export default function JobComposer({
                 onChange={e => setNotes(e.target.value)}
                 rows={3}
                 placeholder="Any additional notes about this job..."
-                className="w-full max-h-40 overflow-y-auto overscroll-contain px-4 py-2.5 sm:px-3 sm:py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-y"
+                className="w-full max-h-40 overflow-y-auto overscroll-contain px-4 py-2.5 sm:px-3 sm:py-2 bg-muted/30 dark:bg-slate-800/60 border border-border/50 dark:border-border/40 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-y"
                 style={{ WebkitOverflowScrolling: 'touch' }}
               />
             </div>

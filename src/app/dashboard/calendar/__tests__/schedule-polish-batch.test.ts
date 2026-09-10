@@ -142,12 +142,12 @@ describe('Schedule Polish — Reminder Modal', () => {
     expect(newTaskModalContent).toContain("taskToEdit ? <Check")
   })
 
-  it('Delete button has flex items-center justify-center gap-2', () => {
+  it('Delete button has flex items-center justify-center gap-1.5 (compact)', () => {
     const deleteBlock = newTaskModalContent.substring(
       newTaskModalContent.indexOf('onClick={handleDelete}'),
       newTaskModalContent.indexOf('onClick={handleDelete}') + 500
     )
-    expect(deleteBlock).toContain('flex items-center justify-center gap-2')
+    expect(deleteBlock).toContain('flex items-center justify-center gap-1.5')
   })
 })
 
