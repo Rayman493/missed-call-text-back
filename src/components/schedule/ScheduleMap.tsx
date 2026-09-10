@@ -1793,7 +1793,7 @@ useEffect(() => {
   // Prepare map items when date changes, business geocoding completes, or data meaningfully changes (with race condition guard)
   useEffect(() => {
     const preparationId = ++mapPreparationIdRef.current
-    const dateKey = selectedDate.toISOString().split('T')[0]
+    const dateKey = selectedDate.toLocaleDateString('en-CA')
 
     let isCancelled = false
 
@@ -1802,7 +1802,7 @@ useEffect(() => {
       const items = await prepareMapItems(preparationId)
 
       // Check if this result is still relevant after async work completes
-      const currentDateKey = selectedDate.toISOString().split('T')[0]
+      const currentDateKey = selectedDate.toLocaleDateString('en-CA')
       if (dateKey !== currentDateKey || isCancelled) {
         return
       }

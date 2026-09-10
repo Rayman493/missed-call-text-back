@@ -122,7 +122,7 @@ function RemindersList({
             key={task.id}
             className={`rounded-xl border p-4 transition-all hover:shadow-sm ${
               task.completed
-                ? 'bg-slate-50 dark:bg-slate-800/30 border-slate-200/50 dark:border-slate-700/30 opacity-70'
+                ? 'bg-slate-50/50 dark:bg-slate-800/20 border-slate-200/40 dark:border-slate-700/20'
                 : accent === 'red'
                   ? 'bg-red-50/30 dark:bg-red-900/10 border-red-200/50 dark:border-red-800/30'
                   : 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
@@ -131,7 +131,11 @@ function RemindersList({
             <div className="flex items-start gap-3">
               <button
                 onClick={() => onToggleComplete(task.id, task.completed)}
-                className="flex-shrink-0 w-5 h-5 mt-0.5 rounded border-2 border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400 transition-colors flex items-center justify-center"
+                className={`flex-shrink-0 w-5 h-5 mt-0.5 rounded border-2 transition-colors flex items-center justify-center ${
+                  task.completed
+                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20 hover:border-green-600'
+                    : 'border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400'
+                }`}
                 aria-label={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
               >
                 {task.completed && (
@@ -143,12 +147,12 @@ function RemindersList({
                   {task.title}
                 </p>
                 {task.due_date && (
-                  <p className={`text-xs mt-1 ${overdue.includes(task) ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                  <p className={`text-xs mt-1 ${task.completed ? 'text-slate-400 dark:text-slate-500' : overdue.includes(task) ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
                     {formatDue(task)}
                   </p>
                 )}
                 {task.notes && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">{task.notes}</p>
+                  <p className={`text-xs mt-1 truncate ${task.completed ? 'text-slate-400 dark:text-slate-500' : 'text-slate-500 dark:text-slate-400'}`}>{task.notes}</p>
                 )}
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
@@ -288,7 +292,7 @@ function MeetingsTab({
                     <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{customerName}</div>
                   )}
                   <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{formatDayTime(ev)}</div>
-                  <div className="flex items-center gap-1.5 mt-1.5">
+                  <div className="flex items-center gap-1.5 mt-1">
                     {isMeet && (
                       <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
                         <Video className="w-3 h-3" />
@@ -2648,19 +2652,20 @@ function JobsTab({
 
     return (
       <div
-        className={`rounded-xl p-4 transition-all hover:shadow-sm ${
+        role="button"
+        tabIndex={0}
+        onClick={() => onJobClick(job)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onJobClick(job) } }}
+        className={`rounded-xl p-4 transition-all hover:shadow-sm cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
           isActive
             ? 'bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
             : isCompleted
-              ? 'bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30 opacity-80'
-              : 'bg-slate-50 dark:bg-slate-800/20 border border-slate-200/50 dark:border-slate-700/20 opacity-60'
+              ? 'bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30'
+              : 'bg-slate-50 dark:bg-slate-800/20 border border-slate-200/50 dark:border-slate-700/20'
         }`}
       >
         <div className="flex items-start justify-between gap-3">
-          <button
-            onClick={() => onJobClick(job)}
-            className="min-w-0 flex-1 text-left"
-          >
+          <div className="min-w-0 flex-1 text-left">
             <p className={`truncate ${isActive ? 'text-base font-semibold text-slate-900 dark:text-foreground' : 'text-sm font-medium text-slate-700 dark:text-slate-300'}`}>
               {job.title}
             </p>
@@ -2693,7 +2698,7 @@ function JobsTab({
                 </span>
               )}
             </div>
-          </button>
+          </div>
           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
             <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[job.status]}`}>
               {STATUS_LABELS[job.status]}
@@ -2704,22 +2709,6 @@ function JobsTab({
               </span>
             )}
           </div>
-        </div>
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-          <button
-            onClick={() => onJobClick(job)}
-            className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
-          >
-            View
-          </button>
-          {onEditJob && (
-            <button
-              onClick={() => onEditJob(job)}
-              className="text-xs text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium"
-            >
-              Edit
-            </button>
-          )}
         </div>
       </div>
     )
