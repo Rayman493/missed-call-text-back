@@ -87,6 +87,40 @@ export function getBusinessWeekStart(timezone: string, referenceDate: Date = new
 }
 
 /**
+ * Gets the end of the current business-local week (Saturday 23:59:59.999) as a UTC ISO timestamp.
+ * Week starts on Sunday per existing convention.
+ *
+ * @param timezone - Business timezone (e.g., 'America/New_York', 'UTC')
+ * @param referenceDate - Reference date in UTC (defaults to now)
+ * @returns ISO timestamp of Saturday at end of day in business timezone
+ */
+export function getBusinessWeekEnd(timezone: string, referenceDate: Date = new Date): string {
+  const normalizedTimezone = normalizeBusinessTimezone(timezone)
+  const zonedDate = toZonedTime(referenceDate, normalizedTimezone)
+  const dayOfWeek = zonedDate.getDay() // 0 = Sunday, 6 = Saturday
+  const daysToSaturday = 6 - dayOfWeek
+  zonedDate.setDate(zonedDate.getDate() + daysToSaturday)
+  zonedDate.setHours(23, 59, 59, 999)
+  const utcDate = fromZonedTime(zonedDate, normalizedTimezone)
+  return utcDate.toISOString()
+}
+
+/**
+ * Gets the end of the current business-local day (23:59:59.999) as a UTC ISO timestamp.
+ *
+ * @param timezone - Business timezone (e.g., 'America/New_York', 'UTC')
+ * @param referenceDate - Reference date in UTC (defaults to now)
+ * @returns ISO timestamp of end of day in business timezone
+ */
+export function getBusinessDayEnd(timezone: string, referenceDate: Date = new Date): string {
+  const normalizedTimezone = normalizeBusinessTimezone(timezone)
+  const zonedDate = toZonedTime(referenceDate, normalizedTimezone)
+  zonedDate.setHours(23, 59, 59, 999)
+  const utcDate = fromZonedTime(zonedDate, normalizedTimezone)
+  return utcDate.toISOString()
+}
+
+/**
  * Gets the start of the business-local month as a UTC ISO timestamp.
  *
  * @param timezone - Business timezone (e.g., 'America/New_York', 'UTC')

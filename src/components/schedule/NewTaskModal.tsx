@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Briefcase, User, Plus } from 'lucide-react'
+import { X, Briefcase, User, Plus, Trash2, Check } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
@@ -286,7 +286,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               </>
             ) : (
               <>
-                <Plus className="w-4 h-4" />
+                {taskToEdit ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                 <span>{taskToEdit ? 'Save Changes' : 'Create Reminder'}</span>
               </>
             )}
@@ -433,8 +433,9 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
                 type="button"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="w-full px-4 py-2.5 border border-red-200 dark:border-red-900/30 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2.5 border border-red-200 dark:border-red-900/30 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
+                <Trash2 className="w-4 h-4" />
                 {isDeleting ? 'Deleting...' : 'Delete Task'}
               </button>
             </div>

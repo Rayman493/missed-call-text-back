@@ -286,25 +286,25 @@ function MeetingsTab({
                   <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{formatDayTime(ev)}</div>
                   <div className="flex items-center gap-1.5 mt-1.5">
                     {isMeet && (
-                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-fullbg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
                         <Video className="w-3 h-3" />
                         Google Meet
                       </span>
                     )}
                     {typeLabel === 'In Person' && (
-                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-fullbg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
                         <MapPin className="w-3 h-3" />
                         In Person
                       </span>
                     )}
                     {typeLabel === 'Virtual' && (
-                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium">
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-fullbg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium">
                         <Video className="w-3 h-3" />
                         Virtual
                       </span>
                     )}
                     {typeLabel === 'Appointment' && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-fullbg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
                         Appointment
                       </span>
                     )}
@@ -312,15 +312,15 @@ function MeetingsTab({
                 </button>
                 <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                   {completedMap?.has(ev.id) && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 whitespace-nowrap font-medium">Completed</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-fullbg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 whitespace-nowrap font-medium">Completed</span>
                   )}
                   {!completedMap?.has(ev.id) && (() => {
                     const endRaw = ev.end?.dateTime || ev.end?.date
                     const isPastDue = endRaw ? new Date(endRaw).getTime() < Date.now() : false
                     return isPastDue ? (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 whitespace-nowrap font-medium">Past</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-fullbg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 whitespace-nowrap font-medium">Past</span>
                     ) : (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap font-medium">Scheduled</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-fullbg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap font-medium">Scheduled</span>
                     )
                   })()}
                 </div>
@@ -2518,10 +2518,10 @@ export default function SchedulePage() {
                       }}
                       onShowToast={showToast}
                       onRefresh={async () => {
-                        // Refresh events from Google Calendar
+                        // Refresh events from Google Calendar.
+                        // Success toast is owned by the modal (onShowToast) per action,
+                        // so onRefresh only handles data refresh — no generic toast here.
                         await fetchEvents()
-                        // Show success message
-                        showToast('Appointment updated on calendar', 'success')
                       }}
                       onDelete={async () => {
                         // Remove the deleted event from local state
@@ -2588,11 +2588,43 @@ function JobsTab({
   onEditJob?: (job: Job) => void
 }) {
   const hasLoadedOnceRef = useRef(false)
+  const [timeSummary, setTimeSummary] = useState<{ today_ms: number; week_ms: number; week_job_count: number; active_timer: boolean } | null>(null)
+
   useEffect(() => {
     if (!isLoading) {
       hasLoadedOnceRef.current = true
     }
   }, [isLoading])
+
+  // Fetch business-level time summary (today/week) — single query, no N+1.
+  useEffect(() => {
+    let cancelled = false
+    const fetchTimeSummary = async () => {
+      try {
+        const supabase = createBrowserClient()
+        if (!supabase) return
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.access_token) return
+        const res = await fetch('/api/jobs/time-summary', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        if (!cancelled && data) {
+          setTimeSummary({
+            today_ms: data.today_ms || 0,
+            week_ms: data.week_ms || 0,
+            week_job_count: data.week_job_count || 0,
+            active_timer: !!data.active_timer,
+          })
+        }
+      } catch {
+        // Silent — summary is non-critical
+      }
+    }
+    fetchTimeSummary()
+    return () => { cancelled = true }
+  }, [jobs.length])
   const active = jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress')
   const completed = jobs.filter(j => j.status === 'completed')
   const cancelled = jobs.filter(j => j.status === 'cancelled')
@@ -2626,7 +2658,7 @@ function JobsTab({
 
     return (
       <div
-        className={`rounded-xl p-4 sm:p-5 transition-all hover:shadow-sm ${
+        className={`rounded-xl p-4 transition-all hover:shadow-sm ${
           isActive
             ? 'bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
             : isCompleted
@@ -2739,6 +2771,43 @@ function JobsTab({
           <span className="sm:hidden">New</span>
         </button>
       </div>
+
+      {/* Time Tracked Summary — compact business-level aggregate */}
+      {timeSummary && (timeSummary.today_ms > 0 || timeSummary.week_ms > 0 || timeSummary.active_timer) && (
+        <div className="mb-4 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-900/60 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+            <h3 className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              Time Tracked
+            </h3>
+            {timeSummary.active_timer && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 dark:text-blue-400 ml-auto">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                Timer running
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">Today</p>
+              <p className="text-lg font-semibold text-slate-900 dark:text-foreground tabular-nums">
+                {formatDuration(timeSummary.today_ms)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">This Week</p>
+              <p className="text-lg font-semibold text-slate-900 dark:text-foreground tabular-nums">
+                {formatDuration(timeSummary.week_ms)}
+              </p>
+              {timeSummary.week_job_count > 0 && (
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                  {timeSummary.week_job_count} {timeSummary.week_job_count === 1 ? 'job' : 'jobs'}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {jobs.length === 0 ? (
         <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6 sm:p-8 text-center">

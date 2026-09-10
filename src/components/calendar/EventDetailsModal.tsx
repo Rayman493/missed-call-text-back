@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Calendar, Clock, MapPin, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2, ClipboardList, MessageSquareText, CheckSquare } from 'lucide-react'
+import { X, Calendar, Clock, MapPin, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2, ClipboardList, MessageSquareText, CheckSquare, ChevronDown, ChevronUp } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useBusiness } from '@/contexts/BusinessContext'
@@ -189,6 +189,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   const [actualEnd, setActualEnd] = useState<string | null>(null)
   const [transcriptStatus, setTranscriptStatus] = useState<string | null>(null)
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false)
+  const [showTranscript, setShowTranscript] = useState(false)
   const [transcriptLoading, setTranscriptLoading] = useState(false)
   const [transcriptError, setTranscriptError] = useState<string | null>(null)
   const [transcriptText, setTranscriptText] = useState<string | null>(null)
@@ -1034,10 +1035,15 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               <div className="pt-4 md:pt-5 border-t border-border/50">
                 <button
                   onClick={() => setIsTranscriptOpen(!isTranscriptOpen)}
-                  className="flex items-center justify-between w-full text-left"
+                  aria-expanded={isTranscriptOpen}
+                  className="flex items-center justify-between w-full text-left py-1 -my-1 rounded-md hover:bg-muted/40 dark:hover:bg-muted/20 transition-colors px-1"
                 >
-                  <span className="text-xs font-medium text-muted-foreground">AI Summary</span>
-                  <X className={`w-3 h-3 text-muted-foreground transition-transform ${isTranscriptOpen ? 'rotate-45' : ''}`} />
+                  <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">AI Summary</span>
+                  {isTranscriptOpen ? (
+                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  )}
                 </button>
                 {!isTranscriptOpen && (aiSummaryStructured?.overview || aiSummary) && (
                   <p className="text-sm text-foreground mt-2 line-clamp-1">{aiSummaryStructured?.overview || aiSummary}</p>
@@ -1102,6 +1108,10 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                     {((transcriptStatus === 'available' || transcriptStatus === 'processed') || (transcriptText && transcriptText.trim().length > 0)) && (
                       <button
                         onClick={async () => {
+                          if (showTranscript) {
+                            setShowTranscript(false)
+                            return
+                          }
                           if (!transcriptText && event?.id) {
                             setTranscriptLoading(true)
                             setTranscriptError(null)
@@ -1112,22 +1122,41 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                                 setTranscriptError('Transcript unavailable.')
                               } else {
                                 setTranscriptText(j?.transcript || '')
+                                setShowTranscript(true)
                               }
                             } catch (e) {
                               setTranscriptError('Failed to load transcript')
                             } finally {
                               setTranscriptLoading(false)
                             }
+                          } else {
+                            setShowTranscript(true)
                           }
                         }}
-                        className="text-[11px] px-2 py-1 rounded border border-border/50 bg-transparent hover:bg-muted text-foreground mt-3"
+                        className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-border/50 bg-transparent hover:bg-muted text-foreground mt-3 transition-colors"
                       >
-                        {transcriptText ? 'Hide Transcript' : 'View Transcript'}
+                        {showTranscript ? (
+                          <>
+                            <ChevronUp className="w-3 h-3" />
+                            Hide Transcript
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="w-3 h-3" />
+                            View Transcript
+                          </>
+                        )}
                       </button>
                     )}
-                    {transcriptText && (
-                      <div className="mt-2 p-2 rounded bg-slate-900/50 border border-slate-700/50 max-h-48 overflow-y-auto">
-                        <pre className="text-xs text-foreground whitespace-pre-wrap break-words">{transcriptText}</pre>
+                    {transcriptLoading && (
+                      <p className="text-[11px] text-muted-foreground mt-2">Loading transcript...</p>
+                    )}
+                    {transcriptError && (
+                      <p className="text-[11px] text-red-600 dark:text-red-400 mt-2">{transcriptError}</p>
+                    )}
+                    {showTranscript && transcriptText && (
+                      <div className="mt-2 p-3 rounded-lg bg-muted/40 dark:bg-slate-800/40 border border-border/40 max-h-48 overflow-y-auto">
+                        <pre className="text-xs text-foreground/80 whitespace-pre-wrap break-words leading-relaxed">{transcriptText}</pre>
                       </div>
                     )}
                   </div>
