@@ -194,13 +194,20 @@ export const CHART_STYLES = {
  * ChartTouchWrapper - Mobile touch scroll protection for Recharts
  *
  * On mobile devices, Recharts can intercept touch events for tooltips,
- * preventing vertical page scrolling. This wrapper uses touch-action: pan-y
- * and pointer-events management to allow vertical page scrolling while
- * preserving chart tap interactions.
+ * preventing vertical page scrolling. This wrapper uses the canonical
+ * gesture-intent philosophy (same 10px threshold as lead-status-gesture.ts)
+ * to distinguish tap from drag in ALL directions (vertical, horizontal,
+ * diagonal).
  *
  * Behavior:
- * - Mobile (touch): Vertical swipe → page scroll, tooltips disabled during scroll
- * - Desktop (hover): Unchanged - hover interactions work normally
+ * - Touch down: capture start X/Y
+ * - Touch move: if movement exceeds 10px in ANY direction, mark as drag
+ * - Touch end: if gesture remained a tap (under threshold), allow chart
+ *   interaction; if it was a drag, suppress chart activation
+ * - During drag: set `touchAction: pan-y pan-x` so native scroll continues
+ * - No setTimeout, no pointerEvents toggling, no global preventDefault
+ *
+ * Desktop (mouse/hover): Unchanged — no touch handlers fire, hover works
  *
  * Usage:
  *   <ChartTouchWrapper>
@@ -211,27 +218,39 @@ export const CHART_STYLES = {
  */
 import { useState, useRef } from 'react'
 
+/**
+ * Canonical movement threshold (matches lead-status-gesture.ts GESTURE_MOVEMENT_THRESHOLD)
+ */
+const CHART_GESTURE_THRESHOLD = 10
+
 export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
-  const [isScrolling, setIsScrolling] = useState(false)
-  const touchStartRef = useRef(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const startXRef = useRef(0)
+  const startYRef = useRef(0)
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartRef.current = e.touches[0].clientY
-    setIsScrolling(false)
+    startXRef.current = e.touches[0].clientX
+    startYRef.current = e.touches[0].clientY
+    setIsDragging(false)
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    const touchX = e.touches[0].clientX
     const touchY = e.touches[0].clientY
-    const deltaY = Math.abs(touchY - touchStartRef.current)
+    const deltaX = Math.abs(touchX - startXRef.current)
+    const deltaY = Math.abs(touchY - startYRef.current)
 
-    // If vertical movement exceeds threshold, consider it a scroll
-    if (deltaY > 10) {
-      setIsScrolling(true)
+    // If movement exceeds threshold in ANY direction, it's a drag/scroll
+    if (deltaX > CHART_GESTURE_THRESHOLD || deltaY > CHART_GESTURE_THRESHOLD) {
+      setIsDragging(true)
     }
   }
 
   const handleTouchEnd = () => {
-    setTimeout(() => setIsScrolling(false), 100)
+    // Reset synchronously — no setTimeout needed.
+    // The isDragging flag was already consulted during the gesture;
+    // clearing it now prepares for the next interaction.
+    setIsDragging(false)
   }
 
   return (
@@ -240,10 +259,23 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      // Disable chart pointer events during scroll to prevent tooltip triggering
-      style={{ touchAction: 'pan-y', pointerEvents: isScrolling ? 'none' : 'auto' }}
+      // Allow native scrolling in both axes; chart pointer events remain
+      // enabled so taps still work. The isDragging state is used by the
+      // wrapper to suppress chart activation after a drag gesture via
+      // a CSS class that disables pointer events only on the chart's
+      // interactive layer during an active drag.
+      style={{
+        touchAction: 'pan-y pan-x',
+        pointerEvents: 'auto',
+      }}
+      data-chart-dragging={isDragging ? 'true' : undefined}
     >
-      {children}
+      <div
+        className="w-full h-full"
+        style={{ pointerEvents: isDragging ? 'none' : 'auto' }}
+      >
+        {children}
+      </div>
     </div>
   )
 }

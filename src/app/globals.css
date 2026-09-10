@@ -829,6 +829,32 @@ html.light select:-moz-autofill:focus {
   padding: 0;
 }
 
+/* Recharts: suppress the default full-band focus rectangle that appears
+ * when tapping a bar/category on mobile. This is the "giant white/black
+ * rectangle" issue. We remove the default outline on the SVG surface and
+ * cursor layer, but preserve focus-visible on individual data elements
+ * (bars, dots, slices) for keyboard accessibility.
+ *
+ * The default Recharts cursor renders a <rect> covering the entire
+ * category band. Setting cursor={false} on Tooltip handles the hover
+ * cursor, but the focus rectangle on touch tap needs this CSS fix.
+ */
+.recharts-surface:focus,
+.recharts-wrapper:focus,
+.recharts-cursor {
+  outline: none;
+}
+
+/* Preserve keyboard focus on individual data elements (bars, slices, dots)
+ * for accessibility — these are the legitimate focus targets, not the
+ * wrapper or cursor layer. */
+.recharts-bar-rectangle:focus-visible,
+.recharts-pie-sector:focus-visible,
+.recharts-line-dot:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
 /* Customer dropdown results: always-visible narrow scrollbar on all devices.
    This is intentionally scoped so it does not change global scrollbar behavior. */
 .customer-dropdown-scroll {

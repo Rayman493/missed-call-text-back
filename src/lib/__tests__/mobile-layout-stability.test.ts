@@ -174,10 +174,12 @@ describe('Mobile Layout Stability', () => {
 
     it('ChartTouchWrapper applies correct CSS style', () => {
       // Verify the wrapper applies the correct touch-action style
-      const expectedStyle = { touchAction: 'pan-y' }
+      // pan-y pan-x allows native scrolling in both directions while
+      // the wrapper's gesture guard distinguishes tap from drag
+      const expectedStyle = { touchAction: 'pan-y pan-x' }
       const expectedClasses = 'w-full h-full select-none'
 
-      expect(expectedStyle.touchAction).toBe('pan-y')
+      expect(expectedStyle.touchAction).toBe('pan-y pan-x')
       expect(expectedClasses).toContain('w-full')
       expect(expectedClasses).toContain('h-full')
       expect(expectedClasses).toContain('select-none')
