@@ -171,8 +171,8 @@ export default function LeadCard({
               {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
             </p>
           </div>
-          {/* Mobile: Move status to bottom, Desktop: Keep in header */}
-          <div className="hidden sm:block flex-shrink-0">
+          {/* Status dropdown: top-right on all viewports (mobile + desktop) */}
+          <div className="flex-shrink-0">
             <div
               className="flex-shrink-0"
               onPointerDown={(e) => e.stopPropagation()}
@@ -243,29 +243,6 @@ export default function LeadCard({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 border-t border-border/40 justify-between">
-          {/* Mobile: Status dropdown */}
-          <div className="sm:hidden flex-shrink-0">
-            <div
-              className="flex-shrink-0"
-              onPointerDown={(e) => e.stopPropagation()}
-              onPointerMove={(e) => e.stopPropagation()}
-              onPointerUp={(e) => e.stopPropagation()}
-              onPointerCancel={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {lead.deleted_at ? (
-                <span className="inline-flex items-center px-2 py-1.5 rounded-lg text-[10px] font-medium bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
-                  Deleted
-                </span>
-              ) : (
-                <LeadStatusDropdown
-                  currentStatus={rawStatus as CustomerStatus}
-                  onStatusChange={(newStatus) => Promise.resolve(onStatusChange(lead.id, newStatus))}
-                  size="sm"
-                />
-              )}
-            </div>
-          </div>
           {/* Desktop: Open customer button */}
           <button
             type="button"

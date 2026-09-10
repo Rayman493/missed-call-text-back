@@ -39,6 +39,7 @@ import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from
 import { isProviderAvailable, getAvailableProviders, PaymentProvider } from '@/lib/payment-links'
 import { formatEventTimeRange } from '@/lib/calendar-date-utils'
 import { reconcileLeadData } from '@/lib/payment-reconciliation'
+import { mergeLeadRealtimeUpdate, replaceAuthoritativeChildSnapshot, mergeIncrementalChildRecords, reconcileScopedChildSnapshot, mergeLeadFetchResult } from '@/lib/lead-merge'
 import Link from 'next/link'
 import { Lead, Message, Conversation } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -382,6 +383,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [realtimeGeneration, setRealtimeGeneration] = useState(0)
   const [externalActionSuccess, setExternalActionSuccess] = useState<{ primary: string; secondary: string } | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [refreshMessage, setRefreshMessage] = useState('')
   const [showMoreActions, setShowMoreActions] = useState(false)
   const [showMobileOverflow, setShowMobileOverflow] = useState(false)
   const [showInternalNotesModal, setShowInternalNotesModal] = useState(false)
@@ -470,7 +472,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const updatedData = await getLeadDetails(config.leadId)
       // Guard against customer switch - only update if still on same lead
       if (updatedData && currentLeadId === params.id) {
-        setLeadData(updatedData)
+        setLeadData((prev: any) => mergeLeadFetchResult(prev, updatedData.lead, mergeMessagesById))
       }
     } catch (error) {
       console.error('[BusinessPhone] Failed to record action:', error)
@@ -714,7 +716,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const updatedData = await getLeadDetails(currentLeadId)
       // Guard against customer switch - only update if still on same lead
       if (updatedData?.ok && updatedData.lead && currentLeadId === params.id) {
-        setLeadData(updatedData.lead)
+        setLeadData((prev: any) => mergeLeadFetchResult(prev, updatedData.lead, mergeMessagesById))
         setInternalNotes(updatedData.lead.notes || '')
       }
 
@@ -1264,10 +1266,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               }))
             })
 
-            // Only update state if we got valid data - preserve existing state to prevent Unknown Caller
+            // Only update state if we got valid data - merge with existing state
+            // to prevent "Unknown Caller" flicker and preserve optimistic messages.
             if (updatedData && updatedData.lead) {
-              setLeadData(updatedData)
-              console.log('[APP RESUME] Lead data state updated successfully')
+              setLeadData((prev: any) => mergeLeadFetchResult(prev, updatedData.lead, mergeMessagesById))
+              console.log('[APP RESUME] Lead data state merged successfully')
             } else {
               console.error('[APP RESUME] Failed to get valid lead data, preserving existing state')
             }
@@ -1288,7 +1291,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         const currentLeadId = params.id
         const refetchData = await getLeadDetails(currentLeadId)
         if (refetchData && refetchData.lead) {
-          setLeadData(refetchData)
+          setLeadData((prev: any) => mergeLeadFetchResult(prev, refetchData.lead, mergeMessagesById))
           console.log('[APP RESUME] Conversation refetch completed successfully')
         }
       } catch (error) {
@@ -1537,6 +1540,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [leadTasks, setLeadTasks] = useState<any[]>([])
   const [appointments, setAppointments] = useState<any[]>([])
   const [loadingAppointments, setLoadingAppointments] = useState(false)
+
+  // Request generation guards for child-list fetches (stale-request rejection).
+  // A stale response (older generation) is rejected before reaching reconciliation.
+  // Mutations bump the generation so in-flight stale fetches are rejected.
+  const latestJobsFetchRef = useRef(0)
+  const latestTasksFetchRef = useRef(0)
+  const latestAppointmentsFetchRef = useRef(0)
   const [appointmentDate, setAppointmentDate] = useState('')
   const [appointmentTime, setAppointmentTime] = useState('')
   const [showAppointmentSuccessModal, setShowAppointmentSuccessModal] = useState(false)
@@ -1578,6 +1588,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const fetchLeadJobs = async () => {
     if (!leadData?.id || !business) return
 
+    const requestId = ++latestJobsFetchRef.current
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -1592,7 +1603,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       if (response.ok) {
         const data = await response.json()
-        setLeadJobs(data.jobs || [])
+        // Stale-request rejection: ignore if a newer fetch was started.
+        if (requestId !== latestJobsFetchRef.current) return
+        // /api/jobs?lead_id=... returns an AUTHORITATIVE SNAPSHOT (all jobs
+        // for this lead, no pagination). Missing IDs are removed.
+        setLeadJobs(prev => replaceAuthoritativeChildSnapshot(prev, data.jobs || []))
       }
     } catch (error) {
       console.error('Error fetching lead jobs:', error)
@@ -1602,6 +1617,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const fetchLeadTasks = async () => {
     if (!leadData?.id || !business) return
 
+    const requestId = ++latestTasksFetchRef.current
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -1616,7 +1632,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       if (response.ok) {
         const data = await response.json()
-        setLeadTasks(data.tasks || [])
+        // Stale-request rejection: ignore if a newer fetch was started.
+        if (requestId !== latestTasksFetchRef.current) return
+        // /api/tasks?lead_id=... returns an AUTHORITATIVE SNAPSHOT (all tasks
+        // for this lead, no pagination). Missing IDs are removed.
+        setLeadTasks(prev => replaceAuthoritativeChildSnapshot(prev, data.tasks || []))
       }
     } catch (error) {
       console.error('Error fetching lead tasks:', error)
@@ -1626,6 +1646,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const fetchAppointments = async () => {
     if (!leadData?.id || !business) return
 
+    const requestId = ++latestAppointmentsFetchRef.current
     try {
       setLoadingAppointments(true)
       const { data: { session } } = await supabase.auth.getSession()
@@ -1638,6 +1659,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       timeMin.setDate(timeMin.getDate() - 30)
       const timeMax = new Date()
       timeMax.setDate(timeMax.getDate() + 90)
+      const windowStartMs = timeMin.getTime()
+      const windowEndMs = timeMax.getTime()
 
       const response = await fetch(
         `/api/google/calendar/events?lead_id=${leadData.id}&timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}`,
@@ -1650,17 +1673,44 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       if (response.ok) {
         const data = await response.json()
-        setAppointments(data.events || [])
+        // Stale-request rejection: ignore if a newer fetch was started.
+        if (requestId !== latestAppointmentsFetchRef.current) return
+        // /api/google/calendar/events returns a time-bounded snapshot for the
+        // [timeMin, timeMax) window. Use SCOPED authoritative reconciliation:
+        //  - appointments INSIDE the window: replaced authoritatively (missing = deleted)
+        //  - appointments OUTSIDE the window: preserved (query didn't ask about them)
+        // Note: Google Calendar maxResults=250 could truncate for leads with
+        // >250 events in 120 days, which is not realistic for this product.
+        setAppointments(prev => reconcileScopedChildSnapshot(
+          prev,
+          data.events || [],
+          windowStartMs,
+          windowEndMs,
+          (apt: any) => {
+            const start = apt?.start
+            if (!start) return 0
+            if (start.dateTime) return new Date(start.dateTime).getTime()
+            if (start.date) return new Date(start.date).getTime()
+            return 0
+          }
+        ))
       } else {
         // Non-blocking failure - Customer Details remains usable
         console.warn('Failed to fetch appointments, continuing without them')
-        setAppointments([])
+        // Only clear if this is still the latest request.
+        if (requestId === latestAppointmentsFetchRef.current) {
+          setAppointments([])
+        }
       }
     } catch (error) {
       console.error('Error fetching appointments:', error)
-      setAppointments([])
+      if (requestId === latestAppointmentsFetchRef.current) {
+        setAppointments([])
+      }
     } finally {
-      setLoadingAppointments(false)
+      if (requestId === latestAppointmentsFetchRef.current) {
+        setLoadingAppointments(false)
+      }
     }
   }
 
@@ -1876,11 +1926,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         throw new Error(error.error || `Failed to update lead status to ${newStatus}`)
       }
 
-      // Update local state
+      // Update local state — track mutation timestamp so stale
+      // realtime/refresh/resume responses cannot regress the status.
+      const statusUpdatedAt = new Date().toISOString()
       setLeadData((prev: any) => ({
         ...prev,
         status: newStatus,
-        updated_at: new Date().toISOString()
+        updated_at: statusUpdatedAt,
+        _statusUpdatedAt: statusUpdatedAt
       }))
 
       // Show success message
@@ -2022,19 +2075,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
 
         // Merge with existing state to preserve realtime messages that arrived during fetch
-        setLeadData((prev: any) => {
-          if (!prev) return leadWithMergedData
-
-          // Merge messages using canonical merge function to preserve realtime updates
-          const existingMessages = prev.messages || []
-          const newMessages = leadWithMergedData.messages || []
-          const mergedMessages = mergeMessagesById(existingMessages, newMessages, 'initial-fetch')
-
-          return {
-            ...leadWithMergedData,
-            messages: mergedMessages
-          }
-        })
+        setLeadData((prev: any) => mergeLeadFetchResult(prev, leadWithMergedData, (existing, incoming, label) =>
+          mergeMessagesById(existing, incoming, label || 'initial-fetch')
+        ))
         setLoading(false)
         return
       }
@@ -2361,7 +2404,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               console.log('[REALTIME LEAD UPDATE] No prev leadData, skipping')
               return prev
             }
-            const merged = { ...prev, ...updatedLead, raw_metadata: { ...prev.raw_metadata, ...updatedLead.raw_metadata } }
+            const merged = mergeLeadRealtimeUpdate(prev, updatedLead)
             console.log('[REALTIME LEAD UPDATE] Merging lead update:', {
               previousName: prev.name,
               newName: merged.name,
@@ -2902,32 +2945,31 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       if (!result) {
         console.log('[Refresh] No response returned from API')
         setError('Failed to refresh conversation')
+        setRefreshMessage('Refresh failed')
+        // Auto-clear failure message after 3 seconds
+        setTimeout(() => setRefreshMessage(''), 3000)
         // Fall through to finally block to clear refreshing state
       } else if (result.ok && result.lead) {
         console.log('[Refresh] Successfully refreshed conversation data')
-        
-        // Merge new messages with existing ones to preserve optimistic state
-        setLeadData((prev: any) => {
-          if (!prev) return result.lead
-          
-          const existingMessages = prev.messages || []
-          const newMessages = result.lead.messages || []
-          
-          // Use the same merge logic as realtime updates
-          const mergedMessages = mergeMessagesById(existingMessages, newMessages, 'refresh')
-          
-          return {
-            ...result.lead,
-            messages: mergedMessages
-          }
-        })
+
+        // Merge new data with existing to preserve optimistic state,
+        // reconcile child lists by ID, and protect status from regression.
+        setLeadData((prev: any) => mergeLeadFetchResult(prev, result.lead, mergeMessagesById))
+
+        // Exactly ONE success signal: the button/menu label briefly becomes "Refreshed".
+        setRefreshMessage('Refreshed')
+        setTimeout(() => setRefreshMessage(''), 2000)
       } else {
         console.log('[Refresh] API returned error:', result)
         setError(result.error || 'Failed to refresh conversation')
+        setRefreshMessage('Refresh failed')
+        setTimeout(() => setRefreshMessage(''), 3000)
       }
     } catch (error) {
       console.error('[Refresh] Error refreshing conversation:', error)
       setError('Failed to refresh conversation')
+      setRefreshMessage('Refresh failed')
+      setTimeout(() => setRefreshMessage(''), 3000)
     } finally {
       // Only clear refreshing if this is still the latest request
       if (requestId === latestRefreshRequestRef.current) {
@@ -3427,6 +3469,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       const data = await response.json()
       const savedJob = data.job
+      // Bump generation so any in-flight stale fetch is rejected before
+      // the post-mutation revalidation fetch applies.
+      latestJobsFetchRef.current++
       await fetchLeadJobs()
 
       if (sendConfirmation) {
@@ -3471,6 +3516,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const handleJobSave = (job: Job) => {
     setSuccessMessage('Job created.\nAdded to your schedule.')
     setIsJobComposerOpen(false)
+    // Bump generation so any in-flight stale fetch is rejected.
+    latestJobsFetchRef.current++
     fetchLeadJobs()
   }
 
@@ -3578,7 +3625,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // Refresh lead data
       const updatedLead = await getLeadDetails(params.id)
       if (updatedLead?.ok && updatedLead.lead) {
-        setLeadData({ ...updatedLead.lead, messages: updatedLead.lead.messages || updatedLead.messages || [] })
+        setLeadData((prev: any) => mergeLeadFetchResult(prev, { ...updatedLead.lead, messages: updatedLead.lead.messages || updatedLead.messages || [] }, mergeMessagesById))
       }
 
       const customerName = getCustomerName(lead, leadData)
@@ -4009,7 +4056,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                           </svg>
-                          <span>Refresh</span>
+                          <span>{refreshing ? 'Refreshing…' : refreshMessage || 'Refresh'}</span>
                         </DropdownMenuItem>
                       </div>
 
@@ -4171,13 +4218,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     type="button"
                     onClick={handleRefresh}
                     disabled={refreshing}
-                    className="h-[30px] w-[30px] inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-slate-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label="Refresh"
-                    title="Refresh"
+                    className="h-[30px] inline-flex items-center gap-1.5 px-2 text-muted-foreground hover:text-foreground hover:bg-slate-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label={refreshing ? 'Refreshing' : 'Refresh'}
+                    title={refreshing ? 'Refreshing…' : 'Refresh'}
                   >
                     <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
+                    <span className="text-xs font-medium">
+                      {refreshing ? 'Refreshing…' : refreshMessage || 'Refresh'}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -5578,7 +5628,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                <span>Refresh</span>
+                <span>{refreshing ? 'Refreshing…' : refreshMessage || 'Refresh'}</span>
               </button>
             </div>
           </div>
@@ -5677,7 +5727,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     // Refresh lead data
                     const updatedData = await getLeadDetails(params.id)
                     if (updatedData?.ok && updatedData.lead) {
-                      setLeadData({ ...updatedData.lead, messages: updatedData.lead.messages || updatedData.messages || [] })
+                      setLeadData((prev: any) => mergeLeadFetchResult(prev, { ...updatedData.lead, messages: updatedData.lead.messages || updatedData.messages || [] }, mergeMessagesById))
                     }
                     // Restore scroll position
                     if (scrollPositionBeforeNotesModal !== null) {
@@ -6127,6 +6177,8 @@ If you have questions, reply to this message.`
       isOpen={isNewAppointmentOpen}
       onClose={() => setIsNewAppointmentOpen(false)}
       onRefresh={async () => {
+        // Bump generation so any in-flight stale fetch is rejected.
+        latestAppointmentsFetchRef.current++
         await fetchAppointments()
       }}
       onSuccess={() => {
@@ -6154,6 +6206,8 @@ If you have questions, reply to this message.`
         taskModalOpenSourceRef.current = null
       }}
       onTaskCreated={async (isNew, task) => {
+        // Bump generation so any in-flight stale fetch is rejected.
+        latestTasksFetchRef.current++
         await fetchLeadTasks()
       }}
       onShowToast={(message, type) => {
