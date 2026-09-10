@@ -65,8 +65,8 @@ describe('Final Form Polish — New Job Status Group', () => {
 // ---------------------------------------------------------------------------
 
 describe('Final Form Polish — New Appointment Spacing', () => {
-  it('uses space-y-5 for outer body (not space-y-6)', () => {
-    expect(newAppointmentContent).toContain('className="space-y-5"')
+  it('uses space-y-4 for outer body (normalized with Reminder/Job)', () => {
+    expect(newAppointmentContent).toContain('className="space-y-4"')
   })
 
   it('uses space-y-3 for inner sections (not space-y-4)', () => {
@@ -117,8 +117,9 @@ describe('Final Form Polish — Section Heading Consistency', () => {
 // ---------------------------------------------------------------------------
 
 describe('Final Form Polish — Footer Consistency', () => {
-  it('NewAppointmentModal footer uses gap-2 (not gap-3)', () => {
-    expect(newAppointmentContent).toContain('flex flex-wrap gap-2 min-w-0')
+  it('NewAppointmentModal footer buttons are direct children (no redundant wrapper)', () => {
+    // Footer buttons should be direct children of Modal footer, not wrapped in extra flex div
+    expect(newAppointmentContent).not.toContain('flex flex-wrap gap-2 min-w-0')
     expect(newAppointmentContent).not.toContain('flex flex-wrap gap-3 min-w-0')
   })
 

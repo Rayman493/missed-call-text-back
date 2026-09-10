@@ -204,6 +204,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   const [editedSummary, setEditedSummary] = useState(event.summary)
   const [editedDescription, setEditedDescription] = useState(event.description || '')
   const [editedLocation, setEditedLocation] = useState(event.location || '')
+  const [editedNotes, setEditedNotes] = useState(notes)
   const [editedStartDate, setEditedStartDate] = useState('')
   const [editedStartTime, setEditedStartTime] = useState('')
   const [editedEndTime, setEditedEndTime] = useState('')
@@ -215,6 +216,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       setEditedSummary(event.summary)
       setEditedDescription(event.description || '')
       setEditedLocation(event.location || '')
+      setEditedNotes(notes)
       setIsAllDay(!!event.start.date)
       
       if (event.start.dateTime) {
@@ -485,6 +487,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
     setEditedSummary(event.summary)
     setEditedDescription(event.description || '')
     setEditedLocation(event.location || '')
+    setEditedNotes(notes)
     setIsAllDay(!!event.start.date)
     
     if (event.start.dateTime) {
@@ -660,6 +663,27 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to update event' }))
         setError(errorData.error || 'Failed to update event')
+        return
+      }
+
+      // Persist Meeting Notes alongside ordinary edits (single-save model)
+      let notesSaveFailed = false
+      if (event.id && editedNotes !== notes) {
+        try {
+          const notesRes = await fetch(`/api/meetings/${encodeURIComponent(event.id)}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes: editedNotes, lead_id: lead?.id || undefined, job_id: job?.id || undefined })
+          })
+          if (!notesRes.ok) notesSaveFailed = true
+        } catch {
+          notesSaveFailed = true
+        }
+      }
+
+      // If notes persistence failed, do not close edit mode — preserve draft and inform user
+      if (notesSaveFailed) {
+        setError('Event updated, but meeting notes failed to save. Your notes draft is preserved.')
         return
       }
 
@@ -1004,23 +1028,24 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               </div>
             )}
 
-            {/* Meeting Notes - always editable private notes owned by ReplyFlow */}
-            {!event.isHoliday && !isEditing && (
+            {/* Meeting Notes - private notes owned by ReplyFlow, participates in single-save flow */}
+            {!event.isHoliday && (
               <div className="pt-3 border-t border-border/40 space-y-1.5">
                 <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Meeting Notes</label>
                 <div className="mt-1.5">
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-none"
-                    placeholder="Private notes for your team. Not sent to customer."
-                  />
-                  <div className="mt-2">
-                    <button onClick={saveNotes} disabled={isNotesSaving} className="px-3 py-1.5 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg disabled:opacity-50">
-                      {isNotesSaving ? 'Saving...' : 'Save Notes'}
-                    </button>
-                  </div>
+                  {isEditing ? (
+                    <textarea
+                      value={editedNotes}
+                      onChange={(e) => setEditedNotes(e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-none"
+                      placeholder="Private notes for your team. Not sent to customer."
+                    />
+                  ) : (
+                    <p className="text-sm text-foreground whitespace-pre-wrap min-h-[2.5rem]">
+                      {notes || <span className="text-muted-foreground italic">No meeting notes</span>}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -1241,7 +1266,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    <span>Save</span>
+                    <span>Save Changes</span>
                   </>
                 )}
               </button>

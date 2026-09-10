@@ -1902,7 +1902,7 @@ useEffect(() => {
               : `${markerInfo.items.length} stops at this location`,
           icon: createNumberedMarkerIcon(isBusinessMarker ? 0 : stopNumber, primaryItem.type, isSelected),
           zIndex: isSelected ? 1000 : 1,
-          shape: createMarkerShape(isSelected ? 44 : 36) // Consistent 44px touch target centered on icon
+          shape: createMarkerShape(isSelected ? 42 : 36) // Touch target scaled to icon size
         })
 
         opCountersRef.current.markerCreate++
@@ -2218,7 +2218,7 @@ useEffect(() => {
     }
   }, [])
 
-  // Create numbered marker icon
+  // Create numbered marker icon with premium semantic styling
   const createNumberedMarkerIcon = (stopNumber: number, type: MapItemType, isSelected: boolean = false): any => {
     // Use actual device pixel ratio for HiDPI canvas backing store
     const dpr = window.devicePixelRatio || 1
@@ -2232,13 +2232,22 @@ useEffect(() => {
     }
 
     const isBusiness = type === 'business'
-    // Business marker keeps its distinct color, stops use palette based on number
-    const color = isBusiness ? '#059669' : STOP_COLOR_PALETTE[(stopNumber - 1) % STOP_COLOR_PALETTE.length]
-    const size = isSelected ? 44 : 36
+
+    // Semantic color system: business=green, job=blue, appointment=amber
+    const color = isBusiness
+      ? '#059669'
+      : type === 'job'
+        ? '#2563EB'
+        : type === 'appointment'
+          ? '#D97706'
+          : STOP_COLOR_PALETTE[(stopNumber - 1) % STOP_COLOR_PALETTE.length]
+
+    // Selected markers are ~15% larger with stronger ring
+    const size = isSelected ? 42 : 36
     const strokeWidth = isSelected ? 3 : 2
     const textColor = '#FFFFFF'
 
-    // Create canvas for numbered marker
+    // Create canvas for marker
     // Canvas backing store uses physical pixels for crisp rendering
     const canvas = document.createElement('canvas')
     canvas.width = size * dpr
@@ -2247,24 +2256,57 @@ useEffect(() => {
     // Scale drawing context so we draw in logical coordinates
     ctx.scale(dpr, dpr)
 
-    // Draw circle background
+    // Draw subtle outer ring (high-contrast white halo for readability over satellite/map)
+    const ringWidth = isSelected ? 3 : 2
     ctx.beginPath()
-    ctx.arc(size / 2, size / 2, size / 2 - strokeWidth / 2, 0, 2 * Math.PI)
+    ctx.arc(size / 2, size / 2, size / 2 - ringWidth / 2, 0, 2 * Math.PI)
+    ctx.strokeStyle = '#FFFFFF'
+    ctx.lineWidth = ringWidth
+    ctx.stroke()
+
+    // Draw filled circle background
+    const innerRadius = size / 2 - ringWidth - 1
+    ctx.beginPath()
+    ctx.arc(size / 2, size / 2, innerRadius, 0, 2 * Math.PI)
     ctx.fillStyle = color
     ctx.fill()
-    ctx.strokeStyle = isSelected ? '#F59E0B' : '#FFFFFF'
-    ctx.lineWidth = strokeWidth
-    ctx.stroke()
+
+    // Draw selected emphasis ring (amber accent)
+    if (isSelected) {
+      ctx.beginPath()
+      ctx.arc(size / 2, size / 2, size / 2 - 0.5, 0, 2 * Math.PI)
+      ctx.strokeStyle = '#F59E0B'
+      ctx.lineWidth = 1.5
+      ctx.stroke()
+    }
 
     // Draw number or business icon
     ctx.fillStyle = textColor
-    ctx.font = `bold ${size * 0.4}px system-ui, -apple-system, sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     if (isBusiness) {
-      ctx.fillText('🏠', size / 2, size / 2)
+      // Draw a clean home icon using vector paths (not emoji for crisp rendering)
+      const cx = size / 2
+      const cy = size / 2
+      const s = size * 0.32 // icon scale
+      ctx.beginPath()
+      // Roof
+      ctx.moveTo(cx, cy - s * 0.65)
+      ctx.lineTo(cx + s, cy - s * 0.05)
+      ctx.lineTo(cx - s, cy - s * 0.05)
+      ctx.closePath()
+      ctx.fill()
+      // Body
+      ctx.fillRect(cx - s * 0.7, cy - s * 0.05, s * 1.4, s * 0.75)
+      // Door (cut out via background color)
+      ctx.fillStyle = color
+      ctx.fillRect(cx - s * 0.2, cy + s * 0.25, s * 0.4, s * 0.45)
     } else {
-      ctx.fillText(stopNumber.toString(), size / 2, size / 2)
+      // Sane handling for >99: show "99+"
+      const label = stopNumber > 99 ? '99+' : stopNumber.toString()
+      const fontSize = label.length > 2 ? size * 0.3 : size * 0.42
+      ctx.font = `bold ${fontSize}px system-ui, -apple-system, sans-serif`
+      ctx.fillText(label, size / 2, size / 2)
     }
 
     const icon = {
@@ -2281,13 +2323,12 @@ useEffect(() => {
     return icon
   }
 
-  // Create marker shape for consistent touch targets (44px diameter = 22px radius)
+  // Create marker shape for consistent touch targets
   // Coordinates are relative to the icon's top-left corner, so we center the circle
-  // For 36px icon: center at (18, 18), for 44px icon: center at (22, 22)
   const createMarkerShape = (iconSize: number): any => {
     const centerX = iconSize / 2
     const centerY = iconSize / 2
-    const radius = 22 // 44px diameter for consistent touch target
+    const radius = iconSize / 2 // Scale with icon size for accurate hit target
     return {
       type: 'circle',
       coords: [centerX, centerY, radius] // [x, y, radius] relative to icon top-left
@@ -2784,8 +2825,8 @@ useEffect(() => {
         )}
       </div>
 
-      {/* Map Container - Use fixed height on mobile to prevent extending behind bottom nav */}
-      <div className="flex-1 h-[calc(100dvh-var(--bottom-nav-height,80px)-90px)] md:h-auto md:min-h-0 relative rounded-xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60">
+      {/* Map Container - fills parent height (parent owns viewport sizing) */}
+      <div className="flex-1 h-full min-h-0 relative rounded-xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60">
         <div ref={mapRef} className="w-full h-full" />
         
         {/* Map Controls Stack */}

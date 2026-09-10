@@ -285,14 +285,14 @@ function MeetingsTab({
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenEvent(ev) } }}
             >
-              <div className="flex items-start justify-between gap-3 p-4">
+              <div className="flex items-start justify-between gap-3 p-3.5">
                 <div className="min-w-0 flex-1">
                   <h3 className="min-w-0 line-clamp-1 text-sm font-semibold text-slate-900 dark:text-foreground">{ev.summary}</h3>
                   {customerName && (
                     <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{customerName}</div>
                   )}
                   <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{formatDayTime(ev)}</div>
-                  <div className="flex items-center gap-1.5 mt-1">
+                  <div className="flex items-center gap-1.5 mt-0.5">
                     {isMeet && (
                       <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
                         <Video className="w-3 h-3" />
@@ -528,6 +528,7 @@ export default function SchedulePage() {
           : t
       ))
       setTaskRefreshTrigger(prev => prev + 1)
+      showToast(!completed ? 'Reminder completed' : 'Reminder reopened', 'success')
     } catch (error) {
       console.error('[Schedule] Failed to toggle task:', error)
     }
@@ -2318,7 +2319,7 @@ export default function SchedulePage() {
 
                   {/* Map Tab */}
                   {scheduleTab === 'map' && (
-                    <div className="h-[calc(100dvh-160px-var(--bottom-nav-height,80px))] md:h-[calc(100dvh-192px-var(--bottom-nav-height,80px))] min-h-[500px]">
+                    <div className="h-[calc(100dvh-160px-var(--bottom-nav-height,80px))] md:h-[calc(100dvh-192px-var(--bottom-nav-height,80px))] min-h-[400px]">
                       <ScheduleMap
                         jobs={jobs}
                         calendarEvents={events}

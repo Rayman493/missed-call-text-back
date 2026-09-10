@@ -404,7 +404,7 @@ export default function TodayCommandCenter({
       </div>
 
       {/* Today - Premium Daily Summary Card */}
-      <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/40 dark:border-blue-800/30 rounded-xl overflow-hidden">
+      <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/40 dark:border-blue-800/30 rounded-xl overflow-hidden sm:min-h-[180px] flex flex-col">
         {/* Header with Today label and current date */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-blue-200/30 dark:border-blue-800/20">
           <div className="flex items-center gap-2.5">
@@ -434,7 +434,7 @@ export default function TodayCommandCenter({
             ))}
           </div>
         ) : sortedWorkItems.length === 0 ? (
-          <div className="px-3 pb-3 pt-1">
+          <div className="px-3 pb-3 pt-1 flex-1 flex flex-col justify-center">
             <p className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-0.5">
               Your day is clear
             </p>
@@ -443,7 +443,7 @@ export default function TodayCommandCenter({
             </p>
           </div>
         ) : (
-          <div className="px-3 pb-2.5 space-y-0.5">
+          <div className="px-3 pb-2.5 space-y-0.5 flex-1">
             {sortedWorkItems.map(item => (
               <div
                 key={item.id}
@@ -589,7 +589,7 @@ export default function TodayCommandCenter({
         {/* Reminders summary card */}
         <button
           onClick={() => onNavigateTab?.('reminders')}
-          className="text-left bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all"
+          className="text-left bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all sm:min-h-[110px] flex flex-col"
         >
           <div className="flex items-center gap-2 mb-1.5">
             <CheckCircle2 className="w-4 h-4 text-slate-400" />
@@ -601,13 +601,13 @@ export default function TodayCommandCenter({
               <span className="text-red-600 dark:text-red-400"> • {overdueTasks.length} overdue</span>
             )}
           </p>
-          <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 font-medium">View Reminders →</p>
+          <p className="text-xs text-blue-600 dark:text-blue-400 mt-auto pt-2 font-medium">View Reminders →</p>
         </button>
 
         {/* Jobs summary card */}
         <button
           onClick={() => onNavigateTab?.('jobs')}
-          className="text-left bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all"
+          className="text-left bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all sm:min-h-[110px] flex flex-col"
         >
           <div className="flex items-center gap-2 mb-1.5">
             <Briefcase className="w-4 h-4 text-slate-400" />
@@ -619,13 +619,13 @@ export default function TodayCommandCenter({
               <span className="text-blue-600 dark:text-blue-400"> • {todayJobs.length} today</span>
             )}
           </p>
-          <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 font-medium">View Jobs →</p>
+          <p className="text-xs text-blue-600 dark:text-blue-400 mt-auto pt-2 font-medium">View Jobs →</p>
         </button>
 
         {/* Appointments summary card */}
         <button
           onClick={() => onNavigateTab?.('appointments')}
-          className="text-left bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all"
+          className="text-left bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all sm:min-h-[110px] flex flex-col"
         >
           <div className="flex items-center gap-2 mb-1.5">
             <Calendar className="w-4 h-4 text-slate-400" />
@@ -637,7 +637,7 @@ export default function TodayCommandCenter({
               <span> • {browseAppointments.length} upcoming</span>
             )}
           </p>
-          <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 font-medium">View Appointments →</p>
+          <p className="text-xs text-blue-600 dark:text-blue-400 mt-auto pt-2 font-medium">View Appointments →</p>
         </button>
       </div>
     </div>

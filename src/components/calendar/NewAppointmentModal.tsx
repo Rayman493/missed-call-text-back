@@ -306,37 +306,35 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                 </div>
               </div>
             )}
-            <div className="flex flex-wrap gap-2 min-w-0">
-              <button
-                onClick={() => handleCancel('cancel_button')}
-                disabled={isCreating}
-                className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-muted"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreate}
-                disabled={isCreating}
-                className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:active:scale-100 flex items-center gap-2"
-              >
-                {isCreating ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                    <span>Creating...</span>
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4" />
-                    <span>Create Appointment</span>
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              onClick={() => handleCancel('cancel_button')}
+              disabled={isCreating}
+              className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={isCreating}
+              className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:active:scale-100 flex items-center gap-2"
+            >
+              {isCreating ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                  <span>Creating...</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  <span>Create Appointment</span>
+                </>
+              )}
+            </button>
           </>
         }
       >
         <p className="text-xs text-muted-foreground/70 mb-4">Add something to your calendar without creating a customer job.</p>
-        <div className="space-y-5">
+        <div className="space-y-4">
             {/* Section: Basics */}
             <div className="space-y-3">
               <div className="pb-1.5 border-b border-border/40">
@@ -387,23 +385,19 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
 
               {!isAllDay && (
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <TimePicker
-                      value={startTime}
-                      onChange={setStartTime}
-                      label="Start Time"
-                      placeholder="Start time"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <TimePicker
-                      value={endTime}
-                      onChange={setEndTime}
-                      label="End Time"
-                      placeholder="Auto 1hr"
-                    />
-                  </div>
+                  <TimePicker
+                    value={startTime}
+                    onChange={setStartTime}
+                    label="Start Time"
+                    placeholder="Start time"
+                    required
+                  />
+                  <TimePicker
+                    value={endTime}
+                    onChange={setEndTime}
+                    label="End Time"
+                    placeholder="Auto 1hr"
+                  />
                 </div>
               )}
 
