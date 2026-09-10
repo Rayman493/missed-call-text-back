@@ -306,18 +306,18 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                 </div>
               </div>
             )}
-            <div className="flex flex-wrap gap-3 min-w-0">
+            <div className="flex flex-wrap gap-2 min-w-0">
               <button
                 onClick={() => handleCancel('cancel_button')}
                 disabled={isCreating}
-                className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-muted"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreate}
                 disabled={isCreating}
-                className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:active:scale-100 flex items-center gap-2"
               >
                 {isCreating ? (
                   <>
@@ -335,12 +335,12 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
           </>
         }
       >
-        <p className="text-xs text-muted-foreground/70 mb-6">Add something to your calendar without creating a customer job.</p>
-        <div className="space-y-6">
+        <p className="text-xs text-muted-foreground/70 mb-4">Add something to your calendar without creating a customer job.</p>
+        <div className="space-y-5">
             {/* Section: Basics */}
-            <div className="space-y-4">
-              <div className="pb-2 border-b border-border/50">
-                <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">Basics</p>
+            <div className="space-y-3">
+              <div className="pb-1.5 border-b border-border/40">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Basics</p>
               </div>
 
               <div>
@@ -370,9 +370,9 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
             </div>
 
             {/* Section: Timing */}
-            <div className="space-y-4">
-              <div className="pb-2 border-b border-border/50">
-                <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">Timing</p>
+            <div className="space-y-3">
+              <div className="pb-1.5 border-b border-border/40">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Timing</p>
               </div>
 
               <div>
@@ -421,9 +421,9 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
             </div>
 
             {/* Section: Appointment Details */}
-            <div className="space-y-4">
-              <div className="pb-2 border-b border-border/50">
-                <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">Appointment Details</p>
+            <div className="space-y-3">
+              <div className="pb-1.5 border-b border-border/40">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Appointment Details</p>
               </div>
 
               <div>

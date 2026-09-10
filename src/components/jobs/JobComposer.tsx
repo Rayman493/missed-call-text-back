@@ -282,14 +282,14 @@ export default function JobComposer({
             <button
               onClick={onClose}
               disabled={isSaving}
-              className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-muted"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:active:scale-100 flex items-center gap-2"
             >
               {isSaving ? (
                 <>
@@ -430,7 +430,7 @@ export default function JobComposer({
                     className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
                       status === opt.value
                         ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                        : 'bg-background text-foreground border-border hover:border-border/80 hover:bg-muted/50'
+                        : 'bg-muted/30 dark:bg-slate-900/55 text-foreground border-border/50 dark:border-slate-700/60 hover:bg-muted/50 dark:hover:bg-slate-900/70'
                     }`}
                   >
                     {opt.label}

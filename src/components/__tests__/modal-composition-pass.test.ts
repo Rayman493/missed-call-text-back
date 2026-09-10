@@ -329,8 +329,9 @@ describe('Modal Composition — AI Summary Compactness', () => {
 // ---------------------------------------------------------------------------
 
 describe('Modal Composition — Reminder Modal', () => {
-  it('section spacing uses space-y-5 (was space-y-6)', () => {
-    expect(newTaskModalContent).toContain('space-y-5')
+  it('section spacing uses space-y-4 (compact, was space-y-5)', () => {
+    expect(newTaskModalContent).toContain('space-y-4')
+    expect(newTaskModalContent).not.toContain('space-y-5')
     expect(newTaskModalContent).not.toContain('space-y-6')
   })
 

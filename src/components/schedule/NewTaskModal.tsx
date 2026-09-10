@@ -269,7 +269,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
             type="button"
             onClick={handleClose}
             disabled={isSaving}
-            className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-muted"
           >
             Cancel
           </button>
@@ -277,7 +277,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
             type="button"
             onClick={handleSubmit}
             disabled={isSaving || !title.trim()}
-            className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:active:scale-100 flex items-center gap-2"
           >
             {isSaving ? (
               <>
@@ -294,8 +294,8 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         </>
       }
     >
-      <div className="space-y-5">
-        <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Section: Customer Context */}
           <div className="space-y-3">
             <div className="pb-1.5 border-b border-border/40">
@@ -408,7 +408,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add any details about this reminder..."
-                rows={3}
+                rows={2}
                 className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-y"
                 autoCapitalize="sentences"
                 autoCorrect="on"
