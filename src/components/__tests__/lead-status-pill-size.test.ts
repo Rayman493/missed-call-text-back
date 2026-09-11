@@ -4,7 +4,7 @@
  * Tests 26-29: Status pill size + touch target
  *
  * Changes:
- * - Reduced vertical padding from py-1.5 to py-1 (sm/md) and py-2 to py-1.5 (lg)
+ * - Reduced vertical padding from py-1 to py-0.5 (sm/md) and py-1.5 to py-1 (lg)
  * - Tightened icon/text/chevron gap from gap-2 to gap-1.5
  * - Increased touch target pseudo-element from inset-[-6px] to inset-[-10px]
  *   to maintain a comfortable ~44px touch target despite the reduced padding
@@ -16,12 +16,12 @@ import { readFileSync } from 'fs'
 const content = readFileSync('src/components/LeadStatusDropdown.tsx', 'utf8')
 
 describe('Status pill — size polish (26-29)', () => {
-  it('26. visible height/padding reduced (py-1 for sm/md, py-1.5 for lg)', () => {
-    // sm and md use py-1 (reduced from py-1.5)
-    expect(content).toContain("sm: 'px-2.5 py-1 text-xs max-w-[140px]'")
-    expect(content).toContain("md: 'px-3 py-1 text-xs max-w-[160px]'")
-    // lg uses py-1.5 (reduced from py-2)
-    expect(content).toContain("lg: 'px-3.5 py-1.5 text-sm max-w-[180px]'")
+  it('26. visible height/padding reduced (py-0.5 for sm/md, py-1 for lg)', () => {
+    // sm and md use py-0.5 (reduced from py-1)
+    expect(content).toContain("sm: 'px-2 py-0.5 text-xs max-w-[140px]'")
+    expect(content).toContain("md: 'px-2.5 py-0.5 text-xs max-w-[160px]'")
+    // lg uses py-1 (reduced from py-1.5)
+    expect(content).toContain("lg: 'px-3 py-1 text-sm max-w-[180px]'")
   })
 
   it('27. effective touch target remains accessible (inset-[-10px] pseudo-element)', () => {

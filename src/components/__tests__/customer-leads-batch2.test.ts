@@ -34,7 +34,8 @@ describe('LeadCard — mobile status dropdown at top-right', () => {
   })
 
   it('card body remains clickable (onClick opens lead)', () => {
-    expect(src).toMatch(/onClick=\{\(\) => onOpen\(lead\.id\)\}/)
+    // onClick now includes a dismissal guard but still calls onOpen(lead.id)
+    expect(src).toMatch(/onClick=\{[\s\S]*?onOpen\(lead\.id\)/)
   })
 })
 
@@ -55,14 +56,24 @@ describe('Leads page — filter/funnel drag-vs-tap protection', () => {
   })
 
   it('suppresses filter open when movement exceeded threshold', () => {
-    expect(src).toContain('if (!wasScroll)')
+    expect(src).toContain('if (wasScroll)')
     expect(src).toContain('setFilterMenuOpen(true)')
   })
 
   it('does not globally preventDefault on touch/pointer movement', () => {
+    // The filter button's onClick has a conditional preventDefault only when
+    // the suppress flag is set (after a scroll gesture). This is intentional
+    // and scoped — not a global preventDefault on all touch/pointer movement.
     const filterButtonBlock = src.match(/Filter dropdown button[\s\S]*?<\/button>/)
     if (filterButtonBlock) {
-      expect(filterButtonBlock[0]).not.toContain('preventDefault')
+      // The only preventDefault should be in the onClick guard, not in
+      // touch/pointer move handlers
+      const touchHandlers = filterButtonBlock[0].match(/onTouch(?:Start|Move|End)[\s\S]*?\}/g)
+      if (touchHandlers) {
+        touchHandlers.forEach(h => {
+          expect(h).not.toContain('preventDefault')
+        })
+      }
     }
   })
 })

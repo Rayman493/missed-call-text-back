@@ -524,9 +524,9 @@ describe('Batch 5 — Batch 3 Regression', () => {
 describe('Batch 5 — Batch 4 Regression', () => {
   it('ChartTouchWrapper uses canonical 10px threshold with both X and Y', () => {
     const content = readContent('src/lib/chart-utils.tsx')
-    expect(content).toContain('CHART_GESTURE_THRESHOLD = 10')
-    expect(content).toContain('deltaX')
-    expect(content).toContain('deltaY')
+    // Uses canonical isDragGesture from tap-guard (10px threshold, both X and Y)
+    expect(content).toContain('isDragGesture')
+    expect(content).toContain('GESTURE_MOVEMENT_THRESHOLD')
   })
 
   it('Personal Voicemail link is always rendered (no conditional)', () => {

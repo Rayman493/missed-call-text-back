@@ -391,19 +391,20 @@ describe('Batch 5 — Customer header compactness + hit targets', () => {
 describe('Batch 5 — LeadStatusDropdown hit targets', () => {
   const dropdown = readFileSync('src/components/LeadStatusDropdown.tsx', 'utf8')
 
-  it('Status trigger has >=44px effective mobile hit target (min-h-[44px])', () => {
-    expect(dropdown).toContain('min-h-[44px] inline-flex items-center justify-center')
+  it('Status trigger has >=44px effective mobile hit target (inset-[-10px] pseudo-element)', () => {
+    // Touch target is achieved via inset-[-10px] pseudo-element, not min-h-[44px]
+    expect(dropdown).toContain('inset-[-10px]')
   })
 
   it('Status trigger visual pill remains compact (inner span with sizeClasses)', () => {
-    // The inner span retains the compact px-2.5 py-1.5 text-xs visual treatment
-    expect(dropdown).toContain('px-2.5 py-1.5 text-xs max-w-[140px]')
+    // The inner span retains the compact px-2 py-0.5 text-xs visual treatment
+    expect(dropdown).toContain('px-2 py-0.5 text-xs max-w-[140px]')
     // The inner span has the visual border/bg, not the button
     expect(dropdown).toContain('border border-border dark:border-border/50 rounded-lg')
   })
 
   it('Status trigger uses group pattern for hit-area/visual separation', () => {
-    expect(dropdown).toContain('group min-h-[44px]')
+    expect(dropdown).toContain('group relative')
     expect(dropdown).toContain('group-data-[state=open]:ring-2')
   })
 
@@ -424,9 +425,9 @@ describe('Batch 5 — LeadStatusDropdown hit targets', () => {
   })
 
   it('Desktop visual density preserved (sizeClasses still sm/md/lg)', () => {
-    expect(dropdown).toContain("sm: 'px-2.5 py-1.5 text-xs max-w-[140px]'")
-    expect(dropdown).toContain("md: 'px-3 py-1.5 text-xs max-w-[160px]'")
-    expect(dropdown).toContain("lg: 'px-3.5 py-2 text-sm max-w-[180px]'")
+    expect(dropdown).toContain("sm: 'px-2 py-0.5 text-xs max-w-[140px]'")
+    expect(dropdown).toContain("md: 'px-2.5 py-0.5 text-xs max-w-[160px]'")
+    expect(dropdown).toContain("lg: 'px-3 py-1 text-sm max-w-[180px]'")
   })
 
   it('Chevron rotation on open preserved (group-data-[state=open]:rotate-180)', () => {

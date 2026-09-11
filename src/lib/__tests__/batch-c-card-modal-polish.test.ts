@@ -93,8 +93,8 @@ describe('Batch C — Part 1: Customer Card Alignment', () => {
     // The title element has min-w-0 and truncate to prevent pushing
     expect(sidebarSectionSrc).toContain('min-w-0')
     expect(sidebarSectionSrc).toContain('truncate')
-    // The right slot has ml-auto shrink-0
-    expect(sidebarSectionSrc).toContain('ml-auto shrink-0')
+    // The right slot uses justify-end shrink-0 (canonical Add alignment)
+    expect(sidebarSectionSrc).toContain('justify-end shrink-0')
   })
 
   it('8. action tap behavior unchanged (all onClick handlers preserved)', () => {

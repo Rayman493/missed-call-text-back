@@ -226,22 +226,30 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
   const isDraggingRef = useRef(false)
   const innerRef = useRef<HTMLDivElement>(null)
 
+  const disableChartPointerEvents = () => {
+    // Immediately disable pointer events on the chart container so Recharts
+    // does not receive touch-generated pointermove events that activate
+    // bar/dot/tooltip state. This must happen on BOTH pointerdown AND
+    // touchstart because Android WebView fires pointer events before touch
+    // events, and Recharts listens to pointer events.
+    if (innerRef.current) {
+      innerRef.current.style.pointerEvents = 'none'
+    }
+  }
+
+  const restoreChartPointerEvents = () => {
+    if (innerRef.current) {
+      innerRef.current.style.pointerEvents = 'auto'
+    }
+  }
+
   const handleTouchStart = (e: React.TouchEvent) => {
     startXRef.current = e.touches[0].clientX
     startYRef.current = e.touches[0].clientY
     isDraggingRef.current = false
     setIsDragging(false)
-    // Immediately disable pointer events on the chart container so Recharts
-    // does not receive touch-generated pointermove events that activate
-    // bar/dot/tooltip state. The previous implementation only set
-    // pointerEvents:'none' AFTER the drag threshold was exceeded, which
-    // allowed the first pointermove (before threshold) to activate the
-    // datum. Setting it on touchstart (before any move) prevents the race.
-    // The outer div retains touchAction:'pan-y' so the browser handles
-    // vertical scrolling normally.
-    if (innerRef.current) {
-      innerRef.current.style.pointerEvents = 'none'
-    }
+    // Disable immediately on touchstart (before any move)
+    disableChartPointerEvents()
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -273,9 +281,54 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
     setIsDragging(false)
     // Restore pointer events for next interaction (desktop hover, or
     // future tap if a chart adds onClick support).
-    if (innerRef.current) {
-      innerRef.current.style.pointerEvents = 'auto'
+    restoreChartPointerEvents()
+  }
+
+  // Pointer event handlers: on Android WebView, pointer events fire BEFORE
+  // touch events. Recharts listens to pointermove for hover/activation.
+  // We must disable pointer events on pointerdown (for touch pointers)
+  // to prevent Recharts from receiving pointermove during scroll.
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Only disable for touch pointers — mouse pointers need hover/tooltip
+    if (e.pointerType === 'touch') {
+      startXRef.current = e.clientX
+      startYRef.current = e.clientY
+      isDraggingRef.current = false
+      setIsDragging(false)
+      disableChartPointerEvents()
     }
+  }
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'touch') return
+    if (isDragGesture(startXRef.current, startYRef.current, e.clientX, e.clientY)) {
+      if (!isDraggingRef.current) {
+        isDraggingRef.current = true
+        setIsDragging(true)
+      }
+    }
+  }
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'touch') return
+    if (isDraggingRef.current) {
+      if (innerRef.current) {
+        const surface = innerRef.current.querySelector('.recharts-surface') as Element | null
+        if (surface) {
+          surface.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }))
+        }
+      }
+    }
+    isDraggingRef.current = false
+    setIsDragging(false)
+    restoreChartPointerEvents()
+  }
+
+  const handlePointerCancel = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'touch') return
+    isDraggingRef.current = false
+    setIsDragging(false)
+    restoreChartPointerEvents()
   }
 
   return (
@@ -284,10 +337,14 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
       // Allow native scrolling in both axes; chart pointer events are
-      // disabled on touchstart (inner div) to prevent drag-activated datum,
-      // and restored on touchend. The outer div still receives touch events
-      // for scroll tracking.
+      // disabled on touchstart/pointerdown (inner div) to prevent drag-activated datum,
+      // and restored on touchend/pointerup. The outer div still receives touch/pointer
+      // events for scroll tracking.
       // Touch focus uses :focus (outline suppressed via class); keyboard
       // focus uses :focus-visible (ring shown) — preserving keyboard
       // accessibility. The [&_.recharts-surface] selector suppresses the

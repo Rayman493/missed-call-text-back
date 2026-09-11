@@ -39,19 +39,23 @@ export function SidebarSection({
               {title}
             </h3>
           </div>
-          <div className="flex items-center gap-2 ml-auto shrink-0">
+          {/* Right side: headerAction is always at the right edge.
+              The collapse chevron, if present, sits to the LEFT of the
+              headerAction and must not displace it. We use a relative
+              container with the chevron absolutely positioned so the
+              headerAction anchor is consistent across all cards
+              (collapsible and non-collapsible, empty and populated). */}
+          <div className="relative flex items-center justify-end shrink-0">
             {collapsible && (
-              <div className="w-6 flex-shrink-0 flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={onToggleCollapse}
-                  className="flex-shrink-0 text-muted-foreground/70 hover:text-muted-foreground transition-colors"
-                  aria-expanded={!isCollapsed}
-                  aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${title}`}
-                >
-                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? 'rotate-0' : 'rotate-180'}`} />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                className="flex-shrink-0 text-muted-foreground/70 hover:text-muted-foreground transition-colors mr-1"
+                aria-expanded={!isCollapsed}
+                aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${title}`}
+              >
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? 'rotate-0' : 'rotate-180'}`} />
+              </button>
             )}
             {headerAction}
           </div>

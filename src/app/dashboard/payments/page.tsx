@@ -28,6 +28,7 @@ import Dropdown from '@/components/ui/Dropdown'
 import type { DropdownOption } from '@/components/ui/Dropdown'
 import PaymentEditModal from '@/components/payments/PaymentEditModal'
 import PaymentsNewRequestModal from '@/components/payments/PaymentsNewRequestModal'
+import SuccessBanner from '@/components/SuccessBanner'
 
 interface PaymentRequest {
   id: string
@@ -697,6 +698,29 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           title="Payments"
           description="Request and track customer payments."
         />
+
+        {/* Success Banner - renders when successMessage is set */}
+        {successMessage && (
+          <SuccessBanner
+            message={successMessage}
+            onComplete={() => setSuccessMessage('')}
+          />
+        )}
+
+        {/* Error Banner - renders when error is set */}
+        {error && (
+          <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-2 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+            <div className="flex-1 text-sm text-red-900 dark:text-red-100">{error}</div>
+            <button
+              onClick={() => setError('')}
+              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+              aria-label="Dismiss error"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Focus - Unified Intelligence for Payments */}
         <FocusSection business={business} view="payments" title="Collection Priorities" compact />

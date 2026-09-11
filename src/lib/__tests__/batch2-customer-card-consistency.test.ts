@@ -373,7 +373,7 @@ describe('Batch 2 — Customer card structure (final canonical)', () => {
     const triggerIdx = leadStatusSrc.indexOf('onClick={handleClick}')
     const triggerClassName = leadStatusSrc.substring(leadStatusSrc.lastIndexOf('className=', triggerIdx), triggerIdx)
     expect(triggerClassName).not.toContain('min-h-[44px]')
-    expect(leadStatusSrc).toContain('absolute inset-[-6px]')
+    expect(leadStatusSrc).toContain('absolute inset-[-10px]')
   })
 
   it('LeadStatusDropdown menu items retain min-h-[44px] touch target', () => {

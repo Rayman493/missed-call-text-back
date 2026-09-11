@@ -4481,7 +4481,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread - Conditional Rendering to Prevent Duplicate Audio Elements */}
-      <div className="flex-1 min-h-0 max-w-7xl mx-auto w-full px-6 lg:px-8 py-4">
+      <div className="flex-1 min-h-0 max-w-7xl mx-auto w-full px-6 lg:px-8 py-2 md:py-4">
 
         {/* Desktop Layout - Only render when not mobile view */}
         {!isMobileView && (
@@ -4648,12 +4648,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <button
                             type="button"
                             onClick={handleCreateJobClick}
-                            className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                            className="inline-flex items-center justify-center w-8 h-8 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                             aria-label="Add job"
                             title="Add job"
                           >
-                            <Plus className="w-3.5 h-3.5" />
-                            Add
+                            <Plus className="w-4 h-4" />
                           </button>
                         }
                       >
@@ -4705,12 +4704,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <button
                             type="button"
                             onClick={() => openTaskModal('sidebar_tasks_add_button')}
-                            className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                            className="inline-flex items-center justify-center w-8 h-8 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                             aria-label="Add reminder"
                             title="Add reminder"
                           >
-                            <Plus className="w-3.5 h-3.5" />
-                            Add
+                            <Plus className="w-4 h-4" />
                           </button>
                         }
                       >
@@ -4803,12 +4801,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <button
                             type="button"
                             onClick={handleAppointmentClick}
-                            className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                            className="inline-flex items-center justify-center w-8 h-8 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                             aria-label="Schedule appointment"
                             title="Schedule appointment"
                           >
-                            <Plus className="w-3.5 h-3.5" />
-                            Add
+                            <Plus className="w-4 h-4" />
                           </button>
                         }
                       >

@@ -245,6 +245,10 @@ export default function LeadsPage() {
   // pointerup can still trigger Radix's internal open handler, even
   // though our onPointerUp already decided not to open the menu.
   const filterSuppressNextOpenRef = useRef(false)
+  // Touch start position for Android WebView scroll detection.
+  // On Android WebView, pointermove events may not fire during native
+  // scroll. We track touch movement as a fallback to detect scroll gestures.
+  const filterTouchStartRef = useRef<{ x: number; y: number } | null>(null)
   // Shared tap-vs-drag guard for filter dropdown items. Prevents an option
   // from being selected because the user's finger crossed it during a scroll.
   const filterItemGuard = useTapGuard()
@@ -1186,6 +1190,31 @@ export default function LeadsPage() {
                           filterSuppressNextOpenRef.current = true
                         }
                         filterPointerStartRef.current = null
+                      }}
+                      onTouchStart={(e) => {
+                        // Android WebView: track touch start for scroll detection.
+                        // pointermove may not fire during native scroll on Android.
+                        if (e.touches.length === 1) {
+                          filterTouchStartRef.current = {
+                            x: e.touches[0].clientX,
+                            y: e.touches[0].clientY
+                          }
+                        }
+                      }}
+                      onTouchMove={(e) => {
+                        // Android WebView: detect scroll via touch movement.
+                        // This is the fallback when pointermove doesn't fire.
+                        if (e.touches.length === 1 && filterTouchStartRef.current) {
+                          const dx = Math.abs(e.touches[0].clientX - filterTouchStartRef.current.x)
+                          const dy = Math.abs(e.touches[0].clientY - filterTouchStartRef.current.y)
+                          if (dx > 10 || dy > 10) {
+                            filterMovedRef.current = true
+                            filterSuppressNextOpenRef.current = true
+                          }
+                        }
+                      }}
+                      onTouchEnd={() => {
+                        filterTouchStartRef.current = null
                       }}
                       onClick={(e) => {
                         // Final guard: if the suppress flag is set, block the click

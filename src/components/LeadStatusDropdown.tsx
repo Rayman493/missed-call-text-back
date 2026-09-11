@@ -10,7 +10,7 @@ import {
 } from '@radix-ui/react-dropdown-menu'
 import { Check } from 'lucide-react'
 import { CustomerStatus, getCustomerStatusStyle, getCustomerStatusIcon, getAllCustomerStatuses } from '@/lib/customer-status'
-import { shouldPreventMenuOpen } from './lead-status-gesture'
+import { shouldPreventMenuOpen, markDropdownDismissed } from './lead-status-gesture'
 
 interface LeadStatusDropdownProps {
   currentStatus: CustomerStatus
@@ -36,9 +36,9 @@ export default function LeadStatusDropdown({
   const [isUpdating, setIsUpdating] = useState(false)
 
   const sizeClasses = {
-    sm: 'px-2.5 py-1 text-xs max-w-[140px]',
-    md: 'px-3 py-1 text-xs max-w-[160px]',
-    lg: 'px-3.5 py-1.5 text-sm max-w-[180px]'
+    sm: 'px-2 py-0.5 text-xs max-w-[140px]',
+    md: 'px-2.5 py-0.5 text-xs max-w-[160px]',
+    lg: 'px-3 py-1 text-sm max-w-[180px]'
   }
 
   const handleStatusSelect = async (newStatus: CustomerStatus) => {
@@ -145,7 +145,7 @@ export default function LeadStatusDropdown({
   }
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
+    <DropdownMenu open={isOpen} onOpenChange={handleOpenChange} modal={false}>
       <DropdownMenuTrigger asChild>
         <button
           ref={triggerRef}
@@ -204,14 +204,24 @@ export default function LeadStatusDropdown({
           }}
           avoidCollisions
           onPointerDownOutside={(e) => {
-            // Ensure the first outside tap after scrolling closes the dropdown
-            // Radix already handles this, but we make it explicit for mobile scroll-then-dismiss
+            // Mark the pointer sequence as consumed so the same tap does
+            // not activate whatever element was tapped (pointerup + click
+            // are suppressed by the document-level capture listeners).
+            markDropdownDismissed()
             setIsOpen(false)
           }}
           onInteractOutside={(e) => {
-            // Broad handler: catches pointer, focus, and any other outside interaction.
-            // This is the safety net for cases where onPointerDownOutside alone is
-            // insufficient (e.g., after a scroll gesture leaves stale pointer state).
+            // Broad handler: catches pointer, focus, and any other outside
+            // interaction. Only mark the pointer sequence as consumed for
+            // pointer/mouse events — focus outside has no pointer sequence
+            // to consume. onPointerDownOutside already handles the
+            // pointerdown case; this is the safety net for mousedown and
+            // other pointer-like events that might bypass it.
+            const isPointerLike =
+              e.type.startsWith('pointer') || e.type.startsWith('mouse')
+            if (isPointerLike) {
+              markDropdownDismissed()
+            }
             setIsOpen(false)
           }}
           className="w-[260px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-140px))] bg-popover border border-border rounded-lg shadow-lg shadow-black/10 overflow-y-auto overscroll-contain z-[10000]"

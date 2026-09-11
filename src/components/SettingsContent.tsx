@@ -3788,7 +3788,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             aria-label={getFollowUpSettings().enabled ? 'Disable Automatic Follow-Ups' : 'Enable Automatic Follow-Ups'}
                           >
                             <span
-                              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${
+                              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 -translate-y-0.5 ${
                                 getFollowUpSettings().enabled ? 'translate-x-5' : 'translate-x-0.5'
                               }`}
                             />
@@ -3837,7 +3837,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               aria-label={getFollowUpSettings().enabled ? 'Disable Automatic Follow-Ups' : 'Enable Automatic Follow-Ups'}
                             >
                               <span
-                                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${
+                                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 -translate-y-0.5 ${
                                   getFollowUpSettings().enabled ? 'translate-x-5' : 'translate-x-0.5'
                                 }`}
                               />
@@ -5265,7 +5265,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                         !deletePassword.trim() ||
                         isDeleting
                       }
-                      className="px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full"
                     >
                       {isDeleting ? (
                         <>
