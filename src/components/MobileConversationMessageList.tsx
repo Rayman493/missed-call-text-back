@@ -172,7 +172,7 @@ export default function MobileConversationMessageList({
                   </span>
                 </div>
                 <div className="text-sm font-semibold text-foreground">
-                  ${formatCurrency(payment.amount_cents, true)}
+                  {formatCurrency(payment.amount_cents, true)}
                 </div>
                 {(payment.display_name || payment.description) && (
                   <div className="text-xs text-foreground/70">

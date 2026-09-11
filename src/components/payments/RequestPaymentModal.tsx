@@ -347,7 +347,7 @@ export default function RequestPaymentModal({
       setPaymentDescription('')
       setPaymentProvider('stripe')
 
-      onShowToast?.('Payment request sent successfully', 'success')
+      onShowToast?.('Payment request sent', 'success')
 
       // Notify parent that payment was created
       if (onPaymentCreated) {

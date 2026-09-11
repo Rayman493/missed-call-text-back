@@ -424,7 +424,7 @@ export default function PaymentsPage() {
       setPaymentAmount('')
       setPaymentDescription('')
       setPaymentProvider('stripe')
-      setSuccessMessage('Payment request sent successfully')
+      setSuccessMessage('Payment request sent')
 
       // Track payment requested event
       if (business?.id) {

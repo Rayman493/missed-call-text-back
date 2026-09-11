@@ -48,6 +48,10 @@ export default function SearchableCustomerSelect({
   const pickerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  // Tracks whether the current pointer interaction started inside the picker.
+  // Prevents focusout-induced dismissal when the user drags inside the results
+  // list to scroll (touch-induced blur fires focusout with relatedTarget=null).
+  const pointerDownInsideRef = useRef(false)
   const triggerId = useId()
   const labelId = useId()
   const dropdownId = useId()
@@ -95,15 +99,31 @@ export default function SearchableCustomerSelect({
   // Close on outside click (pointerdown covers mouse + touch reliably)
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+      if (pickerRef.current && pickerRef.current.contains(event.target as Node)) {
+        // Pointer started inside the picker — track this so focusout doesn't
+        // dismiss the dropdown during touch-scroll of the results list.
+        pointerDownInsideRef.current = true
+      } else {
+        pointerDownInsideRef.current = false
         setIsOpen(false)
         setSearchQuery('')
       }
     }
 
+    const handlePointerUp = () => {
+      // Reset after the interaction completes so subsequent outside clicks close normally.
+      pointerDownInsideRef.current = false
+    }
+
     if (isOpen) {
       document.addEventListener('pointerdown', handlePointerDown)
-      return () => document.removeEventListener('pointerdown', handlePointerDown)
+      document.addEventListener('pointerup', handlePointerUp)
+      document.addEventListener('pointercancel', handlePointerUp)
+      return () => {
+        document.removeEventListener('pointerdown', handlePointerDown)
+        document.removeEventListener('pointerup', handlePointerUp)
+        document.removeEventListener('pointercancel', handlePointerUp)
+      }
     }
   }, [isOpen])
 
@@ -114,6 +134,10 @@ export default function SearchableCustomerSelect({
       // If focus is moving to an element inside the picker (e.g., a customer row),
       // keep the dropdown open so the selection click can complete.
       if (next && pickerRef.current && pickerRef.current.contains(next)) return
+      // Don't dismiss if the pointer is currently down inside the picker.
+      // On mobile, touching the results list to scroll blurs the input and fires
+      // focusout with relatedTarget=null. This is not a real "focus left" event.
+      if (pointerDownInsideRef.current) return
       setIsOpen(false)
       setSearchQuery('')
     }

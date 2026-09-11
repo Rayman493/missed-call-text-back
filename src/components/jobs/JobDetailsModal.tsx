@@ -106,6 +106,7 @@ export default function JobDetailsModal({
   const [isCancellingPayment, setIsCancellingPayment] = useState(false)
   const [isNativeSupported, setIsNativeSupported] = useState(false)
   const [lead, setLead] = useState<Lead | null>(null)
+  const [paymentToast, setPaymentToast] = useState<string | null>(null)
   const updateStatusInFlightRef = useRef(false)
   const deleteInFlightRef = useRef(false)
 
@@ -655,9 +656,22 @@ export default function JobDetailsModal({
             setShowPaymentModal(false)
             fetchPaymentRequest()
           }}
+          onShowToast={(message, type) => {
+            if (type === 'success') {
+              setPaymentToast(message)
+              setTimeout(() => setPaymentToast(null), 4000)
+            }
+          }}
           prefillLeadId={job.lead_id || undefined}
           prefillDescription={job.title || undefined}
         />
+      )}
+
+      {/* Payment Request Success Toast */}
+      {paymentToast && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-3 bg-green-600 text-white text-sm font-medium rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-[90vw] text-center">
+          {paymentToast}
+        </div>
       )}
 
       {/* Tap to Pay Modal */}

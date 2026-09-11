@@ -25,7 +25,7 @@ describe('SearchableCustomerSelect field-as-search interaction', () => {
 
   it('typing updates the search query', () => {
     expect(content).toContain('onChange={(e) => setSearchQuery(e.target.value)}')
-    expect(content).toContain('const filteredCustomers = filterLeadsBySearchQuery(customers, searchQuery)')
+    expect(content).toContain('const filteredCustomers = filterLeadsBySearchQuery(mergedCustomers, searchQuery)')
   })
 
   it('selecting a customer closes the dropdown and resets the query', () => {
@@ -57,7 +57,7 @@ describe('SearchableCustomerSelect field-as-search interaction', () => {
   })
 
   it('closes on outside click and Escape', () => {
-    expect(content).toContain('handleClickOutside')
+    expect(content).toContain('handlePointerDown')
     expect(content).toContain("event.key === 'Escape'")
     expect(content).toContain("setSearchQuery('')")
   })
