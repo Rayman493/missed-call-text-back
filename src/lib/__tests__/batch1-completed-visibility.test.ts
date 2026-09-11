@@ -33,12 +33,12 @@ describe('Batch 1 — Completed-customer inbound visibility', () => {
   // ---------- case 1: completed-customer inbound message persists ----------
 
   it('case 1: completed-customer inbound message persists to existing conversation', () => {
-    // shouldReuseLead allows completed leads → existing lead is found and reused
+    // Batch A universal reuse: shouldReuseLead has NO status-based exclusion.
+    // All 10 statuses (including completed) are eligible for reuse.
     const fnStart = adminSrc.indexOf('shouldReuseLead(lead: Lead | null): boolean {')
-    const fnBody = adminSrc.substring(fnStart, fnStart + 300)
+    const fnBody = adminSrc.substring(fnStart, fnStart + 400)
     const exclusionMatch = fnBody.match(/if \(lead\.status ===[^)]*\)/)
-    expect(exclusionMatch).toBeTruthy()
-    expect(exclusionMatch![0]).not.toContain('completed')
+    expect(exclusionMatch).toBeFalsy()
 
     // The existing-lead branch creates a message via createMessageWithConversation
     const insertCall = smsProcessingSrc.match(/createMessageWithConversation\(\{[\s\S]*?direction:\s*'inbound'/)
@@ -150,15 +150,15 @@ describe('Batch 1 — Completed-customer inbound visibility', () => {
 
   // ---------- case 6: completed status remains unchanged ----------
 
-  it('case 6: completed status remains unchanged after inbound message', () => {
-    // The transition table has no transitions from completed
+  it('case 6: completed status reactivates to active on inbound message', () => {
+    // Batch A universal reactivation: completed transitions to active on inbound
     const completedSection = transitionsSrc.match(/completed:\s*\{[\s\S]*?\}/)
     expect(completedSection).toBeTruthy()
-    expect(completedSection![0]).not.toMatch(/inbound_message_received/)
+    expect(completedSection![0]).toMatch(/inbound_message_received/)
+    expect(completedSection![0]).toMatch(/active/)
 
-    // applyCustomerStatusEvent returns null for completed + inbound_message_received
-    expect(transitionsSrc).toContain('PROTECTED_STATUSES')
-    expect(transitionsSrc).toContain('return null')
+    // applyCustomerStatusEvent bypasses protected-status guard for inbound
+    expect(transitionsSrc).toContain('inbound_message_received')
 
     // updateLeadStatusForInboundMessage uses the transition helper
     expect(lifecycleSrc).toContain('updateLeadStatusForInboundMessage')
@@ -217,10 +217,9 @@ describe('Batch 1 — Completed-customer inbound visibility', () => {
   })
 
   it('case 8c: completed customer no longer reaches ignored-contact branch merely because status=completed', () => {
-    // Before the fix: completed leads were not reused → findLeadByPhoneAcrossBusinesses returned null
-    // → the "no existing lead" branch was entered → isIgnoredContact was checked there
-    // After the fix: completed leads ARE reused → the existing-lead branch is entered
-    // → isIgnoredContact is NOT checked in the existing-lead branch
+    // Batch A universal reuse: completed leads are reused (no status exclusion).
+    // The ignored-contact check is a separate canonical suppression mechanism
+    // (ignored_contacts table), not tied to lifecycle status.
 
     // Verify the existing-lead branch does NOT check isIgnoredContact
     const existingLeadBranch = smsProcessingSrc.match(
@@ -230,12 +229,11 @@ describe('Batch 1 — Completed-customer inbound visibility', () => {
       expect(existingLeadBranch[0]).not.toContain('isIgnored')
     }
 
-    // Verify shouldReuseLead no longer excludes completed
+    // Verify shouldReuseLead has NO status-based exclusion check at all
     const fnStart = adminSrc.indexOf('shouldReuseLead(lead: Lead | null): boolean {')
-    const fnBody = adminSrc.substring(fnStart, fnStart + 300)
+    const fnBody = adminSrc.substring(fnStart, fnStart + 400)
     const exclusionMatch = fnBody.match(/if \(lead\.status ===[^)]*\)/)
-    expect(exclusionMatch).toBeTruthy()
-    expect(exclusionMatch![0]).not.toContain('completed')
+    expect(exclusionMatch).toBeFalsy()
   })
 })
 

@@ -1008,39 +1008,37 @@ export const db = {
 
   /**
    * Helper function to determine if an existing lead should be reused
-   * Lead reuse policy: Only reuse if:
-   * - Status is NOT 'cancelled'
-   * - Last activity is within 30 days
    *
-   * Note: 'ignored' leads SHOULD be reused to preserve customer identity and conversation history
-   * for the same business and phone number. Ignored is a visibility/status choice, not a deletion.
+   * Final identity/reuse rule: Customer identity is determined by business ownership
+   * and normalized phone number — NOT by lifecycle status or age/recency of last
+   * activity. An existing customer does not stop being the same customer because
+   * they have not texted in 30 days.
    *
-   * Note: 'completed' leads SHOULD be reused so that inbound SMS from completed customers
-   * is persisted to the existing conversation rather than triggering the "no existing lead"
-   * branch which may send an unwanted generic acknowledgement. The lead status itself
-   * is NOT automatically changed (the transition table has no transitions from 'completed').
+   * All 10 lifecycle statuses (new, needs_reply, active, scheduled, payment_requested,
+   * paid, completed, cancelled, ignored, lost) are eligible for reuse regardless of
+   * age. A normal inbound SMS from an existing customer reuses the existing
+   * customer/lead and conversation, then transitions the customer status to 'active'
+   * via updateLeadStatusForInboundMessage.
+   *
+   * Business scoping is enforced by the caller (findLeadByPhoneAcrossBusinesses),
+   * which filters by business_id in the database query. This function does NOT
+   * perform cross-business matching — it only decides whether a lead already
+   * scoped to the correct business should be reused vs. a new lead created.
+   *
+   * Note: 'ignored' lifecycle status is distinct from canonical ignored-contact
+   * suppression (ignored_contacts table). The ignored_contacts check is performed
+   * separately in processInboundSms BEFORE lead reuse, and takes precedence.
    */
   shouldReuseLead(lead: Lead | null): boolean {
     if (!lead) {
       return false
     }
 
-    // Check status - allow reuse of completed/ignored leads to preserve customer identity
-    if (lead.status === 'cancelled') {
-      return false
-    }
-
-    // Check last activity (use last_message_at or created_at as fallback)
-    const lastActivity = lead.last_message_at || lead.last_reply_at || lead.first_contact_at || lead.created_at
-    if (!lastActivity) {
-      return false
-    }
-
-    const daysSinceActivity = (Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24)
-    if (daysSinceActivity > 30) {
-      return false
-    }
-
+    // Customer identity is NOT gated by lifecycle status or recency.
+    // An existing customer is always the same customer regardless of age.
+    // Business scoping is handled by the caller's database query (business_id filter).
+    // Suppression is handled by the canonical ignored_contacts table, which is
+    // checked separately before this function is consulted.
     return true
   },
 

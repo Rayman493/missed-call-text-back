@@ -26,13 +26,11 @@ describe('Batch 1 — Ignore-contact precedence', () => {
   // ---------- case 1: active non-ignored customer persists inbound normally ----------
 
   it('case 1: active non-ignored customer persists inbound normally', () => {
-    // shouldReuseLead allows active leads
+    // Batch A universal reuse: shouldReuseLead has NO status-based exclusion.
     const fnStart = adminSrc.indexOf('shouldReuseLead(lead: Lead | null): boolean {')
-    const fnBody = adminSrc.substring(fnStart, fnStart + 300)
+    const fnBody = adminSrc.substring(fnStart, fnStart + 400)
     const exclusionMatch = fnBody.match(/if \(lead\.status ===[^)]*\)/)
-    expect(exclusionMatch).toBeTruthy()
-    expect(exclusionMatch![0]).not.toContain('active')
-    expect(exclusionMatch![0]).not.toContain('completed')
+    expect(exclusionMatch).toBeFalsy()
 
     // The existing-lead branch persists the message
     expect(smsProcessingSrc).toMatch(/createMessageWithConversation\(\{[\s\S]*?direction:\s*'inbound'/)
@@ -41,12 +39,11 @@ describe('Batch 1 — Ignore-contact precedence', () => {
   // ---------- case 2: completed non-ignored customer persists inbound normally ----------
 
   it('case 2: completed non-ignored customer persists inbound normally', () => {
-    // shouldReuseLead allows completed leads (the Batch 1 fix)
+    // Batch A universal reuse: shouldReuseLead has NO status-based exclusion.
     const fnStart = adminSrc.indexOf('shouldReuseLead(lead: Lead | null): boolean {')
-    const fnBody = adminSrc.substring(fnStart, fnStart + 300)
+    const fnBody = adminSrc.substring(fnStart, fnStart + 400)
     const exclusionMatch = fnBody.match(/if \(lead\.status ===[^)]*\)/)
-    expect(exclusionMatch).toBeTruthy()
-    expect(exclusionMatch![0]).not.toContain('completed')
+    expect(exclusionMatch).toBeFalsy()
 
     // The existing-lead branch (else if lead) persists the message
     expect(smsProcessingSrc).toMatch(/createMessageWithConversation\(\{[\s\S]*?direction:\s*'inbound'/)
@@ -139,12 +136,11 @@ describe('Batch 1 — Ignore-contact precedence', () => {
   // ---------- case 8: non-ignored completed customer still reuses existing lead ----------
 
   it('case 8: non-ignored completed customer still reuses existing lead', () => {
-    // shouldReuseLead allows completed leads
+    // Batch A universal reuse: shouldReuseLead has NO status-based exclusion.
     const fnStart = adminSrc.indexOf('shouldReuseLead(lead: Lead | null): boolean {')
-    const fnBody = adminSrc.substring(fnStart, fnStart + 300)
+    const fnBody = adminSrc.substring(fnStart, fnStart + 400)
     const exclusionMatch = fnBody.match(/if \(lead\.status ===[^)]*\)/)
-    expect(exclusionMatch).toBeTruthy()
-    expect(exclusionMatch![0]).not.toContain('completed')
+    expect(exclusionMatch).toBeFalsy()
 
     // The existing-lead branch (else if lead) is entered for completed leads
     expect(smsProcessingSrc).toContain('else if (lead) {')

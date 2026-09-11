@@ -2,9 +2,9 @@
  * Cancelled status transition tests
  *
  * These tests verify that:
- * - Cancelled is a protected status
- * - Cancelled does not receive automatic transitions
- * - Cancelled stops follow-up automation
+ * - Cancelled is a protected status (for business/workflow events)
+ * - Cancelled IS reactivated to 'active' on inbound_message_received (Batch A universal reactivation)
+ * - Cancelled stops follow-up automation for non-inbound events
  */
 
 import { describe, it, expect } from 'vitest'
@@ -21,9 +21,9 @@ describe('Cancelled status transitions', () => {
       expect(isProtected).toBe(true)
     })
 
-    it('cancelled does not transition on inbound_message_received', () => {
+    it('cancelled DOES transition to active on inbound_message_received (Batch A universal reactivation)', () => {
       const nextStatus = applyCustomerStatusEvent('cancelled', 'inbound_message_received')
-      expect(nextStatus).toBe(null)
+      expect(nextStatus).toBe('active')
     })
 
     it('cancelled does not transition on business_reply_sent', () => {
@@ -48,9 +48,11 @@ describe('Cancelled status transitions', () => {
   })
 
   describe('Possible transitions', () => {
-    it('cancelled has no possible automatic transitions', () => {
+    it('cancelled has inbound_message_received as its only automatic transition', () => {
       const possibleTransitions = getPossibleTransitions('cancelled')
-      expect(possibleTransitions).toEqual([])
+      // Batch A: cancelled now has inbound_message_received → active
+      expect(possibleTransitions).toContain('active')
+      expect(possibleTransitions.length).toBe(1)
     })
   })
 
@@ -65,14 +67,26 @@ describe('Cancelled status transitions', () => {
       expect(isProtected).toBe(true)
     })
 
-    it('ignored has no possible automatic transitions', () => {
-      const possibleTransitions = getPossibleTransitions('ignored')
-      expect(possibleTransitions).toEqual([])
+    it('ignored reactivates to active on inbound_message_received (Batch A)', () => {
+      const nextStatus = applyCustomerStatusEvent('ignored', 'inbound_message_received')
+      expect(nextStatus).toBe('active')
     })
 
-    it('lost has no possible automatic transitions', () => {
+    it('lost reactivates to active on inbound_message_received (Batch A)', () => {
+      const nextStatus = applyCustomerStatusEvent('lost', 'inbound_message_received')
+      expect(nextStatus).toBe('active')
+    })
+
+    it('ignored has inbound_message_received as its only automatic transition', () => {
+      const possibleTransitions = getPossibleTransitions('ignored')
+      expect(possibleTransitions).toContain('active')
+      expect(possibleTransitions.length).toBe(1)
+    })
+
+    it('lost has inbound_message_received as its only automatic transition', () => {
       const possibleTransitions = getPossibleTransitions('lost')
-      expect(possibleTransitions).toEqual([])
+      expect(possibleTransitions).toContain('active')
+      expect(possibleTransitions.length).toBe(1)
     })
   })
 

@@ -26,17 +26,16 @@ describe('Batch 1 — Part 1: COMPLETED-customer auto-reply', () => {
   const lifecycleSrc = readSrc('src/lib/lead-lifecycle.ts')
   const transitionsSrc = readSrc('src/lib/customer-status-transitions.ts')
 
-  it('case 1: shouldReuseLead allows reuse of completed leads', () => {
-    // The fix removes 'completed' from the status exclusion check
-    // Find the shouldReuseLead function body and verify 'completed' is NOT excluded
+  it('case 1: shouldReuseLead allows reuse of ALL lifecycle statuses (universal reuse)', () => {
+    // Batch A universal reuse rule: customer lifecycle status must NEVER prevent
+    // an existing customer from continuing a conversation. shouldReuseLead has
+    // NO status-based exclusion check — all 10 statuses are eligible for reuse.
     const fnStart = adminSrc.indexOf('shouldReuseLead(lead: Lead | null): boolean {')
-    const fnBody = adminSrc.substring(fnStart, fnStart + 300)
+    const fnBody = adminSrc.substring(fnStart, fnStart + 400)
 
-    // 'completed' should NOT be in the exclusion check
+    // There should be NO status-based exclusion check at all
     const exclusionMatch = fnBody.match(/if \(lead\.status ===[^)]*\)/)
-    expect(exclusionMatch).toBeTruthy()
-    expect(exclusionMatch![0]).not.toContain('completed')
-    expect(exclusionMatch![0]).toContain('cancelled')
+    expect(exclusionMatch).toBeFalsy()
   })
 
   it('case 2: ACTIVE customer inbound SMS sends no generic acknowledgement', () => {
@@ -78,12 +77,14 @@ describe('Batch 1 — Part 1: COMPLETED-customer auto-reply', () => {
     expect(createMsg).toBeTruthy()
   })
 
-  it('case 6: completed status has no automatic transitions (no reactivation)', () => {
-    // The transition table for 'completed' should have no transitions
+  it('case 6: completed status reactivates to active on inbound message (universal reactivation)', () => {
+    // Batch A universal reactivation rule: inbound_message_received transitions
+    // ALL 10 lifecycle statuses (including completed) to 'active'.
     const completedSection = transitionsSrc.match(/completed:\s*\{[\s\S]*?\}/)
     expect(completedSection).toBeTruthy()
-    // Should contain a comment about terminal state or be empty
-    expect(completedSection![0]).not.toMatch(/inbound_message_received/)
+    // completed now has inbound_message_received → active
+    expect(completedSection![0]).toMatch(/inbound_message_received/)
+    expect(completedSection![0]).toMatch(/active/)
   })
 
   it('case 7: inbound MMS also sends no generic acknowledgement', () => {
@@ -338,11 +339,12 @@ describe('Batch 1 — Part 5: Idempotency / retry safety', () => {
     expect(messageRouteSrc).toContain("return new Response('ok', { status: 200 })")
   })
 
-  it('idempotency 4: status transition table prevents duplicate reactivation', () => {
+  it('idempotency 4: universal reactivation rule — all 10 statuses reactivate on inbound', () => {
     const transitionsSrc = readSrc('src/lib/customer-status-transitions.ts')
-    // completed has no transitions — no reactivation on retry
+    // Batch A: completed now reactivates to active on inbound_message_received
     const completedEntry = transitionsSrc.match(/completed:\s*\{[\s\S]*?\}/)
     expect(completedEntry).toBeTruthy()
-    expect(completedEntry![0]).not.toMatch(/inbound_message_received/)
+    expect(completedEntry![0]).toMatch(/inbound_message_received/)
+    expect(completedEntry![0]).toMatch(/active/)
   })
 })
