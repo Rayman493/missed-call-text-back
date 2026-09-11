@@ -556,7 +556,8 @@ export async function POST(req: NextRequest) {
         
         const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body, smsOptions)
 
-        if (!messageSid) {
+        // sendSms returns { sid, messageId, idempotentSkip } — check sid, not the object
+        if (!messageSid || !messageSid.sid) {
           console.error('[AUTO RESPONSE MESSAGE INSERT ERROR]', {
             leadId: lead.id,
             conversationId: conversation?.id,
@@ -1115,7 +1116,8 @@ export async function GET(req: NextRequest) {
         
         const messageSid = await sendSms(business, lead.caller_phone, followUp.message_body, smsOptions)
 
-        if (!messageSid) {
+        // sendSms returns { sid, messageId, idempotentSkip } — check sid, not the object
+        if (!messageSid || !messageSid.sid) {
           console.error('[AUTO RESPONSE MESSAGE INSERT ERROR]', {
             leadId: lead.id,
             conversationId: conversation?.id,

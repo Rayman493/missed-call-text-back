@@ -78,6 +78,7 @@ import { getNextAction } from '@/lib/lead-next-action'
 import { hasPhoneNumber } from '@/lib/utils'
 import { normalizeEditableContext, firstNonPlaceholder } from '@/components/payments/customer-search-helpers'
 import { getCurrentCustomerContext, getHistoricalJobRequestContext } from '@/lib/customer-context'
+import { getMonotonicMessageStatus } from '@/lib/twilio/status-monotonic'
 
 // Helper functions for consistent formatting
 const formatDate = (dateString: string | null | undefined): string => {
@@ -108,6 +109,10 @@ function getErrorMessage(errorCode: string): string {
 
 function getStatusColor(status: string): string {
   switch (status) {
+    case 'accepted':
+      return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+    case 'queued':
+      return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
     case 'sending':
       return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
     case 'sent':
@@ -131,6 +136,10 @@ function getStatusColor(status: string): string {
 
 function getStatusText(status: string): string {
   switch (status) {
+    case 'accepted':
+      return 'Sending...'
+    case 'queued':
+      return 'Sending...'
     case 'sending':
       return 'Sending...'
     case 'sent':
@@ -170,67 +179,12 @@ function getLeadStatusAccentColor(status: string): string {
   }
 }
 
-// Canonical status rank for monotonicity enforcement
-// Higher rank = more final state. Status can only move to higher ranks.
-const STATUS_RANK: Record<string, number> = {
-  'pending': 0,
-  'sending': 1,
-  'accepted': 2,
-  'queued': 3,
-  'sent': 4,
-  'delivered': 5,
-  // Terminal failure states (highest rank to prevent downgrade)
-  'undelivered': 6,
-  'failed': 7,
-  'not_sent': 8
-}
-
-/**
- * Get monotonic status - prevents status downgrades with explicit terminal-state rules
- * 
- * Terminal-state rules:
- * - Delivered cannot downgrade to any other status
- * - Failed cannot replace Delivered
- * - Delivered cannot replace a confirmed terminal failure
- * - Queued cannot replace Sent
- * - Sent cannot replace Delivered
- */
+// Canonical status monotonicity is provided by @/lib/twilio/status-monotonic.
+// The local `getMonotonicStatus` wrapper delegates to that single source of
+// truth so fetch/realtime reconciliation uses the same transition-aware state
+// machine as the Twilio callback path.
 function getMonotonicStatus(currentStatus: string, newStatus: string): string {
-  const currentRank = STATUS_RANK[currentStatus] ?? 0
-  const newRank = STATUS_RANK[newStatus] ?? 0
-  
-  // Terminal state: Delivered cannot downgrade
-  if (currentStatus === 'delivered') {
-    return currentStatus
-  }
-  
-  // Terminal state: Failed cannot replace Delivered
-  if (currentStatus === 'delivered' && (newStatus === 'failed' || newStatus === 'undelivered' || newStatus === 'not_sent')) {
-    return currentStatus
-  }
-  
-  // Terminal state: Delivered cannot replace a confirmed terminal failure
-  if ((currentStatus === 'failed' || currentStatus === 'undelivered' || currentStatus === 'not_sent') && newStatus === 'delivered') {
-    return currentStatus
-  }
-  
-  // Queued cannot replace Sent
-  if (currentStatus === 'sent' && newStatus === 'queued') {
-    return currentStatus
-  }
-  
-  // Sent cannot replace Delivered
-  if (currentStatus === 'delivered' && newStatus === 'sent') {
-    return currentStatus
-  }
-  
-  // Only upgrade if new status has higher or equal rank
-  if (newRank >= currentRank) {
-    return newStatus
-  }
-  
-  // Keep current status if new status would downgrade
-  return currentStatus
+  return getMonotonicMessageStatus(currentStatus, newStatus)
 }
 
 /**
@@ -381,9 +335,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [infoMessage, setInfoMessage] = useState('')
+  const [composerError, setComposerError] = useState('')
   const [realtimeGeneration, setRealtimeGeneration] = useState(0)
   const [externalActionSuccess, setExternalActionSuccess] = useState<{ primary: string; secondary: string } | null>(null)
+  // `refreshing` tracks ANY refresh (manual or background) for deduplication.
+  // `manualRefreshing` tracks ONLY user-initiated refreshes for the visible
+  // "Refresh" / "Refreshing…" label. Background refreshes set `refreshing`
+  // but NOT `manualRefreshing`, so they stay silent in the UI.
   const [refreshing, setRefreshing] = useState(false)
+  const [manualRefreshing, setManualRefreshing] = useState(false)
   const [refreshMessage, setRefreshMessage] = useState('')
   const [showMoreActions, setShowMoreActions] = useState(false)
   const [showMobileOverflow, setShowMobileOverflow] = useState(false)
@@ -2593,7 +2553,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           // Trigger full refetch to get updated voicemailRecordings
           // This is necessary when a voicemail is inserted and lead updated_at is changed
           console.log('[REALTIME LEAD UPDATE] Triggering full refetch for voicemailRecordings')
-          handleRefresh()
+          handleRefresh({ silent: true })
         }
       )
 
@@ -2618,21 +2578,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           // Attempt recovery after a short delay
           setTimeout(() => {
             console.log('[REALTIME RECOVERY] Refreshing conversation data after channel error')
-            handleRefresh()
+            handleRefresh({ silent: true })
           }, 2000)
         } else if (status === 'CLOSED') {
           console.log('[REALTIME] Channel closed for lead:', leadId, '- attempting recovery')
           // Attempt recovery after a short delay
           setTimeout(() => {
             console.log('[REALTIME RECOVERY] Refreshing conversation data after channel close')
-            handleRefresh()
+            handleRefresh({ silent: true })
           }, 2000)
         } else if (status === 'TIMED_OUT') {
           console.warn('[REALTIME] Channel timed out for lead:', leadId, '- attempting recovery')
           // Attempt recovery after a short delay
           setTimeout(() => {
             console.log('[REALTIME RECOVERY] Refreshing conversation data after channel timeout')
-            handleRefresh()
+            handleRefresh({ silent: true })
           }, 2000)
         }
       })
@@ -2665,7 +2625,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           checkCount,
           maxChecks
         })
-        handleRefresh()
+        handleRefresh({ silent: true })
       } else if (checkCount > maxChecks) {
         // Stop checking after max checks to avoid infinite polling
         console.log('[STUCK MESSAGE CHECK] Max checks reached, stopping interval')
@@ -2706,9 +2666,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       e.preventDefault()
     }
 
+    // Rapid-tap protection: if a send is already in flight, ignore additional taps
+    if (sending) return
+
     // Phone-dependent gating: Check if customer has a phone number
     if (!hasPhoneNumber(leadData?.caller_phone)) {
-      setInfoMessage('Add a phone number to this customer before sending a text.')
+      const noPhoneMsg = 'Add a phone number to this customer before sending a text.'
+      // Use ONLY composerError (inline near the composer) — not infoMessage —
+      // so the user sees exactly one error presentation at the action point.
+      setComposerError(noPhoneMsg)
+      // Auto-clear composer-level error after 4 seconds
+      setTimeout(() => setComposerError(''), 4000)
       return
     }
 
@@ -2723,9 +2691,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       mediaFileNames: mediaFiles?.map(f => f.name)
     })
     
-    // Don't send if message is empty (unless media is present), whitespace, or already sending
+    // Don't send if message is empty (unless media is present), whitespace
     if (!message.trim() && !mediaFiles) return
-    if (sending) return
+
+    // Clear any prior composer error now that we have valid content + phone
+    setComposerError('')
 
     // Capture the message text immediately before clearing
     const submittedText = message.trim()
@@ -3106,15 +3076,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Refresh deduplication with request version tracking
   const latestRefreshRequestRef = useRef<number>(0)
 
-  const handleRefresh = async () => {
-    if (refreshing) return
+  const handleRefresh = async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false
+    // Dedup: a manual refresh cannot start while another MANUAL refresh is
+    // already in flight (prevents rapid-tap duplicates). Background refreshes
+    // are deduped by the `refreshing` flag. A manual tap during a background
+    // refresh is allowed to proceed so the user always gets visible feedback.
+    if (!silent && manualRefreshing) return
+    if (silent && refreshing) return
     
     const requestId = ++latestRefreshRequestRef.current
     setRefreshing(true)
-    setError('')
+    // Only user-initiated refreshes flip the visible "Refreshing…" label.
+    // Background/automatic refreshes (realtime, channel recovery, stuck
+    // message polling) pass { silent: true } so the manual action stays "Refresh".
+    if (!silent) {
+      setManualRefreshing(true)
+    }
+    if (!silent) {
+      setError('')
+    }
     
     try {
-      console.log('[Refresh] Refreshing conversation data for lead:', params.id, 'requestId:', requestId)
+      console.log('[Refresh] Refreshing conversation data for lead:', params.id, 'requestId:', requestId, 'silent:', silent)
       
       const result = await getLeadDetails(params.id)
 
@@ -3129,10 +3113,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       
       if (!result) {
         console.log('[Refresh] No response returned from API')
-        setError('Failed to refresh conversation')
-        setRefreshMessage('Refresh failed')
-        // Auto-clear failure message after 3 seconds
-        setTimeout(() => setRefreshMessage(''), 3000)
+        if (!silent) {
+          setError('Failed to refresh conversation')
+          setRefreshMessage('Refresh failed')
+          // Auto-clear failure message after 3 seconds
+          setTimeout(() => setRefreshMessage(''), 3000)
+        }
         // Fall through to finally block to clear refreshing state
       } else if (result.ok && result.lead) {
         console.log('[Refresh] Successfully refreshed conversation data')
@@ -3142,23 +3128,33 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         setLeadData((prev: any) => mergeLeadFetchResult(prev, result.lead, mergeMessagesById))
 
         // Exactly ONE success signal: the button/menu label briefly becomes "Refreshed".
-        setRefreshMessage('Refreshed')
-        setTimeout(() => setRefreshMessage(''), 2000)
+        // Silent refreshes do not touch the label.
+        if (!silent) {
+          setRefreshMessage('Refreshed')
+          setTimeout(() => setRefreshMessage(''), 2000)
+        }
       } else {
         console.log('[Refresh] API returned error:', result)
-        setError(result.error || 'Failed to refresh conversation')
-        setRefreshMessage('Refresh failed')
-        setTimeout(() => setRefreshMessage(''), 3000)
+        if (!silent) {
+          setError(result.error || 'Failed to refresh conversation')
+          setRefreshMessage('Refresh failed')
+          setTimeout(() => setRefreshMessage(''), 3000)
+        }
       }
     } catch (error) {
       console.error('[Refresh] Error refreshing conversation:', error)
-      setError('Failed to refresh conversation')
-      setRefreshMessage('Refresh failed')
-      setTimeout(() => setRefreshMessage(''), 3000)
+      if (!silent) {
+        setError('Failed to refresh conversation')
+        setRefreshMessage('Refresh failed')
+        setTimeout(() => setRefreshMessage(''), 3000)
+      }
     } finally {
       // Only clear refreshing if this is still the latest request
       if (requestId === latestRefreshRequestRef.current) {
         setRefreshing(false)
+        if (!silent) {
+          setManualRefreshing(false)
+        }
       }
     }
   }
@@ -4230,18 +4226,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={() => handleRefresh()}
-                          disabled={refreshing}
+                          disabled={manualRefreshing}
                           className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                         >
                           <svg
-                            className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+                            className={`w-4 h-4 ${manualRefreshing ? 'animate-spin' : ''}`}
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
                           >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                           </svg>
-                          <span>{refreshing ? 'Refreshing…' : refreshMessage || 'Refresh'}</span>
+                          <span>{manualRefreshing ? 'Refreshing…' : refreshMessage || 'Refresh'}</span>
                         </DropdownMenuItem>
                       </div>
 
@@ -4401,17 +4397,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   />
                   <button
                     type="button"
-                    onClick={handleRefresh}
-                    disabled={refreshing}
+                    onClick={() => handleRefresh()}
+                    disabled={manualRefreshing}
                     className="h-[30px] inline-flex items-center gap-1.5 px-2 text-muted-foreground hover:text-foreground hover:bg-slate-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label={refreshing ? 'Refreshing' : 'Refresh'}
-                    title={refreshing ? 'Refreshing…' : 'Refresh'}
+                    aria-label={manualRefreshing ? 'Refreshing' : 'Refresh'}
+                    title={manualRefreshing ? 'Refreshing…' : 'Refresh'}
                   >
-                    <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-4 h-4 ${manualRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                     <span className="text-xs font-medium">
-                      {refreshing ? 'Refreshing…' : refreshMessage || 'Refresh'}
+                      {manualRefreshing ? 'Refreshing…' : refreshMessage || 'Refresh'}
                     </span>
                   </button>
                 </div>
@@ -4523,6 +4519,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   }
 
                   return (
+                    <>
+                    {composerError && (
+                      <div className="px-3 py-2 mb-1 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm flex items-center gap-2">
+                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.7-3L13.7 4a2 2 0 00-3.4 0L3.3 16A2 2 0 005 19z" />
+                        </svg>
+                        <span>{composerError}</span>
+                      </div>
+                    )}
                     <ConversationComposer
                       message={message}
                       setMessage={setMessage}
@@ -4545,6 +4550,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         })() : undefined
                       }
                     />
+                    </>
                   )
                 })()}
               </div>
@@ -5038,6 +5044,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                 return (
                   <>
+                    {/* Composer-level error (e.g. no phone number) */}
+                    {composerError && (
+                      <div className="px-3 py-2 mb-1 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm flex items-center gap-2">
+                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.7-3L13.7 4a2 2 0 00-3.4 0L3.3 16A2 2 0 005 19z" />
+                        </svg>
+                        <span>{composerError}</span>
+                      </div>
+                    )}
                     {/* Image Previews */}
                     {mobileImages.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-2">
@@ -5812,12 +5827,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 Close
               </button>
               <button
-                onClick={handleRefresh}
-                disabled={refreshing}
+                onClick={() => handleRefresh()}
+                disabled={manualRefreshing}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                <span>{refreshing ? 'Refreshing…' : refreshMessage || 'Refresh'}</span>
+                <RefreshCw className={`w-4 h-4 ${manualRefreshing ? 'animate-spin' : ''}`} />
+                <span>{manualRefreshing ? 'Refreshing…' : refreshMessage || 'Refresh'}</span>
               </button>
             </div>
           </div>
@@ -6860,6 +6875,15 @@ If you have questions, reply to this message.`
               )
             }
             return (
+              <>
+              {composerError && (
+                <div className="px-3 py-2 mb-1 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm flex items-center gap-2">
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.7-3L13.7 4a2 2 0 00-3.4 0L3.3 16A2 2 0 005 19z" />
+                  </svg>
+                  <span>{composerError}</span>
+                </div>
+              )}
               <ConversationComposer
                 message={message}
                 setMessage={setMessage}
@@ -6880,6 +6904,7 @@ If you have questions, reply to this message.`
                   })() : undefined
                 }
               />
+              </>
             )
           })()}
         </div>

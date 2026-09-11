@@ -111,8 +111,11 @@ describe('Customer detail page — refresh UX (exactly one success signal)', () 
     expect(src).toContain("animate-spin")
   })
 
-  it('disables refresh button during in-flight refresh', () => {
-    expect(src).toContain('disabled={refreshing}')
+  it('disables refresh button only during MANUAL refresh (not background)', () => {
+    // Background refresh must NOT disable the manual control.
+    // Only manualRefreshing (user-initiated) disables the button.
+    expect(src).toContain('disabled={manualRefreshing}')
+    expect(src).not.toContain('disabled={refreshing}')
   })
 
   it('changes label while refreshing', () => {

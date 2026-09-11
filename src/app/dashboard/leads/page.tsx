@@ -164,6 +164,22 @@ function mergeDuplicateLeads(leads: any[]): any[] {
   return leads
 }
 
+/**
+ * Recompute client-derived fields (`name`, `email`, `phone`, `aiCallRecords`)
+ * from the canonical persisted row. This is the SINGLE source of truth for
+ * derived fields — called after realtime merges and after fetch so that
+ * stale duplicated state can never survive a state update.
+ */
+function normalizeLead(lead: any): any {
+  return {
+    ...lead,
+    aiCallRecords: lead.ai_call_records || lead.aiCallRecords || [],
+    name: lead.contact_name ?? lead.raw_metadata?.extracted_info?.callerName ?? null,
+    email: lead.raw_metadata?.extracted_info?.email ?? null,
+    phone: lead.caller_phone
+  }
+}
+
 // Helper to get latest activity timestamp for sorting
 function getLatestActivity(lead: any): string {
   if (lead.last_activity_at) return lead.last_activity_at
@@ -223,7 +239,17 @@ export default function LeadsPage() {
   const [filterMenuOpen, setFilterMenuOpen] = useState(false)
   const filterPointerStartRef = useRef<{ x: number; y: number } | null>(null)
   const filterMovedRef = useRef(false)
+  // Fetch generation: monotonic counter so a stale in-flight fetch cannot
+  // overwrite a newer realtime UPDATE or a newer fetch. Each fetchLeads call
+  // captures its generation; before applying results it checks that no newer
+  // fetch (or realtime update) has bumped the generation.
+  const fetchGenerationRef = useRef(0)
   const [refreshing, setRefreshing] = useState(false)
+  // `manualRefreshing` tracks ONLY user-initiated refreshes for the visible
+  // spinner. Initial mount and dependency-change fetches set `refreshing`
+  // (for deduplication) but NOT `manualRefreshing`, so the refresh icon
+  // does not spin during automatic loads.
+  const [manualRefreshing, setManualRefreshing] = useState(false)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const { checkoutMode, isLoading: eligibilityLoading } = useTrialEligibility()
@@ -271,11 +297,19 @@ export default function LeadsPage() {
   )
 
   // Fetch leads
-  const fetchLeads = useCallback(async () => {
+  const fetchLeads = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false
     if (!business?.id) return
+
+    // Capture this fetch's generation so a stale in-flight fetch cannot
+    // overwrite a newer realtime UPDATE or a newer fetch.
+    const myGeneration = ++fetchGenerationRef.current
 
     try {
       setRefreshing(true)
+      if (!silent) {
+        setManualRefreshing(true)
+      }
       setError(null)
 
       let query = supabase
@@ -284,6 +318,7 @@ export default function LeadsPage() {
           id,
           business_id,
           caller_phone,
+          contact_name,
           status,
           created_at,
           first_contact_at,
@@ -326,13 +361,8 @@ export default function LeadsPage() {
       if (error) throw error
 
       // Normalize ai_call_records to aiCallRecords for UI compatibility
-      const normalizedLeads = (data || []).map((lead: any) => ({
-        ...lead,
-        aiCallRecords: lead.ai_call_records || [],
-        name: lead.contact_name ?? lead.raw_metadata?.extracted_info?.callerName ?? null,
-        email: lead.raw_metadata?.extracted_info?.email ?? null,
-        phone: lead.caller_phone
-      }))
+      // and recompute derived fields (name/email/phone) from canonical row.
+      const normalizedLeads = (data || []).map(normalizeLead)
 
       // Sort by latest activity
       normalizedLeads.sort((a: any, b: any) => {
@@ -340,6 +370,13 @@ export default function LeadsPage() {
         const bActivity = getLatestActivity(b)
         return new Date(bActivity).getTime() - new Date(aActivity).getTime()
       })
+
+      // Stale-fetch guard: if a newer fetch or realtime UPDATE bumped the
+      // generation while we were in flight, discard these results to avoid
+      // overwriting the newer state with a stale snapshot.
+      if (myGeneration !== fetchGenerationRef.current) {
+        return
+      }
 
       setLeads(normalizedLeads)
 
@@ -362,6 +399,7 @@ export default function LeadsPage() {
     } finally {
       setLoading(false)
       setRefreshing(false)
+      setManualRefreshing(false)
     }
   }, [business?.id, supabase, statusFilter])
 
@@ -494,12 +532,16 @@ export default function LeadsPage() {
       })
     },
     (updatedLead) => {
+      // Bump fetch generation so any in-flight stale fetch cannot overwrite
+      // this newer realtime edit.
+      fetchGenerationRef.current++
       setLeads(prev => {
         // Update lead when it changes and re-deduplicate
-        // Merge the update into existing lead to preserve all fields
-        // PostgreSQL realtime notifications only send changed fields
-        const updatedLeads = prev.map(lead => 
-          lead.id === updatedLead.id ? { ...lead, ...updatedLead } : lead
+        // Merge the update into existing lead to preserve all fields,
+        // then recompute derived fields (name/email/phone) from the merged
+        // row so stale client-computed `name` cannot survive a realtime edit.
+        const updatedLeads = prev.map(lead =>
+          lead.id === updatedLead.id ? normalizeLead({ ...lead, ...updatedLead }) : lead
         )
         const deduplicated = mergeDuplicateLeads(updatedLeads)
         // Sort by latest activity
@@ -530,7 +572,8 @@ export default function LeadsPage() {
   )
 
   useEffect(() => {
-    fetchLeads()
+    // Initial mount / dependency change — silent (no spinner on the manual Refresh button)
+    fetchLeads({ silent: true })
   }, [fetchLeads])
 
   // Handle conversation click
@@ -1194,12 +1237,12 @@ export default function LeadsPage() {
                 <button
                   type="button"
                   className="h-10 w-10 inline-flex items-center justify-center bg-background border border-border/50 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={fetchLeads}
-                  disabled={loading || refreshing}
+                  onClick={() => fetchLeads()}
+                  disabled={loading || manualRefreshing}
                   aria-label="Refresh customers"
                   title="Refresh customers"
                 >
-                  {refreshing ? (
+                  {manualRefreshing ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                   ) : (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1373,7 +1416,7 @@ export default function LeadsPage() {
                 <div className="text-red-500 dark:text-red-400 mb-6 max-w-md mx-auto">{error}</div>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <button
-                    onClick={fetchLeads}
+                    onClick={() => fetchLeads()}
                     className="inline-flex items-center px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium rounded-lg transition-colors"
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
