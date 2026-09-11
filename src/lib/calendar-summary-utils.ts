@@ -32,6 +32,8 @@ export interface Job {
   title: string
   customer_name: string | null
   scheduled_date: string | null
+  scheduled_time?: string | null
+  scheduled_end_time?: string | null
   status: string
   google_calendar_event_id: string | null
 }

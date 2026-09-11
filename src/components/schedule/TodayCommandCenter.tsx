@@ -491,15 +491,7 @@ export default function TodayCommandCenter({
                 </div>
                 {item.type === 'task' && (
                   <div className="flex items-center gap-0.5">
-                    {onEditTask && item.type === 'task' && (
-                      <button
-                        onClick={() => onEditTask(item.data)}
-                        className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100"
-                        aria-label="Edit reminder"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    {/* Agenda is view-only — no edit pencil. Quick-complete checkbox remains as canonical quick-action. */}
                   </div>
                 )}
                 {item.type === 'job' && (
@@ -510,15 +502,7 @@ export default function TodayCommandCenter({
                     >
                       View
                     </button>
-                    {onEditJob && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onEditJob(item.data) }}
-                        className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100"
-                        aria-label="Edit job"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    {/* Agenda is view-only — no edit pencil. */}
                   </div>
                 )}
               </div>
@@ -561,15 +545,7 @@ export default function TodayCommandCenter({
                     Overdue {task.due_date && `• ${formatDate(task.due_date)}`}
                   </p>
                 </div>
-                {onEditTask && (
-                  <button
-                    onClick={() => onEditTask(task)}
-                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                    aria-label="Edit reminder"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                {/* Agenda is view-only — no edit pencil in Needs Attention. Quick-complete checkbox remains. */}
               </div>
             ))}
             {overdueTasks.length > 5 && onNavigateTab && (

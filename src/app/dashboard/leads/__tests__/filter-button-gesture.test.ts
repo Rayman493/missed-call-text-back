@@ -26,7 +26,9 @@ describe('Customer filter button gesture protection', () => {
 
   it('uses a controlled dropdown for the filter menu', () => {
     expect(content).toContain('open={filterMenuOpen}')
-    expect(content).toContain('onOpenChange={setFilterMenuOpen}')
+    // Batch 5: onOpenChange now suppresses opening after a drag gesture
+    expect(content).toContain('onOpenChange={(open) => {')
+    expect(content).toContain('filterSuppressNextOpenRef')
   })
 
   it('cleans up pointer state on pointer cancel and leave', () => {

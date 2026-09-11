@@ -313,6 +313,9 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
   const [showAllMode, setShowAllMode] = useState(true)
   const [leadCache, setLeadCache] = useState<Map<string, { name: string | null; phone: string | null }>>(new Map()) // Cache for lead data to avoid N+1 queries
 
+  // Explicit focus state for double-tap toggle: first double-tap focuses, second clears.
+  const [focusedMarkerId, setFocusedMarkerId] = useState<string | null>(null)
+
   // Track last click time for double-tap detection (works on both desktop and mobile)
   const lastClickTimeRef = useRef<Map<string, number>>(new Map())
   const DOUBLE_TAP_DELAY_MS = 300
@@ -678,6 +681,7 @@ useEffect(() => {
   const showAllMarkers = useCallback(() => {
     setSelectedMapItemId(null)
     setShowAllMode(true)
+    setFocusedMarkerId(null)
 
     if (!googleMapRef.current || markersRef.current.size === 0) return
 
@@ -1779,7 +1783,14 @@ useEffect(() => {
         setShowAllMode(true)
       }
     }
-  }, [selectedDate, selectedMapItemId, mapItems])
+    // Clear focusedMarkerId if the focused marker is no longer in the current map items
+    if (focusedMarkerId && mapItems.length > 0) {
+      const focusExists = mapItems.some(item => item.id === focusedMarkerId)
+      if (!focusExists) {
+        setFocusedMarkerId(null)
+      }
+    }
+  }, [selectedDate, selectedMapItemId, mapItems, focusedMarkerId])
 
   // Generate a signature of the data to detect meaningful changes without causing jitter
   const getDataSignature = useCallback(() => {
@@ -1934,14 +1945,34 @@ useEffect(() => {
           console.log('[ScheduleMap] marker_interaction', { platform, native: isNative, markerId: item.id, itemCount: markerInfo.items.length, isSingle })
 
           if (isNativeMobile) {
-            // Native / touch: one normal tap always selects and focuses the stop.
-            console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_tap', stopId: item.id, platform })
-            focusStopOnMap(item.id, item.latitude, item.longitude)
+            // Native / touch: detect double-tap for focus toggle.
+            const now = Date.now()
+            const lastClick = lastClickTimeRef.current.get(item.id) ?? 0
+            const isDoubleTap = now - lastClick < DOUBLE_TAP_DELAY_MS
+
+            if (isDoubleTap) {
+              // Double-tap toggle: if already focused on this marker, clear focus; otherwise focus.
+              if (focusedMarkerId === item.id) {
+                console.log('[ScheduleMap] marker_focus_cleared', { source: 'marker_double_tap', stopId: item.id, platform })
+                showAllMarkers()
+              } else {
+                console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_double_tap', stopId: item.id, platform })
+                focusStopOnMap(item.id, item.latitude, item.longitude)
+                setFocusedMarkerId(item.id)
+              }
+              lastClickTimeRef.current.delete(item.id)
+            } else {
+              // Single tap: select and focus (existing behavior preserved)
+              console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_tap', stopId: item.id, platform })
+              focusStopOnMap(item.id, item.latitude, item.longitude)
+              setFocusedMarkerId(item.id)
+              lastClickTimeRef.current.set(item.id, now)
+            }
             if (!isSingle) {
               setSelectedMarker(markerInfo) // Still show popup for easy access to other items
             }
           } else {
-            // Desktop mouse: single click selects/deselects, double click focuses.
+            // Desktop mouse: single click selects/deselects, double click focuses (with toggle).
             const now = Date.now()
             const lastClick = lastClickTimeRef.current.get(item.id) ?? 0
             const isDoubleClick = now - lastClick < DOUBLE_TAP_DELAY_MS
@@ -1953,8 +1984,15 @@ useEffect(() => {
             })
 
             if (action === 'focus') {
-              console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_dblclick', stopId: item.id, platform })
-              focusStopOnMap(item.id, item.latitude, item.longitude)
+              // Double-click toggle: if already focused on this marker, clear focus; otherwise focus.
+              if (focusedMarkerId === item.id) {
+                console.log('[ScheduleMap] marker_focus_cleared', { source: 'marker_dblclick', stopId: item.id, platform })
+                showAllMarkers()
+              } else {
+                console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_dblclick', stopId: item.id, platform })
+                focusStopOnMap(item.id, item.latitude, item.longitude)
+                setFocusedMarkerId(item.id)
+              }
               lastClickTimeRef.current.delete(item.id)
               if (!isSingle) {
                 setSelectedMarker(markerInfo)

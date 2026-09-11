@@ -240,6 +240,11 @@ export default function LeadsPage() {
   const [filterMenuOpen, setFilterMenuOpen] = useState(false)
   const filterPointerStartRef = useRef<{ x: number; y: number } | null>(null)
   const filterMovedRef = useRef(false)
+  // Suppress the next Radix onOpenChange(true) after a drag gesture.
+  // This is needed because the synthetic click event that follows a
+  // pointerup can still trigger Radix's internal open handler, even
+  // though our onPointerUp already decided not to open the menu.
+  const filterSuppressNextOpenRef = useRef(false)
   // Shared tap-vs-drag guard for filter dropdown items. Prevents an option
   // from being selected because the user's finger crossed it during a scroll.
   const filterItemGuard = useTapGuard()
@@ -1118,7 +1123,14 @@ export default function LeadsPage() {
                 </div>
 
                 {/* Filter dropdown button */}
-                <DropdownMenu open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
+                <DropdownMenu open={filterMenuOpen} onOpenChange={(open) => {
+                  // Suppress opening if this was triggered by a drag gesture
+                  if (open && filterSuppressNextOpenRef.current) {
+                    filterSuppressNextOpenRef.current = false
+                    return
+                  }
+                  setFilterMenuOpen(open)
+                }}>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
@@ -1143,17 +1155,33 @@ export default function LeadsPage() {
                         const wasScroll = filterMovedRef.current
                         filterPointerStartRef.current = null
                         filterMovedRef.current = false
-                        if (!wasScroll) {
+                        if (wasScroll) {
+                          // Suppress the next Radix onOpenChange(true) from the synthetic click
+                          filterSuppressNextOpenRef.current = true
+                        } else {
                           setFilterMenuOpen(true)
                         }
                       }}
                       onPointerCancel={() => {
                         filterPointerStartRef.current = null
                         filterMovedRef.current = false
+                        filterSuppressNextOpenRef.current = false
                       }}
                       onPointerLeave={() => {
+                        // If a drag was in progress, keep suppress flag alive for the click
+                        if (filterMovedRef.current) {
+                          filterSuppressNextOpenRef.current = true
+                        }
                         filterPointerStartRef.current = null
                         filterMovedRef.current = false
+                      }}
+                      onClick={(e) => {
+                        // Final guard: if the suppress flag is set, block the click
+                        if (filterSuppressNextOpenRef.current) {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          filterSuppressNextOpenRef.current = false
+                        }
                       }}
                       className="h-10 px-3 inline-flex items-center justify-center gap-2 bg-background border border-border/50 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all whitespace-nowrap"
                       title="Filter by status"

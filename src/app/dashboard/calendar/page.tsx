@@ -276,6 +276,11 @@ function MeetingsTab({
           const customerName = job?.customer_name || null
           const typeLabel = labelType(ev)
           const isMeet = typeLabel === 'Google Meet'
+          // Editability: only ReplyFlow-owned events are editable.
+          // External/read-only Google events open details view but show no Edit.
+          // @ts-ignore
+          const rfLead = ev?.extendedProperties?.private?.replyflow_lead_id
+          const isEditable = Boolean(job || rfLead)
           return (
             <div
               key={ev.id}
@@ -285,7 +290,7 @@ function MeetingsTab({
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenEvent(ev) } }}
             >
-              <div className="flex items-start justify-between gap-3 p-3.5">
+              <div className="flex items-start justify-between gap-3 p-4">
                 <div className="min-w-0 flex-1">
                   <h3 className="min-w-0 line-clamp-1 text-sm font-semibold text-slate-900 dark:text-foreground">{ev.summary}</h3>
                   {customerName && (
@@ -331,6 +336,18 @@ function MeetingsTab({
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap font-medium">Scheduled</span>
                     )
                   })()}
+                  {/* Edit action only for editable (ReplyFlow-owned) appointments */}
+                  {isEditable && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onOpenEvent(ev) }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onOpenEvent(ev) } }}
+                      className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors mt-0.5"
+                      aria-label="Edit appointment"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      <span className="hidden sm:inline">Edit</span>
+                    </button>
+                  )}
                   {/* Primary action: Join far right for virtual meetings */}
                   {ev.meetingUrl && (
                     <a
@@ -2632,7 +2649,15 @@ function JobsTab({
     const [h, m] = job.scheduled_time.split(':').map(Number)
     const ampm = h >= 12 ? 'PM' : 'AM'
     const hour = h % 12 || 12
-    return `${dateStr} at ${hour}:${String(m).padStart(2, '0')} ${ampm}`
+    const startStr = `${hour}:${String(m).padStart(2, '0')} ${ampm}`
+    // Append end time when present (12-hour AM/PM, no seconds)
+    if (job.scheduled_end_time) {
+      const [eh, em] = job.scheduled_end_time.split(':').map(Number)
+      const eampm = eh >= 12 ? 'PM' : 'AM'
+      const ehour = eh % 12 || 12
+      return `${dateStr} at ${startStr} – ${ehour}:${String(em).padStart(2, '0')} ${eampm}`
+    }
+    return `${dateStr} at ${startStr}`
   }
 
   const PAYMENT_LABELS: Record<string, string> = {
@@ -2657,12 +2682,12 @@ function JobsTab({
         tabIndex={0}
         onClick={() => onJobClick(job)}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onJobClick(job) } }}
-        className={`rounded-xl p-4 transition-all hover:shadow-sm cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+        className={`rounded-xl border p-4 transition-all hover:shadow-sm cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
           isActive
-            ? 'bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
+            ? 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
             : isCompleted
-              ? 'bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30'
-              : 'bg-slate-50 dark:bg-slate-800/20 border border-slate-200/50 dark:border-slate-700/20'
+              ? 'bg-slate-50 dark:bg-slate-800/30 border-slate-200/50 dark:border-slate-700/30'
+              : 'bg-slate-50 dark:bg-slate-800/20 border-slate-200/50 dark:border-slate-700/20'
         }`}
       >
         <div className="flex items-start justify-between gap-3">

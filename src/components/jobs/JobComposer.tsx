@@ -26,6 +26,7 @@ export interface JobPrefill {
   conversation_id?: string
   scheduled_date?: string
   scheduled_time?: string
+  scheduled_end_time?: string
   requested_completion_label?: string
   callback_preference_label?: string
   prefillCustomer?: Customer | null // Full customer object for selector hydration
@@ -40,6 +41,7 @@ export interface Job {
   notes: string | null
   scheduled_date: string | null
   scheduled_time: string | null
+  scheduled_end_time: string | null
   status: JobStatus
   lead_id: string | null
   conversation_id: string | null
@@ -95,6 +97,10 @@ export default function JobComposer({
   const [notes, setNotes] = useState('')
   const [scheduledDate, setScheduledDate] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
+  const [scheduledEndTime, setScheduledEndTime] = useState('')
+  // Track whether the user has explicitly touched the end-time field.
+  // Used to avoid overwriting a user-edited end time with the start+1h default.
+  const [endTimeTouched, setEndTimeTouched] = useState(false)
   const [status, setStatus] = useState<JobStatus>('scheduled')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
@@ -194,6 +200,8 @@ export default function JobComposer({
       setNotes(editJob.notes || '')
       setScheduledDate(editJob.scheduled_date || '')
       setScheduledTime(editJob.scheduled_time?.slice(0, 5) || '')
+      setScheduledEndTime(editJob.scheduled_end_time?.slice(0, 5) || '')
+      setEndTimeTouched(true) // Edit mode: never auto-overwrite stored end
       setStatus(editJob.status)
       setLeadId(editJob.lead_id || null)
       setLeadDisplay(editJob.customer_name || editJob.service_address || 'Customer')
@@ -205,11 +213,36 @@ export default function JobComposer({
       setNotes(prefill?.notes || '')
       setScheduledDate(prefill?.scheduled_date || (defaultDate ? getDateInputValueInTimeZone(defaultDate, timezone) : ''))
       setScheduledTime(prefill?.scheduled_time || '')
+      setScheduledEndTime(prefill?.scheduled_end_time || '')
+      setEndTimeTouched(!!prefill?.scheduled_end_time) // Prefilled end is intentional; don't auto-overwrite
       setStatus('scheduled')
       setLeadId(prefill?.lead_id || null)
       setLeadDisplay(prefill?.customer_name || prefill?.service_address || null)
     }
   }, [isOpen, editJob, prefill, defaultDate])
+
+  // Default end time to start + 1 hour, but only while the end field is unset
+  // AND the user has not explicitly touched it. Once touched, the user's value
+  // is preserved even if start changes. Same-day jobs only: if start + 1 hour
+  // would cross midnight (e.g. 23:30 -> 24:30), leave End Time empty and require
+  // the user to select a valid same-day end. Do NOT invent overnight support.
+  useEffect(() => {
+    if (!isOpen || endTimeTouched) return
+    if (!scheduledTime) {
+      setScheduledEndTime('')
+      return
+    }
+    const [h, m] = scheduledTime.split(':').map(Number)
+    if (isNaN(h) || isNaN(m)) return
+    const endH = h + 1
+    if (endH >= 24) {
+      // +1 hour crosses midnight — same-day constraint forbids auto-default.
+      // Leave End Time empty; user must pick a valid same-day end.
+      setScheduledEndTime('')
+      return
+    }
+    setScheduledEndTime(`${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
+  }, [isOpen, scheduledTime, endTimeTouched])
 
   if (!isOpen) return null
 
@@ -238,6 +271,7 @@ export default function JobComposer({
         notes: notes.trim() || null,
         scheduled_date: scheduledDate || null,
         scheduled_time: scheduledTime || null,
+        scheduled_end_time: scheduledEndTime || null,
         status,
         source: leadId ? 'replyflow' : 'manual',
         lead_id: leadId || editJob?.lead_id || null,
@@ -398,8 +432,8 @@ export default function JobComposer({
               </div>
             )}
 
-            {/* Date + Time */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Date + Start/End Time */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <DatePicker
                 value={scheduledDate}
                 onChange={setScheduledDate}
@@ -408,11 +442,16 @@ export default function JobComposer({
               <TimePicker
                 value={scheduledTime}
                 onChange={setScheduledTime}
-                label="Time"
+                label="Start Time"
+              />
+              <TimePicker
+                value={scheduledEndTime}
+                onChange={(v) => { setScheduledEndTime(v); setEndTimeTouched(true) }}
+                label="End Time"
               />
             </div>
             <p className="text-[10px] text-muted-foreground/70">
-              Optional. Add a date and time to place this job on your schedule.
+              Optional. Add a date and time to place this job on your schedule. End time defaults to start + 1 hour.
             </p>
 
             {/* Status */}

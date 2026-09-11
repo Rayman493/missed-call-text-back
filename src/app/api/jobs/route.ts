@@ -301,6 +301,7 @@ export async function POST(request: NextRequest) {
       notes,
       scheduled_date,
       scheduled_time,
+      scheduled_end_time,
       status = 'scheduled',
       lead_id,
       conversation_id,
@@ -314,6 +315,20 @@ export async function POST(request: NextRequest) {
     // Require lead_id for job creation
     if (!lead_id) {
       return NextResponse.json({ error: 'A customer (lead) must be selected to create a job. Please select a customer from the Leads page first.' }, { status: 400 })
+    }
+
+    // Validate scheduled_end_time format and same-day end > start constraint
+    if (scheduled_end_time) {
+      if (!/^\d{2}:\d{2}(:\d{2})?$/.test(scheduled_end_time)) {
+        return NextResponse.json({ error: 'End time must be in HH:MM or HH:MM:SS format' }, { status: 400 })
+      }
+      if (scheduled_date && scheduled_time) {
+        const [sh, sm] = scheduled_time.split(':').map(Number)
+        const [eh, em] = scheduled_end_time.split(':').map(Number)
+        if (eh < sh || (eh === sh && em <= sm)) {
+          return NextResponse.json({ error: 'End time must be after start time' }, { status: 400 })
+        }
+      }
     }
 
     // Verify the lead belongs to the authenticated business
@@ -346,6 +361,7 @@ export async function POST(request: NextRequest) {
         notes: notes?.trim() || null,
         scheduled_date: scheduled_date || null,
         scheduled_time: scheduled_time || null,
+        scheduled_end_time: scheduled_end_time || null,
         status,
         lead_id: lead_id || null,
         conversation_id: conversation_id || null,
@@ -376,6 +392,7 @@ export async function POST(request: NextRequest) {
       title: job.title,
       scheduledDate: job.scheduled_date,
       scheduledTime: job.scheduled_time,
+      scheduledEndTime: job.scheduled_end_time,
       status: job.status,
       source: job.source
     })
@@ -447,10 +464,16 @@ export async function POST(request: NextRequest) {
           const businessTimezone = business.business_hours_timezone || 'America/New_York'
           const startDateTimeStr = `${scheduled_date}T${scheduled_time}:00`
           
-          // Default to 1 hour duration if no end time specified
-          const [hours, minutes] = scheduled_time.split(':').map(Number)
-          const endHours = hours + 1
-          const endDateTimeStr = `${scheduled_date}T${String(endHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`
+          // Use actual scheduled_end_time when present; otherwise default to
+          // start + 1 hour (legacy fallback for historical/null-end jobs).
+          let endDateTimeStr: string
+          if (scheduled_end_time) {
+            endDateTimeStr = `${scheduled_date}T${scheduled_end_time}:00`
+          } else {
+            const [hours, minutes] = scheduled_time.split(':').map(Number)
+            const endHours = hours + 1
+            endDateTimeStr = `${scheduled_date}T${String(endHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`
+          }
 
           const eventBody = {
             summary: title,

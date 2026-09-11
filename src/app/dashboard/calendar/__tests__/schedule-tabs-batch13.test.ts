@@ -70,9 +70,10 @@ describe('Batch 13 — Today Row Structure', () => {
     expect(tccContent).toContain('toggleTaskComplete')
   })
 
-  it('Today job rows have View and Edit actions', () => {
+  it('Today job rows have View action (Agenda is view-only; Edit removed)', () => {
     expect(tccContent).toContain('onJobClick?.(item.data)')
-    expect(tccContent).toContain('onEditJob(item.data)')
+    // Agenda is view-only per Batch 5 — Edit pencil removed from timeline rows
+    expect(tccContent).toContain('Agenda is view-only')
   })
 })
 

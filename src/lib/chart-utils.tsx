@@ -221,7 +221,6 @@ import { GESTURE_MOVEMENT_THRESHOLD, isDragGesture } from '@/lib/gesture/tap-gua
 
 export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
   const [isDragging, setIsDragging] = useState(false)
-  const [chartResetKey, setChartResetKey] = useState(0)
   const startXRef = useRef(0)
   const startYRef = useRef(0)
   const isDraggingRef = useRef(false)
@@ -256,12 +255,16 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
 
   const handleTouchEnd = () => {
     if (isDraggingRef.current) {
-      // Was a drag — force Recharts to remount, clearing all transient
-      // activation state (activeDot, activeBar, tooltip, cursor). This
-      // is necessary because setting pointerEvents: 'none' during the
-      // drag prevented Recharts from receiving its own touchend, so it
-      // would otherwise leave the last-touched datum highlighted.
-      setChartResetKey(k => k + 1)
+      // Was a drag — clear Recharts active state WITHOUT remounting.
+      // Dispatch a synthetic mouseleave on the Recharts surface to
+      // clear activeDot/activeBar/tooltip/cursor. This avoids the
+      // visual regeneration/reanimation caused by key-based remount.
+      if (innerRef.current) {
+        const surface = innerRef.current.querySelector('.recharts-surface') as Element | null
+        if (surface) {
+          surface.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }))
+        }
+      }
     }
     isDraggingRef.current = false
     setIsDragging(false)
@@ -273,13 +276,15 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="w-full h-full select-none"
+      className="w-full h-full select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-2 rounded-lg"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       // Allow native scrolling in both axes; chart pointer events remain
       // enabled so taps still work. The isDragging flag disables pointer
       // events on the chart's interactive layer during an active drag.
+      // Touch focus uses :focus (outline suppressed); keyboard focus uses
+      // :focus-visible (ring shown) — preserving keyboard accessibility.
       style={{
         touchAction: 'pan-y pan-x',
         pointerEvents: 'auto',
@@ -287,9 +292,8 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
       data-chart-dragging={isDragging ? 'true' : undefined}
     >
       <div
-        key={chartResetKey}
         ref={innerRef}
-        className="w-full h-full"
+        className="w-full h-full focus:outline-none"
         style={{ pointerEvents: isDragging ? 'none' : 'auto' }}
       >
         {children}
