@@ -151,21 +151,20 @@ export default function Modal({
           relative w-full max-w-lg
           max-h-[var(--modal-max-height)]
           overflow-hidden
-          rounded-xl border border-border/60 dark:border-border/50
-          bg-card dark:bg-slate-800/95
-          shadow-[0_8px_24px_rgb(0,0,0,0.10),0_2px_8px_rgb(0,0,0,0.06)]
-          dark:shadow-[0_8px_24px_rgb(0,0,0,0.30),0_2px_8px_rgb(0,0,0,0.20)]
+          rounded-2xl border border-border/50
+          bg-card
+          shadow-2xl shadow-black/10 dark:shadow-black/30
           flex flex-col min-h-0 min-w-0 animate-in zoom-in-95 duration-200 motion-reduce:animate-none motion-reduce:transition-none
           ${className}
         `}
         onClick={(e) => e.stopPropagation()}
       >
           {title && (
-            <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-border dark:border-border/50 shrink-0">
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-border/50 shrink-0 bg-muted/30">
               <h2 id={titleId} className="text-base font-semibold text-foreground min-w-0 truncate">{title}</h2>
               <button
                 onClick={onClose}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                 aria-label="Close"
               >
                 <X className="w-5 h-5 stroke-[1.5]" />
@@ -187,7 +186,7 @@ export default function Modal({
 
           {footer && (
             <div
-              className="flex flex-wrap shrink-0 items-center justify-end gap-2 border-t border-border dark:border-border/50 px-4 sm:px-5 py-3 min-w-0"
+              className="flex flex-wrap shrink-0 items-center justify-end gap-2 border-t border-border/50 bg-muted/30 px-4 sm:px-5 py-3 min-w-0"
               style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
             >
               {footer}

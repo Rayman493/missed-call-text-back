@@ -5529,22 +5529,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Mobile Bottom Sheet for Customer Details */}
       {showLeadInfo && (
         <div className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50" onClick={() => setShowLeadInfo(false)}>
-          <div className="bg-white dark:bg-slate-900 rounded-t-2xl w-full max-h-[80vh] overflow-hidden animate-slide-up" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card rounded-t-2xl shadow-2xl w-full max-h-[80vh] overflow-hidden animate-slide-up border-t border-border/50" onClick={(e) => e.stopPropagation()}>
             {/* Handle */}
             <div className="flex justify-center py-1.5">
-              <div className="w-12 h-1 bg-slate-300 dark:bg-slate-600 rounded-full"></div>
+              <div className="w-12 h-1 bg-muted-foreground/30 rounded-full"></div>
             </div>
 
             {/* Header */}
-            <div className="px-4 pb-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-slate-900 dark:text-white">Customer Details</h3>
+            <div className="px-4 pb-3 border-b border-border/50 flex items-center justify-between bg-muted/30">
+              <h3 className="text-base font-semibold text-foreground">Customer Details</h3>
               <button
                 onClick={() => setShowLeadInfo(false)}
-                className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
                 aria-label="Close"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
@@ -5555,11 +5555,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Actions */}
-            <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+            <div className="px-4 py-3 border-t border-border/50 bg-muted/30">
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowLeadInfo(false)}
-                  className="flex-1 px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
+                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-colors"
                 >
                   Close
                 </button>
@@ -5572,7 +5572,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Desktop Modal for Customer Details */}
       {showLeadInfo && (
         <div className="hidden md:block fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setShowLeadInfo(false)}>
-          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -5839,7 +5839,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }}
       >
         <div 
-          className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800"
+          className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col border border-border/50"
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
               setShowPaymentModal(false)
@@ -5849,8 +5849,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           }}
         >
           {/* Header with X button */}
-          <div className="flex items-center justify-between px-6 pt-6 pb-2 flex-shrink-0">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+          <div className="flex items-center justify-between px-5 py-3.5 flex-shrink-0 border-b border-border/50 bg-muted/30">
+            <h3 className="text-base font-semibold text-foreground">
               Request Payment
             </h3>
             <button
@@ -5860,7 +5860,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 setPaymentDescription('')
               }}
               disabled={isCreatingPayment}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0 disabled:opacity-50"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors flex-shrink-0 disabled:opacity-50"
               aria-label="Close modal"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -5869,18 +5869,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </button>
           </div>
           {/* Scrollable body */}
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 pb-2" data-scroll-lock-allow>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-4" data-scroll-lock-allow>
+          <p className="text-sm text-muted-foreground mb-6">
             Send a payment request to {getLeadDisplayName(leadData || lead) || 'this customer'} via text message.
           </p>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
+              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
                 Amount (USD)
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                 <input
                   ref={paymentAmountRef}
                   type="number"
@@ -5890,13 +5890,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   placeholder="0.00"
                   step="0.01"
                   min="0.01"
-                  className="w-full pl-8 pr-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="w-full pl-8 pr-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                 />
               </div>
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
+              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
                 Description
               </label>
               <textarea
@@ -5904,15 +5904,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 onChange={(e) => setPaymentDescription(e.target.value)}
                 placeholder="Service payment"
                 rows={3}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white resize-none"
+                className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-none"
               />
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 This will be prefilled from the service requested when available.
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-900 dark:text-white mb-3">
+              <label className="text-xs text-muted-foreground font-medium mb-2 block">
                 Payment Method
               </label>
               <div className="space-y-3">
@@ -6017,7 +6017,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Footer — stays visible, not clipped */}
-          <div className="flex gap-3 justify-end px-6 py-4 flex-shrink-0 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex gap-3 justify-end px-5 py-3 flex-shrink-0 border-t border-border/50 bg-muted/30">
             <button
               onClick={() => {
                 setShowPaymentModal(false)
@@ -6025,7 +6025,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 setPaymentDescription('')
               }}
               disabled={isCreatingPayment}
-              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
+              className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-muted"
             >
               Cancel
             </button>
@@ -6229,7 +6229,7 @@ If you have questions, reply to this message.`
                 }
               }}
               disabled={isCreatingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0 || !business || !isProviderAvailable(selectedPaymentProvider, business)}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary"
             >
               {isCreatingPayment ? 'Sending Payment Request...' : 'Send Payment Request'}
             </button>

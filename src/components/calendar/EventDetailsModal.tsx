@@ -799,7 +799,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         <h2 id="event-title" className="sr-only">{event.summary}</h2>
         
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/60 dark:border-border/50 flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/60 dark:border-border/50 flex-shrink-0 bg-muted/30">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${event.isHoliday ? 'bg-emerald-500/10' : 'bg-primary/10'}`}>
               <Calendar className={`w-4 h-4 ${event.isHoliday ? 'text-emerald-400' : 'text-primary'}`} />
@@ -1237,7 +1237,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-border/60 dark:border-border/50 bg-card flex-shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+        <div className="px-5 py-3 border-t border-border/60 dark:border-border/50 bg-muted/30 flex-shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
           {error && (
             <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />

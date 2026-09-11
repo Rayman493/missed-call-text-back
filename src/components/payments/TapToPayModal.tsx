@@ -1577,12 +1577,12 @@ export default function TapToPayModal({
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[var(--modal-max-height)] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200 mx-auto sm:mx-0">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-border/50 bg-card shrink-0">
+        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-border/50 bg-muted/30 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
               <CreditCard className="w-4 h-4 text-primary" />
             </div>
-            <h3 className="text-lg font-semibold text-foreground" tabIndex={-1}>Tap to Pay</h3>
+            <h3 className="text-lg font-semibold text-foreground select-none">Tap to Pay</h3>
           </div>
           {(paymentState === 'ready' || paymentState === 'failure' || paymentState === 'canceled') && (
             <button

@@ -132,14 +132,14 @@ export default function PaymentsNewRequestModal({
           <button
             onClick={handleClose}
             disabled={isCreatingPayment}
-            className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted dark:text-gray-300 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-muted"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={isCreatingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0 || !paymentPrefill?.lead_id || !hasAnyPaymentMethod}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary"
           >
             {isCreatingPayment ? 'Sending Request...' : 'Send Payment Request'}
           </button>

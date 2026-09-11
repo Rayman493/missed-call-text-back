@@ -370,7 +370,7 @@ export default function JobDetailsModal({
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-4">
         <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-lg max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px)] sm:max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
           {/* Header */}
-          <div className="flex items-start justify-between px-5 py-4 border-b border-border/50">
+          <div className="flex items-start justify-between px-5 py-4 border-b border-border/50 bg-muted/30">
             <div className="flex items-start gap-3 flex-1 min-w-0">
               <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Briefcase className="w-4 h-4 text-primary" />
@@ -605,7 +605,7 @@ export default function JobDetailsModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between px-5 py-4 border-t border-border/50 flex-shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+          <div className="flex items-center justify-between px-5 py-4 border-t border-border/50 bg-muted/30 flex-shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
             {showDeleteConfirm ? (
               <div className="flex items-center gap-2 w-full">
                 <span className="text-xs text-muted-foreground flex-1">Delete this job?</span>
