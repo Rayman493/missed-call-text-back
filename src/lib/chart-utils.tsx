@@ -193,21 +193,21 @@ export const CHART_STYLES = {
 /**
  * ChartTouchWrapper - Mobile touch scroll protection for Recharts
  *
- * On mobile devices, Recharts can intercept touch events for tooltips,
- * preventing vertical page scrolling. This wrapper uses the canonical
- * gesture-intent philosophy (same 10px threshold as lead-status-gesture.ts)
- * to distinguish tap from drag in ALL directions (vertical, horizontal,
- * diagonal).
+ * Wraps Recharts charts to prevent scroll gestures from activating chart
+ * data (bar/dot/slice selection). Uses the canonical gesture model from
+ * @/lib/gesture/tap-guard (same 10px threshold as all other surfaces).
  *
  * Behavior:
- * - Touch down: capture start X/Y
- * - Touch move: if movement exceeds 10px in ANY direction, mark as drag
- * - Touch end: if gesture remained a tap (under threshold), allow chart
- *   interaction; if it was a drag, suppress chart activation
- * - During drag: set `touchAction: pan-y pan-x` so native scroll continues
- * - No setTimeout, no pointerEvents toggling, no global preventDefault
+ * - Touch/pointer down: capture start X/Y
+ * - Move: if movement exceeds 10px in ANY direction, mark as drag
+ *   SYNCHRONOUSLY via ref + direct DOM style (not async React state)
+ *   so Recharts stops receiving pointer events immediately
+ * - End: if gesture was a drag, force Recharts to remount (clearing all
+ *   transient activation state: activeDot, activeBar, tooltip, cursor)
+ * - If gesture remained a tap, Recharts' own onClick handler fires normally
  *
- * Desktop (mouse/hover): Unchanged — no touch handlers fire, hover works
+ * Desktop (mouse/hover): Unchanged — pointer handlers only fire on
+ * interaction; hover tooltips work because pointerEvents stay 'auto'.
  *
  * Usage:
  *   <ChartTouchWrapper>
@@ -217,40 +217,58 @@ export const CHART_STYLES = {
  *   </ChartTouchWrapper>
  */
 import { useState, useRef } from 'react'
-
-/**
- * Canonical movement threshold (matches lead-status-gesture.ts GESTURE_MOVEMENT_THRESHOLD)
- */
-const CHART_GESTURE_THRESHOLD = 10
+import { GESTURE_MOVEMENT_THRESHOLD, isDragGesture } from '@/lib/gesture/tap-guard'
 
 export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
   const [isDragging, setIsDragging] = useState(false)
+  const [chartResetKey, setChartResetKey] = useState(0)
   const startXRef = useRef(0)
   const startYRef = useRef(0)
+  const isDraggingRef = useRef(false)
+  const innerRef = useRef<HTMLDivElement>(null)
 
   const handleTouchStart = (e: React.TouchEvent) => {
     startXRef.current = e.touches[0].clientX
     startYRef.current = e.touches[0].clientY
+    isDraggingRef.current = false
     setIsDragging(false)
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
     const touchX = e.touches[0].clientX
     const touchY = e.touches[0].clientY
-    const deltaX = Math.abs(touchX - startXRef.current)
-    const deltaY = Math.abs(touchY - startYRef.current)
 
-    // If movement exceeds threshold in ANY direction, it's a drag/scroll
-    if (deltaX > CHART_GESTURE_THRESHOLD || deltaY > CHART_GESTURE_THRESHOLD) {
-      setIsDragging(true)
+    if (isDragGesture(startXRef.current, startYRef.current, touchX, touchY)) {
+      if (!isDraggingRef.current) {
+        isDraggingRef.current = true
+        setIsDragging(true)
+        // Synchronously disable pointer events on the chart container
+        // so Recharts stops processing the ongoing touchmove. This is
+        // done via direct DOM manipulation (not React state) to avoid
+        // the async re-render race where Recharts processes several
+        // more move events before pointerEvents: 'none' applies.
+        if (innerRef.current) {
+          innerRef.current.style.pointerEvents = 'none'
+        }
+      }
     }
   }
 
   const handleTouchEnd = () => {
-    // Reset synchronously — no setTimeout needed.
-    // The isDragging flag was already consulted during the gesture;
-    // clearing it now prepares for the next interaction.
+    if (isDraggingRef.current) {
+      // Was a drag — force Recharts to remount, clearing all transient
+      // activation state (activeDot, activeBar, tooltip, cursor). This
+      // is necessary because setting pointerEvents: 'none' during the
+      // drag prevented Recharts from receiving its own touchend, so it
+      // would otherwise leave the last-touched datum highlighted.
+      setChartResetKey(k => k + 1)
+    }
+    isDraggingRef.current = false
     setIsDragging(false)
+    // Restore pointer events for next interaction
+    if (innerRef.current) {
+      innerRef.current.style.pointerEvents = 'auto'
+    }
   }
 
   return (
@@ -260,10 +278,8 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       // Allow native scrolling in both axes; chart pointer events remain
-      // enabled so taps still work. The isDragging state is used by the
-      // wrapper to suppress chart activation after a drag gesture via
-      // a CSS class that disables pointer events only on the chart's
-      // interactive layer during an active drag.
+      // enabled so taps still work. The isDragging flag disables pointer
+      // events on the chart's interactive layer during an active drag.
       style={{
         touchAction: 'pan-y pan-x',
         pointerEvents: 'auto',
@@ -271,6 +287,8 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
       data-chart-dragging={isDragging ? 'true' : undefined}
     >
       <div
+        key={chartResetKey}
+        ref={innerRef}
         className="w-full h-full"
         style={{ pointerEvents: isDragging ? 'none' : 'auto' }}
       >

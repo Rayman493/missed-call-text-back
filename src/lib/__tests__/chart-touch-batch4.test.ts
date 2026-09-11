@@ -18,19 +18,20 @@ function readContent(path: string): string {
 }
 
 describe('Batch 4 — ChartTouchWrapper Canonical Gesture Guard', () => {
-  it('uses 10px threshold (matching lead-status-gesture.ts)', () => {
+  it('uses 10px threshold from canonical gesture model', () => {
     const content = readContent('src/lib/chart-utils.tsx')
-    expect(content).toContain('CHART_GESTURE_THRESHOLD = 10')
+    // Must import the canonical threshold from the shared gesture module
+    expect(content).toContain('GESTURE_MOVEMENT_THRESHOLD')
+    expect(content).toContain("from '@/lib/gesture/tap-guard'")
   })
 
-  it('tracks both X and Y movement (not just Y)', () => {
+  it('tracks both X and Y movement via canonical isDragGesture (not just Y)', () => {
     const content = readContent('src/lib/chart-utils.tsx')
     expect(content).toContain('startXRef')
     expect(content).toContain('startYRef')
-    expect(content).toContain('deltaX')
-    expect(content).toContain('deltaY')
-    // Should check both axes
-    expect(content).toContain('deltaX > CHART_GESTURE_THRESHOLD || deltaY > CHART_GESTURE_THRESHOLD')
+    // Must use the canonical isDragGesture function which checks both axes
+    expect(content).toContain('isDragGesture')
+    expect(content).toContain("from '@/lib/gesture/tap-guard'")
   })
 
   it('does NOT use setTimeout', () => {

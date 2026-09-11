@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Plus, ChevronDown, ChevronUp, CheckCircle2, Loader2, Circle, XCircle } from 'lucide-react'
 import type { Job, JobStatus } from './JobComposer'
+import { useTapGuard } from '@/lib/gesture/use-tap-guard'
 
 interface CalendarEvent {
   id: string
@@ -103,6 +104,9 @@ export default function TodaySchedule({
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [showCancelled, setShowCancelled] = useState(false)
   const hasLoadedOnceRef = useRef(false)
+  // Shared tap-vs-drag guard for agenda summary cards. Suppresses card
+  // activation when the user is scrolling vertically over the list.
+  const cardGuard = useTapGuard()
   useEffect(() => {
     if (!isLoading) {
       hasLoadedOnceRef.current = true
@@ -222,6 +226,11 @@ export default function TodaySchedule({
                   <div
                     key={job.id}
                     className={`group flex items-center gap-2.5 pl-2.5 pr-2 py-2 rounded-lg border-l-2 ${cfg.row} bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors`}
+                    onPointerDown={cardGuard.onPointerDown}
+                    onPointerMove={cardGuard.onPointerMove}
+                    onPointerUp={cardGuard.onPointerUp}
+                    onPointerCancel={cardGuard.onPointerCancel}
+                    onPointerLeave={cardGuard.onPointerLeave}
                   >
                     {/* Status icon */}
                     <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${
@@ -241,7 +250,10 @@ export default function TodaySchedule({
                     )}
 
                     {/* Time + info */}
-                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onJobClick(job)}>
+                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => {
+                      if (cardGuard.consumeDragSuppression()) return
+                      onJobClick(job)
+                    }}>
                       <div className="flex items-baseline gap-1.5">
                         {job.scheduled_time && (
                           <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums flex-shrink-0">
@@ -292,6 +304,11 @@ export default function TodaySchedule({
                   <div
                     key={event.id}
                     className="group flex items-center gap-2.5 pl-2.5 pr-2 py-2 rounded-lg border-l-2 border-l-purple-400 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
+                    onPointerDown={cardGuard.onPointerDown}
+                    onPointerMove={cardGuard.onPointerMove}
+                    onPointerUp={cardGuard.onPointerUp}
+                    onPointerCancel={cardGuard.onPointerCancel}
+                    onPointerLeave={cardGuard.onPointerLeave}
                   >
                     {/* Calendar icon */}
                     <div className="w-3.5 h-3.5 flex-shrink-0 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
@@ -331,9 +348,17 @@ export default function TodaySchedule({
                       <div
                         key={job.id}
                         className="group flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-lg border-l-2 border-l-slate-300 bg-slate-50 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors opacity-60"
+                        onPointerDown={cardGuard.onPointerDown}
+                        onPointerMove={cardGuard.onPointerMove}
+                        onPointerUp={cardGuard.onPointerUp}
+                    onPointerCancel={cardGuard.onPointerCancel}
+                        onPointerLeave={cardGuard.onPointerLeave}
                       >
                         <XCircle className="w-4 h-4 flex-shrink-0 text-slate-400" />
-                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onJobClick(job)}>
+                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => {
+                          if (cardGuard.consumeDragSuppression()) return
+                          onJobClick(job)
+                        }}>
                           <div className="flex items-baseline gap-2">
                             {job.scheduled_time && (
                               <span className="text-[11px] font-semibold text-slate-400 tabular-nums flex-shrink-0">
@@ -344,7 +369,10 @@ export default function TodaySchedule({
                           </div>
                         </div>
                         <button
-                          onClick={() => onJobClick(job)}
+                          onClick={() => {
+                            if (cardGuard.consumeDragSuppression()) return
+                            onJobClick(job)
+                          }}
                           className="px-2 py-1 text-[10px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"
                           title="View details"
                         >

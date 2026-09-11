@@ -1,5 +1,6 @@
 import { ReactNode } from 'react'
 import { Calendar, Briefcase, CheckCircle2 } from 'lucide-react'
+import { useTapGuard } from '@/lib/gesture/use-tap-guard'
 
 interface CalendarEvent {
   id: string
@@ -31,6 +32,15 @@ export default function CalendarDayCell({
   onClick,
   onEventClick
 }: CalendarDayCellProps) {
+  // Shared tap-vs-drag guard for the day cell. Suppresses day selection
+  // when the user is scrolling/dragging across the calendar grid.
+  const dayGuard = useTapGuard()
+
+  // Separate guard for event chips. An event tap must open the event modal
+  // and NOT bubble to the day cell's onClick. An event drag must suppress
+  // both the event action AND the day selection.
+  const eventGuard = useTapGuard()
+
   const getEventIcon = (type: string) => {
     switch (type) {
       case 'appointment':
@@ -63,7 +73,18 @@ export default function CalendarDayCell({
 
   return (
     <div
-      onClick={onClick}
+      onPointerDown={dayGuard.onPointerDown}
+      onPointerMove={dayGuard.onPointerMove}
+      onPointerUp={dayGuard.onPointerUp}
+      onPointerCancel={dayGuard.onPointerCancel}
+      onPointerLeave={dayGuard.onPointerLeave}
+      onClick={() => {
+        // Suppress day selection if this gesture was a drag/scroll.
+        // One-shot: consumeDragSuppression() returns true once then resets,
+        // so later keyboard/programmatic activation is never stale-suppressed.
+        if (dayGuard.consumeDragSuppression()) return
+        onClick?.()
+      }}
       className={`
         min-h-[48px] sm:min-h-[64px] md:min-h-[80px] p-1 sm:p-1.5 md:p-2 rounded-md border transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-start justify-start gap-1
         ${isCurrentMonth
@@ -78,6 +99,11 @@ export default function CalendarDayCell({
         }
       `}
     >
+      {/* Date number — always tappable for day selection, even on busy days.
+          The date number sits at the top of the cell and is a reliable
+          day-selection target regardless of how many event chips fill the
+          cell below. It uses the same dayGuard, so a drag starting on the
+          date number still suppresses day selection. */}
       <div
         className={`
           flex items-center justify-center w-5 h-5 md:w-6 md:h-6 flex-none leading-none p-0
@@ -111,9 +137,27 @@ export default function CalendarDayCell({
             title={event.summary}
             role="button"
             tabIndex={0}
+            onPointerDown={eventGuard.onPointerDown}
+            onPointerMove={eventGuard.onPointerMove}
+            onPointerUp={eventGuard.onPointerUp}
+            onPointerCancel={eventGuard.onPointerCancel}
+            onPointerLeave={eventGuard.onPointerLeave}
             onClick={(e) => {
+              // Always stop propagation so the day cell's onClick doesn't
+              // also fire (prevents day selection when tapping an event).
               e.stopPropagation()
+              // Suppress event modal if this gesture was a drag/scroll.
+              // One-shot: consumeDragSuppression() returns true once then
+              // resets, so later keyboard activation is never stale-suppressed.
+              if (eventGuard.consumeDragSuppression()) return
               onEventClick?.(event)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                e.stopPropagation()
+                onEventClick?.(event)
+              }
             }}
           >
             <div className="flex items-center justify-center w-3 h-3 sm:w-3.5 sm:h-3.5 flex-none shrink-0">

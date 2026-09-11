@@ -8,6 +8,7 @@ import Toast from '@/components/Toast'
 import { useRouter } from 'next/navigation'
 import { getLeadDisplayName, formatPhoneNumber } from '@/lib/utils'
 import { formatTime12Hour } from '@/lib/calendar-date-utils'
+import { useTapGuard } from '@/lib/gesture/use-tap-guard'
 
 interface Task {
   id: string
@@ -51,6 +52,8 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
   const [filter, setFilter] = useState<TaskFilter>('all')
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  // Shared tap-vs-drag guard for reminder/task summary cards
+  const cardGuard = useTapGuard()
 
   // Grace period state: track tasks that were just completed with their completion timestamp
   const [justCompletedTaskIds, setJustCompletedTaskIds] = useState<Map<string, number>>(new Map())
@@ -493,10 +496,18 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
                       ? 'bg-blue-50/30 dark:bg-blue-950/10 border-blue-200/30 dark:border-blue-900/20'
                       : 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
               }`}
+              onPointerDown={cardGuard.onPointerDown}
+              onPointerMove={cardGuard.onPointerMove}
+              onPointerUp={cardGuard.onPointerUp}
+              onPointerCancel={cardGuard.onPointerCancel}
+              onPointerLeave={cardGuard.onPointerLeave}
             >
               <div className="flex items-start gap-3">
                 <button
-                  onClick={() => toggleTaskComplete(task.id, task.completed)}
+                  onClick={() => {
+                    if (cardGuard.consumeDragSuppression()) return
+                    toggleTaskComplete(task.id, task.completed)
+                  }}
                   disabled={togglingTaskIds.has(task.id)}
                   className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 transition-all flex items-center justify-center ${
                     task.completed
@@ -535,7 +546,10 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
                       <>
                         <span className="text-slate-300 dark:text-slate-600">·</span>
                         <button
-                          onClick={(e) => handleLeadClick(e, task.lead_id!)}
+                          onClick={(e) => {
+                            if (cardGuard.consumeDragSuppression()) return
+                            handleLeadClick(e, task.lead_id!)
+                          }}
                           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
                         >
                           {getLeadName(task)}
@@ -553,7 +567,10 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
                 <div className="flex items-center gap-1 shrink-0 pl-2">
                   {getTaskStatusBadge(task)}
                   <button
-                    onClick={() => useParentModal ? onEditTask!(task) : setEditingTask(task)}
+                    onClick={() => {
+                      if (cardGuard.consumeDragSuppression()) return
+                      useParentModal ? onEditTask!(task) : setEditingTask(task)
+                    }}
                     className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                     title="Edit task"
                   >

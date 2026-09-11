@@ -26,6 +26,7 @@ import {
   DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
 import { shouldPreventMenuOpen } from '@/components/lead-status-gesture'
+import { useTapGuard } from '@/lib/gesture/use-tap-guard'
 import {
   formatPhoneNumber,
   formatRelativeTime,
@@ -239,6 +240,9 @@ export default function LeadsPage() {
   const [filterMenuOpen, setFilterMenuOpen] = useState(false)
   const filterPointerStartRef = useRef<{ x: number; y: number } | null>(null)
   const filterMovedRef = useRef(false)
+  // Shared tap-vs-drag guard for filter dropdown items. Prevents an option
+  // from being selected because the user's finger crossed it during a scroll.
+  const filterItemGuard = useTapGuard()
   // Fetch generation: monotonic counter so a stale in-flight fetch cannot
   // overwrite a newer realtime UPDATE or a newer fetch. Each fetchLeads call
   // captures its generation; before applying results it checks that no newer
@@ -1189,6 +1193,9 @@ export default function LeadsPage() {
                             <DropdownMenuItem
                               key={option.value}
                               onSelect={() => {
+                                // Suppress selection if this was a drag/scroll
+                                // gesture (finger crossed the item during scroll)
+                                if (filterItemGuard.consumeDragSuppression()) return
                                 setQuickFilter('all')
                                 setStatusFilter(option.value)
                                 const params = new URLSearchParams(searchParams?.toString())
@@ -1200,7 +1207,11 @@ export default function LeadsPage() {
                                 const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
                                 router.replace(newUrl)
                               }}
-                              onPointerDown={(e) => e.stopPropagation()}
+                              onPointerDown={(e) => { e.stopPropagation(); filterItemGuard.onPointerDown(e) }}
+                              onPointerMove={(e) => { e.stopPropagation(); filterItemGuard.onPointerMove(e) }}
+                              onPointerUp={filterItemGuard.onPointerUp}
+                              onPointerCancel={filterItemGuard.onPointerCancel}
+                              onPointerLeave={filterItemGuard.onPointerLeave}
                               className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
                             >
                               <div className="flex items-center gap-2">
@@ -1305,6 +1316,9 @@ export default function LeadsPage() {
                           <DropdownMenuItem
                             key={option.value}
                             onSelect={() => {
+                              // Suppress selection if this was a drag/scroll
+                              // gesture (finger crossed the item during scroll)
+                              if (filterItemGuard.consumeDragSuppression()) return
                               setQuickFilter('all')
                               setStatusFilter(option.value)
                               const params = new URLSearchParams(searchParams?.toString())
@@ -1316,6 +1330,11 @@ export default function LeadsPage() {
                               const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
                               router.replace(newUrl)
                             }}
+                            onPointerDown={(e) => { e.stopPropagation(); filterItemGuard.onPointerDown(e) }}
+                            onPointerMove={(e) => { e.stopPropagation(); filterItemGuard.onPointerMove(e) }}
+                            onPointerUp={filterItemGuard.onPointerUp}
+                              onPointerCancel={filterItemGuard.onPointerCancel}
+                            onPointerLeave={filterItemGuard.onPointerLeave}
                             className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 outline-none focus:bg-muted/50 cursor-pointer"
                           >
                             <span className="text-xs">{getStatusFilterIcon(option.value)}</span>

@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import { useTapGuard } from '@/lib/gesture/use-tap-guard'
 
 interface StatCardProps {
   value: string | number
@@ -32,6 +33,9 @@ export default function StatCard({
   ariaLabel,
   className = ''
 }: StatCardProps) {
+  // Shared tap-vs-drag guard. Suppresses onClick when the user is
+  // scrolling/dragging across the card. Only a deliberate tap activates.
+  const guard = useTapGuard()
   // Unified card foundation
   const baseClasses = `
     relative overflow-hidden
@@ -82,7 +86,16 @@ export default function StatCard({
   const cardContent = (
     <div
       className={`${baseClasses} ${interactiveClasses} ${selectedClasses} ${className}`}
-      onClick={isInteractive && onClick ? onClick : undefined}
+      onPointerDown={isInteractive && onClick ? guard.onPointerDown : undefined}
+      onPointerMove={isInteractive && onClick ? guard.onPointerMove : undefined}
+      onPointerUp={isInteractive && onClick ? guard.onPointerUp : undefined}
+      onPointerCancel={isInteractive && onClick ? guard.onPointerCancel : undefined}
+      onPointerLeave={isInteractive && onClick ? guard.onPointerLeave : undefined}
+      onClick={isInteractive && onClick ? () => {
+        // Suppress activation if this gesture was a drag/scroll
+        if (guard.consumeDragSuppression()) return
+        onClick()
+      } : undefined}
       role={isInteractive && onClick ? 'button' : undefined}
       tabIndex={isInteractive && onClick ? 0 : undefined}
       aria-pressed={isInteractive && onClick ? isSelected : undefined}
