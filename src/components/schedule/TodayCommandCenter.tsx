@@ -476,18 +476,20 @@ export default function TodayCommandCenter({
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    {item.time && (
-                      <span className={`text-xs ${item.isOverdue ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
-                        {item.time}
-                      </span>
-                    )}
-                    {item.customer && (
-                      <span className="text-xs text-muted-foreground">
-                        • {item.customer}
-                      </span>
-                    )}
-                  </div>
+                  {(item.time || item.customer) && (
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {item.time && (
+                        <span className={`text-xs ${item.isOverdue ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                          {item.time}
+                        </span>
+                      )}
+                      {item.customer && (
+                        <span className="text-xs text-muted-foreground">
+                          • {item.customer}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 {item.type === 'task' && (
                   <div className="flex items-center gap-0.5">

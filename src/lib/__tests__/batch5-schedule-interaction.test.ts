@@ -58,8 +58,8 @@ describe('Batch 5 — Schedule card consistency', () => {
 
   // 3. Action area aligns predictably (right side, flex-shrink-0)
   it('All card types have action area on right with flex-shrink-0', () => {
-    // Reminder actions
-    expect(calendarPageSrc).toContain('flex items-center gap-1 flex-shrink-0')
+    // Reminder actions — canonical right column (Batch E: status badge at top + actions beneath)
+    expect(calendarPageSrc).toContain('flex flex-col items-end gap-1.5 flex-shrink-0')
     // Job actions
     const jobCardIdx = calendarPageSrc.indexOf('const JobCard =')
     const jobCardSection = calendarPageSrc.substring(jobCardIdx, jobCardIdx + 3000)

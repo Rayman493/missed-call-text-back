@@ -155,21 +155,33 @@ function RemindersList({
                   <p className={`text-xs mt-1 truncate ${task.completed ? 'text-slate-400 dark:text-slate-500' : 'text-slate-500 dark:text-slate-400'}`}>{task.notes}</p>
                 )}
               </div>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <button
-                  onClick={() => onEditTask(task)}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
-                  aria-label="Edit reminder"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => onDeleteTask(task.id)}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
-                  aria-label="Delete reminder"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+              <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                {!task.completed && overdue.includes(task) && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-medium whitespace-nowrap">
+                    Overdue
+                  </span>
+                )}
+                {task.completed && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-medium whitespace-nowrap">
+                    Done
+                  </span>
+                )}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => onEditTask(task)}
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                    aria-label="Edit reminder"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onDeleteTask(task.id)}
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                    aria-label="Delete reminder"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
