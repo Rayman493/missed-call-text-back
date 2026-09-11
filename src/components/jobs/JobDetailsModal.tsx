@@ -605,7 +605,7 @@ export default function JobDetailsModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between px-5 py-4 border-t border-border/50">
+          <div className="flex items-center justify-between px-5 py-4 border-t border-border/50 flex-shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
             {showDeleteConfirm ? (
               <div className="flex items-center gap-2 w-full">
                 <span className="text-xs text-muted-foreground flex-1">Delete this job?</span>

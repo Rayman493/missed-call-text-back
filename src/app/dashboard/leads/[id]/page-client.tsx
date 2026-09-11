@@ -631,6 +631,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Use centralized scroll lock for Customer Details modal
   useBodyScrollLock(showLeadInfo, 'customer-details-modal')
+  // Android Back closes Customer Details modal (canonical modal back stack)
+  useModalBackButton({ isOpen: showLeadInfo, onClose: () => setShowLeadInfo(false) })
 
   // Reset triggerEditCustomerDetails after it's been consumed
   useEffect(() => {
@@ -1598,6 +1600,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     setPaymentAmount('')
     setPaymentDescription('')
   }})
+  useBodyScrollLock(showPaymentModal, 'request-payment-modal')
 
   // State for task modal
   const [showTaskModal, setShowTaskModal] = useState(false)
@@ -1710,10 +1713,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           setSelectedPaymentProvider('paypal')
         }
       }
-      // Autofocus amount field
-      setTimeout(() => {
-        paymentAmountRef.current?.focus()
-      }, 100)
+      // No autofocus on open — keyboard stays closed until user taps input (mobile-friendly)
     }
   }, [showPaymentModal, business])
 
@@ -5550,7 +5550,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Content - Canonical Customer Details */}
-            <div className="px-4 py-3 overflow-y-auto max-h-[60vh]">
+            <div className="px-4 py-3 overflow-y-auto max-h-[60vh] overscroll-contain [touch-action:pan-y]" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
               <CustomerDetails leadData={leadData} lead={lead} />
             </div>
 
@@ -5839,7 +5839,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }}
       >
         <div 
-          className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800"
+          className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800"
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
               setShowPaymentModal(false)
@@ -5848,9 +5848,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             }
           }}
         >
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-            Request Payment
-          </h3>
+          {/* Header with X button */}
+          <div className="flex items-center justify-between px-6 pt-6 pb-2 flex-shrink-0">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+              Request Payment
+            </h3>
+            <button
+              onClick={() => {
+                setShowPaymentModal(false)
+                setPaymentAmount('')
+                setPaymentDescription('')
+              }}
+              disabled={isCreatingPayment}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0 disabled:opacity-50"
+              aria-label="Close modal"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          {/* Scrollable body */}
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 pb-2" data-scroll-lock-allow>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
             Send a payment request to {getLeadDisplayName(leadData || lead) || 'this customer'} via text message.
           </p>
@@ -5995,8 +6014,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               )}
             </div>
           </div>
+          </div>
 
-          <div className="flex gap-3 justify-end mt-6">
+          {/* Footer — stays visible, not clipped */}
+          <div className="flex gap-3 justify-end px-6 py-4 flex-shrink-0 border-t border-slate-200 dark:border-slate-800">
             <button
               onClick={() => {
                 setShowPaymentModal(false)

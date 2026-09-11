@@ -8,6 +8,7 @@ import TapToPayDiagnosticsPanel from '@/components/TapToPayDiagnosticsPanel'
 import { TerminalBridgeService } from '@/lib/terminal/service'
 import { isNativeCapacitor } from '@/lib/terminal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 import type { TerminalError, DeviceState } from '@/lib/terminal'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 import { useTapToPayReaderPresentation } from '@/hooks/useTapToPayReaderPresentation'
@@ -71,6 +72,20 @@ export default function TapToPayModal({
   const [receiptError, setReceiptError] = useState('')
 
   useBodyScrollLock(isOpen, 'tap-to-pay-modal')
+
+  // Android Back / browser back closes the modal ONLY in terminal payment states.
+  // During an active payment transaction, Back is consumed (modal stays open)
+  // to prevent interrupting the Stripe Terminal flow. The canonical modal back
+  // stack owns this behavior — no direct native back listener needed.
+  useModalBackButton({
+    isOpen,
+    onClose: () => {
+      if (paymentState === 'ready' || paymentState === 'failure' || paymentState === 'canceled') {
+        try { logTapToPayEvent('BACK_BUTTON_PRESSED', { phase: terminalService.getCurrentPhase() as any, sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay' } }) } catch {}
+        onClose()
+      }
+    }
+  })
 
   // Use shared reader presentation hook
   // Note: Hook is called with isOpen (not isOpen && isNativeSupported) to keep the reference stable
@@ -247,42 +262,6 @@ export default function TapToPayModal({
       try { logTapToPayEvent('PAYMENT_CANCELLED_UI', common) } catch {}
     }
   }, [paymentState])
-
-  // Handle Android back and browser back
-  useEffect(() => {
-    if (!isOpen) return
-
-    try {
-      window.history.pushState({ rfTapToPay: true }, '')
-    } catch {}
-
-    const onPopState = () => {
-      if (paymentState === 'ready' || paymentState === 'failure' || paymentState === 'canceled') {
-        try { logTapToPayEvent('BACK_BUTTON_PRESSED', { phase: terminalService.getCurrentPhase() as any, sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay' } }) } catch {}
-        onClose()
-      }
-    }
-    window.addEventListener('popstate', onPopState)
-
-    let capListener: { remove: () => void } | undefined
-    ;(async () => {
-      try {
-        const mod = await import('@capacitor/app')
-        const { App } = mod as any
-        capListener = await App.addListener('backButton', () => {
-          if (paymentState === 'ready' || paymentState === 'failure' || paymentState === 'canceled') {
-            try { logTapToPayEvent('BACK_BUTTON_PRESSED', { phase: terminalService.getCurrentPhase() as any, sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay' } }) } catch {}
-            onClose()
-          }
-        })
-      } catch {}
-    })()
-
-    return () => {
-      window.removeEventListener('popstate', onPopState)
-      capListener?.remove?.()
-    }
-  }, [isOpen, onClose, paymentState])
 
   // Listen for structured errors from native plugin
   useEffect(() => {

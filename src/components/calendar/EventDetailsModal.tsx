@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Calendar, Clock, MapPin, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2, ClipboardList, MessageSquareText, CheckSquare, ChevronDown, ChevronUp } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
 import { isReplyFlowOwnedEvent } from '@/lib/calendar-ownership'
@@ -199,6 +200,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   const [currentLeadId, setCurrentLeadId] = useState<string | null>(lead?.id || null)
   const [currentLeadName, setCurrentLeadName] = useState<string | null>(lead?.name || job?.customer_name || null)
   useBodyScrollLock(isOpen, 'event-details-modal')
+  useModalBackButton({ isOpen, onClose })
   
   // Editable form state
   const [editedSummary, setEditedSummary] = useState(event.summary)
@@ -290,6 +292,33 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   }, [isOpen, event?.id])
 
   if (!isOpen || !event) return null
+
+  // Draft-vs-persisted comparison for Save button enable/disable.
+  // Save is enabled ONLY when there is a meaningful valid change.
+  const persistedSummary = event.summary
+  const persistedDescription = event.description || ''
+  const persistedLocation = event.location || ''
+  const persistedNotes = notes
+
+  const summaryChanged = editedSummary.trim() !== persistedSummary.trim()
+  const descriptionChanged = editedDescription.trim() !== persistedDescription.trim()
+  const locationChanged = editedLocation.trim() !== persistedLocation.trim()
+  const notesChanged = editedNotes.trim() !== persistedNotes.trim()
+
+  const hasMeaningfulChanges =
+    summaryChanged || descriptionChanged || locationChanged || notesChanged
+
+  // Draft is valid when summary is non-empty and (for timed events) the
+  // time range is not obviously inverted.
+  const isDraftValid = (() => {
+    if (!editedSummary.trim()) return false
+    if (!isAllDay && editedStartTime && editedEndTime) {
+      if (editedStartTime > editedEndTime) return false
+    }
+    return true
+  })()
+
+  const canSave = hasMeaningfulChanges && isDraftValid && !isSaving
 
   const formatDate = (dateTime?: string, date?: string) => {
     if (date) {
@@ -827,7 +856,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                   onChange={(e) => setEditedLocation(e.target.value)}
                   placeholder="Add an address or place"
                   className="w-full px-4 py-3 bg-background border border-border rounded-lg text-base text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-                  autoFocus
                 />
                 <p className="text-sm text-muted-foreground mt-2">
                   Add an address or place so this appears on your Schedule Map.
@@ -1255,7 +1283,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               </button>
               <button
                 onClick={handleSaveChanges}
-                disabled={isSaving}
+                disabled={!canSave}
                 className="flex-1 h-10 px-4 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
               >
                 {isSaving ? (
@@ -1320,15 +1348,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                 >
                   <LinkIcon className="w-4 h-4 flex-shrink-0" />
                   Join
-                </button>
-              )}
-              {!event.meetingUrl && !event.isHoliday && isReplyFlowOwned && !isJobEvent && (
-                <button
-                  onClick={handleEditClick}
-                  className="ml-auto h-9 px-4 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2 shadow-sm"
-                >
-                  <Pencil className="w-4 h-4 flex-shrink-0" />
-                  Edit
                 </button>
               )}
             </div>

@@ -8,6 +8,7 @@ import ForwardingHelpCenter from './ForwardingHelpCenter'
 import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface CallForwardingInstructionsProps {
   phoneNumber: string
@@ -31,6 +32,7 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
 
   // Lock body scroll when open
   useBodyScrollLock(isOpen, 'call-forwarding-instructions')
+  useModalBackButton({ isOpen, onClose })
 
   useEffect(() => {
     if (!isOpen) return
@@ -140,7 +142,7 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
         </div>
 
         {/* Body */}
-        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 overscroll-contain">
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 overscroll-contain [touch-action:pan-y]" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
           <ForwardingHelpCenter phoneNumber={phoneNumber} />
         </div>
 

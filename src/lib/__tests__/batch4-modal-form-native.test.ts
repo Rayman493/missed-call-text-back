@@ -378,13 +378,17 @@ describe('Batch 4 — Modal stack ownership audit (one registration per visible 
   it('45. page-client: custom payment modal keeps direct registration (not shared Modal)', () => {
     const content = readContent('src/app/dashboard/leads/[id]/page-client.tsx')
     // The payment modal uses a custom div, NOT shared <Modal>, so it keeps its own call.
-    // The InternalNotes, Ignore, and AppointmentSelection modals use shared <Modal>,
-    // so they must NOT have direct calls.
+    // The Customer Details modal (showLeadInfo) also uses a custom inline shell, so it
+    // also keeps a direct call. The InternalNotes, Ignore, and AppointmentSelection
+    // modals use shared <Modal>, so they must NOT have direct calls.
     // Find the useModalBackButton call that references showPaymentModal
     const paymentCallMatch = content.match(/useModalBackButton\(\{[^}]*showPaymentModal[^}]*\}/)
     expect(paymentCallMatch).toBeTruthy()
-    // Total direct calls in page-client should be exactly 1 (only the payment modal)
-    expect(countBackButtonCalls(content)).toBe(1)
+    // Find the useModalBackButton call that references showLeadInfo
+    const leadInfoCallMatch = content.match(/useModalBackButton\(\{[^}]*showLeadInfo[^}]*\}/)
+    expect(leadInfoCallMatch).toBeTruthy()
+    // Total direct calls in page-client should be exactly 2 (payment modal + customer details)
+    expect(countBackButtonCalls(content)).toBe(2)
   })
 
   // Nested modal behavior

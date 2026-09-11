@@ -390,7 +390,7 @@ export default function NavbarNotifications() {
             style={{
               top: `${buttonPosition?.top || 0}px`,
               right: `${buttonPosition?.right || 0}px`,
-              maxHeight: isMobile ? 'calc(100dvh - 120px)' : '600px',
+              maxHeight: isMobile ? `calc(100dvh - ${(buttonPosition?.top || 0)}px - var(--bottom-nav-height, 80px) - 16px)` : '600px',
             }}
           >
             {/* Header */}
