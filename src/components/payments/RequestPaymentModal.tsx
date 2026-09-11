@@ -5,7 +5,6 @@ import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import Modal from '@/components/ui/Modal'
-import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface Lead {
   id: string
@@ -74,7 +73,7 @@ export default function RequestPaymentModal({
   // receives focus only when the user explicitly taps it.
 
   // Handle Android back button
-  useModalBackButton({ isOpen, onClose })
+  // Note: useModalBackButton is owned by the shared <Modal> component below.
 
   // Determine which payment methods are configured
   const isStripeConfigured = business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled === true

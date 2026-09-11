@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useId } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface ModalProps {
   isOpen: boolean
@@ -46,6 +47,11 @@ export default function Modal({
 
   // Use the canonical scroll-lock mechanism for consistent behavior across all modals
   useBodyScrollLock(isOpen, title ? `Modal:${title}` : 'Modal')
+
+  // Register in shared modal back-button stack so Android Back closes this modal.
+  // The global Capacitor backButton handler in init.ts checks the shared stack
+  // and closes the topmost modal. This avoids per-modal Capacitor listeners.
+  useModalBackButton({ isOpen, onClose })
 
   // Handle escape key
   useEffect(() => {

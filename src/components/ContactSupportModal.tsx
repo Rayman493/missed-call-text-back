@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Mail, MessageCircle } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface ContactSupportModalProps {
   isOpen: boolean
@@ -37,6 +38,9 @@ export default function ContactSupportModal({ isOpen, onClose, onOpenAssistant }
 
   // Lock body scroll when open
   useBodyScrollLock(isOpen, 'contact-support-modal')
+
+  // Register in shared modal back-button stack so Android Back closes this modal
+  useModalBackButton({ isOpen, onClose })
 
   if (!mounted || !isOpen) {
     return null
@@ -76,8 +80,8 @@ export default function ContactSupportModal({ isOpen, onClose, onOpenAssistant }
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+        {/* Content — single canonical scroll owner with data-scroll-lock-allow */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] p-4 sm:p-5" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
           <p className="text-base text-slate-900 dark:text-white font-medium mb-2">
             Need help with ReplyFlow?
           </p>

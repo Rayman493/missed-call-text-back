@@ -4,7 +4,6 @@ import { useState, useRef } from 'react'
 import { CreditCard, AlertCircle, CheckCircle, HelpCircle } from 'lucide-react'
 import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 import Modal from '@/components/ui/Modal'
-import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 // NOTE: Education copy is PROVISIONAL pending Apple-approved materials from Tap to Pay review guide and Marketing Toolkit.
 // This copy follows Apple Tap to Pay on iPhone Marketing Guide guidelines but should be replaced with officially approved copy/assets when available.
@@ -33,7 +32,7 @@ export function TapToPayEducationModal({
   const primaryButtonRef = useRef<HTMLButtonElement>(null)
 
   // Handle Android back button
-  useModalBackButton({ isOpen, onClose: onDismiss })
+  // Note: useModalBackButton is owned by the shared <Modal> component below.
 
   const steps: EducationStep[] = [
     {

@@ -232,7 +232,7 @@ export default function SelectPicker({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search..."
-              className="flex-1 min-w-0 bg-transparent border-0 p-0 text-sm text-foreground placeholder-muted-foreground focus:outline-none"
+              className="flex-1 min-w-0 bg-transparent border-0 p-0 text-base sm:text-sm text-foreground placeholder-muted-foreground focus:outline-none"
               role="combobox"
               aria-expanded={isOpen}
               aria-controls={dropdownId}

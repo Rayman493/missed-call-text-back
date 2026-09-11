@@ -4,8 +4,15 @@ import { readFileSync } from 'fs'
 describe('ConfirmModal Android back handling', () => {
   const content = readFileSync('src/components/ui/ConfirmModal.tsx', 'utf8')
 
-  it('imports and uses the canonical modal back button hook', () => {
-    expect(content).toContain('useModalBackButton')
-    expect(content).toContain('useModalBackButton({ isOpen, onClose })')
+  it('uses shared <Modal> which owns the back-button registration', () => {
+    // ConfirmModal renders the shared <Modal> component, which internally
+    // calls useModalBackButton. ConfirmModal itself must NOT call
+    // useModalBackButton directly to avoid duplicate stack registrations.
+    expect(content).toContain('<Modal')
+    expect(content).not.toMatch(/useModalBackButton\(\{/)
+  })
+
+  it('does not have a per-modal Capacitor backButton listener', () => {
+    expect(content).not.toContain("App.addListener('backButton')")
   })
 })

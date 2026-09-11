@@ -109,10 +109,25 @@ export function useTapToPayAwareness(business: Business | null): UseTapToPayAwar
           return
         }
 
-        // 6. Check Tap to Pay capability via shared store
+        // 6. Check if Tap to Pay is already configured (terminal location set).
+        // If the merchant already has a Stripe Terminal location, Tap to Pay is
+        // configured — the awareness reminder must NOT appear regardless of
+        // acknowledgment state. This is the source-of-truth readiness signal.
+        if (business.stripe_terminal_location_id) {
+          console.log('[useTapToPayAwareness] Tap to Pay already configured (terminal_location_id set), setting isLoading=false, isEligible=false')
+          setIsAcknowledged(true)
+          setState(prev => ({ ...prev, isLoading: false, isEligible: false }))
+          // Still check capability so Settings can show device support status
+          tapToPayCapabilityStore.checkCapability().catch(error => {
+            console.error('[useTapToPayAwareness] Capability check error (non-blocking):', error)
+          })
+          return
+        }
+
+        // 7. Check Tap to Pay capability via shared store
         const supportStatus = await tapToPayCapabilityStore.checkCapability()
 
-        // 7. Check if device supports Tap to Pay
+        // 8. Check if device supports Tap to Pay
         if (!supportStatus || !supportStatus.supported) {
           console.log('[useTapToPayAwareness] Device not supported, setting isEligible=false', { supportStatus })
           setState(prev => ({
@@ -173,7 +188,13 @@ export function useTapToPayAwareness(business: Business | null): UseTapToPayAwar
   const checkCapability = async () => {
     await tapToPayCapabilityStore.checkCapability({ forceRefresh: true })
     
-    // Recalculate eligibility after refresh
+    // Recalculate eligibility after refresh.
+    // If Tap to Pay is already configured (terminal_location_id set), never
+    // become eligible regardless of capability status.
+    if (business?.stripe_terminal_location_id) {
+      setState(prev => ({ ...prev, isEligible: false }))
+      return
+    }
     if (business?.stripe_charges_enabled && !business?.tap_to_pay_awareness_acknowledged_at) {
       const storeState = tapToPayCapabilityStore.getState()
       const isEligible = !!storeState.status?.supported

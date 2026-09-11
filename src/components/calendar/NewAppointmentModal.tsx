@@ -10,7 +10,6 @@ import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 import { getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
-import { useModalBackButton } from '@/hooks/useModalBackButton'
 import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
 
 const supabase = createBrowserClient()
@@ -104,7 +103,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
   }, [isOpen, context])
 
   // Handle Android back button and browser back to close modal
-  useModalBackButton({ isOpen, onClose: () => handleCancel('android_back') })
+  // Note: useModalBackButton is owned by the shared <Modal> component below.
 
   // Handle customer selection - update display name
   const handleCustomerSelect = (customer: Customer | null) => {

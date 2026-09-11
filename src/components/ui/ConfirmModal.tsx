@@ -1,7 +1,6 @@
 'use client'
 
 import Modal from './Modal'
-import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface ConfirmModalProps {
   isOpen: boolean
@@ -26,7 +25,7 @@ export default function ConfirmModal({
   isDestructive = false,
   isLoading = false
 }: ConfirmModalProps) {
-  useModalBackButton({ isOpen, onClose })
+  // Note: useModalBackButton is owned by the shared <Modal> component below.
 
   const handleConfirm = () => {
     if (!isLoading) {

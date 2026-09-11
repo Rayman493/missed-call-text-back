@@ -354,7 +354,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
               onKeyDown={handleKeyDown}
               enterKeyHint="search"
               placeholder="Search guides and FAQs..."
-              className="w-full pl-9 pr-9 py-2 sm:py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-300 dark:border-slate-500 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow text-xs sm:text-sm"
+              className="w-full pl-9 pr-9 py-2 sm:py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-300 dark:border-slate-500 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow text-base sm:text-xs"
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400" />
             {query && (
@@ -380,10 +380,15 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
         </form>
       </div>
 
-      {/* Scrollable Content */}
+      {/* Scrollable Content — single canonical scroll owner.
+          data-scroll-lock-allow permits touch scrolling inside this container
+          even while useBodyScrollLock is active (prevents preventTouchMove
+          from blocking scroll inside the modal). */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y]"
+        data-scroll-lock-allow
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div className="p-3 sm:p-4 sm:pt-3 pb-6">
         {/* Results */}

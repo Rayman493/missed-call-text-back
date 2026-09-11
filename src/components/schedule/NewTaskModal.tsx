@@ -9,7 +9,6 @@ import SelectPicker from '@/components/ui/SelectPicker'
 import Modal from '@/components/ui/Modal'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 import { getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
-import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface Task {
   id: string
@@ -62,7 +61,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
   const supabase = createBrowserClient()
 
   // Handle Android back button and browser back to close modal
-  useModalBackButton({ isOpen, onClose })
+  // Note: useModalBackButton is owned by the shared <Modal> component below.
 
   // Handle Escape key to close modal
 

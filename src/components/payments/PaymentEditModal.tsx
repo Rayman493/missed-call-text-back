@@ -5,7 +5,6 @@ import { User, Copy, ExternalLink } from 'lucide-react'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getPaymentStatusStyle } from '@/lib/payment-status'
 import Modal from '@/components/ui/Modal'
-import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface PaymentEditModalProps {
   isOpen: boolean
@@ -58,7 +57,7 @@ export default function PaymentEditModal({
   const saveInFlightRef = useRef(false)
 
   // Handle Android back button
-  useModalBackButton({ isOpen, onClose })
+  // Note: useModalBackButton is owned by the shared <Modal> component below.
 
   // Reset form when payment changes or modal opens/closes
   useEffect(() => {

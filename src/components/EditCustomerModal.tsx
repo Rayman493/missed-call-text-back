@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { useModalBackButton } from '@/hooks/useModalBackButton'
 import { Mail, Phone, MessageSquare, FileText, MapPin, Clock, User } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { getCurrentCustomerContext } from '@/lib/customer-context'
@@ -30,7 +29,7 @@ interface CustomerFormData {
 export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, onCustomerUpdated }: EditCustomerModalProps) {
   const { business } = useBusiness()
   const supabase = createBrowserClient()
-  useModalBackButton({ isOpen, onClose })
+  // Note: useModalBackButton is owned by the shared <Modal> component below.
 
   const [formData, setFormData] = useState<CustomerFormData>({
     customerName: '',
@@ -170,7 +169,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             type="text"
             value={formData.customerName}
             onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-base sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
             placeholder="Enter customer name"
             disabled={isSubmitting}
           />
@@ -186,7 +185,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             type="text"
             value={formData.reasonForCalling}
             onChange={(e) => setFormData({ ...formData, reasonForCalling: e.target.value })}
-            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-base sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
             placeholder="What service are they requesting?"
             disabled={isSubmitting}
           />
@@ -202,7 +201,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             value={formData.details}
             onChange={(e) => setFormData({ ...formData, details: e.target.value })}
             rows={3}
-            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-none"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-base sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-none"
             placeholder="Important details about the request"
             disabled={isSubmitting}
           />
@@ -218,7 +217,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             type="text"
             value={formData.location}
             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-base sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
             placeholder="Service address"
             disabled={isSubmitting}
           />
@@ -234,7 +233,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             type="text"
             value={formData.desiredCompletionTime}
             onChange={(e) => setFormData({ ...formData, desiredCompletionTime: e.target.value })}
-            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-base sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
             placeholder="e.g. Tomorrow, This week"
             disabled={isSubmitting}
           />
@@ -250,7 +249,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             type="text"
             value={formData.preferredCallbackTime}
             onChange={(e) => setFormData({ ...formData, preferredCallbackTime: e.target.value })}
-            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-base sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
             placeholder="e.g. 3 PM"
             disabled={isSubmitting}
           />
@@ -264,9 +263,13 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
           </label>
           <input
             type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            name="phoneNumber"
+            id="phoneNumber"
             value={formData.phoneNumber}
             onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-base sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
             placeholder="(555) 123-4567"
             disabled={isSubmitting}
           />
@@ -282,7 +285,7 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
             type="email"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
+            className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-base sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
             placeholder="customer@example.com"
             disabled={isSubmitting}
           />

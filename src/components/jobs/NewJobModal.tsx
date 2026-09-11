@@ -1,7 +1,6 @@
 'use client'
 
 import { Users } from 'lucide-react'
-import { useModalBackButton } from '@/hooks/useModalBackButton'
 import Modal from '@/components/ui/Modal'
 
 interface NewJobModalProps {
@@ -22,7 +21,7 @@ export default function NewJobModal({
   prompt = 'Choose a customer for this job',
 }: NewJobModalProps) {
   // Handle Android back button and browser back to close modal
-  useModalBackButton({ isOpen, onClose })
+  // Note: useModalBackButton is owned by the shared <Modal> component below.
 
   if (!isOpen) return null
 

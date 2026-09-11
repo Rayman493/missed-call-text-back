@@ -4,7 +4,6 @@ import { useRef } from 'react'
 import { CreditCard } from 'lucide-react'
 import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 import Modal from '@/components/ui/Modal'
-import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 // NOTE: Awareness copy is PROVISIONAL until Apple-approved materials are available.
 // This copy follows Apple Tap to Pay on iPhone Marketing Guide guidelines but
@@ -22,8 +21,7 @@ export function TapToPayAwarenessModal({
   onSetup,
   onDismiss,
 }: TapToPayAwarenessModalProps) {
-  // Handle Android back button
-  useModalBackButton({ isOpen, onClose: onDismiss })
+  // Note: useModalBackButton is owned by the shared <Modal> component below.
 
   return (
     <Modal

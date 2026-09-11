@@ -2,7 +2,6 @@
 
 import React from 'react'
 import { X } from 'lucide-react'
-import { useModalBackButton } from '@/hooks/useModalBackButton'
 import { formatPhoneNumber } from '@/lib/utils'
 import Modal from '@/components/ui/Modal'
 
@@ -14,7 +13,7 @@ interface TestYourSetupModalProps {
 
 export default function TestYourSetupModal({ isOpen, onClose, businessPhoneNumber }: TestYourSetupModalProps) {
   // Handle Android back button and browser back to close modal
-  useModalBackButton({ isOpen, onClose })
+  // Note: useModalBackButton is owned by the shared <Modal> component below.
 
   if (!isOpen) return null
 

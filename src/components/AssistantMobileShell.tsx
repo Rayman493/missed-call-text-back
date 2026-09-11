@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import ReplyFlowAssistant, { AssistantContext } from './ReplyFlowAssistant'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface AssistantMobileShellProps {
   isOpen: boolean
@@ -27,44 +28,18 @@ export default function AssistantMobileShell({ isOpen, context, onClose }: Assis
   // Use centralized scroll lock
   useBodyScrollLock(isOpen, 'assistant-mobile-shell')
 
+  // Register in shared modal back-button stack so Android Back closes this modal.
+  // This replaces the previous custom backButton/popstate handler and uses the
+  // canonical shared stack so nested modals (e.g., Contact Support inside
+  // Assistant) close in the correct order.
+  useModalBackButton({ isOpen, onClose })
+
   // Signal bottom nav to hide when assistant is open
   useEffect(() => {
     if (typeof window === 'undefined' || !isOpen) return
     document.body.setAttribute('data-assistant-open', 'true')
     return () => {
       document.body.removeAttribute('data-assistant-open')
-    }
-  }, [isOpen])
-
-  // Intercept Android Back and browser Back when open
-  useEffect(() => {
-    if (typeof window === 'undefined' || !isOpen) return
-
-    // Push a history state so browser/Android Back triggers popstate we can intercept
-    try {
-      window.history.pushState({ rfAssistant: true }, '')
-    } catch {}
-
-    const onPopState = () => {
-      onCloseRef.current()
-    }
-    window.addEventListener('popstate', onPopState)
-
-    // Capacitor back button if available (no hard dependency)
-    let capListener: { remove: () => void } | undefined
-    ;(async () => {
-      try {
-        const mod = await import('@capacitor/app')
-        const { App } = mod as any
-        capListener = await App.addListener('backButton', () => {
-          onCloseRef.current()
-        })
-      } catch {}
-    })()
-
-    return () => {
-      window.removeEventListener('popstate', onPopState)
-      capListener?.remove?.()
     }
   }, [isOpen])
 

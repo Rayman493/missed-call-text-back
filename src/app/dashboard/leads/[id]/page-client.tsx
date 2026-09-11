@@ -352,11 +352,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [triggerEditCustomerDetails, setTriggerEditCustomerDetails] = useState(false)
   const [scrollPositionBeforeNotesModal, setScrollPositionBeforeNotesModal] = useState<number | null>(null)
 
-  // Handle Android back button for Internal Notes modal
-  useModalBackButton({ isOpen: showInternalNotesModal, onClose: () => {
-    setShowInternalNotesModal(false)
-    setInternalNotesValue('')
-  }})
+  // Note: useModalBackButton for Internal Notes modal is owned by the shared <Modal> component below.
 
   const [mobileCustomerExpanded, setMobileCustomerExpanded] = useState(true)
   const [mobileLeadDetailsExpanded, setMobileLeadDetailsExpanded] = useState(false)
@@ -1582,8 +1578,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [showIgnoreModal, setShowIgnoreModal] = useState(false)
   const [isIgnoring, setIsIgnoring] = useState(false)
 
-  // Handle Android back button for Ignore Contact modal
-  useModalBackButton({ isOpen: showIgnoreModal, onClose: () => setShowIgnoreModal(false) })
+  // Note: useModalBackButton for Ignore Contact modal is owned by the shared <Modal> component below.
 
   const [isCompleting, setIsCompleting] = useState(false)
 
@@ -1691,8 +1686,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isSavingAppointment, setIsSavingAppointment] = useState(false)
   const [appointmentError, setAppointmentError] = useState('')
 
-  // Handle Android back button for Appointment Selection modal
-  useModalBackButton({ isOpen: showAppointmentSelection, onClose: () => setShowAppointmentSelection(false) })
+  // Note: useModalBackButton for Appointment Selection modal is owned by the shared <Modal> component below.
 
   // Use centralized scroll lock for appointment modal
   useBodyScrollLock(isAppointmentModalOpen, 'appointment-modal')

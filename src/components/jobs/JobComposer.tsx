@@ -11,7 +11,6 @@ import AddCustomerModal from '@/components/AddCustomerModal'
 import JobTimer from '@/components/jobs/JobTimer'
 import { firstNonPlaceholder, normalizeEditableContext, getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
-import { useModalBackButton } from '@/hooks/useModalBackButton'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
 
@@ -114,7 +113,7 @@ export default function JobComposer({
   const { business } = useBusiness()
   const timezone = business?.business_hours_timezone
 
-  useModalBackButton({ isOpen, onClose })
+  // Note: useModalBackButton is owned by the shared <Modal> component below.
 
   // Handle customer selection - populate form fields from customer data.
   // Service Address, Job Title, and Notes are only prefilled when the user has
