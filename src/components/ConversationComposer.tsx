@@ -383,7 +383,7 @@ export default function ConversationComposer({
                 )}
                 <button
                   onClick={() => removeAttachment(att.id)}
-                  className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                  className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full shadow-sm transition-colors hover:bg-red-600"
                   type="button"
                   aria-label="Remove attachment"
                 >

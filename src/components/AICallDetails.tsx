@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils'
-import { MessageCircle, ChevronDown, ChevronUp, X, Check, Loader2, User, Pencil, MapPin, Calendar, Phone, Sparkles, RefreshCw, Clock, Info } from 'lucide-react'
+import { MessageCircle, ChevronDown, ChevronUp, X, Check, Loader2, User, Pencil, MapPin, Calendar, Phone, Sparkles, Clock, Info } from 'lucide-react'
 import { normalizeExtractedInfo, getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus } from '@/lib/ai-field-mapping'
 import { normalizeAITranscript } from '@/lib/transcript-normalization'
-import { normalizeAICallRecord, getHistoryCardTitle, getOutcomeColor as getRecordOutcomeColor, getIntakeBadgeLabel, sortAndDeduplicateRecords, type NormalizedIntake } from '@/lib/ai-call-record-normalizer'
+import { normalizeAICallRecord, getIntakeBadgeLabel, sortAndDeduplicateRecords, type NormalizedIntake } from '@/lib/ai-call-record-normalizer'
 import { normalizeCustomerName, normalizeServiceReason, normalizeAdditionalDetails, normalizeAddress, normalizeTiming, generateCanonicalRequestTitle } from '@/lib/ai-intake-formatter'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { getProvenanceLabel } from '@/lib/customer-source'
@@ -70,12 +70,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   })
   const [manualFields, setManualFields] = useState<Set<string>>(new Set())
   const [saveError, setSaveError] = useState<string | null>(null)
-  const [previousIntakesExpanded, setPreviousIntakesExpanded] = useState(false)
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
-  const [aiSummary, setAiSummary] = useState<string | null>(null)
-  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
-  const [summaryError, setSummaryError] = useState<string | null>(null)
-  const [aiSummaryExpanded, setAiSummaryExpanded] = useState(false)
   const supabase = createBrowserClient()
 
   // Trigger edit mode when prop changes - initialize from canonical intake source
@@ -103,41 +98,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   // Get provenance label using canonical helper
   const provenanceLabel = getProvenanceLabel(leadData)
 
-  // Extract key points from AI summary for scanability
-  const extractKeyPoints = (summary: string): string[] => {
-    if (!summary || typeof summary !== 'string') return []
-
-    // Normalize common list prefixes to avoid double bullets
-    let normalized = summary
-      .replace(/^[-•*]\s+/gm, '')  // Remove leading markdown bullets
-      .replace(/^\d+\.\s+/gm, '')  // Remove leading numbered list markers
-
-    // Normalize time abbreviations to prevent sentence splitting inside time expressions
-    // This prevents "7 p. M." from being split into "7 p" and "M"
-    const timeAbbreviationPatterns = [
-      // Match "p. M." or "P. M." (with any spacing and case)
-      /\bp\s*\.\s*m\s*\./gi,
-      // Match "a. M." or "A. M."
-      /\ba\s*\.\s*m\s*\./gi,
-      // Match "p.m." or "P.M."
-      /\bp\.m\./gi,
-      // Match "a.m." or "A.M."
-      /\ba\.m\./gi,
-    ]
-    normalized = normalized.replace(timeAbbreviationPatterns[0], 'PM')
-    normalized = normalized.replace(timeAbbreviationPatterns[1], 'AM')
-    normalized = normalized.replace(timeAbbreviationPatterns[2], 'PM')
-    normalized = normalized.replace(timeAbbreviationPatterns[3], 'AM')
-
-    // Split by sentences and filter for meaningful points
-    const sentences = normalized
-      .split(/[.!?]+/)
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && s.length < 100) // Filter out very short or very long sentences
-
-    // Return up to 5 key points
-    return sentences.slice(0, 5)
-  }
+  // extractKeyPoints and handleGenerateSummary have been moved to the
+  // canonical DesktopAISummary component. AICallDetails no longer renders
+  // an embedded AI Summary or Request History section.
 
   const handleSave = async () => {
     try {
@@ -269,44 +232,6 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       preferredCallbackTime: intake.callbackTime || selectedNormalized?.callbackTime || '',
       desiredCompletionTime: intake.desiredCompletion || selectedNormalized?.desiredCompletion || ''
     })
-  }
-
-  const handleGenerateSummary = async () => {
-    setIsGeneratingSummary(true)
-    setSummaryError(null)
-
-    try {
-      const response = await fetch(`/api/leads/${leadId}/summary`, {
-        method: 'POST',
-        credentials: 'include'
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        console.error('[AI Summary] API error:', data.error)
-        let errorMessage = 'Failed to generate summary. Please try again.'
-        if (data.error === 'openai_api_key_missing') {
-          errorMessage = 'AI service is not configured. Please contact support.'
-        } else if (data.error === 'openai_api_failed') {
-          errorMessage = 'AI service is temporarily unavailable. Please try again later.'
-        } else if (data.error === 'lead_not_found') {
-          errorMessage = 'Customer not found.'
-        } else if (data.error === 'unauthorized') {
-          errorMessage = 'You are not authorized to generate summaries.'
-        } else if (data.error === 'business_not_found') {
-          errorMessage = 'Business not found. Please contact support.'
-        }
-        throw new Error(errorMessage)
-      }
-
-      setAiSummary(data.summary)
-    } catch (err) {
-      console.error('[AI Summary] Error:', err)
-      setSummaryError(err instanceof Error ? err.message : 'Failed to generate summary. Please try again.')
-    } finally {
-      setIsGeneratingSummary(false)
-    }
   }
 
   // Unified intake field rendering for both desktop and mobile
@@ -655,7 +580,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
   return (
     <div className="space-y-4">
-      {/* AI Summary Card - Executive Summary Style - Compact and Collapsible */}
+      {/* Customer Details Card - Intake fields, edit mode, compact and collapsible */}
       {collapsible ? (
         <div className="border border-border/30 rounded-lg overflow-hidden relative">
           {/* Header Region */}
@@ -820,95 +745,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         </div>
       )}
 
-      {/* AI Summary - Collapsible */}
-      <div className="bg-card/60 border border-border/25 rounded-lg shadow-sm overflow-hidden">
-        <button
-          onClick={() => setAiSummaryExpanded(!aiSummaryExpanded)}
-          className="w-full px-3.5 py-3 flex items-center justify-between hover:bg-muted/30 transition-colors"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-sm font-semibold text-foreground">
-              AI Summary
-            </span>
-          </div>
-          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${aiSummaryExpanded ? 'rotate-180' : 'rotate-0'}`} />
-        </button>
-
-        {aiSummaryExpanded && (
-          <div className="px-4 pb-5 pt-3 border-t border-border/50">
-            {isGeneratingSummary ? (
-              <div className="space-y-3">
-                <div className="animate-pulse space-y-2">
-                  <div className="h-3 bg-muted rounded w-3/4"></div>
-                  <div className="h-3 bg-muted rounded w-full"></div>
-                  <div className="h-3 bg-muted rounded w-5/6"></div>
-                  <div className="h-3 bg-muted rounded w-2/3"></div>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                  <span>Generating summary...</span>
-                </div>
-              </div>
-            ) : summaryError ? (
-              <div className="space-y-3">
-                <p className="text-sm text-red-600 dark:text-red-400">{summaryError}</p>
-                <button
-                  onClick={handleGenerateSummary}
-                  className="inline-flex items-center justify-center h-9 px-4 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 text-sm font-medium rounded-lg transition-colors"
-                >
-                  Try Again
-                </button>
-              </div>
-            ) : aiSummary ? (
-              <div className="space-y-4">
-                {/* Executive Summary - Bullet Points */}
-                {(() => {
-                  const keyPoints = extractKeyPoints(aiSummary);
-                  return keyPoints.length > 0 ? (
-                    <ul className="space-y-2.5">
-                      {keyPoints.map((point, index) => (
-                        <li key={index} className="text-sm text-foreground/90 flex items-start gap-2 leading-relaxed">
-                          <span className="text-muted-foreground/70 mt-0.5 flex-shrink-0">•</span>
-                          <span className="flex-1">{point}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-foreground/90 leading-relaxed">
-                      {aiSummary}
-                    </p>
-                  );
-                })()}
-                <div className="pt-2 border-t border-border/30">
-                  <button
-                    onClick={handleGenerateSummary}
-                    disabled={isGeneratingSummary}
-                    className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <RefreshCw className={`w-3 h-3 ${isGeneratingSummary ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  ReplyFlow can summarize everything known about this customer, including conversation history, AI intake information, jobs, payments, and more.
-                </p>
-                <button
-                  onClick={handleGenerateSummary}
-                  className="inline-flex items-center justify-center h-9 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-medium rounded-lg shadow-sm hover:shadow transition-all duration-200"
-                >
-                  Generate Summary
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      {/* AI Summary is now rendered as a canonical standalone card
+          (DesktopAISummary component) on the customer page, for ALL customer
+          origins. It is no longer embedded inside AICallDetails. */}
 
       {/* Call Transcript - Word-for-word conversation */}
       {Array.isArray(normalizedTranscript) && normalizedTranscript.length > 0 && (
@@ -1022,81 +861,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         </div>
       )}
 
-      {/* Request History - Show when multiple records exist - Moved to end */}
-      {aiCallRecords.length > 1 && (
-        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-          <button
-            onClick={() => setPreviousIntakesExpanded(!previousIntakesExpanded)}
-            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-colors duration-200"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <MessageCircle className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-              </div>
-              <div>
-                <span className="text-sm font-semibold text-foreground">
-                  Request History
-                </span>
-                <span className="ml-2 text-xs text-muted-foreground">
-                  ({aiCallRecords.length})
-                </span>
-              </div>
-            </div>
-            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${previousIntakesExpanded ? 'rotate-180' : 'rotate-0'}`} />
-          </button>
-          
-          {previousIntakesExpanded && (
-            <div className="px-4 pb-3 pt-2 border-t border-border/50">
-              <div className={`space-y-1.5 ${normalizedRecords.length > 5 ? 'max-h-64 overflow-y-auto' : ''}`}>
-                {normalizedRecords.map((record) => (
-                  <button
-                    key={record.id}
-                    onClick={() => {
-                      setSelectedRecordId(record.id)
-                      if (onNavigateToTimeline) {
-                        onNavigateToTimeline(record.id)
-                      }
-                    }}
-                    className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all duration-200 ${
-                      selectedRecordId === record.id
-                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                        : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900/50'
-                    }`}
-                    aria-label={`Open conversation origin for request: ${getHistoryCardTitle(record)}`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-semibold text-foreground line-clamp-1">
-                        {getHistoryCardTitle(record)}
-                      </span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getRecordOutcomeColor(record.outcome)}`}>
-                        {record.outcome.replace('_', ' ').toUpperCase()}
-                      </span>
-                    </div>
-                    {/* Metadata: Desired completion and callback */}
-                    <div className="space-y-0.5 mb-1">
-                      {record.desiredCompletion && (
-                        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          <span className="line-clamp-1">{record.desiredCompletion}</span>
-                        </div>
-                      )}
-                      {record.callbackTime && (
-                        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <Phone className="w-3 h-3" />
-                          <span className="line-clamp-1">{record.callbackTime}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground">
-                      {formatRelativeTime(record.receivedAt)}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Request History is now rendered as a canonical standalone card
+          (RequestHistory component) on the customer page, for ALL customer
+          origins. It is no longer embedded inside AICallDetails. */}
     </div>
   )
 }

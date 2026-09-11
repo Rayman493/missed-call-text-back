@@ -49,6 +49,8 @@ import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import CustomerDetails from '@/components/CustomerDetails'
 import AICallDetails from '@/components/AICallDetails'
 import VoicemailSummary from '@/components/VoicemailSummary'
+import DesktopAISummary from '@/components/DesktopAISummary'
+import RequestHistory from '@/components/RequestHistory'
 import FocusSection from '@/components/FocusSection'
 import RevenueOpportunityCard from '@/components/RevenueOpportunityCard'
 import CustomerReactivationCard from '@/components/CustomerReactivationCard'
@@ -1866,14 +1868,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     today.setHours(0, 0, 0, 0)
     return scheduledDate >= today
   })
-
-  // Prior AI/call intake records for this customer/phone. lead-details returns
-  // aiCallRecords ordered by created_at descending; the newest is the current
-  // Customer Context, so everything after it is a previous job request.
-  const previousAiCallRecords = useMemo(() => {
-    const records = leadData?.aiCallRecords || []
-    return records.slice(1)
-  }, [leadData?.aiCallRecords])
 
   // Handle appointment confirmation sending
   const handleSendConfirmation = async (jobId: string, successText = 'Appointment confirmation sent.') => {
@@ -4574,95 +4568,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </div>
                       </div>
 
-                      {/* Previous Job Requests - prior AI/call intake records (historical customer context) */}
+                      {/* AI Summary - available for all customer origins */}
                       <SidebarSection
-                        title="Previous Job Requests"
+                        title="AI Summary"
                         className="mb-3"
                       >
-                        {previousAiCallRecords.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">No previous job requests</p>
-                        ) : (
-                          <div className="max-h-[300px] overflow-y-auto -mx-1 px-1 space-y-2">
-                            {previousAiCallRecords.map((record: any) => {
-                              const requestTitle = getLeadRequestTitle({ aiCallRecords: [record], raw_metadata: {}, name: null, contact_name: null }) || 'Previous request'
-                              const status = getAIIntakeStatus({ aiCallRecords: [record] })
-                              return (
-                                <button
-                                  key={record.id}
-                                  type="button"
-                                  onClick={() => { setSelectedHistoricalRecord(record); setIsHistoricalDetailOpen(true) }}
-                                  className="w-full flex items-start justify-between gap-3 p-3 bg-muted/30 hover:bg-muted/50 rounded-xl border border-border/40 dark:border-transparent transition-colors text-left"
-                                >
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-semibold text-foreground break-words">{requestTitle}</p>
-                                    <p className="text-xs text-muted-foreground mt-0.5">{formatDateTime(record.created_at)}</p>
-                                  </div>
-                                  <span className={`inline-flex items-center self-start text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border ${getAIIntakeStatusColor(status)}`}>
-                                    {getAIIntakeStatusLabel(status)}
-                                  </span>
-                                </button>
-                              )
-                            })}
-                          </div>
-                        )}
+                        <DesktopAISummary leadId={params.id} leadData={leadData} />
                       </SidebarSection>
 
-                      {/* Schedule - active/upcoming scheduled jobs only */}
+                      {/* Request History - canonical customer-level card for all origins */}
                       <SidebarSection
-                        title="Schedule"
+                        title="Request History"
                         className="mb-3"
-                        collapsible
-                        isCollapsed={collapsedSections.schedule}
-                        onToggleCollapse={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: !prev.schedule }))}
-                        headerAction={
-                          <button
-                            type="button"
-                            onClick={handleCreateJobClick}
-                            className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                            aria-label="Add scheduled job"
-                            title="Add scheduled job"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                            Add
-                          </button>
-                        }
                       >
-                        {futureAppointments.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">No scheduled jobs</p>
-                        ) : (
-                          <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
-                            {/* Active scheduled jobs */}
-                            {futureAppointments.map((job: any) => (
-                              <div key={job.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200">
-                                <div className="flex-shrink-0 w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center">
-                                  <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                  </svg>
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
-                                  <p className="text-xs text-muted-foreground/80 truncate">
-                                    {job.customer_name || leadData?.name || 'No customer'}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground/80">
-                                    {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
-                                    {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
-                                  </p>
-                                </div>
-                                <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-slate-200/60 dark:border-border/30">
-                                    {formatJobStatus(job.status).text}
-                                  </span>
-                                  {job.payment_status && job.payment_status !== 'none' && (
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${job.payment_status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'}`}>
-                                      {job.payment_status === 'paid' ? 'Paid' : 'Payment Req'}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        <RequestHistory
+                          leadId={params.id}
+                          businessId={business?.id || ''}
+                          conversationId={leadData?.conversation?.id}
+                          callerPhone={leadData?.phone_number || lead?.phone}
+                          onNavigateToTimeline={handleNavigateToTimeline}
+                        />
                       </SidebarSection>
 
                       {/* Jobs - actual job entities */}
@@ -4672,6 +4597,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         collapsible
                         isCollapsed={collapsedSections.jobs}
                         onToggleCollapse={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
+                        headerAction={
+                          <button
+                            type="button"
+                            onClick={handleCreateJobClick}
+                            className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                            aria-label="Add job"
+                            title="Add job"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            Add
+                          </button>
+                        }
                       >
                         {leadJobs.length === 0 ? (
                           <p className="text-sm text-muted-foreground">No jobs</p>
@@ -5064,8 +5001,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             />
                             <button
                               onClick={() => removeMobileImage(index)}
-                              className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                              className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full transition-colors hover:bg-red-600"
                               type="button"
+                              aria-label="Remove attachment"
                             >
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -5142,13 +5080,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* Customer Summary - Hero Card for non-AI-intake customers */}
+          {/* Customer Context / Intake - origin-specific content (manual vs AI-intake) */}
           {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
             <VoicemailSummary leadData={leadData} triggerEdit={triggerEditCustomerDetails} />
           )}
 
-          {/* Collapsible Sections - Below conversation */}
-          {/* AI Intake - Collapsible */}
+          {/* AI Intake - Collapsible (AI-intake customers' Customer Context) */}
           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
             <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
               <button
@@ -5185,130 +5122,31 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
 
-          {/* Previous Job Requests - prior AI/call intake records */}
-          <div className="bg-muted/30 border border-border/30 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Previous Job Requests</span>
-                {previousAiCallRecords.length > 0 && (
-                  <span className="text-xs text-muted-foreground">({previousAiCallRecords.length})</span>
-                )}
-              </div>
-            </div>
-            <div>
-              {previousAiCallRecords.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-2">No previous job requests</p>
-              ) : (
-                <div className="space-y-2">
-                  {previousAiCallRecords.slice(0, 3).map((record: any) => {
-                    const requestTitle = getLeadRequestTitle({ aiCallRecords: [record], raw_metadata: {}, name: null, contact_name: null }) || 'Previous request'
-                    const status = getAIIntakeStatus({ aiCallRecords: [record] })
-                    return (
-                      <button
-                        key={record.id}
-                        type="button"
-                        onClick={() => { setSelectedHistoricalRecord(record); setIsHistoricalDetailOpen(true) }}
-                        className="w-full flex items-start justify-between gap-3 p-3 bg-muted/50 hover:bg-muted/70 rounded-xl border border-border/40 dark:border-transparent transition-colors text-left"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-foreground break-words">{requestTitle}</p>
-                          <p className="text-[10px] text-muted-foreground mt-1">{formatDateTime(record.created_at)}</p>
-                        </div>
-                        <span className={`inline-flex items-center self-start text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border ${getAIIntakeStatusColor(status)}`}>
-                          {getAIIntakeStatusLabel(status)}
-                        </span>
-                      </button>
-                    )
-                  })}
-                  {previousAiCallRecords.length > 3 && (
-                    <p className="text-center text-[10px] text-muted-foreground py-1">
-                      +{previousAiCallRecords.length - 3} more previous job requests
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Schedule - active/upcoming scheduled jobs only */}
+          {/* AI Summary - canonical card for ALL customer origins */}
           <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <div className="w-5 h-5 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.894.553l1.382 2.764 2.764 1.382a1 1 0 010 1.788l-2.764 1.382-1.382 2.764a1 1 0 01-1.788 0l-1.382-2.764-2.764-1.382a1 1 0 010-1.788l2.764-1.382L11.106 2.553A1 1 0 0112 2z" />
                   </svg>
                 </div>
-                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Schedule</span>
-                {futureAppointments.length > 0 && (
-                  <span className="text-xs text-muted-foreground">({futureAppointments.length})</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleCreateJobClick}
-                  className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add
-                </button>
-                <div className="w-6 flex-shrink-0 flex items-center justify-center">
-                  {futureAppointments.length > 3 && (
-                    <button
-                      onClick={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: !prev.schedule }))}
-                      className="text-muted-foreground hover:text-foreground transition-colors"
-                      aria-expanded={!collapsedSections.schedule}
-                      aria-label={collapsedSections.schedule ? 'Show all scheduled jobs' : 'Show fewer scheduled jobs'}
-                    >
-                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${collapsedSections.schedule ? 'rotate-0' : 'rotate-180'}`} />
-                    </button>
-                  )}
-                </div>
+                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">AI Summary</span>
               </div>
             </div>
             <div className="mt-2">
-              {futureAppointments.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-2">No scheduled jobs</p>
-              ) : (
-                <div className="space-y-1">
-                  {(collapsedSections.schedule ? futureAppointments.slice(0, 3) : futureAppointments).map((job: any) => (
-                    <div key={job.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-foreground truncate">{job.title || 'Job'}</p>
-                        <p className="text-[10px] text-muted-foreground truncate">
-                          {job.customer_name || leadData?.name || 'No customer'}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
-                          {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
-                        </p>
-                      </div>
-                      <div className="flex-shrink-0 flex flex-col items-end gap-1 ml-2">
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap border border-border/50">
-                          {formatJobStatus(job.status).text}
-                        </span>
-                        {job.payment_status && job.payment_status !== 'none' && (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${job.payment_status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'}`}>
-                            {job.payment_status === 'paid' ? 'Paid' : 'Pay Req'}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {futureAppointments.length > 3 && collapsedSections.schedule && (
-                    <button
-                      onClick={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: false }))}
-                      className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                    >
-                      View all {futureAppointments.length} scheduled
-                    </button>
-                  )}
-                </div>
-              )}
+              <DesktopAISummary leadId={params.id} leadData={leadData} />
             </div>
           </div>
+
+          {/* Request History - canonical card for ALL customer origins */}
+          <RequestHistory
+            leadId={params.id}
+            businessId={business?.id || ''}
+            conversationId={leadData?.conversation?.id}
+            callerPhone={leadData?.phone_number || lead?.phone}
+            onNavigateToTimeline={handleNavigateToTimeline}
+          />
 
           {/* Jobs - actual job entities */}
           <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
@@ -5324,17 +5162,30 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <span className="text-xs text-muted-foreground">({leadJobs.length})</span>
                 )}
               </div>
-              <div className="w-6 flex-shrink-0 flex items-center justify-center">
-                {leadJobs.length > 3 && (
-                  <button
-                    onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    aria-expanded={!collapsedSections.jobs}
-                    aria-label={collapsedSections.jobs ? 'Show all jobs' : 'Show fewer jobs'}
-                  >
-                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${collapsedSections.jobs ? 'rotate-0' : 'rotate-180'}`} />
-                  </button>
-                )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCreateJobClick}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-[10px] font-medium rounded-lg transition-colors"
+                  aria-label="Add job"
+                  title="Add job"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add
+                </button>
+                <div className="w-6 flex-shrink-0 flex items-center justify-center">
+                  {leadJobs.length > 3 && (
+                    <button
+                      onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      aria-expanded={!collapsedSections.jobs}
+                      aria-label={collapsedSections.jobs ? 'Show all jobs' : 'Show fewer jobs'}
+                    >
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${collapsedSections.jobs ? 'rotate-0' : 'rotate-180'}`} />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
             <div className="mt-2">

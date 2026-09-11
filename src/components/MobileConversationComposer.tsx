@@ -229,7 +229,7 @@ export default function MobileConversationComposer({
                   />
                   <button
                     onClick={() => removeImage(img.id)}
-                    className="absolute -top-1.5 -right-1.5 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                    className="absolute -top-1.5 -right-1.5 p-1 bg-red-500 text-white rounded-full shadow-md transition-colors hover:bg-red-600"
                     type="button"
                     aria-label="Remove image"
                   >

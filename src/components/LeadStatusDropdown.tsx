@@ -159,8 +159,10 @@ export default function LeadStatusDropdown({
               }
             }
           }}
-          className={`group min-h-[44px] inline-flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed`}
+          className={`group relative inline-flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed`}
         >
+          {/* Expanded touch target via pseudo-element (no layout expansion) */}
+          <span aria-hidden="true" className="absolute inset-[-6px] rounded-md" />
           <span className={`${sizeClasses[size]} bg-background dark:bg-slate-800/50 border border-border dark:border-border/50 rounded-lg font-medium transition-all duration-200 inline-flex items-center gap-2 hover:opacity-80 group-data-[state=open]:ring-2 group-data-[state=open]:ring-offset-2 group-data-[state=open]:ring-primary/50`}>
             <StatusIcon className={`w-3.5 h-3.5 flex-shrink-0 ${currentStyle.textClass}`} />
             <span className={`truncate ${currentStyle.textClass}`}>{currentStyle.label}</span>
