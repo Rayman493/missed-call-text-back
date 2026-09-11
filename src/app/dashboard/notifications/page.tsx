@@ -221,40 +221,38 @@ export default function NotificationsPage() {
       <div className="max-w-5xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-          {/* Title row with back button - responsive layout */}
-          <div className="flex flex-col md:flex-row md:items-center md:gap-3 mb-4">
-            <div className="mb-1 md:mb-0">
+          {/* Title row with back button + actions — actions right-aligned at all breakpoints */}
+          <div className="flex flex-row flex-wrap items-center gap-3">
+            <div className="flex items-center gap-3">
               <AppBackButton fallbackHref="/dashboard" label="Back" />
+              <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
             </div>
-            <h1 className="text-2xl font-bold text-foreground mb-1 md:mb-0">Notifications</h1>
-          </div>
 
-          {/* Subtitle row with actions */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              Stay updated on your ReplyFlow activity.
-            </p>
-
-            {/* Actions - secondary utility */}
+            {/* Actions - top-right utility, right-aligned on mobile and desktop */}
             {notifications.length > 0 && (
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 ml-auto">
                 {notificationCount.unread > 0 && (
                   <button
                     onClick={handleMarkAllAsRead}
-                    className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors shrink-0"
+                    className="px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors shrink-0"
                   >
                     Mark all as read
                   </button>
                 )}
                 <button
                   onClick={handleClearAll}
-                  className="px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-foreground dark:hover:text-foreground rounded-lg transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-600 focus:ring-offset-2"
+                  className="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-foreground dark:hover:text-foreground rounded-md transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-600 focus:ring-offset-2"
                 >
                   Clear all
                 </button>
               </div>
             )}
           </div>
+
+          {/* Subtitle */}
+          <p className="text-sm text-muted-foreground mt-2">
+            Stay updated on your ReplyFlow activity.
+          </p>
         </div>
 
         {/* Notifications List */}

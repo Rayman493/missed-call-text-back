@@ -4068,13 +4068,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     {getLeadDisplayName(leadData || lead)}
                   </h1>
                 </div>
-                <div className="flex items-center gap-1 flex-wrap mb-0.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <p className="text-[11px] text-foreground/80 truncate">
                     {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                   </p>
-                </div>
-                {/* SECONDARY: Customer Status */}
-                <div className="flex items-center gap-1 flex-wrap">
+                  {/* SECONDARY: Customer Status — compact, inline below phone */}
                   {(() => {
                     const rawStatus = leadData?.status || lead?.status || lead?.lead_status
                     return rawStatus && (
@@ -4088,27 +4086,31 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
               
-              {/* Actions */}
-              <div className="flex items-center gap-1 flex-shrink-0">
+              {/* Actions — 44px mobile hit target, 32px visual treatment */}
+              <div className="flex items-center gap-0.5 flex-shrink-0">
                 {/* Edit Customer Button */}
                 <button
                   onClick={() => setShowEditCustomer(true)}
-                  className="h-9 w-9 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors duration-200"
+                  className="group h-11 w-11 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground transition-colors duration-200"
                   title="Edit customer"
                   aria-label="Edit customer"
                 >
-                  <Pencil className="w-4 h-4" />
+                  <span className="h-8 w-8 inline-flex items-center justify-center rounded-lg group-hover:bg-muted/50 transition-colors duration-200">
+                    <Pencil className="w-4 h-4" />
+                  </span>
                 </button>
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}
-                  className="h-9 w-9 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors duration-200"
+                  className="group h-11 w-11 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground transition-colors duration-200"
                   title="Customer information"
                   aria-label="Customer information"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <span className="h-8 w-8 inline-flex items-center justify-center rounded-lg group-hover:bg-muted/50 transition-colors duration-200">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </span>
                 </button>
 
                 {/* Mobile Overflow Button */}
@@ -4116,13 +4118,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="h-9 w-9 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors duration-200"
+                      className="group h-11 w-11 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground transition-colors duration-200"
                       title="More actions"
                       aria-label="Conversation actions"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                      </svg>
+                      <span className="h-8 w-8 inline-flex items-center justify-center rounded-lg group-hover:bg-muted/50 transition-colors duration-200">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                        </svg>
+                      </span>
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuPortal>
@@ -5180,6 +5184,51 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
 
+          {/* Previous Job Requests - prior AI/call intake records */}
+          <div className="bg-muted/30 border border-border/30 rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Previous Job Requests</span>
+                {previousAiCallRecords.length > 0 && (
+                  <span className="text-xs text-muted-foreground">({previousAiCallRecords.length})</span>
+                )}
+              </div>
+            </div>
+            <div>
+              {previousAiCallRecords.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-2">No previous job requests</p>
+              ) : (
+                <div className="space-y-2">
+                  {previousAiCallRecords.slice(0, 3).map((record: any) => {
+                    const requestTitle = getLeadRequestTitle({ aiCallRecords: [record], raw_metadata: {}, name: null, contact_name: null }) || 'Previous request'
+                    const status = getAIIntakeStatus({ aiCallRecords: [record] })
+                    return (
+                      <button
+                        key={record.id}
+                        type="button"
+                        onClick={() => { setSelectedHistoricalRecord(record); setIsHistoricalDetailOpen(true) }}
+                        className="w-full flex items-start justify-between gap-3 p-3 bg-muted/50 hover:bg-muted/70 rounded-xl border border-border/40 dark:border-transparent transition-colors text-left"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground break-words">{requestTitle}</p>
+                          <p className="text-[10px] text-muted-foreground mt-1">{formatDateTime(record.created_at)}</p>
+                        </div>
+                        <span className={`inline-flex items-center self-start text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border ${getAIIntakeStatusColor(status)}`}>
+                          {getAIIntakeStatusLabel(status)}
+                        </span>
+                      </button>
+                    )
+                  })}
+                  {previousAiCallRecords.length > 3 && (
+                    <p className="text-center text-[10px] text-muted-foreground py-1">
+                      +{previousAiCallRecords.length - 3} more previous job requests
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Schedule - active/upcoming scheduled jobs only */}
           <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
             <div className="flex items-center justify-between mb-2">
@@ -5319,51 +5368,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   {leadJobs.length > 3 && collapsedSections.jobs && (
                     <p className="text-center text-[10px] text-muted-foreground py-1">
                       +{leadJobs.length - 3} more jobs
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Previous Job Requests - prior AI/call intake records */}
-          <div className="bg-muted/30 border border-border/30 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Previous Job Requests</span>
-                {previousAiCallRecords.length > 0 && (
-                  <span className="text-xs text-muted-foreground">({previousAiCallRecords.length})</span>
-                )}
-              </div>
-            </div>
-            <div>
-              {previousAiCallRecords.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-2">No previous job requests</p>
-              ) : (
-                <div className="space-y-2">
-                  {previousAiCallRecords.slice(0, 3).map((record: any) => {
-                    const requestTitle = getLeadRequestTitle({ aiCallRecords: [record], raw_metadata: {}, name: null, contact_name: null }) || 'Previous request'
-                    const status = getAIIntakeStatus({ aiCallRecords: [record] })
-                    return (
-                      <button
-                        key={record.id}
-                        type="button"
-                        onClick={() => { setSelectedHistoricalRecord(record); setIsHistoricalDetailOpen(true) }}
-                        className="w-full flex items-start justify-between gap-3 p-3 bg-muted/50 hover:bg-muted/70 rounded-xl border border-border/40 dark:border-transparent transition-colors text-left"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-foreground break-words">{requestTitle}</p>
-                          <p className="text-[10px] text-muted-foreground mt-1">{formatDateTime(record.created_at)}</p>
-                        </div>
-                        <span className={`inline-flex items-center self-start text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border ${getAIIntakeStatusColor(status)}`}>
-                          {getAIIntakeStatusLabel(status)}
-                          </span>
-                      </button>
-                    )
-                  })}
-                  {previousAiCallRecords.length > 3 && (
-                    <p className="text-center text-[10px] text-muted-foreground py-1">
-                      +{previousAiCallRecords.length - 3} more previous job requests
                     </p>
                   )}
                 </div>

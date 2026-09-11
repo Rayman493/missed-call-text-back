@@ -404,9 +404,9 @@ export default function TodayCommandCenter({
       </div>
 
       {/* Today - Premium Daily Summary Card */}
-      <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/40 dark:border-blue-800/30 rounded-xl overflow-hidden sm:min-h-[180px] flex flex-col">
+      <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/40 dark:border-blue-800/30 rounded-xl overflow-hidden flex flex-col">
         {/* Header with Today label and current date */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-blue-200/30 dark:border-blue-800/20">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-blue-200/30 dark:border-blue-800/20">
           <div className="flex items-center gap-2.5">
             <div className="flex items-center justify-center w-7 h-7 bg-blue-100 dark:bg-blue-900/40 rounded-lg flex-shrink-0">
               <Clock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
@@ -530,7 +530,7 @@ export default function TodayCommandCenter({
       {/* Needs Attention — compact cross-category highlights */}
       {overdueTasks.length > 0 && (
         <div className="bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/20">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-red-500" />
               <h3 className="text-sm font-semibold text-foreground">
@@ -589,9 +589,9 @@ export default function TodayCommandCenter({
         {/* Reminders summary card */}
         <button
           onClick={() => onNavigateTab?.('reminders')}
-          className="text-left bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all sm:min-h-[110px] flex flex-col"
+          className="text-left bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-3 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all flex flex-col"
         >
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-2 mb-1">
             <CheckCircle2 className="w-4 h-4 text-slate-400" />
             <h3 className="text-sm font-semibold text-foreground">Reminders</h3>
           </div>
@@ -601,15 +601,15 @@ export default function TodayCommandCenter({
               <span className="text-red-600 dark:text-red-400"> • {overdueTasks.length} overdue</span>
             )}
           </p>
-          <p className="text-xs text-blue-600 dark:text-blue-400 mt-auto pt-2 font-medium">View Reminders →</p>
+          <p className="text-xs text-blue-600 dark:text-blue-400 mt-auto pt-1.5 font-medium">View Reminders →</p>
         </button>
 
         {/* Jobs summary card */}
         <button
           onClick={() => onNavigateTab?.('jobs')}
-          className="text-left bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all sm:min-h-[110px] flex flex-col"
+          className="text-left bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-3 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all flex flex-col"
         >
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-2 mb-1">
             <Briefcase className="w-4 h-4 text-slate-400" />
             <h3 className="text-sm font-semibold text-foreground">Jobs</h3>
           </div>
@@ -619,15 +619,15 @@ export default function TodayCommandCenter({
               <span className="text-blue-600 dark:text-blue-400"> • {todayJobs.length} today</span>
             )}
           </p>
-          <p className="text-xs text-blue-600 dark:text-blue-400 mt-auto pt-2 font-medium">View Jobs →</p>
+          <p className="text-xs text-blue-600 dark:text-blue-400 mt-auto pt-1.5 font-medium">View Jobs →</p>
         </button>
 
         {/* Appointments summary card */}
         <button
           onClick={() => onNavigateTab?.('appointments')}
-          className="text-left bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all sm:min-h-[110px] flex flex-col"
+          className="text-left bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-3 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm transition-all flex flex-col"
         >
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-2 mb-1">
             <Calendar className="w-4 h-4 text-slate-400" />
             <h3 className="text-sm font-semibold text-foreground">Appointments</h3>
           </div>
@@ -637,7 +637,7 @@ export default function TodayCommandCenter({
               <span> • {browseAppointments.length} upcoming</span>
             )}
           </p>
-          <p className="text-xs text-blue-600 dark:text-blue-400 mt-auto pt-2 font-medium">View Appointments →</p>
+          <p className="text-xs text-blue-600 dark:text-blue-400 mt-auto pt-1.5 font-medium">View Appointments →</p>
         </button>
       </div>
     </div>
