@@ -321,15 +321,10 @@ export default function NotificationsPage() {
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    {/* Title with timestamp */}
-                    <div className="flex items-start justify-between mb-1">
-                      <h3 className={`font-semibold text-foreground leading-tight tracking-tight ${notification.read ? 'text-muted-foreground' : ''}`}>
-                        {notification.title || 'Notification'}
-                      </h3>
-                      <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
-                        {formatTime(notification.created_at)}
-                      </span>
-                    </div>
+                    {/* Title */}
+                    <h3 className={`font-semibold text-foreground leading-tight tracking-tight mb-1 ${notification.read ? 'text-muted-foreground' : ''}`}>
+                      {notification.title || 'Notification'}
+                    </h3>
 
                     {/* Customer context */}
                     {getLeadContext(notification) && (
@@ -343,32 +338,38 @@ export default function NotificationsPage() {
                       {getDisplayMessage(notification)}
                     </p>
                   </div>
-                </div>
 
-                {/* Hover actions */}
-                <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {!notification.read && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleMarkAsRead(notification.id)
-                      }}
-                      className="p-1.5 text-muted-foreground hover:text-foreground transition-colors bg-card rounded shadow-sm"
-                      title="Mark as read"
-                    >
-                      <Check className="w-4 h-4" />
-                    </button>
-                  )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteNotification(notification.id)
-                    }}
-                    className="p-1.5 text-muted-foreground hover:text-red-500 transition-colors bg-card rounded shadow-sm"
-                    title="Delete notification"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  {/* Right meta column: timestamp + actions (dedicated slot, no overlap) */}
+                  <div className="flex-shrink-0 flex flex-col items-end gap-1.5 self-start">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatTime(notification.created_at)}
+                    </span>
+                    {/* Actions — visible on hover (desktop) and press (mobile) */}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {!notification.read && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleMarkAsRead(notification.id)
+                          }}
+                          className="p-1.5 text-muted-foreground hover:text-foreground transition-colors bg-card rounded shadow-sm"
+                          title="Mark as read"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteNotification(notification.id)
+                        }}
+                        className="p-1.5 text-muted-foreground hover:text-red-500 transition-colors bg-card rounded shadow-sm"
+                        title="Delete notification"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))

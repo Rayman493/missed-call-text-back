@@ -283,6 +283,55 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
         return
       }
 
+      // Canonical section deep-link handler for all known settings sections.
+      // Uses MutationObserver to wait for async-rendered section dividers,
+      // then scrolls exactly once. No hardcoded scrollY, no retry loop.
+      const sectionIds = settingsSections.map((s: { id: string }) => s.id)
+      if (sectionIds.includes(hash)) {
+        // Set active section immediately for tab highlighting
+        setActiveSection(hash)
+        // Track pending destination to prevent repeated scrolls
+        pendingSectionRef.current = hash
+
+        const tryScroll = () => {
+          if (pendingSectionRef.current !== hash) return
+          const dividerId = `${hash}-divider`
+          const element = document.getElementById(dividerId)
+          if (element) {
+            scrollToSectionRef.current(hash)
+            pendingSectionRef.current = null
+            if (sectionObserverRef.current) {
+              sectionObserverRef.current.disconnect()
+              sectionObserverRef.current = null
+            }
+          }
+        }
+
+        // Try immediately (section may already be rendered)
+        tryScroll()
+
+        // If not found, observe DOM changes until it renders
+        if (pendingSectionRef.current === hash) {
+          sectionObserverRef.current = new MutationObserver(() => {
+            tryScroll()
+          })
+          sectionObserverRef.current.observe(document.body, {
+            childList: true,
+            subtree: true
+          })
+          // Safety timeout: clean up observer after 5 seconds if section
+          // never renders (e.g., business data failed to load)
+          setTimeout(() => {
+            if (sectionObserverRef.current) {
+              sectionObserverRef.current.disconnect()
+              sectionObserverRef.current = null
+            }
+            pendingSectionRef.current = null
+          }, 5000)
+        }
+        return
+      }
+
       // Wait for next render cycle to ensure section is in DOM
       requestAnimationFrame(() => {
         const element = document.getElementById(hash)
@@ -300,7 +349,14 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
     // Handle hash changes
     window.addEventListener('hashchange', handleHash)
-    return () => window.removeEventListener('hashchange', handleHash)
+    return () => {
+      window.removeEventListener('hashchange', handleHash)
+      // Clean up any pending MutationObserver
+      if (sectionObserverRef.current) {
+        sectionObserverRef.current.disconnect()
+        sectionObserverRef.current = null
+      }
+    }
   }, [])
 
   const handleAwarenessSetup = async () => {
@@ -701,6 +757,8 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   const scrollFallbackTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Track fallback timeout for cleanup
   const [appVisibilityTrigger, setAppVisibilityTrigger] = useState(0) // Trigger for visibility changes
   const sectionScrollHandledRef = useRef(false) // Track if section deep-link scroll has been handled
+  const pendingSectionRef = useRef<string | null>(null) // Track requested section destination for async render
+  const sectionObserverRef = useRef<MutationObserver | null>(null) // Track MutationObserver for async section rendering
 
   // Listen for visibility change and focus events to trigger Stripe Connect return check
   // This ensures the effect runs when user returns from external browser on Android
@@ -1408,7 +1466,13 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       return { connected: false }
     }
 
-    setIsLoadingCalendar(true)
+    // Only show loading spinner on initial load (when we don't yet have
+    // a known connected state). Background verification after a known
+    // connected state should be visually silent to avoid "Checking" flash.
+    const isInitialLoad = !calendarConnected && isLoadingCalendar
+    if (isInitialLoad) {
+      setIsLoadingCalendar(true)
+    }
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -1427,6 +1491,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
       if (!response.ok) {
         if (response.status === 401) {
+          // Definitive auth failure — transition to disconnected state
           setCalendarConnected(false)
           setIsLoadingCalendar(false)
           return { connected: false }
@@ -1449,11 +1514,14 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       // Preserve last known connected state on transient errors
       // Only set to false if we have definitive evidence of disconnection from API response
       // This prevents Disconnect button flicker during network errors or BusinessContext refreshes
-      return { connected: false }
+      return { connected: calendarConnected }
     } finally {
-      setIsLoadingCalendar(false)
+      // Only clear loading state if we set it (initial load)
+      if (isInitialLoad) {
+        setIsLoadingCalendar(false)
+      }
     }
-  }, [business, user, supabase.auth])
+  }, [business, user, supabase.auth, calendarConnected, isLoadingCalendar])
 
   const handleConnectCalendar = async () => {
     // Prevent duplicate concurrent OAuth launches
@@ -2612,6 +2680,13 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     }
   }, [scrollOffset])
 
+  // Ref to hold the latest scrollToSection for use in mount-only effects
+  // without adding it to their dependency arrays (prevents re-registration)
+  const scrollToSectionRef = useRef(scrollToSection)
+  useEffect(() => {
+    scrollToSectionRef.current = scrollToSection
+  }, [scrollToSection])
+
   // Smooth scroll handler
   const handleSectionClick = (sectionId: string) => {
     const element = document.getElementById(sectionId)
@@ -2747,7 +2822,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
             ) : (
             <>
             {/* Settings Sections */}
-            <div className="space-y-6 pb-40">
+            <div className="space-y-6 pb-8 sm:pb-6">
               {/* Group: General */}
               <div id="general-divider" className="flex items-center gap-4 mb-8 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-border/30"></div>
@@ -3149,7 +3224,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
               <>
               {/* Automation Settings */}
               <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-4 scroll-mt-[64px]">
-                <div className="mb-4">
+                <div id="instant-response" className="mb-4 scroll-mt-[64px]">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-base font-semibold text-foreground">Instant Response</h2>
                   </div>
@@ -3946,22 +4021,27 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                         </div>
                         <button
                             onClick={calendarConnected ? handleDisconnectCalendar : handleConnectCalendar}
-                            disabled={isConnectingCalendar || isDisconnectingCalendar || isLoadingCalendar}
+                            disabled={isConnectingCalendar || isDisconnectingCalendar}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap ${
                               calendarConnected
                                 ? 'border border-red-300 dark:border-red-700/70 bg-red-50/60 dark:bg-red-900/20 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 active:bg-red-200/70 dark:active:bg-red-900/50'
                                 : 'bg-blue-600 hover:bg-blue-700 text-white'
                             }`}
                           >
-                            {isConnectingCalendar || isDisconnectingCalendar || isLoadingCalendar ? (
+                            {isConnectingCalendar || isDisconnectingCalendar ? (
                               <>
                                 <LoadingSpinner size="sm" />
-                                <span>{isConnectingCalendar || isDisconnectingCalendar ? 'Processing...' : 'Checking...'}</span>
+                                <span>{isConnectingCalendar ? 'Connecting...' : 'Disconnecting...'}</span>
                               </>
                             ) : calendarConnected ? (
                               <>
                                 <Unlink className="w-3.5 h-3.5" />
                                 <span>Disconnect</span>
+                              </>
+                            ) : isLoadingCalendar ? (
+                              <>
+                                <LoadingSpinner size="sm" />
+                                <span>Checking...</span>
                               </>
                             ) : (
                               <span>Connect</span>
