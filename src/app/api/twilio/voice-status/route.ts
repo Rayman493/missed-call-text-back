@@ -481,9 +481,16 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
   }
 
   if (!aiCallRecord) {
-    console.log('[AI RECORD NOT FOUND AFTER RETRIES]', {
+    // Truthful logging: report the actual number of DB lookup attempts that ran,
+    // not the configured retry-delay array length. When callNeverReachedAI is
+    // true the retry loop is skipped entirely (0 attempts), so the prior log
+    // claiming "totalAttempts: 5" was misleading for busy/Duration=0 calls.
+    const actualAttempts = callNeverReachedAI ? 0 : retryDelays.length
+    console.log('[AI RECORD NOT FOUND]', {
       callSid: CallSid,
-      totalAttempts: retryDelays.length
+      ai_lookup_skipped: callNeverReachedAI ? 'call_never_reached_ai' : false,
+      actualAttempts,
+      configuredMaxAttempts: retryDelays.length
     })
   } else {
     console.log('[VOICE STATUS AI RECORD CHECK]', {
@@ -529,15 +536,28 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
     }
   }
 
-  // Treat ALL inbound calls as valid leads, regardless of CallStatus
-  console.log('[voice-status] Creating lead regardless of call status:', CallStatus)
-  console.log(`[voice-status] Processing inbound call with status: ${CallStatus}`)
-
-  // Find business by Twilio phone number - exact match
+  // Resolve number lifecycle and business ownership BEFORE any lead/AI reconciliation.
+  // Canonical ordering:
+  //   1. Validate Twilio signature (done in HTTP handler)
+  //   2. Resolve number lifecycle and business ownership (here)
+  //   3. Classify whether the callback is actionable
+  //   4. Only then run customer/AI reconciliation
+  //
+  // Three number states are distinguished:
+  //   A. ACTIVE BUSINESS-OWNED NUMBER  -> canonical resolver returns a business -> continue
+  //   B. REPLYFLOW NUMBER EXISTS BUT NO BUSINESS OWNER -> twilio_numbers row with
+  //      business_id IS NULL -> safe 200, no side effects, structured lifecycle log
+  //   C. NUMBER NOT KNOWN TO REPLYFLOW -> no business AND no twilio_numbers row ->
+  //      safe 200, no side effects
+  //
+  // For state B, if status is 'assigned'/'active' while business_id IS NULL, the
+  // row is an orphan assigned number (an invariant violation per
+  // twilio_numbers_assigned_requires_business_id). Observability flags it as an
+  // invariant violation; the route does NOT normalize, attach, or release it.
   const to = To
   const normalizedTo = to?.trim()
 
-  console.log('[Twilio Voice Status Webhook] Looking up business with phone:', normalizedTo)
+  console.log('[Twilio Voice Status Webhook] Looking up number ownership with canonical resolver for phone:', normalizedTo)
 
   logCallTrace({
     route: 'voice-status',
@@ -545,26 +565,55 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
     callSid: CallSid,
     from: From,
     to: To,
-    reason: 'Looking up business by Twilio phone number'
+    reason: 'Resolving business ownership via canonical getBusinessByTwilioNumber'
   })
 
-  let business = null
+  let business: any = null
+  let twilioNumberRow: { id: string; status: string; business_id: string | null; twilio_sid: string | null } | null = null
+
   try {
     // If To is missing (Stream callback) but we have an ai_call_record with business_id,
-    // look up the business by ID rather than by Twilio phone number.
-    const businessQuery = (!To && aiCallRecord?.business_id)
-      ? supabase.from('businesses').select('*').eq('id', aiCallRecord.business_id).single()
-      : supabase.from('businesses').select('*').eq('twilio_phone_number', normalizedTo!).single()
+    // the call already has a proven business owner from the voice webhook. Use it
+    // directly rather than re-resolving by phone number.
+    if (!To && aiCallRecord?.business_id) {
+      const { data: businessData } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('id', aiCallRecord.business_id)
+        .single()
+      business = businessData
+    } else if (normalizedTo) {
+      // Canonical ownership resolver: queries twilio_numbers (business_id NOT NULL)
+      // first, then falls back to businesses.twilio_phone_number. This is the same
+      // helper used by the rest of the codebase and respects the partial unique
+      // index semantics.
+      const resolved = await db.getBusinessByTwilioNumber(normalizedTo)
+      if (resolved) {
+        business = resolved.business
+      }
 
-    const { data: businessData } = await businessQuery
+      // Separately, look up the raw twilio_numbers row to distinguish unassigned
+      // inventory / orphan assigned numbers from truly unknown numbers. The
+      // canonical helper returns null when business_id IS NULL, so this second
+      // query is required for state B classification.
+      const normalizedForLookup = normalizePhoneNumberForStorage(normalizedTo)
+      const { data: tnRow } = await supabase
+        .from('twilio_numbers')
+        .select('id, status, business_id, twilio_sid')
+        .eq('phone_number', normalizedForLookup)
+        .maybeSingle()
+      twilioNumberRow = tnRow
+    }
 
-    business = businessData
-    console.log('[Twilio Voice Status Webhook] Business lookup result:', business ? {
-      id: business.id,
-      name: business.name,
-      found: true
-    } : {
-      found: false
+    console.log('[Twilio Voice Status Webhook] Ownership resolution result:', {
+      phone: normalizedTo,
+      businessFound: !!business,
+      businessId: business?.id || null,
+      businessName: business?.name || null,
+      twilioNumberRowFound: !!twilioNumberRow,
+      twilioNumberId: twilioNumberRow?.id || null,
+      twilioNumberStatus: twilioNumberRow?.status || null,
+      twilioNumberBusinessId: twilioNumberRow?.business_id || null
     })
 
     if (business) {
@@ -577,11 +626,11 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
         businessId: business.id,
         businessName: business.name,
         existingOrCreated: 'existing',
-        reason: 'Found business by Twilio phone number'
+        reason: 'Resolved business ownership via canonical resolver'
       })
     }
   } catch (businessError) {
-    console.error('[Twilio Voice Status Webhook] Error looking up business:', businessError)
+    console.error('[Twilio Voice Status Webhook] Error resolving business ownership:', businessError)
     business = null
 
     logCallTrace({
@@ -590,19 +639,72 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
       callSid: CallSid,
       from: From,
       to: To,
-      reason: `Error looking up business: ${businessError}`
+      reason: `Error resolving business ownership: ${businessError}`
     })
   }
 
   if (!business) {
+    // No business owns this number. Distinguish unassigned inventory / orphan
+    // assigned from truly unknown numbers using the twilio_numbers row.
+    const isOrphanAssigned =
+      !!twilioNumberRow &&
+      (twilioNumberRow.status === 'assigned' || twilioNumberRow.status === 'active') &&
+      twilioNumberRow.business_id === null
+
+    const isUnassignedInventory =
+      !!twilioNumberRow &&
+      !isOrphanAssigned &&
+      twilioNumberRow.business_id === null
+
+    if (isOrphanAssigned) {
+      // State B (invariant violation): twilio_numbers row exists with status
+      // assigned/active but business_id IS NULL. This is the exact corrupted
+      // state flagged by the audit. Return safe 200 with no side effects and
+      // flag the invariant violation for separate reconciliation. Do NOT
+      // normalize, attach, or release the row here.
+      console.log('[VOICE STATUS ORPHAN ASSIGNED NUMBER] =========================================')
+      console.log('[VOICE STATUS ORPHAN ASSIGNED NUMBER] reason: orphan_assigned_number')
+      console.log('[VOICE STATUS ORPHAN ASSIGNED NUMBER] phone:', normalizedTo)
+      console.log('[VOICE STATUS ORPHAN ASSIGNED NUMBER] twilio_number_id:', twilioNumberRow?.id)
+      console.log('[VOICE STATUS ORPHAN ASSIGNED NUMBER] status:', twilioNumberRow?.status)
+      console.log('[VOICE STATUS ORPHAN ASSIGNED NUMBER] twilio_sid:', twilioNumberRow?.twilio_sid)
+      console.log('[VOICE STATUS ORPHAN ASSIGNED NUMBER] business_id: null')
+      console.log('[VOICE STATUS ORPHAN ASSIGNED NUMBER] invariant_violation: true')
+      console.log('[VOICE STATUS ORPHAN ASSIGNED NUMBER] no_side_effects: true')
+      console.log('[VOICE STATUS ORPHAN ASSIGNED NUMBER] reconciliation_required: separate batch')
+      console.log('[VOICE STATUS ORPHAN ASSIGNED NUMBER] Timestamp:', new Date().toISOString())
+      console.log('[VOICE STATUS ORPHAN ASSIGNED NUMBER] =========================================')
+      return { success: true, reason: 'orphan_assigned_number', invariant_violation: true }
+    }
+
+    if (isUnassignedInventory) {
+      // State B (legitimate): twilio_numbers row exists with business_id IS NULL
+      // and a non-business-owned status (available, reserved, retired, etc.).
+      // This is expected for warm inventory / reserved / retired numbers that
+      // still have webhooks configured from purchase time. Return safe 200 with
+      // no side effects.
+      console.log('[VOICE STATUS UNASSIGNED INVENTORY] =========================================')
+      console.log('[VOICE STATUS UNASSIGNED INVENTORY] reason: unassigned_inventory')
+      console.log('[VOICE STATUS UNASSIGNED INVENTORY] phone:', normalizedTo)
+      console.log('[VOICE STATUS UNASSIGNED INVENTORY] twilio_number_id:', twilioNumberRow?.id)
+      console.log('[VOICE STATUS UNASSIGNED INVENTORY] status:', twilioNumberRow?.status)
+      console.log('[VOICE STATUS UNASSIGNED INVENTORY] twilio_sid:', twilioNumberRow?.twilio_sid)
+      console.log('[VOICE STATUS UNASSIGNED INVENTORY] business_id: null')
+      console.log('[VOICE STATUS UNASSIGNED INVENTORY] no_side_effects: true')
+      console.log('[VOICE STATUS UNASSIGNED INVENTORY] Timestamp:', new Date().toISOString())
+      console.log('[VOICE STATUS UNASSIGNED INVENTORY] =========================================')
+      return { success: true, reason: 'unassigned_inventory' }
+    }
+
+    // State C: no business AND no twilio_numbers row. The number is not known
+    // to ReplyFlow. Preserve the existing unknown-number handling path.
     console.log('[VOICE STATUS EARLY RETURN] =========================================');
-    console.log('[VOICE STATUS EARLY RETURN] reason: no business matched');
+    console.log('[VOICE STATUS EARLY RETURN] reason: unknown_number');
     console.log('[VOICE STATUS EARLY RETURN] normalizedTo:', normalizedTo);
+    console.log('[VOICE STATUS EARLY RETURN] no_side_effects: true');
     console.log('[VOICE STATUS EARLY RETURN] Timestamp:', new Date().toISOString());
     console.log('[VOICE STATUS EARLY RETURN] =========================================');
-    console.error('[Twilio Voice Status Webhook] No business match found for phone:', normalizedTo)
-    console.error('[Twilio Voice Status Webhook] Early return: no business matched')
-    return { success: false, reason: 'no_business_matched' };
+    return { success: true, reason: 'unknown_number' };
   }
 
   // TEST SETUP: Update test_call_received_at for businesses in pending_test or incomplete setup
