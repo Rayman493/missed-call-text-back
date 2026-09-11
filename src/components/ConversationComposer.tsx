@@ -323,6 +323,14 @@ export default function ConversationComposer({
     
     // Show scrollbar only when at max height
     setIsAtMaxHeight(textarea.scrollHeight >= 150)
+
+    // Empty composer must not be internally scrollable.
+    // Reset scrollTop to 0 when empty or when content fits (prevents placeholder drift).
+    if (!e.target.value || textarea.scrollHeight <= 150) {
+      if (textarea.scrollTop !== 0) {
+        textarea.scrollTop = 0
+      }
+    }
   }
 
   const hasContent = message.trim() || attachments.length > 0
@@ -445,7 +453,8 @@ export default function ConversationComposer({
                 minHeight: '44px', 
                 maxHeight: '144px',
                 scrollbarWidth: 'none',
-                msOverflowStyle: 'none'
+                msOverflowStyle: 'none',
+                touchAction: 'pan-y'
               }}
               disabled={sending}
             />

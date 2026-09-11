@@ -193,6 +193,14 @@ export default function MobileConversationComposer({
     
     // Show scrollbar only when at max height
     setIsAtMaxHeight(textarea.scrollHeight >= 100)
+
+    // Empty composer must not be internally scrollable.
+    // Reset scrollTop to 0 when empty or when content fits (prevents placeholder drift).
+    if (!newValue || textarea.scrollHeight <= 100) {
+      if (textarea.scrollTop !== 0) {
+        textarea.scrollTop = 0
+      }
+    }
     
     // Handle typing indicator
     if (newValue.trim()) {
@@ -294,7 +302,8 @@ export default function MobileConversationComposer({
                   fieldSizing: 'content', 
                   minHeight: '44px',
                   scrollbarWidth: 'none',
-                  msOverflowStyle: 'none'
+                  msOverflowStyle: 'none',
+                  touchAction: 'pan-y'
                 }}
               />
               

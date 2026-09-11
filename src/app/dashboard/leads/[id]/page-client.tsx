@@ -515,6 +515,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const fullScreenToggleBtnRef = useRef<HTMLButtonElement>(null)
   const preservedScrollRef = useRef(0)
   const fullScreenScrollRef = useRef<HTMLDivElement>(null)
+  // Tracks whether fullscreen was closed via keyboard (Escape) or touch/pointer.
+  // Used to decide whether to restore focus (keyboard) or blur (touch) on close.
+  const lastCloseOriginRef = useRef<'keyboard' | 'touch' | null>(null)
 
   // Use centralized scroll lock for full-screen mode
   useBodyScrollLock(isFullScreen, 'lead-fullscreen')
@@ -531,6 +534,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        lastCloseOriginRef.current = 'keyboard'
         setIsFullScreen(false)
       }
     }
@@ -540,6 +544,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     let backHandle: any = null
     if (App?.addListener) {
       App.addListener('backButton', () => {
+        lastCloseOriginRef.current = 'touch'
         setIsFullScreen(false)
       }).then((h: any) => { backHandle = h }).catch(() => {})
     }
@@ -551,7 +556,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       }
       backHandle?.remove?.()
-      fullScreenToggleBtnRef.current?.focus()
+      // Clear stale highlight on touch/pointer close paths.
+      // On touch devices, restoring focus to the toggle button leaves a visible
+      // highlight/active state. Blur first to clear any touch-origin highlight,
+      // then restore focus only for keyboard close paths (Escape key).
+      // This preserves keyboard accessibility (focus-visible) while preventing
+      // the stale touch highlight on Android.
+      const btn = fullScreenToggleBtnRef.current
+      if (btn) {
+        // If focus was via keyboard (Escape), restore focus for a11y.
+        // If focus was via touch/pointer (X button, Android Back), blur to clear highlight.
+        const wasKeyboardClose = lastCloseOriginRef.current === 'keyboard'
+        if (wasKeyboardClose) {
+          btn.focus()
+        } else {
+          // Blur to clear stale touch highlight, then remove active state
+          btn.blur()
+        }
+      }
+      lastCloseOriginRef.current = null
     }
   }, [isFullScreen])
 
@@ -647,9 +670,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       return
     }
 
-    // Get the correct container based on viewport size
+    // Get the correct container based on viewport size and fullscreen state
+    // Fullscreen mode has its own dedicated scroll container that takes precedence
     const isDesktop = window.innerWidth >= 1024
-    const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+    const container = isFullScreen
+      ? fullScreenScrollRef.current
+      : isDesktop
+        ? conversationContainerRef.current
+        : mobileConversationContainerRef.current
 
     if (!container) {
       return
@@ -662,7 +690,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (force || isInitialLoad || isNearBottom || behavior === 'auto') {
       requestAnimationFrame(() => {
         // Scroll to sentinel if available, otherwise to bottom
-        if (bottomSentinelRef.current) {
+        if (bottomSentinelRef.current && !isFullScreen) {
           bottomSentinelRef.current.scrollIntoView({ behavior, block: 'end' })
         } else {
           container.scrollTo({
@@ -713,8 +741,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const handleImageLoad = () => {
     // Scroll to bottom after image load to ensure full image is visible
     // Only scroll if user is near bottom (don't force scroll if user is reading older messages)
+    // Handles both embedded and fullscreen containers via scrollToBottom's container selection
     const isDesktop = window.innerWidth >= 1024
-    const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+    const container = isFullScreen
+      ? fullScreenScrollRef.current
+      : isDesktop
+        ? conversationContainerRef.current
+        : mobileConversationContainerRef.current
 
     if (container) {
       const scrollThreshold = isDesktop ? 200 : 40
@@ -876,12 +909,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // === Coalesced Image Load Scroll ===
   // Prevents overlapping smooth scroll animations for multi-image MMS.
   // Multiple onImageLoad calls within the same frame are coalesced into one scroll.
+  // Respects near-bottom: only scrolls if user is near bottom (does NOT force).
   const handleCoalescedImageLoad = useCallback(() => {
     if (imageScrollRafRef.current !== null) return // already scheduled
     imageScrollRafRef.current = requestAnimationFrame(() => {
       imageScrollRafRef.current = null
-      // Force scroll for LOCAL send intent — user just sent, newest content wins
-      scrollToBottom('auto', true)
+      // Respect near-bottom: only scroll if user is near bottom.
+      // Do NOT force — if user scrolled up, late-loading media must not yank them down.
+      scrollToBottom('auto', false)
     })
   }, [])
 
@@ -890,12 +925,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   useLayoutEffect(() => {
     if (localSendScrollGeneration > 0) {
       const isDesktop = window.innerWidth >= 1024
-      const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+      const container = isFullScreen
+        ? fullScreenScrollRef.current
+        : isDesktop
+          ? conversationContainerRef.current
+          : mobileConversationContainerRef.current
       if (container) {
         container.scrollTop = container.scrollHeight
       }
     }
-  }, [localSendScrollGeneration])
+  }, [localSendScrollGeneration, isFullScreen])
 
   // Realtime message scroll — deterministic, respects near-bottom rules.
   // If user is intentionally scrolled up, preserve their position (show jump button).
@@ -1461,7 +1500,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       // Only scroll if we're near bottom or if this is after a refresh
       const isDesktop = window.innerWidth >= 1024
-      const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+      const container = isFullScreen
+        ? fullScreenScrollRef.current
+        : isDesktop
+          ? conversationContainerRef.current
+          : mobileConversationContainerRef.current
 
       if (container) {
         const scrollThreshold = isDesktop ? 200 : 40
@@ -1477,7 +1520,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       }
     }
-  }, [messagesArray.length])
+  }, [messagesArray.length, isFullScreen])
 
   // Check scroll position to show/hide jump button
   useEffect(() => {
@@ -1487,7 +1530,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
 
     const isDesktop = window.innerWidth >= 1024
-    const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+    const container = isFullScreen
+      ? fullScreenScrollRef.current
+      : isDesktop
+        ? conversationContainerRef.current
+        : mobileConversationContainerRef.current
 
     if (!container) return
 
@@ -1510,7 +1557,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
 
     return () => container.removeEventListener('scroll', handleScroll)
-  }, [messagesArray.length])
+  }, [messagesArray.length, isFullScreen])
 
   // Track viewport size for conditional rendering
   useEffect(() => {
@@ -4440,7 +4487,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {!isMobileView && (
           <div className="grid grid-cols-[minmax(0,3fr)_minmax(320px,380px)] gap-8 h-full min-h-0">
             {/* Desktop Conversation Section - Primary workspace */}
-            <section className="flex flex-col h-full min-h-0 bg-muted/10 rounded-xl border border-slate-200 dark:border-border/50 shadow-sm overflow-hidden">
+            <section className="flex flex-col h-full min-h-0 bg-muted/20 rounded-xl border border-slate-200 dark:border-border/50 shadow-sm overflow-hidden">
               {/* Desktop Conversation Header */}
               <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b border-slate-200/70 dark:border-border/30 bg-muted/40">
                 <div className="flex items-center gap-2">
@@ -4460,7 +4507,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               
               {/* Desktop Message Thread - Scrollable */}
               {!isFullScreen && (
-              <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-5 py-4 min-h-0 bg-muted/20">
+              <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-5 py-4 min-h-0 bg-muted/20" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -4888,9 +4935,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Mobile Layout - Only render when mobile view */}
         {isMobileView && (
-          <div className="px-4 sm:px-5 space-y-4 pb-[calc(1rem+var(--bottom-nav-height,72px))]">
+          <div className="px-4 sm:px-5 space-y-3 pb-[calc(1rem+var(--bottom-nav-height,72px))]">
           {/* Conversation Workspace Card - Fixed height with internal scrolling */}
-          <div className="bg-muted/10 rounded-2xl border border-border/40 shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(100dvh-7rem-var(--bottom-nav-height,72px))]">
+          <div className="bg-muted/20 rounded-2xl border border-border/60 shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(100dvh-7rem-var(--bottom-nav-height,72px))]">
             {/* Conversation Header - Distinct header */}
             <div className="px-4 py-3 border-b border-border/30 bg-muted/50 flex-shrink-0">
               <div className="flex items-center justify-between">
@@ -6658,7 +6705,10 @@ If you have questions, reply to this message.`
             </div>
             <button
               type="button"
-              onClick={() => setIsFullScreen(false)}
+              onClick={() => {
+                lastCloseOriginRef.current = 'touch'
+                setIsFullScreen(false)
+              }}
               className="p-2 rounded-md hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
               aria-label="Exit full screen"
             >
@@ -6667,7 +6717,7 @@ If you have questions, reply to this message.`
           </div>
 
           {/* Scrollable thread - Conversation stage with dedicated surface */}
-          <div ref={fullScreenScrollRef} tabIndex={-1} className="flex-1 overflow-y-auto min-h-0 outline-none bg-muted/20 dark:bg-slate-900/40">
+          <div ref={fullScreenScrollRef} tabIndex={-1} className="flex-1 overflow-y-auto min-h-0 outline-none bg-muted/20 dark:bg-slate-900/40" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
             <div className="max-w-full px-6 sm:px-8 py-6 sm:py-8">
             {isMobileView ? (
               loading ? (
