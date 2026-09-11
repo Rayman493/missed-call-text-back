@@ -860,7 +860,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                         type="date"
                         value={editedStartDate}
                         onChange={(e) => setEditedStartDate(e.target.value)}
-                        className="flex-1 min-w-[120px] px-2 py-1 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
+                        className="flex-1 min-w-[120px] px-2 py-1 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded text-base sm:text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                       />
                       {!isAllDay && (
                         <>
@@ -868,14 +868,14 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                             type="time"
                             value={editedStartTime}
                             onChange={(e) => setEditedStartTime(e.target.value)}
-                            className="flex-1 min-w-[80px] px-2 py-1 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
+                            className="flex-1 min-w-[80px] px-2 py-1 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded text-base sm:text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                           />
                           <span className="text-muted-foreground self-center flex-shrink-0">to</span>
                           <input
                             type="time"
                             value={editedEndTime}
                             onChange={(e) => setEditedEndTime(e.target.value)}
-                            className="flex-1 min-w-[80px] px-2 py-1 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
+                            className="flex-1 min-w-[80px] px-2 py-1 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded text-base sm:text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                           />
                         </>
                       )}

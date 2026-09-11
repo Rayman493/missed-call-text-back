@@ -383,7 +383,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
               </div>
 
               {!isAllDay && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <TimePicker
                     value={startTime}
                     onChange={setStartTime}

@@ -328,11 +328,12 @@ describe('Mobile Form Control Polish', () => {
     expect(content).toContain('data-scroll-lock-allow')
   })
 
-  it('JobComposer raw time and date inputs have a stable min-height', () => {
+  it('JobComposer uses shared DatePicker/TimePicker with stable min-height', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('type="date"')
-    expect(content).toContain('type="time"')
-    expect(content).toContain('min-h-11')
+    expect(content).toContain('import DatePicker')
+    expect(content).toContain('import TimePicker')
+    expect(content).toContain('<DatePicker')
+    expect(content).toContain('<TimePicker')
   })
 })

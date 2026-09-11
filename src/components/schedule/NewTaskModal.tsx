@@ -356,7 +356,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Timing</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <DatePicker
                 value={dueDate}
                 onChange={setDueDate}

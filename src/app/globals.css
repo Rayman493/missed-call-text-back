@@ -817,11 +817,18 @@ html.light select:-moz-autofill:focus {
 
 /* Ensure native date/time text fills the available input width without
  * clipping. The fields-wrapper should not impose its own min-width that
- * exceeds the input's content box. */
+ * exceeds the input's content box.
+ *
+ * ANDROID CLIPPING FIX: Changed overflow from hidden to visible.
+ * The previous overflow:hidden caused date/time text to be clipped when
+ * the available text area was too narrow (e.g. two-column grid on mobile).
+ * With pr-[44px] reserving affordance space and responsive grid stacking
+ * on mobile, the text area is now wide enough and overflow:visible ensures
+ * no character is ever cut off. */
 .hide-native-picker::-webkit-datetime-edit {
   display: inline-block;
   width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 .hide-native-picker::-webkit-datetime-edit-fields-wrapper {
   display: inline-flex;

@@ -174,7 +174,7 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
                 setStartDate(e.target.value)
                 setDateError('')
               }}
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full min-w-0 px-3 py-2.5 text-base sm:text-sm bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -191,7 +191,7 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
                 setDateError('')
               }}
               min={startDate}
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full min-w-0 px-3 py-2.5 text-base sm:text-sm bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
             {dateError && (
               <p className="text-xs text-red-400 mt-1">{dateError}</p>
@@ -214,8 +214,8 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
 
           {/* Time fields */}
           {!allDay && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="min-w-0">
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
                   Start time <span className="text-red-400">*</span>
                 </label>
@@ -224,11 +224,11 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full min-w-0 px-3 py-2.5 text-base sm:text-sm bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>
-              <div>
+              <div className="min-w-0">
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
                   End time <span className="text-red-400">*</span>
                 </label>
@@ -237,7 +237,7 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full min-w-0 px-3 py-2.5 text-base sm:text-sm bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>

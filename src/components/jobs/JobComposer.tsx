@@ -399,7 +399,7 @@ export default function JobComposer({
             )}
 
             {/* Date + Time */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <DatePicker
                 value={scheduledDate}
                 onChange={setScheduledDate}

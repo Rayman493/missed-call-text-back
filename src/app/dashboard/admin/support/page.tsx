@@ -1776,7 +1776,7 @@ export default function AdminSupportPage() {
                             type="date"
                             value={manualAccessCustomDate}
                             onChange={(e) => setManualAccessCustomDate(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground"
+                            className="w-full min-w-0 px-3 py-2 text-base sm:text-sm border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground"
                           />
                         </div>
                       )}
