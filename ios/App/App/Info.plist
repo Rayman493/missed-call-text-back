@@ -51,6 +51,12 @@
 	<string>ReplyFlow uses your location to enable accepting in-person payments securely.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>ReplyFlow uses Bluetooth to support payments and nearby device communication required by Stripe Terminal.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>ReplyFlow needs camera access to take photos for attaching to messages.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>ReplyFlow needs photo library access to save and attach photos to messages.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ReplyFlow needs photo library access to attach photos to messages.</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>https</string>

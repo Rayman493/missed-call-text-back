@@ -4952,9 +4952,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Mobile Layout - Only render when mobile view */}
         {isMobileView && (
-          <div className="px-4 sm:px-5 space-y-4 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+          <div className="px-4 sm:px-5 space-y-4 pb-[calc(1rem+var(--bottom-nav-height,72px))]">
           {/* Conversation Workspace Card - Fixed height with internal scrolling */}
-          <div className="bg-muted/10 rounded-2xl border border-border/40 shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(100dvh-12rem-var(--bottom-nav-height,72px))]">
+          <div className="bg-muted/10 rounded-2xl border border-border/40 shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(100dvh-7rem-var(--bottom-nav-height,72px))]">
             {/* Conversation Header - Distinct header */}
             <div className="px-4 py-3 border-b border-border/30 bg-muted/50 flex-shrink-0">
               <div className="flex items-center justify-between">
@@ -5026,7 +5026,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {/* Divider above composer */}
             <div className="border-t border-border/30 flex-shrink-0"></div>
             {/* Composer - Attached to workspace, fixed at bottom */}
-            <div className="px-4 py-3 bg-muted/40 flex-shrink-0" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
+            <div className="px-4 py-3 bg-muted/40 flex-shrink-0" style={{ paddingBottom: '16px' }}>
               {(() => {
                 const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
 
@@ -5076,7 +5076,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         ))}
                       </div>
                     )}
-                    <div className="flex items-center gap-1 bg-muted/40 dark:bg-muted/30 border border-border/20 rounded-lg p-1 hover:shadow-md transition-all duration-200 focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-500/40 focus-within:bg-muted/60 dark:focus-within:bg-muted/40">
+                    <div className="flex items-center gap-1 bg-muted/40 dark:bg-muted/30 border border-border/20 rounded-lg p-1 hover:shadow-md transition-colors duration-200 focus-within:border-border/60 focus-within:bg-muted/60 dark:focus-within:bg-muted/40">
                       {/* Attachment Button — opens premium action sheet.
                           Scroll anchor is captured in handlePickerLaunch when
                           a picker type is selected, NOT when the sheet opens. */}
@@ -5110,7 +5110,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           spellCheck={true}
                           autoComplete="on"
                           enterKeyHint="send"
-                          className="composer-textarea-no-scrollbar w-full min-h-[44px] max-h-[120px] px-1.5 py-2.5 bg-transparent text-foreground resize-none focus:outline-none text-base leading-normal h-11 placeholder:text-muted-foreground/50"
+                          className="composer-textarea-no-scrollbar w-full min-h-[44px] max-h-[120px] px-1.5 py-3 bg-transparent text-foreground resize-none focus:outline-none text-base leading-relaxed h-11 placeholder:text-muted-foreground/50"
                           rows={1}
                           disabled={sending}
                         />

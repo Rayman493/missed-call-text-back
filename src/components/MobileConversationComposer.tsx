@@ -213,7 +213,7 @@ export default function MobileConversationComposer({
   }
 
   return (
-    <div className="border-t border-border/50 bg-background/95 backdrop-blur-xl p-2.5 sm:p-4 lg:p-5 pb-3 sm:pb-4 z-50 shadow-sm" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+    <div className="border-t border-border/50 bg-background/95 backdrop-blur-xl p-2.5 sm:p-4 lg:p-5 pb-3 sm:pb-4 z-50 shadow-sm">
       <div className="max-w-5xl mx-auto">
         {/* Composer Container */}
         <div className="relative">
@@ -252,7 +252,7 @@ export default function MobileConversationComposer({
             ref={rowContainerRef}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
-            className="flex items-center gap-2 rounded-2xl border border-border/50 bg-muted/50 px-2.5 py-2 shadow-sm transition-all duration-200 focus-within:border-blue-400/40 focus-within:bg-muted/70"
+            className="flex items-center gap-2 rounded-2xl border border-border/50 bg-muted/50 px-2.5 py-2 shadow-sm transition-colors duration-200 focus-within:border-border/80 focus-within:bg-muted/60"
           >
             {/* Attachment Button — opens premium action sheet */}
             <button
@@ -286,7 +286,7 @@ export default function MobileConversationComposer({
                 autoComplete="on"
                 spellCheck={true}
                 data-testid="composer-textarea-mobile"
-                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-muted-foreground text-sm leading-normal py-2.5 px-1 max-h-32 text-foreground disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-muted-foreground text-sm leading-relaxed py-3 px-1 max-h-32 text-foreground disabled:opacity-50 disabled:cursor-not-allowed ${
                   isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
                 }`}
                 rows={1}

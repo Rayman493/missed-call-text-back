@@ -41,6 +41,7 @@
 	"packageClassList": [
 		"AppPlugin",
 		"CAPBrowserPlugin",
+		"CAPCameraPlugin",
 		"DevicePlugin",
 		"HapticsPlugin",
 		"KeyboardPlugin",

@@ -408,7 +408,7 @@ export default function ConversationComposer({
           onDrop={handleDrop}
           className="relative"
         >
-          <div className="flex items-center gap-2 bg-muted/30 border border-border/20 rounded-lg p-2 hover:bg-muted/40 transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/30 focus-within:bg-muted/50 shadow-sm">
+          <div className="flex items-center gap-2 bg-muted/30 border border-border/20 rounded-lg p-2 hover:bg-muted/40 transition-all duration-200 focus-within:border-primary/40 focus-within:bg-muted/50 shadow-sm">
             {/* Attachment Button — opens premium action sheet */}
             <button
               type="button"
@@ -437,7 +437,7 @@ export default function ConversationComposer({
               autoCapitalize="sentences"
               autoComplete="on"
               spellCheck={true}
-              className={`flex-1 px-3 py-2.5 bg-transparent text-foreground resize-none focus:outline-none text-base leading-normal h-11 placeholder:text-muted-foreground/40 ${
+              className={`flex-1 pl-2 pr-3 py-2.5 bg-transparent text-foreground resize-none focus:outline-none text-base leading-normal h-11 placeholder:text-muted-foreground/40 ${
                 isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
               }`}
               rows={1}
