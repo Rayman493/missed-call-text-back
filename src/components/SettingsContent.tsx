@@ -5030,7 +5030,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
           {/* Delete Account Modal */}
           {showDeleteModal && (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-stretch sm:items-center justify-center z-[80] p-0 sm:p-4 overscroll-contain">
-              <div className="bg-white dark:bg-slate-900 rounded-none sm:rounded-xl max-w-lg w-full h-[100vh] sm:h-auto max-h-[calc(100vh-2rem)] max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+              <div className="bg-white dark:bg-slate-900 rounded-none sm:rounded-xl max-w-lg w-full sm:h-auto max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
                 {/* Fixed Header */}
                 <div className="flex-shrink-0 p-5 border-b border-slate-200/70 dark:border-slate-700/50">
                   <div className="flex items-start gap-3">
@@ -5049,7 +5049,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                 </div>
 
                 {/* Scrollable Body */}
-                <div className="flex-1 min-h-0 overflow-y-scroll p-5 space-y-4 overscroll-contain pb-24 sm:pb-5" style={{ touchAction: 'pan-y' }} data-scroll-lock-allow>
+                <div className="flex-1 min-h-0 overflow-y-scroll p-5 space-y-4 overscroll-contain" style={{ touchAction: 'pan-y' }} data-scroll-lock-allow>
                   {/* What happens */}
                   <div>
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3">
@@ -5149,7 +5149,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       required={false}
                       autoComplete="new-password"
                       disabled={isDeleting}
-                      className={`h-10 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all ${
+                      className={`h-10 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all border ${
                         deletePasswordError
                           ? 'border-red-500 focus:ring-red-500'
                           : 'border-slate-200/70 dark:border-slate-700/50 focus:ring-red-500/40 focus:border-red-500/80'

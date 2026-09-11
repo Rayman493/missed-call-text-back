@@ -5576,12 +5576,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Mobile Bottom Sheet for Customer Details */}
       {showLeadInfo && (
         <div className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50" onClick={() => setShowLeadInfo(false)}>
-          <div className="bg-card rounded-t-2xl shadow-2xl w-full max-h-[80vh] overflow-hidden animate-slide-up border-t border-border/50" onClick={(e) => e.stopPropagation()}>
-            {/* Handle */}
-            <div className="flex justify-center py-1.5">
-              <div className="w-12 h-1 bg-muted-foreground/30 rounded-full"></div>
-            </div>
-
+          <div className="bg-card rounded-t-2xl shadow-2xl w-full max-h-[85vh] overflow-hidden animate-slide-up border-t border-border/50" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="px-4 pb-3 border-b border-border/50 flex items-center justify-between bg-muted/30">
               <h3 className="text-base font-semibold text-foreground">Customer Details</h3>
@@ -5597,7 +5592,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Content - Canonical Customer Details */}
-            <div className="px-4 py-3 overflow-y-auto max-h-[60vh] overscroll-contain [touch-action:pan-y]" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="px-4 py-3 overflow-y-auto max-h-[70vh] overscroll-contain [touch-action:pan-y]" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
               <CustomerDetails leadData={leadData} lead={lead} />
             </div>
 

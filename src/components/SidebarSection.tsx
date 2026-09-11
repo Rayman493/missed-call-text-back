@@ -33,14 +33,13 @@ export function SidebarSection({
     <div className={`bg-muted/20 rounded-lg border border-slate-200 dark:border-border/40 ${className}`}>
       <div className="px-4 py-3 border-b border-slate-200/70 dark:border-border/30">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            {icon && <div className="text-muted-foreground/70">{icon}</div>}
-            <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">
+          <div className="flex items-center gap-2 min-w-0">
+            {icon && <div className="text-muted-foreground/70 flex-shrink-0">{icon}</div>}
+            <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider min-w-0 truncate">
               {title}
             </h3>
           </div>
-          <div className="flex items-center gap-2">
-            {headerAction}
+          <div className="flex items-center gap-2 ml-auto shrink-0">
             {collapsible && (
               <div className="w-6 flex-shrink-0 flex items-center justify-center">
                 <button
@@ -54,6 +53,7 @@ export function SidebarSection({
                 </button>
               </div>
             )}
+            {headerAction}
           </div>
         </div>
       </div>

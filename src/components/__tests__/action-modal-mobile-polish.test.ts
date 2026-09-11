@@ -295,7 +295,9 @@ describe('Mobile Form Control Polish', () => {
   it('Modal body reserves bottom space for the sticky footer', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
-    expect(content).toContain("paddingBottom: 'max(80px, calc(64px + var(--modal-bottom-reserve)))'")
+    // Batch C: paddingBottom is now content-driven, not a fixed 80px minimum.
+    // When footer is present, uses safe-area-inset-bottom; otherwise uses --modal-bottom-reserve.
+    expect(content).toContain("paddingBottom: footer ? 'max(16px, env(safe-area-inset-bottom))' : 'max(16px, var(--modal-bottom-reserve))'")
   })
 
   it('TimePicker uses a stable min-height and vertically-centered trailing icon', () => {

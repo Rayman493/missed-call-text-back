@@ -178,7 +178,7 @@ export default function Modal({
             style={{
               WebkitOverflowScrolling: 'touch',
               maxHeight: contentMaxHeight || undefined,
-              paddingBottom: 'max(80px, calc(64px + var(--modal-bottom-reserve)))'
+              paddingBottom: footer ? 'max(16px, env(safe-area-inset-bottom))' : 'max(16px, var(--modal-bottom-reserve))'
             }}
           >
             {children}
