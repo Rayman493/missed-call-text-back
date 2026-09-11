@@ -175,10 +175,6 @@ export default function LeadCard({
           <div className="flex-shrink-0">
             <div
               className="flex-shrink-0"
-              onPointerDown={(e) => e.stopPropagation()}
-              onPointerMove={(e) => e.stopPropagation()}
-              onPointerUp={(e) => e.stopPropagation()}
-              onPointerCancel={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
               {lead.deleted_at ? (

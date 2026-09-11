@@ -82,13 +82,19 @@ describe('Batch 2 — Part 1: Dashboard chart gesture ownership', () => {
     expect(chartUtils).toContain("innerRef.current.style.pointerEvents = 'none'")
   })
 
-  it('ChartTouchWrapper forces chart remount after drag to clear transient state', () => {
+  it('ChartTouchWrapper clears transient state after drag via synthetic mouseleave (no remount)', () => {
     // After a drag, Recharts didn't receive its own touchend, so it would
-    // leave the last-touched datum highlighted. Remounting clears this.
-    expect(chartUtils).toContain('chartResetKey')
-    expect(chartUtils).toContain('setChartResetKey(k => k + 1)')
-    // The key must be applied to the inner div to force remount
-    expect(chartUtils).toContain('key={chartResetKey}')
+    // leave the last-touched datum highlighted. The previous approach used
+    // key-based remounting (chartResetKey). The current approach sets
+    // pointerEvents:'none' on touchstart (preventing activation in the
+    // first place) and dispatches a synthetic mouseleave on touchend to
+    // clear any residual state — avoiding the visual regeneration caused
+    // by remounting.
+    expect(chartUtils).toContain('mouseleave')
+    expect(chartUtils).toContain('.recharts-surface')
+    // Must NOT use the old remount approach
+    expect(chartUtils).not.toContain('chartResetKey')
+    expect(chartUtils).not.toContain('setChartResetKey')
   })
 
   it('ChartTouchWrapper restores pointer events on touch end', () => {
@@ -481,16 +487,19 @@ describe('Batch 2 — One-shot suppression lifecycle', () => {
     expect(guard.consumeDragSuppression()).toBe(false)
   })
 
-  it('12. chart remount occurs exactly once per completed drag, never normal tap', () => {
+  it('12. synthetic mouseleave occurs exactly once per completed drag, never normal tap', () => {
     const chartUtils = readSrc('src/lib/chart-utils.tsx')
-    // chartResetKey increment must be inside the isDraggingRef.current check
-    // in handleTouchEnd, so it only fires after a drag, not after a tap
+    // The synthetic mouseleave dispatch must be inside the
+    // isDraggingRef.current check in handleTouchEnd, so it only fires
+    // after a drag, not after a tap
     const touchEndBlock = chartUtils.match(/const handleTouchEnd = \([\s\S]*?\n  \}/)
     expect(touchEndBlock).toBeTruthy()
     const body = touchEndBlock![0]
-    // The remount must be guarded by isDraggingRef.current
+    // The mouseleave must be guarded by isDraggingRef.current
     expect(body).toContain('if (isDraggingRef.current)')
-    expect(body).toContain('setChartResetKey(k => k + 1)')
+    expect(body).toContain('mouseleave')
+    // Must NOT use the old remount approach
+    expect(body).not.toContain('setChartResetKey')
   })
 
   it('isDragging() reflects live drag state without consuming', () => {

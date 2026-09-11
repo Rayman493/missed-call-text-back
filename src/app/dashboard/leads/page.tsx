@@ -1141,6 +1141,10 @@ export default function LeadsPage() {
                         if (e.button !== 0) return
                         filterPointerStartRef.current = { x: e.clientX, y: e.clientY }
                         filterMovedRef.current = false
+                        // Clear stale suppress flag from any prior abandoned
+                        // gesture (e.g., scroll-then-leave that never consumed
+                        // the suppress). New gesture starts fresh.
+                        filterSuppressNextOpenRef.current = false
                       }}
                       onPointerMove={(e) => {
                         if (!filterPointerStartRef.current) return
@@ -1171,12 +1175,17 @@ export default function LeadsPage() {
                         filterSuppressNextOpenRef.current = false
                       }}
                       onPointerLeave={() => {
-                        // If a drag was in progress, keep suppress flag alive for the click
+                        // If a drag was in progress, keep suppress flag alive for the click.
+                        // Do NOT clear filterMovedRef here — during a scroll the content moves
+                        // under the finger, causing pointerleave to fire even though the
+                        // finger hasn't moved relative to the screen. Clearing filterMovedRef
+                        // would make the subsequent pointerup think it was a clean tap,
+                        // opening the filter during scroll. The flag is cleared on the next
+                        // onPointerDown (fresh gesture).
                         if (filterMovedRef.current) {
                           filterSuppressNextOpenRef.current = true
                         }
                         filterPointerStartRef.current = null
-                        filterMovedRef.current = false
                       }}
                       onClick={(e) => {
                         // Final guard: if the suppress flag is set, block the click

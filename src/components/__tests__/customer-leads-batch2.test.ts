@@ -17,10 +17,20 @@ describe('LeadCard — mobile status dropdown at top-right', () => {
     expect(src).not.toContain('sm:hidden flex-shrink-0')
   })
 
-  it('status dropdown has stopPropagation boundary to prevent card navigation', () => {
-    expect(src).toContain('onPointerDown={(e) => e.stopPropagation()}')
-    expect(src).toContain('onPointerUp={(e) => e.stopPropagation()}')
+  it('status dropdown has onClick stopPropagation boundary to prevent card navigation', () => {
+    // Batch F: pointer-event stopPropagation was removed because it blocked
+    // Radix's document-level pointerdown listener, preventing outside-tap
+    // dismissal of the status dropdown after page scroll. Only onClick
+    // stopPropagation is kept to prevent the LeadCard's click handler
+    // from firing when interacting with the status dropdown.
     expect(src).toContain('onClick={(e) => e.stopPropagation()}')
+    // Must NOT stopPropagation on pointer events (allows Radix outside-tap)
+    const wrapperMatch = src.match(/<div className="flex-shrink-0">\s*<div[\s\S]*?>/)
+    expect(wrapperMatch).toBeTruthy()
+    if (wrapperMatch) {
+      expect(wrapperMatch[0]).not.toContain('onPointerDown={(e) => e.stopPropagation()}')
+      expect(wrapperMatch[0]).not.toContain('onPointerUp={(e) => e.stopPropagation()}')
+    }
   })
 
   it('card body remains clickable (onClick opens lead)', () => {

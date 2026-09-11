@@ -231,6 +231,17 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
     startYRef.current = e.touches[0].clientY
     isDraggingRef.current = false
     setIsDragging(false)
+    // Immediately disable pointer events on the chart container so Recharts
+    // does not receive touch-generated pointermove events that activate
+    // bar/dot/tooltip state. The previous implementation only set
+    // pointerEvents:'none' AFTER the drag threshold was exceeded, which
+    // allowed the first pointermove (before threshold) to activate the
+    // datum. Setting it on touchstart (before any move) prevents the race.
+    // The outer div retains touchAction:'pan-y' so the browser handles
+    // vertical scrolling normally.
+    if (innerRef.current) {
+      innerRef.current.style.pointerEvents = 'none'
+    }
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -241,14 +252,6 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
       if (!isDraggingRef.current) {
         isDraggingRef.current = true
         setIsDragging(true)
-        // Synchronously disable pointer events on the chart container
-        // so Recharts stops processing the ongoing touchmove. This is
-        // done via direct DOM manipulation (not React state) to avoid
-        // the async re-render race where Recharts processes several
-        // more move events before pointerEvents: 'none' applies.
-        if (innerRef.current) {
-          innerRef.current.style.pointerEvents = 'none'
-        }
       }
     }
   }
@@ -268,7 +271,8 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
     }
     isDraggingRef.current = false
     setIsDragging(false)
-    // Restore pointer events for next interaction
+    // Restore pointer events for next interaction (desktop hover, or
+    // future tap if a chart adds onClick support).
     if (innerRef.current) {
       innerRef.current.style.pointerEvents = 'auto'
     }
@@ -276,15 +280,19 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="w-full h-full select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-2 rounded-lg"
+      className="w-full h-full select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-2 rounded-lg [&_.recharts-surface]:outline-none [&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-blue-500/30 [&_.recharts-wrapper]:outline-none"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      // Allow native scrolling in both axes; chart pointer events remain
-      // enabled so taps still work. The isDragging flag disables pointer
-      // events on the chart's interactive layer during an active drag.
-      // Touch focus uses :focus (outline suppressed); keyboard focus uses
-      // :focus-visible (ring shown) — preserving keyboard accessibility.
+      // Allow native scrolling in both axes; chart pointer events are
+      // disabled on touchstart (inner div) to prevent drag-activated datum,
+      // and restored on touchend. The outer div still receives touch events
+      // for scroll tracking.
+      // Touch focus uses :focus (outline suppressed via class); keyboard
+      // focus uses :focus-visible (ring shown) — preserving keyboard
+      // accessibility. The [&_.recharts-surface] selector suppresses the
+      // SVG outline on touch/mouse tap while preserving :focus-visible
+      // for keyboard navigation.
       style={{
         touchAction: 'pan-y pan-x',
         pointerEvents: 'auto',

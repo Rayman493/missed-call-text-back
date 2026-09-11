@@ -36,9 +36,9 @@ export default function LeadStatusDropdown({
   const [isUpdating, setIsUpdating] = useState(false)
 
   const sizeClasses = {
-    sm: 'px-2.5 py-1.5 text-xs max-w-[140px]',
-    md: 'px-3 py-1.5 text-xs max-w-[160px]',
-    lg: 'px-3.5 py-2 text-sm max-w-[180px]'
+    sm: 'px-2.5 py-1 text-xs max-w-[140px]',
+    md: 'px-3 py-1 text-xs max-w-[160px]',
+    lg: 'px-3.5 py-1.5 text-sm max-w-[180px]'
   }
 
   const handleStatusSelect = async (newStatus: CustomerStatus) => {
@@ -102,9 +102,17 @@ export default function LeadStatusDropdown({
   }
 
   const handlePointerLeave = () => {
-    // Clean up state if pointer leaves the trigger
+    // Do NOT clear hasMovedBeyondThreshold here. During a page scroll the
+    // content moves under the finger, causing pointerleave to fire on the
+    // trigger even though the finger hasn't moved relative to the screen.
+    // Clearing hasMovedBeyondThreshold would make a subsequent pointerup
+    // (if the pointer re-enters) think it was a clean tap, opening the
+    // dropdown during scroll. The flag is cleared on the next
+    // handlePointerDown (fresh gesture).
+    //
+    // This matches the canonical useTapGuard behavior which specifically
+    // does NOT clear draggingRef in onPointerLeave.
     pointerStartRef.current = null
-    hasMovedBeyondThreshold.current = false
   }
 
   const handleClick = (e: React.MouseEvent) => {
@@ -161,9 +169,11 @@ export default function LeadStatusDropdown({
           }}
           className={`group relative inline-flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed`}
         >
-          {/* Expanded touch target via pseudo-element (no layout expansion) */}
-          <span aria-hidden="true" className="absolute inset-[-6px] rounded-md" />
-          <span className={`${sizeClasses[size]} bg-background dark:bg-slate-800/50 border border-border dark:border-border/50 rounded-lg font-medium transition-all duration-200 inline-flex items-center gap-2 hover:opacity-80 group-data-[state=open]:ring-2 group-data-[state=open]:ring-offset-2 group-data-[state=open]:ring-primary/50`}>
+          {/* Expanded touch target via pseudo-element (no layout expansion).
+              inset-[-10px] preserves a comfortable ~44px touch target even
+              with the reduced py-1 visible padding. */}
+          <span aria-hidden="true" className="absolute inset-[-10px] rounded-md" />
+          <span className={`${sizeClasses[size]} bg-background dark:bg-slate-800/50 border border-border dark:border-border/50 rounded-lg font-medium transition-all duration-200 inline-flex items-center gap-1.5 hover:opacity-80 group-data-[state=open]:ring-2 group-data-[state=open]:ring-offset-2 group-data-[state=open]:ring-primary/50`}>
             <StatusIcon className={`w-3.5 h-3.5 flex-shrink-0 ${currentStyle.textClass}`} />
             <span className={`truncate ${currentStyle.textClass}`}>{currentStyle.label}</span>
             {isUpdating ? (
@@ -196,6 +206,12 @@ export default function LeadStatusDropdown({
           onPointerDownOutside={(e) => {
             // Ensure the first outside tap after scrolling closes the dropdown
             // Radix already handles this, but we make it explicit for mobile scroll-then-dismiss
+            setIsOpen(false)
+          }}
+          onInteractOutside={(e) => {
+            // Broad handler: catches pointer, focus, and any other outside interaction.
+            // This is the safety net for cases where onPointerDownOutside alone is
+            // insufficient (e.g., after a scroll gesture leaves stale pointer state).
             setIsOpen(false)
           }}
           className="w-[260px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-140px))] bg-popover border border-border rounded-lg shadow-lg shadow-black/10 overflow-y-auto overscroll-contain z-[10000]"
