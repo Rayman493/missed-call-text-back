@@ -3636,6 +3636,38 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               Use <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[11px] font-mono">{"{{business_name}}"}</code> to insert your business name and <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[11px] font-mono">{"{{return_date}}"}</code> to insert your return date.
                             </p>
                           </div>
+
+                          {/* Clear Out of Office — ACTION that immediately persists:
+                              clears start/end dates, marks inactive, preserves custom message.
+                              Reuses the existing canonical saveChanges path (no new API).
+                              Re-enabling will NOT silently restore previous dates because
+                              start/end are null until the user sets new ones. */}
+                          {(formBusiness.out_of_office_start || formBusiness.out_of_office_end || formBusiness.out_of_office_enabled) && (
+                            <div className="pt-1">
+                              <button
+                                type="button"
+                                disabled={isSaving}
+                                onClick={() => {
+                                  // Build the cleared business object (preserve custom message).
+                                  // saveChanges(overrideBusiness) persists via the existing
+                                  // canonical onSaveBusiness → Supabase path and updates local
+                                  // state only after the save succeeds. If the save fails,
+                                  // saveError is surfaced through existing error handling.
+                                  const clearedBusiness: typeof formBusiness = {
+                                    ...formBusiness,
+                                    out_of_office_start: null,
+                                    out_of_office_end: null,
+                                    out_of_office_enabled: false,
+                                  }
+                                  saveChanges(clearedBusiness)
+                                }}
+                                className="text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:underline transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 rounded px-1 py-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                aria-label="Clear out of office"
+                              >
+                                {isSaving ? 'Clearing...' : 'Clear out of office'}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </>
                     )}

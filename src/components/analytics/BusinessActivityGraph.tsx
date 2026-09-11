@@ -50,40 +50,45 @@ export default function BusinessActivityGraph() {
 
         // Calculate date range using business timezone
         const businessTimezone = business.business_hours_timezone || 'UTC'
-        const daysMap = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 }
-        const daysAgo = daysMap[timeRange] || 30
-        const startDateIso = getBusinessDaysAgoRelative(businessTimezone, daysAgo, new Date())
+        const daysMap: Record<string, number | null> = { '7d': 7, '30d': 30, '90d': 90, '1y': 365, 'all_time': null }
+        const daysAgo = daysMap[timeRange] ?? 30
+        // 'all_time' → null start → no lower bound (earliest actual record)
+        const startDateIso = daysAgo !== null ? getBusinessDaysAgoRelative(businessTimezone, daysAgo, new Date()) : null
 
         // Fetch conversations (leads with conversation_id)
-        const { data: conversations } = await supabase
+        let conversationsQuery = supabase
           .from('leads')
           .select('created_at, conversation_id')
           .eq('business_id', business.id)
           .is('deleted_at', null)
           .not('conversation_id', 'is', null)
-          .gte('created_at', startDateIso)
+        if (startDateIso) conversationsQuery = conversationsQuery.gte('created_at', startDateIso)
+        const { data: conversations } = await conversationsQuery
 
         // Fetch appointments from meeting_records
-        const { data: appointments } = await supabase
+        let appointmentsQuery = supabase
           .from('meeting_records')
           .select('created_at')
           .eq('business_id', business.id)
-          .gte('created_at', startDateIso)
+        if (startDateIso) appointmentsQuery = appointmentsQuery.gte('created_at', startDateIso)
+        const { data: appointments } = await appointmentsQuery
 
         // Fetch payment requests
-        const { data: paymentRequests } = await supabase
+        let paymentRequestsQuery = supabase
           .from('payment_requests')
           .select('created_at')
           .eq('business_id', business.id)
-          .gte('created_at', startDateIso)
+        if (startDateIso) paymentRequestsQuery = paymentRequestsQuery.gte('created_at', startDateIso)
+        const { data: paymentRequests } = await paymentRequestsQuery
 
         // Fetch completed jobs
-        const { data: completedJobs } = await supabase
+        let completedJobsQuery = supabase
           .from('jobs')
           .select('created_at')
           .eq('business_id', business.id)
           .eq('status', 'completed')
-          .gte('created_at', startDateIso)
+        if (startDateIso) completedJobsQuery = completedJobsQuery.gte('created_at', startDateIso)
+        const { data: completedJobs } = await completedJobsQuery
 
         // Group by business-local date
         const groupedData: { [key: string]: ActivityData } = {}

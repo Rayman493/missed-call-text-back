@@ -40,17 +40,21 @@ export default function RevenueGraph() {
 
         // Calculate date range using business timezone
         const businessTimezone = business.business_hours_timezone || 'UTC'
-        const daysMap = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 }
-        const daysAgo = daysMap[timeRange] || 30
-        const startDateIso = getBusinessDaysAgoRelative(businessTimezone, daysAgo, new Date())
+        const daysMap: Record<string, number | null> = { '7d': 7, '30d': 30, '90d': 90, '1y': 365, 'all_time': null }
+        const daysAgo = daysMap[timeRange] ?? 30
+        // 'all_time' → null start → no lower bound (earliest actual record)
+        const startDateIso = daysAgo !== null ? getBusinessDaysAgoRelative(businessTimezone, daysAgo, new Date()) : null
 
         // Fetch completed payments
-        const { data: payments } = await supabase
+        let paymentsQuery = supabase
           .from('payment_requests')
           .select('amount_cents, created_at')
           .eq('business_id', business.id)
           .eq('status', 'paid')
-          .gte('created_at', startDateIso)
+        if (startDateIso) {
+          paymentsQuery = paymentsQuery.gte('created_at', startDateIso)
+        }
+        const { data: payments } = await paymentsQuery
           .order('created_at', { ascending: true })
 
         // Group by business-local date (convert cents to dollars)

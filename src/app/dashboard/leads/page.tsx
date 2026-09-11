@@ -31,11 +31,11 @@ import {
   formatPhoneNumber,
   formatRelativeTime,
   truncateText,
-  normalizePhoneNumberForSearch,
   sentenceCase,
   getLeadDisplayName
 } from '@/lib/utils'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
+import { rankCustomerForQuery } from '@/lib/customer-search'
 import { copyToClipboard } from '@/lib/clipboard'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
 import { getCustomerStatusStyle, getCustomerStatusLabel, getCustomerStatusIcon, getAllCustomerStatuses, normalizeCustomerStatus } from '@/lib/customer-status'
@@ -636,15 +636,18 @@ export default function LeadsPage() {
   }
 
   // Filter leads
+  // Customer search uses precise name + phone matching (token-prefix for name,
+  // digit-prefix for phone). It does NOT search request/reason, details,
+  // address, notes, payment metadata, status text, or metadata blobs.
   const filteredLeads = leads.filter(lead => {
     const intake = getLeadAIIntake(lead)
-    const q = searchQuery.toLowerCase().trim()
-    const matchesSearch = !searchQuery ||
-      (lead.caller_phone && lead.caller_phone.includes(searchQuery)) ||
-      ((lead.name && lead.name !== 'Not collected') ? lead.name.toLowerCase().includes(q) : false) ||
-      ((lead.email && lead.email !== 'Not collected') ? lead.email.toLowerCase().includes(q) : false) ||
-      ((intake.customerName && intake.customerName !== 'Not collected') ? intake.customerName.toLowerCase().includes(q) : false) ||
-      normalizePhoneNumberForSearch(lead.caller_phone).includes(normalizePhoneNumberForSearch(searchQuery))
+    // Resolve the canonical display name for matching: prefer intake customerName,
+    // fall back to lead.name. Placeholder names are ignored by rankCustomerForQuery.
+    const matchName = (!intake.customerName || intake.customerName === 'Not collected')
+      ? lead.name
+      : intake.customerName
+    const matchesSearch = !searchQuery.trim() ||
+      rankCustomerForQuery({ name: matchName, caller_phone: lead.caller_phone }, searchQuery) > 0
 
     const leadStatus = getLeadLifecycleStatus(lead)
     const isDeleted = !!lead.deleted_at

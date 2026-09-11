@@ -38,18 +38,20 @@ export default function LeadsSourceGraph() {
 
         // Calculate date range based on selected timeframe
         const businessTimezone = business?.business_hours_timezone || 'UTC'
-        const daysMap = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 }
-        const daysAgo = daysMap[timeRange as keyof typeof daysMap] || 90
-        const startDateIso = getBusinessDaysAgoRelative(businessTimezone, daysAgo, new Date())
+        const daysMap: Record<string, number | null> = { '7d': 7, '30d': 30, '90d': 90, '1y': 365, 'all_time': null }
+        const daysAgo = daysMap[timeRange] ?? 90
+        // 'all_time' → null start → no lower bound (earliest actual record)
+        const startDateIso = daysAgo !== null ? getBusinessDaysAgoRelative(businessTimezone, daysAgo, new Date()) : null
 
         // Fetch leads with raw_metadata for source classification
-        const { data: leads } = await supabase
+        let leadsQuery = supabase
           .from('leads')
           .select('raw_metadata')
           .eq('business_id', business.id)
           .is('deleted_at', null)
           .neq('status', 'ignored')
-          .gte('created_at', startDateIso)
+        if (startDateIso) leadsQuery = leadsQuery.gte('created_at', startDateIso)
+        const { data: leads } = await leadsQuery
 
         if (!isMounted) return
 

@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { useBusiness } from '@/contexts/BusinessContext'
 import { useTheme } from 'next-themes'
 import { Home, Users, Calendar, CreditCard, Settings, LogOut, MessageCircle, ExternalLink, Sun, Moon, Monitor, HelpCircle, Mail, ReceiptText } from 'lucide-react'
 import { primaryNavItems, accountMenuItems } from '@/lib/navigation-config'
@@ -21,7 +22,8 @@ interface BottomNavigationProps {
 export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { signOut } = useAuth()
+  const { signOut, user } = useAuth()
+  const { business } = useBusiness()
   const { theme, setTheme } = useTheme()
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
@@ -383,6 +385,22 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
             } : undefined}
           >
             <div className="py-1 overflow-y-auto max-h-[60vh]">
+              {/* Compact informational account header — non-interactive.
+                  Uses existing Business/Auth context (no new fetch).
+                  Falls back to email as primary when business name is missing. */}
+              <div className="px-4 pt-2.5 pb-2 border-b border-border/60 mb-1">
+                {business?.name ? (
+                  <div className="text-sm font-semibold text-popover-foreground truncate" data-account-primary>
+                    {business.name}
+                  </div>
+                ) : null}
+                {user?.email ? (
+                  <div className={`text-xs text-muted-foreground truncate ${business?.name ? 'mt-0.5' : 'text-sm font-semibold text-popover-foreground'}`} data-account-secondary>
+                    {user.email}
+                  </div>
+                ) : null}
+              </div>
+
               <Link
                 href="/dashboard/settings"
                 onClick={(e) => {

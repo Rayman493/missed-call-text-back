@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import LegalNavigation from '@/components/LegalNavigation'
 
 interface DocumentationHeroProps {
@@ -29,14 +32,28 @@ export default function DocumentationHero({
   showBackLink = true,
   children,
 }: DocumentationHeroProps) {
+  const router = useRouter()
+
+  // Back behavior: prefer router/browser history when available, fall back
+  // to the public home route for direct-loads (no history).
+  const handleBack = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault()
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+    } else {
+      router.push('/')
+    }
+  }
+
   return (
     <div className="bg-card border-b border-border">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        {/* Back to Home Link */}
+        {/* Back control — uses router/browser history when available, safe fallback to home */}
         {showBackLink && (
           <div className="mb-3">
             <Link
               href="/"
+              onClick={handleBack}
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 group"
             >
               <svg
@@ -47,7 +64,7 @@ export default function DocumentationHero({
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Home
+              Back
             </Link>
           </div>
         )}

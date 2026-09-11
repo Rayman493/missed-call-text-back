@@ -33,18 +33,19 @@ export default function NewCustomersGraph() {
 
         // Calculate date range using business timezone
         const businessTimezone = business.business_hours_timezone || 'UTC'
-        const daysMap = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 }
-        const daysAgo = daysMap[timeRange] || 30
-        const startDateIso = getBusinessDaysAgoRelative(businessTimezone, daysAgo, new Date())
+        const daysMap: Record<string, number | null> = { '7d': 7, '30d': 30, '90d': 90, '1y': 365, 'all_time': null }
+        const daysAgo = daysMap[timeRange] ?? 30
+        // 'all_time' → null start → no lower bound (earliest actual record)
+        const startDateIso = daysAgo !== null ? getBusinessDaysAgoRelative(businessTimezone, daysAgo, new Date()) : null
 
         // Fetch leads grouped by date
-        const { data: leads } = await supabase
+        let leadsQuery = supabase
           .from('leads')
           .select('created_at')
           .eq('business_id', business.id)
           .is('deleted_at', null)
-          .gte('created_at', startDateIso)
-          .order('created_at', { ascending: true })
+        if (startDateIso) leadsQuery = leadsQuery.gte('created_at', startDateIso)
+        const { data: leads } = await leadsQuery.order('created_at', { ascending: true })
 
         // Group by business-local date
         const groupedData: { [key: string]: number } = {}
@@ -76,8 +77,11 @@ export default function NewCustomersGraph() {
   const totalCustomers = data.reduce((sum, day) => sum + day.customers, 0)
   const peakDay = data.length > 0 ? data.reduce((max, day) => day.customers > max.customers ? day : max, data[0]) : null
 
-  // Calculate average across the selected period, not just days with customers
-  const daysInRange = getDaysInTimeframe(timeRange)
+  // Calculate average across the selected period, not just days with customers.
+  // For 'all_time', use the earliest actual record date so the average reflects
+  // the real interval (no artificial start-date cutoff).
+  const earliestDataDate = data.length > 0 ? new Date(data[0].date) : null
+  const daysInRange = getDaysInTimeframe(timeRange, earliestDataDate)
   const averageDaily = totalCustomers > 0 ? (totalCustomers / daysInRange) : 0
 
   // Calculate max value for Y-axis ticks

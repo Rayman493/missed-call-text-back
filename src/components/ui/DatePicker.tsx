@@ -86,7 +86,10 @@ export default function DatePicker({
         )}
       </div>
 
-      {!required && (
+      {/* "Today" quick-set helper — only shown when a date is already selected,
+          so it acts as a quick reset-to-today rather than a misleading default
+          hint on an empty field. Empty/default forms do not show "Today". */}
+      {!required && value && (
         <button
           type="button"
           onClick={selectToday}

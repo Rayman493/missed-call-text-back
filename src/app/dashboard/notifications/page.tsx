@@ -220,17 +220,17 @@ export default function NotificationsPage() {
       <AppHeader showNavigation={true} />
       <div className="max-w-5xl mx-auto px-4 py-6">
         {/* Header */}
-        <div className="mb-6">
-          {/* Title row with back button + actions — actions right-aligned at all breakpoints */}
-          <div className="flex flex-row flex-wrap items-center gap-3">
+        <div className="mb-4 sm:mb-6">
+          {/* Row 1: Back + Notifications title */}
+          <div className="flex flex-row items-center gap-3">
             <div className="flex items-center gap-3">
               <AppBackButton fallbackHref="/dashboard" label="Back" />
               <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
             </div>
 
-            {/* Actions - top-right utility, right-aligned on mobile and desktop */}
+            {/* Desktop actions — right-aligned utility (clean on wider screens) */}
             {notifications.length > 0 && (
-              <div className="flex items-center gap-2 shrink-0 ml-auto">
+              <div className="hidden sm:flex items-center gap-2 shrink-0 ml-auto">
                 {notificationCount.unread > 0 && (
                   <button
                     onClick={handleMarkAllAsRead}
@@ -249,10 +249,30 @@ export default function NotificationsPage() {
             )}
           </div>
 
-          {/* Subtitle */}
+          {/* Row 2: subtitle / supporting copy */}
           <p className="text-sm text-muted-foreground mt-2">
             Stay updated on your ReplyFlow activity.
           </p>
+
+          {/* Row 3: mobile-only left-aligned actions, compact, under subtitle */}
+          {notifications.length > 0 && (
+            <div className="flex sm:hidden items-center gap-2 mt-3">
+              {notificationCount.unread > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors shrink-0"
+                >
+                  Mark all as read
+                </button>
+              )}
+              <button
+                onClick={handleClearAll}
+                className="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-foreground dark:hover:text-foreground rounded-md transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-600 focus:ring-offset-2"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Notifications List */}

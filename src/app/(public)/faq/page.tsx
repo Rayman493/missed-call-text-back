@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import SSRSafeNavbar from '@/components/SSRSafeNavbar'
+import SSRSafeNavbar from '@/components/MobileHiddenSSRSafeNavbar'
 import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
