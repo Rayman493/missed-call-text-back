@@ -176,6 +176,10 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
   const [failedMedia, setFailedMedia] = useState<Set<string>>(new Set())
   const [hasLoadedFirstImage, setHasLoadedFirstImage] = useState(false)
   const [authenticatedUrls, setAuthenticatedUrls] = useState<Record<string, string>>({})
+  // Track which media items still need authenticated URL resolution
+  const [resolvingMedia, setResolvingMedia] = useState<Set<string>>(new Set())
+  // Track retry attempts per media item
+  const [retryCount, setRetryCount] = useState<Record<string, number>>({})
 
   // Track blob URLs with a ref to ensure proper cleanup
   const blobUrlsRef = useRef<Set<string>>(new Set())
@@ -183,10 +187,14 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
   // Track in-flight fetches to prevent duplicates
   const fetchingRef = useRef<Set<string>>(new Set())
 
+  // Maximum retries before showing terminal failure
+  const MAX_RETRIES = 2
+
   // Fetch authenticated URLs for media on mount
   useEffect(() => {
     const fetchUrls = async () => {
       const urlMap: Record<string, string> = {}
+      const resolvingIds: string[] = []
 
       for (const mediaItem of media || []) {
         // Use local preview URLs directly (no auth needed)
@@ -197,6 +205,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
 
         // Only fetch authenticated URLs for non-Supabase URLs
         if (!mediaItem.media_url.includes('supabase.co') && !mediaItem.media_url.includes('/storage/v1')) {
+          resolvingIds.push(mediaItem.id)
           const blobUrl = await fetchAuthenticatedMedia(
             mediaItem.media_url,
             mediaItem.id,
@@ -206,17 +215,83 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
           if (blobUrl) {
             urlMap[mediaItem.id] = blobUrl
           }
+          // If fetch failed, urlMap won't have an entry — item stays in resolving state for retry
         } else {
           // Direct URLs (Supabase) can be used immediately
           urlMap[mediaItem.id] = mediaItem.media_url
         }
       }
 
-      setAuthenticatedUrls(urlMap)
+      setAuthenticatedUrls(prev => ({ ...prev, ...urlMap }))
+      // Remove successfully resolved items from resolving set
+      setResolvingMedia(prev => {
+        const next = new Set(prev)
+        for (const id of Object.keys(urlMap)) {
+          next.delete(id)
+        }
+        return next
+      })
     }
+
+    // Mark items that need resolution before fetching
+    const initialResolving = new Set<string>()
+    for (const mediaItem of media || []) {
+      if (!mediaItem.isLocalPreview &&
+          !mediaItem.media_url.includes('supabase.co') &&
+          !mediaItem.media_url.includes('/storage/v1')) {
+        initialResolving.add(mediaItem.id)
+      }
+    }
+    setResolvingMedia(initialResolving)
 
     fetchUrls()
   }, [media])
+
+  // Retry resolution for items that are still resolving (no authenticated URL yet)
+  useEffect(() => {
+    if (resolvingMedia.size === 0) return
+
+    const retryTimers: ReturnType<typeof setTimeout>[] = []
+
+    for (const mediaId of resolvingMedia) {
+      const currentRetries = retryCount[mediaId] || 0
+      if (currentRetries >= MAX_RETRIES) continue
+
+      const mediaItem = (media || []).find(m => m.id === mediaId)
+      if (!mediaItem) continue
+
+      const timer = setTimeout(async () => {
+        const blobUrl = await fetchAuthenticatedMedia(
+          mediaItem.media_url,
+          mediaItem.id,
+          blobUrlsRef,
+          fetchingRef
+        )
+        if (blobUrl) {
+          setAuthenticatedUrls(prev => ({ ...prev, [mediaId]: blobUrl }))
+          setResolvingMedia(prev => {
+            const next = new Set(prev)
+            next.delete(mediaId)
+            return next
+          })
+          // Clear any premature failure state — newer success overrides stale error
+          setFailedMedia(prev => {
+            const next = new Set(prev)
+            next.delete(mediaId)
+            return next
+          })
+        } else {
+          setRetryCount(prev => ({ ...prev, [mediaId]: (prev[mediaId] || 0) + 1 }))
+        }
+      }, 2000 * (currentRetries + 1)) // exponential backoff: 2s, 4s
+
+      retryTimers.push(timer)
+    }
+
+    return () => {
+      retryTimers.forEach(t => clearTimeout(t))
+    }
+  }, [resolvingMedia, retryCount, media])
 
   // Cleanup blob URLs on unmount
   useEffect(() => {
@@ -266,7 +341,11 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
   }
 
   const handleImageError = (mediaId: string) => {
-    setFailedMedia(prev => new Set(prev).add(mediaId))
+    // Only mark as failed if we have an authenticated URL (not a stale fallback)
+    // If still resolving, the error is from a stale source — don't show terminal failure
+    if (authenticatedUrls[mediaId]) {
+      setFailedMedia(prev => new Set(prev).add(mediaId))
+    }
   }
 
   // Determine grid layout based on media count
@@ -280,13 +359,26 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
     <>
       <div className={`mt-2 ${media.length > 1 ? 'grid gap-2' + getGridClass() : 'flex flex-col gap-2'}`}>
         {media.map((mediaItem, index) => {
-          // Use authenticated URL for Twilio media, direct URL for Supabase
-          const mediaUrl = authenticatedUrls[mediaItem.id] || getMediaUrl(mediaItem.media_url)
+          // Use authenticated URL only — do NOT fall back to getMediaUrl() for auth-required URLs
+          // Falling back causes the <img> to load a URL without auth headers, triggering premature onError
+          const mediaUrl = authenticatedUrls[mediaItem.id] || null
           const isLoaded = loadedMedia.has(mediaItem.id)
           const isFailed = failedMedia.has(mediaItem.id)
+          const isResolving = resolvingMedia.has(mediaItem.id) && !mediaUrl
+          const retriesExhausted = (retryCount[mediaItem.id] || 0) >= MAX_RETRIES
+          const isTerminalFailed = isFailed && retriesExhausted && !mediaUrl
 
-          // Skip rendering if URL is invalid
-          if (!mediaUrl) {
+          // For local previews and Supabase URLs, getMediaUrl is safe (no auth needed)
+          const safeDirectUrl = mediaItem.isLocalPreview ||
+            mediaItem.media_url.includes('supabase.co') ||
+            mediaItem.media_url.includes('/storage/v1') ||
+            mediaItem.media_url.startsWith('blob:')
+            ? getMediaUrl(mediaItem.media_url)
+            : null
+          const effectiveUrl = mediaUrl || safeDirectUrl
+
+          // Skip rendering if URL is invalid and not resolving
+          if (!effectiveUrl && !isResolving) {
             if (DEBUG) console.error('[MessageMediaRenderer] Invalid media URL for item:', {
               mediaId: mediaItem.id,
               mediaUrl: mediaItem.media_url
@@ -297,10 +389,10 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
           if (isImage(mediaItem.mime_type)) {
             return (
               <div key={mediaItem.id} className="relative group overflow-hidden rounded-xl shadow-lg border border-slate-700/50">
-                {/* Image */}
-                {!isFailed && mediaUrl && (
+                {/* Image — only render when effective URL is available */}
+                {!isTerminalFailed && effectiveUrl && (
                   <img
-                    src={mediaUrl}
+                    src={effectiveUrl}
                     alt="Message attachment"
                     className={`
                       cursor-pointer rounded-xl transition-all
@@ -308,27 +400,34 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                       max-w-[85%] md:max-w-[420px] max-h-[500px] md:max-h-[600px] object-contain w-full
                       block
                     `}
-                    onClick={() => handleMediaClick(mediaUrl)}
+                    onClick={() => effectiveUrl && handleMediaClick(effectiveUrl)}
                     onLoad={() => handleImageLoad(mediaItem.id)}
                     onError={() => handleImageError(mediaItem.id)}
                     loading="lazy"
                   />
                 )}
                 
-                {/* Loading skeleton - only show before image loads */}
-                {!isLoaded && !isFailed && (
-                  <div className="absolute inset-0 aspect-video bg-slate-200 dark:bg-slate-700 rounded-xl animate-pulse -z-10" />
+                {/* Loading state — shown while resolving or before image loads */}
+                {!isLoaded && !isTerminalFailed && (
+                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-2 text-slate-400 dark:text-slate-500">
+                      <div className="w-6 h-6 border-2 border-slate-300 dark:border-slate-600 border-t-slate-400 dark:border-t-slate-400 rounded-full animate-spin" />
+                      <p className="text-xs">Loading image…</p>
+                    </div>
+                  </div>
                 )}
                 
-                {/* Error state */}
-                {isFailed && (
+                {/* Terminal error state — only after retries exhausted */}
+                {isTerminalFailed && (
                   <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">
                     <p className="text-sm text-slate-500 dark:text-slate-400">Image failed to load</p>
                   </div>
                 )}
                 
                 {/* Hover affordance */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-xl pointer-events-none" />
+                {effectiveUrl && !isTerminalFailed && (
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-xl pointer-events-none" />
+                )}
               </div>
             )
           }
@@ -349,15 +448,19 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                     {getFileTypeLabel(mediaItem.mime_type)} · {formatFileSize(mediaItem.size || 0)}
                   </p>
                 </div>
-                {mediaUrl ? (
+                {effectiveUrl ? (
                   <a
-                    href={mediaUrl}
+                    href={effectiveUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex-shrink-0"
                   >
                     Tap to open
                   </a>
+                ) : isResolving ? (
+                  <span className="text-sm text-slate-400 dark:text-slate-500 flex-shrink-0">
+                    Loading…
+                  </span>
                 ) : (
                   <span className="text-sm text-slate-500 dark:text-slate-400 flex-shrink-0">
                     Unavailable
@@ -370,9 +473,9 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
           if (isVideo(mediaItem.mime_type)) {
             return (
               <div key={mediaItem.id} className="relative group overflow-hidden rounded-xl shadow-lg border border-slate-700/50">
-                {mediaUrl ? (
+                {effectiveUrl ? (
                   <video
-                    src={mediaUrl}
+                    src={effectiveUrl}
                     controls
                     className="max-w-[85%] md:max-w-[420px] max-h-[500px] md:max-h-[600px] w-full object-contain bg-black"
                     preload="metadata"
@@ -392,15 +495,17 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
               <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
               </svg>
-              {mediaUrl ? (
+              {effectiveUrl ? (
                 <a
-                  href={mediaUrl}
+                  href={effectiveUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   View attachment ({mediaItem.mime_type})
                 </a>
+              ) : isResolving ? (
+                <span className="text-sm text-slate-400 dark:text-slate-500">Loading…</span>
               ) : (
                 <span className="text-sm text-slate-500 dark:text-slate-400">Attachment unavailable</span>
               )}

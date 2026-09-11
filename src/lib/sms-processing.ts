@@ -354,19 +354,25 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     })
     console.log(`[SMS Processing] Using business for new lead: ${business.id}`)
   }
-  
-  if (!lead) {
-    // Check if phone number is in ignored contacts before creating lead
+
+  // SHARED PRE-CHECK: Ignored-contact determination takes precedence over
+  // normal lead reuse for inbound contact handling. This matches the canonical
+  // product intent in the voice route (line 598) and auto-sms-dispatcher (line 548),
+  // where ignored-contact is checked BEFORE any lead/customer-system processing.
+  // Without this, a phone number that has an existing lead AND is in ignored_contacts
+  // would bypass ignored-contact behavior merely because the lead was found first.
+  if (business?.id) {
     const isIgnored = await isIgnoredContact(business.id, normalizedCustomerPhone)
-    
+
     if (isIgnored) {
       console.log('[IGNORED CONTACT SKIP LEAD CREATION]', {
         businessId: business.id,
         phoneNumber: normalizedCustomerPhone,
-        source: 'inbound-sms'
+        source: 'inbound-sms',
+        hadExistingLead: !!lead
       })
-      
-      // Return valid TwiML response without creating lead
+
+      // Return valid TwiML response without creating lead or persisting message
       return {
         success: true,
         ignored: true,
@@ -376,7 +382,9 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 </Response>`
       }
     }
-    
+  }
+
+  if (!lead) {
     // Create new lead with status 'needs_reply' since customer replied
     console.log(`[SMS Processing] No existing lead, creating new lead via LeadService`)
     

@@ -1009,20 +1009,24 @@ export const db = {
   /**
    * Helper function to determine if an existing lead should be reused
    * Lead reuse policy: Only reuse if:
-   * - Status is NOT 'completed'
    * - Status is NOT 'cancelled'
    * - Last activity is within 30 days
    *
    * Note: 'ignored' leads SHOULD be reused to preserve customer identity and conversation history
    * for the same business and phone number. Ignored is a visibility/status choice, not a deletion.
+   *
+   * Note: 'completed' leads SHOULD be reused so that inbound SMS from completed customers
+   * is persisted to the existing conversation rather than triggering the "no existing lead"
+   * branch which may send an unwanted generic acknowledgement. The lead status itself
+   * is NOT automatically changed (the transition table has no transitions from 'completed').
    */
   shouldReuseLead(lead: Lead | null): boolean {
     if (!lead) {
       return false
     }
 
-    // Check status - allow reuse of ignored leads to preserve customer identity
-    if (lead.status === 'completed' || lead.status === 'cancelled') {
+    // Check status - allow reuse of completed/ignored leads to preserve customer identity
+    if (lead.status === 'cancelled') {
       return false
     }
 

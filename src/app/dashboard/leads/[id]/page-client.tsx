@@ -1088,16 +1088,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       })
     }
     
-    // Add Customer Corrected Address event
+    // Add address/information update event (neutral wording — no claim of customer intent)
     if (leadData?.raw_metadata?.customer_corrected_info || leadData?.raw_metadata?.corrected_fields) {
       const correctionTimestamp = leadData.raw_metadata.last_customer_reply_at || leadData.last_activity_at || leadData.created_at
-      const hasAddressCorrection = leadData.raw_metadata.corrected_fields?.address
+      const correctedFieldKeys = Object.keys(leadData.raw_metadata.corrected_fields || {})
+      const hasOnlyAddressChange = correctedFieldKeys.length === 1 && correctedFieldKeys.includes('address')
       systemEvents.push({
         type: 'system_event',
         id: `correction-${leadData.id}`,
         created_at: correctionTimestamp,
         data: {
-          message: hasAddressCorrection ? 'Customer Corrected Address' : 'Customer Updated Information',
+          message: hasOnlyAddressChange ? 'Address updated' : 'Customer information updated',
           timestamp: correctionTimestamp,
           isDivider: true
         }

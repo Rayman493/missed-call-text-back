@@ -76,7 +76,9 @@ export function groupCorrectionsWithSourceMessages(
 function isCorrectionEvent(event: TimelineEvent): event is CorrectionEvent {
   return (
     event.type === 'system_event' &&
-    (event.data?.message === 'Customer Corrected Address' ||
+    (event.data?.message === 'Address updated' ||
+     event.data?.message === 'Customer information updated' ||
+     event.data?.message === 'Customer Corrected Address' ||
      event.data?.message === 'Customer Updated Information')
   )
 }
@@ -193,8 +195,8 @@ function getCorrectedValueForMatching(
   const message = correction.data.message
   if (message.includes('Address')) {
     return correctedFields.address || null
-  } else if (message.includes('Information')) {
-    // For generic "Customer Updated Information", try all fields
+  } else if (message.includes('Information') || message.includes('information')) {
+    // For generic "Customer information updated", try all fields
     return Object.values(correctedFields)[0] || null
   }
 
