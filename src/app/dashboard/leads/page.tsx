@@ -1131,12 +1131,17 @@ export default function LeadsPage() {
 
                 {/* Filter dropdown button */}
                 <DropdownMenu open={filterMenuOpen} onOpenChange={(open) => {
-                  // Suppress opening if this was triggered by a drag gesture
-                  if (open && filterSuppressNextOpenRef.current) {
-                    filterSuppressNextOpenRef.current = false
-                    return
+                  // MIRROR LeadStatusDropdown PATTERN: never let Radix open the
+                  // menu from onOpenChange. Radix DropdownMenuTrigger toggles
+                  // open on pointerdown internally — if we allowed
+                  // onOpenChange(true), the menu would open at touch start
+                  // before any drag detection can run, causing the filter to
+                  // open during scroll. Opening is handled exclusively by
+                  // the onClick handler on the trigger button, which fires
+                  // AFTER all touch events and checks filterSuppressNextOpenRef.
+                  if (!open) {
+                    setFilterMenuOpen(false)
                   }
-                  setFilterMenuOpen(open)
                 }}>
                   <DropdownMenuTrigger asChild>
                     <button

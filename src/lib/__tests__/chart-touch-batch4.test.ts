@@ -63,7 +63,27 @@ describe('Batch 4 — ChartTouchWrapper Canonical Gesture Guard', () => {
   it('suppresses chart pointer events only during active drag (not scroll)', () => {
     const content = readContent('src/lib/chart-utils.tsx')
     expect(content).toContain('isDragging')
-    expect(content).toContain("pointerEvents: isDragging ? 'none' : 'auto'")
+    // The canonical implementation uses direct DOM manipulation through
+    // disableChartPointerEvents() / restoreChartPointerEvents() rather than
+    // inline style binding. This is called ONLY when drag is detected
+    // (movement beyond threshold), NOT on pointerdown/touchstart, so clean
+    // taps can still reach Recharts.
+    expect(content).toContain('disableChartPointerEvents')
+    expect(content).toContain('restoreChartPointerEvents')
+    // disableChartPointerEvents sets pointerEvents to 'none' via DOM ref
+    expect(content).toContain("style.pointerEvents = 'none'")
+    // restoreChartPointerEvents sets pointerEvents back to 'auto'
+    expect(content).toContain("style.pointerEvents = 'auto'")
+    // Must NOT disable on pointerdown (clean tap must reach Recharts)
+    const pointerDownBlock = content.match(/const handlePointerDown = \([\s\S]*?\n  \}/)
+    if (pointerDownBlock) {
+      expect(pointerDownBlock[0]).not.toContain('disableChartPointerEvents')
+    }
+    // Must NOT disable on touchstart (clean tap must reach Recharts)
+    const touchStartBlock = content.match(/const handleTouchStart = \([\s\S]*?\n  \}/)
+    if (touchStartBlock) {
+      expect(touchStartBlock[0]).not.toContain('disableChartPointerEvents')
+    }
   })
 
   it('resets drag state synchronously on touch end (no delay)', () => {

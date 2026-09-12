@@ -489,17 +489,22 @@ describe('Batch 2 — One-shot suppression lifecycle', () => {
 
   it('12. synthetic mouseleave occurs exactly once per completed drag, never normal tap', () => {
     const chartUtils = readSrc('src/lib/chart-utils.tsx')
-    // The synthetic mouseleave dispatch must be inside the
-    // isDraggingRef.current check in handleTouchEnd, so it only fires
-    // after a drag, not after a tap
+    // The synthetic mouseleave dispatch is delegated through clearRechartsState(),
+    // which is the canonical helper that dispatches mouseleave on the Recharts
+    // surface and wrapper. The call must be inside the isDraggingRef.current
+    // check in handleTouchEnd, so it only fires after a drag, not after a tap.
     const touchEndBlock = chartUtils.match(/const handleTouchEnd = \([\s\S]*?\n  \}/)
     expect(touchEndBlock).toBeTruthy()
     const body = touchEndBlock![0]
-    // The mouseleave must be guarded by isDraggingRef.current
+    // The clearRechartsState call must be guarded by isDraggingRef.current
     expect(body).toContain('if (isDraggingRef.current)')
-    expect(body).toContain('mouseleave')
+    expect(body).toContain('clearRechartsState()')
     // Must NOT use the old remount approach
     expect(body).not.toContain('setChartResetKey')
+    // clearRechartsState itself must dispatch mouseleave (the canonical mechanism)
+    const clearBlock = chartUtils.match(/const clearRechartsState = \([\s\S]*?\n  \}/)
+    expect(clearBlock).toBeTruthy()
+    expect(clearBlock![0]).toContain('mouseleave')
   })
 
   it('isDragging() reflects live drag state without consuming', () => {

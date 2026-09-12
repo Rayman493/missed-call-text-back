@@ -244,13 +244,28 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
   }
 
   const clearRechartsState = () => {
-    // Dispatch a synthetic mouseleave on the Recharts surface to clear
-    // activeDot/activeBar/tooltip/cursor. This avoids the visual
-    // regeneration/reanimation caused by key-based remount.
+    // Dispatch synthetic events on the Recharts surface to clear
+    // activeDot/activeBar/activeShape/tooltip/cursor state.
+    // Recharts v3.10.1 uses a Redux-based state architecture that responds
+    // to both mouse and touch events. We dispatch both mouseleave and
+    // touchend/touchcancel to ensure all activation paths are cleared.
     if (innerRef.current) {
       const surface = innerRef.current.querySelector('.recharts-surface') as Element | null
       if (surface) {
+        // Clear mouse-based activation (activeDot, tooltip, cursor)
         surface.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }))
+        // Clear touch-based activation (Recharts v3.10.1 touchEventsMiddleware)
+        try {
+          surface.dispatchEvent(new TouchEvent('touchend', { bubbles: true }))
+        } catch {
+          // TouchEvent constructor not available in all environments (JSDOM)
+          // mouseleave is sufficient in those cases
+        }
+      }
+      // Also dispatch mouseleave on the wrapper (RechartsWrapper listens here)
+      const wrapper = innerRef.current.querySelector('.recharts-wrapper') as Element | null
+      if (wrapper) {
+        wrapper.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }))
       }
     }
   }
@@ -279,8 +294,24 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
         setIsDragging(true)
         // Disable pointer events ONLY when drag is detected
         disableChartPointerEvents()
+        // Clear Recharts active state IMMEDIATELY when drag is detected,
+        // not just on touchend. This prevents the activeDot/activeBar
+        // from remaining visible during the scroll.
+        clearRechartsState()
       }
+      // Stop propagation in bubble phase so Recharts doesn't process
+      // further touchmove events during the drag
+      e.stopPropagation()
     }
+  }
+
+  // Capture-phase touch handler: fires BEFORE Recharts' touchmove handler.
+  // When a drag is detected, stop propagation in capture phase to prevent
+  // the event from reaching Recharts at all.
+  const handleTouchMoveCapture = (e: React.TouchEvent) => {
+    if (!isDraggingRef.current) return
+    // Drag already detected — prevent Recharts from receiving this touchmove
+    e.stopPropagation()
   }
 
   const handleTouchEnd = () => {
@@ -319,8 +350,22 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
         setIsDragging(true)
         // Disable pointer events ONLY when drag is detected
         disableChartPointerEvents()
+        // Clear Recharts active state IMMEDIATELY when drag is detected
+        clearRechartsState()
       }
+      // Stop propagation so Recharts doesn't process further pointermove
+      e.stopPropagation()
     }
+  }
+
+  // Capture-phase pointer handler: fires BEFORE Recharts' pointermove handler.
+  // When a drag is detected, stop propagation in capture phase to prevent
+  // the event from reaching Recharts at all.
+  const handlePointerMoveCapture = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'touch') return
+    if (!isDraggingRef.current) return
+    // Drag already detected — prevent Recharts from receiving this pointermove
+    e.stopPropagation()
   }
 
   const handlePointerUp = (e: React.PointerEvent) => {
@@ -356,9 +401,11 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
       className="w-full h-full select-none focus:outline-none focus-visible:outline-2 focus-visible:outline-blue-500/30 rounded-lg [&_.recharts-surface]:outline-none [&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-blue-500/30 [&_.recharts-wrapper]:outline-none"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
+      onTouchMoveCapture={handleTouchMoveCapture}
       onTouchEnd={handleTouchEnd}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
+      onPointerMoveCapture={handlePointerMoveCapture}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
       // Allow native scrolling in both axes. Chart pointer events are
