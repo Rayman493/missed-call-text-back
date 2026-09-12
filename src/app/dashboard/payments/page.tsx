@@ -265,6 +265,47 @@ export default function PaymentsPage() {
     }
   }, [])
 
+  // App resume: refetch payments when the app returns to the foreground.
+  // On Capacitor (native Android/iOS), the page stays mounted across app
+  // suspend/resume, so the mount effect does NOT re-fire. Without this
+  // listener, stale non-terminal Tap to Pay payments would not be reconciled
+  // on resume. The /api/payments endpoint performs bounded reconciliation
+  // of recent non-terminal Tap to Pay payments on each fetch.
+  useEffect(() => {
+    let appStateListener: { remove: () => void } | undefined
+    let visibilityHandler: (() => void) | undefined
+
+    const triggerRefetch = () => {
+      console.log('[Payments Page] App resumed — refetching payments for bounded reconciliation')
+      fetchPayments()
+    }
+
+    ;(async () => {
+      try {
+        const mod = await import('@capacitor/app')
+        const { App } = mod as any
+        appStateListener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
+          if (isActive) triggerRefetch()
+        })
+      } catch {
+        // Not on Capacitor (web) — fall back to visibilitychange
+        if (typeof document !== 'undefined') {
+          visibilityHandler = () => {
+            if (document.visibilityState === 'visible') triggerRefetch()
+          }
+          document.addEventListener('visibilitychange', visibilityHandler)
+        }
+      }
+    })()
+
+    return () => {
+      appStateListener?.remove?.()
+      if (visibilityHandler) {
+        document.removeEventListener('visibilitychange', visibilityHandler)
+      }
+    }
+  }, [])
+
   const fetchPayments = async () => {
     try {
       const supabase = createBrowserClient()

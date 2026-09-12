@@ -676,6 +676,39 @@ async function detectCorrectionWithRegex(
             : 'Pattern match'
         })
 
+        // GUARD: Only treat this as a correction if there IS an existing
+        // non-empty value that actually differs from the new value.
+        // A first-time extraction (empty existing field) is NOT a correction —
+        // it's just filling in a blank. A same-value match is not a correction either.
+        // Without this guard, ordinary conversational replies like "I need help"
+        // or "tomorrow" would trigger a false "Customer information updated" divider
+        // even when they don't actually change any existing data.
+        const hasExistingValue = oldValue && String(oldValue).trim().length > 0
+        const valuesDiffer = !hasExistingValue ||
+          String(oldValue).trim().toLowerCase() !== String(newValue).trim().toLowerCase()
+
+        if (!hasExistingValue) {
+          console.log('[CORRECTION SKIPPED - NO EXISTING VALUE]', {
+            field,
+            reason: 'Existing field is empty — this is a first-time extraction, not a correction',
+            newValue,
+          })
+          // Mark this range as matched so it doesn't get double-counted
+          matchedRanges.push({ start: matchStart, end: matchEnd })
+          continue
+        }
+
+        if (!valuesDiffer) {
+          console.log('[CORRECTION SKIPPED - VALUES IDENTICAL]', {
+            field,
+            reason: 'New value matches existing value — no actual change',
+            oldValue,
+            newValue,
+          })
+          matchedRanges.push({ start: matchStart, end: matchEnd })
+          continue
+        }
+
         detectedCorrections.push({
           field,
           oldValue,

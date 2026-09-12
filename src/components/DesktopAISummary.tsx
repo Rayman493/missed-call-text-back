@@ -25,7 +25,12 @@ interface DesktopAISummaryProps {
  * Renders a truthful empty state when no summary is available.
  */
 export default function DesktopAISummary({ leadId, leadData }: DesktopAISummaryProps) {
-  const [aiSummary, setAiSummary] = useState<string | null>(null)
+  // Initialize from persisted summary in leadData.raw_metadata.ai_summary.
+  // The summary API persists the generated summary to raw_metadata so it
+  // survives navigation, page reload, and app restart. The summary remains
+  // until the user explicitly presses Refresh/Regenerate.
+  const persistedSummary = leadData?.raw_metadata?.ai_summary || null
+  const [aiSummary, setAiSummary] = useState<string | null>(persistedSummary)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasAttempted, setHasAttempted] = useState(false)
@@ -52,10 +57,16 @@ export default function DesktopAISummary({ leadId, leadData }: DesktopAISummaryP
           errorMessage = 'Customer not found.'
         } else if (data.error === 'unauthorized') {
           errorMessage = 'You are not authorized to generate summaries.'
+        } else if (data.error === 'summary_persistence_failed') {
+          // Persistence failed — the previous summary (if any) remains untouched.
+          // Do NOT clear aiSummary; show the error separately so the user can retry.
+          errorMessage = data.message || 'Summary was generated but could not be saved. Please try again.'
         }
         throw new Error(errorMessage)
       }
 
+      // Only update the displayed summary after successful persistence.
+      // The API returns the summary only after it has been persisted to the DB.
       setAiSummary(data.summary)
       setHasAttempted(true)
     } catch (err) {
@@ -92,6 +103,12 @@ export default function DesktopAISummary({ leadId, leadData }: DesktopAISummaryP
         </div>
       ) : error ? (
         <div className="space-y-2">
+          {/* If a previous summary exists, keep showing it alongside the error */}
+          {aiSummary ? (
+            <div className="text-sm text-foreground/90 mb-2">
+              {renderedSummary}
+            </div>
+          ) : null}
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           <button
             onClick={handleGenerate}

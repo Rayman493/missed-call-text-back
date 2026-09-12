@@ -278,7 +278,73 @@ Generate a concise business summary of this customer focusing on what they need,
       return NextResponse.json({ error: 'summary_generation_failed' }, { status: 500 })
     }
 
-    console.log('[AI Summary] Summary generated successfully, status: 200')
+    // Persist the generated summary to the lead's raw_metadata so it survives
+    // navigation, page reload, and app restart. The summary is stored in
+    // raw_metadata.ai_summary (no schema change needed — raw_metadata is an
+    // existing JSONB column already used for extracted_info, corrected_fields, etc.).
+    // The summary remains until the user explicitly presses Refresh/Regenerate.
+    //
+    // SAFETY CONTRACT: Persistence is a REQUIRED part of success.
+    // If persistence fails, the operation is NOT considered successful —
+    // we return an error so the UI does not present an ephemeral summary
+    // as durable success. For regeneration, the previous persisted summary
+    // remains untouched (we only write on success).
+    let persistedSuccessfully = false
+    let persistenceError: string | null = null
+    try {
+      const { data: currentLead, error: fetchError } = await supabase
+        .from('leads')
+        .select('raw_metadata')
+        .eq('id', leadId)
+        .single()
+
+      if (fetchError) {
+        console.error('[AI Summary] Failed to fetch lead for persistence:', fetchError)
+        persistenceError = 'persistence_fetch_failed'
+      } else if (!currentLead) {
+        console.error('[AI Summary] Lead not found during persistence')
+        persistenceError = 'lead_not_found_during_persistence'
+      } else {
+        const currentRawMetadata = currentLead.raw_metadata || {}
+        const updatedRawMetadata = {
+          ...currentRawMetadata,
+          ai_summary: summary,
+          ai_summary_updated_at: new Date().toISOString(),
+        }
+
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update({ raw_metadata: updatedRawMetadata })
+          .eq('id', leadId)
+
+        if (updateError) {
+          console.error('[AI Summary] Failed to persist summary to raw_metadata:', updateError)
+          persistenceError = 'persistence_update_failed'
+        } else {
+          console.log('[AI Summary] Summary persisted to raw_metadata.ai_summary')
+          persistedSuccessfully = true
+        }
+      }
+    } catch (persistError: any) {
+      console.error('[AI Summary] Exception during summary persistence:', persistError)
+      persistenceError = 'persistence_exception'
+    }
+
+    if (!persistedSuccessfully) {
+      // Persistence failed — do NOT return the ephemeral summary as durable success.
+      // The previous persisted summary (if any) remains untouched.
+      // The UI should show an error and keep displaying the previous summary
+      // (or the empty state if this was the first generation).
+      console.error('[AI Summary] Persistence failed — returning error, no ephemeral success', {
+        persistence_error: persistenceError,
+      })
+      return NextResponse.json({
+        error: 'summary_persistence_failed',
+        message: 'Summary was generated but could not be saved. Please try again.',
+      }, { status: 500 })
+    }
+
+    console.log('[AI Summary] Summary generated and persisted successfully, status: 200')
     return NextResponse.json({ summary })
   } catch (error) {
     console.error('[AI Summary] Error:', error)
