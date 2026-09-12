@@ -318,6 +318,11 @@ export default function MobileConversationMessageList({
           return null
         }
         
+        // Media-only outgoing bubble: content-size the bubble around the media
+        // so there's no excess blue horizontal dead space. For text+media or
+        // text-only, keep normal bubble sizing.
+        const isMediaOnly = !hasText && hasRenderableMedia
+
         return (
           <div
             key={getMessageKey(msg)}
@@ -328,6 +333,8 @@ export default function MobileConversationMessageList({
               {/* Message Bubble - Modern messaging app styling */}
               <div
                 className={`rounded-lg shadow-sm transition-colors duration-200 overflow-hidden ${
+                  isMediaOnly && isOutbound ? 'w-fit' : ''
+                } ${
                   isAISummary
                     ? 'bg-transparent border-0 shadow-none'
                     : isInbound

@@ -498,9 +498,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [highlightedTimelineItemId, setHighlightedTimelineItemId] = useState<string | null>(null)
   const conversationContainerRef = useRef<HTMLDivElement>(null)
   const mobileConversationContainerRef = useRef<HTMLDivElement>(null)
-  const bottomSentinelRef = useRef<HTMLDivElement>(null)
   const isInitialAutoScrollingRef = useRef(false)
   const initialScrollDoneRef = useRef<string | null>(null)
+  // followLatestRef tracks the user's intent to remain at/near the newest message.
+  // true = user wants to follow latest (at/near bottom)
+  // false = user deliberately scrolled up to read history
+  // This is the SINGLE canonical follow-latest state for the conversation viewport.
+  const followLatestRef = useRef(true)
+  // latestMessageIdRef tracks the ID of the latest message the user has seen.
+  // Used to detect when new messages arrived while away from the conversation.
+  const latestMessageIdRef = useRef<string | null>(null)
   // Picker session state machine — deterministic lifecycle, no timing guesses
   // idle → external (native picker open) → returned_pending (visibilitychange) → completed
   // SELECTION ALWAYS WINS: change(files) from external, returned_pending, OR completed
@@ -677,50 +684,97 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }, [triggerEditCustomerDetails])
   
-  const scrollToBottom = (behavior: ScrollBehavior = 'smooth', force = false, isInitialLoad = false) => {
+  // === CANONICAL SCROLL SYSTEM ===
+  // ONE followLatest model: followLatestRef tracks user intent.
+  // ONE near-bottom threshold: NEAR_BOTTOM_THRESHOLD_PX (150px).
+  // ONE true-bottom algorithm: scrollTop = scrollHeight (direct, no scrollIntoView).
+  //
+  // The true-bottom helper sets scrollTop = scrollHeight directly rather than
+  // using scrollIntoView or scrollTo with smooth behavior. This avoids the
+  // "few pixels too high" bug caused by:
+  //   1. scrollIntoView landing at the sentinel's position (which may be above
+  //      the container's true bottom due to padding/margins)
+  //   2. smooth scrolling being interrupted before reaching true bottom
+  //   3. RAF firing before layout is fully settled
+  //
+  // After the initial scroll, a single layout-aware reconciliation pass runs
+  // via requestAnimationFrame to correct any residual offset after layout
+  // settles (e.g., timestamp/status row render, composer height change).
+
+  // Get the canonical scroll container for the current viewport/fullscreen state
+  const getScrollContainer = useCallback((): HTMLDivElement | null => {
+    if (typeof window === 'undefined') return null
+    const isDesktop = window.innerWidth >= 1024
+    return isFullScreen
+      ? fullScreenScrollRef.current
+      : isDesktop
+        ? conversationContainerRef.current
+        : mobileConversationContainerRef.current
+  }, [isFullScreen])
+
+  // True-bottom helper: scroll the container to its maximum valid scroll position.
+  // Uses direct scrollTop assignment (not scrollTo/scrollIntoView) for deterministic
+  // true-bottom landing. No magic pixel offsets.
+  const scrollToTrueBottom = useCallback((container: HTMLDivElement) => {
+    container.scrollTop = container.scrollHeight
+  }, [])
+
+  // Check if the container is at/near the bottom using the canonical threshold
+  const isContainerNearBottom = useCallback((container: HTMLDivElement): boolean => {
+    return container.scrollHeight - container.scrollTop - container.clientHeight <= NEAR_BOTTOM_THRESHOLD_PX
+  }, [])
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth', force = false, isInitialLoad = false) => {
     // Guard against SSR
     if (typeof window === 'undefined') {
       return
     }
 
-    // Get the correct container based on viewport size and fullscreen state
-    // Fullscreen mode has its own dedicated scroll container that takes precedence
-    const isDesktop = window.innerWidth >= 1024
-    const container = isFullScreen
-      ? fullScreenScrollRef.current
-      : isDesktop
-        ? conversationContainerRef.current
-        : mobileConversationContainerRef.current
-
+    const container = getScrollContainer()
     if (!container) {
       return
     }
 
     // Use canonical near-bottom threshold
-    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= NEAR_BOTTOM_THRESHOLD_PX
+    const isNearBottom = isContainerNearBottom(container)
 
     // Force scroll on initial load regardless of scroll position
     if (force || isInitialLoad || isNearBottom || behavior === 'auto') {
-      requestAnimationFrame(() => {
-        // Scroll to sentinel if available, otherwise to bottom
-        if (bottomSentinelRef.current && !isFullScreen) {
-          bottomSentinelRef.current.scrollIntoView({ behavior, block: 'end' })
-        } else {
-          container.scrollTo({
-            top: container.scrollHeight,
-            behavior
+      // For 'auto' behavior (instant), scroll immediately without RAF.
+      // This is the true-bottom path: direct scrollTop = scrollHeight.
+      if (behavior === 'auto') {
+        scrollToTrueBottom(container)
+        // Layout-aware reconciliation: one RAF pass to correct residual offset
+        // after layout settles (timestamp/status render, composer height, etc.)
+        requestAnimationFrame(() => {
+          if (followLatestRef.current || force || isInitialLoad) {
+            scrollToTrueBottom(container)
+          }
+        })
+      } else {
+        // For 'smooth' behavior, use RAF then direct scrollTop.
+        // RAF ensures the DOM has been updated before we measure scrollHeight.
+        requestAnimationFrame(() => {
+          scrollToTrueBottom(container)
+          // One bounded layout-aware correction after smooth scroll initiates
+          requestAnimationFrame(() => {
+            if (followLatestRef.current || force || isInitialLoad) {
+              scrollToTrueBottom(container)
+            }
           })
-        }
-        setShowJumpButton(false)
-        if (isInitialLoad) {
-          setHasScrolledToBottomOnLoad(true)
-        }
-      })
+        })
+      }
+      setShowJumpButton(false)
+      followLatestRef.current = true
+      if (isInitialLoad) {
+        setHasScrolledToBottomOnLoad(true)
+      }
     } else if (!force) {
       // Show jump button if user scrolled up and new message arrives
       setShowJumpButton(true)
+      followLatestRef.current = false
     }
-  }
+  }, [getScrollContainer, isContainerNearBottom, scrollToTrueBottom])
 
   // Handle image load for latest message - scroll after image loads
   const handleSaveNotes = async () => {
@@ -751,26 +805,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  const handleImageLoad = () => {
-    // Scroll to bottom after image load to ensure full image is visible
-    // Only scroll if user is near bottom (don't force scroll if user is reading older messages)
-    // Handles both embedded and fullscreen containers via scrollToBottom's container selection
-    const isDesktop = window.innerWidth >= 1024
-    const container = isFullScreen
-      ? fullScreenScrollRef.current
-      : isDesktop
-        ? conversationContainerRef.current
-        : mobileConversationContainerRef.current
-
-    if (container) {
-      const scrollThreshold = isDesktop ? 200 : 40
-      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
-
-      if (isNearBottom) {
-        scrollToBottom('auto', false)
-      }
-    }
-  }
+  // handleImageLoad was removed (dead code — never called).
+  // The active media anchor is handleCoalescedImageLoad below.
 
   // === Attachment validation (used by picker session handler) ===
   const validateAttachmentFile = (file: File): { valid: boolean; error?: string } => {
@@ -923,7 +959,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Prevents overlapping smooth scroll animations for multi-image MMS.
   // Multiple onImageLoad calls within the same frame are coalesced into one scroll.
   // Outgoing media: force anchor to true bottom (user just sent it).
-  // Inbound media: respect near-bottom only (don't yank user down if they scrolled up).
+  // Inbound media: respect followLatestRef (don't yank user down if they scrolled up).
   const handleCoalescedImageLoad = useCallback(() => {
     if (imageScrollRafRef.current !== null) return // already scheduled
     imageScrollRafRef.current = requestAnimationFrame(() => {
@@ -933,8 +969,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         outgoingMediaAnchorRef.current = false
         scrollToBottom('auto', true)
       } else {
-        // Inbound media: only follow if user is already near bottom
-        scrollToBottom('smooth', false)
+        // Inbound media: only follow if user is already near bottom (followLatestRef)
+        if (followLatestRef.current) {
+          scrollToBottom('auto', false)
+        }
       }
     })
   }, [])
@@ -943,25 +981,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Fires after the optimistic message is rendered (DOM committed, before paint).
   useLayoutEffect(() => {
     if (localSendScrollGeneration > 0) {
-      const isDesktop = window.innerWidth >= 1024
-      const container = isFullScreen
-        ? fullScreenScrollRef.current
-        : isDesktop
-          ? conversationContainerRef.current
-          : mobileConversationContainerRef.current
+      const container = getScrollContainer()
       if (container) {
-        container.scrollTop = container.scrollHeight
+        scrollToTrueBottom(container)
       }
+      followLatestRef.current = true
     }
-  }, [localSendScrollGeneration, isFullScreen])
+  }, [localSendScrollGeneration, isFullScreen, getScrollContainer, scrollToTrueBottom])
 
-  // Realtime message scroll — deterministic, respects near-bottom rules.
-  // If user is intentionally scrolled up, preserve their position (show jump button).
+  // Realtime message scroll — deterministic, respects followLatestRef.
+  // If user is intentionally scrolled up (followLatest=false), preserve their position (show jump button).
+  // If user is following latest (followLatest=true), anchor to true bottom.
   useLayoutEffect(() => {
     if (realtimeScrollGeneration > 0) {
-      scrollToBottom('smooth', false)
+      if (followLatestRef.current) {
+        scrollToBottom('auto', false)
+      } else {
+        // User is reading history — show jump button, don't scroll
+        setShowJumpButton(true)
+      }
     }
-  }, [realtimeScrollGeneration])
+  }, [realtimeScrollGeneration, scrollToBottom])
 
   const handleMobileImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -1331,7 +1371,32 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
   const latestMessageStatus = latestMessage?.status || 'No messages'
 
+  // Track latest message ID to detect when new messages arrived while away.
+  // On return to conversation, if followLatest was true and latest message advanced,
+  // settle to true bottom after layout.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const currentLatestId = latestMessage?.id || null
+    if (currentLatestId && latestMessageIdRef.current && latestMessageIdRef.current !== currentLatestId) {
+      // Latest message advanced while we were away (or realtime arrived).
+      // If followLatest was true, settle to true bottom after layout.
+      if (followLatestRef.current) {
+        const container = getScrollContainer()
+        if (container) {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              scrollToTrueBottom(container)
+            })
+          })
+        }
+      }
+    }
+    latestMessageIdRef.current = currentLatestId
+  }, [latestMessage?.id, getScrollContainer, scrollToTrueBottom])
+
   // Scroll to bottom after messages load with ResizeObserver for dynamic content
+  // Uses the canonical true-bottom helper (scrollTop = scrollHeight) and a single
+  // ResizeObserver for layout-aware reconciliation. No setTimeout hacks.
   useEffect(() => {
     if (!loading && messagesArray.length > 0 && !hasScrolledToBottomOnLoad) {
       // Set initial scroll not ready to hide message pane during scroll
@@ -1347,42 +1412,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       // Set initial auto-scrolling flag to prevent other scroll effects from interfering
       isInitialAutoScrollingRef.current = true
+      followLatestRef.current = true
 
       if (!container) {
         return
       }
 
       let resizeObserver: ResizeObserver | null = null
-      let scrollTimeout: NodeJS.Timeout | null = null
+      let rafId: number | null = null
 
-      const scrollToBottomNow = () => {
-        if (container) {
-          container.scrollTop = container.scrollHeight
-        }
-      }
-
-      // Initial scroll
-      requestAnimationFrame(() => {
-        scrollToBottomNow()
-      })
+      // Initial scroll: direct scrollTop = scrollHeight (true bottom)
+      scrollToTrueBottom(container)
 
       // Set up ResizeObserver to detect content height changes (images, transcription, audio)
-      // During initial auto-scrolling, always scroll to bottom regardless of user position
+      // During initial auto-scrolling, always scroll to true bottom (no near-bottom check)
       // This ensures conversation stays pinned to newest message while content is settling
       if (typeof ResizeObserver !== 'undefined') {
-        resizeObserver = new ResizeObserver((entries) => {
-          for (const entry of entries) {
-            // During initial auto-scrolling, always scroll to bottom (no near-bottom check)
-            // This prevents content growth from leaving newest message below viewport
-            if (isInitialAutoScrollingRef.current) {
-              scrollToBottomNow()
-            } else {
-              // After initial positioning, respect user's scroll position
-              // Only auto-scroll if user is genuinely near bottom
-              const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= NEAR_BOTTOM_THRESHOLD_PX
-              if (isNearBottom) {
-                scrollToBottomNow()
-              }
+        resizeObserver = new ResizeObserver(() => {
+          if (isInitialAutoScrollingRef.current) {
+            scrollToTrueBottom(container)
+          } else {
+            // After initial positioning, respect user's scroll position via followLatestRef
+            if (followLatestRef.current && isContainerNearBottom(container)) {
+              scrollToTrueBottom(container)
             }
           }
         })
@@ -1391,29 +1443,33 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         resizeObserver.observe(container)
       }
 
+      // Layout-aware reconciliation: one RAF pass to correct residual offset
+      // after the initial layout settles (replaces the old setTimeout(300) hack)
+      rafId = requestAnimationFrame(() => {
+        scrollToTrueBottom(container)
+        // Mark initial scroll complete after layout settles
+        isInitialAutoScrollingRef.current = false
+        setHasScrolledToBottomOnLoad(true)
+        setInitialScrollReady(true)
+        followLatestRef.current = true
+      })
+
       // Cleanup function
       const cleanup = () => {
         if (resizeObserver) {
           resizeObserver.disconnect()
         }
-        if (scrollTimeout) {
-          clearTimeout(scrollTimeout)
+        if (rafId !== null && typeof window !== 'undefined') {
+          cancelAnimationFrame(rafId)
         }
-        // Mark initial scroll complete after a reasonable delay
         isInitialAutoScrollingRef.current = false
         setHasScrolledToBottomOnLoad(true)
         setInitialScrollReady(true)
       }
 
-      // Set a timeout to complete initial scroll (fallback for text-only conversations)
-      scrollTimeout = setTimeout(() => {
-        scrollToBottomNow()
-        cleanup()
-      }, 300)
-
       return cleanup
     }
-  }, [loading, messagesArray.length, hasScrolledToBottomOnLoad])
+  }, [loading, messagesArray.length, hasScrolledToBottomOnLoad, scrollToTrueBottom, isContainerNearBottom])
 
   // Reset scroll state when navigating to a different customer
   useEffect(() => {
@@ -1421,6 +1477,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     setInitialScrollReady(false)
     isInitialAutoScrollingRef.current = false
     initialScrollDoneRef.current = null
+    // Reset follow-latest state for new conversation (default: follow latest)
+    followLatestRef.current = true
+    // Clear latest message tracking so we don't trigger a false "messages arrived while away"
+    latestMessageIdRef.current = null
   }, [params.id])
 
   // App-resume refresh for Business Number payment handoff and realtime subscription
@@ -1517,29 +1577,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         return
       }
 
-      // Only scroll if we're near bottom or if this is after a refresh
-      const isDesktop = window.innerWidth >= 1024
-      const container = isFullScreen
-        ? fullScreenScrollRef.current
-        : isDesktop
-          ? conversationContainerRef.current
-          : mobileConversationContainerRef.current
+      // Only scroll if we're near bottom (using canonical threshold) or if followLatest is true
+      const container = getScrollContainer()
 
       if (container) {
-        const scrollThreshold = isDesktop ? 200 : 40
-        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
+        const isNearBottom = isContainerNearBottom(container)
 
-        if (isNearBottom) {
+        if (isNearBottom || followLatestRef.current) {
           // Use double requestAnimationFrame to ensure React has finished rendering
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-              scrollToBottom('smooth', false)
+              scrollToBottom('auto', false)
             })
           })
         }
       }
     }
-  }, [messagesArray.length, isFullScreen])
+  }, [messagesArray.length, isFullScreen, getScrollContainer, isContainerNearBottom, scrollToBottom])
 
   // Check scroll position to show/hide jump button
   useEffect(() => {
@@ -1548,12 +1602,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       return
     }
 
-    const isDesktop = window.innerWidth >= 1024
-    const container = isFullScreen
-      ? fullScreenScrollRef.current
-      : isDesktop
-        ? conversationContainerRef.current
-        : mobileConversationContainerRef.current
+    const container = getScrollContainer()
 
     if (!container) return
 
@@ -1563,8 +1612,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         return
       }
 
-      const scrollThreshold = isDesktop ? 200 : 40
-      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
+      // Update followLatestRef based on user scroll position
+      const isNearBottom = isContainerNearBottom(container)
+      followLatestRef.current = isNearBottom
       setShowJumpButton(!isNearBottom && messagesArray.length > 0)
     }
 
@@ -1576,7 +1626,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
 
     return () => container.removeEventListener('scroll', handleScroll)
-  }, [messagesArray.length, isFullScreen])
+  }, [messagesArray.length, isFullScreen, getScrollContainer, isContainerNearBottom])
 
   // Track viewport size for conditional rendering
   useEffect(() => {
@@ -1596,6 +1646,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }, [])
 
   // Handle keyboard resize on mobile - maintain scroll position
+  // Uses followLatestRef to determine whether to anchor to true bottom.
+  // If user was following latest (near bottom), scroll to true bottom after resize.
+  // If user was reading history (scrolled up), preserve their position.
   useEffect(() => {
     // Guard against SSR and desktop
     if (typeof window === 'undefined' || window.innerWidth >= 1024) {
@@ -1613,14 +1666,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       // Only respond to significant height changes (keyboard open/close)
       if (heightDiff > 100) {
-        const isDesktop = window.innerWidth >= 1024
-        const scrollThreshold = isDesktop ? 200 : 40
-        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
-
-        // If user was near bottom before keyboard resize, scroll to bottom after resize
-        if (isNearBottom) {
+        // Use followLatestRef as the canonical follow-latest state.
+        // If user was near bottom before keyboard resize, anchor to true bottom.
+        // If user was reading history, preserve their position (no jump).
+        if (followLatestRef.current) {
           requestAnimationFrame(() => {
-            container.scrollTop = container.scrollHeight
+            scrollToTrueBottom(container)
           })
         }
       }
@@ -1637,7 +1688,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       window.addEventListener('resize', handleResize)
       return () => window.removeEventListener('resize', handleResize)
     }
-  }, [messagesArray.length])
+  }, [scrollToTrueBottom])
 
   const followUpJobs = leadData?.followUpJobs || []
   const hasCancelledFollowUps = followUpJobs.some((job: any) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied')
@@ -2297,33 +2348,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // 2. This is a new conversation (different from previous)
     // 3. We haven't already scrolled this conversation
     if (!loading && leadData && leadData.id && initialScrollDoneRef.current !== leadData.id) {
-      console.log('[Initial Scroll] Scrolling to bottom for conversation:', leadData.id)
-      
       // Mark this conversation as scrolled
       initialScrollDoneRef.current = leadData.id
-      
+      followLatestRef.current = true
+
       // Use requestAnimationFrame to ensure DOM is updated
       requestAnimationFrame(() => {
         // Use a second frame to account for image/media loading
         requestAnimationFrame(() => {
-          const isDesktop = window.innerWidth >= 1024
-          const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
-          
+          const container = getScrollContainer()
+
           if (container) {
-            console.log('[Initial Scroll] Container found, scrolling to bottom', {
-              isDesktop,
-              scrollHeight: container.scrollHeight,
-              clientHeight: container.clientHeight
-            })
-            // Use 'auto' behavior for instant scroll (no animation)
-            container.scrollTop = container.scrollHeight
-          } else {
-            console.log('[Initial Scroll] Container not found yet')
+            // Use direct scrollTop = scrollHeight for true-bottom (no smooth animation)
+            scrollToTrueBottom(container)
           }
         })
       })
     }
-  }, [loading, leadData])
+  }, [loading, leadData, getScrollContainer, scrollToTrueBottom])
 
   // Reset initial scroll tracking when navigating to a different conversation
   useEffect(() => {
@@ -2816,6 +2858,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (isMMS) {
       outgoingMediaAnchorRef.current = true
     }
+
+    // User just sent a message — they want to follow latest
+    followLatestRef.current = true
 
     // Clear the composer immediately after creating optimistic message
     // This prevents the text from appearing in both the composer and thread

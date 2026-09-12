@@ -398,7 +398,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                     className={`
                       cursor-pointer rounded-xl transition-opacity duration-300
                       hover:scale-[1.02] hover:shadow-xl
-                      max-w-[85%] md:max-w-[420px] max-h-[500px] md:max-h-[600px] object-contain w-full
+                      max-w-full md:max-w-[420px] max-h-[500px] md:max-h-[600px] object-contain w-full
                       block
                       ${isLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'}
                     `}
@@ -479,7 +479,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                   <video
                     src={effectiveUrl}
                     controls
-                    className="max-w-[85%] md:max-w-[420px] max-h-[500px] md:max-h-[600px] w-full object-contain bg-black"
+                    className="max-w-full md:max-w-[420px] max-h-[500px] md:max-h-[600px] w-full object-contain bg-black"
                     preload="metadata"
                   />
                 ) : (

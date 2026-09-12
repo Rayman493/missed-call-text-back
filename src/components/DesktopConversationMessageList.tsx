@@ -362,6 +362,11 @@ export default function DesktopConversationMessageList({
           return null
         }
         
+        // Media-only outgoing bubble: content-size the bubble around the media
+        // so there's no excess blue horizontal dead space. For text+media or
+        // text-only, keep normal bubble sizing.
+        const isMediaOnly = !hasText && hasRenderableMedia
+
         return (
           <div
             key={getMessageKey(msg)}
@@ -373,6 +378,8 @@ export default function DesktopConversationMessageList({
               {(msg.body || (msg.media && msg.media.length > 0)) && (
                 <div
                   className={`rounded-lg shadow-sm transition-colors duration-200 overflow-hidden ${
+                    isMediaOnly && isOutbound ? 'w-fit' : ''
+                  } ${
                     isInbound
                       ? 'bg-white dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 rounded-bl-sm border border-slate-200/50 dark:border-slate-700/50'
                       : isOptimistic && isSending
