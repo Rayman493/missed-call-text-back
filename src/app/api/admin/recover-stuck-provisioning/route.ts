@@ -7,7 +7,8 @@
  * - sender_pool_attaching
  * - purchasing
  * 
- * POST /api/admin/recover-stuck-provisioning
+ * GET  /api/admin/recover-stuck-provisioning  (Vercel Cron)
+ * POST /api/admin/recover-stuck-provisioning  (manual/admin)
  * 
  * Authentication:
  * - Cron: CRON_SECRET in Authorization header or x-vercel-cron-secret header
@@ -25,7 +26,17 @@ import { recoverStuckProvisioning } from '@/lib/twilio-provisioning-service'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(request: NextRequest) {
+/**
+ * Shared recovery handler used by both GET (cron) and POST (manual/admin).
+ *
+ * Authentication flow:
+ * 1. Try cron secret first (CRON_SECRET via header/query)
+ * 2. Fall back to admin session authentication
+ * 3. Reject if neither succeeds
+ *
+ * This avoids duplicating auth + recovery logic across HTTP methods.
+ */
+async function handleRecoverStuckProvisioning(request: NextRequest): Promise<NextResponse> {
   console.log('[API] Recover Stuck Provisioning request received')
 
   // Try cron authentication first
@@ -113,4 +124,20 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * GET handler — invoked by Vercel Cron Jobs.
+ * Vercel Cron sends GET requests by default.
+ */
+export async function GET(request: NextRequest) {
+  return handleRecoverStuckProvisioning(request);
+}
+
+/**
+ * POST handler — invoked by manual admin actions.
+ * Preserved for backward compatibility with admin UI / manual triggers.
+ */
+export async function POST(request: NextRequest) {
+  return handleRecoverStuckProvisioning(request);
 }
