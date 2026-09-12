@@ -355,30 +355,42 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     console.log(`[SMS Processing] Using business for new lead: ${business.id}`)
   }
 
-  // SHARED PRE-CHECK: Ignored-contact determination takes precedence over
-  // normal lead reuse for inbound contact handling. This matches the canonical
-  // product intent in the voice route (line 598) and auto-sms-dispatcher (line 548),
-  // where ignored-contact is checked BEFORE any lead/customer-system processing.
-  // Without this, a phone number that has an existing lead AND is in ignored_contacts
-  // would bypass ignored-contact behavior merely because the lead was found first.
-  if (business?.id) {
+  // KNOWN-CUSTOMER PRECEDENCE: An existing known customer (lead found) always
+  // receives normal inbound processing — reuse lead, reuse conversation, persist
+  // message, update recency, notify owner, and apply canonical reactivation via
+  // updateLeadStatusForInboundMessage (inbound_message_received → active for ALL
+  // 10 lifecycle statuses). No automatic generic acknowledgement is ever sent
+  // to a known existing customer, regardless of whether their phone number
+  // appears in the ignored_contacts table.
+  //
+  // The ignored-contact suppression check is applied ONLY to UNKNOWN contacts
+  // (no existing lead found). Suppression semantics are preserved — no lead is
+  // created, no message is persisted, no owner notification fires — but NO
+  // outbound acknowledgement is sent either. The legacy generic auto-ack
+  // has been removed entirely from production inbound SMS handling. Suppressed
+  // unknown contacts receive empty TwiML, which produces zero outbound Twilio
+  // message and therefore zero orphaned outbound SID for status-callback
+  // reconciliation.
+  if (!lead && business?.id) {
     const isIgnored = await isIgnoredContact(business.id, normalizedCustomerPhone)
 
     if (isIgnored) {
-      console.log('[IGNORED CONTACT SKIP LEAD CREATION]', {
+      console.log('[IGNORED CONTACT SUPPRESSED]', {
         businessId: business.id,
         phoneNumber: normalizedCustomerPhone,
         source: 'inbound-sms',
-        hadExistingLead: !!lead
+        hadExistingLead: false,
+        outboundAck: 'none'
       })
 
-      // Return valid TwiML response without creating lead or persisting message
+      // Return empty TwiML — no lead creation, no message persistence,
+      // no owner notification, no outbound acknowledgement. This produces
+      // zero outbound Twilio message and zero orphaned outbound SID.
       return {
         success: true,
         ignored: true,
         twiml: `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>Thanks - we received your message.</Message>
 </Response>`
       }
     }
@@ -1693,6 +1705,18 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     businessId: business?.id,
     numMedia: media?.length || 0
   })
+
+  // Targeted inbound decision log — reflects actual production decisions
+  console.log('[inbound-sms]', {
+    customer_id: lead?.id,
+    existing_customer: !!leadResult?.lead,
+    status_before: leadResult?.lead?.status || null,
+    status_after: lead?.status || null,
+    automation_decision: 'none',
+    auto_reply_sent: false,
+    auto_reply_reason: null
+  })
+
   return {
     success: true,
     lead,

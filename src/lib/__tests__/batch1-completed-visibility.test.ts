@@ -168,21 +168,13 @@ describe('Batch 1 — Completed-customer inbound visibility', () => {
   // ---------- case 7: normal completed customer gets no generic TwiML ----------
 
   it('case 7: normal completed customer gets no generic TwiML acknowledgement', () => {
-    // The "Thanks - we received your message." string is only in the ignored-contact branch
-    const thanksIdx = smsProcessingSrc.indexOf('Thanks - we received your message.')
-    expect(thanksIdx).toBeGreaterThan(0)
-
-    // Verify it's inside the isIgnored check, not in the normal lead path
-    const beforeThanks = smsProcessingSrc.substring(Math.max(0, thanksIdx - 500), thanksIdx)
-    expect(beforeThanks).toContain('isIgnored')
+    // The legacy "Thanks - we received your message." has been removed entirely
+    // from production inbound SMS output. No TwiML <Message> contains it.
+    expect(smsProcessingSrc).not.toMatch(/<Message>Thanks - we received your message/)
 
     // The normal lead path (existing lead found) returns empty TwiML
-    // Find the success return in the existing-lead branch (after the isIgnored block)
-    const isIgnoredEnd = smsProcessingSrc.indexOf('}', thanksIdx + 50)
-    const afterIgnored = smsProcessingSrc.substring(isIgnoredEnd)
-
     // Find the empty <Response></Response> TwiML in the success return
-    const emptyResponse = afterIgnored.match(
+    const emptyResponse = smsProcessingSrc.match(
       /twiml:\s*`<\?xml[^`]*<Response>\s*<\/Response>`/
     )
     expect(emptyResponse).toBeTruthy()
@@ -192,15 +184,17 @@ describe('Batch 1 — Completed-customer inbound visibility', () => {
 
   // ---------- case 8: genuinely ignored contact behavior remains intact ----------
 
-  it('case 8a: ignored-contact branch still returns the generic acknowledgement', () => {
-    // The ignored-contact TwiML is preserved
-    expect(smsProcessingSrc).toContain('Thanks - we received your message.')
+  it('case 8a: ignored-contact branch returns empty TwiML (no generic acknowledgement)', () => {
+    // The legacy generic auto-ack has been removed. Suppression returns empty TwiML.
+    expect(smsProcessingSrc).not.toMatch(/<Message>Thanks - we received your message/)
 
-    // It's inside the isIgnored conditional
-    const ignoredBranch = smsProcessingSrc.match(
-      /if \(isIgnored\)\s*\{[\s\S]*?Thanks - we received your message[\s\S]*?\}/
-    )
-    expect(ignoredBranch).toBeTruthy()
+    // The ignored-contact branch still returns a suppressed result with empty TwiML
+    const preCheckIdx = smsProcessingSrc.indexOf('KNOWN-CUSTOMER PRECEDENCE')
+    const ifNotLeadIdx = smsProcessingSrc.indexOf('if (!lead) {', preCheckIdx)
+    const preCheckSection = smsProcessingSrc.substring(preCheckIdx, ifNotLeadIdx)
+    expect(preCheckSection).toContain('if (isIgnored)')
+    expect(preCheckSection).toContain('ignored: true')
+    expect(preCheckSection).not.toContain('<Message>')
   })
 
   it('case 8b: isIgnoredContact is checked independently of lead status', () => {

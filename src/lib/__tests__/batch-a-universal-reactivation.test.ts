@@ -200,29 +200,31 @@ describe('Batch A — Part 3: processInboundSms flow', () => {
 })
 
 // ============================================================
-// Part 4: Generic auto-ack audit
+// Part 4: Generic auto-ack audit (legacy string removed)
 // ============================================================
 
-describe('Batch A — Part 4: Generic auto-ack audit', () => {
-  it('"Thanks - we received your message." appears exactly once (ignored-contact branch only)', () => {
-    const thanksCount = (smsProcessingSrc.match(/Thanks - we received your message/g) || []).length
-    expect(thanksCount).toBe(1)
+describe('Batch A — Part 4: Generic auto-ack audit (legacy string removed)', () => {
+  it('"Thanks - we received your message." is NOT emitted in any production TwiML output', () => {
+    // The legacy generic auto-ack has been removed entirely.
+    // The only acceptable occurrence is in a comment documenting the removal.
+    expect(smsProcessingSrc).not.toMatch(/<Message>Thanks - we received your message/)
   })
 
-  it('the auto-ack is inside the isIgnored conditional (canonical suppression)', () => {
-    const thanksIdx = smsProcessingSrc.indexOf('Thanks - we received your message.')
-    expect(thanksIdx).toBeGreaterThan(0)
-    const beforeThanks = smsProcessingSrc.substring(Math.max(0, thanksIdx - 500), thanksIdx)
-    expect(beforeThanks).toContain('isIgnored')
+  it('the ignored-contact branch returns empty TwiML (no <Message> element)', () => {
+    const preCheckIdx = smsProcessingSrc.indexOf('KNOWN-CUSTOMER PRECEDENCE')
+    const ifNotLeadIdx = smsProcessingSrc.indexOf('if (!lead) {', preCheckIdx)
+    const preCheckSection = smsProcessingSrc.substring(preCheckIdx, ifNotLeadIdx)
+    expect(preCheckSection).toContain('isIgnored')
+    // The return TwiML must be empty (no <Message> element)
+    expect(preCheckSection).not.toContain('<Message>')
+    expect(preCheckSection).toContain('ignored: true')
   })
 
-  it('the auto-ack is NOT in the normal lead path (existing-lead branch)', () => {
+  it('the legacy string is NOT in the normal lead path (existing-lead branch)', () => {
     const elseIfLeadIdx = smsProcessingSrc.indexOf('else if (lead) {')
     expect(elseIfLeadIdx).toBeGreaterThan(0)
-    // The "Thanks" message should come BEFORE the else if (lead) branch
-    // (it's in the shared pre-check, not in the existing-lead branch)
-    const thanksIdx = smsProcessingSrc.indexOf('Thanks - we received your message.')
-    expect(thanksIdx).toBeLessThan(elseIfLeadIdx)
+    // Verify no TwiML <Message> contains the legacy string anywhere
+    expect(smsProcessingSrc).not.toMatch(/<Message>Thanks - we received your message/)
   })
 
   it('no other code path emits "Thanks - we received your message."', () => {
@@ -299,7 +301,7 @@ describe('Batch A — Part 6: Compliance precedence', () => {
 
   it('compliance handler returns BEFORE the ignored-contact check and lead reuse', () => {
     const complianceReturn = smsProcessingSrc.indexOf('optOutHandled: true')
-    const ignoredCheck = smsProcessingSrc.indexOf('SHARED PRE-CHECK')
+    const ignoredCheck = smsProcessingSrc.indexOf('KNOWN-CUSTOMER PRECEDENCE')
     expect(complianceReturn).toBeGreaterThan(0)
     expect(ignoredCheck).toBeGreaterThan(0)
     expect(complianceReturn).toBeLessThan(ignoredCheck)
@@ -545,18 +547,22 @@ describe('Batch A — Part 10: Stale-customer reuse (no age gate)', () => {
     expect(smsProcessingSrc).toContain("status: 'needs_reply'")
   })
 
-  it('case 9: ignored_contacts suppression still wins over reuse', () => {
-    // The shared pre-check (isIgnoredContact) runs BEFORE the lead reuse branch
-    const preCheckIdx = smsProcessingSrc.indexOf('SHARED PRE-CHECK')
+  it('case 9: ignored_contacts suppression only applies to unknown contacts (!lead)', () => {
+    // The known-customer pre-check (isIgnoredContact) runs BEFORE the lead creation branch
+    // but ONLY when no existing lead is found (!lead). Known customers bypass the check.
+    const preCheckIdx = smsProcessingSrc.indexOf('KNOWN-CUSTOMER PRECEDENCE')
     const ifNotLeadIdx = smsProcessingSrc.indexOf('if (!lead) {', preCheckIdx)
     const elseIfLeadIdx = smsProcessingSrc.indexOf('else if (lead) {', preCheckIdx)
     expect(preCheckIdx).toBeGreaterThan(0)
     expect(ifNotLeadIdx).toBeGreaterThan(preCheckIdx)
     expect(elseIfLeadIdx).toBeGreaterThan(preCheckIdx)
-    // The pre-check returns the generic auto-ack if the phone is in ignored_contacts
+    // The pre-check condition requires !lead (only unknown contacts)
     const preCheckSection = smsProcessingSrc.substring(preCheckIdx, ifNotLeadIdx)
+    expect(preCheckSection).toContain('!lead && business?.id')
     expect(preCheckSection).toContain('isIgnored')
-    expect(preCheckSection).toContain('Thanks - we received your message.')
+    // Suppression returns empty TwiML — no legacy generic ack
+    expect(preCheckSection).not.toContain('Thanks - we received your message.')
+    expect(preCheckSection).not.toContain('<Message>')
   })
 
   it('case 10: STOP/START/HELP behavior unchanged', () => {

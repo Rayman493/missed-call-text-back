@@ -52,17 +52,11 @@ describe('Batch 1 — Part 1: COMPLETED-customer auto-reply', () => {
 
   it('case 3: COMPLETED customer inbound SMS sends no generic acknowledgement', () => {
     // Since shouldReuseLead now allows completed leads, the "no existing lead" branch
-    // (which contains the "Thanks - we received your message." TwiML) is NOT reached
-    // for completed customers.
+    // is NOT reached for completed customers. The legacy generic auto-ack has been
+    // removed entirely from production inbound SMS output.
 
-    // The "Thanks - we received your message." string should only appear in the
-    // ignored-contact branch, not in the normal lead path
-    const thanksIdx = smsProcessingSrc.indexOf('Thanks - we received your message.')
-    expect(thanksIdx).toBeGreaterThan(0)
-
-    // Verify it's inside the ignored-contact branch (isIgnored check)
-    const beforeThanks = smsProcessingSrc.substring(Math.max(0, thanksIdx - 500), thanksIdx)
-    expect(beforeThanks).toContain('isIgnored')
+    // No TwiML <Message> contains the legacy string anywhere in production
+    expect(smsProcessingSrc).not.toMatch(/<Message>Thanks - we received your message/)
   })
 
   it('case 4: COMPLETED customer inbound SMS still persists', () => {
@@ -93,9 +87,8 @@ describe('Batch 1 — Part 1: COMPLETED-customer auto-reply', () => {
     const mmsHandling = smsProcessingSrc.match(/media\?:\s*Array|hasMedia.*media\.length/)
     expect(mmsHandling).toBeTruthy()
 
-    // The "Thanks" message is only in the ignored-contact branch, not MMS-specific
-    const thanksCount = (smsProcessingSrc.match(/Thanks - we received your message/g) || []).length
-    expect(thanksCount).toBe(1) // Only in ignored-contact branch
+    // The legacy generic auto-ack has been removed entirely from production
+    expect(smsProcessingSrc).not.toMatch(/<Message>Thanks - we received your message/)
   })
 
   it('case 8: webhook retry does not produce duplicate outbound replies', () => {

@@ -4,8 +4,10 @@
  * Proves that the shouldReuseLead() change (allowing completed leads to be reused)
  * did NOT introduce an ignored-contact regression.
  *
- * Canonical precedence: ignored-contact determination takes precedence over
- * normal lead reuse for inbound contact handling.
+ * Canonical precedence: known existing customers always receive normal inbound
+ * processing (reuse lead, persist message, reactivate, notify owner) regardless
+ * of ignored_contacts membership. The ignored-contact suppression check applies
+ * ONLY to unknown contacts (no existing lead found).
  */
 
 import { describe, it, expect } from 'vitest'
@@ -52,62 +54,62 @@ describe('Batch 1 — Ignore-contact precedence', () => {
   // ---------- case 3: completed non-ignored customer gets no generic acknowledgement ----------
 
   it('case 3: completed non-ignored customer gets no generic acknowledgement', () => {
-    // The "Thanks - we received your message." is only in the ignored-contact branch
-    const thanksIdx = smsProcessingSrc.indexOf('Thanks - we received your message.')
-    expect(thanksIdx).toBeGreaterThan(0)
-
-    // Verify it's inside the isIgnored check
-    const beforeThanks = smsProcessingSrc.substring(Math.max(0, thanksIdx - 500), thanksIdx)
-    expect(beforeThanks).toContain('isIgnored')
+    // The legacy generic auto-ack has been removed entirely from production.
+    // Zero occurrences in production source.
+    const thanksCount = (smsProcessingSrc.match(/Thanks - we received your message/g) || []).length
+    expect(thanksCount).toBe(0)
+    // Verify no TwiML <Message> contains the legacy string
+    expect(smsProcessingSrc).not.toMatch(/<Message>Thanks - we received your message/)
   })
 
-  // ---------- case 4: active ignored contact follows canonical ignored behavior ----------
+  // ---------- case 4: active ignored contact receives normal processing (known-customer precedence) ----------
 
-  it('case 4: active ignored contact follows canonical ignored behavior', () => {
-    // The shared pre-check runs BEFORE the if (!lead) / else if (lead) branch
-    // This means even if an active lead exists, the ignored check takes precedence
-    const preCheckIdx = smsProcessingSrc.indexOf('SHARED PRE-CHECK')
+  it('case 4: active ignored contact receives normal processing (known-customer precedence)', () => {
+    // The known-customer pre-check only applies when no existing lead is found.
+    // An active lead is a known customer, so the ignored-contact check is skipped
+    // and normal inbound processing (reuse, persist, reactivate, notify) runs.
+    const preCheckIdx = smsProcessingSrc.indexOf('KNOWN-CUSTOMER PRECEDENCE')
     expect(preCheckIdx).toBeGreaterThan(0)
+
+    // The pre-check condition requires !lead (only unknown contacts)
+    const preCheckSection = smsProcessingSrc.substring(preCheckIdx, preCheckIdx + 1200)
+    expect(preCheckSection).toContain('!lead && business?.id')
 
     // The pre-check is after business resolution but before the lead branch
     const leadBranchIdx = smsProcessingSrc.indexOf('if (!lead) {', preCheckIdx)
     expect(preCheckIdx).toBeGreaterThan(0)
     expect(leadBranchIdx).toBeGreaterThan(preCheckIdx)
-
-    // The pre-check contains the ignored TwiML
-    const preCheckSection = smsProcessingSrc.substring(preCheckIdx, leadBranchIdx)
-    expect(preCheckSection).toContain('isIgnored')
-    expect(preCheckSection).toContain('Thanks - we received your message.')
   })
 
-  // ---------- case 5: completed ignored contact follows canonical ignored behavior ----------
+  // ---------- case 5: completed ignored contact receives normal processing (known-customer precedence) ----------
 
-  it('case 5: completed ignored contact follows canonical ignored behavior', () => {
-    // The shared pre-check does NOT check lead status — it only checks isIgnoredContact
+  it('case 5: completed ignored contact receives normal processing (known-customer precedence)', () => {
+    // The pre-check does NOT check lead status — it only checks isIgnoredContact
+    // AND only runs when !lead (no existing lead found)
     const preCheckSection = smsProcessingSrc.substring(
-      smsProcessingSrc.indexOf('SHARED PRE-CHECK'),
-      smsProcessingSrc.indexOf('if (!lead) {', smsProcessingSrc.indexOf('SHARED PRE-CHECK'))
+      smsProcessingSrc.indexOf('KNOWN-CUSTOMER PRECEDENCE'),
+      smsProcessingSrc.indexOf('if (!lead) {', smsProcessingSrc.indexOf('KNOWN-CUSTOMER PRECEDENCE'))
     )
     expect(preCheckSection).toContain('isIgnoredContact')
+    // The pre-check code does not reference lead.status
     expect(preCheckSection).not.toContain('lead.status')
-    expect(preCheckSection).not.toContain('completed')
-    expect(preCheckSection).not.toContain('active')
 
-    // The pre-check returns the ignored TwiML regardless of whether a lead exists
-    expect(preCheckSection).toContain('Thanks - we received your message.')
-    expect(preCheckSection).toContain('hadExistingLead: !!lead')
+    // The pre-check returns empty TwiML only for unknown contacts (no outbound ack)
+    expect(preCheckSection).not.toContain('Thanks - we received your message.')
+    expect(preCheckSection).not.toContain('<Message>')
+    expect(preCheckSection).toContain('hadExistingLead: false')
   })
 
   // ---------- case 6: no-lead ignored contact follows canonical ignored behavior ----------
 
   it('case 6: no-lead ignored contact follows canonical ignored behavior', () => {
-    // The shared pre-check handles both cases: with lead and without lead
+    // The known-customer pre-check applies only when no lead exists.
     // When no lead exists, business is resolved from getBusinessesByPhone,
-    // then the pre-check runs
-    const preCheckIdx = smsProcessingSrc.indexOf('SHARED PRE-CHECK')
+    // then the pre-check runs (since !lead is true)
+    const preCheckIdx = smsProcessingSrc.indexOf('KNOWN-CUSTOMER PRECEDENCE')
     expect(preCheckIdx).toBeGreaterThan(0)
 
-    // The pre-check uses business.id which is set in both the lead-found and no-lead paths
+    // The pre-check uses !lead && business?.id which is set in both the lead-found and no-lead paths
     const preCheckSection = smsProcessingSrc.substring(
       preCheckIdx,
       smsProcessingSrc.indexOf('if (!lead) {', preCheckIdx)
@@ -115,11 +117,11 @@ describe('Batch 1 — Ignore-contact precedence', () => {
     expect(preCheckSection).toContain('business?.id')
   })
 
-  // ---------- case 7: ignored contact does not accidentally create a new lead ----------
+  // ---------- case 7: unknown ignored contact does not accidentally create a new lead ----------
 
-  it('case 7: ignored contact does not accidentally create a new lead', () => {
+  it('case 7: unknown ignored contact does not accidentally create a new lead', () => {
     // The pre-check returns BEFORE the if (!lead) branch that creates a new lead
-    const preCheckIdx = smsProcessingSrc.indexOf('SHARED PRE-CHECK')
+    const preCheckIdx = smsProcessingSrc.indexOf('KNOWN-CUSTOMER PRECEDENCE')
     const createLeadIdx = smsProcessingSrc.indexOf('LeadService.createLead', preCheckIdx)
     const preCheckReturnIdx = smsProcessingSrc.indexOf('return {', preCheckIdx)
 
@@ -163,9 +165,10 @@ describe('Batch 1 — Ignore-contact precedence', () => {
     expect(branchSection).toContain('notifyCustomerReply')
   })
 
-  it('case 9b: owner notification does NOT fire for ignored contacts', () => {
-    // The shared pre-check returns BEFORE the existing-lead branch that calls notifyCustomerReply
-    const preCheckIdx = smsProcessingSrc.indexOf('SHARED PRE-CHECK')
+  it('case 9b: owner notification does NOT fire for unknown ignored contacts', () => {
+    // The known-customer pre-check returns BEFORE the existing-lead branch that calls notifyCustomerReply
+    // This only applies to unknown contacts (!lead); known customers always get notifyCustomerReply
+    const preCheckIdx = smsProcessingSrc.indexOf('KNOWN-CUSTOMER PRECEDENCE')
     const notifyIdx = smsProcessingSrc.indexOf('notifyCustomerReply', preCheckIdx)
     const preCheckReturnIdx = smsProcessingSrc.indexOf('return {', preCheckIdx)
 
@@ -181,7 +184,7 @@ describe('Batch 1 — Ignore-contact precedence', () => {
     // before the lead lookup and ignored-contact check
     const optOutIdx = smsProcessingSrc.indexOf('if (isOptOut || isOptIn || isHelp)')
     const leadLookupIdx = smsProcessingSrc.indexOf('findLeadByPhoneAcrossBusinesses', optOutIdx)
-    const preCheckIdx = smsProcessingSrc.indexOf('SHARED PRE-CHECK')
+    const preCheckIdx = smsProcessingSrc.indexOf('KNOWN-CUSTOMER PRECEDENCE')
 
     expect(optOutIdx).toBeGreaterThan(0)
     expect(leadLookupIdx).toBeGreaterThan(optOutIdx)
@@ -248,17 +251,17 @@ describe('Batch 1 — Ignore-contact precedence', () => {
 
   // ---------- shared pre-check structure verification ----------
 
-  it('structure 1: shared pre-check is after business resolution', () => {
+  it('structure 1: known-customer pre-check is after business resolution', () => {
     // The pre-check runs after business is resolved (either from leadResult or getBusinessesByPhone)
     const businessResolutionEnd = smsProcessingSrc.indexOf('Using business for new lead:')
-    const preCheckIdx = smsProcessingSrc.indexOf('SHARED PRE-CHECK')
+    const preCheckIdx = smsProcessingSrc.indexOf('KNOWN-CUSTOMER PRECEDENCE')
 
     // The pre-check should come after the business resolution block
     expect(preCheckIdx).toBeGreaterThan(businessResolutionEnd)
   })
 
-  it('structure 2: shared pre-check is before the if (!lead) / else if (lead) branch', () => {
-    const preCheckIdx = smsProcessingSrc.indexOf('SHARED PRE-CHECK')
+  it('structure 2: known-customer pre-check is before the if (!lead) / else if (lead) branch', () => {
+    const preCheckIdx = smsProcessingSrc.indexOf('KNOWN-CUSTOMER PRECEDENCE')
     const ifNotLeadIdx = smsProcessingSrc.indexOf('if (!lead) {', preCheckIdx)
     const elseIfLeadIdx = smsProcessingSrc.indexOf('else if (lead) {', preCheckIdx)
 

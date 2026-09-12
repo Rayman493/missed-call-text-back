@@ -1027,7 +1027,9 @@ export const db = {
    *
    * Note: 'ignored' lifecycle status is distinct from canonical ignored-contact
    * suppression (ignored_contacts table). The ignored_contacts check is performed
-   * separately in processInboundSms BEFORE lead reuse, and takes precedence.
+   * separately in processInboundSms and applies ONLY to unknown contacts (no
+   * existing lead). Known existing customers always receive normal inbound
+   * processing regardless of ignored_contacts membership.
    */
   shouldReuseLead(lead: Lead | null): boolean {
     if (!lead) {
