@@ -253,36 +253,6 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
         return
       }
 
-      // Special handling for contacts section - use proper divider-based scrolling
-      if (hash === 'contacts') {
-        setActiveSection('general')
-        // Wait for section activation and then scroll to divider
-        setTimeout(() => {
-          const dividerId = `${hash}-divider`
-          const element = document.getElementById(dividerId)
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-            console.log('[SETTINGS] Scrolled to contacts section via divider:', dividerId)
-          }
-        }, 100)
-        return
-      }
-
-      // Special handling for payments section - use proper divider-based scrolling
-      if (hash === 'payments') {
-        setActiveSection('payments')
-        // Wait for section activation and then scroll to divider
-        setTimeout(() => {
-          const dividerId = `${hash}-divider`
-          const element = document.getElementById(dividerId)
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-            console.log('[SETTINGS] Scrolled to payments section via divider:', dividerId)
-          }
-        }, 100)
-        return
-      }
-
       // Canonical section deep-link handler for all known settings sections.
       // Uses MutationObserver to wait for async-rendered section dividers,
       // then scrolls exactly once. No hardcoded scrollY, no retry loop.
@@ -2576,8 +2546,6 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     // Handle URL hash for initial navigation only
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1)
-      // Skip "contacts" - handled by the special-case hash handler above
-      if (hash === 'contacts') return
       const sectionIds = settingsSections.map((s: { id: string }) => s.id)
       if (sectionIds.includes(hash)) {
         // Target the divider element for proper scroll offset
@@ -2713,6 +2681,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     const section = urlParams.get('section')
 
     if (section === 'contacts') {
+      setActiveSection('contacts')
       const tryScroll = () => {
         const dividerId = `${section}-divider`
         const element = document.getElementById(dividerId)

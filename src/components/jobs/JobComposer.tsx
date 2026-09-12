@@ -345,7 +345,7 @@ export default function JobComposer({
               <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
                 <span className="text-xs text-blue-700 dark:text-blue-300 font-medium">
-                  Created from a ReplyFlow customer
+                  Customer details imported from ReplyFlow
                 </span>
               </div>
             )}

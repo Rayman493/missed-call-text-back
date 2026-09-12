@@ -86,7 +86,15 @@ export default function PersonalVoicemailPage() {
         throw new Error(data.error || 'We couldn\'t load your voicemails. Please try again.')
       }
 
-      setVoicemails(data.voicemails || [])
+      // Dedupe by id to prevent duplicate voicemails after refetch/realtime merge
+      const incoming = data.voicemails || []
+      const seenIds = new Set<string>()
+      const deduped = incoming.filter((v: PersonalVoicemail) => {
+        if (seenIds.has(v.id)) return false
+        seenIds.add(v.id)
+        return true
+      })
+      setVoicemails(deduped)
     } catch (err: any) {
       console.error('[Personal Voicemail] Error:', err)
       setError('We couldn\'t load your voicemails. Please try again.')
@@ -128,8 +136,35 @@ export default function PersonalVoicemailPage() {
       }
     }, pollInterval)
 
+    // Supabase realtime subscription for new personal voicemails
+    // Inserts new voicemails into the list without manual refresh.
+    // Dedupes by voicemail id to prevent duplicates.
+    const realtimeChannel = supabase
+      .channel('personal-voicemails-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'personal_voicemails' },
+        (payload: { new: Record<string, unknown> }) => {
+          const newVoicemail = payload.new as unknown as PersonalVoicemail
+          if (!newVoicemail || newVoicemail.deleted_at) return
+          // Build the audioProxyUrl field that the API route normally adds
+          const voicemailWithUrl = {
+            ...newVoicemail,
+            audioProxyUrl: `/api/personal-voicemails/${newVoicemail.id}/audio`,
+          }
+          setVoicemails((prev) => {
+            // Dedupe by id — never insert the same voicemail twice
+            if (prev.some((v) => v.id === voicemailWithUrl.id)) return prev
+            // Insert at the top (newest first, matching API order)
+            return [voicemailWithUrl, ...prev]
+          })
+        }
+      )
+      .subscribe()
+
     return () => {
       clearInterval(pollTimer)
+      supabase.removeChannel(realtimeChannel)
     }
   }, [])
 

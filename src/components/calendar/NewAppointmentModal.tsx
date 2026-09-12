@@ -56,7 +56,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
   // Derived behavior flags
   const isCustomerLocked = (lockCustomer ?? (context === 'customer' && Boolean(preselectedLeadId)))
   const customerIsRequired = requireCustomer ?? (context === 'meetings')
-  const customerLabel = customerIsRequired ? 'Customer (required)' : 'Customer (optional)'
+  const customerLabel = 'Customer'
 
   // Initialize form with default date in the business timezone
   useEffect(() => {

@@ -295,10 +295,10 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
     >
       <div className="space-y-4">
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Section: Customer Context */}
+          {/* Section: Details */}
           <div className="space-y-3">
             <div className="pb-1.5 border-b border-border/40">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Customer Context</p>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Details</p>
             </div>
 
             <div>
@@ -376,7 +376,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               onChange={(value) => setReminderOffsetMinutes(value === '' || value === null ? null : parseInt(value, 10))}
               disabled={false}
               options={[
-                { value: '', label: 'None' },
+                { value: '', label: 'No reminder' },
                 { value: '0', label: 'At time' },
                 { value: '5', label: '5 minutes before' },
                 { value: '15', label: '15 minutes before' },
@@ -387,9 +387,9 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
                 { value: '2880', label: '2 days before' },
                 { value: '10080', label: '1 week before' },
               ]}
-              placeholder="None"
+              placeholder="No reminder"
               label="Remind me (optional)"
-              emptyMessage="None"
+              emptyMessage="No reminder"
             />
           </div>
 

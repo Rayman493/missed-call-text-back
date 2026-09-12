@@ -661,9 +661,6 @@ export default function VoicemailMessage({
                   {showFullTranscript ? 'Show less' : 'Show more'}
                 </button>
               )}
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                AI Transcription
-              </p>
             </div>
           )}
 

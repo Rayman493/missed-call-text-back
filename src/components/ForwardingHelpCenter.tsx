@@ -261,14 +261,14 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
               <p className="text-xs text-muted-foreground/80">
                 Dial this code from your business phone.
               </p>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                <code className="w-full sm:flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 rounded-lg text-sm sm:text-base font-mono font-semibold text-foreground break-all tabular-nums shadow-sm">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <code className="w-full sm:flex-1 px-3 sm:px-4 h-10 flex items-center bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 rounded-lg text-sm sm:text-base font-mono font-semibold text-foreground break-all tabular-nums shadow-sm">
                   {dialCode}
                 </code>
                 <div className="flex sm:flex-1 gap-2 w-full sm:w-auto">
                   <button
                     onClick={() => handleCopyCode(dialCode)}
-                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 sm:px-3 sm:py-2.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg text-xs font-medium transition-colors flex-1 sm:flex-none"
+                    className="h-10 inline-flex items-center justify-center gap-1.5 px-3 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg text-xs font-medium transition-colors flex-1 sm:flex-none"
                     title="Copy code"
                   >
                     {copiedCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -277,7 +277,7 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
                   {selectedCarrier !== 'ringcentral' && selectedCarrier !== 'grasshopper' && selectedCarrier !== 'google_voice' && selectedCarrier !== 'other' && (
                     <button
                       onClick={() => handleOpenDialer(dialCode)}
-                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 sm:px-3 sm:py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-medium transition-colors shadow-sm flex-1 sm:flex-none"
+                      className="h-10 inline-flex items-center justify-center gap-1.5 px-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-medium transition-colors shadow-sm flex-1 sm:flex-none"
                     >
                       <Phone className="w-3.5 h-3.5" />
                       Dial

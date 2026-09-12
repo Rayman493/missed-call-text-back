@@ -4568,13 +4568,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <LeadStatusDropdown
                     currentStatus={normalizeCustomerStatus((leadData || lead).status || (leadData || lead).lead_status)}
                     onStatusChange={handleStatusUpdate}
-                    size="sm"
+                    size="md"
                   />
                   <button
                     type="button"
                     onClick={() => handleRefresh()}
                     disabled={manualRefreshing}
-                    className="h-[30px] inline-flex items-center gap-1.5 px-2 text-muted-foreground hover:text-foreground hover:bg-slate-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-border/50 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label={manualRefreshing ? 'Refreshing' : 'Refresh'}
                     title={manualRefreshing ? 'Refreshing…' : 'Refresh'}
                   >

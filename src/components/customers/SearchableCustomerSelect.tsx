@@ -295,12 +295,23 @@ export default function SearchableCustomerSelect({
   return (
     <div className="relative min-w-0" ref={pickerRef}>
       {label && (
-        <label
-          id={labelId}
-          className="text-xs text-muted-foreground font-medium mb-1.5 block"
-        >
-          {label} {required && <span className="text-red-500">*</span>}
-        </label>
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <label
+            id={labelId}
+            className="text-xs text-muted-foreground font-medium"
+          >
+            {label} {required && <span className="text-red-500">*</span>}
+          </label>
+          {onAddCustomerClick && !disabled && (
+            <button
+              type="button"
+              onClick={onAddCustomerClick}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium flex-shrink-0"
+            >
+              Add customer
+            </button>
+          )}
+        </div>
       )}
 
       {/* Trigger / search input area */}
@@ -459,18 +470,6 @@ export default function SearchableCustomerSelect({
             )}
           </div>
         </div>
-      )}
-      {onAddCustomerClick && !disabled && (
-        <p className="text-xs text-muted-foreground mt-1.5">
-          Can't find them?{' '}
-          <button
-            type="button"
-            onClick={onAddCustomerClick}
-            className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
-          >
-            Add customer
-          </button>
-        </p>
       )}
     </div>
   )

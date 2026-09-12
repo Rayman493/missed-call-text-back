@@ -147,13 +147,16 @@ export default function LeadCard({
       {/* Header: Name, Phone, Status, Source */}
         <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <h3 className="text-sm sm:text-base font-bold text-foreground truncate tracking-tight leading-tight">
-                <span className="text-foreground">{getLeadDisplayName(lead)}</span>
-              </h3>
+            <h3 className="text-sm sm:text-base font-bold text-foreground truncate tracking-tight leading-tight">
+              <span className="text-foreground">{getLeadDisplayName(lead)}</span>
+            </h3>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <p className="text-[11px] sm:text-xs text-muted-foreground truncate">
+                {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
+              </p>
               {customerSourceInfo && (
                 <span
-                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium border whitespace-nowrap flex-shrink-0"
+                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium border whitespace-nowrap flex-shrink-0"
                   title={customerSourceInfo.description}
                   style={{
                     backgroundColor: customerSourceInfo.type === 'replyflow' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(100, 116, 139, 0.1)',
@@ -167,9 +170,6 @@ export default function LeadCard({
                 </span>
               )}
             </div>
-            <p className="text-[11px] sm:text-xs text-muted-foreground">
-              {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
-            </p>
           </div>
           {/* Status dropdown: top-right on all viewports (mobile + desktop) */}
           <div className="flex-shrink-0">

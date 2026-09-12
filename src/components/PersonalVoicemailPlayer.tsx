@@ -41,6 +41,7 @@ export function PersonalVoicemailPlayer({
   const [isSeeking, setIsSeeking] = useState(false)
   
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const progressInputRef = useRef<HTMLInputElement | null>(null)
   const markReadTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const volumeButtonRef = useRef<HTMLButtonElement | null>(null)
   const volumePopoverRef = useRef<HTMLDivElement | null>(null)
@@ -84,18 +85,9 @@ export function PersonalVoicemailPlayer({
     return () => volumeManager.removeListener(handleVolumeChange)
   }, [])
 
-  // Register audio element with volume manager when it becomes available
-  useEffect(() => {
-    if (audioRef.current) {
-      volumeManager.registerAudioElement(audioRef.current)
-    }
-    
-    return () => {
-      if (audioRef.current) {
-        volumeManager.unregisterAudioElement(audioRef.current)
-      }
-    }
-  }, [audioRef])
+  // Audio element registration with volumeManager is handled in createAudio()
+  // (not here) because audioRef.current is null on mount — the audio element
+  // is only created when the user presses play.
 
   // Close volume popover on click outside
   useEffect(() => {
@@ -143,6 +135,10 @@ export function PersonalVoicemailPlayer({
     
     const audio = new Audio(audioProxyUrl)
     audioRef.current = audio
+
+    // Register with volume manager so the volume slider controls THIS element.
+    // The old useEffect registration failed because audioRef.current was null on mount.
+    volumeManager.registerAudioElement(audio)
 
     // Apply saved volume immediately after creation
     audio.volume = volumeManager.getVolume()
@@ -280,7 +276,20 @@ export function PersonalVoicemailPlayer({
     }
   }, [isCurrentPlayer, playerState, play, pause])
 
-  // Seek to position
+  // Seek to position — compute from pointer coordinates for reliable tap-to-seek
+  // on mobile WebViews where native range input tap doesn't always fire onChange.
+  const seekToClientX = useCallback((clientX: number) => {
+    const audio = audioRef.current
+    const input = progressInputRef.current
+    if (!audio || !input || !duration || isNaN(duration) || duration <= 0) return
+    const rect = input.getBoundingClientRect()
+    if (rect.width <= 0) return
+    const percent = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+    const seekTime = percent * duration
+    setCurrentTime(seekTime)
+    audio.currentTime = seekTime
+  }, [duration])
+
   const handleSeekStart = useCallback(() => {
     setIsSeeking(true)
   }, [])
@@ -288,6 +297,10 @@ export function PersonalVoicemailPlayer({
   const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const seekTime = parseFloat(e.target.value)
     setCurrentTime(seekTime)
+    // Also set audio.currentTime directly during drag for real-time seeking
+    if (audioRef.current) {
+      audioRef.current.currentTime = seekTime
+    }
   }, [])
 
   const handleSeekEnd = useCallback((e: React.MouseEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>) => {
@@ -297,6 +310,13 @@ export function PersonalVoicemailPlayer({
       audioRef.current.currentTime = seekTime
     }
   }, [])
+
+  // Tap-to-seek: compute position from pointer coordinates.
+  // This fires on both mouse and touch, ensuring seek works even when
+  // the native range input doesn't update its value from a tap in WebView.
+  const handleSeekFromPointer = useCallback((e: React.PointerEvent<HTMLInputElement>) => {
+    seekToClientX(e.clientX)
+  }, [seekToClientX])
 
   // Pause if another player starts
   useEffect(() => {
@@ -310,6 +330,7 @@ export function PersonalVoicemailPlayer({
     return () => {
       if (audioRef.current) {
         audioRef.current.pause()
+        volumeManager.unregisterAudioElement(audioRef.current)
         audioRef.current = null
       }
       if (markReadTimeoutRef.current) {
@@ -335,10 +356,16 @@ export function PersonalVoicemailPlayer({
     volumeManager.toggleMute()
   }, [])
 
-  // Handle volume change
+  // Handle volume change — updates volumeManager which applies to all registered
+  // audio elements. Also directly applies to the current audio element as a safety
+  // net in case registration timing is off.
   const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value)
     volumeManager.setVolume(newVolume)
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume
+      audioRef.current.muted = newVolume === 0
+    }
   }, [])
 
   // Get volume icon based on state
@@ -387,6 +414,7 @@ export function PersonalVoicemailPlayer({
         <>
           <div className="flex-1 min-w-0">
             <input
+              ref={progressInputRef}
               type="range"
               min="0"
               max={duration}
@@ -397,6 +425,7 @@ export function PersonalVoicemailPlayer({
               onMouseUp={handleSeekEnd}
               onTouchStart={handleSeekStart}
               onTouchEnd={handleSeekEnd}
+              onPointerDown={handleSeekFromPointer}
               disabled={playerState === 'loading'}
               className="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-200"
               style={{
