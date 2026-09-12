@@ -389,16 +389,18 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
           if (isImage(mediaItem.mime_type)) {
             return (
               <div key={mediaItem.id} className="relative group overflow-hidden rounded-xl shadow-lg border border-slate-700/50">
-                {/* Image — only render when effective URL is available */}
+                {/* Image — only render when effective URL is available.
+                    Fades in over the placeholder once decoded to avoid abrupt pop. */}
                 {!isTerminalFailed && effectiveUrl && (
                   <img
                     src={effectiveUrl}
                     alt="Message attachment"
                     className={`
-                      cursor-pointer rounded-xl transition-all
+                      cursor-pointer rounded-xl transition-opacity duration-300
                       hover:scale-[1.02] hover:shadow-xl
                       max-w-[85%] md:max-w-[420px] max-h-[500px] md:max-h-[600px] object-contain w-full
                       block
+                      ${isLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'}
                     `}
                     onClick={() => effectiveUrl && handleMediaClick(effectiveUrl)}
                     onLoad={() => handleImageLoad(mediaItem.id)}
@@ -406,24 +408,24 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                     loading="lazy"
                   />
                 )}
-                
-                {/* Loading state — shown while resolving or before image loads */}
+
+                {/* Loading state — subtle shimmer placeholder, stable dimensions.
+                    Fades out when image is loaded. No large layout jump. */}
                 {!isLoaded && !isTerminalFailed && (
-                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">
+                  <div className={`aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center animate-pulse transition-opacity duration-300 ${isLoaded ? 'opacity-0' : 'opacity-100'}`}>
                     <div className="flex flex-col items-center gap-2 text-slate-400 dark:text-slate-500">
-                      <div className="w-6 h-6 border-2 border-slate-300 dark:border-slate-600 border-t-slate-400 dark:border-t-slate-400 rounded-full animate-spin" />
-                      <p className="text-xs">Loading image…</p>
+                      <div className="w-5 h-5 border-2 border-slate-300 dark:border-slate-600 border-t-slate-400 dark:border-t-slate-400 rounded-full animate-spin" />
                     </div>
                   </div>
                 )}
-                
+
                 {/* Terminal error state — only after retries exhausted */}
                 {isTerminalFailed && (
                   <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">
                     <p className="text-sm text-slate-500 dark:text-slate-400">Image failed to load</p>
                   </div>
                 )}
-                
+
                 {/* Hover affordance */}
                 {effectiveUrl && !isTerminalFailed && (
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-xl pointer-events-none" />

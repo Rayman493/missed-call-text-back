@@ -13,6 +13,10 @@ interface ConversationComposerProps {
   onClearImages?: (clearFn: () => void) => void
   sendingSource?: 'replyflow' | 'business'
   isNativeMobilePlatform?: boolean
+  // Files to restore into the composer after a failed send (ownership transfer back).
+  // Consumed once when restoreGeneration changes, then cleared internally.
+  restoredAttachments?: File[] | null
+  restoreGeneration?: number
   // Business Memory context for messaging hints
   messagingContext?: {
     preferredContactMethod?: string
@@ -40,6 +44,8 @@ export default function ConversationComposer({
   onClearImages,
   sendingSource = 'replyflow',
   isNativeMobilePlatform = false,
+  restoredAttachments,
+  restoreGeneration = 0,
   messagingContext,
   business,
   customerId
@@ -84,6 +90,30 @@ export default function ConversationComposer({
       onClearImages(() => setAttachments([]))
     }
   }, [onClearImages])
+
+  // Restore attachments after a failed send — ownership transfers back from
+  // the optimistic bubble to the composer preview so the user can retry.
+  // Consumed once per restoreGeneration change, then cleared internally.
+  const lastRestoreGenRef = useRef(0)
+  useEffect(() => {
+    if (restoreGeneration <= lastRestoreGenRef.current) return
+    lastRestoreGenRef.current = restoreGeneration
+    if (!restoredAttachments || restoredAttachments.length === 0) return
+    const restored: AttachmentPreview[] = restoredAttachments.map(file => {
+      const isDocument = file.type === 'application/pdf' || file.type === 'text/csv'
+      const isVideo = file.type === 'video/mp4'
+      const preview = (isDocument || isVideo) ? null : URL.createObjectURL(file)
+      const fileType: 'image' | 'document' | 'video' = isDocument ? 'document' : (isVideo ? 'video' : 'image')
+      return {
+        file,
+        preview,
+        id: Math.random().toString(36).substr(2, 9),
+        fileType,
+        filename: file.name
+      }
+    })
+    setAttachments(prev => [...prev, ...restored])
+  }, [restoreGeneration, restoredAttachments])
 
   // Generate messaging hints from Business Memory context
   const getMessagingHints = (): string[] => {
@@ -333,6 +363,16 @@ export default function ConversationComposer({
     }
   }
 
+  // Reset textarea height and overflow when message is cleared externally (e.g. after send).
+  // Without this, the textarea retains its grown height and can show internal scroll/bounce.
+  useEffect(() => {
+    if (!message && textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.scrollTop = 0
+      setIsAtMaxHeight(false)
+    }
+  }, [message])
+
   const hasContent = message.trim() || attachments.length > 0
 
   return (
@@ -454,7 +494,7 @@ export default function ConversationComposer({
                 maxHeight: '144px',
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
-                touchAction: 'pan-y'
+                touchAction: isAtMaxHeight ? 'pan-y' : 'none'
               }}
               disabled={sending}
             />

@@ -1169,14 +1169,25 @@ export default function LeadsPage() {
                         if (wasScroll) {
                           // Suppress the next Radix onOpenChange(true) from the synthetic click
                           filterSuppressNextOpenRef.current = true
-                        } else {
-                          setFilterMenuOpen(true)
                         }
+                        // Do NOT open here. The opening decision is deferred to
+                        // onClick, which fires AFTER all touch events. This
+                        // ensures onTouchMove has already set the suppress flag
+                          // if the user scrolled. On Android WebView, pointerup
+                          // can fire before touchmove, so opening here would
+                          // race the touch fallback.
                       }}
                       onPointerCancel={() => {
+                        // If a drag was detected before the cancel, KEEP the
+                        // suppress flag. Some Android devices fire click after
+                        // pointercancel, and the suppress flag must survive
+                        // to block that click. The flag is cleared on the
+                        // next onPointerDown (fresh gesture).
+                        if (filterMovedRef.current) {
+                          filterSuppressNextOpenRef.current = true
+                        }
                         filterPointerStartRef.current = null
                         filterMovedRef.current = false
-                        filterSuppressNextOpenRef.current = false
                       }}
                       onPointerLeave={() => {
                         // If a drag was in progress, keep suppress flag alive for the click.
@@ -1222,7 +1233,12 @@ export default function LeadsPage() {
                           e.preventDefault()
                           e.stopPropagation()
                           filterSuppressNextOpenRef.current = false
+                          return
                         }
+                        // Clean tap: open the filter menu. This fires AFTER
+                        // all touch events, so onTouchMove has already set
+                        // the suppress flag if the user scrolled.
+                        setFilterMenuOpen(true)
                       }}
                       className="h-10 px-3 inline-flex items-center justify-center gap-2 bg-background border border-border/50 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all whitespace-nowrap"
                       title="Filter by status"

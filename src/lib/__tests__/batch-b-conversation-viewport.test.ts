@@ -96,34 +96,33 @@ describe('Batch B — Part 1: Touch / Scroll Ownership', () => {
 
 describe('Batch B — Part 2: Media Anchor', () => {
   it('7. media height growth while near bottom keeps user pinned', () => {
-    // handleCoalescedImageLoad calls scrollToBottom with force=false
-    // This means it respects near-bottom: only scrolls if user is near bottom
-    const coalescedMatch = pageClientSrc.match(
-      /handleCoalescedImageLoad[^}]*scrollToBottom\('auto',\s*false\)/
-    )
-    expect(coalescedMatch).toBeTruthy()
+    // handleCoalescedImageLoad calls scrollToBottom with force=false for inbound media
+    // (respects near-bottom). Outgoing media force-scrolls (force=true).
+    const sectionStartIdx = pageClientSrc.indexOf('Coalesced Image Load Scroll')
+    expect(sectionStartIdx).toBeGreaterThan(0)
+    const coalescedSection = pageClientSrc.substring(sectionStartIdx, sectionStartIdx + 1000)
+    expect(coalescedSection).toContain("scrollToBottom('smooth', false)")
   })
 
-  it('8. media height growth while scrolled up does not pull user down', () => {
-    // scrollToBottom with force=false shows jump button if user is scrolled up
-    // The coalesced image load does NOT force scroll
-    const coalescedSection = pageClientSrc.substring(
-      pageClientSrc.indexOf('handleCoalescedImageLoad'),
-      pageClientSrc.indexOf('handleCoalescedImageLoad') + 500
-    )
+  it('8. media height growth while scrolled up does not pull user down (inbound)', () => {
+    // For inbound media, scrollToBottom with force=false shows jump button if user is scrolled up
+    // The coalesced image load does NOT force scroll for inbound media
+    const sectionStartIdx = pageClientSrc.indexOf('Coalesced Image Load Scroll')
+    expect(sectionStartIdx).toBeGreaterThan(0)
+    const coalescedSection = pageClientSrc.substring(sectionStartIdx, sectionStartIdx + 1000)
     expect(coalescedSection).toContain("force")
-    expect(coalescedSection).toContain("Do NOT force")
-    // The actual call must use false, not true
-    expect(coalescedSection).toContain("scrollToBottom('auto', false)")
-    expect(coalescedSection).not.toContain("scrollToBottom('auto', true)")
+    expect(coalescedSection).toContain("Inbound media")
+    // Inbound media must use force=false (respect near-bottom)
+    expect(coalescedSection).toContain("scrollToBottom('smooth', false)")
+    // Outgoing media must use force=true (anchor to true bottom)
+    expect(coalescedSection).toContain("scrollToBottom('auto', true)")
   })
 
   it('9. multiple images loading sequentially remain stable (rAF coalescing)', () => {
     // The coalesced function uses requestAnimationFrame to coalesce multiple calls
-    const coalescedSection = pageClientSrc.substring(
-      pageClientSrc.indexOf('handleCoalescedImageLoad'),
-      pageClientSrc.indexOf('handleCoalescedImageLoad') + 500
-    )
+    const sectionStartIdx = pageClientSrc.indexOf('Coalesced Image Load Scroll')
+    expect(sectionStartIdx).toBeGreaterThan(0)
+    const coalescedSection = pageClientSrc.substring(sectionStartIdx, sectionStartIdx + 1000)
     expect(coalescedSection).toContain('imageScrollRafRef')
     expect(coalescedSection).toContain('requestAnimationFrame')
     // Already-scheduled check prevents overlapping scroll animations
@@ -134,6 +133,31 @@ describe('Batch B — Part 2: Media Anchor', () => {
     // handleCoalescedImageLoad is only called from onImageLoad prop
     // Text-only conversations don't trigger image load events
     expect(pageClientSrc).toContain('onImageLoad={handleCoalescedImageLoad}')
+  })
+
+  it('10a. outgoing media anchors to true bottom after image layout resolves', () => {
+    // outgoingMediaAnchorRef is set to true when user sends MMS
+    expect(pageClientSrc).toContain('outgoingMediaAnchorRef')
+    expect(pageClientSrc).toContain('outgoingMediaAnchorRef.current = true')
+    // The coalesced callback consumes it to force-scroll
+    const sectionStartIdx = pageClientSrc.indexOf('Coalesced Image Load Scroll')
+    expect(sectionStartIdx).toBeGreaterThan(0)
+    const coalescedSection = pageClientSrc.substring(sectionStartIdx, sectionStartIdx + 800)
+    expect(coalescedSection).toContain('outgoingMediaAnchorRef.current')
+    expect(coalescedSection).toContain('Outgoing media')
+  })
+
+  it('10b. outgoing media anchor is cleared on send failure', () => {
+    // Both failure paths (!response.ok and catch) must clear the anchor.
+    // The anchor is cleared in 3 places: coalesced callback (on consume),
+    // !response.ok path, and catch path. Verify at least 3 clearings exist.
+    const clearCount = (pageClientSrc.match(/outgoingMediaAnchorRef\.current = false/g) || []).length
+    expect(clearCount).toBeGreaterThanOrEqual(3)
+    // Verify the !response.ok path has the clearing nearby
+    const sendIdx = pageClientSrc.indexOf('const handleSendMessage')
+    expect(sendIdx).toBeGreaterThan(0)
+    const sendSection = pageClientSrc.substring(sendIdx, sendIdx + 20000)
+    expect(sendSection).toContain('outgoingMediaAnchorRef.current = false')
   })
 
   it('11. realtime new message near bottom remains pinned', () => {
@@ -222,17 +246,23 @@ describe('Batch B — Part 3: Composer', () => {
     expect(mobileComposerSrc).toContain('handleSendMessage')
   })
 
-  it('composer textarea has touch-action: pan-y (vertical pan scrolls parent)', () => {
-    // Desktop composer textarea has touch-action: pan-y
-    const desktopTextareaMatch = desktopComposerSrc.match(
-      /<textarea[^>]*style=\{\{[^}]*touchAction:\s*'pan-y'/
-    )
-    expect(desktopTextareaMatch).toBeTruthy()
-    // Mobile composer textarea has touch-action: pan-y
-    const mobileTextareaMatch = mobileComposerSrc.match(
-      /<textarea[^>]*style=\{\{[^}]*touchAction:\s*'pan-y'/
-    )
-    expect(mobileTextareaMatch).toBeTruthy()
+  it('composer textarea has conditional touch-action (pan-y when scrollable, none when static)', () => {
+    // Desktop composer textarea: touch-action switches to pan-y only when at max height
+    // Empty composer has touch-action: none (completely static, no bounce)
+    expect(desktopComposerSrc).toContain("touchAction: isAtMaxHeight ? 'pan-y' : 'none'")
+    // Mobile composer textarea: same conditional touch-action
+    expect(mobileComposerSrc).toContain("touchAction: isAtMaxHeight ? 'pan-y' : 'none'")
+  })
+
+  it('composer textarea resets height when message cleared externally (after send)', () => {
+    // Desktop composer: useEffect resets height when message becomes empty
+    expect(desktopComposerSrc).toContain('if (!message && textareaRef.current)')
+    expect(desktopComposerSrc).toContain("textareaRef.current.style.height = 'auto'")
+    expect(desktopComposerSrc).toContain('textareaRef.current.scrollTop = 0')
+    // Mobile composer: same reset effect
+    expect(mobileComposerSrc).toContain('if (!message && textareaRef.current)')
+    expect(mobileComposerSrc).toContain("textareaRef.current.style.height = 'auto'")
+    expect(mobileComposerSrc).toContain('textareaRef.current.scrollTop = 0')
   })
 })
 

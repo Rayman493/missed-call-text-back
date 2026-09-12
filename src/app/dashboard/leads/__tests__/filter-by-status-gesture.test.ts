@@ -1,20 +1,30 @@
 /**
  * Regression tests for Filter by Status gesture handling.
  *
- * Tests 12-17: Filter by Status gesture contract
+ * Tests 12-18: Filter by Status gesture contract
  *
- * Root cause traced:
+ * Root cause traced (initial):
  * The onPointerLeave handler cleared filterMovedRef to false during scroll.
  * When the page scrolls, the content moves under the finger, causing
  * pointerleave to fire on the button even though the finger hasn't moved
  * relative to the screen. This cleared filterMovedRef, so the subsequent
  * pointerup thought it was a clean tap, opening the filter during scroll.
  *
+ * Root cause traced (Android physical QA):
+ * onPointerUp directly called setFilterMenuOpen(true) for taps. On Android
+ * WebView, pointerup can fire before touchmove sets the drag flag, so the
+ * filter opened during scroll. Also, onPointerCancel cleared the suppress
+ * flag, so if click fired after pointercancel (some Android devices), the
+ * filter opened.
+ *
  * The fix:
- * - Do NOT clear filterMovedRef in onPointerLeave (matching useTapGuard's
- *   behavior of not clearing draggingRef in onPointerLeave).
- * - Clear filterSuppressNextOpenRef on onPointerDown so stale suppression
- *   from a prior abandoned gesture doesn't block the next clean tap.
+ * - Move the opening decision from onPointerUp to onClick (fires AFTER all
+ *   touch events, so onTouchMove has already set the suppress flag).
+ * - In onPointerCancel, KEEP the suppress flag if a drag was detected
+ *   (don't clear it) so the subsequent click is blocked.
+ * - onPointerUp only sets the suppress flag if a drag was detected; it
+ *   does NOT open the menu.
+ * - onClick opens the menu for clean taps and blocks for drags.
  */
 
 import { describe, it, expect } from 'vitest'
@@ -22,9 +32,19 @@ import { readFileSync } from 'fs'
 
 const pageContent = readFileSync('src/app/dashboard/leads/page.tsx', 'utf8')
 
-describe('Filter by Status — gesture contract (12-17)', () => {
-  it('12. clean tap opens filter (setFilterMenuOpen(true) on non-scroll pointerup)', () => {
+describe('Filter by Status — gesture contract (12-18)', () => {
+  it('12. clean tap opens filter (setFilterMenuOpen(true) in onClick, not onPointerUp)', () => {
     expect(pageContent).toContain('setFilterMenuOpen(true)')
+    // The opening must be in onClick, not in onPointerUp
+    const pointerUpMatch = pageContent.match(/onPointerUp=\{\(e\) => \{[\s\S]*?\}\}/)
+    expect(pointerUpMatch).toBeTruthy()
+    if (pointerUpMatch) {
+      // onPointerUp must NOT contain setFilterMenuOpen(true)
+      expect(pointerUpMatch[0]).not.toContain('setFilterMenuOpen(true)')
+    }
+    // onClick must contain setFilterMenuOpen(true)
+    const clickMatch = pageContent.match(/onClick=\{\(e\) => \{[\s\S]*?setFilterMenuOpen\(true\)[\s\S]*?\}\}/)
+    expect(clickMatch).toBeTruthy()
   })
 
   it('13. vertical drag does not open (filterMovedRef tracks scroll, suppresses open)', () => {
@@ -73,6 +93,22 @@ describe('Filter by Status — gesture contract (12-17)', () => {
       expect(leaveBlock).not.toContain('filterMovedRef.current = false')
       // Must contain filterPointerStartRef.current = null
       expect(leaveBlock).toContain('filterPointerStartRef.current = null')
+    }
+  })
+
+  it('18. onPointerCancel keeps suppress flag if drag was detected (Android fix)', () => {
+    // The Android fix: onPointerCancel must NOT clear the suppress flag
+    // if a drag was detected. Some Android devices fire click after
+    // pointercancel, and the suppress flag must survive to block it.
+    const cancelMatch = pageContent.match(/onPointerCancel=\{\(\) => \{[\s\S]*?\}\}/)
+    expect(cancelMatch).toBeTruthy()
+    if (cancelMatch) {
+      const cancelBlock = cancelMatch[0]
+      // Must set suppress flag if filterMovedRef was true
+      expect(cancelBlock).toContain('filterMovedRef.current')
+      expect(cancelBlock).toContain('filterSuppressNextOpenRef.current = true')
+      // Must NOT unconditionally clear the suppress flag
+      expect(cancelBlock).not.toMatch(/filterSuppressNextOpenRef\.current = false/)
     }
   })
 })

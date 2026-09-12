@@ -400,6 +400,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [mobileImages, setMobileImages] = useState<File[]>([])
   const mobileFileInputRef = useRef<HTMLInputElement>(null)
   const clearComposerImagesRef = useRef<(() => void) | null>(null)
+  // Embedded mobile composer textarea — auto-resize + overflow state machine
+  const mobileTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const [mobileTextareaAtMax, setMobileTextareaAtMax] = useState(false)
+  // Preserves File[] from the most recent send for attachment restoration on failure.
+  // Ownership lifecycle: composer preview → optimistic bubble (on send) → composer (on failure).
+  const lastSentMediaFilesRef = useRef<File[] | null>(null)
+  // Files to restore into ConversationComposer after a failed send.
+  // A generation counter triggers the composer to consume and clear this.
+  const [restoredAttachments, setRestoredAttachments] = useState<File[] | null>(null)
+  const [restoreGeneration, setRestoreGeneration] = useState(0)
   const [isAttachmentSheetOpen, setIsAttachmentSheetOpen] = useState(false)
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
   const [calendarConnected, setCalendarConnected] = useState(false)
@@ -510,6 +520,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [realtimeScrollGeneration, setRealtimeScrollGeneration] = useState(0)
   // Coalesced image load scroll — prevents overlapping smooth scroll animations
   const imageScrollRafRef = useRef<number | null>(null)
+  // Tracks outgoing media sends that need true-bottom re-anchoring after image layout resolves.
+  // Set to true when user sends MMS; consumed by the coalesced image load callback to force-scroll.
+  const outgoingMediaAnchorRef = useRef(false)
   // Full-screen conversation state and refs
   const [isFullScreen, setIsFullScreen] = useState(false)
   const fullScreenToggleBtnRef = useRef<HTMLButtonElement>(null)
@@ -909,14 +922,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // === Coalesced Image Load Scroll ===
   // Prevents overlapping smooth scroll animations for multi-image MMS.
   // Multiple onImageLoad calls within the same frame are coalesced into one scroll.
-  // Respects near-bottom: only scrolls if user is near bottom (does NOT force).
+  // Outgoing media: force anchor to true bottom (user just sent it).
+  // Inbound media: respect near-bottom only (don't yank user down if they scrolled up).
   const handleCoalescedImageLoad = useCallback(() => {
     if (imageScrollRafRef.current !== null) return // already scheduled
     imageScrollRafRef.current = requestAnimationFrame(() => {
       imageScrollRafRef.current = null
-      // Respect near-bottom: only scroll if user is near bottom.
-      // Do NOT force — if user scrolled up, late-loading media must not yank them down.
-      scrollToBottom('auto', false)
+      if (outgoingMediaAnchorRef.current) {
+        // Outgoing media: user's own newly sent image — anchor to TRUE bottom
+        outgoingMediaAnchorRef.current = false
+        scrollToBottom('auto', true)
+      } else {
+        // Inbound media: only follow if user is already near bottom
+        scrollToBottom('smooth', false)
+      }
     })
   }, [])
 
@@ -2791,12 +2810,30 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       scrollToBottom('auto', true)
     })
 
+    // Track outgoing media for true-bottom re-anchoring after image layout resolves.
+    // The coalesced image load callback will consume this to force-scroll
+    // when the optimistic image finishes loading and the bubble grows.
+    if (isMMS) {
+      outgoingMediaAnchorRef.current = true
+    }
+
     // Clear the composer immediately after creating optimistic message
     // This prevents the text from appearing in both the composer and thread
     setMessage('')
-    
-    // Note: Attachments are NOT cleared here - they will be cleared after successful send
-    // to allow retry on failure
+
+    // === ATTACHMENT OWNERSHIP TRANSFER ===
+    // Ownership moves from composer preview → optimistic outgoing bubble.
+    // The composer preview must clear immediately to avoid duplicate rendering.
+    // Files are preserved in lastSentMediaFilesRef for restoration on failure.
+    if (isMMS && submittedMediaFiles) {
+      lastSentMediaFilesRef.current = submittedMediaFiles
+      // Clear embedded mobile composer attachments
+      setMobileImages([])
+      // Clear ConversationComposer attachments (fullscreen / desktop)
+      if (clearComposerImagesRef.current) {
+        clearComposerImagesRef.current()
+      }
+    }
     
     setSending(true)
     setError('')
@@ -2895,6 +2932,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       })
 
       if (!response.ok) {
+        // Clear outgoing media anchor — failed send should not force-scroll on late image load
+        outgoingMediaAnchorRef.current = false
         // Update optimistic message to failed state (SMS only)
         if (!isMMS) {
           setLeadData((prev: any) => {
@@ -2924,7 +2963,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           // This allows the user to retry without retyping, but doesn't overwrite new input
           setMessage(current => current.trim() === '' ? submittedText : current)
         }
-        
+
+        // Restore attachments to the composer so the user can retry without re-selecting.
+        // Ownership transfers back: optimistic bubble → composer preview.
+        if (isMMS && lastSentMediaFilesRef.current) {
+          // Restore to embedded mobile composer (uses mobileImages state directly)
+          setMobileImages(lastSentMediaFilesRef.current)
+          // Restore to ConversationComposer (fullscreen / desktop)
+          setRestoredAttachments(lastSentMediaFilesRef.current)
+          setRestoreGeneration(prev => prev + 1)
+          lastSentMediaFilesRef.current = null
+        }
+
         // Show appropriate error message based on response
         if (result.error === 'Lead not found') {
           setError('Customer not found. Please refresh the page and try again.')
@@ -3057,12 +3107,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           })
         }
 
-        // Clear attachments only after successful send
+        // Attachments were already cleared at send time (ownership transfer).
+        // On success, discard the stored files — no retry needed.
         if (isMMS) {
-          setMobileImages([])
-          if (clearComposerImagesRef.current) {
-            clearComposerImagesRef.current()
-          }
+          lastSentMediaFilesRef.current = null
         }
       }
 
@@ -3071,6 +3119,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // No setTimeout — local-send intent takes priority over any pre-picker anchor.
       setLocalSendScrollGeneration(prev => prev + 1)
     } catch (err) {
+      // Clear outgoing media anchor — failed send should not force-scroll on late image load
+      outgoingMediaAnchorRef.current = false
       // Update optimistic message to failed state (both SMS and MMS)
       const currentMessages = leadData?.messages || []
       const optimisticMessage = currentMessages.find((m: any) => m.id === clientMessageId)
@@ -3103,6 +3153,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       
       // Restore the submitted text to the composer only if it's still empty
       setMessage(current => current.trim() === '' ? submittedText : current)
+
+      // Restore attachments to the composer so the user can retry without re-selecting.
+      // Ownership transfers back: optimistic bubble → composer preview.
+      if (isMMS && lastSentMediaFilesRef.current) {
+        // Restore to embedded mobile composer (uses mobileImages state directly)
+        setMobileImages(lastSentMediaFilesRef.current)
+        // Restore to ConversationComposer (fullscreen / desktop)
+        setRestoredAttachments(lastSentMediaFilesRef.current)
+        setRestoreGeneration(prev => prev + 1)
+        lastSentMediaFilesRef.current = null
+      }
+
       setError('Failed to send message')
     } finally {
       setSending(false)
@@ -3208,6 +3270,34 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       handleSendMessage()
     }
   }
+
+  // Embedded mobile composer textarea — auto-resize + overflow state machine.
+  // Empty → overflow hidden + scrollTop 0 (static, no bounce).
+  // Short text → grows naturally without internal scroll.
+  // Long text beyond max height → overflow-y-auto, user can scroll inside.
+  const handleMobileTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value)
+    const textarea = e.target
+    textarea.style.height = 'auto'
+    const newHeight = Math.min(textarea.scrollHeight, 120)
+    textarea.style.height = newHeight + 'px'
+    setMobileTextareaAtMax(textarea.scrollHeight >= 120)
+    // Reset scrollTop when empty or content fits (prevents placeholder drift)
+    if (!e.target.value || textarea.scrollHeight <= 120) {
+      if (textarea.scrollTop !== 0) {
+        textarea.scrollTop = 0
+      }
+    }
+  }
+
+  // Reset embedded mobile textarea height when message is cleared externally (after send).
+  useEffect(() => {
+    if (!message && mobileTextareaRef.current) {
+      mobileTextareaRef.current.style.height = 'auto'
+      mobileTextareaRef.current.scrollTop = 0
+      setMobileTextareaAtMax(false)
+    }
+  }, [message])
 
   const checkCalendarConnection = async () => {
     setIsLoadingCalendarStatus(true)
@@ -4507,7 +4597,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               
               {/* Desktop Message Thread - Scrollable */}
               {!isFullScreen && (
-              <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-5 py-4 min-h-0 bg-muted/20" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
+              <div ref={conversationContainerRef} data-scroll-lock-allow className="flex-1 overflow-y-auto scroll-smooth px-5 py-4 min-h-0 bg-muted/20" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -4578,6 +4668,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       onClearImages={(clearFn: () => void) => {
                         clearComposerImagesRef.current = clearFn
                       }}
+                      restoredAttachments={restoredAttachments}
+                      restoreGeneration={restoreGeneration}
                       messagingContext={
                         business?.id && lead?.id ? (() => {
                           const memory = memoryService.getCustomerMemory(business.id, lead.id)
@@ -4970,7 +5062,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Message Area - Scrollable viewport with flex-1 */}
-            <div ref={mobileConversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth overscroll-contain bg-muted/20 min-h-0" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
+            <div ref={mobileConversationContainerRef} data-scroll-lock-allow className="flex-1 overflow-y-auto scroll-smooth overscroll-contain bg-muted/20 min-h-0" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
             {/* Mobile Message Thread */}
             <div className="px-3 py-2 flex flex-col justify-end min-h-0">
               {loading ? (
@@ -4998,6 +5090,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   sending={sending}
                   handleRetry={handleRetry}
                   getErrorMessage={getErrorMessage}
+                  onImageLoad={handleCoalescedImageLoad}
                   highlightedItemId={highlightedTimelineItemId}
                 />
               )}
@@ -5082,8 +5175,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       />
                       <div className="flex-1 min-w-0">
                         <textarea
+                          ref={mobileTextareaRef}
                           value={message}
-                          onChange={(e) => setMessage(e.target.value)}
+                          onChange={handleMobileTextareaChange}
                           onKeyDown={handleMobileKeyDown}
                           placeholder="Type a message..."
                           autoCapitalize="sentences"
@@ -5091,9 +5185,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           spellCheck={true}
                           autoComplete="on"
                           enterKeyHint="send"
-                          className="composer-textarea-no-scrollbar w-full min-h-[44px] max-h-[120px] px-1.5 py-3 bg-transparent text-foreground resize-none focus:outline-none text-base leading-relaxed h-11 placeholder:text-muted-foreground/50"
+                          className={`composer-textarea-no-scrollbar w-full min-h-[44px] max-h-[120px] px-1.5 py-3 bg-transparent text-foreground resize-none focus:outline-none text-base leading-relaxed h-11 placeholder:text-muted-foreground/50 ${
+                            mobileTextareaAtMax ? 'overflow-y-auto' : 'overflow-y-hidden'
+                          }`}
                           rows={1}
                           disabled={sending}
+                          style={{ touchAction: mobileTextareaAtMax ? 'pan-y' : 'none' }}
                         />
                       </div>
                       <button
@@ -6709,7 +6806,7 @@ If you have questions, reply to this message.`
           </div>
 
           {/* Scrollable thread - Conversation stage with dedicated surface */}
-          <div ref={fullScreenScrollRef} tabIndex={-1} className="flex-1 overflow-y-auto min-h-0 outline-none bg-muted/20 dark:bg-slate-900/40" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
+          <div ref={fullScreenScrollRef} tabIndex={-1} data-scroll-lock-allow className="flex-1 overflow-y-auto min-h-0 outline-none overscroll-contain bg-muted/20 dark:bg-slate-900/40" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
             <div className="max-w-full px-6 sm:px-8 py-6 sm:py-8">
             {isMobileView ? (
               loading ? (
@@ -6737,6 +6834,7 @@ If you have questions, reply to this message.`
                   sending={sending}
                   handleRetry={handleRetry}
                   getErrorMessage={getErrorMessage}
+                  onImageLoad={handleCoalescedImageLoad}
                   highlightedItemId={highlightedTimelineItemId}
                 />
               )
@@ -6805,6 +6903,8 @@ If you have questions, reply to this message.`
                 sendingSource={sendingSource}
                 isNativeMobilePlatform={supportsBusiness}
                 onClearImages={(clearFn: () => void) => { clearComposerImagesRef.current = clearFn }}
+                restoredAttachments={restoredAttachments}
+                restoreGeneration={restoreGeneration}
                 messagingContext={
                   business?.id && lead?.id ? (() => {
                     const memory = memoryService.getCustomerMemory(business.id, lead.id)

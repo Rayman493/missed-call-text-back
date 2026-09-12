@@ -1586,7 +1586,16 @@ useEffect(() => {
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
-        gestureHandling: 'greedy'
+        gestureHandling: 'greedy',
+        // Disable native double-click zoom so the second tap of a double-tap
+        // reaches our marker click listener instead of being consumed by
+        // the map's native zoom gesture. Without this, Android double-tap
+        // on a marker only fires a single click (the second tap is consumed
+        // by the native zoom), so our double-tap detection never triggers.
+        disableDoubleClickZoom: true,
+        // Disable native double-tap-to-zoom on touch devices for the same
+        // reason — the second tap must reach the marker click listener.
+        clickableIcons: false
       }
 
       map = new (window as any).google.maps.Map(container, mapOptions)

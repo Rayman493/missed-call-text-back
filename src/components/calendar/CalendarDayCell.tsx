@@ -86,7 +86,7 @@ export default function CalendarDayCell({
         onClick?.()
       }}
       className={`
-        min-h-[48px] sm:min-h-[64px] md:min-h-[80px] p-1 sm:p-1.5 md:p-2 rounded-md border transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-start justify-start gap-1
+        relative min-h-[48px] sm:min-h-[64px] md:min-h-[80px] p-1 sm:p-1.5 md:p-2 rounded-md border transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-start justify-start gap-1
         ${isCurrentMonth
           ? isWeekend
             ? 'bg-slate-100/70 dark:bg-slate-800/25 border-slate-200/40 dark:border-slate-700/25 hover:bg-slate-200/70 dark:hover:bg-slate-800/40'
@@ -99,14 +99,33 @@ export default function CalendarDayCell({
         }
       `}
     >
+      {/* Transparent day-selection hit target — fills the entire cell behind
+          the event chips. This ensures that tapping ANY non-event portion of
+          the day cell (including gaps between events, padding, and the area
+          below the last event) selects the day. Event chips are positioned
+          above this overlay (higher z-index) and use stopPropagation so their
+          taps open the event instead of selecting the day. */}
+      <div
+        className="absolute inset-0 z-0"
+        aria-hidden="true"
+        onClick={(e) => {
+          // This overlay is behind the event chips. If the tap reaches here,
+          // it means the user tapped a non-event area. Let the parent's
+          // onClick handle day selection (don't stop propagation).
+          // The parent's onClick checks dayGuard.consumeDragSuppression().
+        }}
+      />
+
       {/* Date number — always tappable for day selection, even on busy days.
           The date number sits at the top of the cell and is a reliable
           day-selection target regardless of how many event chips fill the
           cell below. It uses the same dayGuard, so a drag starting on the
-          date number still suppresses day selection. */}
+          date number still suppresses day selection.
+          Enlarged hit target (w-7 h-7 on mobile, w-8 h-8 on desktop) for
+          reliable tapping on crowded days. */}
       <div
         className={`
-          flex items-center justify-center w-5 h-5 md:w-6 md:h-6 flex-none leading-none p-0
+          relative z-10 flex items-center justify-center w-7 h-7 md:w-8 md:h-8 flex-none leading-none p-0
           ${isToday
             ? 'bg-blue-500 rounded-md'
             : ''
@@ -129,7 +148,7 @@ export default function CalendarDayCell({
           {day}
         </span>
       </div>
-      <div className="w-full flex flex-col gap-0.5 min-h-0">
+      <div className="relative z-10 w-full flex flex-col gap-0.5 min-h-0">
         {visibleEvents.map((event, index) => (
           <div
             key={`${event.id}-${index}`}

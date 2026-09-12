@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Paperclip, X, Smartphone, MessageSquare, ChevronDown } from 'lucide-react'
 import {
   DropdownMenu,
@@ -213,6 +213,16 @@ export default function MobileConversationComposer({
     }
   }
 
+  // Reset textarea height and overflow when message is cleared externally (e.g. after send).
+  // Without this, the textarea retains its grown height and can show internal scroll/bounce.
+  useEffect(() => {
+    if (!message && textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.scrollTop = 0
+      setIsAtMaxHeight(false)
+    }
+  }, [message])
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -303,7 +313,7 @@ export default function MobileConversationComposer({
                   minHeight: '44px',
                   scrollbarWidth: 'none',
                   msOverflowStyle: 'none',
-                  touchAction: 'pan-y'
+                  touchAction: isAtMaxHeight ? 'pan-y' : 'none'
                 }}
               />
               
