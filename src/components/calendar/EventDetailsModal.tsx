@@ -782,7 +782,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   return (
     <div
       className="fixed inset-0 z-[60] flex items-start md:items-center justify-center overflow-hidden px-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 md:p-4"
-      style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+      style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, calc(env(safe-area-inset-bottom) + var(--bottom-nav-height, 72px)))' }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="event-title"
@@ -793,7 +793,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       }}
       data-scroll-lock-allow
     >
-      <div className="bg-card rounded-2xl border border-border/60 shadow-2xl shadow-black/10 dark:shadow-black/40 w-full max-w-2xl flex max-h-[var(--modal-max-height)] flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+      <div className="bg-card rounded-2xl border border-border/60 shadow-2xl shadow-black/10 dark:shadow-black/40 w-full max-w-2xl flex max-h-[calc(100dvh-var(--bottom-nav-height,72px)-32px)] sm:max-h-[var(--modal-max-height)] flex-col overflow-hidden animate-in zoom-in-95 duration-200"
            data-scroll-lock-allow>
         {/* Visually hidden title for accessibility */}
         <h2 id="event-title" className="sr-only">{event.summary}</h2>

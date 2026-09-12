@@ -353,11 +353,10 @@ function MeetingsTab({
                     <button
                       onClick={(e) => { e.stopPropagation(); onOpenEvent(ev) }}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onOpenEvent(ev) } }}
-                      className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors mt-0.5"
+                      className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
                       aria-label="Edit appointment"
                     >
-                      <Pencil className="w-3 h-3" />
-                      <span className="hidden sm:inline">Edit</span>
+                      <Pencil className="w-4 h-4" />
                     </button>
                   )}
                   {/* Primary action: Join far right for virtual meetings */}
@@ -2751,11 +2750,10 @@ function JobsTab({
               <button
                 onClick={(e) => { e.stopPropagation(); onEditJob(job) }}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEditJob(job) } }}
-                className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors mt-0.5"
+                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
                 aria-label="Edit job"
               >
-                <Pencil className="w-3 h-3" />
-                <span className="hidden sm:inline">Edit</span>
+                <Pencil className="w-4 h-4" />
               </button>
             )}
           </div>

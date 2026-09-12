@@ -775,8 +775,8 @@ html.light select:-moz-autofill:focus {
  * 100dvh minus the safe areas.
  */
 :root {
-  --modal-bottom-reserve: env(safe-area-inset-bottom);
-  --modal-max-height: calc(100dvh - 32px);
+  --modal-bottom-reserve: calc(env(safe-area-inset-bottom) + var(--bottom-nav-height, 72px));
+  --modal-max-height: calc(100dvh - var(--bottom-nav-height, 72px) - 32px);
 }
 
 @media (min-width: 768px) {

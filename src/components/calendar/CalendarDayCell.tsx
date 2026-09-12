@@ -86,10 +86,10 @@ export default function CalendarDayCell({
         onClick?.()
       }}
       className={`
-        relative min-h-[48px] sm:min-h-[64px] md:min-h-[80px] p-1 sm:p-1.5 md:p-2 rounded-md border transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-start justify-start gap-1
+        relative min-h-[48px] sm:min-h-[64px] md:min-h-[80px] p-1.5 sm:p-2 md:p-2.5 rounded-md border transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-start justify-start gap-1
         ${isCurrentMonth
           ? isWeekend
-            ? 'bg-slate-100/70 dark:bg-slate-800/25 border-slate-200/40 dark:border-slate-700/25 hover:bg-slate-200/70 dark:hover:bg-slate-800/40'
+            ? 'bg-slate-100/80 dark:bg-slate-800/30 border-slate-200/50 dark:border-slate-700/30 hover:bg-slate-200/60 dark:hover:bg-slate-800/45'
             : 'bg-white dark:bg-slate-900/20 border-slate-200/40 dark:border-slate-700/25 hover:bg-slate-50/60 dark:hover:bg-slate-800/35'
           : 'bg-slate-50/40 dark:bg-slate-950/20 border-slate-100/40 dark:border-slate-800/20 opacity-50'
         }
@@ -136,7 +136,9 @@ export default function CalendarDayCell({
           className={`
             text-[10px] md:text-sm font-semibold leading-none
             ${isCurrentMonth
-              ? 'text-slate-900 dark:text-foreground'
+              ? isWeekend && !isToday
+                ? 'text-slate-500 dark:text-slate-400'
+                : 'text-slate-900 dark:text-foreground'
               : 'text-slate-400 dark:text-slate-600'
             }
             ${isToday

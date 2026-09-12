@@ -262,11 +262,14 @@ export default function CalendarGrid({
       <div className="p-2 sm:p-3 md:p-3.5 pt-0">
         {/* Day headers */}
         <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-1.5 mb-1 md:mb-1.5">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="text-[10px] sm:text-[11px] md:text-xs font-medium text-slate-500 dark:text-slate-400 text-center py-1.5 md:py-2 truncate">
-              {day}
-            </div>
-          ))}
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => {
+            const isWeekendHeader = i === 0 || i === 6
+            return (
+              <div key={day} className={`text-[10px] sm:text-[11px] md:text-xs font-medium text-center py-1.5 md:py-2 truncate ${isWeekendHeader ? 'text-slate-400 dark:text-slate-500' : 'text-slate-500 dark:text-slate-400'}`}>
+                {day}
+              </div>
+            )
+          })}
         </div>
 
       {/* Calendar grid */}
