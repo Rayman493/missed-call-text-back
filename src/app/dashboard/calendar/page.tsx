@@ -1687,6 +1687,7 @@ export default function SchedulePage() {
                       <TodayCommandCenter
                         jobs={jobs}
                         calendarEvents={events}
+                        businessTimezone={business?.business_hours_timezone ?? undefined}
                         onAddTask={() => setIsNewTaskModalOpen(true)}
                         onEditTask={handleAgendaEditTask}
                         onAddJob={openNewJob}

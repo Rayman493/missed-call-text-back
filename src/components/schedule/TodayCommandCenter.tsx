@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import type { Job } from '@/components/jobs/JobComposer'
 import { formatTime12Hour, formatDate } from '@/lib/time-format'
+import { partitionAgendaItems, classifyAgendaItem } from '@/lib/agenda-classification'
 
 // Mount/unmount diagnostics
 if (typeof window !== 'undefined') {
@@ -39,6 +40,8 @@ interface CalendarEvent {
 interface TodayCommandCenterProps {
   jobs: Job[]
   calendarEvents: CalendarEvent[]
+  /** Business IANA timezone (e.g., 'America/New_York'). Defaults to browser-local if omitted. */
+  businessTimezone?: string
   onAddTask?: () => void
   onAddJob?: () => void
   onAddAppointment?: () => void
@@ -55,6 +58,7 @@ interface TodayCommandCenterProps {
 export default function TodayCommandCenter({
   jobs,
   calendarEvents,
+  businessTimezone,
   onAddTask,
   onAddJob,
   onAddAppointment,
@@ -71,7 +75,12 @@ export default function TodayCommandCenter({
   const [isLoadingTasks, setIsLoadingTasks] = useState(true)
   const supabase = createBrowserClient()
 
-  const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local timezone
+  // Business-local today as YYYY-MM-DD. Falls back to browser-local if no
+  // business timezone is provided (preserves prior behavior for callers that
+  // don't pass businessTimezone).
+  const todayStr = businessTimezone
+    ? new Date().toLocaleDateString('en-CA', { timeZone: businessTimezone })
+    : new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local timezone
 
   // Mount/unmount diagnostics
   useEffect(() => {
@@ -166,13 +175,23 @@ export default function TodayCommandCenter({
     }
   }
 
-  const todayTasks = tasks.filter(t => 
-    !t.completed && t.due_date === todayStr
+  // Canonical mutually exclusive classification: a task is in EITHER Today
+  // OR Needs Attention, never both. Uses the business timezone so that
+  // classification matches the rest of the app (analytics, dashboard, follow-ups).
+  // Completed tasks are excluded from both groups (preserves existing behavior).
+  const { today: todayTasks, needsAttention: overdueTasksUnsorted } = partitionAgendaItems(
+    tasks.map(t => ({ ...t, date: t.due_date, completed: t.completed })),
+    businessTimezone
   )
 
-  const overdueTasks = tasks.filter(t => 
-    !t.completed && t.due_date && t.due_date < todayStr
-  )
+  // Needs Attention: oldest overdue first (deterministic ordering).
+  // Today: preserve insertion order (API order) — sorted chronologically
+  // later by getSortedWorkItems which combines tasks/jobs/appointments by time.
+  const overdueTasks = [...overdueTasksUnsorted].sort((a, b) => {
+    const aDate = a.due_date || ''
+    const bDate = b.due_date || ''
+    return aDate.localeCompare(bDate)
+  })
 
   // Tasks for browse card: show all incomplete tasks
   const browseTasks = tasks.filter(t => !t.completed)
@@ -286,22 +305,9 @@ export default function TodayCommandCenter({
       data: any
     }> = []
 
-    // Add overdue tasks (highest priority)
-    overdueTasks.forEach(task => {
-      items.push({
-        type: 'overdue',
-        id: task.id,
-        title: task.title,
-        customer: null,
-        time: task.due_time ? formatTime12Hour(task.due_time) : null,
-        date: task.due_date,
-        icon: <AlertCircle className="w-4 h-4 text-red-500" />,
-        status: 'Overdue',
-        isOverdue: true,
-        rawTime: task.due_date ? new Date(task.due_date).getTime() : 0,
-        data: task
-      })
-    })
+    // Today section: ONLY items genuinely scheduled/due today.
+    // Overdue items are classified exclusively into Needs Attention
+    // (mutually exclusive — no item appears in both groups).
 
     // Add today's appointments
     todayAppointments.forEach(event => {
@@ -362,7 +368,10 @@ export default function TodayCommandCenter({
       })
     })
 
-    // Sort: overdue first, then by time
+    // Sort: chronological by scheduled/due time.
+    // (Overdue items are no longer in this list — they are exclusively
+    // in Needs Attention. The isOverdue check is retained as a harmless
+    // stable-sort guard for any future cross-category items.)
     return items.sort((a, b) => {
       if (a.isOverdue !== b.isOverdue) {
         return a.isOverdue ? -1 : 1
@@ -420,11 +429,8 @@ export default function TodayCommandCenter({
               </p>
             </div>
           </div>
-          {overdueTasks.length > 0 && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-medium">
-              {overdueTasks.length} overdue
-            </span>
-          )}
+          {/* Overdue badge moved to Needs Attention section — Today only
+              contains items genuinely due today (mutually exclusive). */}
         </div>
 
         {isLoadingTasks ? (
