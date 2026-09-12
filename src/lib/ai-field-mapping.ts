@@ -358,8 +358,9 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
   // Extracted info from CURRENT ai_call_record if present.
   // If there is no current call record, fall back to raw_metadata.extracted_info so
   // genuine existing data is not reported as "Not collected".
+  const latestCallRecord = sortedAiCallRecords[0]
   const extractedInfoRaw =
-    sortedAiCallRecords[0]?.extracted_info ||
+    latestCallRecord?.extracted_info ||
     (!hasAiCallRecord ? rawMetadata.extracted_info : {}) ||
     {}
 
@@ -375,6 +376,26 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
 
   // Customer corrections override extracted info when present
   const corrected = rawMetadata.corrected_fields || {}
+
+  // CANONICAL MERGE CONTRACT:
+  // A later empty/partial intake must NOT erase previously valid canonical customer context.
+  // For each field, scan call records from newest to oldest and use the first non-empty value.
+  // This preserves historical context when the latest call was a silence/partial call.
+  // Explicit refusals (nameRefused, locationRefused) from the latest call still apply.
+  const findLatestNonEmptyField = (
+    fieldPaths: string[]
+  ): string | null => {
+    for (const record of sortedAiCallRecords) {
+      const info = record?.extracted_info
+      if (!info) continue
+      const norm = normalizeExtractedInfo(info)
+      for (const path of fieldPaths) {
+        const val = (norm as any)[path] ?? (info as any)[path]
+        if (val && typeof val === 'string' && val.trim()) return val.trim()
+      }
+    }
+    return null
+  }
 
   const pick = (...candidates: (string | null | undefined)[]): string | null => {
     for (const c of candidates) {
@@ -419,13 +440,15 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
 
   // Extract service requested value first for concise title generation
   // Priority: manual corrections > current-call normalized > current-call raw
-  // NO historical raw_metadata fallback
+  // > historical call records (newest non-empty first)
   const serviceRequestedValue = normalizeServiceReason(traceFieldSelection('serviceRequested', [
     corrected.serviceRequested,
     corrected.reason,
     corrected.reasonForCalling,
     effectiveNormalized.reasonForCalling,
-    effectiveExtractedInfo.serviceRequested
+    effectiveExtractedInfo.serviceRequested,
+    // Historical fallback: scan older call records for a non-empty value
+    findLatestNonEmptyField(['reasonForCalling', 'serviceRequested']),
   ], pick));
 
   // A high-confidence name refusal in the current AI intake overrides the name
@@ -446,6 +469,7 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
           corrected.caller_name,
           effectiveNormalized.callerName,
           effectiveExtractedInfo.customerName,
+          findLatestNonEmptyField(['callerName', 'customerName']),
           lead?.name,
           lead?.contact_name
         ], pickNotPhone)),
@@ -468,38 +492,38 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       corrected.issueDescription,
       corrected.importantDetails,
       effectiveNormalized.importantDetails,
-      effectiveExtractedInfo.additionalDetails
+      effectiveExtractedInfo.additionalDetails,
+      findLatestNonEmptyField(['importantDetails', 'additionalDetails'])
     )),
-    // Service address: current-call only
+    // Service address: current-call + historical fallback
     // Priority: manual corrections > current-call normalized > current-call raw
-    // NO historical raw_metadata fallback
+    // > historical call records (newest non-empty first)
     serviceAddress: normalizeAddress(pick(
       corrected.address,
       corrected.serviceAddress,
       corrected.addressOrLocation,
       effectiveNormalized.addressOrLocation,
-      effectiveExtractedInfo.serviceAddress
+      effectiveExtractedInfo.serviceAddress,
+      findLatestNonEmptyField(['addressOrLocation', 'serviceAddress'])
     )),
-    // Desired completion time: current-call only
-    // Priority: manual corrections > current-call normalized > current-call raw
-    // NO historical raw_metadata fallback
+    // Desired completion time: current-call + historical fallback
     desiredCompletion: normalizeTiming(pick(
       corrected.desiredCompletion,
       corrected.urgency,
       corrected.urgencyLevel,
       corrected.desiredCompletionTime,
       effectiveNormalized.desiredCompletionTime,
-      effectiveExtractedInfo.desiredCompletion
+      effectiveExtractedInfo.desiredCompletion,
+      findLatestNonEmptyField(['desiredCompletionTime', 'desiredCompletion'])
     )),
-    // Callback time: current-call only
-    // Priority: manual corrections > current-call normalized > current-call raw
-    // NO historical raw_metadata fallback
+    // Callback time: current-call + historical fallback
     callbackTime: normalizeTiming(pick(
       corrected.callbackTime,
       corrected.callback_time,
       corrected.preferredCallbackTime,
       effectiveNormalized.preferredCallbackTime,
-      effectiveExtractedInfo.callbackTime
+      effectiveExtractedInfo.callbackTime,
+      findLatestNonEmptyField(['preferredCallbackTime', 'callbackTime'])
     )),
     conciseRequestTitle: generateConciseRequestTitle(
       serviceRequestedValue ||

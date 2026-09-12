@@ -287,6 +287,19 @@ async function detectCorrectionWithRegex(
   const normalizedExtractedInfo = normalizeExtractedInfo(extractedInfo)
   const reply = customerReply.toLowerCase().trim()
 
+  // Guard: conversational replies (thanks, ok, yes, etc.) should never trigger
+  // a correction event. This prevents false "Customer information updated"
+  // timeline dividers from ordinary inbound SMS acknowledgements.
+  if (isConversationalReply(customerReply)) {
+    console.log('[REGEX CORRECTION SKIPPED - CONVERSATIONAL REPLY]', { reply })
+    return {
+      isCorrection: false,
+      confidence: 1.0,
+      requiresReview: false,
+      reason: 'Conversational reply — no correction needed'
+    }
+  }
+
   // Simple pattern matching for corrections - business-agnostic
   // Order matters: more specific patterns should come first
   const patterns = [

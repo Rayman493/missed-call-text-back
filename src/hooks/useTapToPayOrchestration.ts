@@ -895,9 +895,22 @@ export function useTapToPayOrchestration({
             // Attempt exists but is not owned by the current user/business.
             // The local marker is stale; remove it so a fresh attempt can start.
             terminalService.clearUnresolvedAttempt()
+            setPaymentState('ready')
+            setLastSuccessfulStage('none')
+          } else if (response.status === 404) {
+            // Attempt not found on server — it was either never created or
+            // already cleaned up. Safe to clear local marker and allow new payment.
+            terminalService.clearUnresolvedAttempt()
+            setPaymentState('ready')
+            setLastSuccessfulStage('none')
+          } else {
+            // 500/502/503 or other server error — we have an unresolved attempt
+            // in localStorage but cannot determine its server status.
+            // Do NOT silently map to ready. Show explicit uncertain state.
+            console.warn('[TTP Hook] Attempt-status server error, showing uncertain state')
+            setPaymentState('ambiguous')
+            setLastSuccessfulStage('recovery_server_error')
           }
-          setPaymentState('ready')
-          setLastSuccessfulStage('none')
           dispatchTTPEvent('RECOVERY_PROMISE_REJECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, `status_${response.status}`)
           return
         }
@@ -925,19 +938,88 @@ export function useTapToPayOrchestration({
           setLastSuccessfulStage('none')
           dispatchTTPEvent('RECOVERY_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, 'previous_attempt_cleared')
         } else {
-          // Still pending or processing, clear it
-          console.log('[TTP Hook] Previous attempt stale (pending/processing), clearing and transitioning to ready')
+          // Still pending or processing — do NOT silently clear as "ready".
+          // The server/Stripe PaymentIntent may still be active. Trigger server
+          // reconciliation so the canonical status is resolved deterministically.
+          console.log('[TTP Hook] Previous attempt still pending/processing, triggering server reconciliation')
           clearTimeout(timeoutId)
-          setPaymentState('ready')
-          setLastSuccessfulStage('none')
-          dispatchTTPEvent('RECOVERY_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, 'stale_attempt_cleared')
+          try {
+            // Ask the server to reconcile this attempt against Stripe before clearing.
+            const reconcileResponse = await fetch('/api/terminal/reconcile-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                attemptId: terminalService.getCurrentAttemptId(),
+                sessionId: terminalService.getSessionId(),
+              }),
+            })
+            if (reconcileResponse.ok) {
+              const reconcileData = await reconcileResponse.json()
+              const reconciledStatus = reconcileData?.status || reconcileData?.paymentIntentStatus
+              if (reconciledStatus === 'succeeded' || reconciledStatus === 'paid') {
+                // SUCCEEDED/PAID: terminal success state
+                setPaymentState('success')
+                setLastSuccessfulStage('payment_completed')
+                onPaymentComplete?.()
+              } else if (reconciledStatus === 'canceled' || reconciledStatus === 'failed') {
+                // CANCELED/FAILED: terminal state, safe to clear and allow new payment
+                terminalService.clearUnresolvedAttempt()
+                setPaymentState('ready')
+                setLastSuccessfulStage('none')
+              } else if (reconciledStatus === 'pending' || reconciledStatus === 'processing') {
+                // PENDING/PROCESSING: must remain visibly unresolved.
+                // Do NOT clear the local attempt marker.
+                // Do NOT present normal ready state.
+                // User must not mistake this for a completed cancellation or ready state.
+                // The 24h background reconciliation remains as a backstop, but the
+                // UI must show the uncertain/pending state until resolved.
+                console.log('[TTP Hook] Reconciliation confirmed still pending/processing — keeping unresolved state')
+                setPaymentState('pending')
+                setLastSuccessfulStage('reconciliation_pending')
+                // Do NOT dispatch RECOVERY_PROMISE_RESOLVED — this is NOT resolved.
+                dispatchTTPEvent('RECOVERY_PROMISE_REJECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, 'still_pending_after_reconciliation')
+                return
+              } else {
+                // UNKNOWN / INDETERMINATE: server returned a status we don't recognize.
+                // Do NOT silently map to ready. Show explicit uncertain state.
+                console.warn('[TTP Hook] Reconciliation returned unknown/indeterminate status:', reconciledStatus)
+                setPaymentState('ambiguous')
+                setLastSuccessfulStage('reconciliation_unknown')
+                // Do NOT clear the local attempt marker — status is uncertain.
+                dispatchTTPEvent('RECOVERY_PROMISE_REJECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, 'unknown_status_after_reconciliation')
+                return
+              }
+            } else {
+              // RECONCILIATION HTTP ERROR: server returned non-OK status.
+              // Do NOT silently map to ready. Show explicit uncertain state.
+              console.warn('[TTP Hook] Server reconciliation failed (HTTP), showing uncertain state')
+              setPaymentState('ambiguous')
+              setLastSuccessfulStage('reconciliation_error')
+              // Do NOT clear the local attempt marker — we don't know the status.
+              dispatchTTPEvent('RECOVERY_PROMISE_REJECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, 'reconciliation_http_error')
+              return
+            }
+          } catch (reconcileErr) {
+            // RECONCILIATION NETWORK ERROR: fetch threw.
+            // Do NOT silently map to ready. Show explicit uncertain state.
+            console.error('[TTP Hook] Reconciliation network error:', reconcileErr)
+            setPaymentState('ambiguous')
+            setLastSuccessfulStage('reconciliation_network_error')
+            // Do NOT clear the local attempt marker — network status unknown.
+            dispatchTTPEvent('RECOVERY_PROMISE_REJECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, 'reconciliation_network_error')
+            return
+          }
+          dispatchTTPEvent('RECOVERY_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, 'pending_reconciled')
         }
       } catch (error) {
         console.error('[TTP Hook] Failed to check unresolved attempt', error)
         clearTimeout(timeoutId)
-        // On error, ensure we're in ready state
-        setPaymentState('ready')
-        setLastSuccessfulStage('none')
+        // We have an unresolved attempt ID in localStorage but cannot reach
+        // the server to determine its status. Do NOT silently map to ready.
+        // Show explicit uncertain state so the user knows a payment may be
+        // in progress and can check their payment history.
+        setPaymentState('ambiguous')
+        setLastSuccessfulStage('recovery_network_error')
         dispatchTTPEvent('RECOVERY_PROMISE_REJECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, String(error))
       }
     }

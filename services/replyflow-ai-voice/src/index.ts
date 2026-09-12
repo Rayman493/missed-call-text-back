@@ -88,7 +88,7 @@ import {
 } from './lib/timing-policy';
 import { extractRawRequestTranscriptFromStageCaptures } from './request-transcript-selection';
 import { EARLY_COMPLETION_PATTERNS, EARLY_CALLBACK_PATTERNS } from './early-timing-patterns';
-import { enrichIntakeFromTranscript, hasUsableLocation, isNameRefusal, isLocationRefusal } from './intake-skip-ahead';
+import { enrichIntakeFromTranscript, hasUsableLocation, isNameRefusal, isLocationRefusal, detectCorrectionIntent } from './intake-skip-ahead';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -131,7 +131,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
   return Promise.race([promise, timeoutPromise]) as Promise<T>;
 }
 
-import { isNameRequirementSatisfied, selectSimpleModePromptKey, isValidCustomerName } from './intake-validation';
+import { isNameRequirementSatisfied, selectSimpleModePromptKey, isValidCustomerName, isUsableServiceAddress } from './intake-validation';
 
 // Minimal shared authorization guard for settle-window callbacks (production + tests)
 // Returns true if the callback is authorized to finalize, otherwise logs a single
@@ -1481,7 +1481,7 @@ function areAllRequiredFieldsCollected(intake: IntakeData, serviceLocationType: 
   const allCollected = !!(
     isNameRequirementSatisfied(intake) &&
     intake.serviceRequested &&
-    (requiresServiceAddress ? intake.serviceAddress : true) &&
+    (requiresServiceAddress ? isUsableServiceAddress(intake) : true) &&
     intake.desiredCompletionTime &&
     intake.callbackTime
   );
@@ -3120,7 +3120,7 @@ function resolveNextRequiredStage(
   // while leaving the corresponding canonical field empty.
   const hasName = isNameRequirementSatisfied(intake);
   const hasRequest = Boolean(intake.serviceRequested && intake.serviceRequested.trim().length > 0);
-  const hasLocation = Boolean(intake.serviceAddress && intake.serviceAddress.trim().length > 0) || !!intake.locationRefused;
+  const hasLocation = isUsableServiceAddress(intake) || !!intake.locationRefused;
   const hasCompletionTime = Boolean(intake.desiredCompletionTime && intake.desiredCompletionTime.trim().length > 0);
   const hasCallbackTime = Boolean(intake.callbackTime && intake.callbackTime.trim().length > 0);
 
@@ -8503,13 +8503,51 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       if (stage === 'ask_location' && !state.intakeData[extractedField] && isLocationRefusal(rawTranscript)) {
         state.intakeData.locationRefused = true;
         capturedAnswer = '';
+      } else if (stage === 'ask_location' && !isValidServiceAddress(rawTranscript) && !state.intakeData[extractedField]) {
+        // Onsite location validity guard: "I don't know", "I said I don't know",
+        // "not sure", etc. must NOT be persisted as serviceAddress.
+        // Mark as locationRefused if the response is an uncertainty non-answer,
+        // so the stage resolver knows to re-prompt rather than complete.
+        state.intakeData.locationRefused = true;
+        capturedAnswer = '';
+        console.log('[LOCATION VALIDITY GUARD] =========================================');
+        console.log('[LOCATION VALIDITY GUARD] rawTranscript:', rawTranscript);
+        console.log('[LOCATION VALIDITY GUARD] action: rejected_non_usable_address');
+        console.log('[LOCATION VALIDITY GUARD] Timestamp:', new Date().toISOString());
+        console.log('[LOCATION VALIDITY GUARD] =========================================');
       } else if (stage === 'ask_name' && isNameRefusal(rawTranscript)) {
         // Explicit name refusal overrides any fallback to the raw transcript.
         state.intakeData.nameRefused = true;
         state.intakeData.customerName = '';
         capturedAnswer = '';
       } else {
-        capturedAnswer = state.intakeData[extractedField] || capturedAnswer;
+        // Check if enrichment already set the current stage field to a clean value.
+        // If it did, use that value (not the raw transcript).
+        // If it did NOT, and the utterance was a correction targeting OTHER fields,
+        // do NOT pollute the current stage field with the raw correction text.
+        const enrichedValue = state.intakeData[extractedField];
+        const isCorrectionUtterance = detectCorrectionIntent(rawTranscript).isCorrection;
+
+        if (enrichedValue && typeof enrichedValue === 'string' && enrichedValue.trim().length > 0) {
+          // Enrichment extracted a clean value for this field — use it.
+          capturedAnswer = enrichedValue;
+        } else if (isCorrectionUtterance && stage !== 'ask_name') {
+          // Correction targeted other fields, not the current stage.
+          // Do NOT write the raw correction prose into the current stage field.
+          // Leave the field empty so the caller is re-prompted for THIS stage.
+          console.log('[CORRECTION ROUTING GUARD] =========================================');
+          console.log('[CORRECTION ROUTING GUARD] stage:', stage);
+          console.log('[CORRECTION ROUTING GUARD] extractedField:', extractedField);
+          console.log('[CORRECTION ROUTING GUARD] rawTranscript:', rawTranscript);
+          console.log('[CORRECTION ROUTING GUARD] action: skip_raw_write_correction_targeted_other_field');
+          console.log('[CORRECTION ROUTING GUARD] Timestamp:', new Date().toISOString());
+          console.log('[CORRECTION ROUTING GUARD] =========================================');
+          // Don't write anything — leave the field as-is (empty or previous value)
+          // Skip the write at line 8514 by not setting capturedAnswer to the raw text
+          capturedAnswer = state.intakeData[extractedField] || '';
+        } else {
+          capturedAnswer = state.intakeData[extractedField] || capturedAnswer;
+        }
       }
       state.intakeData[extractedField] = capturedAnswer;
     }
@@ -13312,7 +13350,7 @@ Reply to this message if you'd like to update or add any information.
                           console.log('[LOGICAL TURN LIFECYCLE] =========================================');
                           console.log('[LOGICAL TURN LIFECYCLE] event: logical_turn_finalized');
                           console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
-                          console.log('[LOGICAL TURN LIFECYCLE] finalizedStage:', finalStage);
+                          console.log('[LOGICAL TURN LIFECYCLE] finalizedStage:', state.pendingAnswerStage);
                           console.log('[LOGICAL TURN LIFECYCLE] nextStage:', state.currentStage);
                           console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
                           console.log('[LOGICAL TURN LIFECYCLE] =========================================');
@@ -15149,7 +15187,11 @@ Return only JSON, no other text.`;
 
         const hasCustomerName = Boolean(normalizedFields.customerName || normalizedFields.callerName);
         const hasServiceRequested = Boolean(normalizedFields.serviceRequested || normalizedFields.reasonForCalling);
-        const hasServiceAddress = Boolean(normalizedFields.serviceAddress || normalizedFields.addressOrLocation);
+        const hasServiceAddress = isUsableServiceAddress({
+          serviceAddress: normalizedFields.serviceAddress || normalizedFields.addressOrLocation,
+          locationRefused: (normalizedFields as any).locationRefused,
+          locationUnknown: (normalizedFields as any).locationUnknown,
+        } as any);
         const hasDesiredCompletionTime = Boolean(normalizedFields.desiredCompletionTime);
         const hasCallbackTime = Boolean(normalizedFields.callbackTime || normalizedFields.preferredCallbackTime);
         const locationSatisfied = serviceLocationMode === 'onsite' ? hasServiceAddress : true;

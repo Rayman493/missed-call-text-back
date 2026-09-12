@@ -63,11 +63,35 @@ export function isValidServiceAddress(text: string): boolean {
   // Reject obvious non-answers
   const nonAnswerPatterns = [
     /^(i don't know|i dont know|not sure|no idea|unknown)$/i,
-    /^(i don't have the address|i dont have the address|no address)$/i
+    /^(i don't have the address|i dont have the address|no address)$/i,
+    // Meta-responses: "I said I don't know", "I told you I don't know", etc.
+    /^(i (?:said|told you|already (?:said|told you))\s+.*)$/i,
+    // Bare "don't know" / "can't remember" without other content
+    /^(don't know|dont know|can't remember|cant remember|no idea|not sure)$/i,
   ];
   if (nonAnswerPatterns.some(pattern => pattern.test(trimmed))) return false;
 
   return true;
+}
+
+/**
+ * Semantic service-address usability check for ONSITE completion.
+ *
+ * A non-empty string is NOT sufficient. This combines:
+ *   - isValidServiceAddress (rejects refusals, uncertainty, meta-responses)
+ *   - locationRefused flag (explicit refusal state)
+ *   - locationUnknown flag (extraction marked address as unknown)
+ *
+ * For onsite service, the address must be semantically usable.
+ * For remote / customers-come-to-business, address is not required
+ * and this function should not gate completion.
+ */
+export function isUsableServiceAddress(intake: IntakeData): boolean {
+  // Explicit refusal flags mean address is not usable even if raw text exists
+  if (intake.locationRefused) return false;
+  if ((intake as any).locationUnknown) return false;
+  // Must pass semantic validation
+  return isValidServiceAddress(intake.serviceAddress || '');
 }
 
 /**
@@ -313,7 +337,7 @@ export function resolveNextRequiredStage(
   // while leaving the corresponding canonical field empty.
   const hasName = isNameRequirementSatisfied(intake);
   const hasRequest = Boolean(intake.serviceRequested && intake.serviceRequested.trim().length > 0);
-  const hasLocation = Boolean(intake.serviceAddress && intake.serviceAddress.trim().length > 0) || !!intake.locationRefused;
+  const hasLocation = isUsableServiceAddress(intake) || !!intake.locationRefused;
   const hasCompletionTime = Boolean(intake.desiredCompletionTime && intake.desiredCompletionTime.trim().length > 0);
   const hasCallbackTime = Boolean(intake.callbackTime && intake.callbackTime.trim().length > 0);
 
@@ -426,4 +450,50 @@ export function selectSimpleModePromptKey(stage: string, intakeData: IntakeData,
 
   // For all other stages, return the stage name as-is
   return stage;
+}
+
+/**
+ * Centralized structured-field normalizer.
+ *
+ * Strips dangling filler/meta fragments from extracted field values without
+ * losing meaningful content. Does NOT hallucinate missing details.
+ *
+ * Examples:
+ *   "a manicure. I live" → "a manicure"
+ *   "I'm" → "" (empty — not a usable value)
+ *   "a manicure. I live in Pittsburgh" → "a manicure" (location handled separately)
+ */
+export function normalizeStructuredFieldValue(
+  value: string | undefined | null,
+  fieldType: 'service' | 'address' | 'timing' | 'callback' | 'name'
+): string {
+  if (!value || typeof value !== 'string') return '';
+  let s = value.trim();
+  if (s.length === 0) return '';
+
+  // Strip trailing incomplete sentence fragments starting with common connectors
+  // that indicate the caller drifted into a different topic.
+  // e.g., "a manicure. I live" → "a manicure"
+  const danglingFragmentPatterns = [
+    // "I live...", "I'm...", "I am..." at end (incomplete personal statement)
+    /\s*[.,;]\s*(?:i\s+(?:live|am|m|need|want|have|was|feel|think|said|told|don't|dont|can't|cant)\b.*)$/i,
+    // "and I..." trailing
+    /\s*,?\s*and\s+i\b.*$/i,
+    // Trailing "I'm" alone
+    /\s*[.,;]?\s*i'?m\s*$/i,
+  ];
+  for (const pattern of danglingFragmentPatterns) {
+    s = s.replace(pattern, '').trim();
+  }
+
+  // Strip trailing punctuation
+  s = s.replace(/[.,;:]\s*$/, '').trim();
+
+  // For callback/timing, preserve temporal qualifiers like "anytime tomorrow afternoon"
+  // but strip trailing conversational filler
+  if (fieldType === 'callback' || fieldType === 'timing') {
+    s = s.replace(/\s*[.,;]\s*$/i, '').trim();
+  }
+
+  return s;
 }

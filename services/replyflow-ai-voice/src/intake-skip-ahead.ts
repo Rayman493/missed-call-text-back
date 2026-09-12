@@ -505,7 +505,7 @@ const CORRECTION_MARKERS = [
   'it is', "it's", 'it was'
 ];
 
-function detectCorrectionIntent(transcript: string): { isCorrection: boolean; confidence: 'high' | 'low' } {
+export function detectCorrectionIntent(transcript: string): { isCorrection: boolean; confidence: 'high' | 'low' } {
   const lower = transcript.toLowerCase();
   const markerCount = CORRECTION_MARKERS.reduce((count, marker) => {
     // Count multi-word markers once.
@@ -658,6 +658,13 @@ export function enrichIntakeFromTranscript(
     !!intake.customerName &&
     isNameOnlyTurn(transcript, intake.customerName);
 
+  // Name containment: at non-name stages, a name candidate should only be written
+  // if it is a clear correction of a previously garbled/unknown name. This prevents
+  // garbled or misheard names from contaminating the customerName field when the
+  // caller is actually answering a different stage question.
+  const isNameStage = ['ask_name', 'ask_name_reason'].includes(currentStage);
+  const containNameAtNonNameStage = !isNameStage && name && !isCorrection;
+
   let addressMatch = findAddressMatch(transcript);
   let completionMatch = findCompletionMatch(transcript) ?? findNaturalCompletionMatch(transcript);
   let callbackMatch = findCallbackMatch(transcript);
@@ -737,10 +744,15 @@ export function enrichIntakeFromTranscript(
     validCleanedService = null;
   }
 
+  // Name containment: at non-name stages, suppress name extraction unless it's
+  // a clear correction. This prevents garbled/misheard names from contaminating
+  // the customerName field when the caller is answering a different question.
+  const nameCandidate = containNameAtNonNameStage ? null : name;
+
   applyField(
     intake,
     'customerName',
-    name,
+    nameCandidate,
     () => true,
     applied,
     skippedBecauseAlreadyPresent,
