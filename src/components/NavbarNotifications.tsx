@@ -62,7 +62,7 @@ export default function NavbarNotifications() {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
       setButtonPosition({
-        top: rect.bottom + 8, // 8px gap
+        top: rect.bottom + 12, // 12px gap — clears header edge
         right: window.innerWidth - rect.right
       })
     } else {
@@ -78,7 +78,7 @@ export default function NavbarNotifications() {
       const rect = buttonRef.current?.getBoundingClientRect()
       if (rect) {
         setButtonPosition({
-          top: rect.bottom + 8,
+          top: rect.bottom + 12,
           right: window.innerWidth - rect.right
         })
       }

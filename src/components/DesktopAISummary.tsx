@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { RefreshCw, Sparkles } from 'lucide-react'
+import { renderAISummary } from '@/lib/ai-summary-markdown'
 
 interface DesktopAISummaryProps {
   leadId: string
@@ -65,18 +66,14 @@ export default function DesktopAISummary({ leadId, leadData }: DesktopAISummaryP
     }
   }
 
-  // Extract key points from summary text (bullet-style)
-  const extractKeyPoints = (text: string): string[] => {
-    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean)
-    const points: string[] = []
-    for (const line of lines) {
-      const cleaned = line.replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, '')
-      if (cleaned.length > 0) {
-        points.push(cleaned)
-      }
-    }
-    return points
-  }
+  // Render the AI summary as React nodes with a safe Markdown subset:
+  //   **bold** → <strong>bold</strong>
+  //   - / * / • bullets → <ul><li> list
+  //   line breaks → paragraphs
+  //   raw HTML → escaped text (React auto-escapes)
+  //   malformed ** → literal text (no crash)
+  // See src/lib/ai-summary-markdown.tsx for the renderer implementation.
+  const renderedSummary = aiSummary ? renderAISummary(aiSummary) : null
 
   return (
     <div className="space-y-3">
@@ -105,21 +102,9 @@ export default function DesktopAISummary({ leadId, leadData }: DesktopAISummaryP
         </div>
       ) : aiSummary ? (
         <div className="space-y-3">
-          {(() => {
-            const keyPoints = extractKeyPoints(aiSummary)
-            return keyPoints.length > 0 ? (
-              <ul className="space-y-2">
-                {keyPoints.map((point, index) => (
-                  <li key={index} className="text-sm text-foreground/90 flex items-start gap-2 leading-relaxed">
-                    <span className="text-muted-foreground/70 mt-0.5 flex-shrink-0">•</span>
-                    <span className="flex-1">{point}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-foreground/90 leading-relaxed">{aiSummary}</p>
-            )
-          })()}
+          <div className="text-sm text-foreground/90">
+            {renderedSummary}
+          </div>
           <div className="pt-2 border-t border-border/30">
             <button
               onClick={handleGenerate}

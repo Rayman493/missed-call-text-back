@@ -367,7 +367,7 @@ describe('Batch B — Part 5: Layout / Light Mode', () => {
   it('28. no overlap at 320px (flex-col with min-h-0)', () => {
     // The conversation card uses flex flex-col min-h-0 to prevent overflow
     const cardMatch = pageClientSrc.match(
-      /rounded-2xl\s+border\s+border-border\/60\s+shadow-sm\s+overflow-hidden\s+flex\s+flex-col\s+min-h-0/
+      /rounded-2xl\s+border\s+border-border\s+shadow-sm\s+overflow-hidden\s+flex\s+flex-col\s+min-h-0/
     )
     expect(cardMatch).toBeTruthy()
   })
@@ -378,21 +378,22 @@ describe('Batch B — Part 5: Layout / Light Mode', () => {
   })
 
   it('30. light-mode Conversation card has distinct boundary/fill (stronger border + fill)', () => {
-    // Mobile card: bg-muted/20 (strengthened from bg-muted/10) + border-border/60 (strengthened from /40)
+    // Mobile card: bg-card (strengthened from bg-muted/20) + border-border (strengthened from /60)
+    // for noticeably stronger visual separation from page background.
     const mobileCardMatch = pageClientSrc.match(
-      /bg-muted\/20\s+rounded-2xl\s+border\s+border-border\/60/
+      /bg-card\s+rounded-2xl\s+border\s+border-border/
     )
     expect(mobileCardMatch).toBeTruthy()
-    // Desktop card: bg-muted/20 (strengthened from bg-muted/10)
+    // Desktop card: bg-card (strengthened from bg-muted/20) + border-slate-300 (strengthened from /200)
     const desktopCardMatch = pageClientSrc.match(
-      /bg-muted\/20\s+rounded-xl\s+border\s+border-slate-200/
+      /bg-card\s+rounded-xl\s+border\s+border-slate-300/
     )
     expect(desktopCardMatch).toBeTruthy()
   })
 
   it('31. dark-mode styling not regressed (dark: classes preserved)', () => {
     // Dark mode classes should still be present
-    expect(pageClientSrc).toContain('dark:border-border/50')
+    expect(pageClientSrc).toContain('dark:border-border')
     expect(pageClientSrc).toContain('dark:bg-slate-900/40')
     expect(pageClientSrc).toContain('dark:bg-slate-900/60')
   })

@@ -179,16 +179,17 @@ describe('Batch C — Part 3: Customer Details', () => {
     expect(customerDetailsModalSection).not.toContain('Handle')
   })
 
-  it('18. modal is slightly taller than generic short modal (max-h-[85vh])', () => {
-    // Customer Details bottom sheet uses max-h-[85vh] (increased from 80vh)
+  it('18. modal is slightly taller than generic short modal (max-h-[92vh])', () => {
+    // Customer Details bottom sheet uses max-h-[92vh] (increased from 85vh)
+    // to give Overview fields more usable height without scrolling on taller phones.
     const customerDetailsModalSection = pageClientSrc.substring(
       pageClientSrc.indexOf('Mobile Bottom Sheet for Customer Details'),
       pageClientSrc.indexOf('Desktop Modal for Customer Details')
     )
-    expect(customerDetailsModalSection).toContain('max-h-[85vh]')
+    expect(customerDetailsModalSection).toContain('max-h-[92vh]')
   })
 
-  it('19. modal is not fullscreen (max-h-[85vh], not 100vh)', () => {
+  it('19. modal is not fullscreen (max-h-[92vh], not 100vh)', () => {
     const customerDetailsModalSection = pageClientSrc.substring(
       pageClientSrc.indexOf('Mobile Bottom Sheet for Customer Details'),
       pageClientSrc.indexOf('Desktop Modal for Customer Details')

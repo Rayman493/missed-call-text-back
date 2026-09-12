@@ -36,8 +36,8 @@ export default function LeadStatusDropdown({
   const [isUpdating, setIsUpdating] = useState(false)
 
   const sizeClasses = {
-    sm: 'px-2 py-0.5 text-xs max-w-[140px]',
-    md: 'px-2.5 py-0.5 text-xs max-w-[160px]',
+    sm: 'px-2 py-0.5 text-xs max-w-[120px]',
+    md: 'px-2.5 py-0.5 text-xs max-w-[150px]',
     lg: 'px-3 py-1 text-sm max-w-[180px]'
   }
 
@@ -168,14 +168,15 @@ export default function LeadStatusDropdown({
             }
           }}
           className={`group relative inline-flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed`}
+          title={currentStyle.label}
         >
           {/* Expanded touch target via pseudo-element (no layout expansion).
               inset-[-10px] preserves a comfortable ~44px touch target even
               with the reduced py-1 visible padding. */}
           <span aria-hidden="true" className="absolute inset-[-10px] rounded-md" />
-          <span className={`${sizeClasses[size]} bg-background dark:bg-slate-800/50 border border-border dark:border-border/50 rounded-lg font-medium transition-all duration-200 inline-flex items-center gap-1.5 hover:opacity-80 group-data-[state=open]:ring-2 group-data-[state=open]:ring-offset-2 group-data-[state=open]:ring-primary/50`}>
+          <span className={`${sizeClasses[size]} bg-background dark:bg-slate-800/50 border border-border dark:border-border/50 rounded-lg font-medium transition-all duration-200 inline-flex items-center gap-1.5 hover:opacity-80 group-data-[state=open]:ring-2 group-data-[state=open]:ring-offset-2 group-data-[state=open]:ring-primary/50 overflow-hidden`}>
             <StatusIcon className={`w-3.5 h-3.5 flex-shrink-0 ${currentStyle.textClass}`} />
-            <span className={`truncate ${currentStyle.textClass}`}>{currentStyle.label}</span>
+            <span className={`truncate min-w-0 ${currentStyle.textClass}`}>{currentStyle.label}</span>
             {isUpdating ? (
               <div className="animate-spin rounded-full h-3 w-3 border-b border-current flex-shrink-0"></div>
             ) : (

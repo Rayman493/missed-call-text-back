@@ -3788,7 +3788,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             aria-label={getFollowUpSettings().enabled ? 'Disable Automatic Follow-Ups' : 'Enable Automatic Follow-Ups'}
                           >
                             <span
-                              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 -translate-y-0.5 ${
+                              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${
                                 getFollowUpSettings().enabled ? 'translate-x-5' : 'translate-x-0.5'
                               }`}
                             />
@@ -3837,7 +3837,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               aria-label={getFollowUpSettings().enabled ? 'Disable Automatic Follow-Ups' : 'Enable Automatic Follow-Ups'}
                             >
                               <span
-                                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 -translate-y-0.5 ${
+                                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ${
                                   getFollowUpSettings().enabled ? 'translate-x-5' : 'translate-x-0.5'
                                 }`}
                               />
@@ -5110,9 +5110,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
           {/* Delete Account Modal */}
           {showDeleteModal && (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-stretch sm:items-center justify-center z-[80] p-0 sm:p-4 overscroll-contain">
-              <div className="bg-white dark:bg-slate-900 rounded-none sm:rounded-xl max-w-lg w-full sm:h-auto max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+              <div className="bg-white dark:bg-slate-900 rounded-none sm:rounded-xl max-w-lg w-full sm:h-auto max-h-[90dvh] sm:max-h-[85vh] flex flex-col shadow-2xl overflow-hidden mt-auto sm:mt-0">
                 {/* Fixed Header */}
-                <div className="flex-shrink-0 p-5 border-b border-slate-200/70 dark:border-slate-700/50">
+                <div className="flex-shrink-0 p-4 sm:p-5 border-b border-slate-200/70 dark:border-slate-700/50">
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
                       <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
@@ -5129,7 +5129,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                 </div>
 
                 {/* Scrollable Body */}
-                <div className="flex-1 min-h-0 overflow-y-scroll p-5 space-y-4 overscroll-contain" style={{ touchAction: 'pan-y' }} data-scroll-lock-allow>
+                <div className="flex-1 min-h-0 overflow-y-scroll p-4 sm:p-5 space-y-4 overscroll-contain" style={{ touchAction: 'pan-y' }} data-scroll-lock-allow>
                   {/* What happens */}
                   <div>
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3">

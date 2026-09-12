@@ -248,8 +248,8 @@ describe('Batch 2 — Customer card structure (final canonical)', () => {
   it('case 15: DesktopAISummary displays generated summary for manual customers', () => {
     expect(desktopAISummarySrc).toContain('setAiSummary')
     expect(desktopAISummarySrc).toContain('data.summary')
-    // Summary display with bullet points
-    expect(desktopAISummarySrc).toContain('extractKeyPoints')
+    // Summary display uses the safe Markdown renderer (renderAISummary)
+    expect(desktopAISummarySrc).toContain('renderAISummary')
   })
 
   // case 16: sparse customer AI Summary shows truthful empty state

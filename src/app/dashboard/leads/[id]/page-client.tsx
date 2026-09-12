@@ -4577,7 +4577,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {!isMobileView && (
           <div className="grid grid-cols-[minmax(0,3fr)_minmax(320px,380px)] gap-8 h-full min-h-0">
             {/* Desktop Conversation Section - Primary workspace */}
-            <section className="flex flex-col h-full min-h-0 bg-muted/20 rounded-xl border border-slate-200 dark:border-border/50 shadow-sm overflow-hidden">
+            <section className="flex flex-col h-full min-h-0 bg-card rounded-xl border border-slate-300 dark:border-border shadow-sm overflow-hidden">
               {/* Desktop Conversation Header */}
               <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b border-slate-200/70 dark:border-border/30 bg-muted/40">
                 <div className="flex items-center gap-2">
@@ -5026,7 +5026,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {isMobileView && (
           <div className="px-4 sm:px-5 space-y-3 pb-[calc(1rem+var(--bottom-nav-height,72px))]">
           {/* Conversation Workspace Card - Fixed height with internal scrolling */}
-          <div className="bg-muted/20 rounded-2xl border border-border/60 shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(100dvh-7rem-var(--bottom-nav-height,72px))]">
+          <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(100dvh-7rem-var(--bottom-nav-height,72px))]">
             {/* Conversation Header - Distinct header */}
             <div className="px-4 py-3 border-b border-border/30 bg-muted/50 flex-shrink-0">
               <div className="flex items-center justify-between">
@@ -5670,9 +5670,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Mobile Bottom Sheet for Customer Details */}
       {showLeadInfo && (
         <div className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50" onClick={() => setShowLeadInfo(false)}>
-          <div className="bg-card rounded-t-2xl shadow-2xl w-full max-h-[85vh] overflow-hidden animate-slide-up border-t border-border/50" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-card rounded-t-2xl shadow-2xl w-full max-h-[92vh] overflow-hidden animate-slide-up border-t border-border/50" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
-            <div className="px-4 pb-3 border-b border-border/50 flex items-center justify-between bg-muted/30">
+            <div className="px-4 py-2 border-b border-border/50 flex items-center justify-between bg-muted/30">
               <h3 className="text-base font-semibold text-foreground">Customer Details</h3>
               <button
                 onClick={() => setShowLeadInfo(false)}
@@ -5686,12 +5686,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Content - Canonical Customer Details */}
-            <div className="px-4 py-3 overflow-y-auto max-h-[70vh] overscroll-contain [touch-action:pan-y]" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="px-4 py-3 overflow-y-auto overscroll-contain [touch-action:pan-y]" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch', maxHeight: 'calc(92vh - 7rem)' }}>
               <CustomerDetails leadData={leadData} lead={lead} />
             </div>
 
             {/* Actions */}
-            <div className="px-4 py-3 border-t border-border/50 bg-muted/30">
+            <div className="px-4 py-2 border-t border-border/50 bg-muted/30">
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowLeadInfo(false)}

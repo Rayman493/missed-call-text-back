@@ -18,8 +18,9 @@ const content = readFileSync('src/components/LeadStatusDropdown.tsx', 'utf8')
 describe('Status pill — size polish (26-29)', () => {
   it('26. visible height/padding reduced (py-0.5 for sm/md, py-1 for lg)', () => {
     // sm and md use py-0.5 (reduced from py-1)
-    expect(content).toContain("sm: 'px-2 py-0.5 text-xs max-w-[140px]'")
-    expect(content).toContain("md: 'px-2.5 py-0.5 text-xs max-w-[160px]'")
+    // sm max-w reduced from 140px to 120px to bound long statuses like "Payment Requested"
+    expect(content).toContain("sm: 'px-2 py-0.5 text-xs max-w-[120px]'")
+    expect(content).toContain("md: 'px-2.5 py-0.5 text-xs max-w-[150px]'")
     // lg uses py-1 (reduced from py-1.5)
     expect(content).toContain("lg: 'px-3 py-1 text-sm max-w-[180px]'")
   })
@@ -46,8 +47,9 @@ describe('Status pill — size polish (26-29)', () => {
     // The truncate class preserves text truncation
     expect(content).toContain('truncate')
     // The max-w constraints prevent the pill from growing too wide
-    expect(content).toContain('max-w-[140px]')
-    expect(content).toContain('max-w-[160px]')
+    // Long statuses like "Payment Requested" ellipsize within the bounded width
+    expect(content).toContain('max-w-[120px]')
+    expect(content).toContain('max-w-[150px]')
     expect(content).toContain('max-w-[180px]')
   })
 })

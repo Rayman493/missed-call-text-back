@@ -31,7 +31,7 @@ export function SidebarSection({
 }: SidebarSectionProps) {
   return (
     <div className={`bg-muted/20 rounded-lg border border-slate-200 dark:border-border/40 ${className}`}>
-      <div className="px-4 py-3 border-b border-slate-200/70 dark:border-border/30">
+      <div className="px-4 py-3 pl-4 pr-2 border-b border-slate-200/70 dark:border-border/30">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             {icon && <div className="text-muted-foreground/70 flex-shrink-0">{icon}</div>}
