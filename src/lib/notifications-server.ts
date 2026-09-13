@@ -353,20 +353,43 @@ export class NotificationServiceServer {
       return true
     }
 
-    // Atomic idempotency for ai_intake_completed and sms_failed
+    // Atomic idempotency for notification types that can be retried/replayed
     // Uses INSERT + unique constraint (23505 error) to prevent race conditions
+    // Each type uses its canonical business-event identity as the idempotency key
     let idempotencyKey: string | null = null
     let useAtomicIdempotency = false
 
     if (data && data.aiCallRecordId && type === 'ai_intake_completed') {
-      // Use aiCallRecordId as the stable per-event identifier
-      // Do NOT use leadId as fallback to avoid suppressing legitimate subsequent AI calls
+      // AI intake: dedupe by ai_call_records.id (or callSid as fallback)
       idempotencyKey = `ai_${data.aiCallRecordId}`
       useAtomicIdempotency = true
     } else if (data && data.messageSid && type === 'sms_failed') {
-      // Use Twilio MessageSid as the stable per-event identifier for SMS failures
-      // This prevents duplicate notifications when Twilio sends multiple failure callbacks for the same message
+      // SMS failure: dedupe by Twilio MessageSid
       idempotencyKey = `sms_${data.messageSid}`
+      useAtomicIdempotency = true
+    } else if (data && data.messageId && type === 'customer_reply') {
+      // Customer reply: dedupe by inbound message ID
+      idempotencyKey = `reply_${data.messageId}`
+      useAtomicIdempotency = true
+    } else if (data && data.paymentId && type === 'payment_completed') {
+      // Payment completion: dedupe by payment request ID
+      idempotencyKey = `pay_${data.paymentId}`
+      useAtomicIdempotency = true
+    } else if (data && data.appointmentId && type === 'appointment_created') {
+      // Appointment creation: dedupe by appointment event ID
+      idempotencyKey = `appt_${data.appointmentId}`
+      useAtomicIdempotency = true
+    } else if (data && data.appointmentId && type === 'appointment_deleted') {
+      // Appointment deletion: dedupe by appointment event ID
+      idempotencyKey = `appt_del_${data.appointmentId}`
+      useAtomicIdempotency = true
+    } else if (data && data.voicemailId && type === 'personal_voicemail') {
+      // Personal voicemail: dedupe by voicemail/call event ID
+      idempotencyKey = `vm_${data.voicemailId}`
+      useAtomicIdempotency = true
+    } else if (data && data.voicemailId && type === 'voicemail_received') {
+      // Voicemail received: dedupe by voicemail/call event ID
+      idempotencyKey = `vmr_${data.voicemailId}`
       useAtomicIdempotency = true
     }
 
@@ -567,12 +590,12 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifyVoicemailReceived(businessId: string, leadName: string, leadPhone: string, leadId: string): Promise<boolean> {
+  async notifyVoicemailReceived(businessId: string, leadName: string, leadPhone: string, leadId: string, voicemailId?: string): Promise<boolean> {
     return await this.createNotification(
       businessId,
       'voicemail_received',
       '',
-      { leadName, leadPhone, leadId }
+      { leadName, leadPhone, leadId, voicemailId }
     )
   }
 
@@ -630,12 +653,12 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifyPaymentCompleted(businessId: string, leadId: string, leadPhone: string, amountCents: number): Promise<boolean> {
+  async notifyPaymentCompleted(businessId: string, leadId: string, leadPhone: string, amountCents: number, paymentId?: string): Promise<boolean> {
     return await this.createNotification(
       businessId,
       'payment_completed',
       '',
-      { leadName: leadPhone, leadPhone, leadId, amountCents }
+      { leadName: leadPhone, leadPhone, leadId, amountCents, paymentId }
     )
   }
 
@@ -657,21 +680,21 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifyAppointmentCreated(businessId: string, title: string, date: string): Promise<boolean> {
+  async notifyAppointmentCreated(businessId: string, title: string, date: string, appointmentId?: string): Promise<boolean> {
     return await this.createNotification(
       businessId,
       'appointment_created',
       '',
-      { title, date }
+      { title, date, appointmentId }
     )
   }
 
-  async notifyAppointmentDeleted(businessId: string, title: string): Promise<boolean> {
+  async notifyAppointmentDeleted(businessId: string, title: string, appointmentId?: string): Promise<boolean> {
     return await this.createNotification(
       businessId,
       'appointment_deleted',
       '',
-      { title }
+      { title, appointmentId }
     )
   }
 }

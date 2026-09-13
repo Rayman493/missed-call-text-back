@@ -2002,7 +2002,8 @@ export async function POST(request: Request) {
               paymentRequest.business_id,
               paymentRequest.lead_id,
               leadForNotification.caller_phone,
-              paymentRequest.amount_cents
+              paymentRequest.amount_cents,
+              paymentRequest.id
             )
             console.log('[PAYMENT WEBHOOK] Notification created successfully')
           }
@@ -2251,7 +2252,8 @@ export async function POST(request: Request) {
             paymentRequest.business_id,
             paymentRequest.lead_id,
             leadPhone || '',
-            paymentRequest.amount_cents
+            paymentRequest.amount_cents,
+            paymentRequest.id
           )
           console.log('[TERMINAL PAYMENT] Notification created successfully')
         } catch (notificationError) {

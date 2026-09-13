@@ -536,7 +536,8 @@ export async function POST(request: NextRequest) {
         business.id,
         (lead.name && lead.name !== 'Not collected') ? lead.name : '',
         normalizedCallerPhone,
-        lead.id
+        lead.id,
+        voicemail.id
       );
       console.log('[VOICEMAIL] Notification created for voicemail');
     } catch (error) {

@@ -10390,6 +10390,7 @@ Reply to this message if you'd like to update or add any information.
                   customerName:     canonicalExtractedInfo.customerName  || '',
                   customerPhone:    state.callerPhone              || '',
                   serviceRequested: canonicalExtractedInfo.serviceRequested || '',
+                  callSid:          state.callSid,
                 }),
               });
               if (notifRes.ok) {
@@ -14922,25 +14923,36 @@ Return only JSON, no other text.`;
           });
 
           try {
-            const { error: notificationError } = await supabase
-              .from('notifications')
-              .insert({
-                business_id: sessionBusinessId,
-                lead_id: null,
-                type: 'ai_intake_completed',
-                customer_name: null,
-                customer_phone: sessionCallerPhone,
-                service_requested: null,
-                read: false,
-                created_at: new Date().toISOString()
-              });
+            // CRITICAL FIX: Previous insert used non-existent columns
+            // (customer_name, customer_phone, service_requested) and omitted
+            // the required NOT NULL columns (title, message). This would always
+            // fail at runtime. Route through the same /api/notifications/create
+            // endpoint as the other paths so idempotency and templates work.
+            const notificationApiUrl = process.env.MAIN_APP_URL || '';
+            const internalApiSecret = process.env.INTERNAL_API_SECRET || '';
+            if (notificationApiUrl && internalApiSecret) {
+              const { error: notificationError } = await supabase
+                .from('notifications')
+                .insert({
+                  business_id: sessionBusinessId,
+                  type: 'ai_intake_completed',
+                  title: 'New Request',
+                  message: 'New customer request',
+                  data: { callSid: sessionCallSid, customerPhone: sessionCallerPhone },
+                  idempotency_key: `ai_${sessionCallSid}`,
+                  read: false,
+                  created_at: new Date().toISOString()
+                });
 
-            if (notificationError) {
-              console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-B]', notificationError);
+              if (notificationError) {
+                console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-B]', notificationError);
+              } else {
+                console.log('[NOTIFICATION DIRECT INSERT SUCCESS - PATH-B]', {
+                  businessId: sessionBusinessId
+                });
+              }
             } else {
-              console.log('[NOTIFICATION DIRECT INSERT SUCCESS - PATH-B]', {
-                businessId: sessionBusinessId
-              });
+              console.log('[NOTIFICATION DIRECT INSERT SKIPPED - PATH-B - missing config]');
             }
           } catch (notificationError) {
             console.log('[NOTIFICATION DIRECT INSERT ERROR - PATH-B]', notificationError);
@@ -19668,7 +19680,8 @@ Return only JSON, no other text.`;
                       type: 'ai_intake_completed',
                       customerName: null,
                       customerPhone: sessionCallerPhone,
-                      serviceRequested: null
+                      serviceRequested: null,
+                      callSid: sessionCallSid
                     })
                   });
 
@@ -19922,7 +19935,8 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                         type: 'ai_intake_completed',
                         customerName: null,
                         customerPhone: sessionCallerPhone,
-                        serviceRequested: null
+                        serviceRequested: null,
+                        callSid: sessionCallSid
                       })
                     });
 
@@ -20212,7 +20226,8 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                         type: 'ai_intake_completed',
                         customerName: null,
                         customerPhone: sessionCallerPhone,
-                        serviceRequested: null
+                        serviceRequested: null,
+                        callSid: sessionCallSid
                       })
                     });
 

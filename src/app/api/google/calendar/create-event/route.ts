@@ -454,7 +454,8 @@ export async function POST(request: NextRequest) {
       await notificationServiceServer.notifyAppointmentCreated(
         business.id,
         createdEvent.summary || 'Appointment',
-        startStr
+        startStr,
+        createdEvent.id
       )
       console.log('[Calendar Create] Notification created successfully')
     } catch (notificationError) {

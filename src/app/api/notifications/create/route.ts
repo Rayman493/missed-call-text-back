@@ -19,6 +19,8 @@ import crypto from 'crypto'
  * - customerName?: string (for template data)
  * - customerPhone?: string (for template data)
  * - serviceRequested?: string (for AI intake notifications)
+ * - aiCallRecordId?: string (for idempotency — prevents duplicate ai_intake_completed)
+ * - callSid?: string (fallback idempotency key if aiCallRecordId is not available)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -66,7 +68,9 @@ export async function POST(request: NextRequest) {
       actionText,
       customerName,
       customerPhone,
-      serviceRequested
+      serviceRequested,
+      aiCallRecordId,
+      callSid
     } = body
 
     console.log('[NOTIFICATION API REQUEST BODY]', { 
@@ -79,7 +83,9 @@ export async function POST(request: NextRequest) {
       actionText,
       customerName,
       customerPhone,
-      serviceRequested
+      serviceRequested,
+      aiCallRecordId: aiCallRecordId ? '[present]' : '[absent]',
+      callSid: callSid ? '[present]' : '[absent]'
     });
 
     if (!businessId || !leadId) {
@@ -97,7 +103,23 @@ export async function POST(request: NextRequest) {
     let finalActionText = actionText || 'View Lead'
 
     if (type === 'ai_intake_completed') {
-      data = { leadId, customerName, customerPhone, serviceRequested }
+      // CRITICAL FIX: The NOTIFICATION_TEMPLATES.ai_intake_completed template
+      // expects `leadName` and `leadPhone` (not `customerName`/`customerPhone`).
+      // Without this mapping, resolveCustomerDisplayName() always returns
+      // 'Customer' → title is always "New Request" instead of the customer name.
+      //
+      // Also pass aiCallRecordId (or callSid as fallback) so the server helper
+      // activates idempotency_key = `ai_${aiCallRecordId}`, preventing duplicate
+      // notifications when both the AI voice service and the voice-status
+      // webhook fire for the same call.
+      const effectiveAiCallRecordId = aiCallRecordId || callSid
+      data = {
+        leadId,
+        leadName: customerName || '',
+        leadPhone: customerPhone || '',
+        serviceRequested,
+        aiCallRecordId: effectiveAiCallRecordId
+      }
       finalTitle = title || 'New Request'
       const nameLabel = customerName || null
       const serviceLabel = serviceRequested || null
@@ -105,7 +127,7 @@ export async function POST(request: NextRequest) {
         ? `${nameLabel} \u2022 ${serviceLabel}`
         : serviceLabel || nameLabel || 'New customer request'
       finalMessage = message || preview
-      console.log('[notification_preview_generated]', { nameLabel, serviceLabel, preview })
+      console.log('[notification_preview_generated]', { nameLabel, serviceLabel, preview, hasIdempotencyKey: !!effectiveAiCallRecordId })
       finalActionUrl = actionUrl || `/dashboard/leads/${leadId}`
       finalActionText = actionText || 'View Lead'
     } else if (type === 'new_lead') {
