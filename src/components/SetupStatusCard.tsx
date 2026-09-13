@@ -49,22 +49,46 @@ export default function SetupStatusCard({
   const setupState = deriveSetupState(business, missedCallCount)
   const hasSubscription = hasActiveSubscription(business)
   
-  // Check if actual test call has been completed
+  // Defensive timestamp check: forwarding/test state is only valid for the
+  // CURRENT ReplyFlow number. If the number was replaced (self-heal), the
+  // carrier's call-forwarding config still points to the OLD number, so
+  // historical confirmation does not transfer. We compare confirmation
+  // timestamps against provisioned_at (the current-number assignment
+  // timestamp). If provisioned_at is null (legacy), we don't invalidate.
+  const provisionedAt = business?.provisioned_at ? new Date(business.provisioned_at).getTime() : null
+  const isForwardingConfirmedForCurrentNumber = (timestamp: string | null | undefined): boolean => {
+    if (!timestamp) return false
+    if (provisionedAt === null) return true // legacy: no provisioned_at, don't invalidate
+    return new Date(timestamp).getTime() >= provisionedAt
+  }
+
+  // Check if actual test call has been completed FOR THE CURRENT NUMBER.
   // Use persisted forwarding_verified as primary signal (set when real leads are captured)
-  // Fall back to explicit test completion or call events count
+  // Fall back to explicit test completion or call events count.
+  // All signals are checked against provisioned_at to avoid stale
+  // confirmation from a previous number appearing valid.
   const hasCompletedTestCall = Boolean(
-    business?.forwarding_verified === true ||
-    business?.first_test_call_completed_at ||
-    missedCallCount > 0
+    (business?.forwarding_verified === true && isForwardingConfirmedForCurrentNumber(business?.forwarding_verified_at)) ||
+    (business?.first_test_call_completed_at && isForwardingConfirmedForCurrentNumber(business?.first_test_call_completed_at)) ||
+    (missedCallCount > 0 && isForwardingConfirmedForCurrentNumber(business?.forwarding_verified_at))
   )
 
-  // Check if user has confirmed forwarding instructions.
+  // Check if user has confirmed forwarding instructions FOR THE CURRENT NUMBER.
   // forwarding_verified is the canonical operational source of truth;
   // forwarding_instructions_confirmed_at is retained as a legacy fallback.
+  // Both are checked against provisioned_at to ensure the confirmation
+  // happened AFTER the current number was assigned.
   const hasConfirmedForwardingInstructions = Boolean(
-    business?.forwarding_verified === true ||
-    business?.forwarding_instructions_confirmed_at
+    (business?.forwarding_verified === true && isForwardingConfirmedForCurrentNumber(business?.forwarding_verified_at)) ||
+    (business?.forwarding_instructions_confirmed_at && isForwardingConfirmedForCurrentNumber(business?.forwarding_instructions_confirmed_at))
   )
+
+  // Detect number replacement: the business has a number but forwarding
+  // was NOT confirmed for this number (either never set up, or was set up
+  // for a previous number that was replaced). This triggers the recovery
+  // banner instead of the normal "Set Up" state.
+  const hasNumber = Boolean(business?.twilio_phone_number)
+  const numberWasReplaced = hasNumber && !hasConfirmedForwardingInstructions && provisionedAt !== null
 
   
   // Handle opening billing portal or checkout
@@ -442,7 +466,6 @@ export default function SetupStatusCard({
 
   // Render subscription-active state (after payment but before setup)
   if (cardState === 'subscription-active') {
-    const hasNumber = Boolean(business?.twilio_phone_number)
     const forwardingActuallyVerified = business?.forwarding_verified === true
     const smsActuallyActive = business?.messaging_status === 'active'
     const isProvisioning = business?.provisioning_status === 'pending' || business?.provisioning_status === 'provisioning'
@@ -520,7 +543,7 @@ export default function SetupStatusCard({
             <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${forwardingStep2Complete ? 'bg-green-500' : 'bg-gray-500'}`}>
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${forwardingStep2Complete ? 'bg-green-500' : numberWasReplaced ? 'bg-amber-500' : 'bg-gray-500'}`}>
                     {forwardingStep2Complete ? (
                       <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -531,8 +554,8 @@ export default function SetupStatusCard({
                   </div>
                   <div>
                     <span className="text-white text-sm font-medium">Call Forwarding</span>
-                    <span className={`text-xs block ${forwardingStep2Complete ? 'text-green-200' : 'text-gray-300'}`}>
-                      {forwardingStep2Complete ? 'Complete' : 'Set Up'}
+                    <span className={`text-xs block ${forwardingStep2Complete ? 'text-green-200' : numberWasReplaced ? 'text-amber-200' : 'text-gray-300'}`}>
+                      {forwardingStep2Complete ? 'Complete' : numberWasReplaced ? 'Action required' : 'Set Up'}
                     </span>
                   </div>
                 </div>
@@ -595,11 +618,46 @@ export default function SetupStatusCard({
             </div>
           )}
 
-          {/* Test Call - Optional/Recommended */}
+          {/* Number-replacement recovery banner: a new number was assigned
+              (e.g., via automatic self-heal) but forwarding has NOT been
+              reconfirmed for this number. The carrier's call-forwarding
+              config still points to the OLD ReplyFlow number, so the user
+              must update it before missed calls will reach ReplyFlow. */}
+          {numberWasReplaced && !isRecoveringOrFailed && (
+            <div className="bg-amber-500/20 border border-amber-400/30 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-300 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-amber-100 text-sm font-medium">Your ReplyFlow number changed</p>
+                  <p className="text-amber-200/80 text-xs mt-1">
+                    We replaced your previous ReplyFlow number automatically. Update your call forwarding to your new ReplyFlow number so missed calls continue reaching ReplyFlow.
+                  </p>
+                  {business?.twilio_phone_number && (
+                    <p className="text-white text-sm font-semibold mt-2">
+                      New number: {business.twilio_phone_number}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowForwardingInstructions(true)}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-amber-50 text-amber-700 text-xs font-medium rounded-lg transition-colors mt-3"
+                  >
+                    Review forwarding
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Test Call - Optional/Recommended.
+              After a number replacement, a previous test against the old
+              number does not prove the replacement-number forwarding path
+              works, so we recommend a new test. */}
             <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${hasCompletedTestCall ? 'bg-green-500' : 'bg-blue-500/30'}`}>
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${hasCompletedTestCall ? 'bg-green-500' : numberWasReplaced ? 'bg-amber-500' : 'bg-blue-500/30'}`}>
                     {hasCompletedTestCall ? (
                       <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -611,12 +669,15 @@ export default function SetupStatusCard({
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-white text-sm font-medium">Test Your Setup</span>
-                      {!hasCompletedTestCall && (
+                      {!hasCompletedTestCall && !numberWasReplaced && (
                         <span className="text-xs text-green-200 bg-green-500/20 px-1.5 py-0.5 rounded">Recommended</span>
                       )}
+                      {!hasCompletedTestCall && numberWasReplaced && (
+                        <span className="text-xs text-amber-200 bg-amber-500/20 px-1.5 py-0.5 rounded">Re-test after forwarding</span>
+                      )}
                     </div>
-                    <span className={`text-xs block ${hasCompletedTestCall ? 'text-green-200' : 'text-blue-200'}`}>
-                      {hasCompletedTestCall ? 'Complete' : 'Optional'}
+                    <span className={`text-xs block ${hasCompletedTestCall ? 'text-green-200' : numberWasReplaced ? 'text-amber-200' : 'text-blue-200'}`}>
+                      {hasCompletedTestCall ? 'Complete' : numberWasReplaced ? 'Action required' : 'Optional'}
                     </span>
                   </div>
                 </div>
@@ -631,7 +692,7 @@ export default function SetupStatusCard({
               onClick={handleContinueSetup}
               className="inline-flex items-center justify-center px-6 py-3 bg-white hover:bg-green-50 text-green-600 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
             >
-              {forwardingStep2Complete ? 'Test Your Setup' : 'Continue Setup'}
+              {numberWasReplaced ? 'Review forwarding' : forwardingStep2Complete ? 'Test Your Setup' : 'Continue Setup'}
               <ArrowRight className="w-4 h-4 ml-2" />
             </button>
           )}

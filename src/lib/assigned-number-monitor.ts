@@ -387,8 +387,25 @@ export async function runAssignedNumberIntegrityCheck(): Promise<{ findings: Int
             assigned_twilio_number_id: null,
             provisioning_status: 'needs_provisioning',
             provisioning_error: null,
+            // Clear provisioned_at so the old number's provisioning timestamp
+            // does not survive into the replacement number's lifecycle.
+            // trigger-provisioning will set it to now() on completion.
+            provisioned_at: null,
+            // Invalidate ALL forwarding/setup state so the replacement
+            // number does not inherit stale "forwarding confirmed" / "test
+            // completed" signals from the previous number. The carrier's
+            // call-forwarding config still points to the OLD ReplyFlow
+            // number, so historical confirmation is not transferable.
             forwarding_verified: false,
+            forwarding_verified_at: null,
+            forwarding_instructions_confirmed_at: null,
             call_forwarding_enabled: false,
+            phone_setup_completed_at: null,
+            // Invalidate test-setup state — a test against the old number
+            // does not prove the replacement-number forwarding path works.
+            first_test_call_completed_at: null,
+            test_call_received_at: null,
+            test_sms_sent_at: null,
           })
           .eq('id', business.id)
           .eq('twilio_phone_number_sid', staleSid)

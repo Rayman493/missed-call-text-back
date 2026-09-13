@@ -534,7 +534,7 @@ export async function POST(request: Request) {
             provisioning_status: 'completed',
             provisioning_lock_id: null,
             provisioning_error: null,
-            provisioned_at: business.provisioned_at || new Date().toISOString(),
+            provisioned_at: new Date().toISOString(),
             onboarding_status: 'completed' // Advance onboarding
           })
           .eq('id', business.id)
