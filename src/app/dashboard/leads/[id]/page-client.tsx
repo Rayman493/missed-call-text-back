@@ -5761,7 +5761,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Mobile Bottom Sheet for Customer Details */}
       {showLeadInfo && (
-        <div className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50" onClick={() => setShowLeadInfo(false)}>
+        <div className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-[60]" onClick={() => setShowLeadInfo(false)}>
           <div className="bg-card rounded-t-2xl shadow-2xl w-full max-h-[92vh] overflow-hidden animate-slide-up border-t border-border/50" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="px-4 py-2 border-b border-border/50 flex items-center justify-between bg-muted/30">
@@ -5799,7 +5799,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Desktop Modal for Customer Details */}
       {showLeadInfo && (
-        <div className="hidden md:block fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setShowLeadInfo(false)}>
+        <div className="hidden md:block fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" onClick={() => setShowLeadInfo(false)}>
           <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -6057,7 +6057,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     {/* Payment Request Modal */}
     {showPaymentModal && (
       <div 
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+        className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
         onClick={(e) => {
           if (e.target === e.currentTarget) {
             setShowPaymentModal(false)

@@ -37,6 +37,11 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const [isAnyAssistantOpen, setIsAnyAssistantOpen] = useState(false)
   const [isNativePlatform, setIsNativePlatform] = useState(false)
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
+  // Track whether any blocking modal is open (via useBodyScrollLock's
+  // data-modal-open body attribute). When any modal is open, the bottom
+  // nav must hide so it doesn't appear in front of or intercept touches
+  // through the modal backdrop.
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
     const checkAssistantOpen = () => {
@@ -47,6 +52,25 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
 
     const observer = new MutationObserver(checkAssistantOpen)
     observer.observe(document.body, { attributes: true, attributeFilter: ['data-assistant-open'] })
+
+    return () => observer.disconnect()
+  }, [])
+
+  // Observe data-modal-open on body to hide bottom nav when any blocking
+  // modal is open. useBodyScrollLock sets this attribute (reference-counted
+  // for nested modals), so this works for both the shared <Modal> component
+  // and hand-built modals that call useBodyScrollLock.
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+
+    const checkModalOpen = () => {
+      setIsModalOpen(document.body.getAttribute('data-modal-open') === 'true')
+    }
+
+    checkModalOpen()
+
+    const observer = new MutationObserver(checkModalOpen)
+    observer.observe(document.body, { attributes: true, attributeFilter: ['data-modal-open'] })
 
     return () => observer.disconnect()
   }, [])
@@ -210,7 +234,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                        pathname === '/auth' ||
                        pathname?.startsWith('/signup')
 
-  const hideNav = isPublicPage || isAnyAssistantOpen || (isNativePlatform && isKeyboardOpen)
+  const hideNav = isPublicPage || isAnyAssistantOpen || isModalOpen || (isNativePlatform && isKeyboardOpen)
 
   // Ensure body has an attribute to indicate bottom nav visibility for any layout that wishes to react
   // Also set a CSS variable with the actual nav height for precise positioning

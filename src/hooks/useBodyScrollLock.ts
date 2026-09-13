@@ -47,6 +47,8 @@ export function reconcileScrollLock(): void {
       document.documentElement.style.height = '100%'
       document.documentElement.style.touchAction = 'none'
     }
+    // Ensure modal-open attribute is set when locked
+    document.body.setAttribute('data-modal-open', 'true')
   } else {
     // Should be unlocked - restore original values
     if (document.body.style.overflow !== '' ||
@@ -63,6 +65,8 @@ export function reconcileScrollLock(): void {
       document.documentElement.style.height = originalHtmlHeight
       document.documentElement.style.touchAction = originalHtmlTouchAction
     }
+    // Ensure modal-open attribute is removed when unlocked
+    document.body.removeAttribute('data-modal-open')
   }
 }
 
@@ -189,6 +193,14 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
         document.addEventListener('touchmove', preventTouchMove as any, { passive: false })
         document.body.addEventListener('touchmove', preventTouchMove as any, { passive: false })
 
+        // Set body data attribute so BottomNavigation and other shell
+        // components can detect that a blocking modal is open and
+        // suppress themselves (hide bottom nav, etc.). This is the
+        // canonical modal-open signal — reference-counted via lockCount,
+        // so nested modals keep the attribute set until the LAST modal
+        // closes.
+        document.body.setAttribute('data-modal-open', 'true')
+
         console.log('[SCROLL_LOCK_ACQUIRE] FIRST_LOCK_APPLIED', {
           ownerId,
           component: ownerInfo?.component || componentName || 'unknown',
@@ -269,6 +281,11 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
         document.removeEventListener('touchmove', preventTouchMove as any)
         document.body.removeEventListener('touchmove', preventTouchMove as any)
         window.scrollTo(0, globalScrollPosition)
+
+        // Remove the modal-open body attribute now that the last modal
+        // has closed. BottomNavigation and other shell components observe
+        // this attribute to restore themselves.
+        document.body.removeAttribute('data-modal-open')
 
         console.log('[SCROLL_LOCK_FINAL_RESTORE] RESTORE_COMPLETE', {
           ownerId,

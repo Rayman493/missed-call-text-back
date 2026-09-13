@@ -125,7 +125,7 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-inset-bottom"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-inset-bottom"
       onClick={handleDismiss}
       role="dialog"
       aria-modal="true"

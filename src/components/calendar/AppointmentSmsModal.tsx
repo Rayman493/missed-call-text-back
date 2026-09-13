@@ -55,7 +55,7 @@ export default function AppointmentSmsModal({ isOpen, onClose, leadId, initialMe
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-card rounded-2xl border border-border/50 shadow-2xl w-full max-w-md flex flex-col max-h-[80vh]">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
           <h2 className="text-base font-semibold text-foreground">Send Appointment Details</h2>

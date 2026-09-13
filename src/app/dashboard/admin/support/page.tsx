@@ -1740,7 +1740,7 @@ export default function AdminSupportPage() {
 
             {/* Manual Access Modal */}
             {showManualAccessModal && selectedBusiness && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
                 <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
                     {manualAccessAction === 'grant' ? 'Grant Manual Access' : 'Revoke Manual Access'}
@@ -1842,7 +1842,7 @@ export default function AdminSupportPage() {
 
             {/* Protect Account Modal */}
             {showProtectModal && selectedBusiness && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
                 <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
                     {protectAction === 'protect' ? 'Protect Account' : 'Unprotect Account'}
@@ -1911,7 +1911,7 @@ export default function AdminSupportPage() {
 
             {/* Password Reset Modal */}
             {showPasswordResetModal && selectedBusiness && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
                 <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground">
@@ -2093,7 +2093,7 @@ export default function AdminSupportPage() {
 
             {/* Change Login Email Modal */}
             {showChangeEmailModal && selectedBusiness && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
                 <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground">
@@ -2259,7 +2259,7 @@ export default function AdminSupportPage() {
 
             {/* Delete Test Business Data Modal */}
             {showDeleteModal && selectedBusiness && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
                 <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-2xl w-full mx-4 shadow-xl max-h-[90vh] overflow-y-auto">
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
                     Delete Test Business Data
@@ -2413,7 +2413,7 @@ export default function AdminSupportPage() {
 
             {/* Delete Account Modal */}
             {showDeleteAccountModal && selectedBusiness && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
                 <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
                     Delete Account

@@ -125,7 +125,7 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-slate-900 dark:bg-slate-900 rounded-xl border border-slate-700/60 shadow-2xl w-full max-w-md max-h-[85dvh] flex flex-col animate-in zoom-in-95 duration-200 pt-[calc(1rem+env(safe-area-inset-top))]" onKeyDown={handleKeyDown}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/60 flex-shrink-0">

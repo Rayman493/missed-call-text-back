@@ -300,7 +300,7 @@ export default function SetupReviewPanel({ isOpen, onClose, business, onTestCall
 
   if (isSetupComplete) {
     return (
-      <div className="fixed inset-0 z-50 overflow-hidden">
+      <div className="fixed inset-0 z-[60] overflow-hidden">
         {/* Backdrop */}
         <div 
           className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -384,7 +384,7 @@ export default function SetupReviewPanel({ isOpen, onClose, business, onTestCall
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div className="fixed inset-0 z-[60] overflow-hidden">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"

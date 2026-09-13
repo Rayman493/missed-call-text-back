@@ -112,7 +112,7 @@ export default function DashboardEmptyState() {
       {/* Test My Setup Modal */}
       {showTestModal && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[60] animate-in fade-in duration-200"
           role="dialog"
           aria-modal="true"
           aria-labelledby="test-modal-title"

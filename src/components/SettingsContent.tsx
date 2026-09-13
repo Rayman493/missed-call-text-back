@@ -5077,209 +5077,221 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
           />
 
           {/* Delete Account Modal */}
-          {showDeleteModal && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-stretch sm:items-center justify-center z-[80] p-0 sm:p-4 overscroll-contain">
-              <div className="bg-white dark:bg-slate-900 rounded-none sm:rounded-xl max-w-lg w-full sm:h-auto max-h-[90dvh] sm:max-h-[85vh] flex flex-col shadow-2xl overflow-hidden mt-auto sm:mt-0">
-                {/* Fixed Header */}
-                <div className="flex-shrink-0 p-4 sm:p-5 border-b border-slate-200/70 dark:border-slate-700/50">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
-                      <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-1">
-                        Permanently delete your ReplyFlow account
-                      </h2>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        This permanently deletes your account and business data. This action cannot be undone.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Scrollable Body */}
-                <div className="flex-1 min-h-0 overflow-y-scroll p-4 sm:p-5 space-y-4 overscroll-contain" style={{ touchAction: 'pan-y' }} data-scroll-lock-allow>
-                  {/* What happens */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3">
-                      What happens
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-5 h-5 bg-slate-100 dark:bg-slate-800 rounded-md flex items-center justify-center mt-0.5">
-                          <CreditCard className="w-3 h-3 text-slate-600 dark:text-slate-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-                            Subscription
-                          </p>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            Your active ReplyFlow subscription will be canceled automatically.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-5 h-5 bg-slate-100 dark:bg-slate-800 rounded-md flex items-center justify-center mt-0.5">
-                          <FileText className="w-3 h-3 text-slate-600 dark:text-slate-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-                            Data
-                          </p>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            Your business, customers, conversations, appointments, settings, and related ReplyFlow data will be permanently deleted.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-5 h-5 bg-slate-100 dark:bg-slate-800 rounded-md flex items-center justify-center mt-0.5">
-                          <Phone className="w-3 h-3 text-slate-600 dark:text-slate-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-                            Call forwarding
-                          </p>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            If call forwarding is still enabled after deletion, callers may continue reaching your ReplyFlow number. We'll send instructions to help you turn it off.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Compact warning callout */}
-                  <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 rounded-lg p-3">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-900 dark:text-amber-200">
-                        <span className="font-semibold">Call forwarding reminder:</span> We'll send up to two reminders to help you disable call forwarding.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Confirmation input */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">
-                      Confirmation
-                    </h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
-                      Type DELETE to confirm
-                    </p>
-                    <input
-                      type="text"
-                      value={deleteConfirmText}
-                      onChange={(e) => setDeleteConfirmText(e.target.value)}
-                      placeholder="Type DELETE"
-                      autoComplete="off"
-                      disabled={isDeleting}
-                      className="w-full px-3 py-2 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground disabled:opacity-50"
-                    />
-                  </div>
-
-                  {/* Password */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">
-                      Current password
-                    </h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
-                      Enter your current password to continue.
-                    </p>
-                    <PasswordInput
-                      id="delete-password"
-                      name="delete-password"
-                      value={deletePassword}
-                      onChange={(e) => {
-                        setDeletePassword(e.target.value)
-                        setDeletePasswordError('')
-                      }}
-                      placeholder="Enter your current password"
-                      required={false}
-                      autoComplete="new-password"
-                      disabled={isDeleting}
-                      className={`h-10 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all border ${
-                        deletePasswordError
-                          ? 'border-red-500 focus:ring-red-500'
-                          : 'border-slate-200/70 dark:border-slate-700/50 focus:ring-red-500/40 focus:border-red-500/80'
-                      }`}
-                    />
-                    {deletePasswordError && (
-                      <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">
-                        {deletePasswordError}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Fixed Footer */}
-                <div className="flex-shrink-0 p-4 sm:p-5 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-5 border-t border-slate-200/70 dark:border-slate-700/50">
-                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
-                    <button
-                      onClick={() => {
-                        setShowDeleteModal(false)
-                        setDeleteConfirmText('')
-                        setDeletePassword('')
-                        setDeletePasswordError('')
-                      }}
-                      disabled={isDeleting}
-                      className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors duration-150 disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleDeleteAccount}
-                      disabled={
-                        deleteConfirmText !== 'DELETE' ||
-                        !deletePassword.trim() ||
-                        isDeleting
-                      }
-                      className="px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full"
-                    >
-                      {isDeleting ? (
-                        <>
-                          <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block"></div>
-                          Deleting...
-                        </>
-                      ) : (
-                        <>
-                          <Trash2 className="w-4 h-4" />
-                          Delete Account Permanently
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
+          <Modal
+            isOpen={showDeleteModal}
+            onClose={() => {
+              setShowDeleteModal(false)
+              setDeleteConfirmText('')
+              setDeletePassword('')
+              setDeletePasswordError('')
+            }}
+            title="Permanently delete your ReplyFlow account"
+            footer={
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false)
+                    setDeleteConfirmText('')
+                    setDeletePassword('')
+                    setDeletePasswordError('')
+                  }}
+                  disabled={isDeleting}
+                  className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors duration-150 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={
+                    deleteConfirmText !== 'DELETE' ||
+                    !deletePassword.trim() ||
+                    isDeleting
+                  }
+                  className="px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full sm:w-auto"
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      Delete Account Permanently
+                    </>
+                  )}
+                </button>
               </div>
-            </div>
-          )}
+            }
+          >
+                {/* Destructive header icon */}
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="flex-shrink-0 w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
+                    <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      This permanently deletes your account and business data. This action cannot be undone.
+                    </p>
+                  </div>
+                </div>
+
+                {/* What happens */}
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3">
+                    What happens
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-5 h-5 bg-slate-100 dark:bg-slate-800 rounded-md flex items-center justify-center mt-0.5">
+                        <CreditCard className="w-3 h-3 text-slate-600 dark:text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                          Subscription
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          Your active ReplyFlow subscription will be canceled automatically.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-5 h-5 bg-slate-100 dark:bg-slate-800 rounded-md flex items-center justify-center mt-0.5">
+                        <FileText className="w-3 h-3 text-slate-600 dark:text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                          Data
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          Your business, customers, conversations, appointments, settings, and related ReplyFlow data will be permanently deleted.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-5 h-5 bg-slate-100 dark:bg-slate-800 rounded-md flex items-center justify-center mt-0.5">
+                        <Phone className="w-3 h-3 text-slate-600 dark:text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                          Call forwarding
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          If call forwarding is still enabled after deletion, callers may continue reaching your ReplyFlow number. We'll send instructions to help you turn it off.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Compact warning callout */}
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 rounded-lg p-3 mt-4">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-900 dark:text-amber-200">
+                      <span className="font-semibold">Call forwarding reminder:</span> We'll send up to two reminders to help you disable call forwarding.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Confirmation input */}
+                <div className="mt-4">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">
+                    Confirmation
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+                    Type DELETE to confirm
+                  </p>
+                  <input
+                    type="text"
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    placeholder="Type DELETE"
+                    autoComplete="off"
+                    disabled={isDeleting}
+                    className="w-full px-3 py-2 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground disabled:opacity-50"
+                  />
+                </div>
+
+                {/* Password */}
+                <div className="mt-4">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">
+                    Current password
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+                    Enter your current password to continue.
+                  </p>
+                  <PasswordInput
+                    id="delete-password"
+                    name="delete-password"
+                    value={deletePassword}
+                    onChange={(e) => {
+                      setDeletePassword(e.target.value)
+                      setDeletePasswordError('')
+                    }}
+                    placeholder="Enter your current password"
+                    required={false}
+                    autoComplete="new-password"
+                    disabled={isDeleting}
+                    className={`h-10 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all border ${
+                      deletePasswordError
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-slate-200/70 dark:border-slate-700/50 focus:ring-red-500/40 focus:border-red-500/80'
+                    }`}
+                  />
+                  {deletePasswordError && (
+                    <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">
+                      {deletePasswordError}
+                    </p>
+                  )}
+                </div>
+          </Modal>
 
           {/* Add Personal Contact Modal */}
-          {showAddModal && (
-            <div
-              className="fixed inset-x-0 top-0 flex items-center justify-center z-[80] p-4"
-              style={{ height: `${vvh ?? (typeof window !== 'undefined' ? window.innerHeight : 1000)}px` }}
-            >
-              {/* visualViewport-aware backdrop + container */}
-              <div
-                className="absolute inset-0 bg-black/50"
-                onClick={() => setShowAddModal(false)}
-              />
-              <div
-                className="relative bg-card rounded-lg max-w-md w-full flex flex-col overflow-hidden"
-                style={{
-                  maxHeight: `calc(${vvh ?? window?.innerHeight ?? 1000}px - 2rem)`
-                }}
-              >
-                <div className="flex-shrink-0 p-4 sm:p-6 border-b border-border/60">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-foreground mb-4">
-                    Add Personal Contact
-                  </h2>
-                  <p className="text-sm text-slate-600 dark:text-muted-foreground">
-                    Add people here when you never want ReplyFlow to respond to their missed calls. Friends, family, schools, doctors, and other personal contacts are common examples. When a personal contact calls, ReplyFlow stays out of the conversation (no AI Voice, no automated texts, no lead, no follow-ups—just a simple voicemail). You can remove contacts from this list at any time.
-                  </p>
-                </div>
-                <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 sm:p-6 space-y-3">
+          <Modal
+            isOpen={showAddModal}
+            onClose={() => {
+              setShowAddModal(false)
+              setPhoneNumber('')
+              setLabel('')
+            }}
+            title="Add Personal Contact"
+            footer={
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowAddModal(false)
+                    setPhoneNumber('')
+                    setLabel('')
+                  }}
+                  disabled={isAdding}
+                  className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddIgnoredContact}
+                  disabled={isAdding || !phoneNumber.trim()}
+                  className="h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                >
+                  {isAdding ? (
+                    <>
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
+                      Adding...
+                    </>
+                  ) : (
+                    'Add Contact'
+                  )}
+                </button>
+              </div>
+            }
+          >
+                <p className="text-sm text-slate-600 dark:text-muted-foreground mb-4">
+                  Add people here when you never want ReplyFlow to respond to their missed calls. Friends, family, schools, doctors, and other personal contacts are common examples. When a personal contact calls, ReplyFlow stays out of the conversation (no AI Voice, no automated texts, no lead, no follow-ups—just a simple voicemail). You can remove contacts from this list at any time.
+                </p>
+                <div className="space-y-3">
                   <div>
                     <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
                       Phone Number <span className="text-red-500">*</span>
@@ -5311,36 +5323,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     </p>
                   </div>
                 </div>
-                <div className="flex-shrink-0 flex justify-end gap-3 p-4 sm:p-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-6 border-t border-border/60">
-                  <button
-                    onClick={() => {
-                      setShowAddModal(false)
-                      setPhoneNumber('')
-                      setLabel('')
-                    }}
-                    disabled={isAdding}
-                    className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleAddIgnoredContact}
-                    disabled={isAdding || !phoneNumber.trim()}
-                    className="h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                  >
-                    {isAdding ? (
-                      <>
-                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
-                        Adding...
-                      </>
-                    ) : (
-                      'Add Contact'
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          </Modal>
 
           {/* Change Password Modal */}
           <Modal
@@ -5510,22 +5493,43 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
           </Modal>
 
           {/* Change Email Modal */}
-          {showChangeEmailModal && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-md w-full">
-                <div className="p-6 border-b border-slate-200/70 dark:border-slate-700/50">
-                  <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">
-                    Change Login Email
-                  </h3>
-                </div>
-                
+          <Modal
+            isOpen={showChangeEmailModal}
+            onClose={handleCloseChangeEmailModal}
+            title="Change Login Email"
+            footer={
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={handleCloseChangeEmailModal}
+                  disabled={isChangingEmail}
+                  className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleChangeEmail}
+                  disabled={isChangingEmail || !newEmail.trim() || !confirmNewEmail.trim() || !emailPassword.trim()}
+                  className="h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                >
+                  {isChangingEmail ? (
+                    <>
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    'Change Email'
+                  )}
+                </button>
+              </div>
+            }
+          >
                 {emailError && (
-                  <div className="px-6 py-3 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800/50">
+                  <div className="mb-4 -mx-4 -mt-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800/50">
                     <p className="text-xs text-red-600 dark:text-red-400">{emailError}</p>
                   </div>
                 )}
 
-                <div className="p-6 space-y-5">
+                <div className="space-y-5">
                   <div>
                     <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
                       Current Email
@@ -5592,33 +5596,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     </p>
                   </div>
                 </div>
-
-                <div className="flex justify-end gap-3 p-4 border-t border-slate-200/70 dark:border-slate-700/50">
-                  <button
-                    onClick={handleCloseChangeEmailModal}
-                    disabled={isChangingEmail}
-                    className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleChangeEmail}
-                    disabled={isChangingEmail || !newEmail.trim() || !confirmNewEmail.trim() || !emailPassword.trim()}
-                    className="h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                  >
-                    {isChangingEmail ? (
-                      <>
-                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
-                        Processing...
-                      </>
-                    ) : (
-                      'Change Email'
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          </Modal>
 
           {/* Import Contacts Modal */}
           <ImportContactsModal
@@ -5643,43 +5621,57 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
           />
 
           {/* Tap to Pay Education Confirmation Modal */}
-          {showEducationConfirmationModal && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-md w-full p-6">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
-                  Finished reviewing Tap to Pay?
-                </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-8">
+          <Modal
+            isOpen={showEducationConfirmationModal}
+            onClose={() => setShowEducationConfirmationModal(false)}
+            title="Finished reviewing Tap to Pay?"
+            footer={
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setShowEducationConfirmationModal(false)}
+                  className="flex-1 h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                >
+                  Not Yet
+                </button>
+                <button
+                  onClick={async () => {
+                    setShowEducationConfirmationModal(false)
+                    await handleEducationComplete()
+                  }}
+                  className="flex-1 h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                >
+                  I Reviewed It
+                </button>
+              </div>
+            }
+          >
+                <p className="text-sm text-slate-600 dark:text-slate-400">
                   Confirm that you reviewed Apple's Tap to Pay on iPhone guide.
                 </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowEducationConfirmationModal(false)}
-                    className="flex-1 h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
-                  >
-                    Not Yet
-                  </button>
-                  <button
-                    onClick={async () => {
-                      setShowEducationConfirmationModal(false)
-                      await handleEducationComplete()
-                    }}
-                    className="flex-1 h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                  >
-                    I Reviewed It
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          </Modal>
 
           {/* Business Number Confirmation Modal */}
-          {showBusinessNumberWarning && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-md w-full p-5">
-                <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">
-                  Switch to Business Number?
-                </h3>
+          <Modal
+            isOpen={showBusinessNumberWarning}
+            onClose={() => setShowBusinessNumberWarning(false)}
+            title="Switch to Business Number?"
+            footer={
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowBusinessNumberWarning(false)}
+                  className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmBusinessNumber}
+                  className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Switch to Business Number
+                </button>
+              </div>
+            }
+          >
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                   Messages will open in your phone's messaging app instead of ReplyFlow.
                 </p>
@@ -5693,42 +5685,25 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     <li>• ReplyFlow still tracks payments and business activity</li>
                   </ul>
                 </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => setShowBusinessNumberWarning(false)}
-                    className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleConfirmBusinessNumber}
-                    className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    Switch to Business Number
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          </Modal>
 
           {/* Stripe Connect Loading Modal */}
-          {stripeConnectLoading && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-4">
-              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl">
-                <div className="flex justify-center mb-4">
-                  <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+          <Modal
+            isOpen={stripeConnectLoading}
+            onClose={() => {}}
+            title={stripeConnectLoadingMessage}
+          >
+                <div className="flex flex-col items-center text-center py-4">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {stripeConnectLoadingMessage === 'Opening Stripe'
+                      ? 'Securely connecting your Stripe account...'
+                      : 'Confirming your account with Stripe.'}
+                  </p>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
-                  {stripeConnectLoadingMessage}
-                </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {stripeConnectLoadingMessage === 'Opening Stripe'
-                    ? 'Securely connecting your Stripe account...'
-                    : 'Confirming your account with Stripe.'}
-                </p>
-              </div>
-            </div>
-          )}
+          </Modal>
 
           {/* Toast Container */}
           <ToastContainer toasts={toasts} onRemoveToast={removeToast} />

@@ -11,7 +11,6 @@ import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { getPaymentStatusStyle } from '@/lib/payment-status'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
 import AddCustomerModal from '@/components/AddCustomerModal'
@@ -28,6 +27,7 @@ import Dropdown from '@/components/ui/Dropdown'
 import type { DropdownOption } from '@/components/ui/Dropdown'
 import PaymentEditModal from '@/components/payments/PaymentEditModal'
 import PaymentsNewRequestModal from '@/components/payments/PaymentsNewRequestModal'
+import Modal from '@/components/ui/Modal'
 import SuccessBanner from '@/components/SuccessBanner'
 
 interface PaymentRequest {
@@ -175,32 +175,20 @@ export default function PaymentsPage() {
 
   // Lock background scroll for the inline mark-paid confirmation overlay.
   // QuickTapToPayModal, TapToPaySetupModal and PaymentEditModal manage their own locks internally.
-  useBodyScrollLock(showMarkPaidConfirm, 'mark-paid-confirm')
+  // Note: the shared <Modal> used for the mark-paid confirm now owns its own
+  // scroll lock + back-button handling, so we no longer need a separate
+  // useBodyScrollLock or popstate listener here.
 
   // Check native support on mount
   useEffect(() => {
     setIsNativeSupported(isNativeCapacitor())
   }, [])
 
-  // Intercept Android Back/browser Back to close mark-paid confirm first
-  useEffect(() => {
-    if (!showMarkPaidConfirm) return
-    try { window.history.pushState({ rfMarkPaidConfirm: true }, '') } catch {}
-    const onPopState = () => setShowMarkPaidConfirm(false)
-    window.addEventListener('popstate', onPopState)
-    let capListener: { remove: () => void } | undefined
-    ;(async () => {
-      try {
-        const mod = await import('@capacitor/app')
-        const { App } = mod as any
-        capListener = await App.addListener('backButton', () => setShowMarkPaidConfirm(false))
-      } catch {}
-    })()
-    return () => {
-      window.removeEventListener('popstate', onPopState)
-      capListener?.remove?.()
-    }
-  }, [showMarkPaidConfirm])
+  // Note: the mark-paid confirm now uses the shared <Modal> component, which
+  // owns its own Android Back / popstate handling via useModalBackButton.
+  // The hand-built popstate + Capacitor backButton listener that used to live
+  // here has been removed to avoid double history-state entries and double
+  // back-button handling.
 
   // Determine which payment methods are configured
   const isStripeConfigured = business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled === true
@@ -1629,47 +1617,51 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         />
 
         {/* Mark as Paid Confirmation Modal */}
-        {showMarkPaidConfirm && paymentToMarkPaid && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowMarkPaidConfirm(false)}>
-            <div className="bg-card dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full p-6 border border-border dark:border-slate-700" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Confirm Payment Received</h3>
+        <Modal
+          isOpen={showMarkPaidConfirm && !!paymentToMarkPaid}
+          onClose={() => {
+            setShowMarkPaidConfirm(false)
+            setPaymentToMarkPaid(null)
+          }}
+          title="Confirm Payment Received"
+          footer={
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowMarkPaidConfirm(false)
+                  setPaymentToMarkPaid(null)
+                }}
+                disabled={isMarkingPaid}
+                className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted dark:text-gray-300 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => paymentToMarkPaid && handleMarkPaid(paymentToMarkPaid)}
+                disabled={isMarkingPaid}
+                className="px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isMarkingPaid ? 'Marking...' : 'Confirm Payment Received'}
+              </button>
+            </div>
+          }
+        >
               <p className="text-muted-foreground text-sm mb-4">
-                Confirm that you received this payment through {paymentToMarkPaid.payment_provider === 'paypal' ? 'PayPal' : 'Venmo'}.
+                Confirm that you received this payment through {paymentToMarkPaid?.payment_provider === 'paypal' ? 'PayPal' : 'Venmo'}.
               </p>
               <div className="bg-muted/50 dark:bg-[#0f172a] rounded-lg p-4 mb-4 border border-border dark:border-slate-700">
                 <div className="flex justify-between mb-2">
                   <span className="text-muted-foreground text-sm">Amount</span>
-                  <span className="text-foreground font-semibold">{formatCurrency(paymentToMarkPaid.amount_cents, true)}</span>
+                  <span className="text-foreground font-semibold">{paymentToMarkPaid ? formatCurrency(paymentToMarkPaid.amount_cents, true) : ''}</span>
                 </div>
-                {paymentToMarkPaid.description && (
+                {paymentToMarkPaid?.description && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground text-sm">Description</span>
                     <span className="text-foreground text-sm">{paymentToMarkPaid.description}</span>
                   </div>
                 )}
               </div>
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => {
-                    setShowMarkPaidConfirm(false)
-                    setPaymentToMarkPaid(null)
-                  }}
-                  disabled={isMarkingPaid}
-                  className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted dark:text-gray-300 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleMarkPaid(paymentToMarkPaid)}
-                  disabled={isMarkingPaid}
-                  className="px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {isMarkingPaid ? 'Marking...' : 'Confirm Payment Received'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        </Modal>
 
         {/* Quick Tap to Pay Modal */}
         <QuickTapToPayModal
