@@ -80,13 +80,41 @@ describe('Batch C — Part 1: Customer Card Alignment', () => {
     expect(notesSection).toContain('setShowInternalNotesModal')
   })
 
-  it('6. all five right edges use the same header contract (chevron before action)', () => {
-    // SidebarSection renders chevron BEFORE headerAction so action is always at far right
-    const chevronIdx = sidebarSectionSrc.indexOf('collapsible &&')
-    const actionIdx = sidebarSectionSrc.indexOf('{headerAction}')
-    expect(chevronIdx).toBeGreaterThan(0)
-    expect(actionIdx).toBeGreaterThan(0)
-    expect(chevronIdx).toBeLessThan(actionIdx)
+  it('6. all five right edges use the same header contract (no chevron displacing action)', () => {
+    // SidebarSection still supports collapsible as a prop, but no Customer
+    // Details section passes it. The headerAction is the only right-side
+    // element, so all five sections share the same canonical right edge.
+    // Jobs, Reminders, and Appointments no longer pass collapsible.
+    const jobsSection = pageClientSrc.substring(
+      pageClientSrc.indexOf('title="Jobs"'),
+      pageClientSrc.indexOf('title="Jobs"') + 300
+    )
+    expect(jobsSection).not.toContain('collapsible')
+
+    const remindersSection = pageClientSrc.substring(
+      pageClientSrc.indexOf('title="Reminders"'),
+      pageClientSrc.indexOf('title="Reminders"') + 300
+    )
+    expect(remindersSection).not.toContain('collapsible')
+
+    const apptsSection = pageClientSrc.substring(
+      pageClientSrc.indexOf('title="Appointments"'),
+      pageClientSrc.indexOf('title="Appointments"') + 300
+    )
+    expect(apptsSection).not.toContain('collapsible')
+
+    // Payments and Internal Notes never had collapsible
+    const paymentsSection = pageClientSrc.substring(
+      pageClientSrc.indexOf('title="Payments"'),
+      pageClientSrc.indexOf('title="Payments"') + 300
+    )
+    expect(paymentsSection).not.toContain('collapsible')
+
+    const notesSection = pageClientSrc.substring(
+      pageClientSrc.indexOf('title="Internal Notes"'),
+      pageClientSrc.indexOf('title="Internal Notes"') + 300
+    )
+    expect(notesSection).not.toContain('collapsible')
   })
 
   it('7. long titles do not push action off-screen (min-w-0 + truncate on title)', () => {

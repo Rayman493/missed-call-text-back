@@ -4834,9 +4834,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <SidebarSection
                         title="Jobs"
                         className="mb-3"
-                        collapsible
-                        isCollapsed={collapsedSections.jobs}
-                        onToggleCollapse={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
                         headerAction={
                           <button
                             type="button"
@@ -4890,9 +4887,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <SidebarSection
                         title="Reminders"
                         className="mb-3"
-                        collapsible
-                        isCollapsed={collapsedSections.reminders}
-                        onToggleCollapse={() => setCollapsedSections((prev: any) => ({ ...prev, reminders: !prev.reminders }))}
                         headerAction={
                           <button
                             type="button"
@@ -4987,9 +4981,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <SidebarSection
                         title="Appointments"
                         className="mb-3"
-                        collapsible
-                        isCollapsed={collapsedSections.appointments}
-                        onToggleCollapse={() => setCollapsedSections((prev: any) => ({ ...prev, appointments: !prev.appointments }))}
                         headerAction={
                           <button
                             type="button"

@@ -654,7 +654,12 @@ describe('Add Button Alignment — rendered header structure', () => {
     expect(rightContainer?.className).toContain('justify-end')
   })
 
-  it('SidebarSection renders TITLE left, ADD right — collapsible (chevron does NOT displace ADD)', async () => {
+  it('SidebarSection renders TITLE left, ADD right — collapsible prop still supported but unused by Customer Details', async () => {
+    // The SidebarSection component still supports collapsible for potential
+    // future use, but no Customer Details section passes it. This test
+    // verifies the component's collapsible code path still works correctly
+    // (chevron renders, action is rightmost) so the component itself is not
+    // broken. The Customer Details sections just don't use this prop.
     const { SidebarSection } = await import('@/components/SidebarSection')
 
     await act(async () => {
@@ -679,7 +684,7 @@ describe('Add Button Alignment — rendered header structure', () => {
     expect(title?.textContent).toBe('Jobs')
     expect(title?.className).toContain('uppercase')
 
-    // Chevron exists
+    // Chevron exists (component still supports collapsible)
     const chevron = header?.querySelector('button[aria-label*="Collapse"]')
     expect(chevron).toBeTruthy()
 

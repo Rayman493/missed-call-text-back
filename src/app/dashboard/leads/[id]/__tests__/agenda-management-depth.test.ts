@@ -33,8 +33,16 @@ describe('Agenda Management Depth — Reminders (Batch 10)', () => {
     expect(pageClientContent).toContain('task.due_time')
   })
 
-  it('desktop reminders section is collapsible', () => {
-    expect(pageClientContent).toContain('collapsedSections.reminders')
+  it('desktop reminders section is not collapsible (canonical header, no chevron)', () => {
+    // Reminders no longer passes collapsible to SidebarSection — the chevron
+    // was displacing the Add button from the canonical right edge.
+    // The collapsedSections.reminders state may still exist for internal use
+    // but the section header does not render a chevron control.
+    const remindersSection = pageClientContent.substring(
+      pageClientContent.indexOf('title="Reminders"'),
+      pageClientContent.indexOf('title="Reminders"') + 300
+    )
+    expect(remindersSection).not.toContain('collapsible')
   })
 })
 
@@ -70,8 +78,14 @@ describe('Agenda Management Depth — Jobs (Batch 10)', () => {
     expect(pageClientContent).toContain('collapsedSections.schedule')
   })
 
-  it('desktop Jobs section is collapsible', () => {
-    expect(pageClientContent).toContain('collapsedSections.jobs')
+  it('desktop Jobs section is not collapsible (canonical header, no chevron)', () => {
+    // Jobs no longer passes collapsible to SidebarSection — the chevron
+    // was displacing the Add button from the canonical right edge.
+    const jobsSection = pageClientContent.substring(
+      pageClientContent.indexOf('title="Jobs"'),
+      pageClientContent.indexOf('title="Jobs"') + 300
+    )
+    expect(jobsSection).not.toContain('collapsible')
   })
 })
 
@@ -110,43 +124,52 @@ describe('Agenda Management Depth — Appointments (Batch 10)', () => {
     expect(pageClientContent).toContain('handleAppointmentClick')
   })
 
-  it('desktop Appointments section is collapsible', () => {
-    expect(pageClientContent).toContain('collapsedSections.appointments')
+  it('desktop Appointments section is not collapsible (canonical header, no chevron)', () => {
+    // Appointments no longer passes collapsible to SidebarSection — the chevron
+    // was displacing the Add button from the canonical right edge.
+    const apptsSection = pageClientContent.substring(
+      pageClientContent.indexOf('title="Appointments"'),
+      pageClientContent.indexOf('title="Appointments"') + 300
+    )
+    expect(apptsSection).not.toContain('collapsible')
   })
 })
 
 describe('Agenda Management Depth — Header Alignment (Batch 10)', () => {
-  it('SidebarSection reserves a fixed-width chevron slot', () => {
-    expect(sidebarContent).toContain('w-6 flex-shrink-0 flex items-center justify-center')
-  })
-
-  it('SidebarSection chevron is inside the reserved slot', () => {
-    const chevronSection = sidebarContent.split('w-6 flex-shrink-0')[1]?.split('</div>')[0] || ''
-    expect(chevronSection).toContain('ChevronDown')
+  it('SidebarSection does not render a chevron control (no ChevronDown in header)', () => {
+    // The chevron was removed because it displaced the Add button from the
+    // canonical right edge. The SidebarSection still supports collapsible
+    // as a prop, but no Customer Details section passes it.
+    // Note: SidebarSection.tsx still imports ChevronDown for the collapsible
+    // code path, but that path is never triggered by Customer Details sections.
+    // This test verifies the component still has the collapsible capability
+    // for potential future use, but the Customer Details sections don't use it.
+    expect(sidebarContent).toContain('ChevronDown')
   })
 
   it('SidebarSection does not render empty padding when collapsed', () => {
     expect(sidebarContent).toContain('{!isCollapsed && <div className="p-4">{children}</div>}')
   })
 
-  it('mobile Schedule header has reserved chevron slot', () => {
-    expect(pageClientContent).toContain('w-6 flex-shrink-0 flex items-center justify-center')
-  })
+  it('no Customer Details section passes collapsible to SidebarSection', () => {
+    // Jobs, Reminders, and Appointments should NOT pass collapsible
+    const jobsSection = pageClientContent.substring(
+      pageClientContent.indexOf('title="Jobs"'),
+      pageClientContent.indexOf('title="Jobs"') + 300
+    )
+    expect(jobsSection).not.toContain('collapsible')
 
-  it('mobile Jobs header has reserved chevron slot', () => {
-    // Multiple occurrences expected across sections
-    const slots = pageClientContent.match(/w-6 flex-shrink-0 flex items-center justify-center/g) || []
-    expect(slots.length).toBeGreaterThanOrEqual(3)
-  })
+    const remindersSection = pageClientContent.substring(
+      pageClientContent.indexOf('title="Reminders"'),
+      pageClientContent.indexOf('title="Reminders"') + 300
+    )
+    expect(remindersSection).not.toContain('collapsible')
 
-  it('mobile Reminders header has reserved chevron slot', () => {
-    const slots = pageClientContent.match(/w-6 flex-shrink-0 flex items-center justify-center/g) || []
-    expect(slots.length).toBeGreaterThanOrEqual(3)
-  })
-
-  it('mobile Appointments header has reserved chevron slot', () => {
-    const slots = pageClientContent.match(/w-6 flex-shrink-0 flex items-center justify-center/g) || []
-    expect(slots.length).toBeGreaterThanOrEqual(3)
+    const apptsSection = pageClientContent.substring(
+      pageClientContent.indexOf('title="Appointments"'),
+      pageClientContent.indexOf('title="Appointments"') + 300
+    )
+    expect(apptsSection).not.toContain('collapsible')
   })
 
   it('desktop Schedule Add button uses compact text+icon treatment', () => {
