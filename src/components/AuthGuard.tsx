@@ -7,6 +7,7 @@ import { useEffect, useState, useRef } from 'react'
 import SetupError from '@/components/SetupError'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { getCoordinatedSession } from '@/lib/supabase/auth-session-coordinator'
 import { logRouteFlashDebug } from '@/lib/route-flash-debug'
 
 const supabase = createBrowserClient()
@@ -203,7 +204,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       try {
         pollCount++
 
-        const { data: { session } } = await supabase.auth.getSession()
+        const { session } = await getCoordinatedSession()
         
         if (session) {
           // AuthContext will detect the session and update user state
@@ -233,7 +234,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     const timeout = setTimeout(() => {
       // Check if session exists
-      supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
+      getCoordinatedSession().then(({ session }: { session: any }) => {
         if (!session) {
           setRecoveryTimeoutElapsed(true)
           

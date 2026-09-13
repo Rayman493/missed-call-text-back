@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, ReactNode } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { getCoordinatedUser } from '@/lib/supabase/auth-session-coordinator'
+import { useAuth } from '@/contexts/AuthContext'
 import { Business } from '@/lib/types'
 import SetupError from '@/components/SetupError'
 
@@ -84,6 +86,13 @@ export function clearBusinessCache(userId?: string | null) {
 }
 
 export function BusinessProvider({ children }: { children: ReactNode }) {
+  // Consume auth from the canonical AuthContext instead of independently
+  // calling supabase.auth.getUser(). This eliminates a competing refresh
+  // path: previously BusinessContext's getUser() could race with
+  // AuthContext's getSession() on app startup/resume, both potentially
+  // triggering _callRefreshToken on the same refresh token.
+  const { user: authUser, authHydrated } = useAuth()
+
   // Initialize with null userId - will be updated when user is known
   const cachedBusinessPayload = readBusinessCache(null)
   const [business, setBusinessState] = useState<Business | null>(cachedBusinessPayload?.business ?? null)
@@ -159,7 +168,20 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     setError(null)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      // Use the canonical auth user from AuthContext instead of calling
+      // supabase.auth.getUser() directly. This prevents BusinessContext
+      // from becoming a second auth-refresh owner that races with
+      // AuthContext on app startup/resume.
+      //
+      // If the auth context user is not yet available (e.g., BusinessContext
+      // mounted before auth hydration completed), fall back to the
+      // coordinated user lookup, which is serialized through the canonical
+      // coordinator and will NOT trigger a competing refresh.
+      let user = authUser
+      if (!user) {
+        const { user: coordinatedUser } = await getCoordinatedUser()
+        user = coordinatedUser
+      }
 
       if (!user) {
         log('[BusinessContext] No user found')
@@ -242,7 +264,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       setFetchComplete(true)
       setBusinessHydrated(true)
     }
-  }, [supabase, businessVerified, business, lastFetchTimestamp])
+  }, [supabase, businessVerified, business, lastFetchTimestamp, authUser])
 
   // Listen to auth state changes - only once
   useEffect(() => {
@@ -284,13 +306,18 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     }
   }, [supabase, fetchBusiness])
 
-  // Initial fetch - only once
+  // Initial fetch - only once, after auth hydration is complete.
+  // Waiting for authHydrated prevents BusinessContext from racing with
+  // AuthContext's getSession() on app startup. When authHydrated is true,
+  // AuthContext has completed its session restore and the user is available
+  // (or confirmed null), so BusinessContext can safely consume the auth
+  // state without triggering a competing refresh.
   useEffect(() => {
-    if (!hasInitialFetchRef.current) {
+    if (!hasInitialFetchRef.current && authHydrated) {
       hasInitialFetchRef.current = true
       fetchBusiness()
     }
-  }, [fetchBusiness])
+  }, [fetchBusiness, authHydrated])
 
   // Handle window focus and visibility change for revalidation
   useEffect(() => {

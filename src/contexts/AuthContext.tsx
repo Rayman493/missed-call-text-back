@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { getCoordinatedSession, isRefreshTokenAlreadyUsed } from '@/lib/supabase/auth-session-coordinator'
 import { Capacitor } from '@capacitor/core'
 
 const supabase = createBrowserClient()
@@ -82,15 +83,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
           (window as any).__recordStartupEvent('get_session_start', { pathname })
         }
-        const { data: { session }, error } = await supabase.auth.getSession()
+        // Use the canonical coordinator to serialize concurrent getSession calls.
+        // This prevents multiple components (AuthContext, BusinessContext, AuthGuard,
+        // Capacitor warm-up) from racing to refresh the same token on app startup/resume.
+        const { session, error, adoptedFromConcurrentRefresh } = await getCoordinatedSession()
 
-        console.log('[ACCOUNT_CREATION_STARTUP_TRACE] getSession_result sessionPresent=' + !!session + ' userPresent=' + !!(session?.user) + ' error=' + (error?.name || 'none') + ' error_message=' + (error?.message || 'none'))
+        console.log('[ACCOUNT_CREATION_STARTUP_TRACE] getSession_result sessionPresent=' + !!session + ' userPresent=' + !!(session?.user) + ' error=' + (error?.name || 'none') + ' error_message=' + (error?.message || 'none') + ' adopted=' + adoptedFromConcurrentRefresh)
         if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
           (window as any).__recordStartupEvent('get_session_complete', {
             sessionPresent: !!session,
             userPresent: !!(session?.user),
             errorName: error?.name || null,
-            errorMessage: error?.message || null
+            errorMessage: error?.message || null,
+            adoptedFromConcurrentRefresh,
           })
         }
 
@@ -130,27 +135,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           // Handle refresh_token_already_used: a concurrent refresh (typically
-          // from another browser tab sharing the same localStorage) consumed the
-          // refresh token before this tab could use it.
+          // from the auto-refresh timer or another concurrent caller) consumed
+          // the refresh token before this caller could use it.
           //
           // DETERMINISTIC RECOVERY CONTRACT:
-          //   - Do NOT sign the user out. The other tab's refresh succeeded.
-          //   - Do NOT retry with a fixed delay. The Supabase JS SDK already
-          //     serializes refresh internally via _acquireLock + refreshingDeferred.
+          //   - Do NOT sign the user out. The concurrent refresh succeeded.
+          //   - Do NOT retry with a fixed delay.
           //   - The onAuthStateChange listener (registered below at line ~247)
-          //     will receive a TOKEN_REFRESHED event with the new session via
-          //     BroadcastChannel when the other tab's refresh completes.
-          //     That listener calls setSession/setUser/setAccessToken.
+          //     will receive a TOKEN_REFRESHED event with the new session when
+          //     the concurrent refresh completes. That listener calls
+          //     setSession/setUser/setAccessToken.
+          //   - The coordinator already attempted a re-read from storage; if
+          //     that returned a session, it was adopted and no error reaches here.
           //   - If no newer session arrives (genuinely invalid token), the next
           //     getSession() call will return refresh_token_not_found, which is
           //     already handled above by clearing stale auth state.
-          if (error?.message?.includes('refresh_token_already_used') || error?.message?.includes('Refresh Token Already Used') || error?.code === 'refresh_token_already_used') {
+          if (isRefreshTokenAlreadyUsed(error)) {
             console.log('[ACCOUNT_CREATION_STARTUP_TRACE] refresh_token_already_used — concurrent refresh detected, deferring to onAuthStateChange')
             if (typeof window !== 'undefined' && (window as any).__recordStartupEvent) {
               (window as any).__recordStartupEvent('refresh_token_already_used', { errorName: error?.name })
             }
             // No retry, no sign-out. The onAuthStateChange listener will deliver
-            // the refreshed session from the concurrent refresh via BroadcastChannel.
+            // the refreshed session from the concurrent refresh.
           }
         }
         

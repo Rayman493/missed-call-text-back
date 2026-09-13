@@ -15,6 +15,7 @@ import { Browser } from '@capacitor/browser';
 import { pushService } from '@/lib/push-service';
 import { TerminalBridgeService } from '@/lib/terminal/service';
 import { createBrowserClient } from '@/lib/supabase/browser';
+import { getCoordinatedSession } from '@/lib/supabase/auth-session-coordinator';
 import { handleExternalReturn, handleAppResume } from '@/lib/external-return-handler';
 import { reconcileScrollLock } from '@/hooks/useBodyScrollLock';
 
@@ -251,15 +252,16 @@ export async function initializeCapacitor() {
  */
 async function isTapToPayWarmUpEligible(): Promise<{ eligible: boolean; reason?: string }> {
   try {
-    // Check for authenticated session
-    const supabase = createBrowserClient()
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    // Use the canonical coordinator to avoid racing with AuthContext's
+    // getSession() on app startup/resume.
+    const { session, error: sessionError } = await getCoordinatedSession()
 
     if (sessionError || !session) {
       return { eligible: false, reason: 'no_session' }
     }
 
     // Check for business
+    const supabase = createBrowserClient()
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('id, stripe_connect_account_id, stripe_connect_status, stripe_charges_enabled')
