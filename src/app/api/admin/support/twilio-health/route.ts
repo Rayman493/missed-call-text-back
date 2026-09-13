@@ -260,13 +260,17 @@ export async function GET(request: NextRequest) {
       n.recovery_attempt_count >= 5
     ).length
 
-    // Fetch last recovery run
-    const { data: lastRecoveryRun } = await supabaseAdmin
+    // Fetch last recovery run (non-critical — table may not exist in all environments)
+    const { data: lastRecoveryRun, error: lastRunError } = await supabaseAdmin
       .from('provisioning_recovery_runs')
       .select('*')
       .order('started_at', { ascending: false })
       .limit(1)
       .maybeSingle()
+
+    if (lastRunError) {
+      console.warn('[TWILIO HEALTH] provisioning_recovery_runs query failed (non-critical):', lastRunError?.code)
+    }
 
     const recovery = {
       stuckCount,

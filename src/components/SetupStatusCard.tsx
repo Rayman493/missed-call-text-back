@@ -446,6 +446,7 @@ export default function SetupStatusCard({
     const forwardingActuallyVerified = business?.forwarding_verified === true
     const smsActuallyActive = business?.messaging_status === 'active'
     const isProvisioning = business?.provisioning_status === 'pending' || business?.provisioning_status === 'provisioning'
+    const isRecoveringOrFailed = business?.provisioning_status === 'failed' || business?.provisioning_status === 'needs_provisioning' || business?.provisioning_status === 'provisioning'
     const isTrialing = hasActiveTrial(business)
     const trialEndDate = business?.trial_ends_at ? new Date(business.trial_ends_at).toLocaleDateString() : null
     // Step 2 completion uses confirmed instructions OR operational verification
@@ -558,14 +559,37 @@ export default function SetupStatusCard({
               </div>
             </div>
 
-            {/* Success message when required setup is complete */}
-          {forwardingStep2Complete && (
+            {/* Success message when required setup is complete.
+                CANONICAL OPERATIONAL READINESS: "ReplyFlow is ready" means
+                CURRENTLY operational, not historically onboarded. Requires:
+                - hasNumber: current Twilio number present
+                - forwardingStep2Complete: call forwarding configured
+                - no active recovery/error state (provisioning_status not failed/needs_provisioning)
+                Historical forwarding/test completion alone must NOT imply
+                operational readiness. */}
+          {forwardingStep2Complete && hasNumber && !isRecoveringOrFailed && (
             <div className="bg-green-500/20 border border-green-400/30 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-5 h-5 text-green-300 flex-shrink-0" />
                 <div>
                   <p className="text-green-100 text-sm font-medium">ReplyFlow is ready</p>
                   <p className="text-green-200/80 text-xs">Your number and call forwarding are configured. Missed calls will be handled automatically.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Recovery state: number absent + recovery active or failed.
+              Shows when the business has no healthy assigned ReplyFlow number
+              and provisioning is in a recovery/error state. This replaces the
+              "ReplyFlow is ready" banner which would otherwise be misleading. */}
+          {!hasNumber && isRecoveringOrFailed && (
+            <div className="bg-amber-500/20 border border-amber-400/30 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <RotateCcw className="w-5 h-5 text-amber-300 flex-shrink-0 animate-spin" style={{ animationDuration: '3s' }} />
+                <div>
+                  <p className="text-amber-100 text-sm font-medium">Restoring your ReplyFlow number</p>
+                  <p className="text-amber-200/80 text-xs">We detected an issue with your assigned number and are automatically replacing it. Call handling will resume once the new number is ready.</p>
                 </div>
               </div>
             </div>

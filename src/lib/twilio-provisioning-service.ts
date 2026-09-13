@@ -258,7 +258,18 @@ export async function recoverStuckProvisioning(recoveryRunId?: string): Promise<
   let skipped = 0;
 
   try {
-    // STEP 1: Create recovery run audit record
+    // STEP 1: Create recovery run audit record.
+    //
+    // NON-CRITICAL: The audit record is a nice-to-have for observability.
+    // If the provisioning_recovery_runs table is missing (PGRST205) or
+    // the insert fails for any other reason, the recovery must STILL
+    // proceed. Aborting the entire hourly recovery because an audit
+    // insert failed would leave stuck numbers unprocessed indefinitely.
+    //
+    // The migration that creates this table exists at:
+    //   supabase/migrations/20260805000000_add_provisioning_recovery_fields.sql
+    // but production may not have received it yet. The audit insert
+    // failure is logged but does not block functional recovery.
     const { data: recoveryRun, error: runError } = await supabase
       .from('provisioning_recovery_runs')
       .insert({
@@ -270,18 +281,11 @@ export async function recoverStuckProvisioning(recoveryRunId?: string): Promise<
       .single();
 
     if (runError) {
-      console.error('[RECOVERY] ERROR: Failed to create recovery run record:', runError);
-      return {
-        success: false,
-        recovered: 0,
-        failed: 0,
-        skipped: 0,
-        errors: [],
-        recoveryRunId: runId
-      };
+      console.warn('[RECOVERY] WARNING: Failed to create recovery run audit record (non-critical, continuing):', runError);
+      // Do NOT return — continue with the actual recovery work.
+    } else {
+      console.log(`[RECOVERY] Created recovery run record: ${recoveryRun.id}`);
     }
-
-    console.log(`[RECOVERY] Created recovery run record: ${recoveryRun.id}`);
 
     // STEP 2: Reclaim stale claims (numbers with recovery_run_id set > 1 hour ago)
     console.log('[RECOVERY] STEP 2: Reclaiming stale claims...');
@@ -339,19 +343,23 @@ export async function recoverStuckProvisioning(recoveryRunId?: string): Promise<
     if (eligibleNumbers.length === 0) {
       console.log('[RECOVERY] No eligible numbers found');
       
-      // Update recovery run as complete
-      await supabase
-        .from('provisioning_recovery_runs')
-        .update({
-          finished_at: now.toISOString(),
-          stuck_count: 0,
-          processed_count: 0,
-          recovered_count: 0,
-          failed_count: 0,
-          skipped_count: 0,
-          summary: 'No eligible numbers found'
-        })
-        .eq('id', runId);
+      // Update recovery run as complete (non-critical audit update)
+      try {
+        await supabase
+          .from('provisioning_recovery_runs')
+          .update({
+            finished_at: now.toISOString(),
+            stuck_count: 0,
+            processed_count: 0,
+            recovered_count: 0,
+            failed_count: 0,
+            skipped_count: 0,
+            summary: 'No eligible numbers found'
+          })
+          .eq('id', runId);
+      } catch (auditError) {
+        console.warn('[RECOVERY] Failed to update audit record (non-critical):', auditError);
+      }
 
       return {
         success: true,
@@ -552,20 +560,24 @@ export async function recoverStuckProvisioning(recoveryRunId?: string): Promise<
       }
     }
 
-    // STEP 5: Update recovery run audit record
-    await supabase
-      .from('provisioning_recovery_runs')
-      .update({
-        finished_at: now.toISOString(),
-        stuck_count: eligibleNumbers.length,
-        processed_count: recovered + failed + skipped,
-        recovered_count: recovered,
-        failed_count: failed,
-        skipped_count: skipped,
-        summary: `Processed ${eligibleNumbers.length} numbers: ${recovered} recovered, ${failed} failed, ${skipped} skipped`,
-        error: errors.length > 0 ? `${errors.length} errors encountered` : null,
-      })
-      .eq('id', runId);
+    // STEP 5: Update recovery run audit record (non-critical)
+    try {
+      await supabase
+        .from('provisioning_recovery_runs')
+        .update({
+          finished_at: now.toISOString(),
+          stuck_count: eligibleNumbers.length,
+          processed_count: recovered + failed + skipped,
+          recovered_count: recovered,
+          failed_count: failed,
+          skipped_count: skipped,
+          summary: `Processed ${eligibleNumbers.length} numbers: ${recovered} recovered, ${failed} failed, ${skipped} skipped`,
+          error: errors.length > 0 ? `${errors.length} errors encountered` : null,
+        })
+        .eq('id', runId);
+    } catch (auditError) {
+      console.warn('[RECOVERY] Failed to update audit record (non-critical):', auditError);
+    }
 
     console.log(`[RECOVERY] Recovery complete:`);
     console.log(`[RECOVERY] - Recovered: ${recovered}`);

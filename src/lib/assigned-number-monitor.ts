@@ -353,48 +353,71 @@ export async function runAssignedNumberIntegrityCheck(): Promise<{ findings: Int
       }
 
       const staleSid = business.twilio_phone_number_sid
-      if (!staleSid) {
-        return { attempted: false, success: false }
-      }
-
-      console.log('[SELF-HEAL RECOVERY] Starting recovery for eligible business', { businessId: business.id, staleSid })
 
       // STEP 1: Compare-and-swap clear the stale business assignment.
       // Only update if the SID still matches — prevents stealing a number
       // that was already reassigned by a concurrent process.
-      const { data: cleared, error: clearError } = await serviceSupabase
-        .from('businesses')
-        .update({
-          twilio_phone_number: null,
-          twilio_phone_number_sid: null,
-          twilio_messaging_service_sid: null,
-          assigned_twilio_number_id: null,
-          provisioning_status: 'provisioning',
-          provisioning_error: null,
-          forwarding_verified: false,
-          call_forwarding_enabled: false,
-        })
-        .eq('id', business.id)
-        .eq('twilio_phone_number_sid', staleSid)
-        .select('id')
+      //
+      // CRITICAL: Do NOT set provisioning_status to 'provisioning' here.
+      // The trigger-provisioning route's acquire_provisioning_lock RPC
+      // rejects rows where provisioning_status === 'provisioning'
+      // (WHERE provisioning_status != 'provisioning'). Setting it here
+      // would cause the subsequent trigger-provisioning call to fail
+      // with "Provisioning already in progress" (409).
+      //
+      // Instead, set 'needs_provisioning' — a trigger-eligible state
+      // that clearly indicates the assignment was cleared and a
+      // replacement is needed. trigger-provisioning will atomically
+      // acquire the lock and transition to 'provisioning' itself.
+      //
+      // If staleSid is NULL (already cleared by a prior partial
+      // recovery), skip the CAS clear and retire steps and go directly
+      // to trigger-provisioning. This handles the already-cleared
+      // failed row from the prior self-heal bug.
+      let skipCasAndRetire = false
+      if (staleSid) {
+        console.log('[SELF-HEAL RECOVERY] Starting recovery for eligible business', { businessId: business.id, staleSid })
 
-      if (clearError || !cleared || cleared.length === 0) {
-        // Compare-and-swap failed — another process already changed the assignment
-        console.log('[SELF-HEAL RECOVERY] Compare-and-swap failed (already changed)', { businessId: business.id, clearError })
-        return { attempted: false, success: false, error: 'CAS failed' }
+        const { data: cleared, error: clearError } = await serviceSupabase
+          .from('businesses')
+          .update({
+            twilio_phone_number: null,
+            twilio_phone_number_sid: null,
+            twilio_messaging_service_sid: null,
+            assigned_twilio_number_id: null,
+            provisioning_status: 'needs_provisioning',
+            provisioning_error: null,
+            forwarding_verified: false,
+            call_forwarding_enabled: false,
+          })
+          .eq('id', business.id)
+          .eq('twilio_phone_number_sid', staleSid)
+          .select('id')
+
+        if (clearError || !cleared || cleared.length === 0) {
+          // Compare-and-swap failed — another process already changed the assignment
+          console.log('[SELF-HEAL RECOVERY] Compare-and-swap failed (already changed)', { businessId: business.id, clearError })
+          return { attempted: false, success: false, error: 'CAS failed' }
+        }
+
+        // STEP 2: Mark the stale twilio_numbers row as retired so the
+        // provisionTwilioNumber idempotency check won't re-assign it.
+        await serviceSupabase
+          .from('twilio_numbers')
+          .update({
+            status: 'retired',
+            detached_at: new Date().toISOString(),
+            detached_reason: 'assigned_number_missing_from_twilio',
+            business_id: null,
+          })
+          .eq('twilio_sid', staleSid)
+      } else {
+        // Already-cleared failed row from prior self-heal bug:
+        // number/SID/assigned_id are all NULL, old row already retired.
+        // Skip CAS clear and retire, go directly to reprovisioning.
+        skipCasAndRetire = true
+        console.log('[SELF-HEAL RECOVERY] Starting recovery for already-cleared business', { businessId: business.id })
       }
-
-      // STEP 2: Mark the stale twilio_numbers row as retired so the
-      // provisionTwilioNumber idempotency check won't re-assign it.
-      await serviceSupabase
-        .from('twilio_numbers')
-        .update({
-          status: 'retired',
-          detached_at: new Date().toISOString(),
-          detached_reason: 'assigned_number_missing_from_twilio',
-          business_id: null,
-        })
-        .eq('twilio_sid', staleSid)
 
       // STEP 3: Trigger reprovisioning to acquire a replacement number.
       // Use internal HTTP call to the provisioning endpoint with admin secret.
@@ -445,6 +468,91 @@ export async function runAssignedNumberIntegrityCheck(): Promise<{ findings: Int
   }
 
   const { findings } = await checkAssignedNumberIntegrityWith(deps)
+
+  // -------------------------------------------------------------------------
+  // RECOVERY SWEEP: Re-attempt recovery for businesses that were partially
+  // recovered by the prior self-heal bug (CAS clear succeeded, but
+  // reprovisioning failed with "Provisioning already in progress").
+  //
+  // These businesses have:
+  //   - twilio_phone_number IS NULL
+  //   - twilio_phone_number_sid IS NULL
+  //   - assigned_twilio_number_id IS NULL
+  //   - provisioning_status = 'failed'
+  //   - provisioning_error LIKE 'Self-heal reprovision%'
+  //   - subscription_status IN ('active', 'trialing')
+  //   - NOT released/offboarding
+  //
+  // The main integrity check above only looks at businesses with an
+  // assignment (phone OR SID OR assigned_id). Already-cleared rows have
+  // none of these, so they are invisible to the main sweep. This recovery
+  // sweep finds them and re-attempts reprovisioning via the same
+  // recoverMissingAssignment callback (which now handles the staleSid=NULL
+  // case by skipping CAS clear and going directly to trigger-provisioning).
+  // -------------------------------------------------------------------------
+  try {
+    const { data: stuckRecoveryRows, error: stuckErr } = await serviceSupabase
+      .from('businesses')
+      .select('id, name, twilio_phone_number, twilio_phone_number_sid, assigned_twilio_number_id, provisioning_status, provisioning_error, subscription_status, twilio_release_status, twilio_released_at')
+      .is('twilio_phone_number', null)
+      .is('twilio_phone_number_sid', null)
+      .is('assigned_twilio_number_id', null)
+      .eq('provisioning_status', 'failed')
+      .in('subscription_status', ['active', 'trialing'])
+
+    if (stuckErr) {
+      console.error('[SELF-HEAL RECOVERY SWEEP] Query failed:', stuckErr)
+    } else if (stuckRecoveryRows && stuckRecoveryRows.length > 0) {
+      // Filter for self-heal error + exclude released/offboarding
+      const recoverable = (stuckRecoveryRows as any[]).filter(r => {
+        const pe: string = r.provisioning_error || ''
+        const isSelfHealFailure = pe.startsWith('Self-heal reprovision') || pe.startsWith('assigned_number_missing_from_twilio')
+        const isReleased = r.twilio_release_status === 'released' || r.twilio_released_at
+        return isSelfHealFailure && !isReleased
+      })
+
+      for (const b of recoverable) {
+        // Exclude protected/system numbers (defensive — number is NULL here
+        // but check in case of future field additions)
+        const PROTECTED = (process.env.PROTECTED_TWILIO_NUMBERS || '').split(',').filter(n => n.trim())
+        const sysNum = process.env.REPLYFLOW_SYSTEM_SMS_NUMBER
+        const phone = b.twilio_phone_number
+        if (phone && (PROTECTED.includes(phone) || phone === sysNum)) continue
+
+        console.log('[SELF-HEAL RECOVERY SWEEP] Re-attempting recovery for stuck business', { businessId: b.id })
+
+        try {
+          const result = await deps.recoverMissingAssignment!(b as BusinessRow)
+          if (result.attempted) {
+            await deps.recordIncident({
+              businessId: b.id,
+              businessName: b.name,
+              phone: null,
+              sid: '',
+              timestamp: new Date().toISOString(),
+              reason: 'assigned_number_missing_from_twilio',
+              summary: result.success
+                ? `Self-heal recovery sweep succeeded: replacement provisioned`
+                : `Self-heal recovery sweep failed: ${result.error || 'unknown'}`
+            })
+          }
+        } catch (recoveryError: any) {
+          await deps.recordIncident({
+            businessId: b.id,
+            businessName: b.name,
+            phone: null,
+            sid: '',
+            timestamp: new Date().toISOString(),
+            reason: 'assigned_number_missing_from_twilio',
+            summary: `Self-heal recovery sweep exception: ${recoveryError?.message || String(recoveryError)}`
+          })
+        }
+      }
+    }
+  } catch (sweepError: any) {
+    console.error('[SELF-HEAL RECOVERY SWEEP] Exception:', sweepError)
+  }
+
   return { findings: findings.concat(duplicateFindings) }
 }
 
