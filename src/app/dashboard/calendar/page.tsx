@@ -154,34 +154,34 @@ function RemindersList({
                 {task.notes && (
                   <p className={`text-xs mt-1 truncate ${task.completed ? 'text-slate-400 dark:text-slate-500' : 'text-slate-500 dark:text-slate-400'}`}>{task.notes}</p>
                 )}
-              </div>
-              <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                {/* Status badges — informational, on the LEFT */}
                 {!task.completed && overdue.includes(task) && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-medium whitespace-nowrap">
+                  <span className="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-medium whitespace-nowrap mt-1.5">
                     Overdue
                   </span>
                 )}
                 {task.completed && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-medium whitespace-nowrap">
+                  <span className="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-medium whitespace-nowrap mt-1.5">
                     Done
                   </span>
                 )}
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => onEditTask(task)}
-                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
-                    aria-label="Edit reminder"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => onDeleteTask(task.id)}
-                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800"
-                    aria-label="Delete reminder"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+              </div>
+              {/* RIGHT SIDE: management actions only */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  onClick={() => onEditTask(task)}
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0"
+                  aria-label="Edit reminder"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => onDeleteTask(task.id)}
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0"
+                  aria-label="Delete reminder"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
@@ -291,10 +291,13 @@ function MeetingsTab({
           const typeLabel = labelType(ev)
           const isMeet = typeLabel === 'Google Meet'
           // Editability: only ReplyFlow-owned events are editable.
-          // External/read-only Google events open details view but show no Edit.
-          // @ts-ignore
-          const rfLead = ev?.extendedProperties?.private?.replyflow_lead_id
-          const isEditable = Boolean(job || rfLead)
+          // Uses the canonical ownership check (isReplyFlowOwnedEvent) which
+          // covers linked jobs, linked meetings, AND private metadata
+          // (replyflow_lead_id OR replyflow_meeting_url). The previous check
+          // (Boolean(job || rfLead)) missed events that had
+          // replyflow_meeting_url but no replyflow_lead_id and no linked job,
+          // causing virtual ReplyFlow appointments to show no Edit/Delete.
+          const isEditable = isReplyFlowOwnedEvent(ev as any, { linkedJob: job })
           return (
             <div
               key={ev.id}
@@ -335,58 +338,55 @@ function MeetingsTab({
                         Appointment
                       </span>
                     )}
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                  {completedMap?.has(ev.id) && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 whitespace-nowrap font-medium">Completed</span>
-                  )}
-                  {!completedMap?.has(ev.id) && (() => {
-                    const endRaw = ev.end?.dateTime || ev.end?.date
-                    const isPastDue = endRaw ? new Date(endRaw).getTime() < Date.now() : false
-                    return isPastDue ? (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 whitespace-nowrap font-medium">Past</span>
-                    ) : (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap font-medium">Scheduled</span>
-                    )
-                  })()}
-                  {/* Management actions: Edit + Delete (canonical order) */}
-                  <div className="flex items-center gap-1">
-                    {/* Edit action only for editable (ReplyFlow-owned) appointments */}
-                    {isEditable && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onOpenEvent(ev) }}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onOpenEvent(ev) } }}
-                        className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
-                        aria-label="Edit appointment"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
+                    {/* Status badges — informational, on the LEFT with other event info */}
+                    {completedMap?.has(ev.id) && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 whitespace-nowrap font-medium">Completed</span>
                     )}
-                    {/* Delete action for editable (ReplyFlow-owned) appointments */}
-                    {isEditable && onDeleteAppointment && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onDeleteAppointment(ev) }}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onDeleteAppointment(ev) } }}
-                        className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
-                        aria-label="Delete appointment"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+                    {!completedMap?.has(ev.id) && (() => {
+                      const endRaw = ev.end?.dateTime || ev.end?.date
+                      const isPastDue = endRaw ? new Date(endRaw).getTime() < Date.now() : false
+                      return isPastDue ? (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 whitespace-nowrap font-medium">Past</span>
+                      ) : (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap font-medium">Scheduled</span>
+                      )
+                    })()}
                   </div>
-                  {/* Primary action: Join for virtual meetings (below management actions) */}
+                  {/* Join — primary appointment action, stays with informational content on the left */}
                   {ev.meetingUrl && (
                     <a
                       href={ev.meetingUrl}
                       target="_blank"
                       rel="noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm"
+                      className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm mt-2"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       Join
                     </a>
+                  )}
+                </div>
+                {/* RIGHT SIDE: management actions only */}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {isEditable && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onOpenEvent(ev) }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onOpenEvent(ev) } }}
+                      className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                      aria-label="Edit appointment"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  )}
+                  {isEditable && onDeleteAppointment && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDeleteAppointment(ev) }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onDeleteAppointment(ev) } }}
+                      className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                      aria-label="Delete appointment"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   )}
                 </div>
               </div>
@@ -2834,38 +2834,40 @@ function JobsTab({
                 </span>
               )}
             </div>
-          </div>
-          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-            <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[job.status]}`}>
-              {STATUS_LABELS[job.status]}
-            </span>
-            {paymentLabel && (
-              <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${PAYMENT_COLORS[job.payment_status || 'none']}`}>
-                {paymentLabel}
+            {/* Status + payment badges — informational, on the LEFT */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[job.status]}`}>
+                {STATUS_LABELS[job.status]}
               </span>
-            )}
-            <div className="flex items-center gap-1">
-              {onEditJob && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onEditJob(job) }}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEditJob(job) } }}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
-                  aria-label="Edit job"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-              )}
-              {onDeleteJob && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDeleteJob(job) }}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onDeleteJob(job) } }}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
-                  aria-label="Delete job"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+              {paymentLabel && (
+                <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${PAYMENT_COLORS[job.payment_status || 'none']}`}>
+                  {paymentLabel}
+                </span>
               )}
             </div>
+          </div>
+          {/* RIGHT SIDE: management actions only */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {onEditJob && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onEditJob(job) }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEditJob(job) } }}
+                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                aria-label="Edit job"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
+            {onDeleteJob && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onDeleteJob(job) }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onDeleteJob(job) } }}
+                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                aria-label="Delete job"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>
