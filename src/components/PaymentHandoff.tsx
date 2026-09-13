@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { formatCurrency } from '@/lib/utils'
+import { Capacitor } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
 
 interface PaymentHandoffProps {
   provider: 'venmo' | 'paypal'
@@ -32,6 +34,24 @@ export default function PaymentHandoff({
   const amountNumber = parseFloat(amount) || 0
   const formattedAmount = formatCurrency(amountNumber)
 
+  // Deterministic external handoff:
+  // - On native (Capacitor), use Browser.open() which launches the system browser
+  //   (Chrome Custom Tab on Android, Safari View Controller on iOS). The system
+  //   browser then opens Venmo/PayPal via Universal Links / App Links, keeping
+  //   ReplyFlow in the background. This avoids the WebView's target="_blank"
+  //   handling which can bounce back to the payment page.
+  // - On web, use the real checkoutUrl (not a hard-coded homepage) so the
+  //   merchant's profile opens directly.
+  const openProvider = async () => {
+    const url = checkoutUrl || (provider === 'venmo' ? 'https://venmo.com' : '#')
+    if (!url || url === '#') return
+    if (Capacitor.isNativePlatform()) {
+      await Browser.open({ url })
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer')
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-6">
       <div className="max-w-md w-full">
@@ -46,14 +66,13 @@ export default function PaymentHandoff({
 
         {/* Primary CTA */}
         <div className="mb-8">
-          <a
-            href={provider === 'venmo' ? 'https://venmo.com' : (checkoutUrl || '#')}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={openProvider}
             className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-lg transition-colors text-lg"
           >
             Open {providerName}
-          </a>
+          </button>
         </div>
 
         {/* Payment Details Section */}
@@ -136,22 +155,37 @@ export default function PaymentHandoff({
         {/* Fallback Instructions */}
         {provider === 'venmo' && venmoUsername && (
           <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">If {providerName} doesn't open automatically</h2>
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">If {providerName} doesn&rsquo;t open</h2>
             
             <div className="space-y-3">
+              <p className="text-sm text-gray-700">
+                Pay <span className="font-medium text-gray-900">@{venmoUsername}</span> {formattedAmount} in Venmo.
+              </p>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-gray-600">Recipient</span>
-                <span className="text-gray-900 font-medium">@{venmoUsername}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-gray-600">Amount</span>
-                <span className="text-gray-900 font-medium">{formattedAmount}</span>
+                <span className="text-sm text-gray-600">Venmo username</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-900 font-medium">@{venmoUsername}</span>
+                  <button
+                    onClick={() => copyToClipboard(venmoUsername, 'username-fallback')}
+                    className="p-1.5 hover:bg-gray-100 text-gray-500 rounded transition-colors"
+                    title="Copy username"
+                  >
+                    {copied === 'username-fallback' ? (
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
               {description && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Note</span>
-                  <span className="text-gray-900 font-medium">{description}</span>
-                </div>
+                <p className="text-sm text-gray-600">
+                  Use &ldquo;<span className="font-medium text-gray-900">{description}</span>&rdquo; as the payment note.
+                </p>
               )}
             </div>
           </div>

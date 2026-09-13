@@ -215,10 +215,12 @@ export async function POST(
       const sessionIdSafe = sessionId.length > 8 ? `...${sessionId.slice(-8)}` : '[REDACTED]'
       console.log('[PAYMENT CANCEL] Canceling Stripe checkout session', {
         payment_id: paymentRequest.id,
+        business_id: paymentRequest.business_id,
         session_id: sessionIdSafe,
         provider: 'stripe',
         stripe_account_context: connectedAccountId ? connectedAccountId : 'platform',
         business_connect_account_id: connectedAccountId || null,
+        local_status_before: paymentRequest.status,
       })
 
       const stripe = getStripe()
@@ -437,6 +439,14 @@ export async function POST(
     console.log('[PAYMENT CANCEL] Token (verified):', updatedPayment?.token ? '[REDACTED]' : null)
     console.log('[PAYMENT CANCEL] Update Error:', updateError)
     console.log('[PAYMENT CANCEL] Fetch Error:', fetchError)
+    console.log('[PAYMENT CANCEL] Reconciliation result:', {
+      payment_id: paymentRequest.id,
+      business_id: paymentRequest.business_id,
+      local_mutation_performed: true,
+      mutation_result: updateError ? 'failed' : 'success',
+      verification_result: updatedPayment?.status === 'cancelled' ? 'verified' : 'mismatch',
+      final_status: updatedPayment?.status,
+    })
     console.log('[PAYMENT CANCEL] ============================================')
 
     // Update lead payment status

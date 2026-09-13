@@ -514,12 +514,20 @@ export default function PaymentsPage() {
   }
 
 const getPaymentDescription = (payment: PaymentRequest) => {
-    // If custom display_name exists, use it
+    // display_name is the human-facing payment title (shown in the card header),
+    // NOT the description. The description is the original payment note and
+    // remains secondary supporting text. Do not conflate the two.
+    return payment.description
+  }
+
+  // Card title: prefer the operator-set display_name (Payment Name), then the
+  // customer name, then a generic fallback. This keeps the Payment Name
+  // semantically separate from the Description shown in the body.
+  const getPaymentTitle = (payment: PaymentRequest) => {
     if (payment.display_name) {
       return payment.display_name
     }
-    // Otherwise fall back to original description
-    return payment.description
+    return getCustomerName(payment)
   }
 
   const copyPaymentLink = async (url: string) => {
@@ -880,10 +888,6 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
           </div>
-        ) : error ? (
-          <div className="bg-red-900/20 border border-red-800 text-red-400 px-4 py-3 rounded-md">
-            {error}
-          </div>
         ) : (
           <>
             {/* Overview Cards */}
@@ -1007,7 +1011,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                           <div className="flex items-center gap-2 min-w-0">
                             <CreditCard className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                             <span className="text-foreground font-medium text-sm truncate">
-                              {getCustomerName(payment)}
+                              {getPaymentTitle(payment)}
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -1164,7 +1168,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                   <div className="flex items-center gap-2">
                                     <User className="h-4 w-4 text-muted-foreground" />
                                     <span className="text-foreground font-medium text-sm">
-                                      {getCustomerName(payment)}
+                                      {getPaymentTitle(payment)}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-1.5">
@@ -1375,7 +1379,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                               <div className="flex items-center gap-2">
                                 <User className="h-4 w-4 text-muted-foreground" />
                                 <span className="text-foreground font-medium text-sm">
-                                  {getCustomerName(payment)}
+                                  {getPaymentTitle(payment)}
                                 </span>
                               </div>
                             </td>
@@ -1486,7 +1490,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                   <div className="flex items-center gap-2">
                                     <User className="h-4 w-4 text-muted-foreground" />
                                     <span className="text-foreground font-medium text-sm">
-                                      {getCustomerName(payment)}
+                                      {getPaymentTitle(payment)}
                                     </span>
                                   </div>
                                 </td>

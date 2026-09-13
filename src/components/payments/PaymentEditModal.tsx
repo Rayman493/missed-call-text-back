@@ -109,7 +109,12 @@ export default function PaymentEditModal({
 
   const handleViewCustomer = () => {
     if (onViewCustomer && payment.leads) {
-      onViewCustomer(payment.leads.id)
+      const customerId = payment.leads.id
+      // Close the modal first so its history cleanup (history.back()) runs
+      // before the navigation. Without this deferral, the modal's
+      // history.back() would undo the router.push(), bouncing back to Payments.
+      onClose()
+      setTimeout(() => onViewCustomer(customerId), 0)
     }
   }
 
