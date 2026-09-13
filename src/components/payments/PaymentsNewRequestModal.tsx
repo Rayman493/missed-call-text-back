@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatPhoneNumber } from '@/lib/utils'
 import Modal from '@/components/ui/Modal'
@@ -51,12 +51,13 @@ export default function PaymentsNewRequestModal({
   const isVenmoConfigured = business?.venmo_username && business.venmo_username.length > 0
   const isPaypalConfigured = business?.paypal_payment_link && business.paypal_payment_link.length > 0
 
-  const configuredPaymentMethods = ['stripe', 'venmo', 'paypal'].filter(method => {
-    if (method === 'stripe') return isStripeConfigured
-    if (method === 'venmo') return isVenmoConfigured
-    if (method === 'paypal') return isPaypalConfigured
-    return false
-  }) as Array<'stripe' | 'venmo' | 'paypal'>
+  const configuredPaymentMethods = useMemo(() => {
+    const methods: Array<'stripe' | 'venmo' | 'paypal'> = []
+    if (isStripeConfigured) methods.push('stripe')
+    if (isVenmoConfigured) methods.push('venmo')
+    if (isPaypalConfigured) methods.push('paypal')
+    return methods
+  }, [isStripeConfigured, isVenmoConfigured, isPaypalConfigured])
 
   const hasAnyPaymentMethod = configuredPaymentMethods.length > 0
 
