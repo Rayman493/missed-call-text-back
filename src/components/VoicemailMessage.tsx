@@ -478,8 +478,20 @@ export default function VoicemailMessage({
     const audio = audioRef.current
     if (!audio || !canSeek) return
 
-    // Clamp time to valid range
-    const clampedTime = Math.max(0, Math.min(time, duration))
+    // Canonical duration: prefer the actual audio element's duration.
+    // The shared progress context `duration` can be stale/zero if
+    // setDuration hasn't propagated yet, while the audio element itself
+    // has valid metadata loaded. This prevents the seek from being
+    // clamped to 0 and overriding the correct position set by
+    // PremiumAudioPlayer.seekToClientX.
+    const audioDuration = audio.duration
+    const canonicalDuration =
+      Number.isFinite(audioDuration) && audioDuration > 0
+        ? audioDuration
+        : duration
+
+    // Clamp time to valid range using canonical duration
+    const clampedTime = Math.max(0, Math.min(time, canonicalDuration))
     audio.currentTime = clampedTime
     setCurrentTime(recording.id, clampedTime)
   }

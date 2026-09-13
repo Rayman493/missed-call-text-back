@@ -1420,9 +1420,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       let resizeObserver: ResizeObserver | null = null
       let rafId: number | null = null
+      let settleRafId: number | null = null
+      // Track content height to detect when layout has settled.
+      // The initial scroll is NOT complete until the content height
+      // stops changing (images loaded, voicemail cards rendered, etc.).
+      let lastScrollHeight = container.scrollHeight
+      let settleCount = 0
 
       // Initial scroll: direct scrollTop = scrollHeight (true bottom)
       scrollToTrueBottom(container)
+      lastScrollHeight = container.scrollHeight
 
       // Set up ResizeObserver to detect content height changes (images, transcription, audio)
       // During initial auto-scrolling, always scroll to true bottom (no near-bottom check)
@@ -1431,6 +1438,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         resizeObserver = new ResizeObserver(() => {
           if (isInitialAutoScrollingRef.current) {
             scrollToTrueBottom(container)
+            // Detect layout settle: if scrollHeight hasn't changed since the
+            // last ResizeObserver callback, increment settle count. When we
+            // get 2 consecutive callbacks with no change, the layout has
+            // settled and the initial scroll is complete.
+            const currentHeight = container.scrollHeight
+            if (currentHeight === lastScrollHeight) {
+              settleCount++
+              if (settleCount >= 2) {
+                // Content has settled — no height change for 2 consecutive callbacks
+                isInitialAutoScrollingRef.current = false
+                setHasScrolledToBottomOnLoad(true)
+                setInitialScrollReady(true)
+                followLatestRef.current = true
+                if (resizeObserver) {
+                  resizeObserver.disconnect()
+                }
+              }
+            } else {
+              lastScrollHeight = currentHeight
+              settleCount = 0
+            }
           } else {
             // After initial positioning, respect user's scroll position via followLatestRef
             if (followLatestRef.current && isContainerNearBottom(container)) {
@@ -1439,19 +1467,44 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           }
         })
 
-        // Observe the container for height changes
-        resizeObserver.observe(container)
+        // Observe the INNER CONTENT element, not the scroll container.
+        // The scroll container has a fixed height (flex-1 min-h-0); its own
+        // dimensions don't change when images load or voicemail cards render.
+        // The inner content's dimensions DO change, which is what we need
+        // to detect for layout-aware initial scroll reconciliation.
+        const innerContent = container.firstElementChild
+        if (innerContent) {
+          resizeObserver.observe(innerContent as Element)
+        } else {
+          resizeObserver.observe(container)
+        }
       }
 
-      // Layout-aware reconciliation: one RAF pass to correct residual offset
-      // after the initial layout settles (replaces the old setTimeout(300) hack)
+      // Layout-aware reconciliation: RAF pass to scroll to bottom after initial layout.
+      // Do NOT mark initial scroll as complete here — let the ResizeObserver detect
+      // when the content has truly settled (images, voicemail cards, etc.).
       rafId = requestAnimationFrame(() => {
         scrollToTrueBottom(container)
-        // Mark initial scroll complete after layout settles
-        isInitialAutoScrollingRef.current = false
-        setHasScrolledToBottomOnLoad(true)
-        setInitialScrollReady(true)
-        followLatestRef.current = true
+      })
+
+      // Fallback: if the ResizeObserver doesn't fire enough times to reach settle
+      // count 2 (e.g., text-only messages with no images/voicemail), mark as done
+      // after a second RAF. This is deterministic — 2 RAFs = 2 frames of layout
+      // stability, which is sufficient for text-only content.
+      settleRafId = requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (isInitialAutoScrollingRef.current) {
+            const currentHeight = container.scrollHeight
+            if (currentHeight === lastScrollHeight) {
+              // Content hasn't changed in 2 frames — mark as done
+              isInitialAutoScrollingRef.current = false
+              setHasScrolledToBottomOnLoad(true)
+              setInitialScrollReady(true)
+              followLatestRef.current = true
+            }
+            // If content is still changing, the ResizeObserver will handle the settle
+          }
+        })
       })
 
       // Cleanup function
@@ -1461,6 +1514,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
         if (rafId !== null && typeof window !== 'undefined') {
           cancelAnimationFrame(rafId)
+        }
+        if (settleRafId !== null && typeof window !== 'undefined') {
+          cancelAnimationFrame(settleRafId)
         }
         isInitialAutoScrollingRef.current = false
         setHasScrolledToBottomOnLoad(true)

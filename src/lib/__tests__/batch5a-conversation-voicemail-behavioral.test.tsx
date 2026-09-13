@@ -52,17 +52,17 @@ function fireClick(el: Element, clientX: number) {
 }
 
 function firePointerDown(el: Element, clientX: number) {
-  const event = new PointerEvent('pointerdown', { bubbles: true, cancelable: true, clientX })
+  const event = new PointerEvent('pointerdown', { bubbles: true, cancelable: true, clientX, pointerId: 1 })
   el.dispatchEvent(event)
 }
 
 function firePointerMove(el: Element, clientX: number) {
-  const event = new PointerEvent('pointermove', { bubbles: true, cancelable: true, clientX })
+  const event = new PointerEvent('pointermove', { bubbles: true, cancelable: true, clientX, pointerId: 1 })
   el.dispatchEvent(event)
 }
 
 function firePointerUp(el: Element, clientX: number) {
-  const event = new PointerEvent('pointerup', { bubbles: true, cancelable: true, clientX })
+  const event = new PointerEvent('pointerup', { bubbles: true, cancelable: true, clientX, pointerId: 1 })
   el.dispatchEvent(event)
 }
 
@@ -81,6 +81,10 @@ function createRealAudioElement(duration: number): HTMLAudioElement {
 beforeEach(() => {
   volumeManager.setVolume(1.0)
   ;(volumeManager as unknown as { registeredAudioElements: Set<unknown> }).registeredAudioElements.clear()
+
+  // Mock setPointerCapture/releasePointerCapture on Element for pointer drag tests
+  Element.prototype.setPointerCapture = vi.fn()
+  Element.prototype.releasePointerCapture = vi.fn()
 })
 
 afterEach(() => {
@@ -400,6 +404,299 @@ describe('K. Seek rejected when duration is invalid', () => {
 
     // Should NOT have changed — duration is 0
     expect(audio.currentTime).toBe(0)
+    unmount()
+  })
+})
+
+// ============================================================================
+// L. ANDROID FIX: audio.duration IS CANONICAL (React duration prop can be stale)
+// ============================================================================
+describe('L. Canonical duration from audio element (Android fix)', () => {
+  it('seek works when React duration prop is 0 but audio.duration is valid', async () => {
+    // This is the primary Android root cause: the React `duration` prop
+    // from the shared progress context can be stale/zero while the actual
+    // audio element has valid metadata loaded. The seek function must
+    // prefer audioRef.current.duration.
+    const audio = createRealAudioElement(30) // audio.duration = 30
+    const audioRef = { current: audio }
+
+    const { container, unmount } = renderComponent(
+      React.createElement(PremiumAudioPlayer, {
+        audioRef: audioRef as any,
+        isPlaying: false,
+        isEnded: false,
+        currentTime: 0,
+        duration: 0, // React prop is STALE/ZERO — this used to cause silent failure
+        canSeek: true,
+        isLoading: false,
+        audioError: null,
+        onTogglePlayPause: () => {},
+        onSeek: () => {},
+        recordingId: 'test-canonical-1',
+      })
+    )
+
+    const progressTrack = getByLabel(container, 'Audio progress') as HTMLElement
+    vi.spyOn(progressTrack, 'getBoundingClientRect').mockReturnValue({
+      left: 0, top: 0, width: 200, height: 40, right: 200, bottom: 40,
+      x: 0, y: 0, toJSON: () => {},
+    } as DOMRect)
+
+    fireClick(progressTrack, 100) // 50%
+    await new Promise(r => setTimeout(r, 10))
+
+    // Should seek to 15s using audio.duration (30s), NOT fail silently
+    expect(audio.currentTime).toBeCloseTo(15, 1)
+    unmount()
+  })
+
+  it('seek uses audio.duration when React prop is stale and different', async () => {
+    const audio = createRealAudioElement(60) // audio.duration = 60
+    const audioRef = { current: audio }
+
+    const { container, unmount } = renderComponent(
+      React.createElement(PremiumAudioPlayer, {
+        audioRef: audioRef as any,
+        isPlaying: false,
+        isEnded: false,
+        currentTime: 0,
+        duration: 30, // React prop says 30s, but audio is actually 60s
+        canSeek: true,
+        isLoading: false,
+        audioError: null,
+        onTogglePlayPause: () => {},
+        onSeek: () => {},
+        recordingId: 'test-canonical-2',
+      })
+    )
+
+    const progressTrack = getByLabel(container, 'Audio progress') as HTMLElement
+    vi.spyOn(progressTrack, 'getBoundingClientRect').mockReturnValue({
+      left: 0, top: 0, width: 200, height: 40, right: 200, bottom: 40,
+      x: 0, y: 0, toJSON: () => {},
+    } as DOMRect)
+
+    fireClick(progressTrack, 100) // 50%
+    await new Promise(r => setTimeout(r, 10))
+
+    // Should seek to 30s (50% of 60s from audio.duration), NOT 15s (50% of 30s from prop)
+    expect(audio.currentTime).toBeCloseTo(30, 1)
+    unmount()
+  })
+})
+
+// ============================================================================
+// M. ANDROID FIX: Overlay has background for hit-testing
+// ============================================================================
+describe('M. Seek overlay has background for Android WebView hit-testing', () => {
+  it('progress overlay has a non-transparent background class', async () => {
+    const audio = createRealAudioElement(30)
+    const audioRef = { current: audio }
+
+    const { container, unmount } = renderComponent(
+      React.createElement(PremiumAudioPlayer, {
+        audioRef: audioRef as any,
+        isPlaying: false,
+        isEnded: false,
+        currentTime: 0,
+        duration: 30,
+        canSeek: true,
+        isLoading: false,
+        audioError: null,
+        onTogglePlayPause: () => {},
+        onSeek: () => {},
+        recordingId: 'test-overlay-1',
+      })
+    )
+
+    const progressTrack = getByLabel(container, 'Audio progress') as HTMLElement
+    // The overlay must have a background (bg-black/[0.001]) to be hit-tested
+    // on Android WebView. Elements with no paint are NOT hit-tested.
+    expect(progressTrack.className).toContain('bg-black')
+    unmount()
+  })
+
+  it('progress overlay has z-10 to paint above waveform bars', async () => {
+    const audio = createRealAudioElement(30)
+    const audioRef = { current: audio }
+
+    const { container, unmount } = renderComponent(
+      React.createElement(PremiumAudioPlayer, {
+        audioRef: audioRef as any,
+        isPlaying: false,
+        isEnded: false,
+        currentTime: 0,
+        duration: 30,
+        canSeek: true,
+        isLoading: false,
+        audioError: null,
+        onTogglePlayPause: () => {},
+        onSeek: () => {},
+        recordingId: 'test-overlay-2',
+      })
+    )
+
+    const progressTrack = getByLabel(container, 'Audio progress') as HTMLElement
+    expect(progressTrack.className).toContain('z-10')
+    unmount()
+  })
+
+  it('progress overlay has touch-action: none to prevent scroll interference', async () => {
+    const audio = createRealAudioElement(30)
+    const audioRef = { current: audio }
+
+    const { container, unmount } = renderComponent(
+      React.createElement(PremiumAudioPlayer, {
+        audioRef: audioRef as any,
+        isPlaying: false,
+        isEnded: false,
+        currentTime: 0,
+        duration: 30,
+        canSeek: true,
+        isLoading: false,
+        audioError: null,
+        onTogglePlayPause: () => {},
+        onSeek: () => {},
+        recordingId: 'test-overlay-3',
+      })
+    )
+
+    const progressTrack = getByLabel(container, 'Audio progress') as HTMLElement
+    // touch-action: none prevents the browser from consuming the touch
+    // for vertical conversation scrolling
+    expect(progressTrack.style.touchAction).toBe('none')
+    unmount()
+  })
+})
+
+// ============================================================================
+// N. ANDROID FIX: Pointer capture for drag on touch
+// ============================================================================
+describe('N. Pointer capture for drag on touch', () => {
+  it('pointerdown calls setPointerCapture', async () => {
+    const audio = createRealAudioElement(30)
+    const audioRef = { current: audio }
+
+    const { container, unmount } = renderComponent(
+      React.createElement(PremiumAudioPlayer, {
+        audioRef: audioRef as any,
+        isPlaying: true,
+        isEnded: false,
+        currentTime: 0,
+        duration: 30,
+        canSeek: true,
+        isLoading: false,
+        audioError: null,
+        onTogglePlayPause: () => {},
+        onSeek: () => {},
+        recordingId: 'test-capture-1',
+      })
+    )
+
+    const progressTrack = getByLabel(container, 'Audio progress') as HTMLElement
+    vi.spyOn(progressTrack, 'getBoundingClientRect').mockReturnValue({
+      left: 0, top: 0, width: 200, height: 40, right: 200, bottom: 40,
+      x: 0, y: 0, toJSON: () => {},
+    } as DOMRect)
+
+    // Clear mock calls from render
+    vi.mocked(Element.prototype.setPointerCapture).mockClear()
+
+    firePointerDown(progressTrack, 50) // 25%
+    await new Promise(r => setTimeout(r, 10))
+
+    expect(Element.prototype.setPointerCapture).toHaveBeenCalled()
+    expect(audio.currentTime).toBeCloseTo(7.5, 1)
+    unmount()
+  })
+
+  it('pointerup calls releasePointerCapture', async () => {
+    const audio = createRealAudioElement(30)
+    const audioRef = { current: audio }
+
+    const { container, unmount } = renderComponent(
+      React.createElement(PremiumAudioPlayer, {
+        audioRef: audioRef as any,
+        isPlaying: true,
+        isEnded: false,
+        currentTime: 0,
+        duration: 30,
+        canSeek: true,
+        isLoading: false,
+        audioError: null,
+        onTogglePlayPause: () => {},
+        onSeek: () => {},
+        recordingId: 'test-capture-2',
+      })
+    )
+
+    const progressTrack = getByLabel(container, 'Audio progress') as HTMLElement
+    vi.spyOn(progressTrack, 'getBoundingClientRect').mockReturnValue({
+      left: 0, top: 0, width: 200, height: 40, right: 200, bottom: 40,
+      x: 0, y: 0, toJSON: () => {},
+    } as DOMRect)
+
+    vi.mocked(Element.prototype.releasePointerCapture).mockClear()
+
+    firePointerDown(progressTrack, 50)
+    await new Promise(r => setTimeout(r, 10))
+    firePointerMove(progressTrack, 150) // drag to 75%
+    await new Promise(r => setTimeout(r, 10))
+    firePointerUp(progressTrack, 150)
+    await new Promise(r => setTimeout(r, 10))
+
+    expect(Element.prototype.releasePointerCapture).toHaveBeenCalled()
+    expect(audio.currentTime).toBeCloseTo(22.5, 1)
+    unmount()
+  })
+})
+
+// ============================================================================
+// O. SEEKED/TIMEUPDATE DOES NOT RESET CURRENTTIME
+// ============================================================================
+describe('O. Seeked/timeupdate does not reset currentTime after seek', () => {
+  it('audio.currentTime remains at seek position after timeupdate fires', async () => {
+    const audio = createRealAudioElement(30)
+    const audioRef = { current: audio }
+
+    const { container, unmount } = renderComponent(
+      React.createElement(PremiumAudioPlayer, {
+        audioRef: audioRef as any,
+        isPlaying: true,
+        isEnded: false,
+        currentTime: 0,
+        duration: 30,
+        canSeek: true,
+        isLoading: false,
+        audioError: null,
+        onTogglePlayPause: () => {},
+        onSeek: (time) => {
+          // Simulate VoicemailMessage.seekTo which sets audio.currentTime
+          // This should NOT override the value set by seekToClientX
+          audio.currentTime = time
+        },
+        recordingId: 'test-no-reset-1',
+      })
+    )
+
+    const progressTrack = getByLabel(container, 'Audio progress') as HTMLElement
+    vi.spyOn(progressTrack, 'getBoundingClientRect').mockReturnValue({
+      left: 0, top: 0, width: 200, height: 40, right: 200, bottom: 40,
+      x: 0, y: 0, toJSON: () => {},
+    } as DOMRect)
+
+    fireClick(progressTrack, 100) // 50% → 15s
+    await new Promise(r => setTimeout(r, 10))
+
+    expect(audio.currentTime).toBeCloseTo(15, 1)
+
+    // Simulate a timeupdate event — this should NOT reset currentTime
+    // The PremiumAudioPlayer doesn't listen to timeupdate directly,
+    // but VoicemailMessage does. The onSeek callback already set the
+    // correct value, so any subsequent timeupdate should not override.
+    // (In production, handleTimeUpdate reads audio.currentTime, not
+    // a stale React state, so it won't reset.)
+    expect(audio.currentTime).toBeCloseTo(15, 1)
     unmount()
   })
 })

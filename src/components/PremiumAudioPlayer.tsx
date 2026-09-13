@@ -127,42 +127,111 @@ export default function PremiumAudioPlayer({
   const seekToClientX = (clientX: number) => {
     const audio = audioRef.current
     const progressRef = progressBarRef.current
-    
-    if (!audio || !progressRef || !duration || isNaN(duration)) {
+
+    if (!audio || !progressRef) {
+      console.warn('[RF_VOICEMAIL_SEEK] seekToClientX aborted: missing audio or progressRef', {
+        hasAudio: !!audio,
+        hasProgressRef: !!progressRef,
+      })
+      return
+    }
+
+    // Canonical duration: prefer the actual audio element's duration.
+    // The React `duration` prop can be stale/zero if the shared progress
+    // context lost the value or setDuration hasn't fired yet, while the
+    // audio element itself has valid metadata loaded.
+    const audioDuration = audio.duration
+    const canonicalDuration =
+      Number.isFinite(audioDuration) && audioDuration > 0
+        ? audioDuration
+        : duration
+
+    if (!canonicalDuration || isNaN(canonicalDuration) || canonicalDuration <= 0) {
+      console.warn('[RF_VOICEMAIL_SEEK] seekToClientX aborted: invalid duration', {
+        audioDuration,
+        reactDurationProp: duration,
+        canonicalDuration,
+      })
       return
     }
 
     const rect = progressRef.getBoundingClientRect()
-    const percent = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
-    const nextTime = percent * duration
-
-    if (isNaN(nextTime) || !isFinite(nextTime)) {
+    if (rect.width <= 0) {
+      console.warn('[RF_VOICEMAIL_SEEK] seekToClientX aborted: rect.width <= 0', {
+        left: rect.left,
+        width: rect.width,
+      })
       return
     }
 
+    const percent = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+    const nextTime = percent * canonicalDuration
+
+    if (isNaN(nextTime) || !isFinite(nextTime)) {
+      console.warn('[RF_VOICEMAIL_SEEK] seekToClientX aborted: invalid nextTime', {
+        percent,
+        nextTime,
+        canonicalDuration,
+      })
+      return
+    }
+
+    const beforeTime = audio.currentTime
     audio.currentTime = nextTime
     onSeek(nextTime)
+    console.log('[RF_VOICEMAIL_SEEK] seek applied', {
+      clientX,
+      rectLeft: rect.left,
+      rectWidth: rect.width,
+      percent: percent.toFixed(3),
+      canonicalDuration,
+      beforeTime: beforeTime.toFixed(2),
+      nextTime: nextTime.toFixed(2),
+      audioDuration,
+      reactDurationProp: duration,
+    })
   }
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!canSeek) return
+    console.log('[RF_VOICEMAIL_SEEK] click received', { clientX: e.clientX, canSeek })
     seekToClientX(e.clientX)
   }
 
-  const handleProgressDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleProgressDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!canSeek) return
+    console.log('[RF_VOICEMAIL_SEEK] pointerdown received', {
+      clientX: e.clientX,
+      pointerType: e.pointerType,
+      pointerId: e.pointerId,
+      canSeek,
+    })
     setIsDragging(true)
+    // Capture the pointer so move/up events continue to fire on this element
+    // even if the finger moves outside the seek track. This is critical for
+    // Android WebView where pointer events would otherwise be lost to the
+    // parent scroll container.
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      // setPointerCapture can throw if the pointer is already released
+    }
     seekToClientX(e.clientX)
   }
 
-  const handleProgressDragMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleProgressDragMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging || !canSeek) return
     seekToClientX(e.clientX)
   }
 
-  const handleProgressDragEnd = () => {
+  const handleProgressDragEnd = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging) return
     setIsDragging(false)
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {
+      // releasePointerCapture can throw if the pointer is already released
+    }
   }
 
   // Handle mouse move for dragging
@@ -173,11 +242,17 @@ export default function PremiumAudioPlayer({
     }
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (isDragging && progressBarRef.current) {
+      if (isDragging && progressBarRef.current && audioRef.current) {
         const rect = progressBarRef.current.getBoundingClientRect()
         const clickX = Math.max(0, Math.min(e.clientX - rect.left, rect.width))
         const percentage = clickX / rect.width
-        const newTime = percentage * duration
+        // Use canonical duration from audio element, fall back to prop
+        const audioDuration = audioRef.current.duration
+        const canonicalDuration =
+          Number.isFinite(audioDuration) && audioDuration > 0
+            ? audioDuration
+            : duration
+        const newTime = percentage * canonicalDuration
         onSeek(newTime)
       }
     }
@@ -336,15 +411,23 @@ export default function PremiumAudioPlayer({
             })}
           </div>
 
-          {/* Invisible Progress Bar for Click/Seek */}
+          {/* Invisible Progress Bar for Click/Seek
+              CRITICAL: The overlay must have a near-transparent background
+              to be hit-tested on Android Capacitor WebView. Elements with
+              no paint are NOT hit-tested on mobile WebViews, causing
+              pointer/click events to never reach the seek handler.
+              z-10 ensures the overlay paints above the waveform bars.
+              touch-none prevents the browser from consuming the touch
+              for vertical conversation scrolling. */}
           <div
             ref={progressBarRef}
-            className="absolute inset-0 cursor-pointer"
+            className="absolute inset-0 z-10 cursor-pointer bg-black/[0.001]"
+            style={{ touchAction: 'none' }}
             onClick={handleProgressClick}
             onPointerDown={handleProgressDragStart}
             onPointerMove={handleProgressDragMove}
             onPointerUp={handleProgressDragEnd}
-            onPointerLeave={handleProgressDragEnd}
+            onPointerCancel={handleProgressDragEnd}
             onKeyDown={handleKeyDown}
             tabIndex={canSeek ? 0 : -1}
             role="slider"

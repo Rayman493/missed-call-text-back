@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { MessageMedia } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { FileText, FileSpreadsheet, File } from 'lucide-react'
@@ -190,6 +190,28 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
   // Maximum retries before showing terminal failure
   const MAX_RETRIES = 2
 
+  // Stable media fingerprint — prevents unnecessary re-fetches when the
+  // `media` array reference changes but the actual content hasn't.
+  //
+  // ROOT CAUSE of sent-image reload flash: when a conversation refetch
+  // occurs (e.g., app resume, background refresh), the API returns
+  // messages with NEW `media` array references. The merge function
+  // creates new message objects, and `MessageMediaRenderer`'s useEffect
+  // (which depended on `[media]`) would fire again, re-fetching blob
+  // URLs and changing the image `src`, causing a visible reload flash.
+  //
+  // FIX: depend on a stable string fingerprint of the media content
+  // (IDs + URLs + local-preview flags) instead of the array reference.
+  // The fingerprint only changes when the actual media content changes
+  // (e.g., a genuinely new image, or a URL update from optimistic to
+  // server). Unrelated conversation updates that don't change the media
+  // content will NOT trigger a re-fetch.
+  const mediaFingerprint = useMemo(() => {
+    return (media || [])
+      .map(m => `${m.id}:${m.media_url}:${m.isLocalPreview ? '1' : '0'}`)
+      .join('|')
+  }, [media])
+
   // Fetch authenticated URLs for media on mount
   useEffect(() => {
     const fetchUrls = async () => {
@@ -245,7 +267,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
     setResolvingMedia(initialResolving)
 
     fetchUrls()
-  }, [media])
+  }, [mediaFingerprint])
 
   // Retry resolution for items that are still resolving (no authenticated URL yet)
   useEffect(() => {
@@ -291,7 +313,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
     return () => {
       retryTimers.forEach(t => clearTimeout(t))
     }
-  }, [resolvingMedia, retryCount, media])
+  }, [resolvingMedia, retryCount, mediaFingerprint])
 
   // Cleanup blob URLs on unmount
   useEffect(() => {
