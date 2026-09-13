@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { provisionTwilioNumber } from '@/lib/twilio'
+import { provisionTwilioNumber, isProvisioningSuccess, getProvisioningFailureReason } from '@/lib/twilio'
 import { headers } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
@@ -325,45 +325,83 @@ export async function POST(request: Request) {
     
     try {
       const provisioningResult = await provisionTwilioNumber(business.id, correlationId)
-      
+
       console.log('[PROVISIONING FLOW] ===== TWILIO PURCHASE RESULT =====')
       console.log('[PROVISIONING FLOW] ✓ Twilio purchase completed')
       console.log('[PROVISIONING FLOW] Provisioning result:', {
-        success: !!provisioningResult,
-        phoneNumber: provisioningResult?.phoneNumber,
-        phoneNumberSid: provisioningResult?.phoneNumberSid,
-        messagingServiceAttached: provisioningResult?.messagingServiceAttached,
-        messagingServiceError: provisioningResult?.messagingServiceError
+        success: isProvisioningSuccess(provisioningResult),
+        phoneNumber: isProvisioningSuccess(provisioningResult) ? provisioningResult.phoneNumber : undefined,
+        phoneNumberSid: isProvisioningSuccess(provisioningResult) ? provisioningResult.phoneNumberSid : undefined,
+        messagingServiceAttached: isProvisioningSuccess(provisioningResult) ? provisioningResult.messagingServiceAttached : undefined,
+        messagingServiceError: isProvisioningSuccess(provisioningResult) ? provisioningResult.messagingServiceError : undefined,
+        failureReason: getProvisioningFailureReason(provisioningResult)
       })
-      
-      if (provisioningResult?.phoneNumber) {
+
+      if (isProvisioningSuccess(provisioningResult) && provisioningResult.phoneNumber) {
         console.log('[PROVISIONING FLOW] ✓ Phone number purchased:', provisioningResult.phoneNumber)
       }
-      
-      if (provisioningResult?.phoneNumberSid) {
+
+      if (isProvisioningSuccess(provisioningResult) && provisioningResult.phoneNumberSid) {
         console.log('[PROVISIONING FLOW] ✓ Phone number SID obtained:', provisioningResult.phoneNumberSid)
       }
-      
-      if (provisioningResult?.messagingServiceAttached) {
+
+      if (isProvisioningSuccess(provisioningResult) && provisioningResult.messagingServiceAttached) {
         console.log('[PROVISIONING FLOW] ✓ Number added to Messaging Service')
       }
-      
-      if (provisioningResult?.messagingServiceError) {
+
+      if (isProvisioningSuccess(provisioningResult) && provisioningResult.messagingServiceError) {
         console.warn('[PROVISIONING FLOW] ⚠ Messaging Service warning:', provisioningResult.messagingServiceError)
       }
 
-      // Hard assertion: provisioning result must be valid
-      if (!provisioningResult || !provisioningResult.phoneNumber || !provisioningResult.phoneNumberSid) {
+      // Hard assertion: provisioning result must be a canonical success
+      // with phoneNumber + phoneNumberSid. A structured failure result or
+      // null is rejected here with the real root cause surfaced.
+      if (!isProvisioningSuccess(provisioningResult)) {
+        const failureReason = getProvisioningFailureReason(provisioningResult)
+        const resultKeys = provisioningResult && typeof provisioningResult === 'object'
+          ? Object.keys(provisioningResult).join(',')
+          : String(provisioningResult)
+
         console.error('[PROVISIONING FLOW] ✗ CRITICAL ERROR: Invalid provisioning result')
-        console.error('[PROVISIONING FLOW] Expected phoneNumber and phoneNumberSid in result')
-        
+        console.error('[PROVISIONING FLOW] Expected canonical success with phoneNumber + phoneNumberSid')
+        console.error('[PROVISIONING FLOW] ===== DIAGNOSTIC SNAPSHOT =====')
+        console.error('[PROVISIONING FLOW] business_id:', business.id)
+        console.error('[PROVISIONING FLOW] provisioning_path_used:', provisioningResult && typeof provisioningResult === 'object' && 'fromWarmInventory' in provisioningResult
+          ? (provisioningResult.fromWarmInventory ? 'warm_inventory' : 'live_purchase')
+          : 'unknown (failure result or null)')
+        console.error('[PROVISIONING FLOW] result_type:', provisioningResult === null ? 'null' : typeof provisioningResult)
+        console.error('[PROVISIONING FLOW] result_keys:', resultKeys)
+        console.error('[PROVISIONING FLOW] failure_reason:', failureReason || 'not a failure result but missing required fields')
+        console.error('[PROVISIONING FLOW] is_success_per_typeguard:', isProvisioningSuccess(provisioningResult))
+
+        // Check whether DB assignment exists (helps diagnose split-brain state)
+        try {
+          const { data: dbCheck } = await supabaseAdmin
+            .from('businesses')
+            .select('twilio_phone_number, twilio_phone_number_sid, assigned_twilio_number_id, provisioning_status')
+            .eq('id', business.id)
+            .single()
+          console.error('[PROVISIONING FLOW] db_assignment_exists:', {
+            twilio_phone_number: dbCheck?.twilio_phone_number || null,
+            twilio_phone_number_sid: dbCheck?.twilio_phone_number_sid || null,
+            assigned_twilio_number_id: dbCheck?.assigned_twilio_number_id || null,
+            provisioning_status: dbCheck?.provisioning_status || null
+          })
+        } catch (dbCheckError) {
+          console.error('[PROVISIONING FLOW] db_assignment_check_failed:', dbCheckError)
+        }
+
+        const errorMessage = failureReason
+          ? `Provisioning failed - ${failureReason}`
+          : 'Invalid provisioning result returned - missing phoneNumber or phoneNumberSid'
+
         // Clear lock and mark as failed with ownership check
         const { error: failError } = await supabaseAdmin
           .from('businesses')
           .update({
             provisioning_status: 'failed',
             provisioning_lock_id: null,
-            provisioning_error: 'Invalid provisioning result returned - missing phoneNumber or phoneNumberSid'
+            provisioning_error: errorMessage.substring(0, 500)
           })
           .eq('id', business.id)
           .eq('provisioning_lock_id', correlationId)
@@ -375,7 +413,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
           error: 'Provisioning failed - invalid result',
           provisioning_status: 'failed',
-          provisioning_error: 'Invalid provisioning result returned - missing phoneNumber or phoneNumberSid'
+          provisioning_error: errorMessage.substring(0, 500)
         }, { status: 500 })
       }
 

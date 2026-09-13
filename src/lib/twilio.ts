@@ -1427,13 +1427,85 @@ export function validateTwilioRequest(payload: any, expectedFields: string[]): b
   return expectedFields.every(field => field in payload)
 }
 
-export async function provisionTwilioNumber(businessId: string, correlationId?: string): Promise<{
+/**
+ * Canonical provisioning success result.
+ * All success paths MUST return this shape with phoneNumber + phoneNumberSid.
+ *
+ * Failure paths return ProvisioningFailureResult with a human-readable reason
+ * and a machine-readable failureType so callers can distinguish root causes
+ * without guessing from a bare null.
+ */
+export interface ProvisioningSuccessResult {
   phoneNumber: string;
   phoneNumberSid: string;
   messagingServiceAttached: boolean;
   messagingServiceError?: string;
-  fromWarmInventory?: boolean; // Flag to indicate if number came from warm inventory
-} | null> {
+  fromWarmInventory?: boolean;
+}
+
+export type ProvisioningFailureType =
+  | 'CREDENTIALS_MISSING'
+  | 'LOCK_BLOCKED_BY_OTHER_REQUEST'
+  | 'EXISTING_NUMBER_FOUND'
+  | 'WARM_INVENTORY_BUSINESS_UPDATE_FAILED'
+  | 'WARM_INVENTORY_BLOCKED_LIVE_PURCHASE'
+  | 'WARM_INVENTORY_CHECK_EXCEPTION'
+  | 'NO_AVAILABLE_LOCAL_NUMBERS'
+  | 'MESSAGING_SERVICE_NOT_ATTACHED'
+  | 'PROVISIONING_EXCEPTION';
+
+export interface ProvisioningFailureResult {
+  failureType: ProvisioningFailureType;
+  reason: string;
+}
+
+export type ProvisioningResult = ProvisioningSuccessResult | ProvisioningFailureResult | null;
+
+/**
+ * Helper to normalize a bare null return into a structured failure result.
+ * Callers that still check for null continue to work; new callers can inspect
+ * failureType to surface the real reason instead of "missing phoneNumber".
+ */
+function describeProvisioningFailure(
+  result: ProvisioningResult
+): { isNull: true; reason: string; failureType: ProvisioningFailureType } | { isNull: false } {
+  if (result === null) {
+    return { isNull: true, reason: 'provisionTwilioNumber returned null', failureType: 'PROVISIONING_EXCEPTION' };
+  }
+  if ('failureType' in result) {
+    return { isNull: true, reason: result.reason, failureType: result.failureType };
+  }
+  return { isNull: false };
+}
+
+/**
+ * Type guard: returns true when provisioning succeeded with a canonical
+ * success result (phoneNumber + phoneNumberSid present). Callers should use
+ * this instead of a bare truthiness check, since failure results are now
+ * structured objects (truthy) rather than null.
+ */
+export function isProvisioningSuccess(
+  result: ProvisioningResult
+): result is ProvisioningSuccessResult {
+  return result !== null && 'phoneNumber' in result && 'phoneNumberSid' in result;
+}
+
+/**
+ * Extract a human-readable failure reason from a provisioning result.
+ * Returns null for success results. Used by callers to surface the real
+ * root cause in error messages instead of "missing phoneNumber or phoneNumberSid".
+ */
+export function getProvisioningFailureReason(result: ProvisioningResult): string | null {
+  if (result === null) {
+    return 'provisionTwilioNumber returned null (no structured failure reason available)';
+  }
+  if ('failureType' in result) {
+    return `[${result.failureType}] ${result.reason}`;
+  }
+  return null;
+}
+
+export async function provisionTwilioNumber(businessId: string, correlationId?: string): Promise<ProvisioningResult> {
   console.log('[PROVISIONING_LIFECYCLE] ========== provisioning_started ==========');
   console.log('[Provision Path] ========== provisionTwilioNumber HIT ==========');
   console.log(`[PROVISIONING_LIFECYCLE] user_id=${correlationId} business_id=${businessId}`);
@@ -1453,7 +1525,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
 
   if (!accountSid || !authToken) {
     console.error(`[Provisioning] Credentials missing correlation_id=${correlationId}`)
-    return null
+    return { failureType: 'CREDENTIALS_MISSING', reason: 'Twilio credentials missing' }
   }
 
   console.log(`[Twilio] Active account SID=${accountSid} correlation_id=${correlationId}`)
@@ -1567,7 +1639,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
       console.log(`[ProvisioningGuard] Business is being provisioned by different request, blocking correlation_id=${correlationId}`)
       console.log(`[ProvisioningGuard] Existing lock_id=${existingBusiness.provisioning_lock_id} correlation_id=${correlationId}`)
       console.log(`[ProvisioningGuard] Current correlation_id=${correlationId}`)
-      return null
+      return { failureType: 'LOCK_BLOCKED_BY_OTHER_REQUEST', reason: `Provisioning blocked by different request (lock_id=${existingBusiness.provisioning_lock_id})` }
     }
 
     // Allow provisioning if same request or no lock
@@ -1586,7 +1658,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
       console.log(`[ProvisioningGuard] Business already has twilio_phone_number_sid=${existingBusiness.twilio_phone_number_sid} correlation_id=${correlationId}`)
       console.log(`[ProvisioningGuard] Business provisioning_status=${existingBusiness.provisioning_status} correlation_id=${correlationId}`)
       console.log(`[ProvisioningGuard] This prevents duplicate number purchases correlation_id=${correlationId}`)
-      return null
+      return { failureType: 'EXISTING_NUMBER_FOUND', reason: `Business already has number (sid=${existingBusiness.twilio_phone_number_sid}, status=${existingBusiness.provisioning_status})` }
     }
   }
 
@@ -1684,7 +1756,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
         console.log(`[Warm Inventory] ========== WARM INVENTORY ASSIGNMENT FAILED ========== correlation_id=${correlationId}`);
         console.log(`[Warm Inventory] Aborting provisioning to prevent duplicate purchases`);
         console.log('[PROVISIONING_LIFECYCLE] ========== provisioning_failed ==========');
-        return null;
+        return { failureType: 'WARM_INVENTORY_BUSINESS_UPDATE_FAILED', reason: 'Warm inventory business update failed and rollback attempted' };
       }
 
       // Business update succeeded - return success and skip live provisioning
@@ -1718,7 +1790,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
         console.error(`[Warm Inventory] Only errorType='NO_INVENTORY' may authorize live purchase - blocking to prevent unintended purchase`);
         console.log(`[Warm Inventory] ========== ABORTING PROVISIONING ========== correlation_id=${correlationId}`);
         console.log('[PROVISIONING_LIFECYCLE] ========== provisioning_failed ==========');
-        return null;
+        return { failureType: 'WARM_INVENTORY_BLOCKED_LIVE_PURCHASE', reason: `Warm inventory blocked live purchase (errorType=${warmNumberResult.errorType}, error=${warmNumberResult.error})` };
       }
     }
   } catch (error) {
@@ -1822,7 +1894,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
 
     if (!availableNumbers || availableNumbers.length === 0) {
       console.error(`[Provisioning] No available local numbers found correlation_id=${correlationId}`)
-      return null
+      return { failureType: 'NO_AVAILABLE_LOCAL_NUMBERS', reason: 'No available local numbers found from Twilio' }
     }
 
     const numberToPurchase = availableNumbers[0]
@@ -2141,7 +2213,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
         console.error(`[Provisioning] Failed to release number correlation_id=${correlationId}`, releaseError)
       }
 
-      return null
+      return { failureType: 'MESSAGING_SERVICE_NOT_ATTACHED', reason: 'Messaging Service attachment failed and number was released' }
     }
 
     console.log(`[Provisioning] STATUS attached correlation_id=${correlationId}`)
@@ -2154,7 +2226,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
   } catch (error) {
     console.error(`[Twilio Provisioning] Failed to provision number correlation_id=${correlationId}`, error)
     console.log('[PROVISIONING_LIFECYCLE] ========== provisioning_failed ==========');
-    return null
+    return { failureType: 'PROVISIONING_EXCEPTION', reason: error instanceof Error ? error.message : String(error) }
   }
 }
 

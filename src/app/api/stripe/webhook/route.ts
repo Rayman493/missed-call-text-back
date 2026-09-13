@@ -1190,11 +1190,11 @@ export async function POST(request: Request) {
                       console.log('[Provisioning] START - calling provisionTwilioNumber')
 
                       // Import and call provisioning function
-                      const { provisionTwilioNumber } = await import('@/lib/twilio')
+                      const { provisionTwilioNumber, isProvisioningSuccess, getProvisioningFailureReason } = await import('@/lib/twilio')
 
                       const provisioningResult = await provisionTwilioNumber(businessDetails.id, correlationId)
-                      
-                      if (provisioningResult) {
+
+                      if (isProvisioningSuccess(provisioningResult)) {
                         console.log('[Provisioning] Provisioning succeeded:', provisioningResult.phoneNumber)
                         console.log('[Provisioning] Purchased number from Twilio:', provisioningResult.phoneNumber)
                         console.log('[Provisioning] Purchased SID from Twilio:', provisioningResult.phoneNumberSid)
@@ -1253,13 +1253,17 @@ export async function POST(request: Request) {
                         
                         console.log('[Provisioning] Business updated with provisioned number')
                       } else {
-                        console.error('[Provisioning] Provisioning failed - no result returned')
+                        const failureReason = getProvisioningFailureReason(provisioningResult)
+                        console.error('[Provisioning] Provisioning failed - no valid result returned')
+                        console.error('[Provisioning] Failure reason:', failureReason)
                         const { error: failError } = await supabase
                           .from('businesses')
                           .update({
                             provisioning_status: 'failed',
                             provisioning_lock_id: null,
-                            provisioning_error: 'Provisioning failed - no result returned'
+                            provisioning_error: failureReason
+                              ? `Provisioning failed - ${failureReason}`.substring(0, 500)
+                              : 'Provisioning failed - no result returned'
                           })
                           .eq('id', businessDetails.id)
                           .eq('provisioning_lock_id', correlationId)

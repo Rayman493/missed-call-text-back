@@ -15,26 +15,27 @@ async function triggerProvisioning() {
 
   try {
     // Import the provisioning function
-    const { provisionTwilioNumber } = await import('../src/lib/twilio');
+    const { provisionTwilioNumber, isProvisioningSuccess, getProvisioningFailureReason } = await import('../src/lib/twilio');
     
     console.log('[PROVISIONING] Calling provisionTwilioNumber...');
     const result = await provisionTwilioNumber(adminBusinessId, correlationId);
     
-    console.log('[PROVISIONING] ✓ Provisioning completed successfully');
+    console.log('[PROVISIONING] ✓ Provisioning completed');
     console.log('[PROVISIONING] Result:', {
-      success: !!result,
-      phoneNumber: result?.phoneNumber,
-      phoneNumberSid: result?.phoneNumberSid,
-      messagingServiceAttached: result?.messagingServiceAttached,
-      messagingServiceError: result?.messagingServiceError,
-      fromWarmInventory: result?.fromWarmInventory,
+      success: isProvisioningSuccess(result),
+      phoneNumber: isProvisioningSuccess(result) ? result.phoneNumber : undefined,
+      phoneNumberSid: isProvisioningSuccess(result) ? result.phoneNumberSid : undefined,
+      messagingServiceAttached: isProvisioningSuccess(result) ? result.messagingServiceAttached : undefined,
+      messagingServiceError: isProvisioningSuccess(result) ? result.messagingServiceError : undefined,
+      fromWarmInventory: isProvisioningSuccess(result) ? result.fromWarmInventory : undefined,
+      failureReason: getProvisioningFailureReason(result),
     });
     
-    if (result?.phoneNumber) {
+    if (isProvisioningSuccess(result) && result.phoneNumber) {
       console.log('[PROVISIONING] ✓ Phone number assigned:', result.phoneNumber);
     }
     
-    if (result?.phoneNumberSid) {
+    if (isProvisioningSuccess(result) && result.phoneNumberSid) {
       console.log('[PROVISIONING] ✓ Phone number SID:', result.phoneNumberSid);
     }
     

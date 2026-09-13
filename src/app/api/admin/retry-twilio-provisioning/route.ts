@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import { isAdmin } from '@/lib/admin'
-import { provisionTwilioNumber } from '@/lib/twilio'
+import { provisionTwilioNumber, isProvisioningSuccess, getProvisioningFailureReason } from '@/lib/twilio'
 import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
@@ -140,7 +140,7 @@ export async function POST(request: Request) {
     // Call provisionTwilioNumber with correlation ID
     const provisioned = await provisionTwilioNumber(business_id, correlationId)
 
-    if (provisioned) {
+    if (isProvisioningSuccess(provisioned)) {
       console.log('[Admin Twilio Retry] Provisioning complete:', provisioned.phoneNumber);
       console.log('[Admin Twilio Retry] Provisioned number SID:', provisioned.phoneNumberSid);
 
@@ -180,7 +180,9 @@ export async function POST(request: Request) {
         twilio_phone_number_sid: provisioned.phoneNumberSid,
       })
     } else {
+      const failureReason = getProvisioningFailureReason(provisioned)
       console.error('[Admin Twilio Retry] Failed to provision number for business:', business_id);
+      console.error('[Admin Twilio Retry] Failure reason:', failureReason);
 
       // Release lock on failure with ownership check
       const { error: releaseError } = await serviceSupabase
@@ -188,7 +190,9 @@ export async function POST(request: Request) {
         .update({
           provisioning_status: 'failed',
           provisioning_lock_id: null,
-          provisioning_error: 'Admin retry failed'
+          provisioning_error: failureReason
+            ? `Admin retry failed - ${failureReason}`.substring(0, 500)
+            : 'Admin retry failed'
         })
         .eq('id', business_id)
         .eq('provisioning_lock_id', correlationId);
