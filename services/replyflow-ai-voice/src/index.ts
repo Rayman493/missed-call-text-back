@@ -1083,6 +1083,93 @@ function clearPendingAnswerState(state: any, reason: string): void {
   // They are cleared separately on stage advancement to maintain proper lifecycle
 }
 
+/**
+ * Deduplicate settle-window answer segments before joining.
+ *
+ * The settle-window segment merger appends each incoming meaningful transcript
+ * to `pendingAnswerSegments`. When a caller restates or repeats a request
+ * (e.g., because the system seemed unresponsive or asked again), the raw
+ * segments are blindly concatenated with a space, producing contaminated text
+ * such as "a leaking kitchen faucet repaired. I said I need a weekend kitchen
+ * faucet repaired".
+ *
+ * This helper removes:
+ *  - Exact duplicates (case-insensitive, after trimming)
+ *  - Segments that are substrings of another segment (keep the longer one)
+ *  - Segments that are a prefix or suffix overlap of another segment (keep the
+ *    longer one) when the overlap is at least 60% of the shorter segment
+ *
+ * It does NOT attempt semantic deduplication (different wording, same meaning)
+ * — that is handled downstream by the parser and semantic extraction.
+ */
+function deduplicateAnswerSegments(segments: string[]): string[] {
+  if (!segments || segments.length <= 1) {
+    return segments ? [...segments] : [];
+  }
+
+  const trimmed = segments.map(s => (s || '').trim()).filter(s => s.length > 0);
+  if (trimmed.length <= 1) {
+    return trimmed;
+  }
+
+  const lowerOf = (s: string) => s.toLowerCase();
+
+  const kept: string[] = [];
+  for (const candidate of trimmed) {
+    const candidateLower = lowerOf(candidate);
+    let shouldKeep = true;
+
+    for (let i = 0; i < kept.length; i++) {
+      const existing = kept[i];
+      const existingLower = lowerOf(existing);
+
+      if (candidateLower === existingLower) {
+        // Exact duplicate: drop candidate
+        shouldKeep = false;
+        break;
+      }
+
+      if (existingLower.includes(candidateLower)) {
+        // Candidate is a substring of an existing segment: drop candidate
+        shouldKeep = false;
+        break;
+      }
+
+      if (candidateLower.includes(existingLower)) {
+        // Existing is a substring of candidate: replace existing with candidate
+        kept[i] = candidate;
+        shouldKeep = false;
+        break;
+      }
+
+      // Prefix/suffix overlap: if one segment starts or ends with the other
+      // and the overlap is at least 60% of the shorter segment, keep the longer.
+      const shorterLen = Math.min(candidate.length, existing.length);
+      const overlapThreshold = Math.ceil(shorterLen * 0.6);
+
+      const candidateStartsWithExisting = candidateLower.startsWith(existingLower.substring(0, overlapThreshold));
+      const existingStartsWithCandidate = existingLower.startsWith(candidateLower.substring(0, overlapThreshold));
+      const candidateEndsWithExisting = candidateLower.endsWith(existingLower.substring(existingLower.length - overlapThreshold));
+      const existingEndsWithCandidate = existingLower.endsWith(candidateLower.substring(candidateLower.length - overlapThreshold));
+
+      if (candidateStartsWithExisting || existingStartsWithCandidate || candidateEndsWithExisting || existingEndsWithCandidate) {
+        // Significant overlap: keep the longer segment
+        if (candidate.length > existing.length) {
+          kept[i] = candidate;
+        }
+        shouldKeep = false;
+        break;
+      }
+    }
+
+    if (shouldKeep) {
+      kept.push(candidate);
+    }
+  }
+
+  return kept;
+}
+
 // Retry helper function for Supabase operations with exponential backoff
 async function retrySupabaseOperation<T>(
   operation: () => Promise<T>,
@@ -12679,8 +12766,33 @@ Reply to this message if you'd like to update or add any information.
                     }
 
                     sendPrompt(state.currentStage);
+                  } else if (hasValidCustomerName && !hasValidServiceRequested) {
+                    // Name satisfied, service missing: advance to ask_request (resolver recommendation).
+                    // The centralized resolver treats ask_name_reason as satisfied once the name
+                    // requirement is met, so the next stage is ask_request. Advancing here (instead
+                    // of staying on ask_name_reason with a service_only reprompt) aligns the queued
+                    // path with the settle-window finalization path and prevents the caller from
+                    // being re-prompted on a combined stage where restatements can be concatenated.
+                    const previousStage = state.currentStage;
+                    const nextStage = resolveNextSimpleModeStage(state.intakeData, state.serviceLocationType);
+                    clearPendingAnswerState(state, 'ask_name_reason_name_satisfied_advance_to_request');
+                    state.currentStage = nextStage;
+                    state.needsServiceReprompt = false;
+
+                    console.log('[STAGE TRANSITION] =========================================');
+                    console.log('[STAGE TRANSITION] event: stage_advanced');
+                    console.log('[STAGE TRANSITION] trigger: queued_transcript_name_satisfied_service_missing');
+                    console.log('[STAGE TRANSITION] previousStage:', previousStage);
+                    console.log('[STAGE TRANSITION] nextStage:', nextStage);
+                    console.log('[STAGE TRANSITION] hasValidCustomerName:', hasValidCustomerName);
+                    console.log('[STAGE TRANSITION] hasValidServiceRequested:', hasValidServiceRequested);
+                    console.log('[STAGE TRANSITION] action: advance_to_ask_request');
+                    console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
+                    console.log('[STAGE TRANSITION] =========================================');
+
+                    sendPrompt(state.currentStage);
                   } else {
-                    // Missing one or both fields: reprompt with targeted prompt variant
+                    // Missing name (with or without service): reprompt with targeted prompt variant
                     console.log('[STAGE TRANSITION] =========================================');
                     console.log('[STAGE TRANSITION] event: reprompt_triggered');
                     console.log('[STAGE TRANSITION] trigger: ask_name_reason_missing_fields');
@@ -12693,14 +12805,7 @@ Reply to this message if you'd like to update or add any information.
 
                     // Select targeted prompt variant based on which field is missing
                     let promptKeyOverride: string | undefined;
-                    if (hasValidCustomerName && !hasValidServiceRequested) {
-                      promptKeyOverride = 'ask_name_reason_service_only';
-                      console.log('[TARGETED REPROMPT SELECTED] =========================================');
-                      console.log('[TARGETED REPROMPT SELECTED] variant: ask_name_reason_service_only');
-                      console.log('[TARGETED REPROMPT SELECTED] reason: customerName_valid_serviceRequested_missing');
-                      console.log('[TARGETED REPROMPT SELECTED] Timestamp:', new Date().toISOString());
-                      console.log('[TARGETED REPROMPT SELECTED] =========================================');
-                    } else if (!hasValidCustomerName && hasValidServiceRequested) {
+                    if (!hasValidCustomerName && hasValidServiceRequested) {
                       promptKeyOverride = 'ask_name_reason_name_only';
                       console.log('[TARGETED REPROMPT SELECTED] =========================================');
                       console.log('[TARGETED REPROMPT SELECTED] variant: ask_name_reason_name_only');
@@ -13116,7 +13221,7 @@ Reply to this message if you'd like to update or add any information.
                   state.settleGeneration++; // Increment generation to invalidate stale callbacks
                   const capturedGeneration = state.settleGeneration;
 
-                  const accumulatedAnswer = state.pendingAnswerSegments.join(' ');
+                  const accumulatedAnswer = deduplicateAnswerSegments(state.pendingAnswerSegments).join(' ');
                   const segmentCount = state.pendingAnswerSegments.length;
 
                   // Determine settle window duration from the stage-specific timing policy
@@ -13300,7 +13405,7 @@ Reply to this message if you'd like to update or add any information.
                           console.log('[SETTLE FINALIZATION GATE] action:', 'grace_expired_finalize');
                           state.settleGraceTimeout = null;
                           // Perform finalization here (same as below)
-                          const finalAnswer = state.pendingAnswerSegments.join(' ');
+                          const finalAnswer = deduplicateAnswerSegments(state.pendingAnswerSegments).join(' ');
                           const finalSegmentCount = state.pendingAnswerSegments.length;
 
                           console.log('[ANSWER SETTLE WINDOW] =========================================');
@@ -13368,7 +13473,7 @@ Reply to this message if you'd like to update or add any information.
                     }
 
                     // Settle window expired - finalize the accumulated answer
-                    const finalAnswer = state.pendingAnswerSegments.join(' ');
+                    const finalAnswer = deduplicateAnswerSegments(state.pendingAnswerSegments).join(' ');
                     const finalSegmentCount = state.pendingAnswerSegments.length;
 
                     console.log('[ANSWER SETTLE WINDOW] =========================================');
@@ -13603,8 +13708,35 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[PROMPT SENDING] promptSendResult:', 'queued');
                   console.log('[PROMPT SENDING] Timestamp:', new Date().toISOString());
                   console.log('[PROMPT SENDING] =========================================');
+                } else if (hasValidCustomerName && !hasValidServiceRequested) {
+                  // Name satisfied, service missing: advance to ask_request (resolver recommendation).
+                  // Aligns the immediate path with the settle-window finalization path so the
+                  // caller is moved to a clean request-collection stage instead of being
+                  // re-prompted on the combined ask_name_reason stage where restatements can be
+                  // concatenated by the settle-window segment merger.
+                  const previousStage = state.currentStage;
+                  const nextStage = resolveNextSimpleModeStage(state.intakeData, state.serviceLocationType);
+
+                  clearPendingAnswerState(state, 'ask_name_reason_name_satisfied_advance_to_request');
+
+                  state.currentStage = nextStage;
+                  state.needsServiceReprompt = false;
+
+                  console.log('[STAGE TRANSITION] =========================================');
+                  console.log('[STAGE TRANSITION] event: stage_advanced');
+                  console.log('[STAGE TRANSITION] trigger: user_transcription_name_satisfied_service_missing');
+                  console.log('[STAGE TRANSITION] originatingStage:', originatingStage);
+                  console.log('[STAGE TRANSITION] previousStage:', previousStage);
+                  console.log('[STAGE TRANSITION] nextStage:', nextStage);
+                  console.log('[STAGE TRANSITION] hasValidCustomerName:', hasValidCustomerName);
+                  console.log('[STAGE TRANSITION] hasValidServiceRequested:', hasValidServiceRequested);
+                  console.log('[STAGE TRANSITION] action: advance_to_ask_request');
+                  console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
+                  console.log('[STAGE TRANSITION] =========================================');
+
+                  sendPrompt(state.currentStage);
                 } else {
-                  // Missing one or both fields: reprompt with targeted prompt variant
+                  // Missing name (with or without service): reprompt with targeted prompt variant
                   console.log('[STAGE TRANSITION] =========================================');
                   console.log('[STAGE TRANSITION] event: reprompt_triggered');
                   console.log('[STAGE TRANSITION] trigger: ask_name_reason_missing_fields');
@@ -13618,14 +13750,7 @@ Reply to this message if you'd like to update or add any information.
 
                   // Select targeted prompt variant based on which field is missing
                   let promptKeyOverride: string | undefined;
-                  if (hasValidCustomerName && !hasValidServiceRequested) {
-                    promptKeyOverride = 'ask_name_reason_service_only';
-                    console.log('[TARGETED REPROMPT SELECTED] =========================================');
-                    console.log('[TARGETED REPROMPT SELECTED] variant: ask_name_reason_service_only');
-                    console.log('[TARGETED REPROMPT SELECTED] reason: customerName_valid_serviceRequested_missing');
-                    console.log('[TARGETED REPROMPT SELECTED] Timestamp:', new Date().toISOString());
-                    console.log('[TARGETED REPROMPT SELECTED] =========================================');
-                  } else if (!hasValidCustomerName && hasValidServiceRequested) {
+                  if (!hasValidCustomerName && hasValidServiceRequested) {
                     promptKeyOverride = 'ask_name_reason_name_only';
                     console.log('[TARGETED REPROMPT SELECTED] =========================================');
                     console.log('[TARGETED REPROMPT SELECTED] variant: ask_name_reason_name_only');
@@ -13665,7 +13790,7 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[ASK_NAME_REASON ROUTING DECISION] turnId:', authorizedTurnId);
                   console.log('[ASK_NAME_REASON ROUTING DECISION] action: reprompt_with_targeted_variant');
                   console.log('[ASK_NAME_REASON ROUTING DECISION] selectedPromptKey:', promptKeyOverride || state.currentStage);
-                  console.log('[ASK_NAME_REASON ROUTING DECISION] reason:', hasValidCustomerName && !hasValidServiceRequested ? 'customerName_valid_serviceRequested_missing' : !hasValidCustomerName && hasValidServiceRequested ? 'customerName_missing_serviceRequested_valid' : 'both_fields_missing');
+                  console.log('[ASK_NAME_REASON ROUTING DECISION] reason:', !hasValidCustomerName && hasValidServiceRequested ? 'customerName_missing_serviceRequested_valid' : 'both_fields_missing');
                   console.log('[ASK_NAME_REASON ROUTING DECISION] Timestamp:', new Date().toISOString());
                   console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
 
