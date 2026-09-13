@@ -829,7 +829,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         </div>
 
         {/* Event Details */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 min-w-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="min-h-0 shrink min-w-0 overflow-y-auto overscroll-contain px-5 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
           {mode === 'add-location' ? (
             // Add-location mode: focused location input
             <div className="space-y-4">

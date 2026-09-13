@@ -397,7 +397,7 @@ export default function JobDetailsModal({
           </div>
 
           {/* Details */}
-          <div data-scroll-lock-allow className="p-5 space-y-6 overflow-y-auto flex-1 min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div data-scroll-lock-allow className="p-5 space-y-6 overflow-y-auto shrink min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
             {/* Customer - using EventDetailsModal pattern */}
             {(job.customer_name || job.customer_phone || lead?.id) && (
               <div className="flex items-center gap-2 text-sm">

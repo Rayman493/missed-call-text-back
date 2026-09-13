@@ -230,6 +230,7 @@ function MeetingsTab({
   onViewCustomer,
   onNewMeeting,
   completedMap,
+  onDeleteAppointment,
 }: {
   events: CalendarEvent[]
   jobs: any[]
@@ -237,6 +238,7 @@ function MeetingsTab({
   onViewCustomer: (leadId: string) => void
   onNewMeeting: () => void
   completedMap: Map<string, { completed_at: string }>
+  onDeleteAppointment?: (event: CalendarEvent) => void
 }) {
   // Determine eligibility
   const isEligible = (ev: CalendarEvent) => {
@@ -348,18 +350,32 @@ function MeetingsTab({
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap font-medium">Scheduled</span>
                     )
                   })()}
-                  {/* Edit action only for editable (ReplyFlow-owned) appointments */}
-                  {isEditable && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onOpenEvent(ev) }}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onOpenEvent(ev) } }}
-                      className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
-                      aria-label="Edit appointment"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                  )}
-                  {/* Primary action: Join far right for virtual meetings */}
+                  {/* Management actions: Edit + Delete (canonical order) */}
+                  <div className="flex items-center gap-1">
+                    {/* Edit action only for editable (ReplyFlow-owned) appointments */}
+                    {isEditable && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onOpenEvent(ev) }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onOpenEvent(ev) } }}
+                        className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                        aria-label="Edit appointment"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
+                    {/* Delete action for editable (ReplyFlow-owned) appointments */}
+                    {isEditable && onDeleteAppointment && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onDeleteAppointment(ev) }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onDeleteAppointment(ev) } }}
+                        className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                        aria-label="Delete appointment"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  {/* Primary action: Join for virtual meetings (below management actions) */}
                   {ev.meetingUrl && (
                     <a
                       href={ev.meetingUrl}
@@ -498,6 +514,11 @@ export default function SchedulePage() {
   const [newAppointmentPreselectedLeadId, setNewAppointmentPreselectedLeadId] = useState<string | null>(null)
   const [newAppointmentPreselectedLeadDisplay, setNewAppointmentPreselectedLeadDisplay] = useState<string | null>(null)
   const [newAppointmentRequireCustomer, setNewAppointmentRequireCustomer] = useState<boolean | undefined>(undefined)
+  // Card-level delete confirmation state (Jobs + Appointments)
+  const [jobToDelete, setJobToDelete] = useState<Job | null>(null)
+  const [isDeletingJob, setIsDeletingJob] = useState(false)
+  const [appointmentToDelete, setAppointmentToDelete] = useState<CalendarEvent | null>(null)
+  const [isDeletingAppointment, setIsDeletingAppointment] = useState(false)
   const [newAppointmentAllowAddCustomer, setNewAppointmentAllowAddCustomer] = useState<boolean | undefined>(undefined)
   const [newAppointmentLockCustomer, setNewAppointmentLockCustomer] = useState<boolean | undefined>(undefined)
   
@@ -1202,6 +1223,53 @@ export default function SchedulePage() {
     showToast('Job removed', 'success')
   }
 
+  // Card-level job delete with confirmation — reuses the same API endpoint
+  // as JobDetailsModal (DELETE /api/jobs/${id}). Does NOT rewrite the flow.
+  const handleConfirmDeleteJob = async () => {
+    if (!jobToDelete) return
+    setIsDeletingJob(true)
+    try {
+      const response = await fetch(`/api/jobs/${jobToDelete.id}`, { method: 'DELETE' })
+      if (!response.ok) throw new Error('Failed to delete job')
+      handleJobDeleted(jobToDelete)
+    } catch (error) {
+      console.error('[Schedule] Failed to delete job:', error)
+      showToast('Failed to delete job', 'error')
+    } finally {
+      setIsDeletingJob(false)
+      setJobToDelete(null)
+    }
+  }
+
+  // Card-level appointment delete with confirmation — reuses the same API
+  // endpoint as EventDetailsModal (DELETE /api/google/calendar/events/${id}).
+  // Does NOT rewrite the flow.
+  const handleConfirmDeleteAppointment = async () => {
+    if (!appointmentToDelete) return
+    setIsDeletingAppointment(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) {
+        showToast('Not authenticated', 'error')
+        return
+      }
+      const response = await fetch(`/api/google/calendar/events/${appointmentToDelete.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+      if (!response.ok) throw new Error('Failed to delete appointment')
+      setEvents(prev => prev.filter(e => e.id !== appointmentToDelete.id))
+      showToast('Appointment removed', 'success')
+    } catch (error) {
+      console.error('[Schedule] Failed to delete appointment:', error)
+      showToast('Failed to delete appointment', 'error')
+    } finally {
+      setIsDeletingAppointment(false)
+      setAppointmentToDelete(null)
+    }
+  }
+
   const getJobsForDay = (date: Date): Job[] => {
     const dayKey = getDateKey(date)
     return jobs.filter(j => j.scheduled_date === dayKey)
@@ -1766,6 +1834,7 @@ export default function SchedulePage() {
                         setNewJobDefaultDate(undefined)
                         setIsJobComposerOpen(true)
                       }}
+                      onDeleteJob={(job) => setJobToDelete(job)}
                     />
                   )}
 
@@ -1782,6 +1851,7 @@ export default function SchedulePage() {
                       onViewCustomer={handleMapViewCustomer}
                       onNewMeeting={handleNewAppointment}
                       completedMap={new Map()}
+                      onDeleteAppointment={(event) => setAppointmentToDelete(event)}
                     />
                   )}
 
@@ -2580,6 +2650,32 @@ export default function SchedulePage() {
             isDestructive={true}
             isLoading={isDisconnecting}
           />
+
+          {/* Card-level Job Delete Confirmation */}
+          <ConfirmModal
+            isOpen={jobToDelete !== null}
+            onClose={() => setJobToDelete(null)}
+            onConfirm={handleConfirmDeleteJob}
+            title="Delete Job?"
+            description="Are you sure you want to delete this job? This action cannot be undone."
+            confirmText="Delete"
+            cancelText="Cancel"
+            isDestructive={true}
+            isLoading={isDeletingJob}
+          />
+
+          {/* Card-level Appointment Delete Confirmation */}
+          <ConfirmModal
+            isOpen={appointmentToDelete !== null}
+            onClose={() => setAppointmentToDelete(null)}
+            onConfirm={handleConfirmDeleteAppointment}
+            title="Delete Appointment?"
+            description="Are you sure you want to delete this appointment? This will also remove it from Google Calendar."
+            confirmText="Delete"
+            cancelText="Cancel"
+            isDestructive={true}
+            isLoading={isDeletingAppointment}
+          />
     </DashboardShell>
   )
 }
@@ -2604,12 +2700,14 @@ function JobsTab({
   onNewJob,
   onJobClick,
   onEditJob,
+  onDeleteJob,
 }: {
   jobs: Job[]
   isLoading: boolean
   onNewJob: () => void
   onJobClick: (job: Job) => void
   onEditJob?: (job: Job) => void
+  onDeleteJob?: (job: Job) => void
 }) {
   const hasLoadedOnceRef = useRef(false)
   const [timeSummary, setTimeSummary] = useState<{ today_ms: number; week_ms: number; week_job_count: number; active_timer: boolean } | null>(null)
@@ -2746,16 +2844,28 @@ function JobsTab({
                 {paymentLabel}
               </span>
             )}
-            {onEditJob && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onEditJob(job) }}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEditJob(job) } }}
-                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
-                aria-label="Edit job"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
-            )}
+            <div className="flex items-center gap-1">
+              {onEditJob && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onEditJob(job) }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEditJob(job) } }}
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                  aria-label="Edit job"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+              {onDeleteJob && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDeleteJob(job) }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onDeleteJob(job) } }}
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                  aria-label="Delete job"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
