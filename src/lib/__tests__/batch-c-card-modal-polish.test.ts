@@ -146,8 +146,10 @@ describe('Batch C — Part 2: Shared Modal Height', () => {
   it('14. no duplicate bottom-safe-area padding (body padding uses footer-conditional)', () => {
     // Body paddingBottom is conditional on footer presence
     // When footer present: uses env(safe-area-inset-bottom)
-    // When no footer: uses --modal-bottom-reserve
-    expect(modalSrc).toContain("paddingBottom: footer ? 'max(16px, env(safe-area-inset-bottom))' : 'max(16px, var(--modal-bottom-reserve))'")
+    // When no footer: uses env(safe-area-inset-bottom) (NOT --modal-bottom-reserve,
+    // because the backdrop already reserves bottom-nav space — adding it here
+    // too would double-compensate and create excess blank space on Android)
+    expect(modalSrc).toContain("paddingBottom: footer ? 'max(16px, env(safe-area-inset-bottom))' : 'max(16px, env(safe-area-inset-bottom))'")
     // The old 80px fixed minimum is gone
     expect(modalSrc).not.toContain("paddingBottom: 'max(80px, calc(64px + var(--modal-bottom-reserve)))'")
   })

@@ -10,6 +10,7 @@ import {
   getOutcomeColor as getRecordOutcomeColor,
   type NormalizedIntake,
 } from '@/lib/ai-call-record-normalizer'
+import RequestDetailsModal from './RequestDetailsModal'
 
 interface RequestHistoryProps {
   leadId: string
@@ -29,6 +30,11 @@ interface RequestHistoryProps {
  * Shows a truthful empty state ("No previous requests yet") when no records exist.
  * Does NOT fabricate history. Does NOT create fake ai_call_records.
  *
+ * Tapping a historical request opens a ReplyFlow-style Request Details modal
+ * showing ONLY the fields persisted for that exact historical intake.
+ * It does NOT navigate to the conversation, does NOT scroll the timeline,
+ * does NOT mutate Customer Context, and does NOT change the active intake.
+ *
  * This is the ONE canonical Request History component used on both desktop and mobile.
  * AICallDetails no longer renders its own embedded Request History.
  */
@@ -46,6 +52,9 @@ export default function RequestHistory({
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
   const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null)
+  // Historical Request Details modal state. Holds the EXACT record
+  // whose fields should be displayed. Identity is ai_call_record.id.
+  const [modalRecord, setModalRecord] = useState<NormalizedIntake | null>(null)
 
   const selectedRecordId = externalSelectedId ?? internalSelectedId
 
@@ -88,10 +97,15 @@ export default function RequestHistory({
     return aiCallRecords.map(normalizeAICallRecord)
   }, [aiCallRecords])
 
-  const handleSelectRecord = (recordId: string) => {
-    setInternalSelectedId(recordId)
-    onSelectRecord?.(recordId)
-    onNavigateToTimeline?.(recordId)
+  const handleSelectRecord = (record: NormalizedIntake) => {
+    // Set selection state for highlight (optional, does not navigate)
+    setInternalSelectedId(record.id)
+    onSelectRecord?.(record.id)
+
+    // Open the historical Request Details modal with the EXACT record.
+    // This is view-only — it does NOT call onNavigateToTimeline, does NOT
+    // scroll the conversation, and does NOT mutate Customer Context.
+    setModalRecord(record)
   }
 
   return (
@@ -135,13 +149,13 @@ export default function RequestHistory({
               {normalizedRecords.map((record) => (
                 <button
                   key={record.id}
-                  onClick={() => handleSelectRecord(record.id)}
+                  onClick={() => handleSelectRecord(record)}
                   className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all duration-200 ${
                     selectedRecordId === record.id
                       ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
                       : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900/50'
                   }`}
-                  aria-label={`Open conversation origin for request: ${getHistoryCardTitle(record)}`}
+                  aria-label={`View request details: ${getHistoryCardTitle(record)}`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-semibold text-foreground line-clamp-1">
@@ -175,6 +189,16 @@ export default function RequestHistory({
           )}
         </div>
       )}
+
+      {/* Historical Request Details modal — view-only, shows the EXACT
+          historical intake fields. Identity is ai_call_record.id.
+          Does NOT navigate, does NOT mutate Customer Context, does NOT
+          change the active conversation. */}
+      <RequestDetailsModal
+        isOpen={modalRecord !== null}
+        onClose={() => setModalRecord(null)}
+        record={modalRecord}
+      />
     </div>
   )
 }

@@ -178,7 +178,13 @@ export default function Modal({
             style={{
               WebkitOverflowScrolling: 'touch',
               maxHeight: contentMaxHeight || undefined,
-              paddingBottom: footer ? 'max(16px, env(safe-area-inset-bottom))' : 'max(16px, var(--modal-bottom-reserve))'
+              // When footer present: reserve safe-area for footer padding.
+              // When no footer: use safe-area only — the backdrop already
+              // reserves bottom-nav space via --modal-bottom-reserve, so the
+              // content area must NOT add another 72px of bottom padding.
+              // This was the root cause of excess blank space below the
+              // Edit Customer modal's action buttons on Android.
+              paddingBottom: footer ? 'max(16px, env(safe-area-inset-bottom))' : 'max(16px, env(safe-area-inset-bottom))'
             }}
           >
             {children}

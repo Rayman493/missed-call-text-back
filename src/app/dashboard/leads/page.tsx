@@ -238,6 +238,12 @@ export default function LeadsPage() {
   const [quickFilter, setQuickFilter] = useState<'all' | 'active' | 'new' | 'scheduled' | 'payment_requested' | 'completed' | 'ignored' | 'cancelled'>('all')
   const [showFilters, setShowFilters] = useState(false)
   const [filterMenuOpen, setFilterMenuOpen] = useState(false)
+  // Tracks when the filter menu was dismissed by an outside tap.
+  // Set synchronously during Radix's onInteractOutside (pointerdown),
+  // consumed by the card's onClick handler. This prevents the first
+  // outside tap from navigating into a customer — it only dismisses
+  // the menu. The second clean tap navigates normally.
+  const filterDismissedAtRef = useRef<number>(0)
   const filterPointerStartRef = useRef<{ x: number; y: number } | null>(null)
   const filterMovedRef = useRef(false)
   // Suppress the next Radix onOpenChange(true) after a drag gesture.
@@ -1266,6 +1272,15 @@ export default function LeadsPage() {
                         left: 12,
                       }}
                       avoidCollisions
+                      onInteractOutside={(e) => {
+                        // Record that the menu was dismissed by an outside tap.
+                        // The card's onClick checks this ref to suppress the
+                        // first navigation after dismissal. This is NOT a
+                        // timeout — it's a synchronous flag set during
+                        // pointerdown and consumed by the next click event
+                        // (which is part of the same tap gesture).
+                        filterDismissedAtRef.current = Date.now()
+                      }}
                       className="w-[200px] max-w-[calc(100vw-24px)] max-h-[min(400px,calc(100dvh-140px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 z-[10000] overflow-y-auto overscroll-contain touch-pan-y"
                     >
                       <div className="px-2.5 py-1.5">
@@ -1599,7 +1614,17 @@ export default function LeadsPage() {
                           'transition-colors',
                           statusStyle.cardClass
                         )}
-                        onClick={() => handleConversationClick(lead.id)}
+                        onClick={() => {
+                          // Filter dismissal guard: if the filter menu was just
+                          // dismissed by an outside tap (same gesture), consume
+                          // this click to prevent navigating into the customer.
+                          // The second clean tap navigates normally.
+                          if (filterDismissedAtRef.current > 0) {
+                            filterDismissedAtRef.current = 0
+                            return
+                          }
+                          handleConversationClick(lead.id)
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault()

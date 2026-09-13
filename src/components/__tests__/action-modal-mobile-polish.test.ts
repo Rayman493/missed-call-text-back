@@ -296,8 +296,10 @@ describe('Mobile Form Control Polish', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/ui/Modal.tsx', 'utf8')
     // Batch C: paddingBottom is now content-driven, not a fixed 80px minimum.
-    // When footer is present, uses safe-area-inset-bottom; otherwise uses --modal-bottom-reserve.
-    expect(content).toContain("paddingBottom: footer ? 'max(16px, env(safe-area-inset-bottom))' : 'max(16px, var(--modal-bottom-reserve))'")
+    // Both footer and no-footer cases use safe-area-inset-bottom only —
+    // the backdrop already reserves bottom-nav space via --modal-bottom-reserve,
+    // so the content area must NOT add another 72px (double-compensation fix).
+    expect(content).toContain("paddingBottom: footer ? 'max(16px, env(safe-area-inset-bottom))' : 'max(16px, env(safe-area-inset-bottom))'")
   })
 
   it('TimePicker uses a stable min-height and vertically-centered trailing icon', () => {

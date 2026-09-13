@@ -31,7 +31,7 @@ export function SidebarSection({
 }: SidebarSectionProps) {
   return (
     <div className={`bg-muted/20 rounded-lg border border-slate-200 dark:border-border/40 ${className}`}>
-      <div className="px-4 py-3 pl-4 pr-2 border-b border-slate-200/70 dark:border-border/30">
+      <div className="px-4 py-3 border-b border-slate-200/70 dark:border-border/30">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             {icon && <div className="text-muted-foreground/70 flex-shrink-0">{icon}</div>}
@@ -40,6 +40,9 @@ export function SidebarSection({
             </h3>
           </div>
           {/* Right side: headerAction is always at the right edge.
+              The header uses px-4 (16px) to match the body's p-4 (16px),
+              so the Add button shares one consistent right edge across
+              all sections (Jobs, Reminders, Payments, Appointments, Internal Notes).
               The collapse chevron, if present, sits to the LEFT of the
               headerAction and must not displace it. We use a relative
               container with the chevron absolutely positioned so the
