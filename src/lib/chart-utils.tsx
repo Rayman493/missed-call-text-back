@@ -225,6 +225,12 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
   const startYRef = useRef(0)
   const isDraggingRef = useRef(false)
   const innerRef = useRef<HTMLDivElement>(null)
+  // Tracks whether a drag just ended. The browser fires a `click` event
+  // after `touchend`/`pointerup` even when the finger moved significantly.
+  // Recharts' onClick handler receives that click and activates the data
+  // point. This ref suppresses exactly one click after a drag, so the
+  // next clean tap works normally.
+  const justDraggedRef = useRef(false)
 
   const disableChartPointerEvents = () => {
     // Disable pointer events on the chart container so Recharts does not
@@ -281,6 +287,15 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
     startYRef.current = e.touches[0].clientY
     isDraggingRef.current = false
     setIsDragging(false)
+    // Reset the post-drag click suppression flag on every new gesture start.
+    // If a previous drag ended WITHOUT the browser synthesizing a click
+    // (some Android WebView versions don't), justDraggedRef would remain
+    // true and eat the NEXT legitimate tap. Resetting here ensures a new
+    // gesture begins with clean state, while the synthesized click from
+    // the just-finished drag is still suppressed (it fires before the new
+    // gesture's touchstart on most devices; if it fires after, the new
+    // gesture's tap is more recent and should win).
+    justDraggedRef.current = false
     // Do NOT disable pointer events — allow clean tap to reach Recharts
   }
 
@@ -316,8 +331,10 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
 
   const handleTouchEnd = () => {
     if (isDraggingRef.current) {
-      // Was a drag — clear Recharts active state
+      // Was a drag — clear Recharts active state and suppress the
+      // subsequent click event that the browser fires after touchend.
       clearRechartsState()
+      justDraggedRef.current = true
     }
     // If it was a tap, do NOT clear Recharts state — the click event
     // will reach Recharts naturally and activate the tapped datum.
@@ -339,6 +356,8 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
     startYRef.current = e.clientY
     isDraggingRef.current = false
     setIsDragging(false)
+    // Reset post-drag click suppression on new gesture start (see handleTouchStart).
+    justDraggedRef.current = false
     // Do NOT disable pointer events — allow clean tap to reach Recharts
   }
 
@@ -371,8 +390,10 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
   const handlePointerUp = (e: React.PointerEvent) => {
     if (e.pointerType !== 'touch') return
     if (isDraggingRef.current) {
-      // Was a drag — clear Recharts active state
+      // Was a drag — clear Recharts active state and suppress the
+      // subsequent click event that the browser fires after pointerup.
       clearRechartsState()
+      justDraggedRef.current = true
     }
     // If it was a tap, do NOT clear Recharts state — the click event
     // will reach Recharts naturally and activate the tapped datum.
@@ -388,6 +409,20 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
     restoreChartPointerEvents()
   }
 
+  // Capture-phase click handler: suppresses the click event that the
+  // browser fires after a drag/swipe. Without this, Recharts' onClick
+  // handler receives the post-swipe click and activates the data point,
+  // causing swipe-to-select on mobile. Only ONE click is suppressed
+  // (the one immediately following the drag); the next clean tap
+  // works normally.
+  const handleClickCapture = (e: React.MouseEvent) => {
+    if (justDraggedRef.current) {
+      e.preventDefault()
+      e.stopPropagation()
+      justDraggedRef.current = false
+    }
+  }
+
   return (
     <div
       // Keyboard focus: tabIndex={0} makes the chart keyboard-focusable.
@@ -398,7 +433,7 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
       // with offset (which caused the white rounded rectangle on Android).
       // The SVG surface also gets :focus-visible:outline for keyboard.
       tabIndex={0}
-      className="w-full h-full select-none focus:outline-none focus-visible:outline-2 focus-visible:outline-blue-500/30 rounded-lg [&_.recharts-surface]:outline-none [&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-blue-500/30 [&_.recharts-wrapper]:outline-none"
+      className="w-full h-full select-none focus:outline-none focus-visible:outline-2 focus-visible:outline-blue-500/30 rounded-lg [&_.recharts-surface]:outline-none [&_.recharts-surface:focus]:outline-none [&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-blue-500/30 [&_.recharts-wrapper]:outline-none [&_.recharts-wrapper:focus]:outline-none [&_.recharts-wrapper:focus-visible]:outline-2 [&_.recharts-wrapper:focus-visible]:outline-blue-500/30 [&_.recharts-rectangle-wrapper]:outline-none [&_.recharts-rectangle-wrapper:focus]:outline-none"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchMoveCapture={handleTouchMoveCapture}
@@ -408,6 +443,7 @@ export function ChartTouchWrapper({ children }: { children: React.ReactNode }) {
       onPointerMoveCapture={handlePointerMoveCapture}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
+      onClickCapture={handleClickCapture}
       // Allow native scrolling in both axes. Chart pointer events are
       // disabled on the inner div ONLY when a drag is detected (not on
       // pointerdown), so clean taps can reach Recharts. The outer div

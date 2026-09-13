@@ -1811,7 +1811,10 @@ useEffect(() => {
     }
   }, [mapReady])
 
-  // Clear stale selection when date changes and selected item no longer exists
+  // Clear stale selection/focus when date changes and items no longer exist.
+  // This effect issues NO camera command. It clears stale state only.
+  // The auto-frame effect is the SOLE owner of automatic fit-all and will
+  // perform exactly one fitBounds for the new date/context.
   useEffect(() => {
     // Empty-day safeguard: clear all stale marker state when no items remain
     if (mapItems.length === 0) {
@@ -1838,8 +1841,9 @@ useEffect(() => {
         setShowAllMode(true)
       }
     }
-    // Clear focusedMarkerId if the focused marker is no longer in the current map items.
-    // Restore canonical fit-all camera when focus is cleared due to marker disappearance.
+    // Clear focusedMarkerId if the focused marker is no longer in the current
+    // map items. State-only cleanup — NO camera command. The auto-frame
+    // effect owns the fit-all for the new context.
     if (focusedMarkerId) {
       const focusExists = mapItems.some(item => item.id === focusedMarkerId)
       if (!focusExists) {
@@ -1849,18 +1853,9 @@ useEffect(() => {
           availableItems: mapItems.map(i => i.id)
         })
         setFocusedMarkerId(null)
-        // Restore fit-all camera (business + all visible markers for selected day)
-        if (googleMapRef.current && markersRef.current.size > 0) {
-          const bounds = new (window as any).google.maps.LatLngBounds()
-          markersRef.current.forEach(marker => {
-            bounds.extend(marker.getPosition()!)
-          })
-          const padding = getResponsivePadding()
-          fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'focus_marker_disappeared')
-        }
       }
     }
-  }, [selectedDate, selectedMapItemId, mapItems, focusedMarkerId, fitBoundsWithMaxZoom, getResponsivePadding])
+  }, [selectedDate, selectedMapItemId, mapItems, focusedMarkerId])
 
   // Generate a signature of the data to detect meaningful changes without causing jitter
   const getDataSignature = useCallback(() => {
@@ -1998,7 +1993,6 @@ useEffect(() => {
           setTimeout(() => { suppressMapClickRef.current = false }, 50)
 
           const platform = Capacitor.getPlatform()
-          const isNative = Capacitor.isNativePlatform()
 
           // Resolve which item to act on; for grouped markers use the earliest scheduled item.
           const sortedItems = [...markerInfo.items].sort((a, b) => {
@@ -2012,92 +2006,65 @@ useEffect(() => {
           const item = sortedItems[0]
           const isSingle = markerInfo.items.length === 1
 
-          console.log('[ScheduleMap] marker_interaction', { platform, native: isNative, markerId: item.id, itemCount: markerInfo.items.length, isSingle })
+          console.log('[ScheduleMap] marker_interaction', { platform, stopId: item.id, itemCount: markerInfo.items.length, isSingle })
 
-          if (isNativeMobile) {
-            // Native / touch: single tap toggles details only (no camera).
-            // Double tap toggles camera focus. A short delay on single tap
-            // allows double-tap detection without parallel competing timers.
-            const now = Date.now()
-            const lastClick = lastClickTimeRef.current.get(item.id) ?? 0
-            const isDoubleTap = now - lastClick < DOUBLE_TAP_DELAY_MS
+          // CANONICAL SINGLE-TAP / DOUBLE-TAP CONTRACT:
+          // SINGLE TAP: toggle info/selection only. NO camera command.
+          // DOUBLE TAP: toggle info/selection + camera focus/unfocus.
+          // The single-tap action is delayed by DOUBLE_TAP_DELAY_MS so a
+          // second tap can upgrade it to a double-tap. If the second tap
+          // arrives, the pending single-tap timer is cancelled and the
+          // double-tap action runs instead — the single-tap toggle does
+          // NOT execute, so there is no selection flicker.
+          const now = Date.now()
+          const lastClick = lastClickTimeRef.current.get(item.id) ?? 0
+          const isDoubleTap = now - lastClick < DOUBLE_TAP_DELAY_MS
 
-            if (isDoubleTap) {
-              // Cancel any pending single-tap action for this marker.
-              const pendingTimer = singleTapTimerRef.current.get(item.id)
-              if (pendingTimer) {
-                clearTimeout(pendingTimer)
-                singleTapTimerRef.current.delete(item.id)
-              }
-              // Double-tap toggle: if already focused on this marker, clear focus; otherwise focus.
+          if (isDoubleTap) {
+            // Cancel the pending single-tap timer so the single-tap toggle
+            // does NOT execute. Only the double-tap action runs.
+            const pendingTimer = singleTapTimerRef.current.get(item.id)
+            if (pendingTimer) {
+              clearTimeout(pendingTimer)
+              singleTapTimerRef.current.delete(item.id)
+            }
+
+            if (item.type !== 'business') {
               if (focusedMarkerId === item.id) {
-                console.log('[ScheduleMap] marker_focus_cleared', { source: 'marker_double_tap', stopId: item.id, platform })
-                unfocusMarker()
+                // Already focused: double-tap unfocuses + unselects + fit-all.
+                console.log('[ScheduleMap] marker_unfocus', { source: 'marker_double_tap', stopId: item.id, platform })
+                toggleMapItemDetails(item.id) // unselect info
+                setFocusedMarkerId(null)
+                unfocusMarker() // fit-all camera
               } else {
+                // Not focused: double-tap selects + focuses.
                 console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_double_tap', stopId: item.id, platform })
                 focusStopOnMap(item.id, item.latitude, item.longitude)
                 setFocusedMarkerId(item.id)
               }
-              lastClickTimeRef.current.delete(item.id)
-              if (!isSingle) {
-                setSelectedMarker(markerInfo) // Still show popup for easy access to other items
-              }
             } else {
-              // Single tap: delay the details toggle so a second tap (double-tap)
-              // can cancel it before it executes.
-              const timer = setTimeout(() => {
-                // Single-tap action: toggle details ONLY, no camera change.
-                console.log('[ScheduleMap] marker_details_toggled', { source: 'marker_tap', stopId: item.id, platform })
-                toggleMapItemDetails(item.id)
-                if (!isSingle) {
-                  setSelectedMarker(markerInfo) // Still show popup for easy access to other items
-                }
-                singleTapTimerRef.current.delete(item.id)
-              }, DOUBLE_TAP_DELAY_MS)
-              singleTapTimerRef.current.set(item.id, timer)
-              lastClickTimeRef.current.set(item.id, now)
+              // Business marker: toggle details only, no camera.
+              toggleMapItemDetails(item.id)
+            }
+
+            lastClickTimeRef.current.delete(item.id)
+            if (!isSingle) {
+              setSelectedMarker(markerInfo)
             }
           } else {
-            // Desktop mouse: single click toggles details only (no camera).
-            // Double click toggles camera focus. Same arbitration as touch.
-            const now = Date.now()
-            const lastClick = lastClickTimeRef.current.get(item.id) ?? 0
-            const isDoubleClick = now - lastClick < DOUBLE_TAP_DELAY_MS
-
-            if (isDoubleClick) {
-              // Cancel any pending single-click action for this marker.
-              const pendingTimer = singleTapTimerRef.current.get(item.id)
-              if (pendingTimer) {
-                clearTimeout(pendingTimer)
-                singleTapTimerRef.current.delete(item.id)
-              }
-              // Double-click toggle: if already focused on this marker, clear focus; otherwise focus.
-              if (focusedMarkerId === item.id) {
-                console.log('[ScheduleMap] marker_focus_cleared', { source: 'marker_dblclick', stopId: item.id, platform })
-                unfocusMarker()
-              } else {
-                console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_dblclick', stopId: item.id, platform })
-                focusStopOnMap(item.id, item.latitude, item.longitude)
-                setFocusedMarkerId(item.id)
-              }
-              lastClickTimeRef.current.delete(item.id)
+            // SINGLE TAP: delay the info toggle so a second tap (double-tap)
+            // can cancel it before it executes. If no second tap arrives,
+            // the info toggle runs after the delay.
+            const timer = setTimeout(() => {
+              console.log('[ScheduleMap] marker_details_toggled', { source: 'marker_tap', stopId: item.id, platform })
+              toggleMapItemDetails(item.id)
               if (!isSingle) {
                 setSelectedMarker(markerInfo)
               }
-            } else {
-              // Single click: delay the details toggle so a second click (double-click)
-              // can cancel it before it executes.
-              const timer = setTimeout(() => {
-                console.log('[ScheduleMap] marker_details_toggled', { source: 'marker_click', stopId: item.id, platform })
-                toggleMapItemDetails(item.id)
-                if (!isSingle) {
-                  setSelectedMarker(markerInfo)
-                }
-                singleTapTimerRef.current.delete(item.id)
-              }, DOUBLE_TAP_DELAY_MS)
-              singleTapTimerRef.current.set(item.id, timer)
-              lastClickTimeRef.current.set(item.id, now)
-            }
+              singleTapTimerRef.current.delete(item.id)
+            }, DOUBLE_TAP_DELAY_MS)
+            singleTapTimerRef.current.set(item.id, timer)
+            lastClickTimeRef.current.set(item.id, now)
           }
         })
 
@@ -2222,7 +2189,15 @@ useEffect(() => {
       })
       markersRef.current.clear()
     }
-  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectedMapItemId, selectedDate, mapFilter, getResponsivePadding, assignStopNumbers, getSortedMappedItems, mapType])
+    // NOTE: selectedMapItemId and showAllMode are intentionally excluded from
+    // the dependency array. They are SELECTION state, not DATA state. The
+    // auto-frame effect should only re-run when data/context changes, not
+    // when the user selects a marker. Marker icon updates on selection are
+    // handled by the separate icon-selection effect. This prevents the
+    // auto-frame from re-running (and potentially calling fitBounds) when
+    // a marker is tapped, which would fight the focusStopOnMap camera move.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, fitBoundsWithMaxZoom, selectedDate, mapFilter, getResponsivePadding, assignStopNumbers, getSortedMappedItems, mapType])
 
   // Expose performance counters to browser console for gesture performance measurement
   useEffect(() => {
@@ -2579,68 +2554,48 @@ useEffect(() => {
   const handleItemClick = (item: MapItem) => {
     const platform = Capacitor.getPlatform()
 
-    if (isNativeMobile) {
-      // Native / touch card/list tap: single tap toggles details only (no camera).
-      // Double tap toggles camera focus. Same arbitration as marker tap.
-      const now = Date.now()
-      const lastClick = lastClickTimeRef.current.get(item.id) ?? 0
-      const isDoubleTap = now - lastClick < DOUBLE_TAP_DELAY_MS
-
-      if (isDoubleTap) {
-        const pendingTimer = singleTapTimerRef.current.get(item.id)
-        if (pendingTimer) {
-          clearTimeout(pendingTimer)
-          singleTapTimerRef.current.delete(item.id)
-        }
-        if (item.type !== 'business') {
-          if (focusedMarkerId === item.id) {
-            console.log('[ScheduleMap] marker_focus_cleared', { source: 'card_double_tap', stopId: item.id, platform })
-            unfocusMarker()
-          } else {
-            console.log('[ScheduleMap] marker_focus_requested', { source: 'card_double_tap', stopId: item.id, platform })
-            focusStopOnMap(item.id, item.latitude, item.longitude)
-            setFocusedMarkerId(item.id)
-          }
-        }
-        lastClickTimeRef.current.delete(item.id)
-      } else {
-        const timer = setTimeout(() => {
-          console.log('[ScheduleMap] marker_details_toggled', { source: 'card_tap', stopId: item.id, platform })
-          toggleMapItemDetails(item.id)
-          singleTapTimerRef.current.delete(item.id)
-        }, DOUBLE_TAP_DELAY_MS)
-        singleTapTimerRef.current.set(item.id, timer)
-        lastClickTimeRef.current.set(item.id, now)
-      }
-      return
-    }
-
-    // Desktop mouse card/list: single click toggles details only (no camera).
-    // Double click toggles camera focus. Same arbitration as marker click.
+    // CANONICAL SINGLE-TAP / DOUBLE-TAP CONTRACT (same as marker tap):
+    // SINGLE TAP: toggle info/selection only. NO camera command.
+    // DOUBLE TAP: toggle info/selection + camera focus/unfocus.
+    // The single-tap action is delayed by DOUBLE_TAP_DELAY_MS so a
+    // second tap can upgrade it to a double-tap.
     const now = Date.now()
     const lastClick = lastClickTimeRef.current.get(item.id) ?? 0
-    const isDoubleClick = now - lastClick < DOUBLE_TAP_DELAY_MS
+    const isDoubleTap = now - lastClick < DOUBLE_TAP_DELAY_MS
 
-    if (isDoubleClick) {
+    if (isDoubleTap) {
+      // Cancel the pending single-tap timer so the single-tap toggle
+      // does NOT execute. Only the double-tap action runs.
       const pendingTimer = singleTapTimerRef.current.get(item.id)
       if (pendingTimer) {
         clearTimeout(pendingTimer)
         singleTapTimerRef.current.delete(item.id)
       }
+
       if (item.type !== 'business') {
         if (focusedMarkerId === item.id) {
-          console.log('[ScheduleMap] marker_focus_cleared', { source: 'card_dblclick', stopId: item.id, platform })
+          // Already focused: double-tap unfocuses + unselects + fit-all.
+          console.log('[ScheduleMap] marker_unfocus', { source: 'card_double_tap', stopId: item.id, platform })
+          toggleMapItemDetails(item.id)
+          setFocusedMarkerId(null)
           unfocusMarker()
         } else {
-          console.log('[ScheduleMap] marker_focus_requested', { source: 'card_dblclick', stopId: item.id, platform })
+          // Not focused: double-tap selects + focuses.
+          console.log('[ScheduleMap] marker_focus_requested', { source: 'card_double_tap', stopId: item.id, platform })
           focusStopOnMap(item.id, item.latitude, item.longitude)
           setFocusedMarkerId(item.id)
         }
+      } else {
+        // Business item: toggle details only, no camera.
+        toggleMapItemDetails(item.id)
       }
+
       lastClickTimeRef.current.delete(item.id)
     } else {
+      // SINGLE TAP: delay the info toggle so a second tap (double-tap)
+      // can cancel it before it executes.
       const timer = setTimeout(() => {
-        console.log('[ScheduleMap] marker_details_toggled', { source: 'card_click', stopId: item.id, platform })
+        console.log('[ScheduleMap] marker_details_toggled', { source: 'card_tap', stopId: item.id, platform })
         toggleMapItemDetails(item.id)
         singleTapTimerRef.current.delete(item.id)
       }, DOUBLE_TAP_DELAY_MS)
