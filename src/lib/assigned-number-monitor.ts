@@ -10,6 +10,34 @@ export interface BusinessRow {
   assigned_twilio_number_id?: string | null
   provisioning_status?: string | null
   provisioning_error?: string | null
+  // Eligibility fields for self-healing recovery
+  subscription_status?: string | null
+  twilio_release_status?: string | null
+  twilio_released_at?: string | null
+}
+
+/**
+ * Recovery callback for self-healing missing assigned numbers.
+ *
+ * Called after a definitive `missing_from_twilio` finding, ONLY for
+ * businesses that are eligible for automatic recovery:
+ *   - subscription_status is 'active' or 'trialing' (or has manual access)
+ *   - not released / not offboarding
+ *   - not a protected/system number
+ *
+ * The callback must:
+ *   1. Validate lifecycle mutation eligibility
+ *   2. Compare-and-swap clear the stale assignment (only if SID still matches)
+ *   3. Mark the twilio_numbers row as retired (not assigned/active)
+ *   4. Trigger reprovisioning to acquire a replacement number
+ *   5. Return whether recovery was attempted and whether it succeeded
+ *
+ * If recovery fails, the business stays in a diagnosable failed state.
+ */
+export interface RecoveryResult {
+  attempted: boolean
+  success: boolean
+  error?: string
 }
 
 /** DI-friendly wrapper for alert orchestration in tests */
@@ -49,6 +77,15 @@ export interface MonitorDeps {
   fetchTwilioIncomingPN: (sid: string) => Promise<'exists' | 'not_found' | { error: string }>
   updateBusinessDegraded: (businessId: string, reason: string, context: { phone: string | null; sid: string }) => Promise<void>
   clearBusinessRecovered?: (businessId: string) => Promise<void>
+  /**
+   * Self-healing recovery for a business whose assigned number is missing
+   * from Twilio. Called ONLY for eligible businesses (active/trialing,
+   * not released, not protected). The callback is responsible for
+   * compare-and-swap clearing the stale assignment and triggering
+   * reprovisioning. If not provided, detection marks the business as
+   * failed but does NOT auto-recover (manual intervention required).
+   */
+  recoverMissingAssignment?: (business: BusinessRow) => Promise<RecoveryResult>
   recordIncident: (issue: {
     businessId: string
     businessName?: string | null
@@ -116,6 +153,51 @@ export async function checkAssignedNumberIntegrityWith(deps: MonitorDeps): Promi
       // Mark degraded/failed using existing fields without mutating assignment values
       await deps.updateBusinessDegraded(b.id, 'assigned_number_missing_from_twilio', { phone, sid })
       await deps.recordIncident({ businessId: b.id, businessName: b.name, phone, sid, timestamp: detectedAt, reason: 'assigned_number_missing_from_twilio', summary: 'Assigned number missing from Twilio' })
+
+      // Self-healing: attempt automatic recovery for eligible businesses.
+      // The recovery callback is responsible for eligibility validation,
+      // compare-and-swap clearing, and triggering reprovisioning.
+      // If not provided or not eligible, the business stays in failed state
+      // (manual admin intervention required).
+      if (deps.recoverMissingAssignment) {
+        try {
+          const result = await deps.recoverMissingAssignment(b)
+          if (result.attempted) {
+            if (result.success) {
+              await deps.recordIncident({
+                businessId: b.id,
+                businessName: b.name,
+                phone,
+                sid,
+                timestamp: new Date().toISOString(),
+                reason: 'assigned_number_missing_from_twilio',
+                summary: `Self-healing recovery succeeded: ${result.error || 'replacement provisioned'}`
+              })
+            } else {
+              await deps.recordIncident({
+                businessId: b.id,
+                businessName: b.name,
+                phone,
+                sid,
+                timestamp: new Date().toISOString(),
+                reason: 'assigned_number_missing_from_twilio',
+                summary: `Self-healing recovery failed: ${result.error || 'unknown'}`
+              })
+            }
+          }
+          // If not attempted, the business was not eligible (canceled/offboarding/protected)
+        } catch (recoveryError: any) {
+          await deps.recordIncident({
+            businessId: b.id,
+            businessName: b.name,
+            phone,
+            sid,
+            timestamp: new Date().toISOString(),
+            reason: 'assigned_number_missing_from_twilio',
+            summary: `Self-healing recovery exception: ${recoveryError?.message || String(recoveryError)}`
+          })
+        }
+      }
       continue
     }
 
@@ -140,7 +222,7 @@ export async function runAssignedNumberIntegrityCheck(): Promise<{ findings: Int
   // Broad selection: any indication of assignment (phone OR SID OR assigned id)
   const { data: rowsData, error: rowsErr } = await serviceSupabase
     .from('businesses')
-    .select('id, name, twilio_phone_number, twilio_phone_number_sid, assigned_twilio_number_id, provisioning_status, provisioning_error, twilio_release_status, twilio_released_at')
+    .select('id, name, twilio_phone_number, twilio_phone_number_sid, assigned_twilio_number_id, provisioning_status, provisioning_error, twilio_release_status, twilio_released_at, subscription_status')
     .or('twilio_phone_number.not.is.null,twilio_phone_number_sid.not.is.null,assigned_twilio_number_id.not.is.null')
   if (rowsErr) throw rowsErr
   const preFetchedAll = (rowsData || []) as (BusinessRow & { twilio_release_status?: string | null; twilio_released_at?: string | null })[]
@@ -244,6 +326,116 @@ export async function runAssignedNumberIntegrityCheck(): Promise<{ findings: Int
           .from('businesses')
           .update({ provisioning_status: 'ready', provisioning_error: `${pe}|resolved:${new Date().toISOString()}` })
           .eq('id', businessId)
+      }
+    },
+    recoverMissingAssignment: async (business: BusinessRow): Promise<RecoveryResult> => {
+      // Eligibility check: only recover active/trialing businesses
+      const sub = business.subscription_status
+      const isActive = sub === 'active' || sub === 'trialing'
+      if (!isActive) {
+        console.log('[SELF-HEAL RECOVERY] Skipped - not active/trialing', { businessId: business.id, subscription_status: sub })
+        return { attempted: false, success: false }
+      }
+
+      // Exclude released/offboarding businesses
+      if (business.twilio_release_status === 'released' || business.twilio_released_at) {
+        console.log('[SELF-HEAL RECOVERY] Skipped - released/offboarding', { businessId: business.id })
+        return { attempted: false, success: false }
+      }
+
+      // Exclude protected/system numbers
+      const PROTECTED = (process.env.PROTECTED_TWILIO_NUMBERS || '').split(',').filter(n => n.trim())
+      const sysNum = process.env.REPLYFLOW_SYSTEM_SMS_NUMBER
+      const phone = business.twilio_phone_number
+      if (phone && (PROTECTED.includes(phone) || phone === sysNum)) {
+        console.log('[SELF-HEAL RECOVERY] Skipped - protected/system number', { businessId: business.id, phone })
+        return { attempted: false, success: false }
+      }
+
+      const staleSid = business.twilio_phone_number_sid
+      if (!staleSid) {
+        return { attempted: false, success: false }
+      }
+
+      console.log('[SELF-HEAL RECOVERY] Starting recovery for eligible business', { businessId: business.id, staleSid })
+
+      // STEP 1: Compare-and-swap clear the stale business assignment.
+      // Only update if the SID still matches — prevents stealing a number
+      // that was already reassigned by a concurrent process.
+      const { data: cleared, error: clearError } = await serviceSupabase
+        .from('businesses')
+        .update({
+          twilio_phone_number: null,
+          twilio_phone_number_sid: null,
+          twilio_messaging_service_sid: null,
+          assigned_twilio_number_id: null,
+          provisioning_status: 'provisioning',
+          provisioning_error: null,
+          forwarding_verified: false,
+          call_forwarding_enabled: false,
+        })
+        .eq('id', business.id)
+        .eq('twilio_phone_number_sid', staleSid)
+        .select('id')
+
+      if (clearError || !cleared || cleared.length === 0) {
+        // Compare-and-swap failed — another process already changed the assignment
+        console.log('[SELF-HEAL RECOVERY] Compare-and-swap failed (already changed)', { businessId: business.id, clearError })
+        return { attempted: false, success: false, error: 'CAS failed' }
+      }
+
+      // STEP 2: Mark the stale twilio_numbers row as retired so the
+      // provisionTwilioNumber idempotency check won't re-assign it.
+      await serviceSupabase
+        .from('twilio_numbers')
+        .update({
+          status: 'retired',
+          detached_at: new Date().toISOString(),
+          detached_reason: 'assigned_number_missing_from_twilio',
+          business_id: null,
+        })
+        .eq('twilio_sid', staleSid)
+
+      // STEP 3: Trigger reprovisioning to acquire a replacement number.
+      // Use internal HTTP call to the provisioning endpoint with admin secret.
+      try {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
+        const response = await fetch(`${appUrl}/api/business/trigger-provisioning`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-secret': process.env.PROVISIONING_ADMIN_SECRET || ''
+          },
+          body: JSON.stringify({ business_id: business.id })
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('[SELF-HEAL RECOVERY] Reprovisioning trigger failed', { businessId: business.id, status: response.status, errorText })
+          // Rollback: restore the stale assignment so the business is in a diagnosable state
+          await serviceSupabase
+            .from('businesses')
+            .update({
+              provisioning_status: 'failed',
+              provisioning_error: `Self-heal reprovision trigger failed: ${errorText.substring(0, 200)}`,
+            })
+            .eq('id', business.id)
+          return { attempted: true, success: false, error: `Reprovision trigger failed: ${response.status}` }
+        }
+
+        console.log('[SELF-HEAL RECOVERY] Reprovisioning triggered successfully', { businessId: business.id })
+        return { attempted: true, success: true }
+      } catch (provisionError: any) {
+        console.error('[SELF-HEAL RECOVERY] Reprovisioning exception', { businessId: business.id, error: provisionError })
+        // Rollback: mark as failed with diagnosable error
+        await serviceSupabase
+          .from('businesses')
+          .update({
+            provisioning_status: 'failed',
+            provisioning_error: `Self-heal reprovision exception: ${provisionError?.message || String(provisionError)}`,
+          })
+          .eq('id', business.id)
+        return { attempted: true, success: false, error: provisionError?.message || 'Reprovision exception' }
       }
     },
     recordIncident: async (issue) => {
