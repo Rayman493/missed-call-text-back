@@ -234,47 +234,6 @@ export default function PremiumAudioPlayer({
     }
   }
 
-  // Handle mouse move for dragging
-  useEffect(() => {
-    // Guard against SSR
-    if (typeof document === 'undefined') {
-      return
-    }
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isDragging && progressBarRef.current && audioRef.current) {
-        const rect = progressBarRef.current.getBoundingClientRect()
-        const clickX = Math.max(0, Math.min(e.clientX - rect.left, rect.width))
-        const percentage = clickX / rect.width
-        // Use canonical duration from audio element, fall back to prop
-        const audioDuration = audioRef.current.duration
-        const canonicalDuration =
-          Number.isFinite(audioDuration) && audioDuration > 0
-            ? audioDuration
-            : duration
-        const newTime = percentage * canonicalDuration
-        onSeek(newTime)
-      }
-    }
-
-    const handleMouseUp = () => {
-      if (isDragging) {
-        setIsDragging(false)
-        onSeek(currentTime)
-      }
-    }
-
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [isDragging, currentTime, duration, onSeek])
-
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!canSeek) return
@@ -385,8 +344,8 @@ export default function PremiumAudioPlayer({
           </div>
         </div>
 
-        {/* Decorative Waveform with Progress Overlay */}
-        <div className="relative">
+        {/* Decorative Waveform — visual only, NON-interactive */}
+        <div className="relative pointer-events-none select-none">
           {/* Waveform Bars */}
           <div className="flex items-center gap-0.5 h-8 px-1">
             {waveformBars.map((bar, index) => {
@@ -410,41 +369,40 @@ export default function PremiumAudioPlayer({
               )
             })}
           </div>
-
-          {/* Invisible Progress Bar for Click/Seek
-              CRITICAL: The overlay must have a near-transparent background
-              to be hit-tested on Android Capacitor WebView. Elements with
-              no paint are NOT hit-tested on mobile WebViews, causing
-              pointer/click events to never reach the seek handler.
-              z-10 ensures the overlay paints above the waveform bars.
-              touch-none prevents the browser from consuming the touch
-              for vertical conversation scrolling. */}
-          <div
-            ref={progressBarRef}
-            className="absolute inset-0 z-10 cursor-pointer bg-black/[0.001]"
-            style={{ touchAction: 'none' }}
-            onClick={handleProgressClick}
-            onPointerDown={handleProgressDragStart}
-            onPointerMove={handleProgressDragMove}
-            onPointerUp={handleProgressDragEnd}
-            onPointerCancel={handleProgressDragEnd}
-            onKeyDown={handleKeyDown}
-            tabIndex={canSeek ? 0 : -1}
-            role="slider"
-            aria-label="Audio progress"
-            aria-valuemin={0}
-            aria-valuemax={duration}
-            aria-valuenow={currentTime}
-            aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
-          />
         </div>
 
-        {/* Subtle Progress Indicator */}
-        <div className="relative h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-blue-600 rounded-full transition-all duration-100 ease-out"
-            style={{ width: `${progressPercent}%` }}
-          />
+        {/* Canonical Seek Surface — straight progress line with enlarged hit area.
+            The visible line is h-1 (4px), but the hit-testable surface is h-8
+            (32px) centered around it. A near-transparent background
+            (bg-black/[0.001]) ensures Android WebView hit-tests the surface
+            (fully transparent elements are not hit-tested on mobile WebView).
+            touch-action: none prevents the browser from consuming the touch
+            for vertical conversation scrolling while the user is scrubbing. */}
+        <div
+          ref={progressBarRef}
+          className="relative h-8 flex items-center cursor-pointer bg-black/[0.001] rounded-full"
+          style={{ touchAction: 'none' }}
+          onClick={handleProgressClick}
+          onPointerDown={handleProgressDragStart}
+          onPointerMove={handleProgressDragMove}
+          onPointerUp={handleProgressDragEnd}
+          onPointerCancel={handleProgressDragEnd}
+          onKeyDown={handleKeyDown}
+          tabIndex={canSeek ? 0 : -1}
+          role="slider"
+          aria-label="Audio progress"
+          aria-valuemin={0}
+          aria-valuemax={duration}
+          aria-valuenow={currentTime}
+          aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
+        >
+          {/* Visible thin progress line (centered in the 32px hit area) */}
+          <div className="relative w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-600 rounded-full transition-all duration-100 ease-out"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
         </div>
       </div>
     </div>
