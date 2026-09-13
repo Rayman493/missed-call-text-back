@@ -5407,8 +5407,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </svg>
                   Add
                 </button>
-                <div className="w-6 flex-shrink-0 flex items-center justify-center">
-                  {leadJobs.length > 3 && (
+                {leadJobs.length > 3 && (
+                  <div className="w-6 flex-shrink-0 flex items-center justify-center">
                     <button
                       onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
                       className="text-muted-foreground hover:text-foreground transition-colors"
@@ -5417,8 +5417,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     >
                       <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${collapsedSections.jobs ? 'rotate-0' : 'rotate-180'}`} />
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="mt-2">
@@ -5482,8 +5482,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </svg>
                   Add
                 </button>
-                <div className="w-6 flex-shrink-0 flex items-center justify-center">
-                  {leadTasks.length > 3 && (
+                {leadTasks.length > 3 && (
+                  <div className="w-6 flex-shrink-0 flex items-center justify-center">
                     <button
                       onClick={() => setCollapsedSections((prev: any) => ({ ...prev, reminders: !prev.reminders }))}
                       className="text-muted-foreground hover:text-foreground transition-colors"
@@ -5492,8 +5492,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     >
                       <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${collapsedSections.reminders ? 'rotate-0' : 'rotate-180'}`} />
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="mt-2">
@@ -5625,8 +5625,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </svg>
                   Add
                 </button>
-                <div className="w-6 flex-shrink-0 flex items-center justify-center">
-                  {appointments.length > 3 && (
+                {appointments.length > 3 && (
+                  <div className="w-6 flex-shrink-0 flex items-center justify-center">
                     <button
                       onClick={() => setCollapsedSections((prev: any) => ({ ...prev, appointments: !prev.appointments }))}
                       className="text-muted-foreground hover:text-foreground transition-colors"
@@ -5635,8 +5635,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     >
                       <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${collapsedSections.appointments ? 'rotate-0' : 'rotate-180'}`} />
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="mt-2">

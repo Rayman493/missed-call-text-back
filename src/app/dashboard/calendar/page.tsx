@@ -241,20 +241,23 @@ function MeetingsTab({
   onDeleteAppointment?: (event: CalendarEvent) => void
 }) {
   // Determine eligibility.
-  // Only ReplyFlow-owned events appear in the Appointments tab.
-  // The previous check (Boolean(job || rfLead || ev.meetingUrl)) was too broad:
-  // it included ANY event with a meeting URL, which let external Google
-  // Calendar events (e.g., sports subscriptions with hangoutLinks) leak into
-  // the Appointments tab. Those external events correctly had no Edit/Delete
-  // (isReplyFlowOwnedEvent returned false), but they should not have appeared
-  // in the Appointments tab at all.
+  // An event appears in the Appointments tab if it is appointment-like:
+  //   - ReplyFlow-owned (created by ReplyFlow, linked job/meeting, or has
+  //     replyflow private metadata), OR
+  //   - Has a meeting URL (Google Meet / virtual / hangoutLink), OR
+  //   - Has a location (in-person appointment)
+  // This keeps legitimate Google Calendar appointments visible (e.g., a
+  // "Steelers vs Falcons" Meet event the user added manually) without
+  // requiring ReplyFlow provenance, while excluding arbitrary all-day
+  // blocks, reminders, and holidays that have no meeting URL or location.
   //
-  // The canonical isReplyFlowOwnedEvent() now detects ReplyFlow-created events
-  // via the replyflow_created flag (always set by the create-event route),
-  // replyflow_lead_id, replyflow_meeting_url, or a linked job/meeting.
+  // Holidays are also excluded by the source/isHoliday flag as a safety net.
+  // The canonical isReplyFlowOwnedEvent() is still used for provenance
+  // detection (badges, ownership labels) but no longer gates visibility.
   const isEligible = (ev: CalendarEvent) => {
+    if (ev.isHoliday || ev.source === 'holiday') return false
     const job = jobs.find(j => j.google_calendar_event_id === ev.id)
-    return isReplyFlowOwnedEvent(ev as any, { linkedJob: job })
+    return isReplyFlowOwnedEvent(ev as any, { linkedJob: job }) || !!ev.meetingUrl || !!ev.location
   }
 
   const eligible = events.filter(isEligible)
@@ -298,14 +301,14 @@ function MeetingsTab({
           const customerName = job?.customer_name || null
           const typeLabel = labelType(ev)
           const isMeet = typeLabel === 'Google Meet'
-          // Editability: only ReplyFlow-owned events are editable.
-          // Uses the canonical ownership check (isReplyFlowOwnedEvent) which
-          // covers linked jobs, linked meetings, AND private metadata
-          // (replyflow_lead_id OR replyflow_meeting_url). The previous check
-          // (Boolean(job || rfLead)) missed events that had
-          // replyflow_meeting_url but no replyflow_lead_id and no linked job,
-          // causing virtual ReplyFlow appointments to show no Edit/Delete.
-          const isEditable = isReplyFlowOwnedEvent(ev as any, { linkedJob: job })
+          // Manageability: any event in the user's connected primary calendar
+          // can be safely updated/deleted by event ID through the existing
+          // Google Calendar PATCH/DELETE routes (which operate on
+          // calendars/primary/events/{eventId} using the user's OAuth token).
+          // Holidays are read-only and excluded. ReplyFlow ownership is no
+          // longer required for Edit/Delete — it is only used for provenance
+          // labels (ReplyFlow vs Google badge).
+          const isEditable = !ev.isHoliday && ev.source !== 'holiday'
           return (
             <div
               key={ev.id}
@@ -2208,6 +2211,7 @@ export default function SchedulePage() {
                                       const time = formatEventTimeRange(event.start.dateTime, event.end.dateTime, event.start.date)
                                       const job = jobs.find(j => j.google_calendar_event_id === event.id)
                                       const isReplyFlow = isReplyFlowOwnedEvent(event as any, { linkedJob: job })
+                                      const isEditable = !event.isHoliday && event.source !== 'holiday'
                                       const customerName = job?.customer_name || null
 
                                       return (
@@ -2247,7 +2251,7 @@ export default function SchedulePage() {
                                               )}
                                             </div>
                                           </button>
-                                          {isReplyFlow ? (
+                                          {isEditable ? (
                                             <button
                                               onClick={(e) => {
                                                 e.stopPropagation()

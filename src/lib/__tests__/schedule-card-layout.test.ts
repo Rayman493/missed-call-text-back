@@ -70,15 +70,17 @@ describe('Part A: Schedule Card Layout', () => {
       expect(isReplyFlowOwnedEvent(event, { linkedJob: null })).toBe(false)
     })
 
-    it('appointment card uses isReplyFlowOwnedEvent for isEditable', () => {
-      // The fix: isEditable now uses the canonical ownership check
-      expect(page).toContain('isReplyFlowOwnedEvent(ev as any, { linkedJob: job })')
-      // The old broken check should not be used (only in comments)
-      const idx = page.indexOf('isReplyFlowOwnedEvent(ev as any, { linkedJob: job })')
-      const line = page.substring(idx, idx + 100)
-      expect(line).not.toContain('Boolean(job || rfLead)')
-      // The actual isEditable assignment uses isReplyFlowOwnedEvent
-      expect(page).toContain('const isEditable = isReplyFlowOwnedEvent(ev as any, { linkedJob: job })')
+    it('appointment card uses primary-calendar manageability for isEditable (not ownership)', () => {
+      // The fix: isEditable now checks whether the event is in the user's
+      // connected writable primary calendar (not a holiday), rather than
+      // requiring ReplyFlow ownership. This allows external Google Calendar
+      // appointments (e.g., Steelers vs Falcons) to get Edit/Delete.
+      expect(page).toContain('!ev.isHoliday && ev.source !== \'holiday\'')
+      // The old ownership-gated check should not be used for isEditable
+      const editableIdx = page.indexOf('const isEditable = !ev.isHoliday')
+      expect(editableIdx).toBeGreaterThan(-1)
+      const editableBlock = page.substring(editableIdx, editableIdx + 200)
+      expect(editableBlock).not.toContain('isReplyFlowOwnedEvent')
     })
 
     it('Virtual badge renders on the LEFT (inside min-w-0 flex-1)', () => {
@@ -121,8 +123,8 @@ describe('Part A: Schedule Card Layout', () => {
   // 2. Appointment without meetingUrl — Edit + Delete still render
   // -------------------------------------------------------------------------
   describe('2. Appointment without meetingUrl', () => {
-    it('Edit + Delete are gated on isEditable, not on meetingUrl', () => {
-      const editableBlock = page.indexOf('isReplyFlowOwnedEvent(ev as any, { linkedJob: job })')
+    it('Edit + Delete are gated on isEditable (primary-calendar manageability), not on meetingUrl', () => {
+      const editableBlock = page.indexOf('!ev.isHoliday && ev.source !== \'holiday\'')
       expect(editableBlock).toBeGreaterThan(-1)
       // Edit/Delete buttons are gated on isEditable only
       const editIdx = page.indexOf('aria-label="Edit appointment"')
@@ -142,8 +144,8 @@ describe('Part A: Schedule Card Layout', () => {
       expect(pastIdx).toBeLessThan(rightIdx)
     })
 
-    it('isEditable does NOT check isPast (past events remain editable if ReplyFlow-owned)', () => {
-      const editableLine = page.indexOf('isReplyFlowOwnedEvent(ev as any, { linkedJob: job })')
+    it('isEditable does NOT check isPast (past events remain editable if in primary calendar)', () => {
+      const editableLine = page.indexOf('!ev.isHoliday && ev.source !== \'holiday\'')
       const editableBlock = page.substring(editableLine, editableLine + 200)
       expect(editableBlock).not.toContain('isPast')
       expect(editableBlock).not.toContain('endRaw')
@@ -366,32 +368,44 @@ describe('Part C: Appointment Ownership Regression', () => {
   const createEvent = readSrc('app/api/google/calendar/create-event/route.ts')
 
   // -------------------------------------------------------------------------
-  // 1. isEligible uses isReplyFlowOwnedEvent (not bare ev.meetingUrl)
+  // 1. isEligible includes appointment-like events (meetingUrl, location, or ReplyFlow-owned)
   // -------------------------------------------------------------------------
-  describe('1. isEligible uses canonical ownership check', () => {
-    it('isEligible calls isReplyFlowOwnedEvent', () => {
+  describe('1. isEligible includes appointment-like events', () => {
+    it('isEligible calls isReplyFlowOwnedEvent as one path', () => {
       const idx = page.indexOf('Determine eligibility')
       const block = page.substring(idx, idx + 1200)
       expect(block).toContain('isReplyFlowOwnedEvent(ev as any, { linkedJob: job })')
     })
 
-    it('isEligible does NOT use bare ev.meetingUrl as a criterion', () => {
+    it('isEligible also includes events with meetingUrl (external Google Meet appointments)', () => {
       const idx = page.indexOf('Determine eligibility')
       const block = page.substring(idx, idx + 1200)
-      // The old check was Boolean(job || rfLead || ev.meetingUrl)
-      // The new check should only use isReplyFlowOwnedEvent
-      // The actual return statement should not contain ev.meetingUrl
-      const returnIdx = block.indexOf('return isReplyFlowOwnedEvent')
+      const returnIdx = block.indexOf('return ')
       expect(returnIdx).toBeGreaterThan(-1)
-      const returnLine = block.substring(returnIdx, returnIdx + 100)
-      expect(returnLine).not.toContain('meetingUrl')
+      const returnLine = block.substring(returnIdx, returnIdx + 200)
+      expect(returnLine).toContain('ev.meetingUrl')
     })
 
-    it('isEligible comment explains why ev.meetingUrl was removed', () => {
+    it('isEligible also includes events with location (in-person appointments)', () => {
+      const idx = page.indexOf('Determine eligibility')
+      const block = page.substring(idx, idx + 1200)
+      const returnIdx = block.indexOf('return ')
+      expect(returnIdx).toBeGreaterThan(-1)
+      const returnLine = block.substring(returnIdx, returnIdx + 200)
+      expect(returnLine).toContain('ev.location')
+    })
+
+    it('isEligible excludes holidays explicitly', () => {
+      const idx = page.indexOf('Determine eligibility')
+      const block = page.substring(idx, idx + 1200)
+      expect(block).toContain('isHoliday')
+      expect(block).toContain('holiday')
+    })
+
+    it('isEligible comment explains appointment-like criteria', () => {
       const idx = page.indexOf('Determine eligibility')
       const block = page.substring(idx, idx + 800)
-      expect(block).toContain('too broad')
-      expect(block).toContain('external')
+      expect(block).toContain('appointment-like')
     })
   })
 
