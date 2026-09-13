@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { registerModal, unregisterModal, hasOpenModal, getModalStack } from '@/lib/modalBackButton'
+import { registerModal, unregisterModal, hasOpenModal, getModalStack, consumeHistoryBackSuppression } from '@/lib/modalBackButton'
 
 interface UseModalBackButtonOptions {
   isOpen: boolean
@@ -111,14 +111,26 @@ export function useModalBackButton({ isOpen, onClose }: UseModalBackButtonOption
       // Clean up history state if we pushed it and modal closed through UI (not back)
       // Only clean up if stack is empty to avoid removing history for other open modals
       if (historyPushedRef.current && !hasOpenModal() && !closedByPopStateRef.current) {
-        console.log('[MODAL_BACK_BUTTON] Calling history.back() to cleanup', {
-          timestamp: Date.now()
-        })
-        try {
-          window.history.back()
-        } catch {
-          console.log('[MODAL_BACK_BUTTON] History.back() failed')
-          // Ignore errors from history.back
+        // Check if a navigation-driven close suppressed the history cleanup.
+        // When navigating from inside a modal (e.g., "View Customer"), the
+        // caller sets the suppression flag BEFORE calling onClose() so that
+        // this cleanup does not call history.back() and race with the
+        // pending router.push. The synthetic history entry is left in place;
+        // the new route layers on top of it.
+        if (consumeHistoryBackSuppression()) {
+          console.log('[MODAL_BACK_BUTTON] Skipping history.back() — suppressed for navigation', {
+            timestamp: Date.now()
+          })
+        } else {
+          console.log('[MODAL_BACK_BUTTON] Calling history.back() to cleanup', {
+            timestamp: Date.now()
+          })
+          try {
+            window.history.back()
+          } catch {
+            console.log('[MODAL_BACK_BUTTON] History.back() failed')
+            // Ignore errors from history.back
+          }
         }
       } else {
         console.log('[MODAL_BACK_BUTTON] Skipping history.back()', {

@@ -10,6 +10,45 @@
 const modalStack: Array<() => void> = []
 
 /**
+ * One-shot suppression flag for navigation-driven modal closes.
+ *
+ * When a modal is closed programmatically in order to navigate (e.g.,
+ * "View Customer" inside PaymentEditModal), the modal's useModalBackButton
+ * cleanup must NOT call history.back() to remove the synthetic history
+ * entry, because that would race with the pending router.push/replace.
+ *
+ * The caller sets this flag BEFORE calling onClose(), and the modal
+ * cleanup consumes it (one-shot) to skip the history.back() call.
+ *
+ * The synthetic history entry is left in place; the subsequent
+ * router.push() layers the new route on top of it. Since the synthetic
+ * entry was pushed with the current URL (empty string arg to
+ * pushState), it has the same URL as the page the user was on, so
+ * pressing Back from the destination lands on the original page —
+ * the phantom entry is invisible to the user.
+ */
+let suppressHistoryBackCleanupOnce = false
+
+/**
+ * Set the one-shot suppression flag. The next modal cleanup that would
+ * call history.back() will skip it and clear the flag instead.
+ */
+export function suppressNextHistoryBackCleanup(): void {
+  suppressHistoryBackCleanupOnce = true
+}
+
+/**
+ * Consume the one-shot suppression flag. Returns true if the flag was
+ * set (meaning history.back() should be skipped), false otherwise.
+ * Always clears the flag regardless of return value.
+ */
+export function consumeHistoryBackSuppression(): boolean {
+  const wasSuppressed = suppressHistoryBackCleanupOnce
+  suppressHistoryBackCleanupOnce = false
+  return wasSuppressed
+}
+
+/**
  * Register a modal close callback at the top of the stack
  */
 export function registerModal(onClose: () => void) {

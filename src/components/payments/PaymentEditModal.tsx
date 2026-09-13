@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { User, Copy, ExternalLink } from 'lucide-react'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getPaymentStatusStyle } from '@/lib/payment-status'
+import { suppressNextHistoryBackCleanup } from '@/lib/modalBackButton'
 import Modal from '@/components/ui/Modal'
 
 interface PaymentEditModalProps {
@@ -110,11 +111,27 @@ export default function PaymentEditModal({
   const handleViewCustomer = () => {
     if (onViewCustomer && payment.leads) {
       const customerId = payment.leads.id
-      // Close the modal first so its history cleanup (history.back()) runs
-      // before the navigation. Without this deferral, the modal's
-      // history.back() would undo the router.push(), bouncing back to Payments.
+      // Suppress the modal's history.back() cleanup deterministically.
+      // The modal's useModalBackButton hook pushes a synthetic history
+      // state on open and calls history.back() on close to remove it.
+      // If we call onClose() and then router.push() without suppression,
+      // the history.back() races with the navigation and can undo it.
+      //
+      // By setting the one-shot suppression flag BEFORE onClose(), the
+      // modal cleanup (which runs during the React unmount commit) will
+      // consume the flag and skip history.back(). The router.push() then
+      // layers the new route on top of the synthetic entry. Since the
+      // synthetic entry has the same URL as the current page, pressing
+      // Back from the destination lands on the original page — the
+      // phantom entry is invisible to the user.
+      //
+      // This is deterministic: no timer-based deferral, no timing
+      // assumptions. The flag is set synchronously, consumed
+      // synchronously during cleanup, and the navigation proceeds
+      // synchronously after onClose().
+      suppressNextHistoryBackCleanup()
       onClose()
-      setTimeout(() => onViewCustomer(customerId), 0)
+      onViewCustomer(customerId)
     }
   }
 
