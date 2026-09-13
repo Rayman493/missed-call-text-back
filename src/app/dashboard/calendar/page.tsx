@@ -128,10 +128,10 @@ function RemindersList({
                   : 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
             }`}
           >
-            <div className="flex items-start gap-3">
+            <div className="flex items-center justify-between gap-3">
               <button
                 onClick={() => onToggleComplete(task.id, task.completed)}
-                className={`flex-shrink-0 w-5 h-5 mt-0.5 rounded border-2 transition-colors flex items-center justify-center ${
+                className={`flex-shrink-0 w-5 h-5 rounded border-2 transition-colors flex items-center justify-center ${
                   task.completed
                     ? 'border-green-500 bg-green-50 dark:bg-green-900/20 hover:border-green-600'
                     : 'border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400'
@@ -240,13 +240,21 @@ function MeetingsTab({
   completedMap: Map<string, { completed_at: string }>
   onDeleteAppointment?: (event: CalendarEvent) => void
 }) {
-  // Determine eligibility
+  // Determine eligibility.
+  // Only ReplyFlow-owned events appear in the Appointments tab.
+  // The previous check (Boolean(job || rfLead || ev.meetingUrl)) was too broad:
+  // it included ANY event with a meeting URL, which let external Google
+  // Calendar events (e.g., sports subscriptions with hangoutLinks) leak into
+  // the Appointments tab. Those external events correctly had no Edit/Delete
+  // (isReplyFlowOwnedEvent returned false), but they should not have appeared
+  // in the Appointments tab at all.
+  //
+  // The canonical isReplyFlowOwnedEvent() now detects ReplyFlow-created events
+  // via the replyflow_created flag (always set by the create-event route),
+  // replyflow_lead_id, replyflow_meeting_url, or a linked job/meeting.
   const isEligible = (ev: CalendarEvent) => {
-    // Job-linked
     const job = jobs.find(j => j.google_calendar_event_id === ev.id)
-    // @ts-ignore
-    const rfLead = ev?.extendedProperties?.private?.replyflow_lead_id
-    return Boolean(job || rfLead || ev.meetingUrl)
+    return isReplyFlowOwnedEvent(ev as any, { linkedJob: job })
   }
 
   const eligible = events.filter(isEligible)
@@ -301,13 +309,13 @@ function MeetingsTab({
           return (
             <div
               key={ev.id}
-              className="rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-900/60 hover:shadow-sm transition-all cursor-pointer"
+              className="rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-900/60 hover:shadow-sm transition-all cursor-pointer p-4"
               onClick={() => onOpenEvent(ev)}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenEvent(ev) } }}
             >
-              <div className="flex items-start justify-between gap-3 p-4">
+              <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <h3 className="min-w-0 line-clamp-1 text-sm font-semibold text-slate-900 dark:text-foreground">{ev.summary}</h3>
                   {customerName && (
@@ -2800,7 +2808,7 @@ function JobsTab({
               : 'bg-slate-50 dark:bg-slate-800/20 border-slate-200/50 dark:border-slate-700/20'
         }`}
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1 text-left">
             <p className={`truncate ${isActive ? 'text-base font-semibold text-slate-900 dark:text-foreground' : 'text-sm font-medium text-slate-700 dark:text-slate-300'}`}>
               {job.title}

@@ -276,9 +276,15 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Prepare extendedProperties to persist private RF metadata (customer linkage, custom meeting URL)
+    // Prepare extendedProperties to persist private RF metadata.
+    // replyflow_created is ALWAYS set so isReplyFlowOwnedEvent() can detect
+    // events created by ReplyFlow even when no lead_id or custom_meeting_url
+    // is provided (e.g., a Google Meet appointment without customer linkage).
+    // Without this flag, such events would be indistinguishable from external
+    // Google Calendar events that happen to have a hangoutLink.
     const extendedProperties: any = {
       private: {
+        replyflow_created: 'true',
         ...(lead_id ? { replyflow_lead_id: String(lead_id) } : {}),
         ...(custom_meeting_url ? { replyflow_meeting_url: String(custom_meeting_url) } : {}),
       },
