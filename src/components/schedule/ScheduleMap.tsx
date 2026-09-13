@@ -183,7 +183,17 @@ function ScheduleMapComponent({
   const isUnmountingRef = useRef(false) // Track if component is unmounting to prevent clearing map ref on effect rerun
   const gestureRenderCountRef = useRef(0) // Track renders during active gesture for performance measurement
   const markersRef = useRef<Map<string, any>>(new Map()) // Marker registry keyed by item ID
+  // Stores the primary MapItem for each marker key so the touch-based
+  // double-tap detector can resolve which item was tapped without relying
+  // on a second `click` event (which Google Maps `gestureHandling: 'greedy'`
+  // consumes on Android).
+  const markerItemsRef = useRef<Map<string, MapItem>>(new Map())
   const suppressMapClickRef = useRef(false) // Prevents marker click from bubbling into map click
+  // Touch-based double-tap detection: tracks the last touchend timestamp
+  // and container-relative pixel position so we can detect a double-tap
+  // even when the map's native gesture handling consumes the second tap.
+  const lastTouchEndRef = useRef<{ time: number; x: number; y: number } | null>(null)
+  const TOUCH_DOUBLE_TAP_THRESHOLD_PX = 40 // max pixel distance between two taps of a double-tap
 
 // Operation counters for gesture performance measurement
 const opCountersRef = useRef({
@@ -315,6 +325,11 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
 
   // Explicit focus state for double-tap toggle: first double-tap focuses, second clears.
   const [focusedMarkerId, setFocusedMarkerId] = useState<string | null>(null)
+  // Ref mirror so the touch-based double-tap detector (which lives in the
+  // map-init effect and only depends on [isMapLoaded]) can read the current
+  // focusedMarkerId without a stale closure.
+  const focusedMarkerIdRef = useRef<string | null>(null)
+  useEffect(() => { focusedMarkerIdRef.current = focusedMarkerId }, [focusedMarkerId])
 
   // Track last click time for double-tap detection (works on both desktop and mobile)
   const lastClickTimeRef = useRef<Map<string, number>>(new Map())
@@ -1552,6 +1567,7 @@ useEffect(() => {
     let zoomChangedListener: any = null
     let idleListener: any = null
     let mapClickListener: any = null
+    let touchEndHandler: ((e: TouchEvent) => void) | null = null
 
     try {
       const isMobile = window.innerWidth < 768
@@ -1672,6 +1688,97 @@ useEffect(() => {
 
       googleMapRef.current = map
 
+      // ──────────────────────────────────────────────────────────────
+      // Touch-based double-tap detector (Android WebView fix)
+      //
+      // Google Maps `gestureHandling: 'greedy'` consumes the second tap
+      // of a double-tap for native zoom, so the marker's `click` listener
+      // never sees a second `click` event on physical Android. We detect
+      // the double-tap independently via `touchend` on the map container
+      // and resolve the tapped marker by hit-testing marker pixel
+      // positions. This preserves the canonical contract:
+      //   single tap  = select/deselect (no camera movement)
+      //   double tap  = focus/unfocus (camera movement)
+      // ──────────────────────────────────────────────────────────────
+      touchEndHandler = (e: TouchEvent) => {
+        // Only track single-finger taps (not multi-touch gestures)
+        if (e.touches.length > 0) return
+        const touch = e.changedTouches[0]
+        if (!touch || !mapRef.current) return
+
+        const rect = mapRef.current.getBoundingClientRect()
+        const x = touch.clientX - rect.left
+        const y = touch.clientY - rect.top
+        const now = Date.now()
+
+        const last = lastTouchEndRef.current
+        lastTouchEndRef.current = { time: now, x, y }
+
+        if (!last) return
+        const dt = now - last.time
+        const dist = Math.hypot(x - last.x, y - last.y)
+        if (dt > DOUBLE_TAP_DELAY_MS || dist > TOUCH_DOUBLE_TAP_THRESHOLD_PX) return
+
+        // ── Double-tap detected — find the nearest marker ──
+        const googleMap = googleMapRef.current
+        if (!googleMap) return
+
+        let nearestKey: string | null = null
+        let nearestDist = TOUCH_DOUBLE_TAP_THRESHOLD_PX
+        markersRef.current.forEach((marker, key) => {
+          const pos = marker.getPosition()
+          if (!pos) return
+          const proj = googleMap.getProjection()
+          if (!proj) return
+          const pixel = proj.fromLatLngToContainerPixel(pos)
+          if (!pixel) return
+          const d = Math.hypot(pixel.x - x, pixel.y - y)
+          if (d < nearestDist) {
+            nearestDist = d
+            nearestKey = key
+          }
+        })
+
+        if (!nearestKey) return
+        const item = markerItemsRef.current.get(nearestKey)
+        if (!item) return
+
+        // Cancel the pending single-tap timer so the single-tap toggle
+        // does NOT execute — only the double-tap action runs.
+        const pendingTimer = singleTapTimerRef.current.get(item.id)
+        if (pendingTimer) {
+          clearTimeout(pendingTimer)
+          singleTapTimerRef.current.delete(item.id)
+        }
+        lastClickTimeRef.current.delete(item.id)
+
+        // Use ref to avoid stale closure (touch handler lives in map-init effect)
+        const currentFocusedId = focusedMarkerIdRef.current
+
+        if (item.type !== 'business') {
+          if (currentFocusedId === item.id) {
+            // Already focused: double-tap unfocuses + fit-all.
+            console.log('[ScheduleMap] marker_unfocus', { source: 'touch_double_tap', stopId: item.id })
+            toggleMapItemDetails(item.id)
+            setFocusedMarkerId(null)
+            unfocusMarker()
+          } else {
+            // Not focused: double-tap selects + focuses.
+            console.log('[ScheduleMap] marker_focus_requested', { source: 'touch_double_tap', stopId: item.id })
+            focusStopOnMap(item.id, item.latitude, item.longitude)
+            setFocusedMarkerId(item.id)
+          }
+        } else {
+          // Business marker: toggle details only, no camera.
+          toggleMapItemDetails(item.id)
+        }
+
+        // Prevent the map's native double-tap zoom from also firing
+        if (e.cancelable) e.preventDefault()
+      }
+
+      mapRef.current.addEventListener('touchend', touchEndHandler as any, { passive: false })
+
       // Click on empty map deselects the current stop without touching camera
       mapClickListener = map.addListener('click', () => {
         if (suppressMapClickRef.current) {
@@ -1737,6 +1844,14 @@ useEffect(() => {
       if (mapClickListener) {
         try {
           (window as any).google.maps.event.removeListener(mapClickListener)
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
+      // Remove the touch-based double-tap detector
+      if (mapRef.current && touchEndHandler) {
+        try {
+          mapRef.current.removeEventListener('touchend', touchEndHandler as any)
         } catch (e) {
           // Ignore cleanup errors
         }
@@ -2083,6 +2198,9 @@ useEffect(() => {
         })
 
         markersRef.current.set(markerKey, marker)
+        // Store the primary MapItem so the touch-based double-tap
+        // detector can resolve which item was tapped.
+        markerItemsRef.current.set(markerKey, primaryItem)
       }
     })
 
@@ -2092,6 +2210,7 @@ useEffect(() => {
         marker.setMap(null)
         opCountersRef.current.markerSetMap++
         markersRef.current.delete(key)
+        markerItemsRef.current.delete(key)
         opCountersRef.current.markerCleanup++
       }
     })

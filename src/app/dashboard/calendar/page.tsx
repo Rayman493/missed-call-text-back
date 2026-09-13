@@ -318,7 +318,7 @@ function MeetingsTab({
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenEvent(ev) } }}
             >
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <h3 className="min-w-0 line-clamp-1 text-sm font-semibold text-slate-900 dark:text-foreground">{ev.summary}</h3>
                   {customerName && (
@@ -2812,7 +2812,7 @@ function JobsTab({
               : 'bg-slate-50 dark:bg-slate-800/20 border-slate-200/50 dark:border-slate-700/20'
         }`}
       >
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1 text-left">
             <p className={`truncate ${isActive ? 'text-base font-semibold text-slate-900 dark:text-foreground' : 'text-sm font-medium text-slate-700 dark:text-slate-300'}`}>
               {job.title}

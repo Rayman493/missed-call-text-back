@@ -125,7 +125,7 @@ export default function CalendarDayCell({
           reliable tapping on crowded days. */}
       <div
         className={`
-          relative z-10 flex items-center justify-center w-7 h-7 md:w-8 md:h-8 flex-none leading-none p-0
+          relative z-10 flex items-start justify-start w-7 h-7 md:w-8 md:h-8 flex-none leading-none p-0
           ${isToday
             ? 'bg-blue-500 rounded-md'
             : ''
@@ -134,7 +134,7 @@ export default function CalendarDayCell({
       >
         <span
           className={`
-            text-[10px] md:text-sm font-semibold leading-none
+            text-[10px] md:text-sm font-semibold leading-none pl-0.5 pt-0.5
             ${isCurrentMonth
               ? isWeekend && !isToday
                 ? 'text-slate-500 dark:text-slate-400'
