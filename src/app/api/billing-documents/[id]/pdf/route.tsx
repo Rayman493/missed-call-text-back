@@ -58,6 +58,7 @@ export async function GET(
     }
 
     const presentation = await buildDocumentPresentation(supabase, doc)
+    console.log('[BILLING PDF] Presentation built')
 
     // Pre-fetch the logo image and convert to a data URL for @react-pdf/renderer.
     // This avoids production issues where the PDF library's internal image
@@ -78,14 +79,18 @@ export async function GET(
       }
     }
     const presentationWithLogo = { ...presentation, business_logo_url: logoDataUrl }
+    console.log('[BILLING PDF] Logo prepared')
 
+    console.log('[BILLING PDF] Render start')
     const pdfBuffer = await renderToBuffer(<BillingDocumentPdf doc={presentationWithLogo} />)
+    console.log('[BILLING PDF] Render complete, size:', pdfBuffer.length)
 
     const isQuote = doc.document_type === 'quote'
     const filename = isQuote
       ? `Quote-${doc.document_number}.pdf`
       : `Invoice-${doc.document_number}.pdf`
 
+    console.log('[BILLING PDF] Response ready, filename:', filename)
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',

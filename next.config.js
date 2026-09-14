@@ -41,7 +41,6 @@ const nextConfig = {
   // correctly at runtime.
   serverExternalPackages: [
     '@supabase/supabase-js',
-    '@react-pdf/renderer',
     '@react-pdf/font',
     'pdfkit',
   ],
