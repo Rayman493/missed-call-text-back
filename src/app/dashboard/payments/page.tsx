@@ -32,6 +32,7 @@ import SuccessBanner from '@/components/SuccessBanner'
 import BillingChooserModal from '@/components/billing/BillingChooserModal'
 import BillingEditorModal, { BillingDocumentType, BillingDocumentData } from '@/components/billing/BillingEditorModal'
 import BillingDocumentList, { BillingDocumentListItem } from '@/components/billing/BillingDocumentList'
+import BillingViewerModal from '@/components/billing/BillingViewerModal'
 import { FileText } from 'lucide-react'
 
 interface PaymentRequest {
@@ -185,6 +186,11 @@ export default function PaymentsPage() {
   const [billingDocuments, setBillingDocuments] = useState<BillingDocumentListItem[]>([])
   const [billingLoading, setBillingLoading] = useState(false)
   const [billingDeletingId, setBillingDeletingId] = useState<string | null>(null)
+  const [billingDownloadingId, setBillingDownloadingId] = useState<string | null>(null)
+  const [billingSendingId, setBillingSendingId] = useState<string | null>(null)
+  const [billingConvertingId, setBillingConvertingId] = useState<string | null>(null)
+  const [viewingBillingDoc, setViewingBillingDoc] = useState<BillingDocumentListItem | null>(null)
+  const [showBillingViewer, setShowBillingViewer] = useState(false)
 
   // Lock background scroll for the inline mark-paid confirmation overlay.
   // QuickTapToPayModal, TapToPaySetupModal and PaymentEditModal manage their own locks internally.
@@ -434,6 +440,74 @@ export default function PaymentsPage() {
     } finally {
       setBillingDeletingId(null)
     }
+  }
+
+  const handleDownloadBillingDoc = async (doc: BillingDocumentListItem) => {
+    setBillingDownloadingId(doc.id)
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = {}
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+      const res = await fetch(`/api/billing-documents/${doc.id}/pdf`, { headers })
+      if (!res.ok) return
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = doc.document_type === 'quote'
+        ? `Quote-${doc.document_number}.pdf`
+        : `Invoice-${doc.document_number}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch {
+      // ignore
+    } finally {
+      setBillingDownloadingId(null)
+    }
+  }
+
+  const handleSendBillingDoc = async (doc: BillingDocumentListItem) => {
+    setBillingSendingId(doc.id)
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+      const res = await fetch(`/api/billing-documents/${doc.id}/send`, { method: 'POST', headers })
+      if (res.ok) {
+        await fetchBillingDocuments()
+      }
+    } catch {
+      // ignore
+    } finally {
+      setBillingSendingId(null)
+    }
+  }
+
+  const handleConvertBillingDoc = async (doc: BillingDocumentListItem) => {
+    setBillingConvertingId(doc.id)
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+      const res = await fetch(`/api/billing-documents/${doc.id}/convert`, { method: 'POST', headers })
+      if (res.ok) {
+        await fetchBillingDocuments()
+      }
+    } catch {
+      // ignore
+    } finally {
+      setBillingConvertingId(null)
+    }
+  }
+
+  const handleViewBillingDoc = (doc: BillingDocumentListItem) => {
+    setViewingBillingDoc(doc)
+    setShowBillingViewer(true)
   }
 
   const handleLeadSelected = (prefill: JobPrefill) => {
@@ -1700,7 +1774,14 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             loading={billingLoading}
             onOpen={handleOpenBillingDoc}
             onDelete={handleDeleteBillingDoc}
+            onDownload={handleDownloadBillingDoc}
+            onSend={handleSendBillingDoc}
+            onConvert={handleConvertBillingDoc}
+            onView={handleViewBillingDoc}
             deletingId={billingDeletingId}
+            downloadingId={billingDownloadingId}
+            sendingId={billingSendingId}
+            convertingId={billingConvertingId}
           />
         </div>
 
@@ -1853,6 +1934,21 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           documentType={billingEditorType}
           existingDocument={billingEditorDoc}
           onSaved={handleBillingSaved}
+        />
+
+        {/* Quote / Invoice Viewer Modal */}
+        <BillingViewerModal
+          isOpen={showBillingViewer}
+          onClose={() => {
+            setShowBillingViewer(false)
+            setViewingBillingDoc(null)
+          }}
+          documentId={viewingBillingDoc?.id || null}
+          onDownload={() => viewingBillingDoc && handleDownloadBillingDoc(viewingBillingDoc)}
+          onSend={() => viewingBillingDoc && handleSendBillingDoc(viewingBillingDoc)}
+          onConvert={() => viewingBillingDoc && handleConvertBillingDoc(viewingBillingDoc)}
+          showConvert={viewingBillingDoc?.document_type === 'quote' && viewingBillingDoc?.status === 'accepted'}
+          showSend={viewingBillingDoc?.status === 'sent' || viewingBillingDoc?.status === 'overdue' || viewingBillingDoc?.status === 'expired'}
         />
     </DashboardShell>
   )

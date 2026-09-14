@@ -87,19 +87,28 @@ CREATE TABLE IF NOT EXISTS billing_document_counters (
 );
 
 -- ---------------------------------------------------------------------------
--- RPC: assign_document_number
+-- RPC: assign_billing_document_number
 -- Concurrency-safe document number assignment using a per-business/type
 -- row lock. Returns the document number string (e.g. 'Q-1001' or 'INV-1001').
+--
+-- Security model:
+--   SECURITY DEFINER — runs as the migration owner (postgres) so it can
+--   INSERT/UPDATE the counter table even though RLS only grants SELECT
+--   to authenticated users. The function validates that p_business_id
+--   belongs to the calling user (auth.uid()) before assigning a number,
+--   preventing cross-business privilege escalation.
+--   search_path is locked to 'public' to prevent search-path injection.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION assign_billing_document_number(
     p_business_id uuid,
     p_document_type text
 ) RETURNS text AS $$
 DECLARE
-    v_next INTEGER;
+    v_assigned INTEGER;
     v_prefix TEXT;
     v_number TEXT;
 BEGIN
+    -- Validate document_type
     IF p_document_type = 'quote' THEN
         v_prefix := 'Q-';
     ELSIF p_document_type = 'invoice' THEN
@@ -108,27 +117,40 @@ BEGIN
         RAISE EXCEPTION 'Invalid document_type: %', p_document_type;
     END IF;
 
-    -- Lock the counter row for this business+type (creates if missing)
+    -- Authorization: the calling user must own this business.
+    -- This prevents cross-business number assignment.
+    IF NOT EXISTS (
+        SELECT 1 FROM businesses
+        WHERE id = p_business_id AND user_id = auth.uid()
+    ) THEN
+        RAISE EXCEPTION 'Business does not belong to the current user';
+    END IF;
+
+    -- Ensure the counter row exists (first call for this business+type).
+    -- Does nothing if the row already exists.
     INSERT INTO billing_document_counters (business_id, document_type, next_number)
     VALUES (p_business_id, p_document_type, 1001)
-    ON CONFLICT (business_id, document_type)
-    DO UPDATE SET next_number = billing_document_counters.next_number + 1
-    RETURNING next_number INTO v_next;
+    ON CONFLICT (business_id, document_type) DO NOTHING;
 
-    -- ON CONFLICT DO UPDATE returns the NEW value after increment.
-    -- But for the INSERT case (first document), next_number is 1001 and we
-    -- want to return 1001, not 1002. So we subtract 1 to get the assigned
-    -- number, then the next call will increment.
-    -- Actually: ON CONFLICT DO UPDATE sets next_number = next_number + 1,
-    -- so the returned value is already incremented. We want the value
-    -- BEFORE increment. Let's fix this:
-    v_next := v_next - 1;
+    -- Atomically get the current value and increment for the next caller.
+    -- The counter stores the NEXT number to assign; we return the current
+    -- value (before increment) so the first document gets 1001, not 1000.
+    UPDATE billing_document_counters
+    SET next_number = next_number + 1
+    WHERE business_id = p_business_id AND document_type = p_document_type
+    RETURNING next_number - 1 INTO v_assigned;
 
-    v_number := v_prefix || v_next::text;
+    v_number := v_prefix || v_assigned::text;
 
     RETURN v_number;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public;
+
+-- Allow authenticated users to call the numbering RPC.
+-- The function itself enforces business ownership.
+GRANT EXECUTE ON FUNCTION assign_billing_document_number(uuid, text) TO authenticated;
 
 -- ---------------------------------------------------------------------------
 -- updated_at triggers

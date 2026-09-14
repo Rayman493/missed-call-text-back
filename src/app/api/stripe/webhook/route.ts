@@ -1923,6 +1923,25 @@ export async function POST(request: Request) {
         } else {
           console.log('[PAYMENT WEBHOOK] Successfully updated payment request to paid')
           console.log('[PAYMENT WEBHOOK] Updated payment request data:', updatedPayment)
+
+          // Reconcile linked billing invoice (if any)
+          try {
+            const { data: linkedInvoice } = await supabase
+              .from('billing_documents')
+              .select('id, status')
+              .eq('payment_request_id', paymentRequest.id)
+              .eq('document_type', 'invoice')
+              .maybeSingle()
+            if (linkedInvoice && linkedInvoice.status !== 'paid') {
+              await supabase
+                .from('billing_documents')
+                .update({ status: 'paid', paid_at: new Date().toISOString() })
+                .eq('id', linkedInvoice.id)
+              console.log('[PAYMENT WEBHOOK] Reconciled billing invoice to paid:', linkedInvoice.id)
+            }
+          } catch (invoiceReconcileErr) {
+            console.error('[PAYMENT WEBHOOK] Invoice reconciliation failed (non-fatal):', invoiceReconcileErr)
+          }
         }
 
         // Update lead status to paid (optional - don't fail if this fails)

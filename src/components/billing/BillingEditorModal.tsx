@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Trash2, Search, User, X, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Search, User, X, Loader2, Eye, Download, Send } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatCurrency } from '@/lib/utils'
+import DocumentRenderer from './DocumentRenderer'
+import { DocumentPresentation } from '@/lib/billing/document-presentation'
 
 export type BillingDocumentType = 'quote' | 'invoice'
 
@@ -86,6 +88,10 @@ export default function BillingEditorModal({
   const [lineItems, setLineItems] = useState<BillingLineItem[]>([emptyLineItem()])
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [showPreview, setShowPreview] = useState(false)
+  const [previewDoc, setPreviewDoc] = useState<DocumentPresentation | null>(null)
+  const [isSending, setIsSending] = useState(false)
+  const [sendError, setSendError] = useState('')
 
   // Customer picker state
   const [showCustomerPicker, setShowCustomerPicker] = useState(false)
@@ -281,23 +287,160 @@ export default function BillingEditorModal({
     lineItems, documentType, isInvoice, existingDocument, onSaved, onClose,
   ])
 
+  // Build a preview presentation from current editor state (live data)
+  const buildPreviewDoc = useCallback((): DocumentPresentation => {
+    const subtotal = lineItems.reduce((sum, item) => {
+      const qty = parseFloat(item.quantity) || 0
+      const price = parseInt(item.unit_price_cents) || 0
+      return sum + Math.round(qty * price)
+    }, 0)
+    const disc = parseInt(discountCents) || 0
+    const tx = parseInt(taxCents) || 0
+    const total = Math.max(0, subtotal - disc + tx)
+    return {
+      document_type: documentType,
+      document_number: existingDocument?.document_number || '(unsaved draft)',
+      status: existingDocument?.status || 'draft',
+      issue_date: issueDate,
+      valid_until: isInvoice ? null : (validUntil || null),
+      due_date: isInvoice ? (dueDate || null) : null,
+      business_name: 'Your Business Name',
+      business_phone: null,
+      business_email: null,
+      business_address: null,
+      business_logo_url: null,
+      customer_name: customerName || null,
+      customer_phone: customerPhone || null,
+      customer_email: customerEmail || null,
+      customer_address: null,
+      line_items: lineItems.map((item) => ({
+        description: item.description,
+        quantity: parseFloat(item.quantity) || 0,
+        unit_label: item.unit_label || null,
+        unit_price_cents: parseInt(item.unit_price_cents) || 0,
+        line_total_cents: Math.round((parseFloat(item.quantity) || 0) * (parseInt(item.unit_price_cents) || 0)),
+      })),
+      subtotal_cents: subtotal,
+      discount_cents: disc,
+      tax_cents: tx,
+      total_cents: total,
+      notes: notes || null,
+      terms: terms || null,
+      payment_url: null,
+    }
+  }, [lineItems, discountCents, taxCents, issueDate, validUntil, dueDate, isInvoice, documentType, existingDocument, customerName, customerPhone, customerEmail, notes, terms])
+
+  const handlePreview = () => {
+    setPreviewDoc(buildPreviewDoc())
+    setShowPreview(true)
+  }
+
+  const handleDownload = async () => {
+    if (!existingDocument?.id) return
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = {}
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+      const res = await fetch(`/api/billing-documents/${existingDocument.id}/pdf`, { headers })
+      if (!res.ok) return
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const isQuote = documentType === 'quote'
+      a.download = isQuote
+        ? `Quote-${existingDocument.document_number}.pdf`
+        : `Invoice-${existingDocument.document_number}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleSend = async () => {
+    if (!existingDocument?.id) return
+    if (!customerId) {
+      setSendError('A customer must be selected before sending')
+      return
+    }
+    setIsSending(true)
+    setSendError('')
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+      const res = await fetch(`/api/billing-documents/${existingDocument.id}/send`, {
+        method: 'POST',
+        headers,
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setSendError(json.error || 'Failed to send')
+        return
+      }
+      onSaved?.(json.document)
+      onClose()
+    } catch {
+      setSendError('Failed to send')
+    } finally {
+      setIsSending(false)
+    }
+  }
+
   const footer = (
-    <div className="flex items-center justify-end gap-2">
-      <button
-        onClick={onClose}
-        className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-        disabled={isSaving}
-      >
-        Cancel
-      </button>
-      <button
-        onClick={handleSaveDraft}
-        disabled={isSaving}
-        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-      >
-        {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-        Save Draft
-      </button>
+    <div className="flex items-center justify-between gap-2 flex-wrap">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handlePreview}
+          className="px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
+          disabled={isSaving || isSending}
+        >
+          <Eye className="w-4 h-4" />
+          Preview
+        </button>
+        {existingDocument?.id && (
+          <>
+            <button
+              onClick={handleDownload}
+              className="px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
+              disabled={isSaving || isSending}
+            >
+              <Download className="w-4 h-4" />
+              Download
+            </button>
+            <button
+              onClick={handleSend}
+              disabled={isSending}
+              className="px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+            >
+              {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              Send to Customer
+            </button>
+          </>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onClose}
+          className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+          disabled={isSaving || isSending}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleSaveDraft}
+          disabled={isSaving}
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+          Save Draft
+        </button>
+      </div>
     </div>
   )
 
@@ -314,6 +457,11 @@ export default function BillingEditorModal({
         {saveError && (
           <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 text-sm text-red-700 dark:text-red-300">
             {saveError}
+          </div>
+        )}
+        {sendError && (
+          <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 text-sm text-red-700 dark:text-red-300">
+            {sendError}
           </div>
         )}
 
@@ -590,6 +738,57 @@ export default function BillingEditorModal({
           />
         </div>
       </div>
+
+      {/* Preview Modal */}
+      {showPreview && previewDoc && (
+        <Modal
+          isOpen={showPreview}
+          onClose={() => setShowPreview(false)}
+          title="Document Preview"
+          bottomSheetOnMobile
+          contentMaxHeight="85vh"
+          footer={
+            <div className="flex items-center justify-between gap-2">
+              <button
+                onClick={() => setShowPreview(false)}
+                className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+              >
+                Back to Edit
+              </button>
+              <div className="flex items-center gap-2">
+                {existingDocument?.id && (
+                  <>
+                    <button
+                      onClick={handleDownload}
+                      className="px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download
+                    </button>
+                    <button
+                      onClick={handleSend}
+                      disabled={isSending}
+                      className="px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      Send to Customer
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          }
+        >
+          {previewDoc.status === 'draft' && (
+            <div className="mb-3 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 text-xs text-amber-700 dark:text-amber-300">
+              This is an unsaved draft preview. Save the document first to download or send.
+            </div>
+          )}
+          <div className="bg-slate-50 dark:bg-slate-950 rounded-lg overflow-hidden">
+            <DocumentRenderer doc={previewDoc} showStatusBadge isPreview />
+          </div>
+        </Modal>
+      )}
     </Modal>
   )
 }

@@ -53,7 +53,7 @@ import { join } from 'path'
 const repoRoot = process.cwd()
 const readSrc = (rel: string) => readFileSync(join(repoRoot, rel), 'utf8').replace(/\r\n/g, '\n')
 
-const migrationSrc = readSrc('supabase/migrations/20260919000000_create_billing_documents.sql')
+const migrationSrc = readSrc('supabase/migrations/20260913210000_create_billing_documents.sql')
 const billingUtilsSrc = readSrc('src/lib/billing/billing-utils.ts')
 const apiListSrc = readSrc('src/app/api/billing-documents/route.ts')
 const apiItemSrc = readSrc('src/app/api/billing-documents/[id]/route.ts')
@@ -145,9 +145,10 @@ describe('NUMBERING', () => {
     expect(migrationSrc).toContain('UNIQUE (business_id, document_type, document_number)')
   })
 
-  it('numbering uses ON CONFLICT for concurrency safety', () => {
-    expect(migrationSrc).toContain('ON CONFLICT (business_id, document_type)')
-    expect(migrationSrc).toContain('DO UPDATE SET next_number')
+  it('numbering uses atomic UPDATE for concurrency safety', () => {
+    expect(migrationSrc).toContain('ON CONFLICT (business_id, document_type) DO NOTHING')
+    expect(migrationSrc).toContain('UPDATE billing_document_counters')
+    expect(migrationSrc).toContain('SET next_number = next_number + 1')
   })
 
   it('API calls RPC for document number', () => {

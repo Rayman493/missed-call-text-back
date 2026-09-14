@@ -54,6 +54,7 @@ export async function GET(request: Request) {
         id, document_type, status, document_number, issue_date, valid_until,
         due_date, subtotal_cents, discount_cents, tax_cents, total_cents,
         currency, customer_id, job_id, sent_at, created_at, updated_at,
+        public_token, source_quote_id, paid_at,
         leads ( id, contact_name, name, caller_phone, email )
       `)
       .eq('business_id', business.id)

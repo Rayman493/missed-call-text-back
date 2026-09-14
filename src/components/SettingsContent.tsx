@@ -13,6 +13,7 @@ import Toast, { ToastContainer } from '@/components/Toast'
 import PasswordInput from '@/components/PasswordInput'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import AppBackButton from '@/components/AppBackButton'
+import BusinessLogoSettings from '@/components/billing/BusinessLogoSettings'
 import { useSettingsFormState } from '@/hooks/useSettingsFormState'
 import { useTapToPayAwareness } from '@/hooks/useTapToPayAwareness'
 import { useTapToPayReaderPresentation } from '@/hooks/useTapToPayReaderPresentation'
@@ -3074,6 +3075,25 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   </p>
                 </div>
                 <ThemeSelector />
+              </div>
+
+              {/* Group: Business Logo */}
+              <div id="business-logo-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
+                <div className="h-px flex-1 bg-border/30"></div>
+                <h3 className="text-sm font-medium text-muted-foreground">Business Logo</h3>
+                <div className="h-px flex-1 bg-border/30"></div>
+              </div>
+
+              <div id="business-logo" className="scroll-mt-[64px]">
+                {business && (
+                  <BusinessLogoSettings
+                    businessId={business.id}
+                    logoUrl={business.logo_url || null}
+                    onLogoChange={(url) => {
+                      updateBusiness({ logo_url: url })
+                    }}
+                  />
+                )}
               </div>
 
               {/* Group: Business Address */}

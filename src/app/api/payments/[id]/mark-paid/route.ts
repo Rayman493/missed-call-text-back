@@ -132,6 +132,25 @@ export async function POST(
 
     console.log('[PAYMENT MARK-PAID] Successfully updated payment request to paid')
 
+    // Reconcile linked billing invoice (if any)
+    try {
+      const { data: linkedInvoice } = await supabase
+        .from('billing_documents')
+        .select('id, status')
+        .eq('payment_request_id', id)
+        .eq('document_type', 'invoice')
+        .maybeSingle()
+      if (linkedInvoice && linkedInvoice.status !== 'paid') {
+        await supabase
+          .from('billing_documents')
+          .update({ status: 'paid', paid_at: new Date().toISOString() })
+          .eq('id', linkedInvoice.id)
+        console.log('[PAYMENT MARK-PAID] Reconciled billing invoice to paid:', linkedInvoice.id)
+      }
+    } catch (invoiceReconcileErr) {
+      console.error('[PAYMENT MARK-PAID] Invoice reconciliation failed (non-fatal):', invoiceReconcileErr)
+    }
+
     // Update lead status to paid (following Stripe reconcile pattern)
     try {
       const { data: lead } = await supabase
