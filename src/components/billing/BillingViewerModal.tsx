@@ -58,7 +58,7 @@ export default function BillingViewerModal({
           business_email: d.snapshot_business_email || null,
           business_address: d.snapshot_business_address || null,
           business_logo_url: d.snapshot_business_logo_url || null,
-          customer_name: d.snapshot_customer_name || d.leads?.contact_name || d.leads?.name || null,
+          customer_name: d.snapshot_customer_name || d.leads?.contact_name || null,
           customer_phone: d.snapshot_customer_phone || d.leads?.caller_phone || null,
           customer_email: d.snapshot_customer_email || d.leads?.email || null,
           customer_address: d.snapshot_customer_address || null,

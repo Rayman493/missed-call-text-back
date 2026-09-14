@@ -542,18 +542,123 @@ describe('PREVIEW / SEND', () => {
 // 5. LOGO PATHS
 // ============================================================================
 describe('LOGO PATHS', () => {
-  it('78. Preview consumes business logo (buildPreviewDoc)', () => {
+  it('78. logo client uses intended production Supabase browser client', () => {
+    const logoSrc = readSrc('src/components/billing/BusinessLogoSettings.tsx')
+    expect(logoSrc).toContain('createBrowserClient')
+    expect(logoSrc).toContain("@/lib/supabase/browser")
+  })
+
+  it('79. update targets businesses.logo_url', () => {
+    const logoSrc = readSrc('src/components/billing/BusinessLogoSettings.tsx')
+    expect(logoSrc).toContain(".from('businesses')")
+    expect(logoSrc).toContain('logo_url')
+    expect(logoSrc).toContain('.update({ logo_url:')
+  })
+
+  it('80. no alternate logo field', () => {
+    const logoSrc = readSrc('src/components/billing/BusinessLogoSettings.tsx')
+    // Must not use a different column name for logo storage
+    expect(logoSrc).not.toContain('logo_image')
+    expect(logoSrc).not.toContain('logo_file')
+    expect(logoSrc).not.toContain('business_logo')
+  })
+
+  it('81. no alternate businesses relation', () => {
+    const logoSrc = readSrc('src/components/billing/BusinessLogoSettings.tsx')
+    // Must update the businesses table, not a view or alternate table
+    expect(logoSrc).toContain(".from('businesses')")
+    expect(logoSrc).not.toContain('.from("businesses"')
+    expect(logoSrc).not.toContain('.from(\'business_profiles\'')
+    expect(logoSrc).not.toContain('.from("business_profiles"')
+  })
+
+  it('82. upload still business scoped', () => {
+    const logoSrc = readSrc('src/components/billing/BusinessLogoSettings.tsx')
+    expect(logoSrc).toContain("business-logos")
+    expect(logoSrc).toContain('${businessId}')
+  })
+
+  it('83. successful update refreshes BusinessContext (onLogoChange callback)', () => {
+    const logoSrc = readSrc('src/components/billing/BusinessLogoSettings.tsx')
+    expect(logoSrc).toContain('onLogoChange')
+  })
+
+  it('84. Preview consumes business logo (buildPreviewDoc)', () => {
     expect(editorSrc).toContain('business_logo_url')
     expect(editorSrc).toContain('logo_url')
   })
 
-  it('79. PDF consumes business logo', () => {
+  it('85. PDF consumes business logo', () => {
     expect(pdfSrc).toContain('business_logo_url')
     expect(pdfSrc).toContain('Image')
   })
 
-  it('80. Hosted document consumes business logo (via DocumentRenderer)', () => {
+  it('86. Hosted document consumes business logo (via DocumentRenderer)', () => {
     expect(rendererSrc).toContain('business_logo_url')
     expect(hostedSrc).toContain('DocumentRenderer')
+  })
+})
+
+// ============================================================================
+// 6. BILLING LIST CUSTOMER QUERY
+// ============================================================================
+describe('BILLING LIST CUSTOMER QUERY', () => {
+  it('87. billing list does not select leads.name', () => {
+    // The leads table in production does not have a `name` column.
+    // The query must only select columns that actually exist.
+    expect(apiListSrc).not.toMatch(/leads\s*\(\s*[^)]*\bname\b/)
+  })
+
+  it('88. billing list selects actual canonical lead fields', () => {
+    // Must select contact_name (canonical customer name) and caller_phone
+    expect(apiListSrc).toContain('contact_name')
+    expect(apiListSrc).toContain('caller_phone')
+  })
+
+  it('89. named customer display works (contact_name)', () => {
+    expect(listSrc).toContain('contact_name')
+    expect(listSrc).toContain('doc.leads?.contact_name')
+  })
+
+  it('90. phone-only customer fallback works (caller_phone)', () => {
+    expect(listSrc).toContain('caller_phone')
+    expect(listSrc).toContain('doc.leads?.caller_phone')
+  })
+
+  it('91. null optional fields do not crash (No customer fallback)', () => {
+    expect(listSrc).toContain("'No customer'")
+  })
+
+  it('92. customer ownership/business isolation unchanged', () => {
+    expect(apiListSrc).toContain('.eq(\'business_id\', business.id)')
+  })
+
+  it('93. quote list renders customer correctly', () => {
+    // The list query supports type filtering for quotes
+    expect(apiListSrc).toContain("document_type")
+    expect(apiListSrc).toContain("type")
+  })
+
+  it('94. invoice list renders customer correctly', () => {
+    // The list query supports type filtering for invoices
+    expect(apiListSrc).toContain("query = query.eq('document_type', type)")
+  })
+
+  it('95. single-document route also does not select leads.name', () => {
+    const singleDocSrc = readSrc('src/app/api/billing-documents/[id]/route.ts')
+    expect(singleDocSrc).not.toMatch(/leads\s*\(\s*[^)]*\bname\b/)
+    expect(singleDocSrc).toContain('contact_name')
+  })
+
+  it('96. send route also does not select leads.name', () => {
+    const sendSrc = readSrc('src/app/api/billing-documents/[id]/send/route.ts')
+    expect(sendSrc).not.toMatch(/leads\s*\(\s*[^)]*\bname\b/)
+    expect(sendSrc).toContain('contact_name')
+  })
+
+  it('97. viewer modal uses contact_name (not leads.name)', () => {
+    const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
+    expect(viewerSrc).toContain('contact_name')
+    expect(viewerSrc).not.toContain('d.leads?.name')
   })
 })

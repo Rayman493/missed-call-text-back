@@ -55,7 +55,7 @@ export async function GET(request: Request) {
         due_date, subtotal_cents, discount_cents, tax_cents, total_cents,
         currency, customer_id, job_id, sent_at, created_at, updated_at,
         public_token, source_quote_id, paid_at,
-        leads ( id, contact_name, name, caller_phone, email )
+        leads ( id, contact_name, caller_phone, email )
       `)
       .eq('business_id', business.id)
       .order('updated_at', { ascending: false })
@@ -246,7 +246,7 @@ export async function POST(request: Request) {
       .select(`
         *,
         billing_document_items (*),
-        leads ( id, contact_name, name, caller_phone, email )
+        leads ( id, contact_name, caller_phone, email )
       `)
       .eq('id', doc.id)
       .single()

@@ -20,7 +20,7 @@ export interface BillingDocumentListItem {
   leads: {
     id: string
     contact_name: string | null
-    name: string | null
+    caller_phone: string | null
   } | null
   updated_at: string
   sent_at: string | null
@@ -107,7 +107,7 @@ export default function BillingDocumentList({
           due_date: doc.due_date,
         } as any)
         const badge = statusBadge(effective)
-        const customerName = doc.leads?.contact_name || doc.leads?.name || 'No customer'
+        const customerName = doc.leads?.contact_name || doc.leads?.caller_phone || 'No customer'
         const isDraft = doc.status === 'draft'
         const isSent = doc.status === 'sent' || effective === 'overdue' || effective === 'expired'
         const isAccepted = doc.status === 'accepted'

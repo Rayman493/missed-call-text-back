@@ -56,7 +56,7 @@ export async function POST(
       .select(`
         *,
         billing_document_items (*),
-        leads ( id, contact_name, name, caller_phone, phone, email )
+        leads ( id, contact_name, caller_phone, phone, email )
       `)
       .eq('id', id)
       .eq('business_id', business.id)
@@ -135,7 +135,7 @@ export async function POST(
       .select(`
         *,
         billing_document_items (*),
-        leads ( id, contact_name, name, caller_phone, phone, email )
+        leads ( id, contact_name, caller_phone, phone, email )
       `)
       .eq('id', id)
       .single()

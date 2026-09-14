@@ -51,7 +51,7 @@ export async function GET(
       .select(`
         *,
         billing_document_items (*),
-        leads ( id, contact_name, name, caller_phone, email )
+        leads ( id, contact_name, caller_phone, email )
       `)
       .eq('id', id)
       .eq('business_id', business.id)
@@ -226,7 +226,7 @@ export async function PATCH(
       .select(`
         *,
         billing_document_items (*),
-        leads ( id, contact_name, name, caller_phone, email )
+        leads ( id, contact_name, caller_phone, email )
       `)
       .eq('id', id)
       .single()
