@@ -29,6 +29,10 @@ import PaymentEditModal from '@/components/payments/PaymentEditModal'
 import PaymentsNewRequestModal from '@/components/payments/PaymentsNewRequestModal'
 import Modal from '@/components/ui/Modal'
 import SuccessBanner from '@/components/SuccessBanner'
+import BillingChooserModal from '@/components/billing/BillingChooserModal'
+import BillingEditorModal, { BillingDocumentType, BillingDocumentData } from '@/components/billing/BillingEditorModal'
+import BillingDocumentList, { BillingDocumentListItem } from '@/components/billing/BillingDocumentList'
+import { FileText } from 'lucide-react'
 
 interface PaymentRequest {
   id: string
@@ -173,6 +177,15 @@ export default function PaymentsPage() {
   const [isReconciling, setIsReconciling] = useState(false)
   const [scrollPositionBeforeEdit, setScrollPositionBeforeEdit] = useState<number | null>(null)
 
+  // Quote / Invoice state
+  const [showBillingChooser, setShowBillingChooser] = useState(false)
+  const [billingEditorType, setBillingEditorType] = useState<BillingDocumentType>('quote')
+  const [billingEditorDoc, setBillingEditorDoc] = useState<BillingDocumentData | null>(null)
+  const [showBillingEditor, setShowBillingEditor] = useState(false)
+  const [billingDocuments, setBillingDocuments] = useState<BillingDocumentListItem[]>([])
+  const [billingLoading, setBillingLoading] = useState(false)
+  const [billingDeletingId, setBillingDeletingId] = useState<string | null>(null)
+
   // Lock background scroll for the inline mark-paid confirmation overlay.
   // QuickTapToPayModal, TapToPaySetupModal and PaymentEditModal manage their own locks internally.
   // Note: the shared <Modal> used for the mark-paid confirm now owns its own
@@ -238,6 +251,7 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     fetchPayments()
+    fetchBillingDocuments()
   }, [])
 
   // Listen for payment completion events to refresh the list
@@ -330,6 +344,96 @@ export default function PaymentsPage() {
     setPaymentProvider('stripe')
     setError('')
     setIsLeadPickerOpen(true)
+  }
+
+  // ---- Quote / Invoice handlers ----
+  const fetchBillingDocuments = async () => {
+    setBillingLoading(true)
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+      const res = await fetch('/api/billing-documents', { headers })
+      if (!res.ok) return
+      const json = await res.json()
+      setBillingDocuments(json.documents || [])
+    } catch {
+      // ignore
+    } finally {
+      setBillingLoading(false)
+    }
+  }
+
+  const handleBillingChooserSelect = (type: BillingDocumentType) => {
+    setBillingEditorType(type)
+    setBillingEditorDoc(null)
+    setShowBillingChooser(false)
+    setShowBillingEditor(true)
+  }
+
+  const handleOpenBillingDoc = async (doc: BillingDocumentListItem) => {
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+      const res = await fetch(`/api/billing-documents/${doc.id}`, { headers })
+      if (!res.ok) return
+      const json = await res.json()
+      const d = json.document
+      setBillingEditorType(d.document_type)
+      setBillingEditorDoc({
+        id: d.id,
+        document_type: d.document_type,
+        status: d.status,
+        document_number: d.document_number,
+        issue_date: d.issue_date,
+        valid_until: d.valid_until,
+        due_date: d.due_date,
+        customer_id: d.customer_id,
+        customer_name: d.leads?.contact_name || d.leads?.name || null,
+        customer_phone: d.leads?.caller_phone || null,
+        customer_email: d.leads?.email || null,
+        notes: d.notes,
+        terms: d.terms,
+        discount_cents: d.discount_cents,
+        tax_cents: d.tax_cents,
+        line_items: (d.billing_document_items || []).map((item: any) => ({
+          id: item.id,
+          description: item.description || '',
+          quantity: String(item.quantity),
+          unit_label: item.unit_label || '',
+          unit_price_cents: String(item.unit_price_cents),
+        })),
+      })
+      setShowBillingEditor(true)
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleBillingSaved = () => {
+    fetchBillingDocuments()
+  }
+
+  const handleDeleteBillingDoc = async (doc: BillingDocumentListItem) => {
+    if (!confirm(`Delete ${doc.document_number}? This cannot be undone.`)) return
+    setBillingDeletingId(doc.id)
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+      const res = await fetch(`/api/billing-documents/${doc.id}`, { method: 'DELETE', headers })
+      if (res.ok) {
+        setBillingDocuments(billingDocuments.filter((d) => d.id !== doc.id))
+      }
+    } catch {
+      // ignore
+    } finally {
+      setBillingDeletingId(null)
+    }
   }
 
   const handleLeadSelected = (prefill: JobPrefill) => {
@@ -763,7 +867,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         <FocusSection business={business} view="payments" title="Collection Priorities" compact />
 
         {/* Action Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-3.5">
           {/* Tap to Pay Card */}
           {(() => {
             const isStripeReady = business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled
@@ -869,6 +973,24 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               </div>
             </div>
             <p className="text-blue-50 dark:text-blue-50 text-xs sm:text-sm">Send a payment request via SMS to your customer</p>
+          </button>
+
+          {/* Quote / Invoice Card */}
+          <button
+            onClick={() => setShowBillingChooser(true)}
+            className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.995]
+            bg-violet-600 dark:bg-violet-500 border-violet-700 dark:border-violet-600 hover:bg-violet-700 dark:hover:bg-violet-600 shadow-[0_6px_18px_rgba(0,0,0,0.15)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
+          >
+            <div className="flex items-center gap-3.5 mb-2.5">
+              <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-white/10 ring-1 ring-inset ring-white/30 dark:ring-white/20 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-white dark:text-white" />
+              </div>
+              <div>
+                <h3 className="text-white dark:text-white font-semibold text-sm sm:text-base leading-tight">Quote / Invoice</h3>
+                <p className="text-violet-100 dark:text-violet-100 text-xs">Create a document</p>
+              </div>
+            </div>
+            <p className="text-violet-50 dark:text-violet-50 text-xs sm:text-sm">Create a professional quote or invoice for your customer</p>
           </button>
         </div>
 
@@ -1570,6 +1692,18 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           </>
         )}
 
+        {/* Quotes & Invoices Section */}
+        <div className="mt-6">
+          <h2 className="text-base font-semibold text-foreground mb-3">Quotes & Invoices</h2>
+          <BillingDocumentList
+            documents={billingDocuments}
+            loading={billingLoading}
+            onOpen={handleOpenBillingDoc}
+            onDelete={handleDeleteBillingDoc}
+            deletingId={billingDeletingId}
+          />
+        </div>
+
         {/* New Payment Request Modal */}
         {business && (
           <PaymentsNewRequestModal
@@ -1700,6 +1834,25 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           payment={paymentToEdit}
           currentLabel={editLabel}
           methodBadge={paymentToEdit ? getPaymentMethodBadge(paymentToEdit.payment_method_type, paymentToEdit.payment_provider) : null}
+        />
+
+        {/* Quote / Invoice Chooser Modal */}
+        <BillingChooserModal
+          isOpen={showBillingChooser}
+          onClose={() => setShowBillingChooser(false)}
+          onSelectType={handleBillingChooserSelect}
+        />
+
+        {/* Quote / Invoice Editor Modal */}
+        <BillingEditorModal
+          isOpen={showBillingEditor}
+          onClose={() => {
+            setShowBillingEditor(false)
+            setBillingEditorDoc(null)
+          }}
+          documentType={billingEditorType}
+          existingDocument={billingEditorDoc}
+          onSaved={handleBillingSaved}
         />
     </DashboardShell>
   )
