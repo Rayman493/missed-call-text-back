@@ -17,7 +17,7 @@ const repoRoot = process.cwd()
 const readSrc = (rel: string) => readFileSync(join(repoRoot, rel), 'utf8').replace(/\r\n/g, '\n')
 
 const foundationMigrationSrc = readSrc('supabase/migrations/20260913210000_create_billing_documents.sql')
-const repairMigrationSrc = readSrc('supabase/migrations/20260919000000_repair_billing_document_numbering.sql')
+const repairMigrationSrc = readSrc('supabase/migrations/20260914000000_repair_billing_document_numbering.sql')
 const apiListSrc = readSrc('src/app/api/billing-documents/route.ts')
 const convertSrc = readSrc('src/app/api/billing-documents/[id]/convert/route.ts')
 const editorSrc = readSrc('src/components/billing/BillingEditorModal.tsx')
@@ -53,10 +53,12 @@ describe('NUMBERING / MIGRATIONS', () => {
 
   it('4. quote returns Q- number', () => {
     expect(foundationMigrationSrc).toContain("v_prefix := 'Q-'")
+    expect(repairMigrationSrc).toContain("v_prefix := 'Q-'")
   })
 
   it('5. invoice returns INV- number', () => {
     expect(foundationMigrationSrc).toContain("v_prefix := 'INV-'")
+    expect(repairMigrationSrc).toContain("v_prefix := 'INV-'")
   })
 
   it('6. no max()+1 fallback', () => {
@@ -67,6 +69,7 @@ describe('NUMBERING / MIGRATIONS', () => {
     expect(foundationMigrationSrc).toContain('SET next_number = next_number + 1')
     // Must NOT contain max()-based numbering
     expect(foundationMigrationSrc).not.toMatch(/MAX\s*\(\s*next_number\s*\)/i)
+    expect(repairMigrationSrc).not.toMatch(/MAX\s*\(\s*next_number\s*\)/i)
   })
 
   it('7. correct business isolation / security', () => {
@@ -78,7 +81,7 @@ describe('NUMBERING / MIGRATIONS', () => {
     expect(foundationMigrationSrc).toContain('TO authenticated')
   })
 
-  it('8. corrective migration exists and is idempotent', () => {
+  it('8. repair migration is narrowed and conservative', () => {
     expect(repairMigrationSrc).toContain('assign_billing_document_number')
     expect(repairMigrationSrc).toContain('SECURITY DEFINER')
     expect(repairMigrationSrc).toContain('SET search_path = public')
@@ -88,11 +91,130 @@ describe('NUMBERING / MIGRATIONS', () => {
     expect(repairMigrationSrc).toContain('CREATE TABLE IF NOT EXISTS billing_documents')
     expect(repairMigrationSrc).toContain('CREATE TABLE IF NOT EXISTS billing_document_items')
     expect(repairMigrationSrc).toContain('CREATE TABLE IF NOT EXISTS billing_document_counters')
-    // Idempotent: uses DROP ... IF EXISTS for policies/triggers
-    expect(repairMigrationSrc).toContain('DROP POLICY IF EXISTS')
-    expect(repairMigrationSrc).toContain('DROP TRIGGER IF EXISTS')
-    // No max()+1 in repair migration either
+    // Narrowed: does NOT recreate healthy policies/triggers from foundation
+    expect(repairMigrationSrc).not.toContain('DROP POLICY')
+    expect(repairMigrationSrc).not.toContain('CREATE POLICY')
+    expect(repairMigrationSrc).not.toContain('DROP TRIGGER')
+    expect(repairMigrationSrc).not.toContain('CREATE TRIGGER')
+    // No max()+1 in repair migration
     expect(repairMigrationSrc).not.toMatch(/MAX\s*\(\s*next_number\s*\)/i)
+  })
+
+  it('9. repair migration timestamp is not future-dated', () => {
+    // Today is September 14, 2026. The repair migration must not be future-dated.
+    // Filename: 20260914000000_repair_billing_document_numbering.sql
+    const fs = require('fs')
+    const migrationsDir = join(repoRoot, 'supabase/migrations')
+    const files = fs.readdirSync(migrationsDir)
+    const repairFile = files.find(f => f.includes('repair_billing_document_numbering'))
+    expect(repairFile).toBeTruthy()
+    // Extract timestamp prefix (YYYYMMDDHHMMSS)
+    const timestamp = repairFile!.split('_')[0]
+    const year = parseInt(timestamp.slice(0, 4))
+    const month = parseInt(timestamp.slice(4, 6))
+    const day = parseInt(timestamp.slice(6, 8))
+    // Must be September 14, 2026 or earlier (not future-dated)
+    expect(year).toBeLessThanOrEqual(2026)
+    if (year === 2026) {
+      expect(month).toBeLessThanOrEqual(9)
+      if (month === 9) {
+        expect(day).toBeLessThanOrEqual(14)
+      }
+    }
+    // Must come after the logo fix migration (20260913230000)
+    expect(parseInt(timestamp)).toBeGreaterThan(20260913230000)
+  })
+
+  it('10. repair RPC exact name and return type', () => {
+    expect(repairMigrationSrc).toContain('CREATE FUNCTION assign_billing_document_number(')
+    expect(repairMigrationSrc).toContain('RETURNS text')
+  })
+
+  it('11. repair RPC exact parameter names and types', () => {
+    expect(repairMigrationSrc).toContain('p_business_id uuid')
+    expect(repairMigrationSrc).toContain('p_document_type text')
+  })
+
+  it('12. repair RPC SECURITY DEFINER', () => {
+    expect(repairMigrationSrc).toContain('SECURITY DEFINER')
+  })
+
+  it('13. repair RPC safe search_path (public only, no pg_temp)', () => {
+    // Check the actual SET search_path statement, not comments
+    const searchPathLine = repairMigrationSrc.split('\n').find(l => l.trim().startsWith('SET search_path'))
+    expect(searchPathLine).toBeTruthy()
+    expect(searchPathLine!.trim()).toBe('SET search_path = public;')
+    // pg_temp intentionally excluded for security — verify it's not in the SET statement
+    expect(searchPathLine!).not.toContain('pg_temp')
+  })
+
+  it('14. repair RPC rejects invalid document_type', () => {
+    expect(repairMigrationSrc).toContain('RAISE EXCEPTION')
+    expect(repairMigrationSrc).toContain('Invalid document_type')
+  })
+
+  it('15. repair RPC prevents cross-business numbering', () => {
+    expect(repairMigrationSrc).toContain('auth.uid()')
+    expect(repairMigrationSrc).toContain('Business does not belong to the current user')
+  })
+
+  it('16. repair RPC first sequence value is 1001', () => {
+    expect(repairMigrationSrc).toContain('1001')
+  })
+
+  it('17. repair RPC atomic ON CONFLICT counter update', () => {
+    expect(repairMigrationSrc).toContain('ON CONFLICT (business_id, document_type) DO NOTHING')
+    expect(repairMigrationSrc).toContain('SET next_number = next_number + 1')
+    expect(repairMigrationSrc).toContain('RETURNING next_number - 1 INTO v_assigned')
+  })
+
+  it('18. repair migration no destructive DROP TABLE/TRUNCATE', () => {
+    // Strip SQL comments before checking for destructive statements
+    const sqlOnly = repairMigrationSrc.split('\n')
+      .filter(l => !l.trim().startsWith('--'))
+      .join('\n')
+    expect(sqlOnly).not.toMatch(/DROP\s+TABLE/i)
+    expect(sqlOnly).not.toMatch(/TRUNCATE/i)
+    expect(sqlOnly).not.toMatch(/DELETE\s+FROM/i)
+  })
+
+  it('19. repair migration preserves existing counters', () => {
+    // ON CONFLICT DO NOTHING ensures existing counter rows are not overwritten
+    expect(repairMigrationSrc).toContain('ON CONFLICT (business_id, document_type) DO NOTHING')
+    // No counter reset
+    expect(repairMigrationSrc).not.toMatch(/UPDATE\s+billing_document_counters\s+SET\s+next_number\s*=\s*1001/i)
+  })
+
+  it('20. repair migration no anon execute grant', () => {
+    expect(repairMigrationSrc).not.toMatch(/TO\s+anon/i)
+    expect(repairMigrationSrc).toContain('TO authenticated')
+  })
+
+  it('21. repair migration explicit schema cache reload', () => {
+    expect(repairMigrationSrc).toContain('NOTIFY pgrst')
+    expect(repairMigrationSrc).toContain("'reload schema'")
+  })
+
+  it('22. repair RPC matches foundation RPC definition', () => {
+    // Both migrations define the same canonical function
+    const extractFunction = (src: string) => {
+      const start = src.indexOf('assign_billing_document_number')
+      // Find the function body between $$ markers
+      const dollarStart = src.indexOf('$$', start)
+      const dollarEnd = src.indexOf('$$', dollarStart + 2)
+      return src.slice(start, dollarEnd + 2)
+    }
+    const foundationFn = extractFunction(foundationMigrationSrc)
+    const repairFn = extractFunction(repairMigrationSrc)
+    // Both should contain the same key logic
+    expect(foundationFn).toContain("v_prefix := 'Q-'")
+    expect(repairFn).toContain("v_prefix := 'Q-'")
+    expect(foundationFn).toContain("v_prefix := 'INV-'")
+    expect(repairFn).toContain("v_prefix := 'INV-'")
+    expect(foundationFn).toContain('auth.uid()')
+    expect(repairFn).toContain('auth.uid()')
+    expect(foundationFn).toContain('ON CONFLICT (business_id, document_type) DO NOTHING')
+    expect(repairFn).toContain('ON CONFLICT (business_id, document_type) DO NOTHING')
   })
 })
 
