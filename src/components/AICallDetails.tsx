@@ -239,6 +239,12 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
     const intake = getLeadAIIntake(leadData || {})
     const conciseTitle = getLeadRequestTitle(leadData || {}) || intake.serviceRequested || ''
 
+    // Returns the value if it's meaningful (not a placeholder like 'Not collected'),
+    // otherwise undefined. Used so manually-corrected fields stay visible and
+    // don't disappear when the AI-extracted value was empty.
+    const meaningful = (v: string | null | undefined): string | undefined =>
+      v && v.trim() && v !== 'Not collected' ? v : undefined
+
     return (
       <div className="space-y-5">
         {/* Concise Request Title - Prominent in view mode */}
@@ -257,7 +263,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         )}
 
         {/* Name */}
-        {isEditMode || extractedInfo?.callerName ? (
+        {isEditMode || meaningful(intake.customerName) || extractedInfo?.callerName ? (
           <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -278,7 +284,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               />
             ) : (
               <p className="text-sm font-medium leading-relaxed text-foreground pl-6">
-                {extractedInfo?.callerName || <span className="text-muted-foreground italic">Not provided</span>}
+                {meaningful(intake.customerName) || extractedInfo?.callerName || <span className="text-muted-foreground italic">Not provided</span>}
               </p>
             )}
           </div>
@@ -370,7 +376,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         ) : null}
 
         {/* Desired Completion */}
-        {isEditMode || extractedInfo?.desiredCompletionTime ? (
+        {isEditMode || meaningful(intake.desiredCompletion) || extractedInfo?.desiredCompletionTime ? (
           <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -391,14 +397,14 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               />
             ) : (
               <p className="text-sm font-medium leading-relaxed text-foreground pl-6">
-                {sentenceCase(extractedInfo.desiredCompletionTime) || <span className="text-muted-foreground italic">Not specified</span>}
+                {sentenceCase(meaningful(intake.desiredCompletion) || extractedInfo?.desiredCompletionTime) || <span className="text-muted-foreground italic">Not specified</span>}
               </p>
             )}
           </div>
         ) : null}
 
         {/* Preferred Callback */}
-        {isEditMode || extractedInfo?.preferredCallbackTime ? (
+        {isEditMode || meaningful(intake.callbackTime) || extractedInfo?.preferredCallbackTime ? (
           <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -419,7 +425,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               />
             ) : (
               <p className="text-sm font-medium leading-relaxed text-foreground pl-6">
-                {sentenceCase(extractedInfo.preferredCallbackTime) || <span className="text-muted-foreground italic">Not specified</span>}
+                {sentenceCase(meaningful(intake.callbackTime) || extractedInfo?.preferredCallbackTime) || <span className="text-muted-foreground italic">Not specified</span>}
               </p>
             )}
           </div>

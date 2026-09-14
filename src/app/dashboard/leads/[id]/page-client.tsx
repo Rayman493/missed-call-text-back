@@ -490,6 +490,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [showJumpButton, setShowJumpButton] = useState(false)
   const [hasScrolledToBottomOnLoad, setHasScrolledToBottomOnLoad] = useState(false)
   const [initialScrollReady, setInitialScrollReady] = useState(false)
+  // Ref-based initial-scroll guard. Unlike the state version, setting this
+  // does NOT trigger an effect re-run, so the ResizeObserver stays active
+  // after the initial settle and can handle late-loading images/cards.
+  const initialScrollSettledRef = useRef(false)
   const [internalNotes, setInternalNotes] = useState(leadData?.notes || '')
   const [isSavingNotes, setIsSavingNotes] = useState(false)
   const [showLeadInfo, setShowLeadInfo] = useState(false)
@@ -1399,7 +1403,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Uses the canonical true-bottom helper (scrollTop = scrollHeight) and a single
   // ResizeObserver for layout-aware reconciliation. No setTimeout hacks.
   useEffect(() => {
-    if (!loading && messagesArray.length > 0 && !hasScrolledToBottomOnLoad) {
+    if (!loading && messagesArray.length > 0 && !initialScrollSettledRef.current) {
       // Set initial scroll not ready to hide message pane during scroll
       setInitialScrollReady(false)
 
@@ -1434,34 +1438,38 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       // Set up ResizeObserver to detect content height changes (images, transcription, audio)
       // During initial auto-scrolling, always scroll to true bottom (no near-bottom check)
-      // This ensures conversation stays pinned to newest message while content is settling
+      // This ensures conversation stays pinned to newest message while content is settling.
+      //
+      // After the initial settle, the observer stays active so late-loading
+      // images/cards (which arrive after the 2-frame settle window) still
+      // pin to the bottom — but only if the user hasn't scrolled away.
       if (typeof ResizeObserver !== 'undefined') {
         resizeObserver = new ResizeObserver(() => {
           if (isInitialAutoScrollingRef.current) {
             scrollToTrueBottom(container)
             // Detect layout settle: if scrollHeight hasn't changed since the
             // last ResizeObserver callback, increment settle count. When we
-            // get 2 consecutive callbacks with no change, the layout has
-            // settled and the initial scroll is complete.
+            // get 2 consecutive callbacks with no change, the initial scroll
+            // phase is done. The observer stays active for follow-latest.
             const currentHeight = container.scrollHeight
             if (currentHeight === lastScrollHeight) {
               settleCount++
               if (settleCount >= 2) {
-                // Content has settled — no height change for 2 consecutive callbacks
+                // Content has settled — transition from initial to follow mode.
+                // Do NOT disconnect: keep observing for late-loading images.
                 isInitialAutoScrollingRef.current = false
+                initialScrollSettledRef.current = true
                 setHasScrolledToBottomOnLoad(true)
                 setInitialScrollReady(true)
                 followLatestRef.current = true
-                if (resizeObserver) {
-                  resizeObserver.disconnect()
-                }
               }
             } else {
               lastScrollHeight = currentHeight
               settleCount = 0
             }
           } else {
-            // After initial positioning, respect user's scroll position via followLatestRef
+            // After initial positioning, respect user's scroll position via followLatestRef.
+            // Only re-scroll if the user is already near the bottom (no yanking).
             if (followLatestRef.current && isContainerNearBottom(container)) {
               scrollToTrueBottom(container)
             }
@@ -1499,6 +1507,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             if (currentHeight === lastScrollHeight) {
               // Content hasn't changed in 2 frames — mark as done
               isInitialAutoScrollingRef.current = false
+              initialScrollSettledRef.current = true
               setHasScrolledToBottomOnLoad(true)
               setInitialScrollReady(true)
               followLatestRef.current = true
@@ -1520,19 +1529,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           cancelAnimationFrame(settleRafId)
         }
         isInitialAutoScrollingRef.current = false
+        initialScrollSettledRef.current = true
         setHasScrolledToBottomOnLoad(true)
         setInitialScrollReady(true)
       }
 
       return cleanup
     }
-  }, [loading, messagesArray.length, hasScrolledToBottomOnLoad, scrollToTrueBottom, isContainerNearBottom])
+  }, [loading, messagesArray.length, scrollToTrueBottom, isContainerNearBottom])
 
   // Reset scroll state when navigating to a different customer
   useEffect(() => {
     setHasScrolledToBottomOnLoad(false)
     setInitialScrollReady(false)
     isInitialAutoScrollingRef.current = false
+    initialScrollSettledRef.current = false
     initialScrollDoneRef.current = null
     // Reset follow-latest state for new conversation (default: follow latest)
     followLatestRef.current = true
@@ -3566,7 +3577,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             ) : (
               <div className="space-y-2">
                 {leadJobs.slice(0, 3).map((job: any) => (
-                  <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200">
+                  <div key={job.id} onClick={() => handleNavigateToCalendarTab('jobs')} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNavigateToCalendarTab('jobs') } }} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200 cursor-pointer">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
                       <p className="text-xs text-muted-foreground/80">
@@ -3581,7 +3592,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 ))}
                 {leadJobs.length > 3 && (
                   <button
-                    onClick={handleAppointmentClick}
+                    onClick={() => handleNavigateToCalendarTab('jobs')}
                     className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                   >
                     View all {leadJobs.length} jobs
@@ -3616,7 +3627,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             ) : (
               <div className="space-y-2">
                 {leadTasks.slice(0, 3).map((task: any) => (
-                  <div key={task.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200">
+                  <div key={task.id} onClick={() => handleNavigateToCalendarTab('reminders')} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNavigateToCalendarTab('reminders') } }} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200 cursor-pointer">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground truncate">{task.title || 'Reminder'}</p>
                       <p className="text-xs text-muted-foreground/80">
@@ -3635,7 +3646,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 ))}
                 {leadTasks.length > 3 && (
                   <button
-                    onClick={() => window.location.href = '/dashboard/calendar'}
+                    onClick={() => handleNavigateToCalendarTab('reminders')}
                     className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                   >
                     View all {leadTasks.length} reminders
@@ -3826,6 +3837,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const handleAppointmentClick = () => {
     // Open unified appointment modal preselected to this customer; lock customer; disallow inline add
     setIsNewAppointmentOpen(true)
+  }
+
+  // Navigate to the calendar page focused on a specific tab (jobs/reminders/etc.)
+  const handleNavigateToCalendarTab = (tab: 'jobs' | 'reminders' | 'appointments') => {
+    router.push(`/dashboard/calendar?tab=${tab}`)
   }
 
   const handleSaveAppointment = async (sendConfirmation = false) => {
@@ -4857,7 +4873,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         ) : (
                           <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
                             {leadJobs.map((job: any) => (
-                              <div key={job.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200">
+                              <div key={job.id} onClick={() => handleNavigateToCalendarTab('jobs')} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNavigateToCalendarTab('jobs') } }} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200 cursor-pointer">
                                 <div className="flex-shrink-0 w-6 h-6 rounded bg-slate-500/10 flex items-center justify-center">
                                   <svg className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -4914,7 +4930,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               const taskOverdue = task.due_date && task.due_date < todayStr && !task.completed
                               const taskToday = task.due_date === todayStr && !task.completed
                               return (
-                              <div key={task.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200">
+                              <div key={task.id} onClick={() => handleNavigateToCalendarTab('reminders')} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNavigateToCalendarTab('reminders') } }} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200 cursor-pointer">
                                 <div className="flex-shrink-0 w-6 h-6 rounded bg-purple-500/10 flex items-center justify-center">
                                   <svg className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -5353,7 +5369,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     leadData={leadData}
                     triggerEdit={triggerEditCustomerDetails}
                     collapsible={false}
-                    onSave={handleRefresh}
+                    onSave={async () => { await handleRefresh(); setSuccessMessage('Cheers! Customer info updated.') }}
                     onNavigateToTimeline={handleNavigateToTimeline}
                   />
                 </div>
@@ -5438,7 +5454,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               ) : (
                 <div className="space-y-1">
                   {(collapsedSections.jobs ? leadJobs.slice(0, 3) : leadJobs).map((job: any) => (
-                    <div key={job.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
+                    <div key={job.id} onClick={() => handleNavigateToCalendarTab('jobs')} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNavigateToCalendarTab('jobs') } }} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors cursor-pointer">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-foreground truncate">{job.title || 'Job'}</p>
                         <p className="text-[10px] text-muted-foreground truncate">
@@ -5517,7 +5533,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     const taskOverdue = task.due_date && task.due_date < todayStr && !task.completed
                     const taskToday = task.due_date === todayStr && !task.completed
                     return (
-                    <div key={task.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
+                    <div key={task.id} onClick={() => handleNavigateToCalendarTab('reminders')} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNavigateToCalendarTab('reminders') } }} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors cursor-pointer">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-foreground truncate">{task.title || 'Reminder'}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
@@ -6569,6 +6585,7 @@ If you have questions, reply to this message.`
         if (container) {
           container.scrollTop = scrollPosition
         }
+        setSuccessMessage('Cheers! Customer info updated.')
       }}
     />
 

@@ -57,6 +57,9 @@ export default function CustomerAttachmentsCard({ messages }: CustomerAttachment
   const [blobUrls, setBlobUrls] = useState<Record<string, string>>({})
   const blobUrlsRef = useRef<Record<string, string>>({})
   const [authenticated, setAuthenticated] = useState<Record<string, boolean>>({})
+  // Track which display URLs failed to load so we can show a clean file-icon
+  // fallback instead of greying out the image (which looks like a disabled state).
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
 
   // Collect all media from all messages, newest message first
   const allAttachments = useMemo(() => {
@@ -141,6 +144,64 @@ export default function CustomerAttachmentsCard({ messages }: CustomerAttachment
     return getSecureUrl(url)
   }
 
+  // Mark a display URL as failed so we show a file-icon fallback.
+  const handleImageError = (displayUrl: string) => {
+    setFailedImages(prev => {
+      if (prev.has(displayUrl)) return prev
+      const next = new Set(prev)
+      next.add(displayUrl)
+      return next
+    })
+  }
+
+  // Render an image thumbnail or a file-icon fallback if the image failed to load.
+  // Using a keyed component ensures error state resets when the display URL changes
+  // (e.g. when a blob URL arrives after the initial proxy URL failed).
+  const renderThumbnail = (media: MessageMedia, onOpen: () => void) => {
+    const displayUrl = getDisplayUrl(media)
+    const hasFailed = failedImages.has(displayUrl)
+
+    if (hasFailed || !isImage(media.mime_type)) {
+      const Icon = getFileIcon(media.mime_type || 'application/octet-stream')
+      return (
+        <div
+          key={media.id || media.media_url}
+          className="aspect-square rounded-lg border border-border/40 bg-slate-50 dark:bg-slate-800/60 flex flex-col items-center justify-center p-2"
+        >
+          <Icon className="w-6 h-6 text-muted-foreground mb-1" />
+          <span className="text-[10px] text-muted-foreground font-medium">
+            {getFileTypeLabel(media.mime_type || 'application/octet-stream')}
+          </span>
+        </div>
+      )
+    }
+
+    return (
+      <button
+        key={media.id || media.media_url}
+        onClick={onOpen}
+        className="aspect-square rounded-lg overflow-hidden border border-border/40 bg-slate-100 dark:bg-slate-800/60 hover:opacity-80 transition-opacity"
+      >
+        <img
+          src={displayUrl}
+          alt="Attachment"
+          className="w-full h-full object-cover"
+          loading="lazy"
+          onLoad={() => {
+            // Clear any stale failure flag for this URL (e.g. blob URL arrived)
+            setFailedImages(prev => {
+              if (!prev.has(displayUrl)) return prev
+              const next = new Set(prev)
+              next.delete(displayUrl)
+              return next
+            })
+          }}
+          onError={() => handleImageError(displayUrl)}
+        />
+      </button>
+    )
+  }
+
   // Hide card entirely if no attachments
   if (allAttachments.length === 0) return null
 
@@ -174,40 +235,9 @@ export default function CustomerAttachmentsCard({ messages }: CustomerAttachment
 
         {/* Preview grid */}
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-          {previewItems.map(({ media, message }) => {
-            if (isImage(media.mime_type)) {
-              return (
-                <button
-                  key={media.id || media.media_url}
-                  onClick={() => setExpandedImage(getDisplayUrl(media))}
-                  className="aspect-square rounded-lg overflow-hidden border border-border/40 bg-slate-100 dark:bg-slate-800/60 hover:opacity-80 transition-opacity"
-                >
-                  <img
-                    src={getDisplayUrl(media)}
-                    alt="Attachment"
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.opacity = '0.3'
-                    }}
-                  />
-                </button>
-              )
-            } else {
-              const Icon = getFileIcon(media.mime_type)
-              return (
-                <div
-                  key={media.id || media.media_url}
-                  className="aspect-square rounded-lg border border-border/40 bg-slate-50 dark:bg-slate-800/60 flex flex-col items-center justify-center p-2"
-                >
-                  <Icon className="w-6 h-6 text-muted-foreground mb-1" />
-                  <span className="text-[10px] text-muted-foreground font-medium">
-                    {getFileTypeLabel(media.mime_type)}
-                  </span>
-                </div>
-              )
-            }
-          })}
+          {previewItems.map(({ media, message }) =>
+            renderThumbnail(media, () => setExpandedImage(getDisplayUrl(media)))
+          )}
         </div>
 
         {/* View All link for mobile (below grid) */}
@@ -230,43 +260,12 @@ export default function CustomerAttachmentsCard({ messages }: CustomerAttachment
         contentMaxHeight="70vh"
       >
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-          {allAttachments.map(({ media, message }) => {
-            if (isImage(media.mime_type)) {
-              return (
-                <button
-                  key={media.id || media.media_url}
-                  onClick={() => {
-                    setShowAllModal(false)
-                    setExpandedImage(getDisplayUrl(media))
-                  }}
-                  className="aspect-square rounded-lg overflow-hidden border border-border/40 bg-slate-100 dark:bg-slate-800/60 hover:opacity-80 transition-opacity"
-                >
-                  <img
-                    src={getDisplayUrl(media)}
-                    alt="Attachment"
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.opacity = '0.3'
-                    }}
-                  />
-                </button>
-              )
-            } else {
-              const Icon = getFileIcon(media.mime_type)
-              return (
-                <div
-                  key={media.id || media.media_url}
-                  className="aspect-square rounded-lg border border-border/40 bg-slate-50 dark:bg-slate-800/60 flex flex-col items-center justify-center p-2"
-                >
-                  <Icon className="w-6 h-6 text-muted-foreground mb-1" />
-                  <span className="text-[10px] text-muted-foreground font-medium">
-                    {getFileTypeLabel(media.mime_type)}
-                  </span>
-                </div>
-              )
-            }
-          })}
+          {allAttachments.map(({ media, message }) =>
+            renderThumbnail(media, () => {
+              setShowAllModal(false)
+              setExpandedImage(getDisplayUrl(media))
+            })
+          )}
         </div>
       </Modal>
 
