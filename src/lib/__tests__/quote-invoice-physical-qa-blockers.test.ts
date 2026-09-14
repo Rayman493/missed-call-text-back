@@ -1100,3 +1100,255 @@ describe('DOCUMENT POLISH', () => {
     expect(rendererSrc).not.toContain('unsaved draft')
   })
 })
+
+// ============================================================================
+// 12. BATCH-2 SCHEMA REPAIR
+// ============================================================================
+describe('BATCH-2 SCHEMA REPAIR', () => {
+  const repairMigrationSrc = readSrc('supabase/migrations/20260919000000_repair_billing_batch2_columns.sql')
+
+  it('179. repair migration adds public_token', () => {
+    expect(repairMigrationSrc).toContain('public_token text UNIQUE')
+  })
+
+  it('180. repair migration adds source_quote_id', () => {
+    expect(repairMigrationSrc).toContain('source_quote_id uuid REFERENCES billing_documents(id)')
+  })
+
+  it('181. repair migration adds paid_at', () => {
+    expect(repairMigrationSrc).toContain('paid_at timestamptz')
+  })
+
+  it('182. repair migration adds all business snapshot fields', () => {
+    expect(repairMigrationSrc).toContain('snapshot_business_name')
+    expect(repairMigrationSrc).toContain('snapshot_business_phone')
+    expect(repairMigrationSrc).toContain('snapshot_business_email')
+    expect(repairMigrationSrc).toContain('snapshot_business_address')
+    expect(repairMigrationSrc).toContain('snapshot_business_logo_url')
+  })
+
+  it('183. repair migration adds all customer snapshot fields', () => {
+    expect(repairMigrationSrc).toContain('snapshot_customer_name')
+    expect(repairMigrationSrc).toContain('snapshot_customer_phone')
+    expect(repairMigrationSrc).toContain('snapshot_customer_email')
+    expect(repairMigrationSrc).toContain('snapshot_customer_address')
+  })
+
+  it('184. repair uses ADD COLUMN IF NOT EXISTS', () => {
+    expect(repairMigrationSrc).toContain('ADD COLUMN IF NOT EXISTS')
+  })
+
+  it('185. repair does NOT drop billing_documents', () => {
+    expect(repairMigrationSrc).not.toMatch(/DROP TABLE/i)
+  })
+
+  it('186. repair does NOT truncate', () => {
+    // Check for actual TRUNCATE statement, not the word in comments
+    expect(repairMigrationSrc).not.toMatch(/TRUNCATE\s+TABLE/i)
+  })
+
+  it('187. repair creates public_token index', () => {
+    expect(repairMigrationSrc).toContain('idx_billing_documents_public_token')
+  })
+
+  it('188. repair creates source_quote index', () => {
+    expect(repairMigrationSrc).toContain('idx_billing_documents_source_quote')
+  })
+
+  it('189. repair reloads PostgREST schema', () => {
+    expect(repairMigrationSrc).toContain("NOTIFY pgrst, 'reload schema'")
+  })
+
+  it('190. repair does not touch storage buckets', () => {
+    expect(repairMigrationSrc).not.toContain('storage.buckets')
+  })
+
+  it('191. repair does not modify RPC', () => {
+    // Check for actual CREATE OR REPLACE FUNCTION, not the word in comments
+    expect(repairMigrationSrc).not.toMatch(/CREATE\s+OR\s+REPLACE\s+FUNCTION/i)
+  })
+})
+
+// ============================================================================
+// 13. NULL BATCH-2 FIELD SAFETY
+// ============================================================================
+describe('NULL BATCH-2 FIELD SAFETY', () => {
+  it('192. BillingDocumentList type has nullable public_token', () => {
+    const listSrc = readSrc('src/components/billing/BillingDocumentList.tsx')
+    expect(listSrc).toContain('public_token: string | null')
+  })
+
+  it('193. BillingDocumentList type has nullable source_quote_id', () => {
+    const listSrc = readSrc('src/components/billing/BillingDocumentList.tsx')
+    expect(listSrc).toContain('source_quote_id: string | null')
+  })
+
+  it('194. viewer handles null snapshot fields with fallback', () => {
+    const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
+    expect(viewerSrc).toContain('d.snapshot_business_name ||')
+    expect(viewerSrc).toContain('d.snapshot_customer_name ||')
+  })
+
+  it('195. viewer falls back to leads for customer name', () => {
+    const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
+    expect(viewerSrc).toContain('d.leads?.contact_name')
+  })
+
+  it('196. list query selects public_token and source_quote_id', () => {
+    expect(apiListSrc).toContain('public_token')
+    expect(apiListSrc).toContain('source_quote_id')
+  })
+
+  it('197. list query selects paid_at', () => {
+    expect(apiListSrc).toContain('paid_at')
+  })
+
+  it('198. send route generates token only on first send', () => {
+    const sendSrc = readSrc('src/app/api/billing-documents/[id]/send/route.ts')
+    expect(sendSrc).toContain('generatePublicToken()')
+    expect(sendSrc).toContain("doc.status === 'sent' && doc.public_token")
+  })
+
+  it('199. public token uses crypto.randomBytes (strong)', () => {
+    const builderSrc = readSrc('src/lib/billing/document-builder.ts')
+    expect(builderSrc).toContain('randomBytes(24)')
+  })
+
+  it('200. public document route queries by public_token', () => {
+    const publicRouteSrc = readSrc('src/app/api/public/document/[token]/route.ts')
+    expect(publicRouteSrc).toContain("eq('public_token', token)")
+  })
+})
+
+// ============================================================================
+// 14. UNSAVED CHANGES CONFIRMATION
+// ============================================================================
+describe('UNSAVED CHANGES CONFIRMATION', () => {
+  it('201. editor has isDirtyRef for tracking unsaved changes', () => {
+    expect(editorSrc).toContain('isDirtyRef')
+  })
+
+  it('202. editor has markDirty callback', () => {
+    expect(editorSrc).toContain('markDirty')
+  })
+
+  it('203. editor has markClean callback', () => {
+    expect(editorSrc).toContain('markClean')
+  })
+
+  it('204. editor has showDiscardConfirm state', () => {
+    expect(editorSrc).toContain('showDiscardConfirm')
+  })
+
+  it('205. editor has handleAttemptClose function', () => {
+    expect(editorSrc).toContain('handleAttemptClose')
+  })
+
+  it('206. handleAttemptClose checks dirty state', () => {
+    expect(editorSrc).toContain('if (isDirtyRef.current)')
+  })
+
+  it('207. dirty state shows discard confirmation dialog', () => {
+    expect(editorSrc).toContain('setShowDiscardConfirm(true)')
+  })
+
+  it('208. clean state closes immediately', () => {
+    expect(editorSrc).toContain('} else {')
+    expect(editorSrc).toContain('onClose()')
+  })
+
+  it('209. Modal onClose uses handleAttemptClose', () => {
+    expect(editorSrc).toContain('onClose={handleAttemptClose}')
+  })
+
+  it('210. Cancel button uses handleAttemptClose', () => {
+    expect(editorSrc).toContain('onClick={handleAttemptClose}')
+  })
+
+  it('211. discard dialog has Keep Editing button', () => {
+    expect(editorSrc).toContain('Keep Editing')
+  })
+
+  it('212. discard dialog has Discard button', () => {
+    expect(editorSrc).toContain('Discard')
+  })
+
+  it('213. Keep Editing closes confirmation only (not editor)', () => {
+    expect(editorSrc).toContain("setShowDiscardConfirm(false)")
+  })
+
+  it('214. Discard closes editor without saving', () => {
+    expect(editorSrc).toMatch(/Discard[\s\S]*onClose/)
+  })
+
+  it('215. Discard clears dirty state', () => {
+    // The Discard button should call markClean before onClose
+    expect(editorSrc).toContain('markClean()')
+  })
+
+  it('216. quote wording uses "quote"', () => {
+    expect(editorSrc).toContain("hasn't been saved. Your changes will be lost.")
+    // The wording uses isInvoice ? 'invoice' : 'quote'
+    expect(editorSrc).toContain("isInvoice ? 'invoice' : 'quote'")
+  })
+
+  it('217. invoice wording uses "invoice"', () => {
+    expect(editorSrc).toContain("isInvoice ? 'invoice' : 'quote'")
+  })
+
+  it('218. markDirty called on line item changes', () => {
+    expect(editorSrc).toContain('markDirty()')
+  })
+
+  it('219. markDirty called on customer selection', () => {
+    // selectCustomer and clearCustomer both call markDirty
+    const selectMatch = editorSrc.match(/selectCustomer[\s\S]*?markDirty/)
+    expect(selectMatch).toBeTruthy()
+  })
+
+  it('220. markDirty called on date changes', () => {
+    expect(editorSrc).toContain('markDirty(); setIssueDate')
+    expect(editorSrc).toContain('markDirty(); setValidUntil')
+    expect(editorSrc).toContain('markDirty(); setDueDate')
+  })
+
+  it('221. markDirty called on notes/terms changes', () => {
+    expect(editorSrc).toContain('markDirty(); setNotes')
+    expect(editorSrc).toContain('markDirty(); setTerms')
+  })
+
+  it('222. markDirty called on discount/tax changes', () => {
+    expect(editorSrc).toContain('markDirty(); setDiscountCents')
+    expect(editorSrc).toContain('markDirty(); setTaxCents')
+  })
+
+  it('223. successful save calls markClean', () => {
+    // handleSaveDraft should call markClean before onClose
+    const saveMatch = editorSrc.match(/markClean\(\)[\s\S]*?onSaved/)
+    expect(saveMatch).toBeTruthy()
+  })
+
+  it('224. hydrate resets dirty state', () => {
+    // The useEffect that hydrates should call markClean
+    expect(editorSrc).toContain('markClean()')
+  })
+
+  it('225. no setTimeout in discard confirmation', () => {
+    // The discard dialog should not use setTimeout
+    const discardSection = editorSrc.substring(editorSrc.indexOf('showDiscardConfirm'))
+    // Check the confirmation dialog section doesn't use setTimeout
+    const confirmSection = editorSrc.substring(editorSrc.indexOf('Discard unsaved changes'))
+    expect(confirmSection).not.toContain('setTimeout')
+  })
+
+  it('226. no requestAnimationFrame in discard confirmation', () => {
+    const confirmSection = editorSrc.substring(editorSrc.indexOf('Discard unsaved changes'))
+    expect(confirmSection).not.toContain('requestAnimationFrame')
+  })
+
+  it('227. discard dialog uses shared Modal component', () => {
+    // The confirmation should use the same Modal component
+    const confirmSection = editorSrc.substring(editorSrc.indexOf('Discard unsaved changes'))
+    expect(confirmSection).toContain('<Modal')
+  })
+})

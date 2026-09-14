@@ -117,6 +117,12 @@ export default function BillingEditorModal({
   // can transition to "saved" mode without closing/reopening the editor)
   const [savedDoc, setSavedDoc] = useState<{ id: string; document_number: string } | null>(null)
 
+  // Unsaved-changes confirmation state
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
+  const isDirtyRef = useRef(false)
+  const markDirty = useCallback(() => { isDirtyRef.current = true }, [])
+  const markClean = useCallback(() => { isDirtyRef.current = false }, [])
+
   // Ref for outside-click dismissal of the customer picker
   const customerFieldRef = useRef<HTMLDivElement>(null)
 
@@ -172,6 +178,7 @@ export default function BillingEditorModal({
     }
     setSavedDoc(null)
     setSaveError('')
+    markClean()
   }, [isOpen, existingDocument, isInvoice])
 
   // Outside-click dismissal for customer picker
@@ -251,6 +258,7 @@ export default function BillingEditorModal({
   })
 
   const selectCustomer = (lead: LeadOption) => {
+    markDirty()
     setCustomerId(lead.id)
     setCustomerName(lead.contact_name || lead.name || '')
     setCustomerPhone(lead.caller_phone || '')
@@ -260,6 +268,7 @@ export default function BillingEditorModal({
   }
 
   const clearCustomer = () => {
+    markDirty()
     setCustomerId(null)
     setCustomerName('')
     setCustomerPhone('')
@@ -268,18 +277,22 @@ export default function BillingEditorModal({
 
   // Line item helpers
   const addLineItem = () => {
+    markDirty()
     setLineItems([...lineItems, emptyLineItem()])
   }
 
   const removeLineItem = (index: number) => {
+    markDirty()
     setLineItems(lineItems.filter((_, i) => i !== index))
   }
 
   const updateLineItem = (index: number, field: keyof BillingLineItem, value: string) => {
+    markDirty()
     setLineItems(lineItems.map((item, i) => (i === index ? { ...item, [field]: value } : item)))
   }
 
   const setLineItemPricingMode = (index: number, mode: 'flat' | 'unit') => {
+    markDirty()
     setLineItems(lineItems.map((item, i) => {
       if (i !== index) return item
       if (mode === 'flat') {
@@ -417,6 +430,7 @@ export default function BillingEditorModal({
       // Always close the editor after successful save.
       // The saved document appears in the list after refresh.
       // Send/Download are available from the saved document viewer, not the editor.
+      markClean()
       onSaved?.(savedDocument)
       onClose()
     } catch (err: any) {
@@ -427,7 +441,19 @@ export default function BillingEditorModal({
   }, [
     customerId, issueDate, validUntil, dueDate, notes, terms, discount, tax,
     lineItems, documentType, isInvoice, existingDocument, savedDoc, onSaved, onClose,
+    markClean,
   ])
+
+  // Intercept all close paths (X, Cancel, backdrop, Escape, Android Back).
+  // If there are unsaved changes, show a discard confirmation dialog.
+  // If not, close immediately.
+  const handleAttemptClose = useCallback(() => {
+    if (isDirtyRef.current) {
+      setShowDiscardConfirm(true)
+    } else {
+      onClose()
+    }
+  }, [onClose])
 
   const handlePreview = () => {
     setPreviewDoc(buildPreviewDoc())
@@ -448,7 +474,7 @@ export default function BillingEditorModal({
       </div>
       <div className="flex items-center gap-2">
         <button
-          onClick={onClose}
+          onClick={handleAttemptClose}
           className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
           disabled={isSaving}
         >
@@ -469,7 +495,7 @@ export default function BillingEditorModal({
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleAttemptClose}
       title={title}
       bottomSheetOnMobile
       footer={footer}
@@ -581,7 +607,7 @@ export default function BillingEditorModal({
           <input
             type="date"
             value={issueDate}
-            onChange={(e) => setIssueDate(e.target.value)}
+            onChange={(e) => { markDirty(); setIssueDate(e.target.value) }}
             className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
           />
         </div>
@@ -595,7 +621,7 @@ export default function BillingEditorModal({
             <input
               type="date"
               value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
+              onChange={(e) => { markDirty(); setDueDate(e.target.value) }}
               className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
           </div>
@@ -607,7 +633,7 @@ export default function BillingEditorModal({
             <input
               type="date"
               value={validUntil}
-              onChange={(e) => setValidUntil(e.target.value)}
+              onChange={(e) => { markDirty(); setValidUntil(e.target.value) }}
               className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
           </div>
@@ -744,7 +770,7 @@ export default function BillingEditorModal({
               step="0.01"
               min="0"
               value={discountCents}
-              onChange={(e) => setDiscountCents(e.target.value)}
+              onChange={(e) => { markDirty(); setDiscountCents(e.target.value) }}
               placeholder="0.00"
               className="w-28 px-2 py-1 text-sm text-right rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
@@ -756,7 +782,7 @@ export default function BillingEditorModal({
               step="0.01"
               min="0"
               value={taxCents}
-              onChange={(e) => setTaxCents(e.target.value)}
+              onChange={(e) => { markDirty(); setTaxCents(e.target.value) }}
               placeholder="0.00"
               className="w-28 px-2 py-1 text-sm text-right rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
@@ -774,7 +800,7 @@ export default function BillingEditorModal({
           </label>
           <textarea
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={(e) => { markDirty(); setNotes(e.target.value) }}
             rows={2}
             placeholder="Additional notes for the customer"
             className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
@@ -788,7 +814,7 @@ export default function BillingEditorModal({
           </label>
           <textarea
             value={terms}
-            onChange={(e) => setTerms(e.target.value)}
+            onChange={(e) => { markDirty(); setTerms(e.target.value) }}
             rows={2}
             placeholder="e.g. 50% deposit required before work begins"
             className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
@@ -828,6 +854,38 @@ export default function BillingEditorModal({
           </div>
         </Modal>
       )}
+
+      {/* Discard unsaved changes confirmation */}
+      <Modal
+        isOpen={showDiscardConfirm}
+        onClose={() => setShowDiscardConfirm(false)}
+        title="Discard unsaved changes?"
+        bottomSheetOnMobile
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Your {isInvoice ? 'invoice' : 'quote'} hasn't been saved. Your changes will be lost.
+          </p>
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={() => setShowDiscardConfirm(false)}
+              className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            >
+              Keep Editing
+            </button>
+            <button
+              onClick={() => {
+                setShowDiscardConfirm(false)
+                markClean()
+                onClose()
+              }}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm"
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      </Modal>
     </Modal>
   )
 }
