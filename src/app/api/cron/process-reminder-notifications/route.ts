@@ -19,6 +19,15 @@ const supabase = createClient(
   getRequiredEnvVar('SUPABASE_SERVICE_ROLE_KEY')
 );
 
+// Stale schedule cleanup threshold. Reminders older than this are considered
+// permanently missed and their schedule is cleared to prevent unbounded
+// growth. This must be significantly wider than the cron cadence (5 minutes)
+// and any reasonable deploy/restart gap. 7 days ensures that even a multi-day
+// platform outage does not permanently skip a reminder — the idempotency key
+// prevents duplicate notifications if the cron catches up later.
+const STALE_SCHEDULE_THRESHOLD_DAYS = 7;
+const STALE_SCHEDULE_THRESHOLD_MS = STALE_SCHEDULE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
+
 export async function POST(request: Request) {
   try {
     // Verify cron secret using shared helper
@@ -27,49 +36,69 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status })
     }
 
-    console.log('[Cron] Authorized cron request to /api/cron/process-reminder-notifications');
-    console.log('[REMINDER NOTIFICATIONS] Processing started');
-
     const now = new Date().toISOString();
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const staleThreshold = new Date(Date.now() - STALE_SCHEDULE_THRESHOLD_MS).toISOString();
+
+    console.log('[REMINDER_SCAN_START]', {
+      now,
+      staleThreshold,
+      staleThresholdDays: STALE_SCHEDULE_THRESHOLD_DAYS
+    });
 
     // Use extracted worker function with real dependencies
     const result = await processReminderNotifications({
       fetchEligibleTasks: async () => {
+        // Select ALL due reminders regardless of age — no lower-bound lookback.
+        // The previous 1-hour lookback window (gte oneHourAgo) caused
+        // reminders to be permanently skipped if the cron did not run within
+        // 1 hour of the scheduled time (deploy, restart, Vercel cron gap).
+        // The idempotency key on notification insert prevents duplicates, and
+        // clearSchedule after successful processing prevents re-processing.
+        // Stale schedules older than STALE_SCHEDULE_THRESHOLD_DAYS are cleaned
+        // up by clearStaleSchedules below.
         const { data, error } = await supabase
           .from('tasks')
           .select('id, title, business_id, completed, reminder_notify_at')
           .eq('completed', false)
           .not('reminder_notify_at', 'is', null)
           .lte('reminder_notify_at', now)
-          .gte('reminder_notify_at', oneHourAgo)
-          .limit(10)
+          .limit(50)
           .order('reminder_notify_at', { ascending: true });
 
         if (error) {
-          console.error('[REMINDER NOTIFICATIONS] Error fetching tasks:', error);
+          console.error('[REMINDER_SCAN] Error fetching tasks:', error);
           throw error;
         }
 
+        console.log('[REMINDER_SCAN] Eligible tasks:', (data || []).length);
         return data || [];
       },
 
       clearStaleSchedules: async () => {
+        // Only clear schedules older than STALE_SCHEDULE_THRESHOLD_DAYS.
+        // The previous 1-hour threshold was too aggressive — it wiped
+        // reminder_notify_at without creating a notification, permanently
+        // skipping any reminder the cron didn't process within 1 hour.
+        // With a 7-day threshold, reminders survive deploy/restart gaps and
+        // are still picked up when the cron resumes.
         const { data: staleRows, error } = await supabase
           .from('tasks')
           .update({ reminder_notify_at: null })
           .eq('completed', false)
           .not('reminder_notify_at', 'is', null)
-          .lt('reminder_notify_at', oneHourAgo)
+          .lt('reminder_notify_at', staleThreshold)
           .select('id');
 
         if (error) {
-          console.error('[REMINDER NOTIFICATIONS] Error clearing stale schedules:', error);
+          console.error('[REMINDER_SCAN] Error clearing stale schedules:', error);
           return 0;
         }
 
         const staleCount = staleRows?.length || 0;
-        console.log(`[REMINDER NOTIFICATIONS] Cleared ${staleCount} stale schedules`);
+        if (staleCount > 0) {
+          console.log('[REMINDER_SCAN] Cleared stale schedules (older than ' +
+            STALE_SCHEDULE_THRESHOLD_DAYS + ' days):', staleCount);
+        }
         return staleCount;
       },
 
@@ -113,17 +142,17 @@ export async function POST(request: Request) {
           .eq('reminder_notify_at', originalNotifyAt);
 
         if (error) {
-          console.error(`[REMINDER NOTIFICATIONS] Failed to clear schedule for task ${taskId}:`, error);
+          console.error(`[REMINDER_SCAN] Failed to clear schedule for task ${taskId}:`, error);
         }
       }
     });
 
-    console.log(`[REMINDER NOTIFICATIONS] Complete - Processed: ${result.processed}, Sent: ${result.sent}, Failed: ${result.failed}, Stale Cleared: ${result.stale_cleared}`);
+    console.log('[REMINDER_SCAN_COMPLETE]', result);
 
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error('[REMINDER NOTIFICATIONS] Unexpected error:', error);
+    console.error('[REMINDER_SCAN] Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

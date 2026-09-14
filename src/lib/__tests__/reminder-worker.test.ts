@@ -40,7 +40,8 @@ describe('Reminder Worker', () => {
           type: 'reminder',
           title: 'Reminder',
           message: 'Test Reminder',
-          idempotency_key: 'reminder:task-1:2026-09-04T18:30:00.000Z'
+          idempotency_key: 'reminder:task-1:2026-09-04T18:30:00.000Z',
+          action_url: '/dashboard/calendar'
         })
       )
 

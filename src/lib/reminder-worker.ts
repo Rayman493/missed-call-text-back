@@ -20,6 +20,7 @@ export interface Notification {
   read: boolean
   idempotency_key: string
   created_at: string
+  action_url?: string
 }
 
 export interface WorkerDependencies {
@@ -37,6 +38,10 @@ export interface WorkerResult {
   failed: number
   stale_cleared: number
 }
+
+// Deep link for reminder notifications. Tapping the notification opens the
+// calendar page where reminders are displayed.
+const REMINDER_ACTION_URL = '/dashboard/calendar'
 
 export async function processReminderNotifications(
   deps: WorkerDependencies
@@ -86,6 +91,8 @@ export async function processReminderNotifications(
         continue
       }
 
+      console.log('[REMINDER_DUE]', { taskId: task.id })
+
       // Build schedule-specific idempotency key
       const idempotencyKey = `reminder:${task.id}:${currentTask.reminder_notify_at}`
 
@@ -98,7 +105,8 @@ export async function processReminderNotifications(
         data: { taskId: task.id },
         read: false,
         idempotency_key: idempotencyKey,
-        created_at: now
+        created_at: now,
+        action_url: REMINDER_ACTION_URL,
       })
 
       if ('error' in insertResult) {
@@ -113,6 +121,10 @@ export async function processReminderNotifications(
       } else {
         // Notification created successfully
         result.sent++
+        console.log('[REMINDER_NOTIFICATION_CREATED]', {
+          taskId: task.id,
+          notificationId: insertResult.id
+        })
 
         // Send push notification (failure is isolated)
         try {
@@ -122,10 +134,16 @@ export async function processReminderNotifications(
             type: 'reminder',
             title: 'Reminder',
             message: currentTask.title,
+            action_url: REMINDER_ACTION_URL,
             data: { taskId: task.id }
           })
         } catch (pushError) {
           // Don't fail entire operation if push fails
+          console.error('[REMINDER_PUSH_FAILED]', {
+            taskId: task.id,
+            notificationId: insertResult.id,
+            error: pushError instanceof Error ? pushError.message : String(pushError)
+          })
         }
 
         // Clear schedule with compare-and-set
@@ -133,6 +151,10 @@ export async function processReminderNotifications(
       }
     } catch (error) {
       result.failed++
+      console.error('[REMINDER_PROCESS_ERROR]', {
+        taskId: task.id,
+        error: error instanceof Error ? error.message : String(error)
+      })
     }
   }
 
