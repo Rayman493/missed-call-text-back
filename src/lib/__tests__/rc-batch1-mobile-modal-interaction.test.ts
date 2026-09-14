@@ -72,8 +72,9 @@ describe('MOBILE MODAL GEOMETRY', () => {
   it('6. Edit Appointment cannot render above viewport', () => {
     // EventDetailsModal must not reserve bottom-nav-height in paddingBottom
     expect(eventDetailsModalSrc).not.toContain('var(--bottom-nav-height, 72px)')
-    // Must use safe-area only for paddingBottom
-    expect(eventDetailsModalSrc).toContain("paddingBottom: 'max(16px, env(safe-area-inset-bottom))'")
+    // Must use the shared --modal-bottom-reserve CSS variable for paddingBottom
+    // (consistent with the shared Modal component and Batch 1 bottom-nav fix)
+    expect(eventDetailsModalSrc).toContain('var(--modal-bottom-reserve)')
     // Must use --modal-max-height for max-height (not hardcoded calc with bottom-nav)
     expect(eventDetailsModalSrc).toContain('max-h-[var(--modal-max-height)]')
   })

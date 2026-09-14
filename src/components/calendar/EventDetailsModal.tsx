@@ -781,8 +781,8 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-start md:items-center justify-center overflow-hidden px-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 md:p-4"
-      style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+      className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden px-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 md:p-4"
+      style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, var(--modal-bottom-reserve))' }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="event-title"

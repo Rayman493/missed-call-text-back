@@ -1112,7 +1112,15 @@ export default function LeadsPage() {
                     Customers
                   </h2>
                   <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                    Customers are added automatically when they call or message your ReplyFlow number. You can also add customers manually anytime.
+                    Customers are added automatically when they call or message your ReplyFlow number. You can also add customers{' '}
+                    <button
+                      type="button"
+                      onClick={() => setShowAddCustomerModal(true)}
+                      className="inline p-0 bg-transparent border-0 text-muted-foreground hover:text-foreground underline decoration-dotted underline-offset-2 cursor-pointer font-normal align-baseline"
+                    >
+                      manually
+                    </button>{' '}
+                    anytime.
                   </p>
                 </div>
               </div>

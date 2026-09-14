@@ -91,6 +91,8 @@ export default function NavbarNotifications() {
 
   // Close dropdown when clicking outside
   useEffect(() => {
+    if (!isOpen) return
+
     const handlePointerDownOutside = (event: PointerEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         markDropdownDismissed()
@@ -100,7 +102,7 @@ export default function NavbarNotifications() {
 
     document.addEventListener('pointerdown', handlePointerDownOutside)
     return () => document.removeEventListener('pointerdown', handlePointerDownOutside)
-  }, [])
+  }, [isOpen])
 
   // Initialize notifications when business is available
   useEffect(() => {

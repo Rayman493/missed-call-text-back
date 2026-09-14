@@ -128,10 +128,10 @@ function RemindersList({
                   : 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
             }`}
           >
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-start justify-between gap-3">
               <button
                 onClick={() => onToggleComplete(task.id, task.completed)}
-                className={`flex-shrink-0 w-5 h-5 rounded border-2 transition-colors flex items-center justify-center ${
+                className={`flex-shrink-0 w-5 h-5 rounded border-2 transition-colors flex items-center justify-center mt-0.5 ${
                   task.completed
                     ? 'border-green-500 bg-green-50 dark:bg-green-900/20 hover:border-green-600'
                     : 'border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400'

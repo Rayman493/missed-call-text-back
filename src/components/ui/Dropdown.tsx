@@ -40,6 +40,8 @@ export default function Dropdown({
   const selectedOption = options.find(opt => opt.value === value)
 
   useEffect(() => {
+    if (!isOpen) return
+
     const handlePointerDownOutside = (event: PointerEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         markDropdownDismissed()
@@ -49,7 +51,7 @@ export default function Dropdown({
 
     document.addEventListener('pointerdown', handlePointerDownOutside)
     return () => document.removeEventListener('pointerdown', handlePointerDownOutside)
-  }, [])
+  }, [isOpen])
 
   // Calculate menu position when opened
   useEffect(() => {

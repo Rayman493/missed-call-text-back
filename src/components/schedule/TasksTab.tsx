@@ -563,16 +563,16 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
                       </>
                     )}
                   </div>
+                  {getTaskStatusBadge(task)}
                 </div>
                 <div className="flex items-center gap-1 shrink-0 pl-2">
-                  {getTaskStatusBadge(task)}
                   <button
                     onClick={() => {
                       if (cardGuard.consumeDragSuppression()) return
                       useParentModal ? onEditTask!(task) : setEditingTask(task)
                     }}
-                    className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                    title="Edit task"
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                    aria-label="Edit task"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
