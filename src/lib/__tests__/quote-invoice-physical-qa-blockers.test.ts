@@ -1105,7 +1105,7 @@ describe('DOCUMENT POLISH', () => {
 // 12. BATCH-2 SCHEMA REPAIR
 // ============================================================================
 describe('BATCH-2 SCHEMA REPAIR', () => {
-  const repairMigrationSrc = readSrc('supabase/migrations/20260919000000_repair_billing_batch2_columns.sql')
+  const repairMigrationSrc = readSrc('supabase/migrations/20260914010000_repair_billing_batch2_columns.sql')
 
   it('179. repair migration adds public_token', () => {
     expect(repairMigrationSrc).toContain('public_token text UNIQUE')
