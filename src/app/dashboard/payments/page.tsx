@@ -467,7 +467,10 @@ export default function PaymentsPage() {
       const headers: HeadersInit = {}
       if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
       const res = await fetch(`/api/billing-documents/${doc.id}/pdf`, { headers })
-      if (!res.ok) return
+      if (!res.ok) {
+        setError('Failed to download PDF. Please try again.')
+        return
+      }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -496,9 +499,14 @@ export default function PaymentsPage() {
       const res = await fetch(`/api/billing-documents/${doc.id}/send`, { method: 'POST', headers })
       if (res.ok) {
         await fetchBillingDocuments()
+      } else {
+        const json = await res.json().catch(() => ({}))
+        setSuccessMessage('')
+        setError(json.error || 'Failed to send document. Please try again.')
       }
     } catch {
-      // ignore
+      setSuccessMessage('')
+      setError('Failed to send document. Please try again.')
     } finally {
       setBillingSendingId(null)
     }

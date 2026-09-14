@@ -29,7 +29,7 @@ const securityHeaders = [
 ]
 
 const nextConfig = {
-  serverExternalPackages: ['@supabase/supabase-js'],
+  serverExternalPackages: ['@supabase/supabase-js', '@react-pdf/renderer'],
   outputFileTracingRoot: __dirname,
   eslint: {
     // Allow warnings during production build - ESLint still runs locally

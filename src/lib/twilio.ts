@@ -1330,13 +1330,17 @@ async function logFailedMessage(
       error_code: errorCode
     });
 
+    // Use canonical sender value; fall back to messaging service SID or 'unknown'
+    // to satisfy NOT NULL constraint when twilio_phone_number is not yet provisioned.
+    const fromPhone = business.twilio_phone_number || business.twilio_messaging_service_sid || 'unknown';
+
     const insertPayload = {
       business_id: business.id,
       lead_id: options?.lead_id,
       conversation_id: options?.conversation_id,
       direction: 'outbound' as const,
       body: message,
-      from_phone: business.twilio_phone_number,
+      from_phone: fromPhone,
       to_phone: to,
       twilio_message_sid: null,
       status: twilioApiCalled ? 'failed' : 'not_sent',

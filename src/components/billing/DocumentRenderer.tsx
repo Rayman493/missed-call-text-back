@@ -31,7 +31,7 @@ export default function DocumentRenderer({ doc, showStatusBadge = false, isPrevi
   const statusLabel = STATUS_LABELS[status] || doc.status
 
   return (
-    <div className={`max-w-2xl mx-auto bg-white ${isPreview ? '' : 'min-h-screen'} p-6 sm:p-10`}>
+    <div className={`max-w-2xl mx-auto bg-white p-6 sm:p-10`}>
       {/* Business header */}
       <div className="flex items-start justify-between gap-6 mb-10">
         <div className="min-w-0 flex-1">

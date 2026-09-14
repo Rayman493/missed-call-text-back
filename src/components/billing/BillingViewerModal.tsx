@@ -46,6 +46,7 @@ export default function BillingViewerModal({
         const json = await res.json()
         // Build presentation from the fetched doc
         const d = json.document
+        const businessLogoUrl = json.business_logo_url || null
         setDoc({
           document_type: d.document_type,
           document_number: d.document_number,
@@ -57,7 +58,7 @@ export default function BillingViewerModal({
           business_phone: d.snapshot_business_phone || null,
           business_email: d.snapshot_business_email || null,
           business_address: d.snapshot_business_address || null,
-          business_logo_url: d.snapshot_business_logo_url || null,
+          business_logo_url: d.snapshot_business_logo_url || businessLogoUrl,
           customer_name: d.snapshot_customer_name || d.leads?.contact_name || null,
           customer_phone: d.snapshot_customer_phone || d.leads?.caller_phone || null,
           customer_email: d.snapshot_customer_email || null,

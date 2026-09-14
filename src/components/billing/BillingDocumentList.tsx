@@ -1,6 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { FileText, FileSpreadsheet, Edit, Trash2, Loader2, Eye, Download, Send, RefreshCw, ArrowRight } from 'lucide-react'
+import Modal from '@/components/ui/Modal'
 import { formatCurrency } from '@/lib/utils'
 import { effectiveStatus } from '@/lib/billing/document-presentation'
 import type { BillingDocumentType } from './BillingEditorModal'
@@ -79,6 +81,14 @@ export default function BillingDocumentList({
   convertingId,
   deletingId,
 }: BillingDocumentListProps) {
+  const [deleteTarget, setDeleteTarget] = useState<BillingDocumentListItem | null>(null)
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return
+    onDelete(deleteTarget)
+    setDeleteTarget(null)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -162,6 +172,15 @@ export default function BillingDocumentList({
               {isDraft && (
                 <>
                   <button
+                    onClick={() => onDownload(doc)}
+                    disabled={downloadingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded disabled:opacity-50"
+                    aria-label="Download PDF"
+                    title="Download PDF"
+                  >
+                    {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  </button>
+                  <button
                     onClick={() => onOpen(doc)}
                     className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
                     aria-label="Edit document"
@@ -170,7 +189,7 @@ export default function BillingDocumentList({
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => onDelete(doc)}
+                    onClick={() => setDeleteTarget(doc)}
                     disabled={deletingId === doc.id}
                     className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded disabled:opacity-50"
                     aria-label="Delete document"
@@ -334,6 +353,34 @@ export default function BillingDocumentList({
           </div>
         )
       })}
+
+      {/* Delete confirmation modal */}
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title={deleteTarget?.document_type === 'quote' ? 'Delete quote?' : 'Delete invoice?'}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {deleteTarget?.document_type === 'quote' ? 'Quote' : 'Invoice'} {deleteTarget?.document_number} will be permanently deleted. This can't be undone.
+          </p>
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={() => setDeleteTarget(null)}
+              className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmDelete}
+              disabled={!!deletingId && deletingId === deleteTarget?.id}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm disabled:opacity-50"
+            >
+              {deletingId === deleteTarget?.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Delete'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

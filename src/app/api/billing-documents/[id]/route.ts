@@ -61,7 +61,19 @@ export async function GET(
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ document: doc })
+    // For unsent drafts, snapshot_business_logo_url is null.
+    // Fetch the live business logo so the viewer can display it for drafts.
+    let businessLogoUrl: string | null = null
+    if (doc.status === 'draft' || !doc.snapshot_business_logo_url) {
+      const { data: biz } = await supabase
+        .from('businesses')
+        .select('logo_url')
+        .eq('id', business.id)
+        .single()
+      businessLogoUrl = biz?.logo_url || null
+    }
+
+    return NextResponse.json({ document: doc, business_logo_url: businessLogoUrl })
   } catch (err) {
     console.error('[BILLING GET] Unexpected error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

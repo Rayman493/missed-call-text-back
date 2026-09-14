@@ -7,6 +7,7 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import { BillingDocumentPdf } from '@/components/billing/BillingDocumentPdf'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 /**
  * GET /api/billing-documents/[id]/pdf
@@ -57,7 +58,28 @@ export async function GET(
     }
 
     const presentation = await buildDocumentPresentation(supabase, doc)
-    const pdfBuffer = await renderToBuffer(<BillingDocumentPdf doc={presentation} />)
+
+    // Pre-fetch the logo image and convert to a data URL for @react-pdf/renderer.
+    // This avoids production issues where the PDF library's internal image
+    // fetching fails on Vercel's serverless environment.
+    // If the logo is missing or unreachable, render without it (graceful fallback).
+    let logoDataUrl: string | null = null
+    if (presentation.business_logo_url) {
+      try {
+        const logoRes = await fetch(presentation.business_logo_url)
+        if (logoRes.ok) {
+          const contentType = logoRes.headers.get('content-type') || 'image/png'
+          const arrayBuffer = await logoRes.arrayBuffer()
+          const base64 = Buffer.from(arrayBuffer).toString('base64')
+          logoDataUrl = `data:${contentType};base64,${base64}`
+        }
+      } catch (logoErr) {
+        console.warn('[BILLING PDF] Logo fetch failed, rendering without logo:', logoErr)
+      }
+    }
+    const presentationWithLogo = { ...presentation, business_logo_url: logoDataUrl }
+
+    const pdfBuffer = await renderToBuffer(<BillingDocumentPdf doc={presentationWithLogo} />)
 
     const isQuote = doc.document_type === 'quote'
     const filename = isQuote
