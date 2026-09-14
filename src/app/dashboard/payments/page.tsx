@@ -948,6 +948,42 @@ const getPaymentDescription = (payment: PaymentRequest) => {
 
         {/* Action Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-3.5">
+          {/* Quote / Invoice Card */}
+          <button
+            onClick={() => setShowBillingChooser(true)}
+            className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.995]
+            bg-violet-600 dark:bg-violet-500 border-violet-700 dark:border-violet-600 hover:bg-violet-700 dark:hover:bg-violet-600 shadow-[0_6px_18px_rgba(0,0,0,0.15)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
+          >
+            <div className="flex items-center gap-3.5 mb-2.5">
+              <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-white/10 ring-1 ring-inset ring-white/30 dark:ring-white/20 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-white dark:text-white" />
+              </div>
+              <div>
+                <h3 className="text-white dark:text-white font-semibold text-sm sm:text-base leading-tight">Quote / Invoice</h3>
+                <p className="text-violet-100 dark:text-violet-100 text-xs">Create a document</p>
+              </div>
+            </div>
+            <p className="text-violet-50 dark:text-violet-50 text-xs sm:text-sm">Create a professional quote or invoice for your customer</p>
+          </button>
+
+          {/* Request Payment Card */}
+          <button
+            onClick={handleStartPaymentRequest}
+            className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.995]
+            bg-blue-600 dark:bg-blue-500 border-blue-700 dark:border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-600 shadow-[0_6px_18px_rgba(0,0,0,0.15)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
+          >
+            <div className="flex items-center gap-3.5 mb-2.5">
+              <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-white/10 ring-1 ring-inset ring-white/30 dark:ring-white/20 flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-white dark:text-white" />
+              </div>
+              <div>
+                <h3 className="text-white dark:text-white font-semibold text-sm sm:text-base leading-tight">Request Payment</h3>
+                <p className="text-blue-100 dark:text-blue-100 text-xs">Send payment link</p>
+              </div>
+            </div>
+            <p className="text-blue-50 dark:text-blue-50 text-xs sm:text-sm">Send a payment request via SMS to your customer</p>
+          </button>
+
           {/* Tap to Pay Card */}
           {(() => {
             const isStripeReady = business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled
@@ -1036,42 +1072,6 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               </button>
             )
           })()}
-
-          {/* Request Payment Card */}
-          <button
-            onClick={handleStartPaymentRequest}
-            className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.995]
-            bg-blue-600 dark:bg-blue-500 border-blue-700 dark:border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-600 shadow-[0_6px_18px_rgba(0,0,0,0.15)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
-          >
-            <div className="flex items-center gap-3.5 mb-2.5">
-              <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-white/10 ring-1 ring-inset ring-white/30 dark:ring-white/20 flex items-center justify-center">
-                <CreditCard className="w-5 h-5 text-white dark:text-white" />
-              </div>
-              <div>
-                <h3 className="text-white dark:text-white font-semibold text-sm sm:text-base leading-tight">Request Payment</h3>
-                <p className="text-blue-100 dark:text-blue-100 text-xs">Send payment link</p>
-              </div>
-            </div>
-            <p className="text-blue-50 dark:text-blue-50 text-xs sm:text-sm">Send a payment request via SMS to your customer</p>
-          </button>
-
-          {/* Quote / Invoice Card */}
-          <button
-            onClick={() => setShowBillingChooser(true)}
-            className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.995]
-            bg-violet-600 dark:bg-violet-500 border-violet-700 dark:border-violet-600 hover:bg-violet-700 dark:hover:bg-violet-600 shadow-[0_6px_18px_rgba(0,0,0,0.15)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
-          >
-            <div className="flex items-center gap-3.5 mb-2.5">
-              <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-white/10 ring-1 ring-inset ring-white/30 dark:ring-white/20 flex items-center justify-center">
-                <FileText className="w-5 h-5 text-white dark:text-white" />
-              </div>
-              <div>
-                <h3 className="text-white dark:text-white font-semibold text-sm sm:text-base leading-tight">Quote / Invoice</h3>
-                <p className="text-violet-100 dark:text-violet-100 text-xs">Create a document</p>
-              </div>
-            </div>
-            <p className="text-violet-50 dark:text-violet-50 text-xs sm:text-sm">Create a professional quote or invoice for your customer</p>
-          </button>
         </div>
 
         {loading ? (

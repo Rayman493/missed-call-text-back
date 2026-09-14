@@ -809,6 +809,29 @@ describe('Payment Link Success — visible feedback', () => {
     expect(content).toMatch(/setSuccessMessage\('Payment request sent'\)/)
   })
 
+  it('payments page action cards ordered: Quote/Invoice, Request Payment, Tap to Pay', async () => {
+    const fs = await import('fs')
+    const path = await import('path')
+    const content = fs.readFileSync(
+      path.join(process.cwd(), 'src/app/dashboard/payments/page.tsx'),
+      'utf-8'
+    )
+
+    // Check the order of the action card comments in the source.
+    // The cards live inside the "Action Cards" grid; their relative
+    // positions in the source determine visual order.
+    const quoteIdx = content.indexOf('{/* Quote / Invoice Card */}')
+    const requestIdx = content.indexOf('{/* Request Payment Card */}')
+    const tapIdx = content.indexOf('{/* Tap to Pay Card */}')
+
+    expect(quoteIdx).toBeGreaterThan(-1)
+    expect(requestIdx).toBeGreaterThan(-1)
+    expect(tapIdx).toBeGreaterThan(-1)
+    // Order: Quote/Invoice first, Request Payment second, Tap to Pay third
+    expect(quoteIdx).toBeLessThan(requestIdx)
+    expect(requestIdx).toBeLessThan(tapIdx)
+  })
+
   it('SuccessBanner renders "Payment request sent" text when message is set', async () => {
     const SuccessBanner = (await import('@/components/SuccessBanner')).default
 
