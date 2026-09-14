@@ -274,7 +274,7 @@ describe('ChartTouchWrapper — behavioral clean-tap activation', () => {
     expect(onDatumClick).toHaveBeenCalledTimes(0)
   })
 
-  it('G. keyboard focus: outer div is tabbable (tabIndex=0)', async () => {
+  it('G. outer div is NOT tabbable (no tabIndex — removes giant Android focus rectangle)', async () => {
     const { ChartTouchWrapper } = await import('@/lib/chart-utils')
 
     await act(async () => {
@@ -287,10 +287,12 @@ describe('ChartTouchWrapper — behavioral clean-tap activation', () => {
 
     const wrapper = container.firstElementChild as HTMLElement
     expect(wrapper).toBeTruthy()
-    expect(wrapper.tabIndex).toBe(0)
+    // The fix removes tabIndex entirely — the wrapper is not a keyboard stop.
+    // Keyboard accessibility is preserved on individual data elements.
+    expect(wrapper.tabIndex).toBe(-1)
   })
 
-  it('H. no giant focus ring: outer div does NOT have focus-visible:ring classes', async () => {
+  it('H. no giant focus ring: outer div has NO focus-visible classes at all', async () => {
     const { ChartTouchWrapper } = await import('@/lib/chart-utils')
 
     await act(async () => {
@@ -307,8 +309,8 @@ describe('ChartTouchWrapper — behavioral clean-tap activation', () => {
     // Must NOT have ring-2 or ring-offset (causes giant white rectangle on Android)
     expect(className).not.toContain('focus-visible:ring-2')
     expect(className).not.toContain('focus-visible:ring-offset-2')
-    // Must have focus-visible:outline-2 for keyboard (localized, no offset)
-    expect(className).toContain('focus-visible:outline-2')
-    expect(className).toContain('focus-visible:outline-blue-500/30')
+    // Must NOT have focus-visible:outline either (no wrapper-level focus)
+    expect(className).not.toContain('focus-visible:outline-2')
+    expect(className).not.toContain('focus-visible:outline-blue-500/30')
   })
 })

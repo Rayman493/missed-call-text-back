@@ -29,20 +29,20 @@ describe('Part A: Dashboard Chart Touch', () => {
     })
   })
 
-  describe('ChartTouchWrapper — swipe suppression', () => {
-    it('tracks drag state via ref (synchronous, not async state)', () => {
-      expect(chartUtils).toContain('isDraggingRef')
+  describe('ChartTouchWrapper — axis-aware gesture detection', () => {
+    it('tracks gesture state via ref (synchronous, not async state)', () => {
+      expect(chartUtils).toContain('gestureModeRef')
       expect(chartUtils).toContain('startXRef')
       expect(chartUtils).toContain('startYRef')
     })
 
-    it('disables pointer events ONLY when drag is detected (not on pointerdown)', () => {
+    it('disables pointer events ONLY when horizontal scrub is detected (not on pointerdown)', () => {
       const pdIdx = chartUtils.indexOf('handlePointerDown')
       const pdBlock = chartUtils.substring(pdIdx, pdIdx + 400)
-      expect(pdBlock).not.toContain('disableChartPointerEvents')
+      expect(pdBlock).not.toContain("style.pointerEvents = 'none'")
     })
 
-    it('clears Recharts state immediately when drag is detected', () => {
+    it('clears Recharts state on vertical scroll', () => {
       expect(chartUtils).toContain('clearRechartsState')
       expect(chartUtils).toContain('clearRechartsState()')
     })
@@ -52,22 +52,22 @@ describe('Part A: Dashboard Chart Touch', () => {
       expect(chartUtils).toContain("TouchEvent('touchend'")
     })
 
-    it('suppresses post-swipe click via justDraggedRef + onClickCapture', () => {
+    it('suppresses post-gesture click via justDraggedRef + onClickCapture', () => {
       expect(chartUtils).toContain('justDraggedRef')
       expect(chartUtils).toContain('handleClickCapture')
       expect(chartUtils).toContain('e.preventDefault()')
       expect(chartUtils).toContain('e.stopPropagation()')
     })
 
-    it('sets justDraggedRef=true on touch end after a drag', () => {
+    it('sets justDraggedRef=true on touch end after a gesture', () => {
       const teIdx = chartUtils.indexOf('handleTouchEnd')
-      const teBlock = chartUtils.substring(teIdx, teIdx + 400)
+      const teBlock = chartUtils.substring(teIdx, teIdx + 600)
       expect(teBlock).toContain('justDraggedRef.current = true')
     })
 
-    it('sets justDraggedRef=true on pointer up after a drag', () => {
+    it('sets justDraggedRef=true on pointer up after a gesture', () => {
       const puIdx = chartUtils.indexOf('handlePointerUp')
-      const puBlock = chartUtils.substring(puIdx, puIdx + 400)
+      const puBlock = chartUtils.substring(puIdx, puIdx + 600)
       expect(puBlock).toContain('justDraggedRef.current = true')
     })
 
@@ -97,8 +97,8 @@ describe('Part A: Dashboard Chart Touch', () => {
       expect(chartUtils).not.toContain('setTimeout')
     })
 
-    it('preserves touch-action: pan-y pan-x for native scrolling', () => {
-      expect(chartUtils).toContain("touchAction: 'pan-y pan-x'")
+    it('preserves touch-action: pan-y for native vertical scrolling', () => {
+      expect(chartUtils).toContain("touchAction: 'pan-y'")
     })
 
     it('only tracks touch pointers (mouse hover preserved)', () => {
@@ -106,35 +106,33 @@ describe('Part A: Dashboard Chart Touch', () => {
     })
   })
 
-  describe('Focus / white outline fix', () => {
-    it('outer container uses focus:outline-none (suppresses touch focus ring)', () => {
-      expect(chartUtils).toContain('focus:outline-none')
+  describe('Focus / white outline fix (no wrapper-level focus)', () => {
+    it('outer container does NOT have tabIndex (removes giant Android focus rectangle)', () => {
+      expect(chartUtils).not.toContain('tabIndex={0}')
+      expect(chartUtils).not.toContain('tabIndex={1}')
     })
 
-    it('outer container uses focus-visible:outline-2 (keyboard focus preserved)', () => {
-      expect(chartUtils).toContain('focus-visible:outline-2')
-      expect(chartUtils).toContain('focus-visible:outline-blue-500/30')
+    it('outer container does NOT have focus-visible styling', () => {
+      const outerDivMatch = chartUtils.match(/className="w-full h-full select-none[^"]*"/)
+      expect(outerDivMatch).toBeTruthy()
+      if (outerDivMatch) {
+        expect(outerDivMatch[0]).not.toContain('focus-visible:ring')
+        expect(outerDivMatch[0]).not.toContain('focus-visible:outline')
+        expect(outerDivMatch[0]).not.toContain('focus:outline-none')
+      }
     })
 
-    it('SVG surface uses :focus:outline-none (suppresses touch-induced SVG focus)', () => {
-      expect(chartUtils).toContain('[&_.recharts-surface:focus]:outline-none')
+    it('SVG surface has outline-none (suppresses touch-induced SVG focus)', () => {
+      expect(chartUtils).toContain('[&_.recharts-surface]:outline-none')
     })
 
-    it('SVG surface preserves :focus-visible for keyboard accessibility', () => {
-      expect(chartUtils).toContain('[&_.recharts-surface:focus-visible]:outline-2')
+    it('wrapper has outline-none', () => {
+      expect(chartUtils).toContain('[&_.recharts-wrapper]:outline-none')
     })
 
-    it('wrapper also gets :focus:outline-none', () => {
-      expect(chartUtils).toContain('[&_.recharts-wrapper:focus]:outline-none')
-    })
-
-    it('does NOT globally disable outlines (uses focus-visible)', () => {
-      expect(chartUtils).toContain('focus:outline-none')
-      expect(chartUtils).toContain('focus-visible:outline-2')
-    })
-
-    it('tabIndex=0 preserves keyboard focusability', () => {
-      expect(chartUtils).toContain('tabIndex={0}')
+    it('keyboard accessibility preserved via globals.css on individual data elements', () => {
+      // Individual data element focus is handled by globals.css, not the wrapper
+      expect(chartUtils).toContain('[&_.recharts-surface]:outline-none')
     })
   })
 
@@ -145,8 +143,8 @@ describe('Part A: Dashboard Chart Touch', () => {
     })
 
     it('mouse hover works (pointerEvents stay auto for non-touch)', () => {
-      expect(chartUtils).toContain('disableChartPointerEvents')
-      expect(chartUtils).toContain('restoreChartPointerEvents')
+      // Pointer events are only disabled during horizontal scrub (touch only)
+      expect(chartUtils).toContain("style.pointerEvents = 'auto'")
     })
   })
 

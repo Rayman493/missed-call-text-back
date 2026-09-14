@@ -22,15 +22,15 @@ describe('RC Batch 4 — Dashboard Chart Mobile Interaction + Loading Polish', (
       expect(css).toMatch(/\.recharts-rectangle-wrapper[\s\S]*?touch-action:\s*pan-y/)
     })
 
-    it('ChartTouchWrapper still has pan-y pan-x touch-action on outer div', () => {
+    it('ChartTouchWrapper has pan-y touch-action on outer div (vertical scroll preserved)', () => {
       const content = read('src/lib/chart-utils.tsx')
-      expect(content).toContain("touchAction: 'pan-y pan-x'")
+      expect(content).toContain("touchAction: 'pan-y'")
     })
 
     it('ChartTouchWrapper uses canonical 10px gesture threshold', () => {
       const content = read('src/lib/chart-utils.tsx')
       expect(content).toContain('GESTURE_MOVEMENT_THRESHOLD')
-      expect(content).toContain('isDragGesture')
+      expect(content).toContain("from '@/lib/gesture/tap-guard'")
     })
 
     it('ChartTouchWrapper does NOT use setTimeout', () => {
@@ -210,16 +210,30 @@ describe('RC Batch 4 — Dashboard Chart Mobile Interaction + Loading Polish', (
 
     it('RevenueGraph chart container keeps stable h-[260px] height during update', () => {
       const content = read('src/components/analytics/RevenueGraph.tsx')
-      // The chart container should always be h-[260px], and the updating overlay
-      // should be absolute positioned (not replacing the chart)
+      // The chart container should always be h-[260px], and the updating
+      // indicator should be absolute positioned (not replacing the chart)
       expect(content).toContain('h-[260px]')
       expect(content).toContain('relative')
-      expect(content).toContain('absolute inset-0')
+      // New: single subtle indicator at top-right, NOT a full overlay
+      expect(content).toContain('absolute top-1 right-1')
     })
 
-    it('RevenueGraph updating overlay does not blank the chart (pointer-events-none)', () => {
+    it('RevenueGraph updating indicator does not blank the chart (pointer-events-none)', () => {
       const content = read('src/components/analytics/RevenueGraph.tsx')
       expect(content).toContain('pointer-events-none')
+    })
+
+    it('RevenueGraph does NOT use heavy blur overlay (no backdrop-blur)', () => {
+      const content = read('src/components/analytics/RevenueGraph.tsx')
+      expect(content).not.toContain('backdrop-blur')
+    })
+
+    it('RevenueGraph has exactly one Updating indicator (no duplicate in header)', () => {
+      const content = read('src/components/analytics/RevenueGraph.tsx')
+      // Count occurrences of "Updating…" — should be exactly 1
+      const matches = content.match(/Updating…/g)
+      expect(matches).toBeTruthy()
+      expect(matches!.length).toBe(1)
     })
 
     it('BusinessActivityGraph has updating state', () => {
@@ -251,12 +265,25 @@ describe('RC Batch 4 — Dashboard Chart Mobile Interaction + Loading Polish', (
       const content = read('src/components/analytics/BusinessActivityGraph.tsx')
       expect(content).toContain('h-[260px]')
       expect(content).toContain('relative')
-      expect(content).toContain('absolute inset-0')
+      // New: single subtle indicator at top-right, NOT a full overlay
+      expect(content).toContain('absolute top-1 right-1')
     })
 
-    it('BusinessActivityGraph updating overlay does not blank the chart (pointer-events-none)', () => {
+    it('BusinessActivityGraph updating indicator does not blank the chart (pointer-events-none)', () => {
       const content = read('src/components/analytics/BusinessActivityGraph.tsx')
       expect(content).toContain('pointer-events-none')
+    })
+
+    it('BusinessActivityGraph does NOT use heavy blur overlay (no backdrop-blur)', () => {
+      const content = read('src/components/analytics/BusinessActivityGraph.tsx')
+      expect(content).not.toContain('backdrop-blur')
+    })
+
+    it('BusinessActivityGraph has exactly one Updating indicator (no duplicate in header)', () => {
+      const content = read('src/components/analytics/BusinessActivityGraph.tsx')
+      const matches = content.match(/Updating…/g)
+      expect(matches).toBeTruthy()
+      expect(matches!.length).toBe(1)
     })
 
     it('updating indicator uses aria-live for accessibility', () => {

@@ -39,6 +39,7 @@ export default function BusinessActivityGraph() {
   // first fetch (full "Loading..." state) from subsequent range changes
   // (subtle "Updating..." indicator that keeps the previous chart visible).
   const hasInitialLoadRef = useRef(false)
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
   const toggleSeries = (key: string) => {
     setHiddenSeries((prev) =>
@@ -164,6 +165,8 @@ export default function BusinessActivityGraph() {
     }
 
     fetchData()
+    // Clear stale active selection when range changes
+    setActiveIndex(null)
     return () => { isStale = true }
   }, [business, timeRange])
 
@@ -193,12 +196,6 @@ export default function BusinessActivityGraph() {
             <h3 className="text-sm font-semibold text-foreground">Customer Engagement</h3>
           </div>
           <div className="flex items-center gap-2">
-            {updating && (
-              <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground" aria-live="polite">
-                <span className="inline-block w-3 h-3 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
-                Updating…
-              </span>
-            )}
             <PremiumSelect
               value={timeRange}
               onChange={setTimeRange}
@@ -233,15 +230,16 @@ export default function BusinessActivityGraph() {
           />
         ) : (
           <div className="h-[260px] relative">
+            {/* Single subtle updating indicator — absolutely positioned, does
+                NOT consume flex width, does NOT shift layout, does NOT blur
+                or dim the chart. Previous chart stays fully visible. */}
             {updating && (
-              <div className="absolute inset-0 z-10 bg-card/40 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
-                <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <span className="inline-block w-3 h-3 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
-                  Updating…
-                </span>
+              <div className="absolute top-1 right-1 z-10 flex items-center gap-1.5 text-[11px] text-muted-foreground bg-card/80 px-2 py-1 rounded-md pointer-events-none" aria-live="polite">
+                <span className="inline-block w-3 h-3 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+                Updating…
               </div>
             )}
-            <ChartTouchWrapper>
+            <ChartTouchWrapper data={data} onActiveIndexChange={setActiveIndex}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={{ ...CHART_STYLES.margin, bottom: 12 }}>
                   <CartesianGrid

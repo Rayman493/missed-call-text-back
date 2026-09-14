@@ -200,12 +200,12 @@ describe('Part A: Customers Filter Gesture Parity', () => {
 })
 
 // ============================================================================
-// PART B — DASHBOARD CHARTS: DRAG SUPPRESSION
+// PART B — DASHBOARD CHARTS: AXIS-AWARE GESTURE DETECTION
 // ============================================================================
-describe('Part B: Dashboard Chart Drag Suppression', () => {
-  describe('B1. ChartTouchWrapper uses canonical gesture primitive', () => {
-    it('imports GESTURE_MOVEMENT_THRESHOLD and isDragGesture from tap-guard', () => {
-      expect(chartUtilsContent).toMatch(/import \{ GESTURE_MOVEMENT_THRESHOLD, isDragGesture \} from '@\/lib\/gesture\/tap-guard'/)
+describe('Part B: Dashboard Chart Axis-Aware Gesture Detection', () => {
+  describe('B1. ChartTouchWrapper uses canonical gesture threshold', () => {
+    it('imports GESTURE_MOVEMENT_THRESHOLD from tap-guard', () => {
+      expect(chartUtilsContent).toMatch(/import \{ GESTURE_MOVEMENT_THRESHOLD \} from '@\/lib\/gesture\/tap-guard'/)
     })
 
     it('uses the same 10px threshold as all other surfaces', () => {
@@ -213,65 +213,38 @@ describe('Part B: Dashboard Chart Drag Suppression', () => {
     })
   })
 
-  describe('B2. Capture-phase handlers intercept events before Recharts', () => {
-    it('has onTouchMoveCapture handler', () => {
-      expect(chartUtilsContent).toMatch(/onTouchMoveCapture=\{handleTouchMoveCapture\}/)
-    })
-
-    it('has onPointerMoveCapture handler', () => {
-      expect(chartUtilsContent).toMatch(/onPointerMoveCapture=\{handlePointerMoveCapture\}/)
-    })
-
-    it('capture touch handler stops propagation when drag is detected', () => {
-      const captureBlock = chartUtilsContent.match(/handleTouchMoveCapture = \(e: React\.TouchEvent\)\s*=>\s*\{[\s\S]*?\}/)
-      expect(captureBlock).toBeTruthy()
-      if (captureBlock) {
-        expect(captureBlock[0]).toMatch(/e\.stopPropagation\(\)/)
-      }
-    })
-
-    it('capture pointer handler stops propagation when drag is detected', () => {
-      const captureBlock = chartUtilsContent.match(/handlePointerMoveCapture = \(e: React\.PointerEvent\)\s*=>\s*\{[\s\S]*?\}/)
-      expect(captureBlock).toBeTruthy()
-      if (captureBlock) {
-        expect(captureBlock[0]).toMatch(/e\.stopPropagation\(\)/)
-      }
-    })
-
-    it('capture handlers only act when isDraggingRef is already true', () => {
-      expect(chartUtilsContent).toMatch(/if \(!isDraggingRef\.current\) return/)
-    })
-  })
-
-  describe('B3. Clear Recharts state immediately when drag detected', () => {
-    it('handleTouchMove calls clearRechartsState when drag first detected', () => {
-      const touchMoveBlock = chartUtilsContent.match(/handleTouchMove = \(e: React\.TouchEvent\)\s*=>\s*\{[\s\S]*?\}/)
+  describe('B2. Axis-aware gesture classification', () => {
+    it('touchmove classifies vertical vs horizontal based on deltaX/deltaY', () => {
+      const touchMoveBlock = chartUtilsContent.match(/handleTouchMove = \(e: React\.TouchEvent\)\s*=>\s*\{[\s\S]*?\n  \}/)
       expect(touchMoveBlock).toBeTruthy()
       if (touchMoveBlock) {
-        expect(touchMoveBlock[0]).toMatch(/clearRechartsState\(\)/)
+        expect(touchMoveBlock[0]).toContain('deltaX')
+        expect(touchMoveBlock[0]).toContain('deltaY')
+        expect(touchMoveBlock[0]).toContain('vertical')
+        expect(touchMoveBlock[0]).toContain('horizontal')
       }
     })
 
-    it('handlePointerMove calls clearRechartsState when drag first detected', () => {
-      const pointerMoveBlock = chartUtilsContent.match(/handlePointerMove = \(e: React\.PointerEvent\)\s*=>\s*\{[\s\S]*?\}/)
+    it('pointermove classifies vertical vs horizontal based on deltaX/deltaY', () => {
+      const pointerMoveBlock = chartUtilsContent.match(/handlePointerMove = \(e: React\.PointerEvent\)\s*=>\s*\{[\s\S]*?\n  \}/)
       expect(pointerMoveBlock).toBeTruthy()
       if (pointerMoveBlock) {
-        expect(pointerMoveBlock[0]).toMatch(/clearRechartsState\(\)/)
+        expect(pointerMoveBlock[0]).toContain('deltaX')
+        expect(pointerMoveBlock[0]).toContain('deltaY')
       }
     })
 
-    it('handleTouchMove stops propagation during drag', () => {
-      // Check the full file for handleTouchMove + stopPropagation
-      expect(chartUtilsContent).toMatch(/handleTouchMove[\s\S]*?e\.stopPropagation\(\)/)
+    it('vertical movement clears Recharts state (no datum selection)', () => {
+      expect(chartUtilsContent).toMatch(/vertical[\s\S]*?clearRechartsState/)
     })
 
-    it('handlePointerMove stops propagation during drag', () => {
-      expect(chartUtilsContent).toMatch(/handlePointerMove[\s\S]*?e\.stopPropagation\(\)/)
+    it('horizontal movement enters scrub mode and activates datum', () => {
+      expect(chartUtilsContent).toMatch(/horizontal[\s\S]*?activateDatum/)
     })
   })
 
-  describe('B4. clearRechartsState dispatches synthetic events', () => {
-    it('dispatches mouseleave on recharts-surface', () => {
+  describe('B3. Clear Recharts state on vertical scroll', () => {
+    it('clearRechartsState dispatches mouseleave on recharts-surface', () => {
       expect(chartUtilsContent).toMatch(/MouseEvent\('mouseleave'/)
       expect(chartUtilsContent).toMatch(/recharts-surface/)
     })
@@ -290,98 +263,81 @@ describe('Part B: Dashboard Chart Drag Suppression', () => {
     })
   })
 
-  describe('B5. Does NOT disable clean taps', () => {
+  describe('B4. Does NOT disable clean taps', () => {
     it('does NOT set pointerEvents:none on pointerdown', () => {
-      const pointerDownBlock = chartUtilsContent.match(/handlePointerDown = \(e: React\.PointerEvent\)\s*=>\s*\{[\s\S]*?\}/)
+      const pointerDownBlock = chartUtilsContent.match(/handlePointerDown = \(e: React\.PointerEvent\)\s*=>\s*\{[\s\S]*?\n  \}/)
       expect(pointerDownBlock).toBeTruthy()
       if (pointerDownBlock) {
-        expect(pointerDownBlock[0]).not.toMatch(/disableChartPointerEvents\(\)/)
+        expect(pointerDownBlock[0]).not.toMatch(/style\.pointerEvents = 'none'/)
       }
     })
 
     it('does NOT set pointerEvents:none on touchstart', () => {
-      const touchStartBlock = chartUtilsContent.match(/handleTouchStart = \(e: React\.TouchEvent\)\s*=>\s*\{[\s\S]*?\}/)
+      const touchStartBlock = chartUtilsContent.match(/handleTouchStart = \(e: React\.TouchEvent\)\s*=>\s*\{[\s\S]*?\n  \}/)
       expect(touchStartBlock).toBeTruthy()
       if (touchStartBlock) {
-        expect(touchStartBlock[0]).not.toMatch(/disableChartPointerEvents\(\)/)
+        expect(touchStartBlock[0]).not.toMatch(/style\.pointerEvents = 'none'/)
       }
-    })
-
-    it('only disables pointer events when drag is detected', () => {
-      // disableChartPointerEvents should only be called from handleTouchMove and handlePointerMove
-      const calls = chartUtilsContent.match(/disableChartPointerEvents\(\)/g) || []
-      // Should appear in handleTouchMove, handlePointerMove (2 calls for drag detection)
-      expect(calls.length).toBeGreaterThanOrEqual(2)
     })
   })
 
-  describe('B6. Does NOT preventDefault on touchmove or disable page scrolling', () => {
-    it('does NOT call e.preventDefault() in touch handlers', () => {
-      const touchMoveBlock = chartUtilsContent.match(/handleTouchMove = \(e: React\.TouchEvent\)\s*=>\s*\{[\s\S]*?\}/)
-      expect(touchMoveBlock).toBeTruthy()
-      if (touchMoveBlock) {
-        expect(touchMoveBlock[0]).not.toMatch(/e\.preventDefault\(\)/)
-      }
-    })
-
-    it('uses touchAction: pan-y pan-x to allow native scrolling', () => {
-      expect(chartUtilsContent).toMatch(/touchAction: 'pan-y pan-x'/)
+  describe('B5. Allows native vertical scrolling', () => {
+    it('uses touchAction: pan-y to allow native vertical scroll', () => {
+      expect(chartUtilsContent).toMatch(/touchAction: 'pan-y'/)
     })
 
     it('does NOT set touchAction: none', () => {
       expect(chartUtilsContent).not.toMatch(/touchAction: 'none'/)
     })
+
+    it('does NOT set touchAction: pan-y pan-x (horizontal is handled by scrub)', () => {
+      expect(chartUtilsContent).not.toMatch(/touchAction: 'pan-y pan-x'/)
+    })
   })
 
-  describe('B7. Desktop mouse and keyboard preserved', () => {
+  describe('B6. Desktop mouse preserved', () => {
     it('pointer handlers only track touch pointers (not mouse)', () => {
       expect(chartUtilsContent).toMatch(/if \(e\.pointerType !== 'touch'\) return/)
     })
-
-    it('wrapper has tabIndex={0} for keyboard focusability', () => {
-      expect(chartUtilsContent).toMatch(/tabIndex=\{0\}/)
-    })
-
-    it('uses focus-visible:outline (not giant focus ring)', () => {
-      expect(chartUtilsContent).toMatch(/focus:outline-none/)
-      expect(chartUtilsContent).toMatch(/focus-visible:outline-2/)
-      expect(chartUtilsContent).toMatch(/focus-visible:outline-blue-500\/30/)
-    })
-
-    it('recharts-surface gets focus-visible styling', () => {
-      expect(chartUtilsContent).toMatch(/\[&_\.recharts-surface:focus-visible\]/)
-    })
   })
 
-  describe('B8. Restore after drag completion', () => {
-    it('handleTouchEnd restores pointer events', () => {
-      expect(chartUtilsContent).toMatch(/handleTouchEnd[\s\S]*?restoreChartPointerEvents\(\)/)
+  describe('B7. No wrapper-level focus (white rectangle fix)', () => {
+    it('wrapper does NOT have tabIndex', () => {
+      expect(chartUtilsContent).not.toMatch(/tabIndex=\{0\}/)
+      expect(chartUtilsContent).not.toMatch(/tabIndex=\{1\}/)
     })
 
-    it('handlePointerUp restores pointer events', () => {
-      expect(chartUtilsContent).toMatch(/handlePointerUp[\s\S]*?restoreChartPointerEvents\(\)/)
-    })
-
-    it('handlePointerCancel restores pointer events', () => {
-      expect(chartUtilsContent).toMatch(/handlePointerCancel[\s\S]*?restoreChartPointerEvents\(\)/)
-    })
-
-    it('handleTouchEnd clears Recharts state if was drag', () => {
-      expect(chartUtilsContent).toMatch(/if \(isDraggingRef\.current\)[\s\S]*?clearRechartsState\(\)/)
-    })
-
-    it('handlePointerUp clears Recharts state if was drag', () => {
-      const pointerUpBlock = chartUtilsContent.match(/handlePointerUp = \(e: React\.PointerEvent\)\s*=>\s*\{[\s\S]*?\}/)
-      expect(pointerUpBlock).toBeTruthy()
-      if (pointerUpBlock) {
-        expect(pointerUpBlock[0]).toMatch(/clearRechartsState\(\)/)
+    it('wrapper does NOT have focus-visible styling', () => {
+      const outerDivMatch = chartUtilsContent.match(/className="w-full h-full select-none[^"]*"/)
+      expect(outerDivMatch).toBeTruthy()
+      if (outerDivMatch) {
+        expect(outerDivMatch[0]).not.toContain('focus-visible:ring')
+        expect(outerDivMatch[0]).not.toContain('focus-visible:outline')
       }
     })
+
+    it('recharts-surface has outline-none (CSS suppresses touch focus)', () => {
+      expect(chartUtilsContent).toMatch(/\[&_\.recharts-surface\]:outline-none/)
+    })
   })
 
-  describe('B9. data-chart-dragging attribute for observability', () => {
-    it('sets data-chart-dragging when dragging', () => {
-      expect(chartUtilsContent).toMatch(/data-chart-dragging=\{isDragging/)
+  describe('B8. Restore after gesture completion', () => {
+    it('pointer events restored on touchend', () => {
+      expect(chartUtilsContent).toMatch(/handleTouchEnd[\s\S]*?style\.pointerEvents = 'auto'/)
+    })
+
+    it('pointer events restored on pointerup', () => {
+      expect(chartUtilsContent).toMatch(/handlePointerUp[\s\S]*?style\.pointerEvents = 'auto'/)
+    })
+
+    it('pointer events restored on pointercancel', () => {
+      expect(chartUtilsContent).toMatch(/handlePointerCancel[\s\S]*?style\.pointerEvents = 'auto'/)
+    })
+  })
+
+  describe('B9. data-chart-scrubbing attribute for observability', () => {
+    it('sets data-chart-scrubbing when scrubbing', () => {
+      expect(chartUtilsContent).toMatch(/data-chart-scrubbing=\{isScrubbing/)
     })
   })
 })
@@ -427,24 +383,25 @@ describe('Test Matrix Verification', () => {
   // Chart tests
   // 1. real chart clean tap → datum interaction still works
   it('Chart 1: clean tap does NOT disable pointer events on pointerdown', () => {
-    expect(chartUtilsContent).toMatch(/Do NOT disable pointer events/)
+    const pdIdx = chartUtilsContent.indexOf('handlePointerDown')
+    const pdBlock = chartUtilsContent.substring(pdIdx, pdIdx + 400)
+    expect(pdBlock).not.toContain("style.pointerEvents = 'none'")
   })
 
   // 2. real chart vertical drag → no tooltip/active state
-  it('Chart 2: drag detection disables pointer events and clears state', () => {
-    expect(chartUtilsContent).toMatch(/disableChartPointerEvents\(\)/)
+  it('Chart 2: vertical drag clears Recharts state', () => {
     expect(chartUtilsContent).toMatch(/clearRechartsState\(\)/)
   })
 
-  // 3. drag release synthetic click → remains suppressed
-  it('Chart 3: capture-phase handlers stop propagation during drag', () => {
-    expect(chartUtilsContent).toMatch(/onTouchMoveCapture/)
-    expect(chartUtilsContent).toMatch(/onPointerMoveCapture/)
+  // 3. horizontal scrub → activates datum
+  it('Chart 3: horizontal scrub activates datum via mousemove dispatch', () => {
+    expect(chartUtilsContent).toMatch(/activateDatum/)
+    expect(chartUtilsContent).toMatch(/mousemove/)
   })
 
-  // 4. next clean tap after drag → works
-  it('Chart 4: pointer events restored after drag ends', () => {
-    expect(chartUtilsContent).toMatch(/restoreChartPointerEvents\(\)/)
+  // 4. next clean tap after gesture → works
+  it('Chart 4: pointer events restored after gesture ends', () => {
+    expect(chartUtilsContent).toMatch(/style\.pointerEvents = 'auto'/)
   })
 
   // 5. desktop mouse hover → preserved
@@ -452,9 +409,9 @@ describe('Test Matrix Verification', () => {
     expect(chartUtilsContent).toMatch(/if \(e\.pointerType !== 'touch'\) return/)
   })
 
-  // 6. keyboard focus/activation → preserved
-  it('Chart 6: keyboard focus via tabIndex and focus-visible styling', () => {
-    expect(chartUtilsContent).toMatch(/tabIndex=\{0\}/)
-    expect(chartUtilsContent).toMatch(/focus-visible:outline/)
+  // 6. keyboard focus → preserved on individual data elements (not wrapper)
+  it('Chart 6: no wrapper tabIndex, keyboard focus on individual elements via CSS', () => {
+    expect(chartUtilsContent).not.toMatch(/tabIndex=\{0\}/)
+    // Individual data element focus is handled by globals.css
   })
 })

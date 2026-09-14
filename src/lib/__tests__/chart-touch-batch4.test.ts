@@ -25,12 +25,15 @@ describe('Batch 4 — ChartTouchWrapper Canonical Gesture Guard', () => {
     expect(content).toContain("from '@/lib/gesture/tap-guard'")
   })
 
-  it('tracks both X and Y movement via canonical isDragGesture (not just Y)', () => {
+  it('tracks both X and Y movement via axis-aware gesture detection', () => {
     const content = readContent('src/lib/chart-utils.tsx')
     expect(content).toContain('startXRef')
     expect(content).toContain('startYRef')
-    // Must use the canonical isDragGesture function which checks both axes
-    expect(content).toContain('isDragGesture')
+    // Axis-aware: classifies vertical vs horizontal based on deltaX/deltaY
+    expect(content).toContain('deltaX')
+    expect(content).toContain('deltaY')
+    // Uses canonical threshold from shared gesture module
+    expect(content).toContain('GESTURE_MOVEMENT_THRESHOLD')
     expect(content).toContain("from '@/lib/gesture/tap-guard'")
   })
 
@@ -55,34 +58,26 @@ describe('Batch 4 — ChartTouchWrapper Canonical Gesture Guard', () => {
     expect(codeWithoutComments).not.toContain('requestAnimationFrame')
   })
 
-  it('uses pan-y pan-x touch-action (both axes scroll)', () => {
+  it('uses pan-y touch-action (vertical scroll preserved)', () => {
     const content = readContent('src/lib/chart-utils.tsx')
-    expect(content).toContain("touchAction: 'pan-y pan-x'")
+    expect(content).toContain("touchAction: 'pan-y'")
   })
 
-  it('suppresses chart pointer events only during active drag (not scroll)', () => {
+  it('disables chart pointer events during horizontal scrub (not on pointerdown)', () => {
     const content = readContent('src/lib/chart-utils.tsx')
-    expect(content).toContain('isDragging')
-    // The canonical implementation uses direct DOM manipulation through
-    // disableChartPointerEvents() / restoreChartPointerEvents() rather than
-    // inline style binding. This is called ONLY when drag is detected
-    // (movement beyond threshold), NOT on pointerdown/touchstart, so clean
-    // taps can still reach Recharts.
-    expect(content).toContain('disableChartPointerEvents')
-    expect(content).toContain('restoreChartPointerEvents')
-    // disableChartPointerEvents sets pointerEvents to 'none' via DOM ref
+    // Pointer events are disabled via direct DOM manipulation when
+    // horizontal scrub is detected, NOT on pointerdown/touchstart.
     expect(content).toContain("style.pointerEvents = 'none'")
-    // restoreChartPointerEvents sets pointerEvents back to 'auto'
     expect(content).toContain("style.pointerEvents = 'auto'")
     // Must NOT disable on pointerdown (clean tap must reach Recharts)
     const pointerDownBlock = content.match(/const handlePointerDown = \([\s\S]*?\n  \}/)
     if (pointerDownBlock) {
-      expect(pointerDownBlock[0]).not.toContain('disableChartPointerEvents')
+      expect(pointerDownBlock[0]).not.toContain("style.pointerEvents = 'none'")
     }
     // Must NOT disable on touchstart (clean tap must reach Recharts)
     const touchStartBlock = content.match(/const handleTouchStart = \([\s\S]*?\n  \}/)
     if (touchStartBlock) {
-      expect(touchStartBlock[0]).not.toContain('disableChartPointerEvents')
+      expect(touchStartBlock[0]).not.toContain("style.pointerEvents = 'none'")
     }
   })
 
