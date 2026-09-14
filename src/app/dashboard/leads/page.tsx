@@ -25,7 +25,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
-import { shouldPreventMenuOpen } from '@/components/lead-status-gesture'
+import { shouldPreventMenuOpen, markDropdownDismissed } from '@/components/lead-status-gesture'
+import { GESTURE_MOVEMENT_THRESHOLD } from '@/lib/gesture/tap-guard'
 import { useTapGuard } from '@/lib/gesture/use-tap-guard'
 import {
   formatPhoneNumber,
@@ -238,12 +239,18 @@ export default function LeadsPage() {
   const [quickFilter, setQuickFilter] = useState<'all' | 'active' | 'new' | 'scheduled' | 'payment_requested' | 'completed' | 'ignored' | 'cancelled'>('all')
   const [showFilters, setShowFilters] = useState(false)
   const [filterMenuOpen, setFilterMenuOpen] = useState(false)
-  // Tracks when the filter menu was dismissed by an outside tap.
-  // Set synchronously during Radix's onInteractOutside (pointerdown),
-  // consumed by the card's onClick handler. This prevents the first
-  // outside tap from navigating into a customer — it only dismisses
-  // the menu. The second clean tap navigates normally.
-  const filterDismissedAtRef = useRef<number>(0)
+  // Gesture-aware dismissal tracking for the Radix DropdownMenu filter.
+  // Radix fires onInteractOutside on pointerdown, which can't distinguish
+  // tap from scroll. We prevent default dismissal on pointerdown, record
+  // the start position, and close on pointerup ONLY if the gesture was a
+  // tap (movement below threshold) that started OUTSIDE the menu. Vertical
+  // scrolls keep the menu open. Inside taps (option selection) are not
+  // dismissed by our handler — Radix handles option selection normally.
+  const filterDismissStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null)
+  // Set to true by Radix onInteractOutside (pointerdown outside the menu).
+  // Checked on pointerup to ensure we only dismiss for OUTSIDE taps, not
+  // inside taps (option selection).
+  const filterGestureOutsideRef = useRef(false)
   const filterPointerStartRef = useRef<{ x: number; y: number } | null>(null)
   const filterMovedRef = useRef(false)
   // Suppress the next Radix onOpenChange(true) after a drag gesture.
@@ -599,6 +606,70 @@ export default function LeadsPage() {
   const handleConversationClick = (leadId: string) => {
     router.push(`/dashboard/leads/${leadId}`)
   }
+
+  // Gesture-aware dismissal for the Radix DropdownMenu filter.
+  // Radix fires onInteractOutside on pointerdown, which can't distinguish a
+  // tap from a vertical scroll. We register document-level capture listeners
+  // while the menu is open:
+  //   - pointerdown: record start {x, y, pointerId} for every gesture
+  //   - pointerup: if movement < threshold (a tap) and the gesture started
+  //     outside the menu, close the menu and mark the gesture consumed so the
+  //     synthesized click doesn't reach the underlying customer card. If
+  //     movement >= threshold (a scroll), keep the menu open.
+  //   - pointercancel: clear the recorded start.
+  // The Radix onInteractOutside handler calls preventDefault() so Radix does
+  // not close the menu on pointerdown; we handle dismissal ourselves on
+  // pointerup after classifying the gesture.
+  useEffect(() => {
+    if (!filterMenuOpen) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      filterDismissStartRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+        pointerId: event.pointerId,
+      }
+      // Reset outside flag on each new pointerdown; Radix will set it
+      // via onInteractOutside if this pointerdown is outside the menu.
+      filterGestureOutsideRef.current = false
+    }
+
+    const handlePointerUp = (event: PointerEvent) => {
+      const start = filterDismissStartRef.current
+      if (!start) return
+      if (event.pointerId !== start.pointerId) return
+      const dx = event.clientX - start.x
+      const dy = event.clientY - start.y
+      const moved = Math.hypot(dx, dy) >= GESTURE_MOVEMENT_THRESHOLD
+      const wasOutside = filterGestureOutsideRef.current
+      filterDismissStartRef.current = null
+      filterGestureOutsideRef.current = false
+      if (!moved && wasOutside) {
+        // Outside tap: dismiss and consume the synthesized click.
+        markDropdownDismissed()
+        setFilterMenuOpen(false)
+      }
+      // If moved (scroll) or inside, keep menu open — do not dismiss.
+    }
+
+    const handlePointerCancel = (event: PointerEvent) => {
+      const start = filterDismissStartRef.current
+      if (start && event.pointerId === start.pointerId) {
+        filterDismissStartRef.current = null
+        filterGestureOutsideRef.current = false
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown, true)
+    document.addEventListener('pointerup', handlePointerUp, true)
+    document.addEventListener('pointercancel', handlePointerCancel, true)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true)
+      document.removeEventListener('pointerup', handlePointerUp, true)
+      document.removeEventListener('pointercancel', handlePointerCancel, true)
+      filterDismissStartRef.current = null
+    }
+  }, [filterMenuOpen])
 
   // Handle empty-space click to clear status filter
   const handlePageClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1281,13 +1352,15 @@ export default function LeadsPage() {
                       }}
                       avoidCollisions
                       onInteractOutside={(e) => {
-                        // Record that the menu was dismissed by an outside tap.
-                        // The card's onClick checks this ref to suppress the
-                        // first navigation after dismissal. This is NOT a
-                        // timeout — it's a synchronous flag set during
-                        // pointerdown and consumed by the next click event
-                        // (which is part of the same tap gesture).
-                        filterDismissedAtRef.current = Date.now()
+                        // Radix fires onInteractOutside on pointerdown, which
+                        // can't distinguish a tap from a vertical scroll. We
+                        // prevent default dismissal here and let our
+                        // document-level pointerup listener classify the
+                        // gesture: tap → close + consume click; scroll → keep
+                        // open. We set the outside flag so the pointerup handler
+                        // knows this gesture started outside the menu.
+                        e.preventDefault()
+                        filterGestureOutsideRef.current = true
                       }}
                       className="w-[200px] max-w-[calc(100vw-24px)] max-h-[min(400px,calc(100dvh-140px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 z-[10000] overflow-y-auto overscroll-contain touch-pan-y"
                     >
@@ -1623,14 +1696,13 @@ export default function LeadsPage() {
                           statusStyle.cardClass
                         )}
                         onClick={() => {
-                          // Filter dismissal guard: if the filter menu was just
-                          // dismissed by an outside tap (same gesture), consume
-                          // this click to prevent navigating into the customer.
-                          // The second clean tap navigates normally.
-                          if (filterDismissedAtRef.current > 0) {
-                            filterDismissedAtRef.current = 0
-                            return
-                          }
+                          // Click suppression after filter dismissal is handled
+                          // by the shared markDropdownDismissed() infrastructure
+                          // (document-level capture-phase click listener). When
+                          // the filter menu is dismissed by an outside tap, the
+                          // same gesture's synthesized click is consumed before
+                          // it reaches this handler. The second clean tap
+                          // navigates normally.
                           handleConversationClick(lead.id)
                         }}
                         onKeyDown={(e) => {
