@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Plus, Trash2, Search, User, X, Loader2, Eye, Download, Send } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -114,6 +114,13 @@ export default function BillingEditorModal({
   const [leads, setLeads] = useState<LeadOption[]>([])
   const [loadingLeads, setLoadingLeads] = useState(false)
 
+  // Saved document state (set after saving from preview, so the preview
+  // can transition to "saved" mode without closing/reopening the editor)
+  const [savedDoc, setSavedDoc] = useState<{ id: string; document_number: string } | null>(null)
+
+  // Ref for outside-click dismissal of the customer picker
+  const customerFieldRef = useRef<HTMLDivElement>(null)
+
   // Hydrate from existing document when opening
   useEffect(() => {
     if (!isOpen) return
@@ -157,8 +164,37 @@ export default function BillingEditorModal({
       setTaxCents('0.00')
       setLineItems([emptyLineItem()])
     }
+    setSavedDoc(null)
     setSaveError('')
   }, [isOpen, existingDocument, isInvoice])
+
+  // Outside-click dismissal for customer picker
+  useEffect(() => {
+    if (!showCustomerPicker) return
+    const handlePointerDown = (e: PointerEvent) => {
+      if (customerFieldRef.current && !customerFieldRef.current.contains(e.target as Node)) {
+        setShowCustomerPicker(false)
+        setCustomerSearch('')
+      }
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [showCustomerPicker])
+
+  // Escape closes picker only (does not close editor modal)
+  useEffect(() => {
+    if (!showCustomerPicker) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        setShowCustomerPicker(false)
+        setCustomerSearch('')
+      }
+    }
+    // Capture phase so we intercept before the modal's Escape handler
+    document.addEventListener('keydown', handleKeyDown, true)
+    return () => document.removeEventListener('keydown', handleKeyDown, true)
+  }, [showCustomerPicker])
 
   // Fetch leads for customer picker
   useEffect(() => {
@@ -242,66 +278,6 @@ export default function BillingEditorModal({
   const tax = dollarsToCents(taxCents)
   const total = Math.max(0, subtotal - discount + tax)
 
-  const handleSaveDraft = useCallback(async () => {
-    setIsSaving(true)
-    setSaveError('')
-    try {
-      const supabase = createBrowserClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      const headers: HeadersInit = { 'Content-Type': 'application/json' }
-      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
-
-      const payload = {
-        document_type: documentType,
-        customer_id: customerId || null,
-        issue_date: issueDate,
-        valid_until: isInvoice ? null : (validUntil || null),
-        due_date: isInvoice ? (dueDate || null) : null,
-        notes: notes || null,
-        terms: terms || null,
-        discount_cents: discount,
-        tax_cents: tax,
-        line_items: lineItems.map((item) => ({
-          description: item.description,
-          quantity: item.quantity,
-          unit_label: item.unit_label || null,
-          unit_price_cents: dollarsToCents(item.unit_price_cents),
-        })),
-      }
-
-      let res: Response
-      if (existingDocument?.id) {
-        res = await fetch(`/api/billing-documents/${existingDocument.id}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify(payload),
-        })
-      } else {
-        res = await fetch('/api/billing-documents', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload),
-        })
-      }
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}))
-        throw new Error(errJson.error || 'Failed to save document')
-      }
-
-      const json = await res.json()
-      onSaved?.(json.document)
-      onClose()
-    } catch (err: any) {
-      setSaveError(err.message || 'Failed to save')
-    } finally {
-      setIsSaving(false)
-    }
-  }, [
-    customerId, issueDate, validUntil, dueDate, notes, terms, discount, tax,
-    lineItems, documentType, isInvoice, existingDocument, onSaved, onClose,
-  ])
-
   // Build a preview presentation from current editor state (live data)
   const buildPreviewDoc = useCallback((): DocumentPresentation => {
     const subtotal = lineItems.reduce((sum, item) => {
@@ -314,8 +290,8 @@ export default function BillingEditorModal({
     const total = Math.max(0, subtotal - disc + tx)
     return {
       document_type: documentType,
-      document_number: existingDocument?.document_number || '(unsaved draft)',
-      status: existingDocument?.status || 'draft',
+      document_number: existingDocument?.document_number || savedDoc?.document_number || '(unsaved draft)',
+      status: existingDocument?.status || (savedDoc ? 'draft' : 'draft'),
       issue_date: issueDate,
       valid_until: isInvoice ? null : (validUntil || null),
       due_date: isInvoice ? (dueDate || null) : null,
@@ -343,7 +319,80 @@ export default function BillingEditorModal({
       terms: terms || null,
       payment_url: null,
     }
-  }, [lineItems, discountCents, taxCents, issueDate, validUntil, dueDate, isInvoice, documentType, existingDocument, customerName, customerPhone, customerEmail, notes, terms, business])
+  }, [lineItems, discountCents, taxCents, issueDate, validUntil, dueDate, isInvoice, documentType, existingDocument, savedDoc, customerName, customerPhone, customerEmail, notes, terms, business])
+
+  const handleSaveDraft = useCallback(async (opts?: { fromPreview?: boolean }) => {
+    const fromPreview = opts?.fromPreview ?? false
+    setIsSaving(true)
+    setSaveError('')
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+
+      const payload = {
+        document_type: documentType,
+        customer_id: customerId || null,
+        issue_date: issueDate,
+        valid_until: isInvoice ? null : (validUntil || null),
+        due_date: isInvoice ? (dueDate || null) : null,
+        notes: notes || null,
+        terms: terms || null,
+        discount_cents: discount,
+        tax_cents: tax,
+        line_items: lineItems.map((item) => ({
+          description: item.description,
+          quantity: item.quantity,
+          unit_label: item.unit_label || null,
+          unit_price_cents: dollarsToCents(item.unit_price_cents),
+        })),
+      }
+
+      let res: Response
+      const existingId = existingDocument?.id || savedDoc?.id
+      if (existingId) {
+        res = await fetch(`/api/billing-documents/${existingId}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify(payload),
+        })
+      } else {
+        res = await fetch('/api/billing-documents', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        })
+      }
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}))
+        throw new Error(errJson.error || 'Failed to save document')
+      }
+
+      const json = await res.json()
+      const savedDocument = json.document
+      if (fromPreview) {
+        // Update saved state so preview transitions to saved mode
+        if (savedDocument?.id && savedDocument?.document_number) {
+          setSavedDoc({ id: savedDocument.id, document_number: savedDocument.document_number })
+          setDocNumber(savedDocument.document_number)
+        }
+        // Rebuild preview to reflect saved state
+        setPreviewDoc(buildPreviewDoc())
+      } else {
+        onSaved?.(savedDocument)
+        onClose()
+      }
+    } catch (err: any) {
+      setSaveError(err.message || 'Failed to save')
+    } finally {
+      setIsSaving(false)
+    }
+  }, [
+    customerId, issueDate, validUntil, dueDate, notes, terms, discount, tax,
+    lineItems, documentType, isInvoice, existingDocument, savedDoc, onSaved, onClose, buildPreviewDoc,
+  ])
 
   const handlePreview = () => {
     setPreviewDoc(buildPreviewDoc())
@@ -351,22 +400,24 @@ export default function BillingEditorModal({
   }
 
   const handleDownload = async () => {
-    if (!existingDocument?.id) return
+    const docId = existingDocument?.id || savedDoc?.id
+    if (!docId) return
     try {
       const supabase = createBrowserClient()
       const { data: { session } } = await supabase.auth.getSession()
       const headers: HeadersInit = {}
       if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
-      const res = await fetch(`/api/billing-documents/${existingDocument.id}/pdf`, { headers })
+      const res = await fetch(`/api/billing-documents/${docId}/pdf`, { headers })
       if (!res.ok) return
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       const isQuote = documentType === 'quote'
+      const docNum = existingDocument?.document_number || savedDoc?.document_number || ''
       a.download = isQuote
-        ? `Quote-${existingDocument.document_number}.pdf`
-        : `Invoice-${existingDocument.document_number}.pdf`
+        ? `Quote-${docNum}.pdf`
+        : `Invoice-${docNum}.pdf`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -377,10 +428,15 @@ export default function BillingEditorModal({
   }
 
   const handleSend = async () => {
-    if (!existingDocument?.id) return
+    const docId = existingDocument?.id || savedDoc?.id
+    if (!docId) return
     if (isSending) return // prevent double-click duplicate
     if (!customerId) {
-      setSendError('A customer must be selected before sending')
+      setSendError('Select a customer before sending')
+      return
+    }
+    if (!customerPhone) {
+      setSendError('Selected customer has no phone number — cannot send SMS')
       return
     }
     setIsSending(true)
@@ -390,7 +446,7 @@ export default function BillingEditorModal({
       const { data: { session } } = await supabase.auth.getSession()
       const headers: HeadersInit = { 'Content-Type': 'application/json' }
       if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
-      const res = await fetch(`/api/billing-documents/${existingDocument.id}/send`, {
+      const res = await fetch(`/api/billing-documents/${docId}/send`, {
         method: 'POST',
         headers,
       })
@@ -419,7 +475,7 @@ export default function BillingEditorModal({
           <Eye className="w-4 h-4" />
           Preview
         </button>
-        {existingDocument?.id && (
+        {existingDocument?.id || savedDoc?.id ? (
           <>
             <button
               onClick={handleDownload}
@@ -438,7 +494,7 @@ export default function BillingEditorModal({
               Send to Customer
             </button>
           </>
-        )}
+        ) : null}
       </div>
       <div className="flex items-center gap-2">
         <button
@@ -449,7 +505,7 @@ export default function BillingEditorModal({
           Cancel
         </button>
         <button
-          onClick={handleSaveDraft}
+          onClick={() => handleSaveDraft()}
           disabled={isSaving}
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
@@ -497,7 +553,7 @@ export default function BillingEditorModal({
         )}
 
         {/* Customer */}
-        <div>
+        <div ref={customerFieldRef}>
           <label className="block text-xs font-medium text-muted-foreground mb-1">
             Customer
           </label>
@@ -777,34 +833,44 @@ export default function BillingEditorModal({
                 Back to Edit
               </button>
               <div className="flex items-center gap-2">
-                {existingDocument?.id && (
-                  <>
-                    <button
-                      onClick={handleDownload}
-                      className="px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download
-                    </button>
-                    <button
-                      onClick={handleSend}
-                      disabled={isSending}
-                      className="px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm flex items-center gap-1.5 disabled:opacity-50"
-                    >
-                      {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                      Send to Customer
-                    </button>
-                  </>
-                )}
+                {(() => {
+                  const isSaved = !!(existingDocument?.id || savedDoc?.id)
+                  if (!isSaved) {
+                    return (
+                      <button
+                        onClick={() => handleSaveDraft({ fromPreview: true })}
+                        disabled={isSaving}
+                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                        Save Draft
+                      </button>
+                    )
+                  }
+                  return (
+                    <>
+                      <button
+                        onClick={handleDownload}
+                        className="px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download PDF
+                      </button>
+                      <button
+                        onClick={handleSend}
+                        disabled={isSending}
+                        className="px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        Send to Customer
+                      </button>
+                    </>
+                  )
+                })()}
               </div>
             </div>
           }
         >
-          {previewDoc.status === 'draft' && (
-            <div className="mb-3 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 text-xs text-amber-700 dark:text-amber-300">
-              This is an unsaved draft preview. Save the document first to download or send.
-            </div>
-          )}
           <div className="bg-slate-50 dark:bg-slate-950 rounded-lg overflow-hidden">
             <DocumentRenderer doc={previewDoc} showStatusBadge isPreview />
           </div>

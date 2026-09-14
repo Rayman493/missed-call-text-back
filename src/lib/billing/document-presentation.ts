@@ -52,8 +52,33 @@ export interface DocumentPresentation {
   payment_url: string | null
 }
 
+/**
+ * Format a date-only value (YYYY-MM-DD) as a long human-readable string.
+ *
+ * Date-only fields (issue_date, valid_until, due_date) are stored as
+ * YYYY-MM-DD strings in Postgres. We parse the year/month/day components
+ * directly and construct a LOCAL date to avoid the UTC-midnight →
+ * local-timezone shift that would render the date one day early in
+ * negative-offset timezones (e.g. America/New_York).
+ *
+ * For timestamp strings (containing 'T' or time components), falls back
+ * to standard Date parsing since those have an explicit time component.
+ */
 export function formatDate(iso: string | null): string {
   if (!iso) return ''
+  const sliced = iso.slice(0, 10)
+  const parts = sliced.split('-')
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10)
+    const month = parseInt(parts[1], 10)
+    const day = parseInt(parts[2], 10)
+    if (year > 0 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      // Construct as LOCAL date — no UTC midnight shift
+      const d = new Date(year, month - 1, day)
+      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    }
+  }
+  // Fallback for timestamp strings with time component
   try {
     const d = new Date(iso)
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
