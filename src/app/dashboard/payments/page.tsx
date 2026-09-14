@@ -33,6 +33,7 @@ import BillingChooserModal from '@/components/billing/BillingChooserModal'
 import BillingEditorModal, { BillingDocumentType, BillingDocumentData } from '@/components/billing/BillingEditorModal'
 import BillingDocumentList, { BillingDocumentListItem } from '@/components/billing/BillingDocumentList'
 import BillingViewerModal from '@/components/billing/BillingViewerModal'
+import { suppressNextHistoryBackCleanup } from '@/lib/modalBackButton'
 import { FileText } from 'lucide-react'
 
 interface PaymentRequest {
@@ -372,6 +373,11 @@ export default function PaymentsPage() {
   }
 
   const handleBillingChooserSelect = (type: BillingDocumentType) => {
+    // Suppress the chooser's history.back() cleanup so it does not
+    // trigger a popstate that would immediately close the editor.
+    // This is deterministic (no setTimeout): the flag is consumed
+    // synchronously during the chooser's useModalBackButton cleanup.
+    suppressNextHistoryBackCleanup()
     setBillingEditorType(type)
     setBillingEditorDoc(null)
     setShowBillingChooser(false)
