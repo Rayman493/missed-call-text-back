@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getValidMediaAccessUrl } from '@/lib/mms-media-url-helper'
+import { extractStoragePathFromUrl } from '@/lib/mms-media-url-helper'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
 /**
- * Recover a valid MMS media access URL from a potentially broken stored URL
- * 
+ * Recover a valid MMS media access URL from a potentially broken stored URL.
+ *
  * This endpoint handles historical records with token=undefined, expired tokens, etc.
  * It extracts the storage path and generates a fresh valid URL.
+ *
+ * SECURITY: Requires authenticated session. The storage path's first segment
+ * (business_id) must belong to a business owned by the authenticated user.
+ * This mirrors the ownership contract used by /api/mms-media/serve.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -18,6 +25,56 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'URL parameter is required' },
         { status: 400 }
+      )
+    }
+
+    // --- Authentication: require a valid user session ---
+    const supabase = await createServerSupabaseClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    // --- Authorization: extract business_id from storage path and verify ownership ---
+    const storagePath = extractStoragePathFromUrl(storedUrl)
+    if (!storagePath) {
+      return NextResponse.json(
+        { error: 'Unable to extract storage path' },
+        { status: 400 }
+      )
+    }
+
+    // The storage path format is "business-id/..." — first segment is business_id
+    const pathSegments = storagePath.split('/')
+    const businessId = pathSegments[0]
+
+    if (!businessId || businessId === '' || businessId.includes('..') || businessId.includes('.')) {
+      return NextResponse.json(
+        { error: 'Invalid storage path' },
+        { status: 400 }
+      )
+    }
+
+    // Verify the user owns this business (same contract as /api/mms-media/serve)
+    const { data: business, error: businessError } = await supabaseAdmin
+      .from('businesses')
+      .select('id')
+      .eq('id', businessId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (businessError || !business) {
+      console.error('[MMS URL Recovery] User not authorized for this business', {
+        businessId,
+        userId: user.id
+      })
+      return NextResponse.json(
+        { error: 'Access denied' },
+        { status: 403 }
       )
     }
 

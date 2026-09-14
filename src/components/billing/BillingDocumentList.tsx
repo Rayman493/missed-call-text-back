@@ -168,9 +168,17 @@ export default function BillingDocumentList({
 
             {/* Right: actions */}
             <div className="flex items-center gap-1 flex-shrink-0">
-              {/* Draft: Edit + Delete */}
+              {/* Draft: Edit + Download + Delete (primary → download → destructive) */}
               {isDraft && (
                 <>
+                  <button
+                    onClick={() => onOpen(doc)}
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
+                    aria-label="Edit document"
+                    title="Edit"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => onDownload(doc)}
                     disabled={downloadingId === doc.id}
@@ -179,14 +187,6 @@ export default function BillingDocumentList({
                     title="Download PDF"
                   >
                     {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  </button>
-                  <button
-                    onClick={() => onOpen(doc)}
-                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
-                    aria-label="Edit document"
-                    title="Edit"
-                  >
-                    <Edit className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setDeleteTarget(doc)}
@@ -200,16 +200,17 @@ export default function BillingDocumentList({
                 </>
               )}
 
-              {/* Sent Quote: View + Download + Resend + Convert */}
+              {/* Sent Quote: Resend + Download + View (primary → download → view) */}
               {isSent && isQuote && (
                 <>
                   <button
-                    onClick={() => onView(doc)}
-                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
-                    aria-label="View document"
-                    title="View"
+                    onClick={() => onSend(doc)}
+                    disabled={sendingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded disabled:opacity-50"
+                    aria-label="Resend SMS"
+                    title="Resend"
                   >
-                    <Eye className="w-4 h-4" />
+                    {sendingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                   </button>
                   <button
                     onClick={() => onDownload(doc)}
@@ -221,38 +222,20 @@ export default function BillingDocumentList({
                     {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                   </button>
                   <button
-                    onClick={() => onSend(doc)}
-                    disabled={sendingId === doc.id}
-                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded disabled:opacity-50"
-                    aria-label="Resend SMS"
-                    title="Resend"
+                    onClick={() => onView(doc)}
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
+                    aria-label="View document"
+                    title="View"
                   >
-                    {sendingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                    <Eye className="w-4 h-4" />
                   </button>
                 </>
               )}
 
-              {/* Sent Invoice: View + Download + Resend */}
+              {/* Sent Invoice: Resend + Download + View (primary → download → view) */}
               {isSent && !isQuote && (
                 <>
                   <button
-                    onClick={() => onView(doc)}
-                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
-                    aria-label="View document"
-                    title="View"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => onDownload(doc)}
-                    disabled={downloadingId === doc.id}
-                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded disabled:opacity-50"
-                    aria-label="Download PDF"
-                    title="Download PDF"
-                  >
-                    {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  </button>
-                  <button
                     onClick={() => onSend(doc)}
                     disabled={sendingId === doc.id}
                     className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded disabled:opacity-50"
@@ -261,20 +244,6 @@ export default function BillingDocumentList({
                   >
                     {sendingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                   </button>
-                </>
-              )}
-
-              {/* Accepted Quote: View + Download + Convert */}
-              {isAccepted && (
-                <>
-                  <button
-                    onClick={() => onView(doc)}
-                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
-                    aria-label="View document"
-                    title="View"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
                   <button
                     onClick={() => onDownload(doc)}
                     disabled={downloadingId === doc.id}
@@ -284,6 +253,20 @@ export default function BillingDocumentList({
                   >
                     {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                   </button>
+                  <button
+                    onClick={() => onView(doc)}
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
+                    aria-label="View document"
+                    title="View"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+
+              {/* Accepted Quote: Convert + Download + View (primary → download → view) */}
+              {isAccepted && (
+                <>
                   <button
                     onClick={() => onConvert(doc)}
                     disabled={convertingId === doc.id}
@@ -293,20 +276,6 @@ export default function BillingDocumentList({
                   >
                     {convertingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                   </button>
-                </>
-              )}
-
-              {/* Paid/Cancelled: View + Download only */}
-              {(isPaid || isCancelled) && (
-                <>
-                  <button
-                    onClick={() => onView(doc)}
-                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
-                    aria-label="View document"
-                    title="View"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
                   <button
                     onClick={() => onDownload(doc)}
                     disabled={downloadingId === doc.id}
@@ -316,12 +285,6 @@ export default function BillingDocumentList({
                   >
                     {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                   </button>
-                </>
-              )}
-
-              {/* Declined: View + Edit + Download */}
-              {isDeclined && (
-                <>
                   <button
                     onClick={() => onView(doc)}
                     className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
@@ -330,6 +293,35 @@ export default function BillingDocumentList({
                   >
                     <Eye className="w-4 h-4" />
                   </button>
+                </>
+              )}
+
+              {/* Paid/Cancelled: Download + View (download → view) */}
+              {(isPaid || isCancelled) && (
+                <>
+                  <button
+                    onClick={() => onDownload(doc)}
+                    disabled={downloadingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded disabled:opacity-50"
+                    aria-label="Download PDF"
+                    title="Download PDF"
+                  >
+                    {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => onView(doc)}
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
+                    aria-label="View document"
+                    title="View"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+
+              {/* Declined: Edit + Download + View (primary → download → view) */}
+              {isDeclined && (
+                <>
                   <button
                     onClick={() => onOpen(doc)}
                     className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
@@ -346,6 +338,14 @@ export default function BillingDocumentList({
                     title="Download PDF"
                   >
                     {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => onView(doc)}
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
+                    aria-label="View document"
+                    title="View"
+                  >
+                    <Eye className="w-4 h-4" />
                   </button>
                 </>
               )}

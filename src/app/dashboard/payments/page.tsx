@@ -441,7 +441,8 @@ export default function PaymentsPage() {
   }
 
   const handleDeleteBillingDoc = async (doc: BillingDocumentListItem) => {
-    if (!confirm(`Delete ${doc.document_number}? This cannot be undone.`)) return
+    // Confirmation is handled by the BillingDocumentList's custom Modal.
+    // Do NOT add a second browser-native confirm() here.
     setBillingDeletingId(doc.id)
     try {
       const supabase = createBrowserClient()
