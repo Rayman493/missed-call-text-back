@@ -15,7 +15,6 @@ export default function BillingChooserModal({ isOpen, onClose, onSelectType }: B
       isOpen={isOpen}
       onClose={onClose}
       title="Quote / Invoice"
-      bottomSheetOnMobile
     >
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">

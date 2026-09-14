@@ -261,3 +261,54 @@ describe('REOPEN CHOOSER', () => {
     expect(openChooserMatches!.length).toBeGreaterThan(0)
   })
 })
+
+// ============================================================================
+// MOBILE POSITIONING — chooser centered, not bottom-sheet
+// ============================================================================
+describe('MOBILE POSITIONING', () => {
+  it('chooser does NOT use bottomSheetOnMobile', () => {
+    // bottomSheetOnMobile causes items-end on mobile (bottom-aligned).
+    // The chooser is a compact two-option modal and should be centered.
+    expect(chooserSrc).not.toContain('bottomSheetOnMobile')
+  })
+
+  it('chooser is centered on mobile (default Modal centering)', () => {
+    // Without bottomSheetOnMobile, the shared Modal uses items-center on mobile.
+    // Verify the Modal component supports centered mobile layout by default.
+    expect(modalSrc).toContain('items-center')
+  })
+
+  it('chooser preserves X close button (title prop set)', () => {
+    expect(chooserSrc).toContain('title="Quote / Invoice"')
+  })
+
+  it('chooser preserves overlay/backdrop (uses shared Modal)', () => {
+    expect(chooserSrc).toContain('<Modal')
+  })
+
+  it('chooser Create Quote action unchanged', () => {
+    expect(chooserSrc).toContain("onSelectType('quote')")
+    expect(chooserSrc).toContain('Create Quote')
+  })
+
+  it('chooser Create Invoice action unchanged', () => {
+    expect(chooserSrc).toContain("onSelectType('invoice')")
+    expect(chooserSrc).toContain('Create Invoice')
+  })
+
+  it('chooser onClose still wired (back/escape/X)', () => {
+    expect(chooserSrc).toContain('onClose={onClose}')
+  })
+
+  it('editor modals still use bottomSheetOnMobile (unchanged)', () => {
+    // The editor and preview modals should keep their existing mobile presentation.
+    expect(editorSrc).toContain('bottomSheetOnMobile')
+  })
+
+  it('chooser does not use hardcoded positioning hacks', () => {
+    expect(chooserSrc).not.toMatch(/top:\s*\d+px/)
+    expect(chooserSrc).not.toMatch(/translate-y/)
+    expect(chooserSrc).not.toMatch(/setTimeout/)
+    expect(chooserSrc).not.toMatch(/requestAnimationFrame/)
+  })
+})
