@@ -17,6 +17,7 @@ export interface BillingLineItem {
   quantity: string
   unit_label: string
   unit_price_cents: string // dollar string for input (e.g. "35.00"), converted to cents on save
+  pricing_mode?: 'flat' | 'unit' // UI-only: determines which inputs to show
 }
 
 export interface BillingDocumentData {
@@ -55,7 +56,7 @@ interface LeadOption {
 }
 
 function emptyLineItem(): BillingLineItem {
-  return { description: '', quantity: '1', unit_label: '', unit_price_cents: '' }
+  return { description: '', quantity: '1', unit_label: '', unit_price_cents: '', pricing_mode: 'flat' }
 }
 
 function todayStr(): string {
@@ -137,13 +138,20 @@ export default function BillingEditorModal({
       setTaxCents(centsToDollars(existingDocument.tax_cents))
       setLineItems(
         existingDocument.line_items && existingDocument.line_items.length > 0
-          ? existingDocument.line_items.map((item) => ({
-              id: item.id,
-              description: item.description || '',
-              quantity: String(item.quantity || '1'),
-              unit_label: item.unit_label || '',
-              unit_price_cents: centsToDollars(item.unit_price_cents),
-            }))
+          ? existingDocument.line_items.map((item) => {
+              const qty = String(item.quantity || '1')
+              const unitLabel = item.unit_label || ''
+              // Infer pricing mode: if quantity is 1 and no unit label, it's a flat rate
+              const inferredMode = (qty === '1' && !unitLabel) ? 'flat' : 'unit'
+              return {
+                id: item.id,
+                description: item.description || '',
+                quantity: qty,
+                unit_label: unitLabel,
+                unit_price_cents: centsToDollars(item.unit_price_cents),
+                pricing_mode: inferredMode as 'flat' | 'unit',
+              }
+            })
           : [emptyLineItem()]
       )
     } else {
@@ -218,8 +226,8 @@ export default function BillingEditorModal({
           id: l.id,
           contact_name: l.contact_name || null,
           name: l.name || null,
-          caller_phone: l.caller_phone || l.phone || null,
-          email: l.email || null,
+          caller_phone: l.caller_phone || null,
+          email: null,
         }))
         setLeads(allLeads)
       } catch {
@@ -269,6 +277,38 @@ export default function BillingEditorModal({
 
   const updateLineItem = (index: number, field: keyof BillingLineItem, value: string) => {
     setLineItems(lineItems.map((item, i) => (i === index ? { ...item, [field]: value } : item)))
+  }
+
+  const setLineItemPricingMode = (index: number, mode: 'flat' | 'unit') => {
+    setLineItems(lineItems.map((item, i) => {
+      if (i !== index) return item
+      if (mode === 'flat') {
+        // Flat rate: quantity=1, unit_label cleared
+        return { ...item, pricing_mode: 'flat', quantity: '1', unit_label: '' }
+      }
+      // Per unit: keep existing values, but ensure quantity is set
+      return { ...item, pricing_mode: 'unit', quantity: item.quantity || '1' }
+    }))
+  }
+
+  // Compute line total cents for a single item (used for inline display)
+  const lineTotalCents = (item: BillingLineItem): number => {
+    const qty = parseFloat(item.quantity) || 0
+    const priceCents = dollarsToCents(item.unit_price_cents)
+    return Math.round(qty * priceCents)
+  }
+
+  // Format the calculation formula for a line item
+  const lineFormula = (item: BillingLineItem): string => {
+    const total = lineTotalCents(item)
+    const totalStr = formatCurrency(total, true)
+    if (item.pricing_mode === 'flat' || (!item.pricing_mode && item.quantity === '1' && !item.unit_label)) {
+      return `Flat rate = ${totalStr}`
+    }
+    const qty = item.quantity || '1'
+    const unit = item.unit_label || 'unit'
+    const rateStr = item.unit_price_cents ? `$${item.unit_price_cents}/${unit}` : `$0.00/${unit}`
+    return `${qty} ${unit} × ${rateStr} = ${totalStr}`
   }
 
   // Live totals calculation (client-side preview only; server recalculates)
@@ -579,9 +619,11 @@ export default function BillingEditorModal({
             Line Items
           </label>
           <div className="space-y-2">
-            {lineItems.map((item, index) => (
+            {lineItems.map((item, index) => {
+              const mode = item.pricing_mode || (item.quantity === '1' && !item.unit_label ? 'flat' : 'unit')
+              return (
               <div key={index} className="space-y-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30">
-                {/* Description - full width on mobile, first field on desktop */}
+                {/* Description - full width */}
                 <input
                   type="text"
                   value={item.description}
@@ -589,50 +631,82 @@ export default function BillingEditorModal({
                   placeholder="Description (e.g. Fence installation)"
                   className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                 />
-                {/* Qty / Unit / Rate - stack on mobile, row on sm+ */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {/* Pricing mode toggle */}
+                <div className="flex items-center gap-1 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setLineItemPricingMode(index, 'flat')}
+                    className={`px-2 py-0.5 rounded font-medium transition-colors ${mode === 'flat' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    Flat rate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLineItemPricingMode(index, 'unit')}
+                    className={`px-2 py-0.5 rounded font-medium transition-colors ${mode === 'unit' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    Per unit
+                  </button>
+                </div>
+                {mode === 'flat' ? (
+                  /* Flat rate: only Amount */
                   <div>
-                    <label className="block text-[10px] text-muted-foreground mb-0.5">Qty</label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      min="0"
-                      value={item.quantity}
-                      onChange={(e) => updateLineItem(index, 'quantity', e.target.value)}
-                      placeholder="1"
-                      className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] text-muted-foreground mb-0.5">Unit</label>
-                    <input
-                      type="text"
-                      value={item.unit_label}
-                      onChange={(e) => updateLineItem(index, 'unit_label', e.target.value)}
-                      placeholder="ft, hrs"
-                      className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-                    />
-                  </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <label className="block text-[10px] text-muted-foreground mb-0.5">Rate ($)</label>
+                    <label className="block text-[10px] text-muted-foreground mb-0.5">Amount ($)</label>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       value={item.unit_price_cents}
                       onChange={(e) => updateLineItem(index, 'unit_price_cents', e.target.value)}
-                      placeholder="35.00"
+                      placeholder="500.00"
                       className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                     />
                   </div>
-                </div>
-                {/* Line total + remove */}
+                ) : (
+                  /* Per unit: Qty / Unit / Rate */
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-muted-foreground mb-0.5">Qty</label>
+                      <input
+                        type="number"
+                        step="0.001"
+                        min="0"
+                        value={item.quantity}
+                        onChange={(e) => updateLineItem(index, 'quantity', e.target.value)}
+                        placeholder="1"
+                        className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-muted-foreground mb-0.5">Unit</label>
+                      <input
+                        type="text"
+                        value={item.unit_label}
+                        onChange={(e) => updateLineItem(index, 'unit_label', e.target.value)}
+                        placeholder="ft, hrs, ea"
+                        className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-[10px] text-muted-foreground mb-0.5">
+                        Rate ({item.unit_label ? `$/${item.unit_label}` : '$/unit'})
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={item.unit_price_cents}
+                        onChange={(e) => updateLineItem(index, 'unit_price_cents', e.target.value)}
+                        placeholder="40.00"
+                        className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                      />
+                    </div>
+                  </div>
+                )}
+                {/* Calculation formula + remove */}
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    Line total: {formatCurrency(
-                      Math.round((parseFloat(item.quantity) || 0) * dollarsToCents(item.unit_price_cents)),
-                      true
-                    )}
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {lineFormula(item)}
                   </span>
                   {lineItems.length > 1 && (
                     <button
@@ -645,7 +719,8 @@ export default function BillingEditorModal({
                   )}
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
           <button
             onClick={addLineItem}

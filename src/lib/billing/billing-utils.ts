@@ -117,3 +117,26 @@ export function calculateTotals(
 export function documentNumberPrefix(type: BillingDocumentType): string {
   return type === 'quote' ? 'Q-' : 'INV-'
 }
+
+/**
+ * Canonical PostgREST select projection for the leads relation embedded in
+ * billing document queries.
+ *
+ * Production `leads` table columns (verified via PostgREST OpenAPI):
+ *   id, business_id, caller_phone, status, contact_name, company_name,
+ *   notes, tags, raw_metadata, source, created_at, ...
+ *
+ * NOT present in production: `name`, `email`, `phone`.
+ * Use this constant in every billing route that embeds leads to avoid
+ * 42703 (column does not exist) errors.
+ */
+export const BILLING_LEADS_SELECT = 'leads ( id, contact_name, caller_phone )'
+
+/**
+ * Resolve a billing customer display name from a lead row.
+ * Fallback chain: contact_name → caller_phone → 'No customer'.
+ */
+export function billingCustomerName(lead: { contact_name?: string | null; caller_phone?: string | null } | null | undefined): string {
+  if (!lead) return 'No customer'
+  return lead.contact_name || lead.caller_phone || 'No customer'
+}

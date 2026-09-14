@@ -148,7 +148,7 @@ describe('DOCUMENT RENDER', () => {
 
   it('ReplyFlow attribution is subtle footer only', () => {
     expect(rendererSrc).toContain('Powered by ReplyFlow')
-    expect(rendererSrc).toContain('text-xs text-slate-400')
+    expect(rendererSrc).toContain('text-slate-300')
   })
 })
 

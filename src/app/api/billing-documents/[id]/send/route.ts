@@ -56,7 +56,7 @@ export async function POST(
       .select(`
         *,
         billing_document_items (*),
-        leads ( id, contact_name, caller_phone, phone, email )
+        leads ( id, contact_name, caller_phone )
       `)
       .eq('id', id)
       .eq('business_id', business.id)
@@ -69,7 +69,7 @@ export async function POST(
     if (!doc.customer_id) {
       return NextResponse.json({ error: 'A customer must be selected before sending' }, { status: 400 })
     }
-    const customerPhone = doc.leads?.caller_phone || doc.leads?.phone
+    const customerPhone = doc.leads?.caller_phone
     if (!customerPhone) {
       return NextResponse.json({ error: 'Customer has no phone number. Add a phone number before sending.' }, { status: 400 })
     }
@@ -77,7 +77,7 @@ export async function POST(
     // Idempotent: if already sent, resend the same link
     if (doc.status === 'sent' && doc.public_token) {
       const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}/document/${doc.public_token}`
-      const customerName = doc.leads?.contact_name || doc.leads?.name || 'there'
+      const customerName = doc.leads?.contact_name || 'there'
       const isQuote = doc.document_type === 'quote'
       const totalDollars = (doc.total_cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       const message = `${business.name} sent you ${isQuote ? 'Quote' : 'Invoice'} ${doc.document_number} for $${totalDollars}:\n${publicUrl}`
@@ -118,7 +118,7 @@ export async function POST(
     }
 
     // Send SMS
-    const customerName = doc.leads?.contact_name || doc.leads?.name || 'there'
+    const customerName = doc.leads?.contact_name || 'there'
     const isQuote = doc.document_type === 'quote'
     const totalDollars = (doc.total_cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     const message = `${business.name} sent you ${isQuote ? 'Quote' : 'Invoice'} ${doc.document_number} for $${totalDollars}:\n${publicUrl}`
@@ -135,7 +135,7 @@ export async function POST(
       .select(`
         *,
         billing_document_items (*),
-        leads ( id, contact_name, caller_phone, phone, email )
+        leads ( id, contact_name, caller_phone )
       `)
       .eq('id', id)
       .single()

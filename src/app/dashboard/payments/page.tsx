@@ -406,7 +406,7 @@ export default function PaymentsPage() {
         customer_id: d.customer_id,
         customer_name: d.leads?.contact_name || null,
         customer_phone: d.leads?.caller_phone || null,
-        customer_email: d.leads?.email || null,
+        customer_email: null,
         notes: d.notes,
         terms: d.terms,
         discount_cents: d.discount_cents,

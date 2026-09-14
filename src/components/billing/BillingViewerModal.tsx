@@ -66,7 +66,7 @@ export default function BillingViewerModal({
           business_logo_url: d.snapshot_business_logo_url || null,
           customer_name: d.snapshot_customer_name || d.leads?.contact_name || null,
           customer_phone: d.snapshot_customer_phone || d.leads?.caller_phone || null,
-          customer_email: d.snapshot_customer_email || d.leads?.email || null,
+          customer_email: d.snapshot_customer_email || null,
           customer_address: d.snapshot_customer_address || null,
           line_items: (d.billing_document_items || []).map((item: any) => ({
             description: item.description,

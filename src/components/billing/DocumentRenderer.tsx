@@ -33,25 +33,25 @@ export default function DocumentRenderer({ doc, showStatusBadge = false, isPrevi
   return (
     <div className={`max-w-2xl mx-auto bg-white ${isPreview ? '' : 'min-h-screen'} p-6 sm:p-10`}>
       {/* Business header */}
-      <div className="flex items-start justify-between gap-6 mb-8">
+      <div className="flex items-start justify-between gap-6 mb-10">
         <div className="min-w-0 flex-1">
           {doc.business_logo_url && (
             <img
               src={doc.business_logo_url}
               alt={doc.business_name}
-              className="h-14 sm:h-16 w-auto object-contain mb-3 max-w-[200px]"
+              className="h-12 sm:h-14 w-auto object-contain mb-4 max-w-[180px]"
             />
           )}
-          <h1 className="text-lg font-bold text-slate-900">{doc.business_name}</h1>
-          {doc.business_phone && <p className="text-sm text-slate-600">{doc.business_phone}</p>}
-          {doc.business_email && <p className="text-sm text-slate-600">{doc.business_email}</p>}
-          {doc.business_address && <p className="text-sm text-slate-600">{doc.business_address}</p>}
+          <h1 className="text-base font-bold text-slate-900 leading-tight">{doc.business_name}</h1>
+          {doc.business_phone && <p className="text-xs text-slate-500 mt-0.5">{doc.business_phone}</p>}
+          {doc.business_email && <p className="text-xs text-slate-500">{doc.business_email}</p>}
+          {doc.business_address && <p className="text-xs text-slate-500">{doc.business_address}</p>}
         </div>
         <div className="text-right flex-shrink-0">
-          <p className={`text-2xl sm:text-3xl font-bold tracking-tight ${isQuote ? 'text-blue-700' : 'text-emerald-700'}`}>
+          <p className={`text-xl sm:text-2xl font-bold tracking-tight ${isQuote ? 'text-blue-700' : 'text-emerald-700'}`}>
             {isQuote ? 'QUOTE' : 'INVOICE'}
           </p>
-          <p className="text-base font-semibold text-slate-700 mt-1">{doc.document_number}</p>
+          <p className="text-sm font-semibold text-slate-700 mt-1">{doc.document_number}</p>
           {showStatusBadge && (
             <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${statusBadgeClass(status)}`}>
               {statusLabel}
@@ -61,32 +61,32 @@ export default function DocumentRenderer({ doc, showStatusBadge = false, isPrevi
       </div>
 
       {/* Customer + dates */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-        <div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
             {isQuote ? 'Quote To' : 'Bill To'}
           </p>
           <p className="text-sm font-medium text-slate-900">{doc.customer_name || 'No customer specified'}</p>
-          {doc.customer_phone && <p className="text-sm text-slate-600 mt-0.5">{doc.customer_phone}</p>}
-          {doc.customer_email && <p className="text-sm text-slate-600">{doc.customer_email}</p>}
-          {doc.customer_address && <p className="text-sm text-slate-600">{doc.customer_address}</p>}
+          {doc.customer_phone && <p className="text-sm text-slate-500 mt-0.5">{doc.customer_phone}</p>}
+          {doc.customer_email && <p className="text-sm text-slate-500">{doc.customer_email}</p>}
+          {doc.customer_address && <p className="text-sm text-slate-500">{doc.customer_address}</p>}
         </div>
         <div className="sm:text-right">
-          <div className="space-y-1.5">
-            <div className="flex sm:justify-end gap-2">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Issue Date</span>
-              <span className="text-sm text-slate-700">{formatDate(doc.issue_date)}</span>
+          <div className="inline-block sm:block text-left sm:text-right space-y-1 min-w-[180px]">
+            <div className="flex sm:justify-end gap-3">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Issue Date</span>
+              <span className="text-sm text-slate-700 whitespace-nowrap">{formatDate(doc.issue_date)}</span>
             </div>
             {isQuote && doc.valid_until && (
-              <div className="flex sm:justify-end gap-2">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Valid Until</span>
-                <span className="text-sm text-slate-700">{formatDate(doc.valid_until)}</span>
+              <div className="flex sm:justify-end gap-3">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Valid Until</span>
+                <span className="text-sm text-slate-700 whitespace-nowrap">{formatDate(doc.valid_until)}</span>
               </div>
             )}
             {!isQuote && doc.due_date && (
-              <div className="flex sm:justify-end gap-2">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Due Date</span>
-                <span className="text-sm text-slate-700">{formatDate(doc.due_date)}</span>
+              <div className="flex sm:justify-end gap-3">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Due Date</span>
+                <span className="text-sm text-slate-700 whitespace-nowrap">{formatDate(doc.due_date)}</span>
               </div>
             )}
           </div>
@@ -94,51 +94,54 @@ export default function DocumentRenderer({ doc, showStatusBadge = false, isPrevi
       </div>
 
       {/* Line items table */}
-      <div className="overflow-x-auto mb-6 -mx-1">
+      <div className="overflow-x-auto mb-8 -mx-1">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b-2 border-slate-200">
-              <th className="text-left py-2 px-1 font-semibold text-slate-700">Description</th>
-              <th className="text-right py-2 px-1 font-semibold text-slate-700 whitespace-nowrap">Qty</th>
-              <th className="text-left py-2 px-1 font-semibold text-slate-700 hidden sm:table-cell">Unit</th>
-              <th className="text-right py-2 px-1 font-semibold text-slate-700 whitespace-nowrap">Rate</th>
-              <th className="text-right py-2 px-1 font-semibold text-slate-700 whitespace-nowrap">Amount</th>
+              <th className="text-left py-2 px-1 font-semibold text-slate-600 text-xs uppercase tracking-wider">Description</th>
+              <th className="text-right py-2 px-1 font-semibold text-slate-600 text-xs uppercase tracking-wider whitespace-nowrap">Qty</th>
+              <th className="text-left py-2 px-1 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden sm:table-cell">Unit</th>
+              <th className="text-right py-2 px-1 font-semibold text-slate-600 text-xs uppercase tracking-wider whitespace-nowrap">Rate</th>
+              <th className="text-right py-2 px-1 font-semibold text-slate-600 text-xs uppercase tracking-wider whitespace-nowrap">Amount</th>
             </tr>
           </thead>
           <tbody>
-            {doc.line_items.map((item, i) => (
+            {doc.line_items.map((item, i) => {
+              const isFlatRate = item.quantity === 1 && !item.unit_label
+              return (
               <tr key={i} className="border-b border-slate-100">
-                <td className="py-2.5 px-1 text-slate-700 align-top">{item.description || '\u00A0'}</td>
-                <td className="py-2.5 px-1 text-right text-slate-700 whitespace-nowrap align-top">{formatQuantity(item.quantity)}</td>
-                <td className="py-2.5 px-1 text-slate-600 hidden sm:table-cell align-top">{item.unit_label || ''}</td>
-                <td className="py-2.5 px-1 text-right text-slate-700 whitespace-nowrap align-top">{formatMoney(item.unit_price_cents)}</td>
-                <td className="py-2.5 px-1 text-right text-slate-900 whitespace-nowrap font-medium align-top">{formatMoney(item.line_total_cents)}</td>
+                <td className="py-3 px-1 text-slate-700 align-top break-words">{item.description || '\u00A0'}</td>
+                <td className="py-3 px-1 text-right text-slate-700 whitespace-nowrap align-top">{isFlatRate ? '\u2014' : formatQuantity(item.quantity)}</td>
+                <td className="py-3 px-1 text-slate-500 hidden sm:table-cell align-top">{item.unit_label || ''}</td>
+                <td className="py-3 px-1 text-right text-slate-700 whitespace-nowrap align-top">{formatMoney(item.unit_price_cents)}</td>
+                <td className="py-3 px-1 text-right text-slate-900 whitespace-nowrap font-medium align-top">{formatMoney(item.line_total_cents)}</td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>
 
       {/* Totals */}
-      <div className="flex justify-end mb-8">
-        <div className="w-full sm:w-64 space-y-2">
+      <div className="flex justify-end mb-10">
+        <div className="w-full sm:w-72 space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-slate-600">Subtotal</span>
+            <span className="text-slate-500">Subtotal</span>
             <span className="text-slate-900 font-medium">{formatMoney(doc.subtotal_cents)}</span>
           </div>
           {doc.discount_cents > 0 && (
             <div className="flex justify-between text-sm">
-              <span className="text-slate-600">Discount</span>
+              <span className="text-slate-500">Discount</span>
               <span className="text-red-600">-{formatMoney(doc.discount_cents)}</span>
             </div>
           )}
           {doc.tax_cents > 0 && (
             <div className="flex justify-between text-sm">
-              <span className="text-slate-600">Tax</span>
+              <span className="text-slate-500">Tax</span>
               <span className="text-slate-900">{formatMoney(doc.tax_cents)}</span>
             </div>
           )}
-          <div className="flex justify-between text-lg font-bold pt-3 border-t-2 border-slate-300">
+          <div className="flex justify-between text-lg font-bold pt-3 mt-1 border-t-2 border-slate-300">
             <span className="text-slate-900">Total</span>
             <span className={isQuote ? 'text-blue-700' : 'text-emerald-700'}>{formatMoney(doc.total_cents)}</span>
           </div>
@@ -147,23 +150,23 @@ export default function DocumentRenderer({ doc, showStatusBadge = false, isPrevi
 
       {/* Notes */}
       {doc.notes && (
-        <div className="mb-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Notes</p>
+        <div className="mb-6">
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Notes</p>
           <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">{doc.notes}</p>
         </div>
       )}
 
       {/* Terms */}
       {doc.terms && (
-        <div className="mb-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Terms</p>
+        <div className="mb-6">
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Terms</p>
           <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">{doc.terms}</p>
         </div>
       )}
 
       {/* Footer */}
-      <div className="mt-12 pt-4 border-t border-slate-100 text-center">
-        <p className="text-xs text-slate-400">Powered by ReplyFlow</p>
+      <div className="mt-16 pt-4 border-t border-slate-100 text-center">
+        <p className="text-[11px] text-slate-300">Powered by ReplyFlow</p>
       </div>
     </div>
   )

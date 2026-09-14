@@ -23,17 +23,19 @@ const presentationSrc = readSrc('src/lib/billing/document-presentation.ts')
 // ============================================================================
 describe('DOLLAR INPUTS', () => {
   it('rate input label shows dollars not cents', () => {
-    expect(editorSrc).toContain('Rate ($)')
+    // Rate label now shows per-unit context: Rate ($/ft), or Rate ($/unit) as fallback
+    expect(editorSrc).toContain('Rate (')
     expect(editorSrc).not.toContain('Rate (cents)')
   })
 
   it('rate input placeholder is dollar format', () => {
-    expect(editorSrc).toContain('placeholder="35.00"')
+    // Per-unit rate placeholder is now "40.00" (was "35.00")
+    expect(editorSrc).toContain('placeholder="40.00"')
   })
 
   it('rate input has step="0.01" for decimal dollars', () => {
-    // Check that the rate input has step="0.01"
-    const rateMatch = editorSrc.match(/Rate \(\$\)[\s\S]*?step="([^"]+)"/)
+    // Check that the rate input has step="0.01" (in per-unit mode)
+    const rateMatch = editorSrc.match(/Rate \([\s\S]*?step="([^"]+)"/)
     expect(rateMatch).toBeTruthy()
     expect(rateMatch![1]).toBe('0.01')
   })
@@ -176,19 +178,19 @@ describe('PDF FOOTER / PADDING', () => {
 // ============================================================================
 describe('RENDERER VISUAL POLISH', () => {
   it('logo has max-width constraint to prevent dominating', () => {
-    expect(rendererSrc).toContain('max-w-[200px]')
+    expect(rendererSrc).toContain('max-w-[180px]')
   })
 
-  it('logo height responsive (h-14 on mobile, h-16 on desktop)', () => {
-    expect(rendererSrc).toContain('h-14 sm:h-16')
+  it('logo height responsive (h-12 on mobile, h-14 on desktop)', () => {
+    expect(rendererSrc).toContain('h-12 sm:h-14')
   })
 
   it('document type heading uses tracking-tight for professional look', () => {
     expect(rendererSrc).toContain('tracking-tight')
   })
 
-  it('document type heading is 3xl on desktop', () => {
-    expect(rendererSrc).toContain('text-2xl sm:text-3xl')
+  it('document type heading is 2xl on desktop (refined from 3xl)', () => {
+    expect(rendererSrc).toContain('text-xl sm:text-2xl')
   })
 
   it('line item cells use align-top for long descriptions', () => {
@@ -212,7 +214,7 @@ describe('RENDERER VISUAL POLISH', () => {
   })
 
   it('dates use flex layout for clean alignment on mobile', () => {
-    expect(rendererSrc).toContain('flex sm:justify-end gap-2')
+    expect(rendererSrc).toContain('flex sm:justify-end gap-3')
   })
 })
 

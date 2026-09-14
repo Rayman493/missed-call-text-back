@@ -236,15 +236,18 @@ export function BillingDocumentPdf({ doc }: { doc: DocumentPresentation }) {
             <Text style={[styles.th, styles.thRate]}>Rate</Text>
             <Text style={[styles.th, styles.thAmount]}>Amount</Text>
           </View>
-          {doc.line_items.map((item, i) => (
+          {doc.line_items.map((item, i) => {
+            const isFlatRate = item.quantity === 1 && !item.unit_label
+            return (
             <View key={i} style={styles.tableRow}>
               <Text style={[styles.tdDesc]}>{item.description || ''}</Text>
-              <Text style={[styles.tdQty]}>{formatQuantity(item.quantity)}</Text>
+              <Text style={[styles.tdQty]}>{isFlatRate ? '\u2014' : formatQuantity(item.quantity)}</Text>
               <Text style={[styles.tdUnit]}>{item.unit_label || ''}</Text>
               <Text style={[styles.tdRate]}>{formatMoney(item.unit_price_cents)}</Text>
               <Text style={[styles.tdAmount]}>{formatMoney(item.line_total_cents)}</Text>
             </View>
-          ))}
+            )
+          })}
         </View>
 
         {/* Totals */}

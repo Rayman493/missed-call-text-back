@@ -77,8 +77,8 @@ describe('SETTINGS COMPONENTS STILL WIRED', () => {
     expect(settingsContentSrc).toContain('<ThemeSelector')
   })
 
-  it('BusinessLogoSettings uses business.logo_url', () => {
-    expect(settingsContentSrc).toContain('logoUrl={business.logo_url || null}')
+  it('BusinessLogoSettings uses formBusiness.logo_url with business fallback', () => {
+    expect(settingsContentSrc).toContain('formBusiness?.logo_url || business.logo_url')
   })
 
   it('BusinessLogoSettings uses business.id', () => {

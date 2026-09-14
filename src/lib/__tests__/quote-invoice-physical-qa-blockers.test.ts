@@ -855,3 +855,248 @@ describe('SAVED-DOCUMENT REVIEW/SEND FLOW', () => {
     expect(pdfSrc).toContain('total_cents')
   })
 })
+
+// ============================================================================
+// 8. PRODUCTION LEADS ALIGNMENT (leads.email removal)
+// ============================================================================
+describe('PRODUCTION LEADS ALIGNMENT', () => {
+  it('132. no billing query selects leads.email', () => {
+    expect(apiListSrc).not.toMatch(/leads\s*\(\s*[^)]*\bemail\b/)
+    const singleDocSrc = readSrc('src/app/api/billing-documents/[id]/route.ts')
+    expect(singleDocSrc).not.toMatch(/leads\s*\(\s*[^)]*\bemail\b/)
+    const sendSrc = readSrc('src/app/api/billing-documents/[id]/send/route.ts')
+    expect(sendSrc).not.toMatch(/leads\s*\(\s*[^)]*\bemail\b/)
+  })
+
+  it('133. no billing query selects leads.phone', () => {
+    expect(apiListSrc).not.toMatch(/leads\s*\(\s*[^)]*\bphone\b[^)]/)
+    const sendSrc = readSrc('src/app/api/billing-documents/[id]/send/route.ts')
+    expect(sendSrc).not.toMatch(/leads\s*\(\s*[^)]*\bphone\b[^)]/)
+  })
+
+  it('134. billing leads select uses only canonical fields', () => {
+    // Only id, contact_name, caller_phone should be selected
+    expect(apiListSrc).toContain('leads ( id, contact_name, caller_phone )')
+    const singleDocSrc = readSrc('src/app/api/billing-documents/[id]/route.ts')
+    expect(singleDocSrc).toContain('leads ( id, contact_name, caller_phone )')
+  })
+
+  it('135. viewer does not fall back to leads.email', () => {
+    const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
+    expect(viewerSrc).not.toContain('d.leads?.email')
+  })
+
+  it('136. payments page does not fall back to leads.email', () => {
+    const paymentsSrc = readSrc('src/app/dashboard/payments/page.tsx')
+    expect(paymentsSrc).not.toContain('d.leads?.email')
+  })
+
+  it('137. send route does not reference leads.phone or leads.name', () => {
+    const sendSrc = readSrc('src/app/api/billing-documents/[id]/send/route.ts')
+    expect(sendSrc).not.toContain('doc.leads?.phone')
+    expect(sendSrc).not.toContain('doc.leads?.name')
+  })
+
+  it('138. editor lead picker does not reference l.phone', () => {
+    expect(editorSrc).not.toContain('l.caller_phone || l.phone')
+  })
+
+  it('139. billing-utils exports canonical leads select constant', () => {
+    const billingUtilsSrc = readSrc('src/lib/billing/billing-utils.ts')
+    expect(billingUtilsSrc).toContain('BILLING_LEADS_SELECT')
+    expect(billingUtilsSrc).toContain('leads ( id, contact_name, caller_phone )')
+  })
+
+  it('140. billing-utils exports billingCustomerName helper', () => {
+    const billingUtilsSrc = readSrc('src/lib/billing/billing-utils.ts')
+    expect(billingUtilsSrc).toContain('billingCustomerName')
+  })
+})
+
+// ============================================================================
+// 9. PRICING UX (Flat rate vs Per unit)
+// ============================================================================
+describe('PRICING UX', () => {
+  it('141. BillingLineItem has pricing_mode field', () => {
+    expect(editorSrc).toContain("pricing_mode")
+  })
+
+  it('142. flat rate mode available', () => {
+    expect(editorSrc).toContain("'flat'")
+    expect(editorSrc).toContain('Flat rate')
+  })
+
+  it('143. per unit mode available', () => {
+    expect(editorSrc).toContain("'unit'")
+    expect(editorSrc).toContain('Per unit')
+  })
+
+  it('144. flat rate shows Amount input only', () => {
+    expect(editorSrc).toContain('Amount ($)')
+  })
+
+  it('145. per unit shows Qty / Unit / Rate', () => {
+    expect(editorSrc).toContain('Rate (')
+    expect(editorSrc).toContain('Qty')
+    expect(editorSrc).toContain('Unit')
+  })
+
+  it('146. setLineItemPricingMode switches mode', () => {
+    expect(editorSrc).toContain('setLineItemPricingMode')
+  })
+
+  it('147. flat rate sets quantity=1 and clears unit_label', () => {
+    expect(editorSrc).toContain("pricing_mode: 'flat', quantity: '1', unit_label: ''")
+  })
+
+  it('148. per unit preserves existing values', () => {
+    expect(editorSrc).toContain("pricing_mode: 'unit', quantity: item.quantity || '1'")
+  })
+
+  it('149. line formula shows calculation', () => {
+    expect(editorSrc).toContain('lineFormula')
+    expect(editorSrc).toContain('Flat rate = ')
+    expect(editorSrc).toContain('× ')
+  })
+
+  it('150. existing documents infer pricing mode on hydrate', () => {
+    expect(editorSrc).toContain('inferredMode')
+    expect(editorSrc).toContain("qty === '1' && !unitLabel")
+  })
+
+  it('151. empty line item defaults to flat mode', () => {
+    expect(editorSrc).toContain("pricing_mode: 'flat'")
+  })
+
+  it('152. cents persistence unchanged (dollarsToCents used in save)', () => {
+    expect(editorSrc).toContain('dollarsToCents(item.unit_price_cents)')
+  })
+
+  it('153. fractional quantity preserved (step=0.001)', () => {
+    expect(editorSrc).toContain('step="0.001"')
+  })
+
+  it('154. line total updates from current input (no memoization)', () => {
+    expect(editorSrc).toContain('lineTotalCents')
+  })
+
+  it('155. rate label shows per-unit context', () => {
+    expect(editorSrc).toContain('item.unit_label ? `$/${item.unit_label}`')
+  })
+})
+
+// ============================================================================
+// 10. SETTINGS LOGO THUMBNAIL
+// ============================================================================
+describe('SETTINGS LOGO THUMBNAIL', () => {
+  it('156. logo thumbnail uses formBusiness.logo_url (not just business.logo_url)', () => {
+    const settingsSrc = readSrc('src/components/SettingsContent.tsx')
+    expect(settingsSrc).toContain('formBusiness?.logo_url || business.logo_url')
+  })
+
+  it('157. logo thumbnail has object-contain', () => {
+    const logoSrc = readSrc('src/components/billing/BusinessLogoSettings.tsx')
+    expect(logoSrc).toContain('object-contain')
+  })
+
+  it('158. logo thumbnail has padding', () => {
+    const logoSrc = readSrc('src/components/billing/BusinessLogoSettings.tsx')
+    expect(logoSrc).toContain('p-1')
+  })
+
+  it('159. null logo_url shows placeholder (ImageIcon)', () => {
+    const logoSrc = readSrc('src/components/billing/BusinessLogoSettings.tsx')
+    expect(logoSrc).toContain('ImageIcon')
+  })
+
+  it('160. existing logo_url renders img thumbnail', () => {
+    const logoSrc = readSrc('src/components/billing/BusinessLogoSettings.tsx')
+    expect(logoSrc).toContain('logoUrl ? (')
+    expect(logoSrc).toContain('<img')
+  })
+
+  it('161. onLogoChange calls updateBusiness', () => {
+    const settingsSrc = readSrc('src/components/SettingsContent.tsx')
+    expect(settingsSrc).toContain("updateBusiness({ logo_url: url })")
+  })
+
+  it('162. logo thumbnail no cropping (overflow-hidden + object-contain)', () => {
+    const logoSrc = readSrc('src/components/billing/BusinessLogoSettings.tsx')
+    expect(logoSrc).toContain('overflow-hidden')
+    expect(logoSrc).toContain('object-contain')
+  })
+})
+
+// ============================================================================
+// 11. DOCUMENT POLISH
+// ============================================================================
+describe('DOCUMENT POLISH', () => {
+  it('163. header logo has refined sizing (h-12 sm:h-14)', () => {
+    expect(rendererSrc).toContain('h-12 sm:h-14')
+  })
+
+  it('164. header logo has mb-4 spacing', () => {
+    expect(rendererSrc).toContain('mb-4')
+  })
+
+  it('165. business name uses text-base (not text-lg)', () => {
+    expect(rendererSrc).toContain('text-base font-bold')
+  })
+
+  it('166. quote/invoice title uses text-xl sm:text-2xl (refined)', () => {
+    expect(rendererSrc).toContain('text-xl sm:text-2xl')
+  })
+
+  it('167. customer + dates block has min-w to prevent wrapping', () => {
+    expect(rendererSrc).toContain('min-w-[180px]')
+  })
+
+  it('168. date labels use whitespace-nowrap', () => {
+    expect(rendererSrc).toContain('whitespace-nowrap')
+  })
+
+  it('169. line item table headers use uppercase tracking-wider', () => {
+    expect(rendererSrc).toContain('uppercase tracking-wider')
+  })
+
+  it('170. flat-rate items show em-dash for Qty', () => {
+    expect(rendererSrc).toContain("isFlatRate")
+    expect(rendererSrc).toContain("'\\u2014'")
+  })
+
+  it('171. description column uses break-words', () => {
+    expect(rendererSrc).toContain('break-words')
+  })
+
+  it('172. totals section uses w-72 (wider for balance)', () => {
+    expect(rendererSrc).toContain('sm:w-72')
+  })
+
+  it('173. totals labels use text-slate-500 (lighter)', () => {
+    expect(rendererSrc).toContain('text-slate-500')
+  })
+
+  it('174. notes/terms have increased spacing (mb-6)', () => {
+    expect(rendererSrc).toContain('mb-6')
+  })
+
+  it('175. footer is subtle (text-slate-300, text-[11px])', () => {
+    expect(rendererSrc).toContain('text-[11px]')
+    expect(rendererSrc).toContain('text-slate-300')
+  })
+
+  it('176. footer has mt-16 spacing (avoid overlap)', () => {
+    expect(rendererSrc).toContain('mt-16')
+  })
+
+  it('177. PDF flat-rate items also show em-dash', () => {
+    expect(pdfSrc).toContain('isFlatRate')
+    expect(pdfSrc).toContain("'\\u2014'")
+  })
+
+  it('178. saved document preview does not show unsaved-preview label', () => {
+    // The "(unsaved draft)" text only appears in buildPreviewDoc for unsaved state
+    // It should not appear in the DocumentRenderer itself
+    expect(rendererSrc).not.toContain('unsaved draft')
+  })
+})

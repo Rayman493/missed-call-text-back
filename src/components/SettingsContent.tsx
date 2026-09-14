@@ -3163,7 +3163,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                 {business && (
                   <BusinessLogoSettings
                     businessId={business.id}
-                    logoUrl={business.logo_url || null}
+                    logoUrl={formBusiness?.logo_url || business.logo_url || null}
                     onLogoChange={(url) => {
                       updateBusiness({ logo_url: url })
                     }}
