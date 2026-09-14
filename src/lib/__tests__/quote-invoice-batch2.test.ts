@@ -15,7 +15,7 @@ const readSrc = (rel: string) => readFileSync(join(repoRoot, rel), 'utf8').repla
 const migration1Src = readSrc('supabase/migrations/20260913210000_create_billing_documents.sql')
 const migration2Src = readSrc('supabase/migrations/20260913220000_add_billing_snapshots_tokens_logo.sql')
 const sendRouteSrc = readSrc('src/app/api/billing-documents/[id]/send/route.ts')
-const pdfRouteSrc = readSrc('src/app/api/billing-documents/[id]/pdf/route.ts')
+const pdfRouteSrc = readSrc('src/app/api/billing-documents/[id]/pdf/route.tsx')
 const convertRouteSrc = readSrc('src/app/api/billing-documents/[id]/convert/route.ts')
 const payRouteSrc = readSrc('src/app/api/billing-documents/[id]/pay/route.ts')
 const publicRouteSrc = readSrc('src/app/api/public/document/[token]/route.ts')
@@ -375,8 +375,8 @@ describe('INVOICE PAYMENT', () => {
   })
 
   it('metadata includes invoice_id and invoice_number', () => {
-    expect(payRouteSrc).toContain('invoice_id: invoice.id')
-    expect(payRouteSrc).toContain('invoice_number: invoice.document_number')
+    expect(payRouteSrc).toContain('invoice_id: String(invoice.id)')
+    expect(payRouteSrc).toContain('invoice_number: String(invoice.document_number)')
   })
 })
 

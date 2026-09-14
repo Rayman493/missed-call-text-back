@@ -39,7 +39,7 @@ export default function DocumentRenderer({ doc, showStatusBadge = false, isPrevi
             <img
               src={doc.business_logo_url}
               alt={doc.business_name}
-              className="h-16 w-auto object-contain mb-3"
+              className="h-14 sm:h-16 w-auto object-contain mb-3 max-w-[200px]"
             />
           )}
           <h1 className="text-lg font-bold text-slate-900">{doc.business_name}</h1>
@@ -48,10 +48,10 @@ export default function DocumentRenderer({ doc, showStatusBadge = false, isPrevi
           {doc.business_address && <p className="text-sm text-slate-600">{doc.business_address}</p>}
         </div>
         <div className="text-right flex-shrink-0">
-          <p className={`text-2xl font-bold ${isQuote ? 'text-blue-700' : 'text-emerald-700'}`}>
+          <p className={`text-2xl sm:text-3xl font-bold tracking-tight ${isQuote ? 'text-blue-700' : 'text-emerald-700'}`}>
             {isQuote ? 'QUOTE' : 'INVOICE'}
           </p>
-          <p className="text-lg font-semibold text-slate-700 mt-1">{doc.document_number}</p>
+          <p className="text-base font-semibold text-slate-700 mt-1">{doc.document_number}</p>
           {showStatusBadge && (
             <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${statusBadgeClass(status)}`}>
               {statusLabel}
@@ -63,29 +63,29 @@ export default function DocumentRenderer({ doc, showStatusBadge = false, isPrevi
       {/* Customer + dates */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
         <div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
             {isQuote ? 'Quote To' : 'Bill To'}
           </p>
           <p className="text-sm font-medium text-slate-900">{doc.customer_name || 'No customer specified'}</p>
-          {doc.customer_phone && <p className="text-sm text-slate-600">{doc.customer_phone}</p>}
+          {doc.customer_phone && <p className="text-sm text-slate-600 mt-0.5">{doc.customer_phone}</p>}
           {doc.customer_email && <p className="text-sm text-slate-600">{doc.customer_email}</p>}
           {doc.customer_address && <p className="text-sm text-slate-600">{doc.customer_address}</p>}
         </div>
         <div className="sm:text-right">
-          <div className="space-y-1">
-            <div>
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Issue Date: </span>
+          <div className="space-y-1.5">
+            <div className="flex sm:justify-end gap-2">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Issue Date</span>
               <span className="text-sm text-slate-700">{formatDate(doc.issue_date)}</span>
             </div>
             {isQuote && doc.valid_until && (
-              <div>
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Valid Until: </span>
+              <div className="flex sm:justify-end gap-2">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Valid Until</span>
                 <span className="text-sm text-slate-700">{formatDate(doc.valid_until)}</span>
               </div>
             )}
             {!isQuote && doc.due_date && (
-              <div>
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Due Date: </span>
+              <div className="flex sm:justify-end gap-2">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Due Date</span>
                 <span className="text-sm text-slate-700">{formatDate(doc.due_date)}</span>
               </div>
             )}
@@ -94,7 +94,7 @@ export default function DocumentRenderer({ doc, showStatusBadge = false, isPrevi
       </div>
 
       {/* Line items table */}
-      <div className="overflow-x-auto mb-6">
+      <div className="overflow-x-auto mb-6 -mx-1">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b-2 border-slate-200">
@@ -108,11 +108,11 @@ export default function DocumentRenderer({ doc, showStatusBadge = false, isPrevi
           <tbody>
             {doc.line_items.map((item, i) => (
               <tr key={i} className="border-b border-slate-100">
-                <td className="py-2 px-1 text-slate-700">{item.description || '\u00A0'}</td>
-                <td className="py-2 px-1 text-right text-slate-700 whitespace-nowrap">{formatQuantity(item.quantity)}</td>
-                <td className="py-2 px-1 text-slate-600 hidden sm:table-cell">{item.unit_label || ''}</td>
-                <td className="py-2 px-1 text-right text-slate-700 whitespace-nowrap">{formatMoney(item.unit_price_cents)}</td>
-                <td className="py-2 px-1 text-right text-slate-700 whitespace-nowrap font-medium">{formatMoney(item.line_total_cents)}</td>
+                <td className="py-2.5 px-1 text-slate-700 align-top">{item.description || '\u00A0'}</td>
+                <td className="py-2.5 px-1 text-right text-slate-700 whitespace-nowrap align-top">{formatQuantity(item.quantity)}</td>
+                <td className="py-2.5 px-1 text-slate-600 hidden sm:table-cell align-top">{item.unit_label || ''}</td>
+                <td className="py-2.5 px-1 text-right text-slate-700 whitespace-nowrap align-top">{formatMoney(item.unit_price_cents)}</td>
+                <td className="py-2.5 px-1 text-right text-slate-900 whitespace-nowrap font-medium align-top">{formatMoney(item.line_total_cents)}</td>
               </tr>
             ))}
           </tbody>
@@ -121,7 +121,7 @@ export default function DocumentRenderer({ doc, showStatusBadge = false, isPrevi
 
       {/* Totals */}
       <div className="flex justify-end mb-8">
-        <div className="w-full sm:w-64 space-y-1.5">
+        <div className="w-full sm:w-64 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-slate-600">Subtotal</span>
             <span className="text-slate-900 font-medium">{formatMoney(doc.subtotal_cents)}</span>
@@ -138,7 +138,7 @@ export default function DocumentRenderer({ doc, showStatusBadge = false, isPrevi
               <span className="text-slate-900">{formatMoney(doc.tax_cents)}</span>
             </div>
           )}
-          <div className="flex justify-between text-base font-bold pt-2 border-t border-slate-200">
+          <div className="flex justify-between text-lg font-bold pt-3 border-t-2 border-slate-300">
             <span className="text-slate-900">Total</span>
             <span className={isQuote ? 'text-blue-700' : 'text-emerald-700'}>{formatMoney(doc.total_cents)}</span>
           </div>
@@ -149,7 +149,7 @@ export default function DocumentRenderer({ doc, showStatusBadge = false, isPrevi
       {doc.notes && (
         <div className="mb-4">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Notes</p>
-          <p className="text-sm text-slate-600 whitespace-pre-wrap">{doc.notes}</p>
+          <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">{doc.notes}</p>
         </div>
       )}
 
@@ -157,7 +157,7 @@ export default function DocumentRenderer({ doc, showStatusBadge = false, isPrevi
       {doc.terms && (
         <div className="mb-4">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Terms</p>
-          <p className="text-sm text-slate-600 whitespace-pre-wrap">{doc.terms}</p>
+          <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">{doc.terms}</p>
         </div>
       )}
 

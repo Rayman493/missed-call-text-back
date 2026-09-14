@@ -16,7 +16,9 @@ import {
 
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
+    paddingTop: 40,
+    paddingHorizontal: 40,
+    paddingBottom: 60,
     fontSize: 11,
     fontFamily: 'Helvetica',
     color: '#334155',
@@ -140,13 +142,13 @@ const styles = StyleSheet.create({
   grandTotal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingTop: 6,
-    marginTop: 4,
+    borderTopWidth: 2,
+    borderTopColor: '#cbd5e1',
+    paddingTop: 8,
+    marginTop: 6,
   },
   grandTotalLabel: { fontSize: 13, fontWeight: 'bold', color: '#0f172a' },
-  grandTotalValue: { fontSize: 13, fontWeight: 'bold' },
+  grandTotalValue: { fontSize: 14, fontWeight: 'bold' },
   notesSection: {
     marginBottom: 15,
   },
@@ -157,13 +159,13 @@ const styles = StyleSheet.create({
   },
   footer: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 20,
     left: 40,
     right: 40,
     textAlign: 'center',
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
-    paddingTop: 8,
+    paddingTop: 6,
     fontSize: 8,
     color: '#cbd5e1',
   },

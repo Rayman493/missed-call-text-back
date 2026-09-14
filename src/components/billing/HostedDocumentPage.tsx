@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, X, CreditCard, Loader2, ArrowLeft } from 'lucide-react'
+import { Check, X, CreditCard, Loader2 } from 'lucide-react'
 import DocumentRenderer from '@/components/billing/DocumentRenderer'
 import { DocumentPresentation, effectiveStatus } from '@/lib/billing/document-presentation'
 
@@ -39,6 +39,7 @@ export default function HostedDocumentPage({ token }: HostedDocumentPageProps) {
   }, [token])
 
   const handleRespond = async (action: 'accept' | 'decline') => {
+    if (actionLoading) return // prevent double-click duplicate
     setActionLoading(true)
     setActionMessage('')
     try {
@@ -89,21 +90,27 @@ export default function HostedDocumentPage({ token }: HostedDocumentPageProps) {
   const isQuote = doc.document_type === 'quote'
   const isCancelled = status === 'cancelled'
   const isPaid = status === 'paid'
+  const isExpired = status === 'expired'
+  const isOverdue = status === 'overdue'
   const canRespond = isQuote && (status === 'sent')
   const hasResponded = isQuote && (status === 'accepted' || status === 'declined')
 
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Status banner for non-draft states */}
-      {(isCancelled || isPaid || hasResponded) && (
+      {(isCancelled || isPaid || hasResponded || isExpired || isOverdue) && (
         <div className={`px-4 py-3 text-center text-sm font-medium ${
           isPaid ? 'bg-green-100 text-green-800' :
           isCancelled ? 'bg-red-100 text-red-800' :
+          isExpired ? 'bg-amber-100 text-amber-800' :
+          isOverdue ? 'bg-red-100 text-red-800' :
           status === 'accepted' ? 'bg-green-100 text-green-800' :
           'bg-red-100 text-red-800'
         }`}>
           {isPaid && 'This invoice has been paid. Thank you!'}
           {isCancelled && 'This document has been cancelled.'}
+          {isExpired && 'This quote has expired.'}
+          {isOverdue && 'This invoice is overdue.'}
           {status === 'accepted' && 'You have accepted this quote.'}
           {status === 'declined' && 'You have declined this quote.'}
         </div>
@@ -145,10 +152,12 @@ export default function HostedDocumentPage({ token }: HostedDocumentPageProps) {
           {!isQuote && !isPaid && !isCancelled && paymentUrl && (
             <a
               href={paymentUrl}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors shadow-sm"
+              className={`w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white rounded-xl transition-colors shadow-sm ${
+                isOverdue ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'
+              }`}
             >
               <CreditCard className="w-5 h-5" />
-              Pay Invoice
+              {isOverdue ? 'Pay Overdue Invoice' : 'Pay Invoice'}
             </a>
           )}
 

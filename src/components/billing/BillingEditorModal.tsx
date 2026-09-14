@@ -5,6 +5,7 @@ import { Plus, Trash2, Search, User, X, Loader2, Eye, Download, Send } from 'luc
 import Modal from '@/components/ui/Modal'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatCurrency } from '@/lib/utils'
+import { useBusiness } from '@/contexts/BusinessContext'
 import DocumentRenderer from './DocumentRenderer'
 import { DocumentPresentation } from '@/lib/billing/document-presentation'
 
@@ -15,7 +16,7 @@ export interface BillingLineItem {
   description: string
   quantity: string
   unit_label: string
-  unit_price_cents: string // stored as string for input, parsed on save
+  unit_price_cents: string // dollar string for input (e.g. "35.00"), converted to cents on save
 }
 
 export interface BillingDocumentData {
@@ -61,6 +62,19 @@ function todayStr(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+// Convert cents (number) to dollar string for input: 3500 -> "35.00"
+function centsToDollars(cents: number | string | null | undefined): string {
+  const n = typeof cents === 'string' ? parseInt(cents) || 0 : (cents || 0)
+  return (n / 100).toFixed(2)
+}
+
+// Convert dollar string to cents: "35.00" -> 3500, "35" -> 3500
+function dollarsToCents(dollars: string): number {
+  const n = parseFloat(dollars)
+  if (isNaN(n)) return 0
+  return Math.round(n * 100)
+}
+
 export default function BillingEditorModal({
   isOpen,
   onClose,
@@ -92,6 +106,7 @@ export default function BillingEditorModal({
   const [previewDoc, setPreviewDoc] = useState<DocumentPresentation | null>(null)
   const [isSending, setIsSending] = useState(false)
   const [sendError, setSendError] = useState('')
+  const { business } = useBusiness()
 
   // Customer picker state
   const [showCustomerPicker, setShowCustomerPicker] = useState(false)
@@ -113,8 +128,8 @@ export default function BillingEditorModal({
       setCustomerEmail(existingDocument.customer_email || '')
       setNotes(existingDocument.notes || '')
       setTerms(existingDocument.terms || '')
-      setDiscountCents(String(existingDocument.discount_cents || 0))
-      setTaxCents(String(existingDocument.tax_cents || 0))
+      setDiscountCents(centsToDollars(existingDocument.discount_cents))
+      setTaxCents(centsToDollars(existingDocument.tax_cents))
       setLineItems(
         existingDocument.line_items && existingDocument.line_items.length > 0
           ? existingDocument.line_items.map((item) => ({
@@ -122,7 +137,7 @@ export default function BillingEditorModal({
               description: item.description || '',
               quantity: String(item.quantity || '1'),
               unit_label: item.unit_label || '',
-              unit_price_cents: String(item.unit_price_cents || ''),
+              unit_price_cents: centsToDollars(item.unit_price_cents),
             }))
           : [emptyLineItem()]
       )
@@ -138,8 +153,8 @@ export default function BillingEditorModal({
       setCustomerEmail('')
       setNotes('')
       setTerms('')
-      setDiscountCents('0')
-      setTaxCents('0')
+      setDiscountCents('0.00')
+      setTaxCents('0.00')
       setLineItems([emptyLineItem()])
     }
     setSaveError('')
@@ -220,11 +235,11 @@ export default function BillingEditorModal({
   // Live totals calculation (client-side preview only; server recalculates)
   const subtotal = lineItems.reduce((sum, item) => {
     const qty = parseFloat(item.quantity) || 0
-    const price = parseInt(item.unit_price_cents) || 0
-    return sum + Math.round(qty * price)
+    const priceCents = dollarsToCents(item.unit_price_cents)
+    return sum + Math.round(qty * priceCents)
   }, 0)
-  const discount = parseInt(discountCents) || 0
-  const tax = parseInt(taxCents) || 0
+  const discount = dollarsToCents(discountCents)
+  const tax = dollarsToCents(taxCents)
   const total = Math.max(0, subtotal - discount + tax)
 
   const handleSaveDraft = useCallback(async () => {
@@ -250,7 +265,7 @@ export default function BillingEditorModal({
           description: item.description,
           quantity: item.quantity,
           unit_label: item.unit_label || null,
-          unit_price_cents: parseInt(item.unit_price_cents) || 0,
+          unit_price_cents: dollarsToCents(item.unit_price_cents),
         })),
       }
 
@@ -291,11 +306,11 @@ export default function BillingEditorModal({
   const buildPreviewDoc = useCallback((): DocumentPresentation => {
     const subtotal = lineItems.reduce((sum, item) => {
       const qty = parseFloat(item.quantity) || 0
-      const price = parseInt(item.unit_price_cents) || 0
-      return sum + Math.round(qty * price)
+      const priceCents = dollarsToCents(item.unit_price_cents)
+      return sum + Math.round(qty * priceCents)
     }, 0)
-    const disc = parseInt(discountCents) || 0
-    const tx = parseInt(taxCents) || 0
+    const disc = dollarsToCents(discountCents)
+    const tx = dollarsToCents(taxCents)
     const total = Math.max(0, subtotal - disc + tx)
     return {
       document_type: documentType,
@@ -304,11 +319,11 @@ export default function BillingEditorModal({
       issue_date: issueDate,
       valid_until: isInvoice ? null : (validUntil || null),
       due_date: isInvoice ? (dueDate || null) : null,
-      business_name: 'Your Business Name',
-      business_phone: null,
-      business_email: null,
-      business_address: null,
-      business_logo_url: null,
+      business_name: business?.name || 'Your Business Name',
+      business_phone: business?.business_phone_number || business?.twilio_phone_number || null,
+      business_email: (business as any)?.business_email || null,
+      business_address: [business && (business as any).business_address, business && (business as any).business_city, business && (business as any).business_state, business && (business as any).business_zip].filter(Boolean).join(', ') || null,
+      business_logo_url: (business as any)?.logo_url || null,
       customer_name: customerName || null,
       customer_phone: customerPhone || null,
       customer_email: customerEmail || null,
@@ -317,8 +332,8 @@ export default function BillingEditorModal({
         description: item.description,
         quantity: parseFloat(item.quantity) || 0,
         unit_label: item.unit_label || null,
-        unit_price_cents: parseInt(item.unit_price_cents) || 0,
-        line_total_cents: Math.round((parseFloat(item.quantity) || 0) * (parseInt(item.unit_price_cents) || 0)),
+        unit_price_cents: dollarsToCents(item.unit_price_cents),
+        line_total_cents: Math.round((parseFloat(item.quantity) || 0) * dollarsToCents(item.unit_price_cents)),
       })),
       subtotal_cents: subtotal,
       discount_cents: disc,
@@ -328,7 +343,7 @@ export default function BillingEditorModal({
       terms: terms || null,
       payment_url: null,
     }
-  }, [lineItems, discountCents, taxCents, issueDate, validUntil, dueDate, isInvoice, documentType, existingDocument, customerName, customerPhone, customerEmail, notes, terms])
+  }, [lineItems, discountCents, taxCents, issueDate, validUntil, dueDate, isInvoice, documentType, existingDocument, customerName, customerPhone, customerEmail, notes, terms, business])
 
   const handlePreview = () => {
     setPreviewDoc(buildPreviewDoc())
@@ -363,6 +378,7 @@ export default function BillingEditorModal({
 
   const handleSend = async () => {
     if (!existingDocument?.id) return
+    if (isSending) return // prevent double-click duplicate
     if (!customerId) {
       setSendError('A customer must be selected before sending')
       return
@@ -637,13 +653,14 @@ export default function BillingEditorModal({
                     />
                   </div>
                   <div className="col-span-2 sm:col-span-1">
-                    <label className="block text-[10px] text-muted-foreground mb-0.5">Rate (cents)</label>
+                    <label className="block text-[10px] text-muted-foreground mb-0.5">Rate ($)</label>
                     <input
                       type="number"
+                      step="0.01"
                       min="0"
                       value={item.unit_price_cents}
                       onChange={(e) => updateLineItem(index, 'unit_price_cents', e.target.value)}
-                      placeholder="3500"
+                      placeholder="35.00"
                       className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                     />
                   </div>
@@ -652,7 +669,7 @@ export default function BillingEditorModal({
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">
                     Line total: {formatCurrency(
-                      Math.round((parseFloat(item.quantity) || 0) * (parseInt(item.unit_price_cents) || 0)),
+                      Math.round((parseFloat(item.quantity) || 0) * dollarsToCents(item.unit_price_cents)),
                       true
                     )}
                   </span>
@@ -685,23 +702,27 @@ export default function BillingEditorModal({
             <span className="font-medium">{formatCurrency(subtotal, true)}</span>
           </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Discount (cents)</span>
+            <span className="text-muted-foreground">Discount ($)</span>
             <input
               type="number"
+              step="0.01"
               min="0"
               value={discountCents}
               onChange={(e) => setDiscountCents(e.target.value)}
-              className="w-24 px-2 py-1 text-sm text-right rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              placeholder="0.00"
+              className="w-28 px-2 py-1 text-sm text-right rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
           </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Tax (cents)</span>
+            <span className="text-muted-foreground">Tax ($)</span>
             <input
               type="number"
+              step="0.01"
               min="0"
               value={taxCents}
               onChange={(e) => setTaxCents(e.target.value)}
-              className="w-24 px-2 py-1 text-sm text-right rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              placeholder="0.00"
+              className="w-28 px-2 py-1 text-sm text-right rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
           </div>
           <div className="flex justify-between text-sm font-semibold pt-1.5 border-t border-slate-200 dark:border-slate-700">
