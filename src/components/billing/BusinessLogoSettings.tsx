@@ -6,6 +6,28 @@ import { Upload, Trash2, Loader2, Image as ImageIcon } from 'lucide-react'
 const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
 const MAX_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
 
+// Map raw Supabase/storage errors to user-friendly messages.
+// Never expose internal infrastructure errors (e.g. "Bucket not found") to customers.
+function friendlyStorageError(err: any): string {
+  const msg = (err?.message || err?.error || '').toLowerCase()
+  if (msg.includes('bucket not found') || msg.includes('bucket does not exist')) {
+    return 'Logo upload is temporarily unavailable. Please try again.'
+  }
+  if (msg.includes('not found') || msg.includes('404')) {
+    return 'Logo upload is temporarily unavailable. Please try again.'
+  }
+  if (msg.includes('policy') || msg.includes('permission') || msg.includes('403') || msg.includes('unauthorized')) {
+    return 'You do not have permission to upload a logo. Please contact support.'
+  }
+  if (msg.includes('413') || msg.includes('too large') || msg.includes('payload too large')) {
+    return 'Logo file is too large. Please use a file under 2 MB.'
+  }
+  if (msg.includes('mime') || msg.includes('type') || msg.includes('format')) {
+    return 'Unsupported file format. Please use PNG, JPG, or WebP.'
+  }
+  return 'Logo upload is temporarily unavailable. Please try again.'
+}
+
 interface BusinessLogoSettingsProps {
   businessId: string
   logoUrl: string | null
@@ -65,7 +87,8 @@ export default function BusinessLogoSettings({ businessId, logoUrl, onLogoChange
 
       onLogoChange(publicUrl)
     } catch (err: any) {
-      setError(err.message || 'Failed to upload logo')
+      console.error('[BUSINESS LOGO] Upload error:', err)
+      setError(friendlyStorageError(err))
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -90,7 +113,8 @@ export default function BusinessLogoSettings({ businessId, logoUrl, onLogoChange
       await supabase.from('businesses').update({ logo_url: null }).eq('id', businessId)
       onLogoChange(null)
     } catch (err: any) {
-      setError(err.message || 'Failed to remove logo')
+      console.error('[BUSINESS LOGO] Remove error:', err)
+      setError(friendlyStorageError(err))
     } finally {
       setUploading(false)
     }
