@@ -100,7 +100,7 @@ ALTER TABLE billing_document_counters ENABLE ROW LEVEL SECURITY;
 --   belongs to the calling user (auth.uid()) before assigning a number,
 --   preventing cross-business privilege escalation.
 --
---   search_path is locked to 'public' only (pg_temp intentionally excluded)
+--   search_path is locked to 'public, pg_temp' (public first, pg_temp last)
 --   to prevent search-path injection via temporary objects.
 --
 -- DROP first (IF EXISTS) then CREATE to handle:
@@ -158,7 +158,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public;
+SET search_path = public, pg_temp;
 
 -- Allow authenticated users to call the numbering RPC.
 -- The function itself enforces business ownership.

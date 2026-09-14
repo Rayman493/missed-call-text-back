@@ -97,7 +97,8 @@ CREATE TABLE IF NOT EXISTS billing_document_counters (
 --   to authenticated users. The function validates that p_business_id
 --   belongs to the calling user (auth.uid()) before assigning a number,
 --   preventing cross-business privilege escalation.
---   search_path is locked to 'public' to prevent search-path injection.
+--   search_path is locked to 'public, pg_temp' (public first, pg_temp last)
+--   to prevent search-path injection via temporary objects.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION assign_billing_document_number(
     p_business_id uuid,
@@ -146,7 +147,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public;
+SET search_path = public, pg_temp;
 
 -- Allow authenticated users to call the numbering RPC.
 -- The function itself enforces business ownership.

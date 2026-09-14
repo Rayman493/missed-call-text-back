@@ -139,13 +139,18 @@ describe('NUMBERING / MIGRATIONS', () => {
     expect(repairMigrationSrc).toContain('SECURITY DEFINER')
   })
 
-  it('13. repair RPC safe search_path (public only, no pg_temp)', () => {
+  it('13. repair RPC safe search_path (public first, pg_temp last)', () => {
     // Check the actual SET search_path statement, not comments
     const searchPathLine = repairMigrationSrc.split('\n').find(l => l.trim().startsWith('SET search_path'))
     expect(searchPathLine).toBeTruthy()
-    expect(searchPathLine!.trim()).toBe('SET search_path = public;')
-    // pg_temp intentionally excluded for security — verify it's not in the SET statement
-    expect(searchPathLine!).not.toContain('pg_temp')
+    // public must appear first
+    expect(searchPathLine!.trim()).toMatch(/^SET search_path = public,/)
+    // pg_temp must be explicitly present
+    expect(searchPathLine!).toContain('pg_temp')
+    // pg_temp must appear after public
+    const publicIdx = searchPathLine!.indexOf('public')
+    const pgTempIdx = searchPathLine!.indexOf('pg_temp')
+    expect(pgTempIdx).toBeGreaterThan(publicIdx)
   })
 
   it('14. repair RPC rejects invalid document_type', () => {
