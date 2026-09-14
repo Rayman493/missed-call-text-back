@@ -404,7 +404,7 @@ export default function PaymentsPage() {
         valid_until: d.valid_until,
         due_date: d.due_date,
         customer_id: d.customer_id,
-        customer_name: d.leads?.contact_name || d.leads?.name || null,
+        customer_name: d.leads?.contact_name || null,
         customer_phone: d.leads?.caller_phone || null,
         customer_email: d.leads?.email || null,
         notes: d.notes,
@@ -1952,9 +1952,17 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           documentId={viewingBillingDoc?.id || null}
           onDownload={() => viewingBillingDoc && handleDownloadBillingDoc(viewingBillingDoc)}
           onSend={() => viewingBillingDoc && handleSendBillingDoc(viewingBillingDoc)}
+          onEdit={() => {
+            if (viewingBillingDoc) {
+              setShowBillingViewer(false)
+              handleOpenBillingDoc(viewingBillingDoc)
+            }
+          }}
           onConvert={() => viewingBillingDoc && handleConvertBillingDoc(viewingBillingDoc)}
           showConvert={viewingBillingDoc?.document_type === 'quote' && viewingBillingDoc?.status === 'accepted'}
-          showSend={viewingBillingDoc?.status === 'sent' || viewingBillingDoc?.status === 'overdue' || viewingBillingDoc?.status === 'expired'}
+          showSend={true}
+          showEdit={viewingBillingDoc?.status === 'draft'}
+          isSending={billingSendingId === viewingBillingDoc?.id}
         />
     </DashboardShell>
   )

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, Download, Send, ArrowRight } from 'lucide-react'
+import { Loader2, Download, Send, ArrowRight, Edit, RefreshCw } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import DocumentRenderer from './DocumentRenderer'
 import { DocumentPresentation, effectiveStatus } from '@/lib/billing/document-presentation'
@@ -13,9 +13,12 @@ interface BillingViewerModalProps {
   documentId: string | null
   onDownload: () => void
   onSend: () => void
+  onEdit?: () => void
   onConvert?: () => void
   showConvert?: boolean
   showSend?: boolean
+  showEdit?: boolean
+  isSending?: boolean
 }
 
 export default function BillingViewerModal({
@@ -24,9 +27,12 @@ export default function BillingViewerModal({
   documentId,
   onDownload,
   onSend,
+  onEdit,
   onConvert,
   showConvert = false,
   showSend = false,
+  showEdit = false,
+  isSending = false,
 }: BillingViewerModalProps) {
   const [doc, setDoc] = useState<DocumentPresentation | null>(null)
   const [loading, setLoading] = useState(false)
@@ -87,32 +93,46 @@ export default function BillingViewerModal({
   }, [isOpen, documentId])
 
   const footer = (
-    <div className="flex items-center justify-end gap-2">
-      <button
-        onClick={onDownload}
-        className="px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
-      >
-        <Download className="w-4 h-4" />
-        Download
-      </button>
-      {showSend && (
+    <div className="flex items-center justify-between gap-2 flex-wrap">
+      <div className="flex items-center gap-2">
+        {showEdit && onEdit && (
+          <button
+            onClick={onEdit}
+            className="px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
+          >
+            <Edit className="w-4 h-4" />
+            Edit
+          </button>
+        )}
         <button
-          onClick={onSend}
-          className="px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm flex items-center gap-1.5"
+          onClick={onDownload}
+          className="px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
         >
-          <Send className="w-4 h-4" />
-          Resend
+          <Download className="w-4 h-4" />
+          Download PDF
         </button>
-      )}
-      {showConvert && (
-        <button
-          onClick={onConvert}
-          className="px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm flex items-center gap-1.5"
-        >
-          <ArrowRight className="w-4 h-4" />
-          Convert to Invoice
-        </button>
-      )}
+      </div>
+      <div className="flex items-center gap-2">
+        {showConvert && (
+          <button
+            onClick={onConvert}
+            className="px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm flex items-center gap-1.5"
+          >
+            <ArrowRight className="w-4 h-4" />
+            Convert to Invoice
+          </button>
+        )}
+        {showSend && (
+          <button
+            onClick={onSend}
+            disabled={isSending}
+            className="px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+          >
+            {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            Send to Customer
+          </button>
+        )}
+      </div>
     </div>
   )
 

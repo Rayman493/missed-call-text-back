@@ -220,8 +220,9 @@ describe('RENDERER VISUAL POLISH', () => {
 // DOUBLE-CLICK PROTECTION
 // ============================================================================
 describe('DOUBLE-CLICK PROTECTION', () => {
-  it('editor send prevents double-click via isSending guard', () => {
-    expect(editorSrc).toContain('if (isSending) return')
+  it('editor save prevents double-click via isSaving guard', () => {
+    // Send is no longer in the editor; save uses isSaving guard
+    expect(editorSrc).toContain('disabled={isSaving}')
   })
 
   it('hosted page respond prevents double-click via actionLoading guard', () => {

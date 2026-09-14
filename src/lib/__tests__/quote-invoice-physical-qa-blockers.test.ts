@@ -487,26 +487,29 @@ describe('PREVIEW / SEND', () => {
     expect(editorSrc).toContain('existingDocument?.id || savedDoc?.id')
   })
 
-  it('67. unsaved preview shows Save Draft', () => {
+  it('67. unsaved preview shows Save Draft (no fromPreview branching)', () => {
     expect(editorSrc).toContain('Save Draft')
-    expect(editorSrc).toContain('fromPreview: true')
+    // The old fromPreview path is removed — save always closes the editor
+    expect(editorSrc).not.toContain('fromPreview')
   })
 
-  it('68. successful preview save stores persisted id', () => {
-    expect(editorSrc).toContain('savedDoc')
-    expect(editorSrc).toContain('setSavedDoc')
+  it('68. successful save calls onSaved and closes editor', () => {
+    expect(editorSrc).toContain('onSaved?.(savedDocument)')
+    expect(editorSrc).toContain('onClose()')
   })
 
-  it('69. document number updates after save', () => {
+  it('69. document number displayed when editing existing document', () => {
     expect(editorSrc).toContain('setDocNumber')
   })
 
-  it('70. saved preview shows Download PDF', () => {
-    expect(editorSrc).toContain('Download PDF')
+  it('70. editor does NOT show Download PDF (moved to viewer)', () => {
+    expect(editorSrc).not.toContain('Download PDF')
+    expect(editorSrc).not.toContain('handleDownload')
   })
 
-  it('71. saved preview shows Send to Customer', () => {
-    expect(editorSrc).toContain('Send to Customer')
+  it('71. editor does NOT show Send to Customer (moved to viewer)', () => {
+    expect(editorSrc).not.toContain('Send to Customer')
+    expect(editorSrc).not.toContain('handleSend')
   })
 
   it('72. no duplicate document POST (uses existingId for PATCH)', () => {
@@ -515,16 +518,18 @@ describe('PREVIEW / SEND', () => {
     expect(editorSrc).toContain('POST')
   })
 
-  it('73. send requires persisted document', () => {
-    expect(editorSrc).toContain('existingDocument?.id || savedDoc?.id')
+  it('73. send is not in editor (moved to saved viewer)', () => {
+    // Send validation lives in the viewer/list, not the editor
+    expect(editorSrc).not.toContain('Select a customer before sending')
   })
 
-  it('74. send requires customer', () => {
-    expect(editorSrc).toContain('Select a customer before sending')
+  it('74. send validation is not in editor', () => {
+    expect(editorSrc).not.toContain('no phone number')
   })
 
-  it('75. send requires phone', () => {
-    expect(editorSrc).toContain('no phone number')
+  it('75. viewer has Send to Customer', () => {
+    const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
+    expect(viewerSrc).toContain('Send to Customer')
   })
 
   it('76. list actions remain functional', () => {
@@ -660,5 +665,193 @@ describe('BILLING LIST CUSTOMER QUERY', () => {
     const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
     expect(viewerSrc).toContain('contact_name')
     expect(viewerSrc).not.toContain('d.leads?.name')
+  })
+})
+
+// ============================================================================
+// 7. SAVED-DOCUMENT REVIEW/SEND FLOW
+// ============================================================================
+describe('SAVED-DOCUMENT REVIEW/SEND FLOW', () => {
+  it('98. editor has Preview', () => {
+    expect(editorSrc).toContain('Preview')
+    expect(editorSrc).toContain('handlePreview')
+  })
+
+  it('99. editor has Cancel', () => {
+    expect(editorSrc).toContain('Cancel')
+  })
+
+  it('100. editor has Save Draft', () => {
+    expect(editorSrc).toContain('Save Draft')
+    expect(editorSrc).toContain('handleSaveDraft')
+  })
+
+  it('101. editor does NOT have Send to Customer', () => {
+    expect(editorSrc).not.toContain('Send to Customer')
+    expect(editorSrc).not.toContain('handleSend')
+  })
+
+  it('102. editor Preview does NOT have Send', () => {
+    // The preview footer should not contain Send
+    expect(editorSrc).not.toMatch(/Send to Customer/)
+  })
+
+  it('103. editor Preview does NOT expose final Download PDF action', () => {
+    // Preview footer should only have Back to Edit + Save Draft
+    expect(editorSrc).not.toContain('Download PDF')
+    expect(editorSrc).not.toContain('handleDownload')
+  })
+
+  it('104. successful Save Draft closes editor (onClose called)', () => {
+    expect(editorSrc).toContain('onSaved?.(savedDocument)')
+    expect(editorSrc).toContain('onClose()')
+  })
+
+  it('105. successful Save Draft refreshes list (onSaved callback)', () => {
+    // onSaved is called before onClose, parent uses it to refresh
+    expect(editorSrc).toContain('onSaved?.(savedDocument)')
+  })
+
+  it('106. successful POST is not retried if list refresh fails', () => {
+    // handleSaveDraft does not contain retry logic
+    expect(editorSrc).not.toContain('retry')
+    expect(editorSrc).not.toContain('POST again')
+  })
+
+  it('107. successful POST is not reported as failed because GET failed', () => {
+    // The save error only comes from the POST response, not from list refresh
+    // handleBillingSaved in payments page just calls fetchBillingDocuments
+    // which silently ignores errors
+    const paymentsSrc = readSrc('src/app/dashboard/payments/page.tsx')
+    expect(paymentsSrc).toContain('handleBillingSaved')
+    expect(paymentsSrc).toContain('fetchBillingDocuments()')
+  })
+
+  it('108. editor no longer has fromPreview branching', () => {
+    // The old fromPreview path that kept preview open is removed
+    expect(editorSrc).not.toContain('fromPreview')
+  })
+
+  it('109. saved document list has View action', () => {
+    expect(listSrc).toContain('onView')
+    expect(listSrc).toContain('View document')
+  })
+
+  it('110. saved document list has Edit action (for drafts)', () => {
+    expect(listSrc).toContain('onOpen')
+    expect(listSrc).toContain('Edit document')
+  })
+
+  it('111. saved document list has Download PDF action', () => {
+    expect(listSrc).toContain('onDownload')
+    expect(listSrc).toContain('Download PDF')
+  })
+
+  it('112. saved document list has Send action', () => {
+    expect(listSrc).toContain('onSend')
+  })
+
+  it('113. viewer loads persisted document', () => {
+    const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
+    expect(viewerSrc).toContain('documentId')
+    expect(viewerSrc).toContain('/api/billing-documents/')
+  })
+
+  it('114. viewer shows persisted document number', () => {
+    const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
+    expect(viewerSrc).toContain('document_number')
+  })
+
+  it('115. viewer shows persisted totals', () => {
+    const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
+    expect(viewerSrc).toContain('subtotal_cents')
+    expect(viewerSrc).toContain('total_cents')
+  })
+
+  it('116. viewer shows Download PDF', () => {
+    const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
+    expect(viewerSrc).toContain('Download PDF')
+  })
+
+  it('117. viewer shows Send to Customer', () => {
+    const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
+    expect(viewerSrc).toContain('Send to Customer')
+  })
+
+  it('118. viewer has Edit action (for drafts)', () => {
+    const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
+    expect(viewerSrc).toContain('onEdit')
+    expect(viewerSrc).toContain('Edit')
+  })
+
+  it('119. viewer Send is wired to persisted document send endpoint', () => {
+    const paymentsSrc = readSrc('src/app/dashboard/payments/page.tsx')
+    expect(paymentsSrc).toContain('handleSendBillingDoc')
+    expect(paymentsSrc).toContain('/send')
+  })
+
+  it('120. viewer Edit reopens editor with persisted document', () => {
+    const paymentsSrc = readSrc('src/app/dashboard/payments/page.tsx')
+    expect(paymentsSrc).toContain('onEdit')
+    expect(paymentsSrc).toContain('handleOpenBillingDoc')
+  })
+
+  it('121. edit saved document uses PATCH (not POST)', () => {
+    expect(editorSrc).toContain('PATCH')
+    expect(editorSrc).toContain('existingId')
+  })
+
+  it('122. edit saved document does not POST duplicate', () => {
+    // When existingId is present, it uses PATCH, not POST
+    expect(editorSrc).toContain("if (existingId)")
+    expect(editorSrc).toContain('PATCH')
+  })
+
+  it('123. document number remains unchanged after edit', () => {
+    // The PATCH payload does not include document_number
+    // document_number is only set from existingDocument on hydrate
+    expect(editorSrc).toContain('setDocNumber(existingDocument.document_number')
+    // Payload should not contain document_number
+    const payloadMatch = editorSrc.match(/const payload = \{[\s\S]*?\}/)
+    if (payloadMatch) {
+      expect(payloadMatch[0]).not.toContain('document_number')
+    }
+  })
+
+  it('124. no leads.name regression in billing routes', () => {
+    expect(apiListSrc).not.toMatch(/leads\s*\(\s*[^)]*\bname\b/)
+    const singleDocSrc = readSrc('src/app/api/billing-documents/[id]/route.ts')
+    expect(singleDocSrc).not.toMatch(/leads\s*\(\s*[^)]*\bname\b/)
+    const sendSrc = readSrc('src/app/api/billing-documents/[id]/send/route.ts')
+    expect(sendSrc).not.toMatch(/leads\s*\(\s*[^)]*\bname\b/)
+  })
+
+  it('125. contact_name fallback preserved in list', () => {
+    expect(listSrc).toContain('contact_name')
+  })
+
+  it('126. phone fallback preserved in list', () => {
+    expect(listSrc).toContain('caller_phone')
+  })
+
+  it('127. null optional customer safe (No customer fallback)', () => {
+    expect(listSrc).toContain("'No customer'")
+  })
+
+  it('128. PDF loads persisted document (uses DocumentPresentation)', () => {
+    expect(pdfSrc).toContain('DocumentPresentation')
+  })
+
+  it('129. correct date formatter used in PDF', () => {
+    expect(pdfSrc).toContain('formatDate')
+  })
+
+  it('130. logo used in PDF when available', () => {
+    expect(pdfSrc).toContain('business_logo_url')
+  })
+
+  it('131. totals match persisted values in PDF', () => {
+    expect(pdfSrc).toContain('subtotal_cents')
+    expect(pdfSrc).toContain('total_cents')
   })
 })

@@ -544,14 +544,15 @@ describe('MOBILE / MODAL', () => {
     expect(editorSrc).toContain('Preview')
   })
 
-  it('editor has Download button', () => {
-    expect(editorSrc).toContain('handleDownload')
-    expect(editorSrc).toContain('Download')
+  it('editor does NOT have Download (moved to viewer)', () => {
+    // Download is now only on the saved document viewer, not the editor
+    expect(editorSrc).not.toContain('handleDownload')
   })
 
-  it('editor has Send to Customer button', () => {
-    expect(editorSrc).toContain('handleSend')
-    expect(editorSrc).toContain('Send to Customer')
+  it('editor does NOT have Send to Customer (moved to viewer)', () => {
+    // Send is now only on the saved document viewer, not the editor
+    expect(editorSrc).not.toContain('handleSend')
+    expect(editorSrc).not.toContain('Send to Customer')
   })
 
   it('preview modal uses shared Modal with Back to Edit', () => {
