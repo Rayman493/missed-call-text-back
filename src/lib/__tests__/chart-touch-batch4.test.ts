@@ -182,9 +182,13 @@ describe('Batch 4 — Desktop/Accessibility Preservation', () => {
     expect(activityContent).toContain('activeDot')
   })
 
-  it('tooltips are disabled only on touch devices (preserved on desktop)', () => {
+  it('tooltips are always enabled (touch: click trigger, desktop: hover trigger)', () => {
     const revenueContent = readContent('src/components/analytics/RevenueGraph.tsx')
-    expect(revenueContent).toContain('!isTouchDevice')
+    // Tooltip should always be included; trigger switches by platform
+    expect(revenueContent).toContain('<Tooltip')
+    expect(revenueContent).toContain("trigger={isTouchDevice ? 'click' : 'hover'}")
+    // Should NOT gate Tooltip on !isTouchDevice
+    expect(revenueContent).not.toMatch(/\{!isTouchDevice\s*&&\s*\(\s*<Tooltip/)
 
     const newCustomersContent = readContent('src/components/analytics/NewCustomersGraph.tsx')
     expect(newCustomersContent).toContain('!isTouchDevice')

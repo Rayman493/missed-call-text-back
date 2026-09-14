@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
@@ -22,17 +22,34 @@ export default function RevenueGraph() {
   const { business } = useBusiness()
   const [data, setData] = useState<RevenueData[]>([])
   const [loading, setLoading] = useState(true)
+  const [updating, setUpdating] = useState(false)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
   const isTouchDevice = useTouchDevice()
+  // Tracks whether the initial load has completed. Distinguishes the
+  // first fetch (full "Loading..." state) from subsequent range changes
+  // (subtle "Updating..." indicator that keeps the previous chart visible).
+  const hasInitialLoadRef = useRef(false)
 
   useEffect(() => {
+    let isStale = false
     const fetchData = async () => {
       if (!business) return
 
       // Check if Stripe is connected
       if (!business?.stripe_connect_account_id) {
-        setLoading(false)
+        if (!isStale) {
+          setLoading(false)
+          setUpdating(false)
+        }
         return
+      }
+
+      // For the initial load, `loading` is already true from initial state.
+      // For subsequent range changes, show the subtle updating indicator
+      // while keeping the previous chart visible (no layout shift).
+      const isInitial = !hasInitialLoadRef.current
+      if (!isInitial) {
+        setUpdating(true)
       }
 
       try {
@@ -70,15 +87,26 @@ export default function RevenueGraph() {
           revenue
         }))
 
-        setData(chartData)
+        // Guard against stale responses from a previous range selection
+        // (rapid range changes: only the latest request's data is committed).
+        if (!isStale) {
+          setData(chartData)
+        }
       } catch (error) {
         console.error('[RevenueGraph] Error fetching data:', error)
       } finally {
-        setLoading(false)
+        if (!isStale) {
+          if (isInitial) {
+            hasInitialLoadRef.current = true
+          }
+          setLoading(false)
+          setUpdating(false)
+        }
       }
     }
 
     fetchData()
+    return () => { isStale = true }
   }, [business, timeRange])
 
   const isEmpty = data.length === 0
@@ -99,11 +127,19 @@ export default function RevenueGraph() {
           <div>
             <h3 className="text-sm font-semibold text-foreground">Payments Received</h3>
           </div>
-          <PremiumSelect
-            value={timeRange}
-            onChange={setTimeRange}
-            options={ANALYTICS_TIMEFRAME_OPTIONS}
-          />
+          <div className="flex items-center gap-2">
+            {updating && (
+              <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground" aria-live="polite">
+                <span className="inline-block w-3 h-3 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+                Updating…
+              </span>
+            )}
+            <PremiumSelect
+              value={timeRange}
+              onChange={setTimeRange}
+              options={ANALYTICS_TIMEFRAME_OPTIONS}
+            />
+          </div>
         </div>
 
         {!isEmpty && isStripeConnected && (
@@ -142,7 +178,15 @@ export default function RevenueGraph() {
             description="Completed payments will appear automatically as customers pay through ReplyFlow."
           />
         ) : (
-          <div className="h-[260px]">
+          <div className="h-[260px] relative">
+            {updating && (
+              <div className="absolute inset-0 z-10 bg-card/40 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
+                <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span className="inline-block w-3 h-3 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+                  Updating…
+                </span>
+              </div>
+            )}
             <ChartTouchWrapper>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={CHART_STYLES.margin}>
@@ -167,11 +211,10 @@ export default function RevenueGraph() {
                     tickLine={CHART_STYLES.tickLine}
                     tickFormatter={formatCurrencyAxis}
                   />
-                  {!isTouchDevice && (
-                    <Tooltip
-                      content={<PremiumTooltip />}
-                    />
-                  )}
+                  <Tooltip
+                    content={<PremiumTooltip />}
+                    trigger={isTouchDevice ? 'click' : 'hover'}
+                  />
                   <Line
                     type="monotone"
                     dataKey="revenue"

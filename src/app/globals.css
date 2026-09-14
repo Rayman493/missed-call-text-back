@@ -844,9 +844,26 @@ html.light select:-moz-autofill:focus {
  * The default Recharts cursor renders a <rect> covering the entire
  * category band. Setting cursor={false} on Tooltip handles the hover
  * cursor, but the focus rectangle on touch tap needs this CSS fix.
+ *
+ * touch-action: pan-y on the SVG surface and wrapper tells the browser
+ * to handle vertical scrolling natively. Without this, Recharts' internal
+ * touch handlers can intercept vertical touchmove and block page scroll,
+ * causing the chart to "capture" the finger during mobile scrolling.
+ * pan-y allows native vertical pan while still letting taps reach the
+ * chart for datum selection.
  */
+.recharts-surface,
+.recharts-wrapper,
+.recharts-rectangle-wrapper {
+  touch-action: pan-y;
+}
+
 .recharts-surface:focus,
+.recharts-surface:focus-visible,
 .recharts-wrapper:focus,
+.recharts-wrapper:focus-visible,
+.recharts-rectangle-wrapper:focus,
+.recharts-rectangle-wrapper:focus-visible,
 .recharts-cursor {
   outline: none;
 }

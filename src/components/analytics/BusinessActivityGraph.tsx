@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -31,9 +31,14 @@ export default function BusinessActivityGraph() {
   const { business } = useBusiness()
   const [data, setData] = useState<ActivityData[]>([])
   const [loading, setLoading] = useState(true)
+  const [updating, setUpdating] = useState(false)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
   const [hiddenSeries, setHiddenSeries] = useState<string[]>([])
   const isTouchDevice = useTouchDevice()
+  // Tracks whether the initial load has completed. Distinguishes the
+  // first fetch (full "Loading..." state) from subsequent range changes
+  // (subtle "Updating..." indicator that keeps the previous chart visible).
+  const hasInitialLoadRef = useRef(false)
 
   const toggleSeries = (key: string) => {
     setHiddenSeries((prev) =>
@@ -42,8 +47,17 @@ export default function BusinessActivityGraph() {
   }
 
   useEffect(() => {
+    let isStale = false
     const fetchData = async () => {
       if (!business) return
+
+      // For the initial load, `loading` is already true from initial state.
+      // For subsequent range changes, show the subtle updating indicator
+      // while keeping the previous chart visible (no layout shift).
+      const isInitial = !hasInitialLoadRef.current
+      if (!isInitial) {
+        setUpdating(true)
+      }
 
       try {
         const supabase = createBrowserClient()
@@ -131,15 +145,26 @@ export default function BusinessActivityGraph() {
           new Date(a.date).getTime() - new Date(b.date).getTime()
         )
 
-        setData(chartData)
+        // Guard against stale responses from a previous range selection
+        // (rapid range changes: only the latest request's data is committed).
+        if (!isStale) {
+          setData(chartData)
+        }
       } catch (error) {
         console.error('[BusinessActivityGraph] Error fetching data:', error)
       } finally {
-        setLoading(false)
+        if (!isStale) {
+          if (isInitial) {
+            hasInitialLoadRef.current = true
+          }
+          setLoading(false)
+          setUpdating(false)
+        }
       }
     }
 
     fetchData()
+    return () => { isStale = true }
   }, [business, timeRange])
 
   const isEmpty = data.length === 0
@@ -167,11 +192,19 @@ export default function BusinessActivityGraph() {
           <div>
             <h3 className="text-sm font-semibold text-foreground">Customer Engagement</h3>
           </div>
-          <PremiumSelect
-            value={timeRange}
-            onChange={setTimeRange}
-            options={ANALYTICS_TIMEFRAME_OPTIONS}
-          />
+          <div className="flex items-center gap-2">
+            {updating && (
+              <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground" aria-live="polite">
+                <span className="inline-block w-3 h-3 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+                Updating…
+              </span>
+            )}
+            <PremiumSelect
+              value={timeRange}
+              onChange={setTimeRange}
+              options={ANALYTICS_TIMEFRAME_OPTIONS}
+            />
+          </div>
         </div>
 
         {!isEmpty && (
@@ -199,7 +232,15 @@ export default function BusinessActivityGraph() {
             description="Daily customer interactions will appear here as ReplyFlow captures conversations, appointments, and payments."
           />
         ) : (
-          <div className="h-[260px]">
+          <div className="h-[260px] relative">
+            {updating && (
+              <div className="absolute inset-0 z-10 bg-card/40 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
+                <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span className="inline-block w-3 h-3 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+                  Updating…
+                </span>
+              </div>
+            )}
             <ChartTouchWrapper>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={{ ...CHART_STYLES.margin, bottom: 12 }}>
@@ -225,35 +266,34 @@ export default function BusinessActivityGraph() {
                     ticks={yTicks}
                     tickFormatter={formatInteger}
                   />
-                  {!isTouchDevice && (
-                    <Tooltip
-                      content={({ active, payload, label }: any) => {
-                        if (!active || !payload || payload.length === 0) return null
+                  <Tooltip
+                    content={({ active, payload, label }: any) => {
+                      if (!active || !payload || payload.length === 0) return null
 
-                        return (
-                          <div className="bg-card border border-border/50 rounded-lg shadow-lg px-3 py-2.5 min-w-[160px]">
-                            <p className="text-[11px] font-semibold text-foreground mb-1.5">{label}</p>
-                            {payload.map((entry: any, index: number) => {
-                              const key = entry.dataKey as string
-                              const label = SERIES_LABELS[key] || entry.dataKey
-                              return (
-                                <div key={index} className="flex items-center justify-between gap-3 text-[11px]">
-                                  <div className="flex items-center gap-2">
-                                    <div
-                                      className="w-2 h-2 rounded-full shrink-0"
-                                      style={{ backgroundColor: entry.color }}
-                                    />
-                                    <span className="text-muted-foreground">{label}</span>
-                                  </div>
-                                  <span className="font-medium text-foreground tabular-nums">{entry.value}</span>
+                      return (
+                        <div className="bg-card border border-border/50 rounded-lg shadow-lg px-3 py-2.5 min-w-[160px]">
+                          <p className="text-[11px] font-semibold text-foreground mb-1.5">{label}</p>
+                          {payload.map((entry: any, index: number) => {
+                            const key = entry.dataKey as string
+                            const label = SERIES_LABELS[key] || entry.dataKey
+                            return (
+                              <div key={index} className="flex items-center justify-between gap-3 text-[11px]">
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-2 h-2 rounded-full shrink-0"
+                                    style={{ backgroundColor: entry.color }}
+                                  />
+                                  <span className="text-muted-foreground">{label}</span>
                                 </div>
-                              )
-                            })}
-                          </div>
-                        )
-                      }}
-                    />
-                  )}
+                                <span className="font-medium text-foreground tabular-nums">{entry.value}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )
+                    }}
+                    trigger={isTouchDevice ? 'click' : 'hover'}
+                  />
                   <Legend
                     content={({ payload }: any) => (
                       <div className="flex flex-col items-center justify-center gap-1 h-full px-2">
