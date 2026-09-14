@@ -1330,9 +1330,20 @@ async function logFailedMessage(
       error_code: errorCode
     });
 
-    // Use canonical sender value; fall back to messaging service SID or 'unknown'
-    // to satisfy NOT NULL constraint when twilio_phone_number is not yet provisioned.
-    const fromPhone = business.twilio_phone_number || business.twilio_messaging_service_sid || 'unknown';
+    // Only persist a real canonical From phone number.
+    // A Messaging Service SID is not a phone number and must NOT be stored in from_phone.
+    // If the business has no canonical twilio_phone_number, skip the messages insert —
+    // the primary send error is already logged to console and returned to the caller.
+    // Do NOT fabricate placeholder values for from_phone.
+    const fromPhone = business.twilio_phone_number || null;
+
+    if (!fromPhone) {
+      console.log('[SMS PERSISTENCE] Skipping messages insert — no canonical from_phone available', {
+        business_id: business.id,
+        error_code: errorCode
+      });
+      return;
+    }
 
     const insertPayload = {
       business_id: business.id,

@@ -281,16 +281,56 @@ describe('SEND ROUTE — BUSINESS TWILIO FIELDS', () => {
 // FAILED SMS PERSISTENCE
 // ============================================================================
 describe('FAILED SMS PERSISTENCE', () => {
-  it('46. logFailedMessage uses fallback from_phone when twilio_phone_number is null', () => {
-    expect(twilioSrc).toContain("business.twilio_phone_number || business.twilio_messaging_service_sid || 'unknown'")
+  it('46. failed SMS logging never stores a Messaging Service SID in from_phone', () => {
+    // The fromPhone value must only be a real phone number, never a messaging service SID
+    expect(twilioSrc).not.toContain("business.twilio_phone_number || business.twilio_messaging_service_sid")
+    expect(twilioSrc).not.toContain("from_phone: business.twilio_messaging_service_sid")
   })
 
-  it('47. from_phone fallback is in the messages insert payload', () => {
+  it('47. failed SMS logging never stores "unknown" in from_phone', () => {
+    // "unknown" must never be used as a from_phone value
+    expect(twilioSrc).not.toContain("'unknown'")
+    // The comment documenting this is acceptable, but no code path should assign it
+    expect(twilioSrc).not.toContain("from_phone: 'unknown'")
+    expect(twilioSrc).not.toContain("fromPhone = 'unknown'")
+  })
+
+  it('48. real canonical From phone is persisted when available', () => {
+    // When twilio_phone_number exists, it is used as from_phone
+    expect(twilioSrc).toContain('const fromPhone = business.twilio_phone_number || null')
     expect(twilioSrc).toContain('from_phone: fromPhone')
   })
 
-  it('48. logging failure does not throw (catches errors silently)', () => {
+  it('49. failed SMS logging skips messages insert when no canonical from_phone', () => {
+    // When twilio_phone_number is null, skip the insert entirely
+    expect(twilioSrc).toContain("if (!fromPhone)")
+    expect(twilioSrc).toContain("Skipping messages insert")
+  })
+
+  it('50. logging failure does not throw (catches errors silently)', () => {
     expect(twilioSrc).toContain("Don't throw - this is just logging")
+  })
+
+  it('51. primary NO_TWILIO_NUMBER error remains preserved (returned before logging)', () => {
+    // sendSms returns { reason: 'NO_TWILIO_NUMBER' } before logFailedMessage is called
+    // The billing send route checks this reason and returns 503
+    expect(sendRouteSrc).toContain("NO_TWILIO_NUMBER")
+    expect(sendRouteSrc).toContain("503")
+  })
+
+  it('52. document remains Draft on send failure', () => {
+    // The send route sends SMS BEFORE marking sent — on failure it returns early
+    const smsIdx = sendRouteSrc.indexOf('sendSms(business')
+    const updateIdx = sendRouteSrc.indexOf("status: 'sent'")
+    expect(smsIdx).toBeGreaterThan(-1)
+    expect(updateIdx).toBeGreaterThan(-1)
+    expect(smsIdx).toBeLessThan(updateIdx)
+  })
+
+  it('53. successful send path unchanged (marks sent after SMS success)', () => {
+    expect(sendRouteSrc).toContain("status: 'sent'")
+    expect(sendRouteSrc).toContain('sent_at: new Date().toISOString()')
+    expect(sendRouteSrc).toContain('public_token: publicToken')
   })
 })
 
