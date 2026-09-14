@@ -60,6 +60,9 @@ export default function CustomerAttachmentsCard({ messages }: CustomerAttachment
   // Track which display URLs failed to load so we can show a clean file-icon
   // fallback instead of greying out the image (which looks like a disabled state).
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
+  // Track which original URLs have already attempted a 401 recovery so we
+  // never enter an infinite refresh loop (at most one recovery per URL).
+  const recoveryAttemptedRef = useRef<Set<string>>(new Set())
 
   // Collect all media from all messages, newest message first
   const allAttachments = useMemo(() => {
@@ -105,9 +108,34 @@ export default function CustomerAttachmentsCard({ messages }: CustomerAttachment
         if (authenticated[url] || blobUrlsRef.current[url]) continue
         try {
           const proxyUrl = getSecureUrl(url)
-          const res = await fetch(proxyUrl, {
+          let res = await fetch(proxyUrl, {
             headers: { Authorization: `Bearer ${token}` }
           })
+
+          // 401 recovery: if the MMS media token is expired, attempt exactly
+          // ONE recovery via the recover-url endpoint to obtain a fresh
+          // authorized URL. This prevents infinite 401 loops while keeping
+          // historical attachments viewable after token expiry.
+          if (res.status === 401 && url.includes('/api/mms-media/serve') && !recoveryAttemptedRef.current.has(url)) {
+            recoveryAttemptedRef.current.add(url)
+            try {
+              const recoverRes = await fetch(`/api/mms-media/recover-url?url=${encodeURIComponent(url)}`, {
+                headers: { Authorization: `Bearer ${token}` }
+              })
+              if (recoverRes.ok) {
+                const { validUrl } = await recoverRes.json()
+                if (validUrl) {
+                  // Retry the fetch with the fresh URL
+                  res = await fetch(getSecureUrl(validUrl), {
+                    headers: { Authorization: `Bearer ${token}` }
+                  })
+                }
+              }
+            } catch {
+              // recovery failed — fall through to normal failure handling
+            }
+          }
+
           if (!res.ok) continue
           const blob = await res.blob()
           const blobUrl = URL.createObjectURL(blob)

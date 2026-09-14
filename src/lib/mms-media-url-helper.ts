@@ -100,6 +100,56 @@ export function isBrokenMediaUrl(url: string): boolean {
 }
 
 /**
+ * Decode the JWT payload (without verifying signature) to inspect claims.
+ * Returns null if the token is not a valid compact JWT or payload cannot be decoded.
+ * This is safe for expiry inspection only — signature verification is still
+ * performed by the serve endpoint before granting access.
+ */
+function decodeJwtPayload(token: string): { exp?: number; [key: string]: any } | null {
+  try {
+    const segments = token.split('.')
+    if (segments.length !== 3) return null
+    // JWT payload is base64url-encoded (segment index 1)
+    const payloadB64 = segments[1]
+    // Convert base64url to base64
+    const padded = payloadB64.replace(/-/g, '+').replace(/_/g, '/')
+    const padLen = padded.length % 4
+    const b64 = padLen ? padded + '='.repeat(4 - padLen) : padded
+    const json = Buffer.from(b64, 'base64').toString('utf8')
+    return JSON.parse(json)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Check if a media URL's embedded JWT token has expired (or will expire
+ * within the safety margin). Returns true if expired or about to expire.
+ *
+ * @param url - The media URL with an embedded token query parameter
+ * @param safetyMarginSeconds - Treat tokens expiring within this many seconds as expired (default 60)
+ * @returns true if the token is expired or about to expire
+ */
+export function isExpiredMmsMediaUrl(url: string, safetyMarginSeconds = 60): boolean {
+  try {
+    const parsed = new URL(url)
+    const token = parsed.searchParams.get('token')
+    if (!token) return true // No token = can't authorize = treat as expired
+
+    const payload = decodeJwtPayload(token)
+    if (!payload || typeof payload.exp !== 'number') {
+      // Can't decode exp — treat as expired to force regeneration
+      return true
+    }
+
+    const now = Math.floor(Date.now() / 1000)
+    return payload.exp <= now + safetyMarginSeconds
+  } catch {
+    return true
+  }
+}
+
+/**
  * Get a valid access URL for media, handling historical broken records
  * 
  * If the provided URL is broken, attempts to extract the storage path
@@ -109,14 +159,22 @@ export function isBrokenMediaUrl(url: string): boolean {
  * @returns A valid access URL, or null if recovery is not possible
  */
 export async function getValidMediaAccessUrl(storedUrl: string): Promise<string | null> {
-  // Check if the stored URL is valid
+  // Check if the stored URL is broken (missing/malformed token)
   if (!isBrokenMediaUrl(storedUrl)) {
-    try {
-      assertValidOutboundMmsMediaUrl(storedUrl)
-      return storedUrl
-    } catch {
-      // URL structure looks okay but failed validation, try recovery
+    // URL shape is valid — but the embedded JWT may be expired.
+    // An expired token still has valid shape (3 segments, 2 dots) so
+    // isBrokenMediaUrl returns false, but the serve endpoint will 401.
+    // Detect expiry here and regenerate a fresh URL from the durable
+    // storage path so historical attachments remain viewable.
+    if (!isExpiredMmsMediaUrl(storedUrl)) {
+      try {
+        assertValidOutboundMmsMediaUrl(storedUrl)
+        return storedUrl
+      } catch {
+        // URL structure looks okay but failed validation, try recovery
+      }
     }
+    // Token is expired (or about to expire) — fall through to recovery
   }
 
   // Attempt recovery: extract storage path and generate fresh URL
@@ -130,7 +188,7 @@ export async function getValidMediaAccessUrl(storedUrl: string): Promise<string 
 
   try {
     const freshUrl = await createMmsMediaAccessUrl(storagePath)
-    console.log('[MMS URL Helper] Recovered broken URL with fresh access URL:', {
+    console.log('[MMS URL Helper] Recovered broken/expired URL with fresh access URL:', {
       storagePath: storagePath.substring(0, 100),
       originalUrlPreview: storedUrl.substring(0, 100)
     })

@@ -66,18 +66,19 @@ describe('RC Batch 2 — Customer Experience Regression Suite', () => {
       expect(pageClient).toContain("router.push(`/dashboard/calendar?tab=${tab}`)")
     })
 
-    it('job cards have onClick, role=button, and cursor-pointer', () => {
-      // At least one job card div should have the tap handler
-      expect(pageClient).toContain("handleNavigateToCalendarTab('jobs')")
+    it('job cards have onClick, role=button, and cursor-pointer (exact-record drilldown)', () => {
+      // Batch 7: job cards now open the exact job via handleJobCardClick
+      expect(pageClient).toContain('handleJobCardClick(job)')
       // Check for role=button and cursor-pointer on job cards
-      const jobCardMatches = pageClient.match(/handleNavigateToCalendarTab\('jobs'\)[\s\S]*?cursor-pointer/g)
+      const jobCardMatches = pageClient.match(/handleJobCardClick\(job\)[\s\S]*?cursor-pointer/g)
       expect(jobCardMatches).toBeTruthy()
       expect(jobCardMatches!.length).toBeGreaterThanOrEqual(3) // workspace, sidebar, mobile
     })
 
-    it('reminder cards have onClick, role=button, and cursor-pointer', () => {
-      expect(pageClient).toContain("handleNavigateToCalendarTab('reminders')")
-      const reminderCardMatches = pageClient.match(/handleNavigateToCalendarTab\('reminders'\)[\s\S]*?cursor-pointer/g)
+    it('reminder cards have onClick, role=button, and cursor-pointer (exact-record drilldown)', () => {
+      // Batch 7: reminder cards now open the exact reminder via handleTaskCardClick
+      expect(pageClient).toContain('handleTaskCardClick(task)')
+      const reminderCardMatches = pageClient.match(/handleTaskCardClick\(task\)[\s\S]*?cursor-pointer/g)
       expect(reminderCardMatches).toBeTruthy()
       expect(reminderCardMatches!.length).toBeGreaterThanOrEqual(3) // workspace, sidebar, mobile
     })

@@ -123,11 +123,37 @@ async function fetchAuthenticatedMedia(
     // For MMS media URLs, fetch with session auth
     if (mediaUrl.includes('/api/mms-media/serve')) {
       if (DEBUG) console.log(`[MessageMediaRenderer] ${correlationId} Fetching MMS media with session auth`)
-      const response = await fetch(mediaUrl, {
+      let response = await fetch(mediaUrl, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
       })
+
+      // 401 recovery: if the MMS media token is expired, attempt exactly
+      // ONE recovery via the recover-url endpoint to obtain a fresh
+      // authorized URL. This prevents infinite 401 loops while keeping
+      // historical attachments viewable after token expiry.
+      if (response.status === 401) {
+        if (DEBUG) console.log(`[MessageMediaRenderer] ${correlationId} MMS media 401 — attempting token recovery`)
+        try {
+          const recoverRes = await fetch(`/api/mms-media/recover-url?url=${encodeURIComponent(mediaUrl)}`, {
+            headers: { 'Authorization': `Bearer ${session.access_token}` }
+          })
+          if (recoverRes.ok) {
+            const { validUrl } = await recoverRes.json()
+            if (validUrl) {
+              // Retry the fetch with the fresh URL
+              response = await fetch(validUrl, {
+                headers: {
+                  'Authorization': `Bearer ${session.access_token}`
+                }
+              })
+            }
+          }
+        } catch (recoverError) {
+          console.error(`[MessageMediaRenderer] ${correlationId} MMS media recovery failed:`, recoverError)
+        }
+      }
 
       if (!response.ok) {
         console.error(`[MessageMediaRenderer] ${correlationId} MMS media fetch failed with ${response.status}`)

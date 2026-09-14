@@ -69,6 +69,7 @@ import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle, Pencil, ChevronDown, Video, ExternalLink } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import NewTaskModal from '@/components/schedule/NewTaskModal'
+import EventDetailsModal from '@/components/calendar/EventDetailsModal'
 import EditCustomerModal from '@/components/EditCustomerModal'
 import { SidebarSection } from '@/components/SidebarSection'
 import SuccessBanner from '@/components/SuccessBanner'
@@ -418,6 +419,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [followUpSettings, setFollowUpSettings] = useState<any>(null)
   const [isJobComposerOpen, setIsJobComposerOpen] = useState(false)
   const [jobPrefill, setJobPrefill] = useState<JobPrefill | undefined>(undefined)
+  // Exact-record drilldown: editing an existing job from a customer card
+  const [editingJob, setEditingJob] = useState<Job | null>(null)
+  // Exact-record drilldown: editing an existing reminder from a customer card
+  const [editingTask, setEditingTask] = useState<any | null>(null)
+  // Exact-record drilldown: viewing/editing an existing appointment from a customer card
+  const [selectedAppointmentEvent, setSelectedAppointmentEvent] = useState<any | null>(null)
 
   // Shared function to record Business Phone actions using the new API
   const recordBusinessPhoneAction = async (config: {
@@ -1802,6 +1809,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       timestamp: Date.now(),
       stackTrace: new Error().stack?.split('\n').slice(1, 5).join('\n')
     })
+    setEditingTask(null)
     setShowTaskModal(true)
   }, [params.id, showTaskModal])
 
@@ -3442,6 +3450,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (leadJobs && leadJobs.length > 0) {
       // If there are jobs, open JobComposer to edit the first job's schedule
       const firstJob = leadJobs[0]
+      setEditingJob(null)
       setJobPrefill({
         ...generateJobPrefill(),
         title: firstJob.title,
@@ -3455,6 +3464,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setIsJobComposerOpen(true)
     } else {
       // If no jobs, create a new job with scheduling
+      setEditingJob(null)
       setJobPrefill(generateJobPrefill())
       setIsJobComposerOpen(true)
     }
@@ -3527,6 +3537,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }
 
   const handleCreateJobClick = () => {
+    setEditingJob(null)
     setJobPrefill(generateJobPrefill())
     setIsJobComposerOpen(true)
   }
@@ -3577,7 +3588,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             ) : (
               <div className="space-y-2">
                 {leadJobs.slice(0, 3).map((job: any) => (
-                  <div key={job.id} onClick={() => handleNavigateToCalendarTab('jobs')} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNavigateToCalendarTab('jobs') } }} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200 cursor-pointer">
+                  <div key={job.id} onClick={() => handleJobCardClick(job)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleJobCardClick(job) } }} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200 cursor-pointer">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
                       <p className="text-xs text-muted-foreground/80">
@@ -3627,7 +3638,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             ) : (
               <div className="space-y-2">
                 {leadTasks.slice(0, 3).map((task: any) => (
-                  <div key={task.id} onClick={() => handleNavigateToCalendarTab('reminders')} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNavigateToCalendarTab('reminders') } }} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200 cursor-pointer">
+                  <div key={task.id} onClick={() => handleTaskCardClick(task)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTaskCardClick(task) } }} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200 cursor-pointer">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground truncate">{task.title || 'Reminder'}</p>
                       <p className="text-xs text-muted-foreground/80">
@@ -3769,7 +3780,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       }
                       const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                       return (
-                        <div key={event.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200">
+                        <div key={event.id} onClick={() => handleAppointmentCardClick(event)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleAppointmentCardClick(event) } }} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200 cursor-pointer">
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-foreground truncate">{event.summary}</p>
                             <p className="text-xs text-muted-foreground/80">
@@ -3842,6 +3853,43 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Navigate to the calendar page focused on a specific tab (jobs/reminders/etc.)
   const handleNavigateToCalendarTab = (tab: 'jobs' | 'reminders' | 'appointments') => {
     router.push(`/dashboard/calendar?tab=${tab}`)
+  }
+
+  // Exact-record drilldown: open the specific Job in JobComposer for view/edit.
+  // Reuses the existing JobComposer (edit mode) — no duplicate editor.
+  const handleJobCardClick = (job: any) => {
+    setEditingJob(job as Job)
+    setJobPrefill(undefined)
+    setIsJobComposerOpen(true)
+  }
+
+  // Exact-record drilldown: open the specific Reminder in NewTaskModal for view/edit.
+  // Reuses the existing NewTaskModal (taskToEdit mode) — no duplicate editor.
+  const handleTaskCardClick = (task: any) => {
+    setEditingTask(task)
+    setShowTaskModal(true)
+  }
+
+  // Exact-record drilldown: open the specific Appointment in EventDetailsModal for view/edit.
+  // Reuses the existing EventDetailsModal — no duplicate editor.
+  const handleAppointmentCardClick = (event: any) => {
+    setSelectedAppointmentEvent(event)
+  }
+
+  // Close handlers that clear the editing state so the modal opens fresh next time
+  const handleCloseJobComposer = () => {
+    setIsJobComposerOpen(false)
+    setEditingJob(null)
+  }
+
+  const handleCloseTaskModal = () => {
+    setShowTaskModal(false)
+    setEditingTask(null)
+    taskModalOpenSourceRef.current = null
+  }
+
+  const handleCloseAppointmentEvent = () => {
+    setSelectedAppointmentEvent(null)
   }
 
   const handleSaveAppointment = async (sendConfirmation = false) => {
@@ -3939,8 +3987,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }
 
   const handleJobSave = (job: Job) => {
-    setSuccessMessage('Job created.\nAdded to your schedule.')
+    setSuccessMessage(editingJob ? 'Job updated.' : 'Job created.\nAdded to your schedule.')
     setIsJobComposerOpen(false)
+    setEditingJob(null)
     // Bump generation so any in-flight stale fetch is rejected.
     latestJobsFetchRef.current++
     fetchLeadJobs()
@@ -4873,7 +4922,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         ) : (
                           <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
                             {leadJobs.map((job: any) => (
-                              <div key={job.id} onClick={() => handleNavigateToCalendarTab('jobs')} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNavigateToCalendarTab('jobs') } }} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200 cursor-pointer">
+                              <div key={job.id} onClick={() => handleJobCardClick(job)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleJobCardClick(job) } }} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200 cursor-pointer">
                                 <div className="flex-shrink-0 w-6 h-6 rounded bg-slate-500/10 flex items-center justify-center">
                                   <svg className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -4930,7 +4979,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               const taskOverdue = task.due_date && task.due_date < todayStr && !task.completed
                               const taskToday = task.due_date === todayStr && !task.completed
                               return (
-                              <div key={task.id} onClick={() => handleNavigateToCalendarTab('reminders')} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNavigateToCalendarTab('reminders') } }} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200 cursor-pointer">
+                              <div key={task.id} onClick={() => handleTaskCardClick(task)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTaskCardClick(task) } }} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200 cursor-pointer">
                                 <div className="flex-shrink-0 w-6 h-6 rounded bg-purple-500/10 flex items-center justify-center">
                                   <svg className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -5056,7 +5105,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                                 const isMeetAppointment = !!event.meetingUrl && /meet\.google\.com/i.test(event.meetingUrl)
                                 return (
-                                  <div key={event.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200">
+                                  <div key={event.id} onClick={() => handleAppointmentCardClick(event)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleAppointmentCardClick(event) } }} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200 cursor-pointer">
                                     <div className="flex-shrink-0 w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center">
                                       <CalendarDays className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                                     </div>
@@ -5454,7 +5503,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               ) : (
                 <div className="space-y-1">
                   {(collapsedSections.jobs ? leadJobs.slice(0, 3) : leadJobs).map((job: any) => (
-                    <div key={job.id} onClick={() => handleNavigateToCalendarTab('jobs')} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNavigateToCalendarTab('jobs') } }} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors cursor-pointer">
+                    <div key={job.id} onClick={() => handleJobCardClick(job)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleJobCardClick(job) } }} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors cursor-pointer">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-foreground truncate">{job.title || 'Job'}</p>
                         <p className="text-[10px] text-muted-foreground truncate">
@@ -5533,7 +5582,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     const taskOverdue = task.due_date && task.due_date < todayStr && !task.completed
                     const taskToday = task.due_date === todayStr && !task.completed
                     return (
-                    <div key={task.id} onClick={() => handleNavigateToCalendarTab('reminders')} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNavigateToCalendarTab('reminders') } }} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors cursor-pointer">
+                    <div key={task.id} onClick={() => handleTaskCardClick(task)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTaskCardClick(task) } }} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors cursor-pointer">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-foreground truncate">{task.title || 'Reminder'}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
@@ -5709,7 +5758,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                       const isMeetAppointment = !!event.meetingUrl && /meet\.google\.com/i.test(event.meetingUrl)
                       return (
-                        <div key={event.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
+                        <div key={event.id} onClick={() => handleAppointmentCardClick(event)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleAppointmentCardClick(event) } }} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors cursor-pointer">
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-medium text-foreground truncate">{event.summary}</p>
                             {isMeetAppointment && (
@@ -6547,10 +6596,7 @@ If you have questions, reply to this message.`
     {/* New Task Modal */}
     <NewTaskModal
       isOpen={showTaskModal}
-      onClose={() => {
-        setShowTaskModal(false)
-        taskModalOpenSourceRef.current = null
-      }}
+      onClose={handleCloseTaskModal}
       onTaskCreated={async (isNew, task) => {
         // Bump generation so any in-flight stale fetch is rejected.
         latestTasksFetchRef.current++
@@ -6561,6 +6607,7 @@ If you have questions, reply to this message.`
           setSuccessMessage(message)
         }
       }}
+      taskToEdit={editingTask}
       preselectedLeadId={params.id}
       preselectedLeadCustomer={{
         id: params.id,
@@ -6592,9 +6639,33 @@ If you have questions, reply to this message.`
     {/* Job Composer Modal */}
     <JobComposer
       isOpen={isJobComposerOpen}
-      onClose={() => setIsJobComposerOpen(false)}
+      onClose={handleCloseJobComposer}
       onSave={handleJobSave}
       prefill={jobPrefill}
+      editJob={editingJob || undefined}
+    />
+
+    {/* Event Details Modal — exact-record appointment drilldown */}
+    <EventDetailsModal
+      isOpen={!!selectedAppointmentEvent}
+      onClose={handleCloseAppointmentEvent}
+      event={selectedAppointmentEvent}
+      onRefresh={async () => {
+        // Refresh appointments after an edit
+        if (typeof fetchAppointments === 'function') {
+          await fetchAppointments()
+        }
+      }}
+      lead={selectedAppointmentEvent ? {
+        id: params.id,
+        name: getLeadDisplayName(leadData),
+        caller_phone: leadData?.caller_phone || null
+      } : null}
+      onShowToast={(message, type) => {
+        if (type === 'success') {
+          setSuccessMessage(message)
+        }
+      }}
     />
 
     {/* Appointment Selection Modal */}
