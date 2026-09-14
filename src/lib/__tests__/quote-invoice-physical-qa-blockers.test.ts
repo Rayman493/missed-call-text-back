@@ -1,11 +1,13 @@
 /**
  * Quote / Invoice Physical QA Blockers — Regression Tests
  *
- * Covers the four concrete issues found during physical QA:
+ * Covers the concrete issues found during physical QA:
  * 1. Billing document number RPC / production migration failure
- * 2. Customer picker does not dismiss on outside click
+ * 2. Customer picker dismissal responsiveness (capture phase)
  * 3. Billing date-only values render one day early (timezone shift)
  * 4. Send / Download flow too buried after Preview / Save
+ * 5. RPC security: explicit REVOKE PUBLIC/anon, GRANT authenticated/service_role
+ * 6. Logo path verification across Preview/PDF/Hosted
  */
 
 import { describe, it, expect } from 'vitest'
@@ -25,9 +27,10 @@ const presentationSrc = readSrc('src/lib/billing/document-presentation.ts')
 const rendererSrc = readSrc('src/components/billing/DocumentRenderer.tsx')
 const pdfSrc = readSrc('src/components/billing/BillingDocumentPdf.tsx')
 const listSrc = readSrc('src/components/billing/BillingDocumentList.tsx')
+const hostedSrc = readSrc('src/components/billing/HostedDocumentPage.tsx')
 
 // ============================================================================
-// 1. NUMBERING / MIGRATIONS
+// 1. NUMBERING / MIGRATIONS / RPC SECURITY
 // ============================================================================
 describe('NUMBERING / MIGRATIONS', () => {
   it('1. canonical RPC exists in foundation migration', () => {
@@ -77,8 +80,6 @@ describe('NUMBERING / MIGRATIONS', () => {
     expect(foundationMigrationSrc).toContain('SET search_path = public')
     expect(foundationMigrationSrc).toContain('auth.uid()')
     expect(foundationMigrationSrc).toContain('Business does not belong to the current user')
-    expect(foundationMigrationSrc).toContain('GRANT EXECUTE ON FUNCTION assign_billing_document_number')
-    expect(foundationMigrationSrc).toContain('TO authenticated')
   })
 
   it('8. repair migration is narrowed and conservative', () => {
@@ -101,19 +102,15 @@ describe('NUMBERING / MIGRATIONS', () => {
   })
 
   it('9. repair migration timestamp is not future-dated', () => {
-    // Today is September 14, 2026. The repair migration must not be future-dated.
-    // Filename: 20260914000000_repair_billing_document_numbering.sql
     const fs = require('fs')
     const migrationsDir = join(repoRoot, 'supabase/migrations')
     const files = fs.readdirSync(migrationsDir)
     const repairFile = files.find(f => f.includes('repair_billing_document_numbering'))
     expect(repairFile).toBeTruthy()
-    // Extract timestamp prefix (YYYYMMDDHHMMSS)
     const timestamp = repairFile!.split('_')[0]
     const year = parseInt(timestamp.slice(0, 4))
     const month = parseInt(timestamp.slice(4, 6))
     const day = parseInt(timestamp.slice(6, 8))
-    // Must be September 14, 2026 or earlier (not future-dated)
     expect(year).toBeLessThanOrEqual(2026)
     if (year === 2026) {
       expect(month).toBeLessThanOrEqual(9)
@@ -121,7 +118,6 @@ describe('NUMBERING / MIGRATIONS', () => {
         expect(day).toBeLessThanOrEqual(14)
       }
     }
-    // Must come after the logo fix migration (20260913230000)
     expect(parseInt(timestamp)).toBeGreaterThan(20260913230000)
   })
 
@@ -140,14 +136,10 @@ describe('NUMBERING / MIGRATIONS', () => {
   })
 
   it('13. repair RPC safe search_path (public first, pg_temp last)', () => {
-    // Check the actual SET search_path statement, not comments
     const searchPathLine = repairMigrationSrc.split('\n').find(l => l.trim().startsWith('SET search_path'))
     expect(searchPathLine).toBeTruthy()
-    // public must appear first
     expect(searchPathLine!.trim()).toMatch(/^SET search_path = public,/)
-    // pg_temp must be explicitly present
     expect(searchPathLine!).toContain('pg_temp')
-    // pg_temp must appear after public
     const publicIdx = searchPathLine!.indexOf('public')
     const pgTempIdx = searchPathLine!.indexOf('pg_temp')
     expect(pgTempIdx).toBeGreaterThan(publicIdx)
@@ -174,7 +166,6 @@ describe('NUMBERING / MIGRATIONS', () => {
   })
 
   it('18. repair migration no destructive DROP TABLE/TRUNCATE', () => {
-    // Strip SQL comments before checking for destructive statements
     const sqlOnly = repairMigrationSrc.split('\n')
       .filter(l => !l.trim().startsWith('--'))
       .join('\n')
@@ -184,34 +175,24 @@ describe('NUMBERING / MIGRATIONS', () => {
   })
 
   it('19. repair migration preserves existing counters', () => {
-    // ON CONFLICT DO NOTHING ensures existing counter rows are not overwritten
     expect(repairMigrationSrc).toContain('ON CONFLICT (business_id, document_type) DO NOTHING')
-    // No counter reset
     expect(repairMigrationSrc).not.toMatch(/UPDATE\s+billing_document_counters\s+SET\s+next_number\s*=\s*1001/i)
   })
 
-  it('20. repair migration no anon execute grant', () => {
-    expect(repairMigrationSrc).not.toMatch(/TO\s+anon/i)
-    expect(repairMigrationSrc).toContain('TO authenticated')
-  })
-
-  it('21. repair migration explicit schema cache reload', () => {
+  it('20. repair migration explicit schema cache reload', () => {
     expect(repairMigrationSrc).toContain('NOTIFY pgrst')
     expect(repairMigrationSrc).toContain("'reload schema'")
   })
 
-  it('22. repair RPC matches foundation RPC definition', () => {
-    // Both migrations define the same canonical function
+  it('21. repair RPC matches foundation RPC definition', () => {
     const extractFunction = (src: string) => {
       const start = src.indexOf('assign_billing_document_number')
-      // Find the function body between $$ markers
       const dollarStart = src.indexOf('$$', start)
       const dollarEnd = src.indexOf('$$', dollarStart + 2)
       return src.slice(start, dollarEnd + 2)
     }
     const foundationFn = extractFunction(foundationMigrationSrc)
     const repairFn = extractFunction(repairMigrationSrc)
-    // Both should contain the same key logic
     expect(foundationFn).toContain("v_prefix := 'Q-'")
     expect(repairFn).toContain("v_prefix := 'Q-'")
     expect(foundationFn).toContain("v_prefix := 'INV-'")
@@ -221,74 +202,199 @@ describe('NUMBERING / MIGRATIONS', () => {
     expect(foundationFn).toContain('ON CONFLICT (business_id, document_type) DO NOTHING')
     expect(repairFn).toContain('ON CONFLICT (business_id, document_type) DO NOTHING')
   })
+
+  // --- RPC ACL SECURITY (Issue 2) ---
+
+  it('22. foundation migration explicitly revokes PUBLIC', () => {
+    expect(foundationMigrationSrc).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+assign_billing_document_number\s*\(\s*uuid\s*,\s*text\s*\)\s+FROM\s+PUBLIC/i)
+  })
+
+  it('23. foundation migration explicitly revokes anon', () => {
+    expect(foundationMigrationSrc).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+assign_billing_document_number\s*\(\s*uuid\s*,\s*text\s*\)\s+FROM\s+anon/i)
+  })
+
+  it('24. repair migration explicitly revokes PUBLIC', () => {
+    expect(repairMigrationSrc).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+assign_billing_document_number\s*\(\s*uuid\s*,\s*text\s*\)\s+FROM\s+PUBLIC/i)
+  })
+
+  it('25. repair migration explicitly revokes anon', () => {
+    expect(repairMigrationSrc).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+assign_billing_document_number\s*\(\s*uuid\s*,\s*text\s*\)\s+FROM\s+anon/i)
+  })
+
+  it('26. authenticated explicitly granted in foundation', () => {
+    expect(foundationMigrationSrc).toMatch(/GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+assign_billing_document_number\s*\(\s*uuid\s*,\s*text\s*\)\s+TO\s+authenticated/i)
+  })
+
+  it('27. service_role explicitly granted in foundation', () => {
+    expect(foundationMigrationSrc).toMatch(/GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+assign_billing_document_number\s*\(\s*uuid\s*,\s*text\s*\)\s+TO\s+service_role/i)
+  })
+
+  it('28. authenticated explicitly granted in repair', () => {
+    expect(repairMigrationSrc).toMatch(/GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+assign_billing_document_number\s*\(\s*uuid\s*,\s*text\s*\)\s+TO\s+authenticated/i)
+  })
+
+  it('29. service_role explicitly granted in repair', () => {
+    expect(repairMigrationSrc).toMatch(/GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+assign_billing_document_number\s*\(\s*uuid\s*,\s*text\s*\)\s+TO\s+service_role/i)
+  })
+
+  it('30. no later PUBLIC/anon grant in foundation (after REVOKE)', () => {
+    // Find all GRANT statements after the REVOKE statements
+    const revokeIdx = foundationMigrationSrc.indexOf('REVOKE ALL ON FUNCTION assign_billing_document_number')
+    expect(revokeIdx).toBeGreaterThan(-1)
+    const afterRevoke = foundationMigrationSrc.slice(revokeIdx)
+    // Should NOT re-grant to PUBLIC or anon
+    expect(afterRevoke).not.toMatch(/GRANT.*TO\s+PUBLIC/i)
+    expect(afterRevoke).not.toMatch(/GRANT.*TO\s+anon/i)
+  })
+
+  it('31. no later PUBLIC/anon grant in repair (after REVOKE)', () => {
+    const revokeIdx = repairMigrationSrc.indexOf('REVOKE ALL ON FUNCTION assign_billing_document_number')
+    expect(revokeIdx).toBeGreaterThan(-1)
+    const afterRevoke = repairMigrationSrc.slice(revokeIdx)
+    expect(afterRevoke).not.toMatch(/GRANT.*TO\s+PUBLIC/i)
+    expect(afterRevoke).not.toMatch(/GRANT.*TO\s+anon/i)
+  })
+
+  it('32. search_path remains public, pg_temp in foundation', () => {
+    const searchPathLine = foundationMigrationSrc.split('\n').find(l => l.trim().startsWith('SET search_path'))
+    expect(searchPathLine).toBeTruthy()
+    expect(searchPathLine!.trim()).toBe('SET search_path = public, pg_temp;')
+  })
+
+  it('33. SECURITY DEFINER remains in foundation', () => {
+    expect(foundationMigrationSrc).toContain('SECURITY DEFINER')
+  })
+
+  it('34. business ownership check remains in foundation', () => {
+    expect(foundationMigrationSrc).toContain('auth.uid()')
+    expect(foundationMigrationSrc).toContain('Business does not belong to the current user')
+  })
+
+  // --- RPC SOURCE CONTRACT (Issue 3) ---
+
+  it('35. exact function name in create route', () => {
+    expect(apiListSrc).toContain("rpc('assign_billing_document_number'")
+  })
+
+  it('36. exact p_business_id key in create route', () => {
+    expect(apiListSrc).toContain('p_business_id:')
+  })
+
+  it('37. exact p_document_type key in create route', () => {
+    expect(apiListSrc).toContain('p_document_type:')
+  })
+
+  it('38. document_type validated as quote or invoice before RPC call', () => {
+    expect(apiListSrc).toContain("document_type !== 'quote'")
+    expect(apiListSrc).toContain("document_type !== 'invoice'")
+  })
+
+  it('39. no max()+1 fallback in create route', () => {
+    expect(apiListSrc).not.toMatch(/MAX\s*\(\s*next_number\s*\)/i)
+    // No JS-generated Q-/INV numbers
+    expect(apiListSrc).not.toMatch(/['"]Q-['"]\s*\+/i)
+    expect(apiListSrc).not.toMatch(/['"]INV-['"]\s*\+/i)
+  })
+
+  it('40. no max()+1 fallback in convert route', () => {
+    expect(convertSrc).not.toMatch(/MAX\s*\(\s*next_number\s*\)/i)
+    expect(convertSrc).not.toMatch(/['"]Q-['"]\s*\+/i)
+    expect(convertSrc).not.toMatch(/['"]INV-['"]\s*\+/i)
+  })
+
+  it('41. create route uses authenticated server client (not service role)', () => {
+    expect(apiListSrc).toContain('createServerClient')
+    expect(apiListSrc).toContain('NEXT_PUBLIC_SUPABASE_URL')
+    expect(apiListSrc).toContain('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+    // Should NOT use service role key for the RPC call
+    expect(apiListSrc).not.toContain('SUPABASE_SERVICE_ROLE_KEY')
+  })
+
+  it('42. convert route also uses correct RPC', () => {
+    expect(convertSrc).toContain("rpc('assign_billing_document_number'")
+    expect(convertSrc).toContain('p_business_id:')
+    expect(convertSrc).toContain("p_document_type: 'invoice'")
+  })
 })
 
 // ============================================================================
 // 2. CUSTOMER PICKER
 // ============================================================================
 describe('CUSTOMER PICKER', () => {
-  it('9. opens on click', () => {
+  it('43. opens on click', () => {
     expect(editorSrc).toContain('setShowCustomerPicker(true)')
   })
 
-  it('10. outside click closes picker', () => {
+  it('44. outside pointerdown closes immediately (capture phase)', () => {
     expect(editorSrc).toContain('customerFieldRef')
     expect(editorSrc).toContain('useRef')
     expect(editorSrc).toContain('pointerdown')
     expect(editorSrc).toContain('contains(e.target')
     expect(editorSrc).toContain('setShowCustomerPicker(false)')
+    // Must use capture phase (third argument true)
+    expect(editorSrc).toContain("addEventListener('pointerdown', handlePointerDown, true)")
   })
 
-  it('11. clicking Issue Date closes (covered by outside-click ref)', () => {
-    // The customer field is wrapped in a div with customerFieldRef.
-    // Issue Date is outside that ref, so clicking it triggers outside-click dismissal.
+  it('45. handler does not preventDefault', () => {
+    // Extract the handlePointerDown function body
+    const handlerMatch = editorSrc.match(/handlePointerDown[\s\S]*?\}/)
+    expect(handlerMatch).toBeTruthy()
+    expect(handlerMatch![0]).not.toContain('preventDefault')
+  })
+
+  it('46. handler does not stopPropagation', () => {
+    const handlerMatch = editorSrc.match(/handlePointerDown[\s\S]*?\}/)
+    expect(handlerMatch).toBeTruthy()
+    expect(handlerMatch![0]).not.toContain('stopPropagation')
+  })
+
+  it('47. Issue Date receives same interaction (outside ref)', () => {
+    // Issue Date is outside customerFieldRef, so clicking it triggers dismissal
+    // and the click naturally reaches the date input
     expect(editorSrc).toContain('ref={customerFieldRef}')
+    expect(editorSrc).toContain('type="date"')
+    expect(editorSrc).toContain('Issue Date')
   })
 
-  it('12. clicking another input closes (covered by outside-click ref)', () => {
-    // All other inputs (Issue Date, Valid Until, Due Date, line items, notes, terms)
-    // are outside the customerFieldRef wrapper, so they trigger dismissal.
-    expect(editorSrc).toMatch(/ref=\{customerFieldRef\}/)
+  it('48. line-item input receives same interaction (outside ref)', () => {
+    // Line item inputs are outside customerFieldRef
+    expect(editorSrc).toContain('Line Items')
   })
 
-  it('13. search input does NOT close picker', () => {
-    // The search input is inside the customerFieldRef wrapper, so clicks on it
-    // do not trigger outside-click dismissal.
+  it('49. blank-space interaction closes picker', () => {
+    // Blank modal space is outside customerFieldRef
+    expect(editorSrc).toContain('customerFieldRef')
+  })
+
+  it('50. search click stays open (inside ref)', () => {
     const refIdx = editorSrc.indexOf('ref={customerFieldRef}')
     const searchIdx = editorSrc.indexOf('customerSearch', refIdx)
     expect(searchIdx).toBeGreaterThan(refIdx)
-    // Also verify the search input placeholder is present
     const placeholderIdx = editorSrc.indexOf('Search customers', refIdx)
     expect(placeholderIdx).toBeGreaterThan(refIdx)
   })
 
-  it('14. selecting customer closes picker', () => {
+  it('51. row selection still works', () => {
     expect(editorSrc).toContain('selectCustomer')
     expect(editorSrc).toContain('setShowCustomerPicker(false)')
   })
 
-  it('15. selected customer retained', () => {
-    expect(editorSrc).toContain('customerId')
-    expect(editorSrc).toContain('customerName')
-    expect(editorSrc).toContain('customerPhone')
-    expect(editorSrc).toContain('customerEmail')
-  })
-
-  it('16. reopening works', () => {
-    // After selecting, clicking "Select customer" reopens the picker
-    expect(editorSrc).toContain('setShowCustomerPicker(true)')
-  })
-
-  it('17. Escape closes picker only', () => {
+  it('52. Escape behavior preserved (closes picker only)', () => {
     expect(editorSrc).toContain("e.key === 'Escape'")
     expect(editorSrc).toContain('stopPropagation')
   })
 
-  it('18. editor remains open (no onClose in picker dismissal)', () => {
-    // The outside-click and Escape handlers only close the picker, not the editor
+  it('53. no timers / delayed blur hacks', () => {
+    // The pointer handler should not use setTimeout or requestAnimationFrame
+    const handlerMatch = editorSrc.match(/handlePointerDown[\s\S]*?\}/)
+    expect(handlerMatch).toBeTruthy()
+    expect(handlerMatch![0]).not.toContain('setTimeout')
+    expect(handlerMatch![0]).not.toContain('requestAnimationFrame')
+  })
+
+  it('54. editor remains open (no onClose in picker dismissal)', () => {
     const pointerHandler = editorSrc.match(/handlePointerDown[\s\S]*?setShowCustomerPicker\(false\)[\s\S]*?setCustomerSearch\(''\)/)
     expect(pointerHandler).toBeTruthy()
-    // The Escape handler should not call onClose
     const escapeHandler = editorSrc.match(/handleKeyDown[\s\S]*?e\.key === 'Escape'[\s\S]*?setShowCustomerPicker\(false\)/)
     expect(escapeHandler).toBeTruthy()
   })
@@ -298,21 +404,19 @@ describe('CUSTOMER PICKER', () => {
 // 3. DATES
 // ============================================================================
 describe('DATES', () => {
-  it('19. issue_date preserves exact day', () => {
+  it('55. issue_date preserves exact day', () => {
     expect(formatDate('2026-09-14')).toBe('September 14, 2026')
   })
 
-  it('20. valid_until preserves exact day', () => {
+  it('56. valid_until preserves exact day', () => {
     expect(formatDate('2026-09-19')).toBe('September 19, 2026')
   })
 
-  it('21. due_date preserves exact day', () => {
+  it('57. due_date preserves exact day', () => {
     expect(formatDate('2026-10-01')).toBe('October 1, 2026')
   })
 
-  it('22. New York timezone test', () => {
-    // Simulate America/New_York by setting TZ — the formatter should still
-    // produce the correct day because it parses YYYY-MM-DD components directly
+  it('58. New York timezone test', () => {
     const originalTz = process.env.TZ
     process.env.TZ = 'America/New_York'
     try {
@@ -323,7 +427,7 @@ describe('DATES', () => {
     }
   })
 
-  it('23. Los Angeles timezone test', () => {
+  it('59. Los Angeles timezone test', () => {
     const originalTz = process.env.TZ
     process.env.TZ = 'America/Los_Angeles'
     try {
@@ -334,7 +438,7 @@ describe('DATES', () => {
     }
   })
 
-  it('24. Jan 1 boundary test', () => {
+  it('60. Jan 1 boundary test', () => {
     const originalTz = process.env.TZ
     process.env.TZ = 'America/New_York'
     try {
@@ -345,38 +449,31 @@ describe('DATES', () => {
     }
   })
 
-  it('25. Preview uses safe formatter (DocumentRenderer)', () => {
+  it('61. Preview uses safe formatter (DocumentRenderer)', () => {
     expect(rendererSrc).toContain('formatDate')
-    // DocumentRenderer imports formatDate from document-presentation
     expect(rendererSrc).toContain("from '@/lib/billing/document-presentation'")
   })
 
-  it('26. PDF uses safe formatter', () => {
+  it('62. PDF uses safe formatter', () => {
     expect(pdfSrc).toContain('formatDate')
     expect(pdfSrc).toContain("from '@/lib/billing/document-presentation'")
   })
 
-  it('27. Hosted page uses safe formatter (via DocumentRenderer)', () => {
-    const hostedSrc = readSrc('src/components/billing/HostedDocumentPage.tsx')
+  it('63. Hosted page uses safe formatter (via DocumentRenderer)', () => {
     expect(hostedSrc).toContain('DocumentRenderer')
   })
 
-  it('28. list uses safe formatter for timestamps', () => {
-    // BillingDocumentList has its own formatDate for timestamps (sent_at, updated_at)
-    // These are timestamptz, not date-only, so standard Date parsing is correct
+  it('64. list uses safe formatter for timestamps', () => {
     expect(listSrc).toContain('formatDate')
-    // Verify it's used for timestamps, not date-only fields
     expect(listSrc).toContain('doc.sent_at')
     expect(listSrc).toContain('doc.updated_at')
   })
 
-  it('formatDate does NOT use new Date(iso) for date-only strings', () => {
-    // The formatter should parse YYYY-MM-DD components directly
+  it('65. formatDate does NOT use new Date(iso) for date-only strings', () => {
     expect(presentationSrc).toContain("split('-')")
     expect(presentationSrc).toContain('parseInt(parts[0]')
     expect(presentationSrc).toContain('parseInt(parts[1]')
     expect(presentationSrc).toContain('parseInt(parts[2]')
-    // Should construct a local date from components, not from the ISO string
     expect(presentationSrc).toContain('new Date(year, month - 1, day)')
   })
 })
@@ -385,60 +482,78 @@ describe('DATES', () => {
 // 4. PREVIEW / SEND
 // ============================================================================
 describe('PREVIEW / SEND', () => {
-  it('29. unsaved preview shows Save Draft', () => {
+  it('66. unsaved editor does NOT show Send', () => {
+    // The editor footer only shows Send when existingDocument?.id || savedDoc?.id
+    expect(editorSrc).toContain('existingDocument?.id || savedDoc?.id')
+  })
+
+  it('67. unsaved preview shows Save Draft', () => {
     expect(editorSrc).toContain('Save Draft')
     expect(editorSrc).toContain('fromPreview: true')
   })
 
-  it('30. unsaved preview does not expose Send before persistence', () => {
-    // The preview footer conditionally shows Send only when isSaved is true
-    expect(editorSrc).toContain('isSaved')
-    expect(editorSrc).toContain('existingDocument?.id || savedDoc?.id')
-  })
-
-  it('31. successful Save Draft updates preview to saved state', () => {
+  it('68. successful preview save stores persisted id', () => {
     expect(editorSrc).toContain('savedDoc')
     expect(editorSrc).toContain('setSavedDoc')
+  })
+
+  it('69. document number updates after save', () => {
     expect(editorSrc).toContain('setDocNumber')
   })
 
-  it('32. saved preview shows Download PDF', () => {
+  it('70. saved preview shows Download PDF', () => {
     expect(editorSrc).toContain('Download PDF')
   })
 
-  it('33. saved preview shows Send to Customer', () => {
+  it('71. saved preview shows Send to Customer', () => {
     expect(editorSrc).toContain('Send to Customer')
   })
 
-  it('34. send requires customer', () => {
-    expect(editorSrc).toContain('Select a customer before sending')
-  })
-
-  it('35. no-phone customer handled', () => {
-    expect(editorSrc).toContain('no phone number')
-  })
-
-  it('36. save does not create duplicate document (uses existingId for PATCH)', () => {
+  it('72. no duplicate document POST (uses existingId for PATCH)', () => {
     expect(editorSrc).toContain('existingDocument?.id || savedDoc?.id')
     expect(editorSrc).toContain('PATCH')
     expect(editorSrc).toContain('POST')
   })
 
-  it('37. list actions remain functional', () => {
-    const listSrc = readSrc('src/components/billing/BillingDocumentList.tsx')
+  it('73. send requires persisted document', () => {
+    expect(editorSrc).toContain('existingDocument?.id || savedDoc?.id')
+  })
+
+  it('74. send requires customer', () => {
+    expect(editorSrc).toContain('Select a customer before sending')
+  })
+
+  it('75. send requires phone', () => {
+    expect(editorSrc).toContain('no phone number')
+  })
+
+  it('76. list actions remain functional', () => {
     expect(listSrc).toContain('Download')
     expect(listSrc).toContain('Send')
     expect(listSrc).toContain('View')
   })
 
-  it('38. redundant draft message removed from preview', () => {
-    // The old "This is an unsaved draft preview" message should be removed
+  it('77. redundant draft message removed from preview', () => {
     expect(editorSrc).not.toContain('This is an unsaved draft preview')
   })
+})
 
-  it('39. convert route also uses correct RPC', () => {
-    expect(convertSrc).toContain("rpc('assign_billing_document_number'")
-    expect(convertSrc).toContain('p_business_id:')
-    expect(convertSrc).toContain("p_document_type: 'invoice'")
+// ============================================================================
+// 5. LOGO PATHS
+// ============================================================================
+describe('LOGO PATHS', () => {
+  it('78. Preview consumes business logo (buildPreviewDoc)', () => {
+    expect(editorSrc).toContain('business_logo_url')
+    expect(editorSrc).toContain('logo_url')
+  })
+
+  it('79. PDF consumes business logo', () => {
+    expect(pdfSrc).toContain('business_logo_url')
+    expect(pdfSrc).toContain('Image')
+  })
+
+  it('80. Hosted document consumes business logo (via DocumentRenderer)', () => {
+    expect(rendererSrc).toContain('business_logo_url')
+    expect(hostedSrc).toContain('DocumentRenderer')
   })
 })

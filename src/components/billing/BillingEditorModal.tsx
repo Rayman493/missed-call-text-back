@@ -169,6 +169,11 @@ export default function BillingEditorModal({
   }, [isOpen, existingDocument, isInvoice])
 
   // Outside-click dismissal for customer picker
+  // Uses CAPTURE phase so the handler fires BEFORE the target element's
+  // own handlers. This closes the picker immediately and lets the
+  // destination control (Issue Date, line-item input, blank space)
+  // naturally receive the same pointer event — no swallowed first click,
+  // no delay, no preventDefault/stopPropagation needed.
   useEffect(() => {
     if (!showCustomerPicker) return
     const handlePointerDown = (e: PointerEvent) => {
@@ -177,8 +182,8 @@ export default function BillingEditorModal({
         setCustomerSearch('')
       }
     }
-    document.addEventListener('pointerdown', handlePointerDown)
-    return () => document.removeEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('pointerdown', handlePointerDown, true)
+    return () => document.removeEventListener('pointerdown', handlePointerDown, true)
   }, [showCustomerPicker])
 
   // Escape closes picker only (does not close editor modal)

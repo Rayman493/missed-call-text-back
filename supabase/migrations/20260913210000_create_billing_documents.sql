@@ -149,9 +149,14 @@ $$ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp;
 
--- Allow authenticated users to call the numbering RPC.
--- The function itself enforces business ownership.
+-- Explicitly revoke default PUBLIC execute (PostgreSQL functions grant
+-- PUBLIC EXECUTE by default) and deny anon. Only authenticated and
+-- service_role may call this RPC. The function body enforces business
+-- ownership via auth.uid().
+REVOKE ALL ON FUNCTION assign_billing_document_number(uuid, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION assign_billing_document_number(uuid, text) FROM anon;
 GRANT EXECUTE ON FUNCTION assign_billing_document_number(uuid, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION assign_billing_document_number(uuid, text) TO service_role;
 
 -- ---------------------------------------------------------------------------
 -- updated_at triggers
