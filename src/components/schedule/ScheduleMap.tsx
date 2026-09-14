@@ -2131,37 +2131,27 @@ useEffect(() => {
           // arrives, the pending single-tap timer is cancelled and the
           // double-tap action runs instead — the single-tap toggle does
           // NOT execute, so there is no selection flicker.
+          //
+          // The double-tap FOCUS action is handled by the marker's native
+          // `dblclick` listener (added below) and the touch-based double-tap
+          // detector (in the map-init effect). This `click` handler only
+          // arbitrates single-tap vs double-tap: on a detected double-tap it
+          // cancels the pending single-tap timer so the details toggle does
+          // NOT fire. The actual camera focus is delegated to `dblclick`
+          // (which uses focusedMarkerIdRef.current, not a stale closure).
           const now = Date.now()
           const lastClick = lastClickTimeRef.current.get(item.id) ?? 0
           const isDoubleTap = now - lastClick < DOUBLE_TAP_DELAY_MS
 
           if (isDoubleTap) {
             // Cancel the pending single-tap timer so the single-tap toggle
-            // does NOT execute. Only the double-tap action runs.
+            // does NOT execute. The focus/unfocus action is handled by the
+            // marker's `dblclick` listener and the touch-based detector.
             const pendingTimer = singleTapTimerRef.current.get(item.id)
             if (pendingTimer) {
               clearTimeout(pendingTimer)
               singleTapTimerRef.current.delete(item.id)
             }
-
-            if (item.type !== 'business') {
-              if (focusedMarkerId === item.id) {
-                // Already focused: double-tap unfocuses + unselects + fit-all.
-                console.log('[ScheduleMap] marker_unfocus', { source: 'marker_double_tap', stopId: item.id, platform })
-                toggleMapItemDetails(item.id) // unselect info
-                setFocusedMarkerId(null)
-                unfocusMarker() // fit-all camera
-              } else {
-                // Not focused: double-tap selects + focuses.
-                console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_double_tap', stopId: item.id, platform })
-                focusStopOnMap(item.id, item.latitude, item.longitude)
-                setFocusedMarkerId(item.id)
-              }
-            } else {
-              // Business marker: toggle details only, no camera.
-              toggleMapItemDetails(item.id)
-            }
-
             lastClickTimeRef.current.delete(item.id)
             if (!isSingle) {
               setSelectedMarker(markerInfo)
@@ -2180,6 +2170,66 @@ useEffect(() => {
             }, DOUBLE_TAP_DELAY_MS)
             singleTapTimerRef.current.set(item.id, timer)
             lastClickTimeRef.current.set(item.id, now)
+          }
+        })
+
+        // Native marker double-click/double-tap listener.
+        // This is the primary double-tap → camera-focus path. It fires
+        // reliably on desktop (mouse double-click) and on Android/touch
+        // when `disableDoubleClickZoom: true` prevents the map from
+        // consuming the second tap for native zoom.
+        // Uses focusedMarkerIdRef.current (not the stale closure
+        // focusedMarkerId) so the focus/unfocus toggle is always correct.
+        marker.addListener('dblclick', (event: any) => {
+          if (event && typeof event.stop === 'function') {
+            event.stop()
+          }
+          suppressMapClickRef.current = true
+          setTimeout(() => { suppressMapClickRef.current = false }, 50)
+
+          const platform = Capacitor.getPlatform()
+
+          const sortedItems = [...markerInfo.items].sort((a, b) => {
+            const timeA = a.scheduledTime || '00:00'
+            const timeB = b.scheduledTime || '00:00'
+            const timeCompare = timeA.localeCompare(timeB)
+            if (timeCompare !== 0) return timeCompare
+            return a.id.localeCompare(b.id)
+          })
+          const item = sortedItems[0]
+          const isSingle = markerInfo.items.length === 1
+
+          // Cancel any pending single-tap timer so the details toggle
+          // does NOT fire after the double-tap focus.
+          const pendingTimer = singleTapTimerRef.current.get(item.id)
+          if (pendingTimer) {
+            clearTimeout(pendingTimer)
+            singleTapTimerRef.current.delete(item.id)
+          }
+          lastClickTimeRef.current.delete(item.id)
+
+          const currentFocusedId = focusedMarkerIdRef.current
+
+          if (item.type !== 'business') {
+            if (currentFocusedId === item.id) {
+              // Already focused: double-tap unfocuses + unselects + fit-all.
+              console.log('[ScheduleMap] marker_unfocus', { source: 'marker_dblclick', stopId: item.id, platform })
+              toggleMapItemDetails(item.id)
+              setFocusedMarkerId(null)
+              unfocusMarker()
+            } else {
+              // Not focused: double-tap selects + focuses.
+              console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_dblclick', stopId: item.id, platform })
+              focusStopOnMap(item.id, item.latitude, item.longitude)
+              setFocusedMarkerId(item.id)
+            }
+          } else {
+            // Business marker: toggle details only, no camera.
+            toggleMapItemDetails(item.id)
+          }
+
+          if (!isSingle) {
+            setSelectedMarker(markerInfo)
           }
         })
 
