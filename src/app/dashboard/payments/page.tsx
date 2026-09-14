@@ -193,6 +193,11 @@ export default function PaymentsPage() {
   const [viewingBillingDoc, setViewingBillingDoc] = useState<BillingDocumentListItem | null>(null)
   const [showBillingViewer, setShowBillingViewer] = useState(false)
 
+  // Payments page segmented view: "payments" or "billing"
+  const [paymentsSegment, setPaymentsSegment] = useState<'payments' | 'billing'>('payments')
+  // Billing document type filter within the Quotes & Invoices segment
+  const [billingTypeFilter, setBillingTypeFilter] = useState<'all' | 'quote' | 'invoice'>('all')
+
   // Lock background scroll for the inline mark-paid confirmation overlay.
   // QuickTapToPayModal, TapToPaySetupModal and PaymentEditModal manage their own locks internally.
   // Note: the shared <Modal> used for the mark-paid confirm now owns its own
@@ -244,6 +249,12 @@ export default function PaymentsPage() {
       olderPayments: filteredPayments.slice(VISIBLE_COUNT),
     }
   }, [filteredPayments])
+
+  // Filter billing documents by type within the Quotes & Invoices segment
+  const filteredBillingDocuments = useMemo(() => {
+    if (billingTypeFilter === 'all') return billingDocuments
+    return billingDocuments.filter((d) => d.document_type === billingTypeFilter)
+  }, [billingDocuments, billingTypeFilter])
 
   // Auto-switch if current selection becomes unavailable
   useEffect(() => {
@@ -1074,12 +1085,39 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           })()}
         </div>
 
+        {/* Segment control: Payments | Quotes & Invoices */}
+        <div className="flex items-center gap-1 mt-4 mb-4 p-1 bg-muted/50 dark:bg-slate-800/50 rounded-lg w-fit max-w-full">
+          <button
+            onClick={() => setPaymentsSegment('payments')}
+            className={`px-3 sm:px-4 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+              paymentsSegment === 'payments'
+                ? 'bg-card dark:bg-slate-700 text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Payments
+          </button>
+          <button
+            onClick={() => setPaymentsSegment('billing')}
+            className={`px-3 sm:px-4 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+              paymentsSegment === 'billing'
+                ? 'bg-card dark:bg-slate-700 text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Quotes & Invoices
+          </button>
+        </div>
+
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
           </div>
         ) : (
           <>
+            {/* ===== Payments Segment ===== */}
+            {paymentsSegment === 'payments' && (
+            <>
             {/* Overview Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5 mb-5">
               <div className="rounded-xl p-3 sm:p-3.5 border border-border/70 bg-card shadow-sm dark:shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
@@ -1771,12 +1809,48 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             </div>
           </>
         )}
+        </> /* end Payments segment */
+        )}
 
-        {/* Quotes & Invoices Section */}
-        <div className="mt-6">
-          <h2 className="text-base font-semibold text-foreground mb-3">Quotes & Invoices</h2>
+        {/* ===== Quotes & Invoices Segment ===== */}
+        {paymentsSegment === 'billing' && (
+        <div className="mt-2">
+          {/* Billing type filter */}
+          <div className="flex items-center gap-1 mb-4 p-1 bg-muted/50 dark:bg-slate-800/50 rounded-lg w-fit max-w-full">
+            <button
+              onClick={() => setBillingTypeFilter('all')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+                billingTypeFilter === 'all'
+                  ? 'bg-card dark:bg-slate-700 text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setBillingTypeFilter('quote')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+                billingTypeFilter === 'quote'
+                  ? 'bg-card dark:bg-slate-700 text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Quotes
+            </button>
+            <button
+              onClick={() => setBillingTypeFilter('invoice')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+                billingTypeFilter === 'invoice'
+                  ? 'bg-card dark:bg-slate-700 text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Invoices
+            </button>
+          </div>
+
           <BillingDocumentList
-            documents={billingDocuments}
+            documents={filteredBillingDocuments}
             loading={billingLoading}
             onOpen={handleOpenBillingDoc}
             onDelete={handleDeleteBillingDoc}
@@ -1790,6 +1864,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             convertingId={billingConvertingId}
           />
         </div>
+        )}
 
         {/* New Payment Request Modal */}
         {business && (
@@ -1959,9 +2034,6 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             }
           }}
           onConvert={() => viewingBillingDoc && handleConvertBillingDoc(viewingBillingDoc)}
-          showConvert={viewingBillingDoc?.document_type === 'quote' && viewingBillingDoc?.status === 'accepted'}
-          showSend={true}
-          showEdit={viewingBillingDoc?.status === 'draft'}
           isSending={billingSendingId === viewingBillingDoc?.id}
         />
     </DashboardShell>

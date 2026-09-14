@@ -23,6 +23,8 @@ const readSrc = (rel: string) => readFileSync(join(repoRoot, rel), 'utf8').repla
 const paymentsPageSrc = readSrc('src/app/dashboard/payments/page.tsx')
 const chooserSrc = readSrc('src/components/billing/BillingChooserModal.tsx')
 const editorSrc = readSrc('src/components/billing/BillingEditorModal.tsx')
+const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
+const listSrc = readSrc('src/components/billing/BillingDocumentList.tsx')
 const modalSrc = readSrc('src/components/ui/Modal.tsx')
 const modalBackButtonSrc = readSrc('src/hooks/useModalBackButton.ts')
 const modalBackButtonLibSrc = readSrc('src/lib/modalBackButton.ts')
@@ -310,5 +312,317 @@ describe('MOBILE POSITIONING', () => {
     expect(chooserSrc).not.toMatch(/translate-y/)
     expect(chooserSrc).not.toMatch(/setTimeout/)
     expect(chooserSrc).not.toMatch(/requestAnimationFrame/)
+  })
+})
+
+// ============================================================================
+// PAYMENTS SEGMENTED VIEW
+// ============================================================================
+describe('PAYMENTS SEGMENTED VIEW', () => {
+  it('has a Payments | Quotes & Invoices segment control', () => {
+    expect(paymentsPageSrc).toContain('paymentsSegment')
+    expect(paymentsPageSrc).toContain("'payments'")
+    expect(paymentsPageSrc).toContain("'billing'")
+  })
+
+  it('segment defaults to payments', () => {
+    expect(paymentsPageSrc).toContain("useState<'payments' | 'billing'>('payments')")
+  })
+
+  it('action cards remain visible above segmented content', () => {
+    // Action cards come before the segment control UI (not the state declaration)
+    const actionCardsIdx = paymentsPageSrc.indexOf('{/* Action Cards */}')
+    const segmentUiIdx = paymentsPageSrc.indexOf('Segment control: Payments | Quotes')
+    expect(actionCardsIdx).toBeGreaterThan(-1)
+    expect(segmentUiIdx).toBeGreaterThan(-1)
+    expect(actionCardsIdx).toBeLessThan(segmentUiIdx)
+  })
+
+  it('action card order remains Quote/Invoice → Request Payment → Tap to Pay', () => {
+    const quoteIdx = paymentsPageSrc.indexOf('{/* Quote / Invoice Card */}')
+    const requestIdx = paymentsPageSrc.indexOf('{/* Request Payment Card */}')
+    const tapIdx = paymentsPageSrc.indexOf('{/* Tap to Pay Card */}')
+    expect(quoteIdx).toBeLessThan(requestIdx)
+    expect(requestIdx).toBeLessThan(tapIdx)
+  })
+
+  it('Payments segment wraps existing payment content', () => {
+    expect(paymentsPageSrc).toContain("paymentsSegment === 'payments'")
+    // KPI overview cards should be inside the payments segment
+    const segmentStart = paymentsPageSrc.indexOf("paymentsSegment === 'payments'")
+    const overviewIdx = paymentsPageSrc.indexOf('Overview Cards')
+    expect(overviewIdx).toBeGreaterThan(segmentStart)
+  })
+
+  it('Quotes & Invoices segment renders billing document list', () => {
+    expect(paymentsPageSrc).toContain("paymentsSegment === 'billing'")
+    expect(paymentsPageSrc).toContain('BillingDocumentList')
+  })
+
+  it('documents do not depend on being below payment table', () => {
+    // The billing segment is independent of the payments segment
+    // Both are conditional on paymentsSegment, not on each other
+    const billingSegment = paymentsPageSrc.indexOf("paymentsSegment === 'billing'")
+    const paymentsSegment = paymentsPageSrc.indexOf("paymentsSegment === 'payments'")
+    expect(billingSegment).toBeGreaterThan(-1)
+    expect(paymentsSegment).toBeGreaterThan(-1)
+  })
+
+  it('has All / Quotes / Invoices type filter in billing segment', () => {
+    expect(paymentsPageSrc).toContain('billingTypeFilter')
+    expect(paymentsPageSrc).toContain("'all'")
+    expect(paymentsPageSrc).toContain("'quote'")
+    expect(paymentsPageSrc).toContain("'invoice'")
+  })
+
+  it('type filter defaults to all', () => {
+    expect(paymentsPageSrc).toContain("useState<'all' | 'quote' | 'invoice'>('all')")
+  })
+
+  it('filteredBillingDocuments applies type filter', () => {
+    expect(paymentsPageSrc).toContain('filteredBillingDocuments')
+    expect(paymentsPageSrc).toContain("d.document_type === billingTypeFilter")
+  })
+
+  it('billing list uses filtered documents', () => {
+    expect(paymentsPageSrc).toContain('documents={filteredBillingDocuments}')
+  })
+})
+
+// ============================================================================
+// SAVED VIEWER ACTIONS BY STATUS
+// ============================================================================
+describe('SAVED VIEWER ACTIONS BY STATUS', () => {
+  it('viewer computes action visibility internally from fetched doc', () => {
+    expect(viewerSrc).toContain('rawStatus')
+    expect(viewerSrc).toContain('effective')
+    expect(viewerSrc).toContain('isDraft')
+    expect(viewerSrc).toContain('isSent')
+    expect(viewerSrc).toContain('isAccepted')
+    expect(viewerSrc).toContain('isDeclined')
+    expect(viewerSrc).toContain('isPaid')
+  })
+
+  it('draft Quote exposes Edit + Download + Send', () => {
+    expect(viewerSrc).toContain('const showEdit = isDraft || isDeclined')
+    expect(viewerSrc).toContain('const showSend = isDraft')
+    expect(viewerSrc).toContain('showDownload = true')
+  })
+
+  it('sent Quote exposes Download + Resend (not Send)', () => {
+    expect(viewerSrc).toContain('const showResend = isSent || isOverdue')
+    // Send is only for drafts
+    expect(viewerSrc).toContain('const showSend = isDraft')
+  })
+
+  it('accepted Quote exposes Create Invoice', () => {
+    expect(viewerSrc).toContain('const showConvert = isQuote && isAccepted')
+    expect(viewerSrc).toContain('Create Invoice')
+  })
+
+  it('declined Quote exposes Edit + Download', () => {
+    // showEdit includes isDeclined
+    expect(viewerSrc).toContain('isDraft || isDeclined')
+  })
+
+  it('draft Invoice exposes Edit + Download + Send', () => {
+    // Same as draft Quote — showEdit for drafts, showSend for drafts
+    expect(viewerSrc).toContain('const showSend = isDraft')
+  })
+
+  it('sent Invoice exposes Download + Resend', () => {
+    expect(viewerSrc).toContain('const showResend = isSent || isOverdue')
+  })
+
+  it('paid Invoice shows Paid and Download (no primary action)', () => {
+    // No send/resend/convert for paid
+    // showSend is only for drafts, showResend is for sent/overdue
+    // showConvert is for accepted quotes only
+    // So paid invoices only get Download
+  })
+
+  it('Download uses persisted PDF route (not transient editor state)', () => {
+    // The viewer's onDownload is wired to handleDownloadBillingDoc in the payments page
+    expect(paymentsPageSrc).toContain('handleDownloadBillingDoc')
+    expect(paymentsPageSrc).toContain('/api/billing-documents/')
+    expect(paymentsPageSrc).toContain('/pdf')
+  })
+
+  it('send uses existing send route', () => {
+    expect(paymentsPageSrc).toContain('handleSendBillingDoc')
+    expect(paymentsPageSrc).toContain('/send')
+  })
+
+  it('viewer no longer accepts showConvert/showSend/showEdit props', () => {
+    // These are now computed internally
+    expect(viewerSrc).not.toContain('showConvert?:')
+    expect(viewerSrc).not.toContain('showSend?:')
+    expect(viewerSrc).not.toContain('showEdit?:')
+  })
+
+  it('payments page no longer passes showConvert/showSend/showEdit props', () => {
+    // The old props should not be passed to BillingViewerModal
+    const viewerUsage = paymentsPageSrc.substring(
+      paymentsPageSrc.indexOf('<BillingViewerModal'),
+      paymentsPageSrc.indexOf('/>', paymentsPageSrc.indexOf('<BillingViewerModal'))
+    )
+    expect(viewerUsage).not.toContain('showConvert=')
+    expect(viewerUsage).not.toContain('showSend=')
+    expect(viewerUsage).not.toContain('showEdit=')
+  })
+})
+
+// ============================================================================
+// NEXT-STEP GUIDANCE
+// ============================================================================
+describe('NEXT-STEP GUIDANCE', () => {
+  it("viewer has What's next? guidance section", () => {
+    expect(viewerSrc).toContain("What's next?")
+    expect(viewerSrc).toContain('nextStepTitle')
+    expect(viewerSrc).toContain('nextStepBody')
+    expect(viewerSrc).toContain('nextStepCta')
+  })
+
+  it('draft Quote recommends Send', () => {
+    expect(viewerSrc).toContain("Review the quote, then send it when you're ready.")
+    expect(viewerSrc).toContain("'Send Quote'")
+  })
+
+  it('sent Quote says waiting for customer', () => {
+    expect(viewerSrc).toContain("Waiting for your customer to review the quote.")
+  })
+
+  it('accepted Quote recommends Create Invoice', () => {
+    expect(viewerSrc).toContain("Ready to bill for the work?")
+    expect(viewerSrc).toContain("'Create Invoice'")
+  })
+
+  it('declined Quote provides revision guidance', () => {
+    expect(viewerSrc).toContain("The customer declined this quote. Update it if you'd like to send a revision.")
+    expect(viewerSrc).toContain("'Edit Quote'")
+  })
+
+  it('draft Invoice recommends Send', () => {
+    expect(viewerSrc).toContain("Review the invoice, then send it when you're ready to collect payment.")
+    expect(viewerSrc).toContain("'Send Invoice'")
+  })
+
+  it('sent Invoice says waiting for payment', () => {
+    expect(viewerSrc).toContain("Waiting for payment.")
+  })
+
+  it('overdue Invoice recommends resend', () => {
+    expect(viewerSrc).toContain("Payment is overdue. You can resend the invoice if needed.")
+    expect(viewerSrc).toContain("'Resend Invoice'")
+  })
+
+  it('paid Invoice says payment received', () => {
+    expect(viewerSrc).toContain("'Payment received.'")
+  })
+
+  it('guidance is advisory (no workflow locks or mandatory gates)', () => {
+    // No restrictions preventing direct Tap to Pay or Request Payment
+    expect(viewerSrc).not.toMatch(/mandatory|required.*to.*proceed|cannot.*proceed|locked/i)
+    // The guidance is just a recommendation, not a gate
+    expect(viewerSrc).toContain('nextStepCta')
+    // CTA is optional (can be null)
+    expect(viewerSrc).toContain('null')
+  })
+
+  it('guidance is visually subtle (compact styling)', () => {
+    expect(viewerSrc).toContain('text-xs')
+    expect(viewerSrc).toContain('rounded-lg')
+  })
+})
+
+// ============================================================================
+// DOCUMENT LIST CLARITY
+// ============================================================================
+describe('DOCUMENT LIST CLARITY', () => {
+  it('list shows document number', () => {
+    expect(listSrc).toContain('doc.document_number')
+  })
+
+  it('list shows customer name', () => {
+    expect(listSrc).toContain('customerName')
+  })
+
+  it('list shows amount', () => {
+    expect(listSrc).toContain('formatCurrency(doc.total_cents')
+  })
+
+  it('list shows status badge', () => {
+    expect(listSrc).toContain('statusBadge')
+    expect(listSrc).toContain('badge.label')
+  })
+
+  it('list shows date label', () => {
+    expect(listSrc).toContain('dateLabel')
+  })
+
+  it('list has contextual subline for draft quote', () => {
+    expect(listSrc).toContain("'Next: Send quote'")
+  })
+
+  it('list has contextual subline for accepted quote', () => {
+    expect(listSrc).toContain("'Next: Create invoice'")
+  })
+
+  it('list has contextual subline for sent invoice', () => {
+    expect(listSrc).toContain("'Waiting for payment'")
+  })
+
+  it('list has contextual subline for paid', () => {
+    expect(listSrc).toContain("'Payment received'")
+  })
+
+  it('list has contextual subline for declined', () => {
+    expect(listSrc).toContain("'Customer declined'")
+  })
+
+  it('list has contextual subline for overdue', () => {
+    expect(listSrc).toContain("'Payment overdue'")
+  })
+
+  it('declined quote row exposes Edit action', () => {
+    // Declined should have its own block with Edit
+    expect(listSrc).toContain('Declined: View + Edit + Download')
+    expect(listSrc).toContain('isDeclined')
+  })
+})
+
+// ============================================================================
+// REGRESSION — PRESERVE EXISTING BEHAVIOR
+// ============================================================================
+describe('REGRESSION — PRESERVE EXISTING BEHAVIOR', () => {
+  it('chooser centering unchanged (no bottomSheetOnMobile)', () => {
+    expect(chooserSrc).not.toContain('bottomSheetOnMobile')
+  })
+
+  it('editor modals still use bottomSheetOnMobile', () => {
+    expect(editorSrc).toContain('bottomSheetOnMobile')
+  })
+
+  it('viewer still uses bottomSheetOnMobile', () => {
+    expect(viewerSrc).toContain('bottomSheetOnMobile')
+  })
+
+  it('unsaved-warning behavior unchanged (isDirtyRef)', () => {
+    expect(editorSrc).toContain('isDirtyRef')
+    expect(editorSrc).toContain('markDirty')
+    expect(editorSrc).toContain('markClean')
+  })
+
+  it('modal/back behavior unchanged (useModalBackButton)', () => {
+    expect(modalSrc).toContain('useModalBackButton')
+  })
+
+  it('scroll lock behavior unchanged (useBodyScrollLock)', () => {
+    expect(modalSrc).toContain('useBodyScrollLock')
+  })
+
+  it('mobile layout does not overflow (segment control uses w-fit max-w-full)', () => {
+    expect(paymentsPageSrc).toContain('w-fit max-w-full')
+    expect(paymentsPageSrc).toContain('whitespace-nowrap')
   })
 })

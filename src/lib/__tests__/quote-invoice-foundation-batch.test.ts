@@ -334,7 +334,8 @@ describe('MODAL', () => {
   })
 
   it('32. modal normalization tests remain green (bottomSheetOnMobile used)', () => {
-    expect(chooserSrc).toContain('bottomSheetOnMobile')
+    // Chooser is now centered (no bottomSheetOnMobile), editor keeps it
+    expect(chooserSrc).not.toContain('bottomSheetOnMobile')
     expect(editorSrc).toContain('bottomSheetOnMobile')
   })
 

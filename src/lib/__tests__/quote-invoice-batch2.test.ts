@@ -526,8 +526,11 @@ describe('DOCUMENT LIST POLISH', () => {
     expect(listSrc).toContain('Convert to Invoice')
   })
 
-  it('paid/declined/cancelled show View + Download only', () => {
-    expect(listSrc).toContain('isPaid || isDeclined || isCancelled')
+  it('paid/cancelled show View + Download only; declined shows View + Edit + Download', () => {
+    // Declined now has its own block with Edit for revision
+    expect(listSrc).toContain('isPaid || isCancelled')
+    expect(listSrc).toContain('isDeclined')
+    expect(listSrc).toContain('Declined: View + Edit + Download')
   })
 })
 

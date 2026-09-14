@@ -116,6 +116,15 @@ export default function BillingDocumentList({
         const isDeclined = doc.status === 'declined'
         const dateLabel = doc.sent_at ? `Sent ${formatDate(doc.sent_at)}` : `Updated ${formatDate(doc.updated_at)}`
 
+        // Contextual subline based on status
+        let subline = ''
+        if (isDraft && isQuote) subline = 'Next: Send quote'
+        else if (isAccepted && isQuote) subline = 'Next: Create invoice'
+        else if (isSent && !isQuote) subline = 'Waiting for payment'
+        else if (isPaid) subline = 'Payment received'
+        else if (effective === 'overdue') subline = 'Payment overdue'
+        else if (isDeclined) subline = 'Customer declined'
+
         return (
           <div
             key={doc.id}
@@ -142,6 +151,9 @@ export default function BillingDocumentList({
                 <span className="text-sm font-medium text-foreground">{formatCurrency(doc.total_cents, true)}</span>
                 <span className="text-xs text-muted-foreground">· {dateLabel}</span>
               </div>
+              {subline && (
+                <p className="text-[11px] text-muted-foreground/70 dark:text-muted-foreground/60 mt-0.5">{subline}</p>
+              )}
             </button>
 
             {/* Right: actions */}
@@ -265,8 +277,8 @@ export default function BillingDocumentList({
                 </>
               )}
 
-              {/* Paid/Declined/Cancelled: View + Download only */}
-              {(isPaid || isDeclined || isCancelled) && (
+              {/* Paid/Cancelled: View + Download only */}
+              {(isPaid || isCancelled) && (
                 <>
                   <button
                     onClick={() => onView(doc)}
@@ -275,6 +287,37 @@ export default function BillingDocumentList({
                     title="View"
                   >
                     <Eye className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onDownload(doc)}
+                    disabled={downloadingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded disabled:opacity-50"
+                    aria-label="Download PDF"
+                    title="Download PDF"
+                  >
+                    {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  </button>
+                </>
+              )}
+
+              {/* Declined: View + Edit + Download */}
+              {isDeclined && (
+                <>
+                  <button
+                    onClick={() => onView(doc)}
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
+                    aria-label="View document"
+                    title="View"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onOpen(doc)}
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
+                    aria-label="Edit document"
+                    title="Edit"
+                  >
+                    <Edit className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => onDownload(doc)}
