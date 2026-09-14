@@ -47,6 +47,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import CustomerDetails from '@/components/CustomerDetails'
+import CustomerAttachmentsCard from '@/components/CustomerAttachmentsCard'
 import AICallDetails from '@/components/AICallDetails'
 import VoicemailSummary from '@/components/VoicemailSummary'
 import DesktopAISummary from '@/components/DesktopAISummary'
@@ -4808,6 +4809,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </div>
                       </div>
 
+                      {/* Photos & Attachments - surfaces media from conversation history */}
+                      {leadData?.messages && (
+                        <CustomerAttachmentsCard messages={leadData.messages} />
+                      )}
+
                       {/* AI Summary - available for all customer origins */}
                       <SidebarSection
                         title="AI Summary"
@@ -5371,6 +5377,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <DesktopAISummary leadId={params.id} leadData={leadData} />
             </div>
           </div>
+
+          {/* Photos & Attachments - surfaces media from conversation history */}
+          {leadData?.messages && (
+            <CustomerAttachmentsCard messages={leadData.messages} />
+          )}
 
           {/* Request History - canonical card for ALL customer origins */}
           <RequestHistory

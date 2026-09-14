@@ -9,9 +9,10 @@ export interface SettingsSection {
 
 // Base sections that are always present
 const baseSections: SettingsSection[] = [
-  { id: 'general', label: 'General', icon: () => null },
-  { id: 'appearance', label: 'Appearance', icon: () => null },
+  { id: 'general', label: 'Business Information', icon: () => null },
   { id: 'business-address', label: 'Business Address', icon: () => null },
+  { id: 'business-logo', label: 'Business Logo', icon: () => null },
+  { id: 'appearance', label: 'Appearance', icon: () => null },
   { id: 'automation', label: 'Automation', icon: () => null },
   // { id: 'notifications', label: 'Notifications', icon: () => null }, // TODO: Notification preferences UI not yet implemented
   { id: 'integrations', label: 'Integrations', icon: () => null },
