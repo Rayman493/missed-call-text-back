@@ -233,8 +233,10 @@ describe('SEND', () => {
   })
 
   it('resend reuses same document/token (idempotent)', () => {
-    expect(sendRouteSrc).toContain('resend')
-    expect(sendRouteSrc).toContain("doc.status === 'sent' && doc.public_token")
+    // New unified flow: token is reused via `let publicToken = doc.public_token`
+    // regardless of status (sent OR draft with prepared token).
+    expect(sendRouteSrc).toContain('let publicToken = doc.public_token')
+    expect(sendRouteSrc).toContain('if (!publicToken)')
   })
 
   it('SMS message format includes business name + document number + total', () => {

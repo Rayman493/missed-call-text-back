@@ -264,8 +264,10 @@ describe('SEND ROUTE — BUSINESS TWILIO FIELDS', () => {
   })
 
   it('43. resend reuses existing token', () => {
-    expect(sendRouteSrc).toContain('doc.public_token')
-    expect(sendRouteSrc).toContain('resend: true')
+    // New unified flow: token is reused via `let publicToken = doc.public_token`
+    // regardless of status (sent OR draft with prepared token).
+    expect(sendRouteSrc).toContain('let publicToken = doc.public_token')
+    expect(sendRouteSrc).toContain('if (!publicToken)')
   })
 
   it('44. send route uses Node runtime', () => {

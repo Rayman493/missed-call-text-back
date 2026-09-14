@@ -29,8 +29,40 @@ const securityHeaders = [
 ]
 
 const nextConfig = {
-  serverExternalPackages: ['@supabase/supabase-js', '@react-pdf/renderer'],
+  // Externalize the entire @react-pdf/renderer → pdfkit dependency chain.
+  // @react-pdf/renderer depends on pdfkit, which dynamically requires
+  // `pdfkit/standard-fonts/Helvetica.cjs` (and other font files) at
+  // runtime via subpath exports. When Next.js bundles pdfkit into the
+  // server route, the dynamic subpath requires are not traced and the
+  // files are missing from the Vercel serverless function output, causing
+  // `Cannot find module .../pdfkit/js/standard-fonts/Helvetica.cjs`.
+  // Externalizing pdfkit (and @react-pdf/font, which loads fonts) keeps
+  // the entire package in node_modules where the subpath exports resolve
+  // correctly at runtime.
+  serverExternalPackages: [
+    '@supabase/supabase-js',
+    '@react-pdf/renderer',
+    '@react-pdf/font',
+    'pdfkit',
+  ],
   outputFileTracingRoot: __dirname,
+  // Explicitly include pdfkit's standard-fonts and chunks directories in
+  // the output file trace for the PDF route. pdfkit loads font files
+  // dynamically via `require('pdfkit/standard-fonts/Helvetica')` at
+  // runtime; Next.js's tracer cannot follow these dynamic requires, so
+  // the font files are missing from the Vercel serverless function
+  // output even though pdfkit is externalized. This ensures the entire
+  // pdfkit package (including all standard fonts and chunk files) is
+  // included in the deployable server artifact.
+  outputFileTracingIncludes: {
+    '/api/billing-documents/[id]/pdf': [
+      './node_modules/pdfkit/js/standard-fonts/**/*',
+      './node_modules/pdfkit/js/chunks/**/*',
+      './node_modules/pdfkit/js/*.cjs',
+      './node_modules/pdfkit/js/*.mjs',
+      './node_modules/@react-pdf/font/lib/**/*',
+    ],
+  },
   eslint: {
     // Allow warnings during production build - ESLint still runs locally
     ignoreDuringBuilds: true

@@ -47,6 +47,17 @@ export async function GET(
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
+    // Public visibility: only expose external-appropriate states.
+    // A Draft with a prepared token (e.g. token persisted before SMS)
+    // must NOT be publicly visible. Only documents that have been
+    // sent (or have transitioned to a post-send state) are accessible.
+    // This enforces the invariant: a prepared token does not make a
+    // Draft publicly visible.
+    const PUBLICLY_VISIBLE_STATUSES = ['sent', 'accepted', 'declined', 'overdue', 'paid', 'expired', 'viewed']
+    if (!PUBLICLY_VISIBLE_STATUSES.includes(doc.status)) {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+    }
+
     const presentation = await buildDocumentPresentation(supabase, doc)
 
     // For invoices, include payment URL if linked

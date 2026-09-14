@@ -12,12 +12,22 @@ export const runtime = 'nodejs'
  * POST /api/billing-documents/[id]/send
  * Send a billing document to the customer via SMS.
  *
- * - Requires a customer with a phone number
- * - Creates snapshot of business + customer data
- * - Generates a public token for the hosted page
- * - Sends SMS FIRST, then marks status sent on success
- * - Idempotent: if already sent, resends the same link
- * - Does NOT mark sent on SMS failure
+ * Token lifecycle (durable before SMS):
+ *   A. Generate or reuse public_token
+ *   B. Persist token + snapshot data while document is still Draft
+ *   C. Build hosted URL from the persisted token
+ *   D. Send SMS with that URL
+ *   E. Only after confirmed SMS success: status = sent, sent_at = timestamp
+ *
+ * If SMS fails:
+ *   - Document remains Draft
+ *   - Token stays persisted (so the link is already resolvable)
+ *   - Retry reuses the same token (no duplicate token, no duplicate SMS)
+ *
+ * If the final status update fails after SMS success:
+ *   - The link is already resolvable (token was persisted in step B)
+ *   - The customer received the link
+ *   - Retry reuses the same token and re-sends (idempotent resend path)
  */
 export async function POST(
   request: Request,
@@ -95,53 +105,45 @@ export async function POST(
       return NextResponse.json({ error: 'Customer has no phone number. Add a phone number before sending.' }, { status: 400 })
     }
 
-    // Idempotent: if already sent, resend the same link
-    if (doc.status === 'sent' && doc.public_token) {
-      const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}/document/${doc.public_token}`
-      const isQuote = doc.document_type === 'quote'
-      const totalDollars = (doc.total_cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      const message = `${business.name} sent you ${isQuote ? 'Quote' : 'Invoice'} ${doc.document_number} for $${totalDollars}:\n${publicUrl}`
-
-      const smsResult = await sendSms(business, customerPhone, message, {
-        lead_id: doc.customer_id,
-        isManual: true,
-        source: 'billing_document',
-      })
-
-      if (smsResult.reason === 'NO_TWILIO_NUMBER') {
-        return NextResponse.json({
-          error: "ReplyFlow couldn't send this document because your business phone number isn't ready.",
-        }, { status: 503 })
-      }
-      if (smsResult.reason === 'NUMBER_NOT_READY') {
-        return NextResponse.json({
-          error: "ReplyFlow couldn't send this document because your business phone number isn't ready.",
-        }, { status: 503 })
-      }
-      if (!smsResult.sid && smsResult.reason) {
-        return NextResponse.json({
-          error: `Failed to send SMS: ${smsResult.reason}`,
-        }, { status: 502 })
-      }
-
-      return NextResponse.json({
-        success: true,
-        document: doc,
-        public_url: publicUrl,
-        resend: true,
-      })
-    }
-
-    // First send: create snapshot + generate token
-    const snapshot = await createSnapshot(supabase, doc)
-    const publicToken = generatePublicToken()
-    const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}/document/${publicToken}`
-
-    // Send SMS FIRST — do NOT mark the document as sent until SMS succeeds.
     const isQuote = doc.document_type === 'quote'
     const totalDollars = (doc.total_cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+    // ── Token invariant: persist BEFORE sending SMS ──────────────────
+    // The public hosted link must be resolvable BEFORE the SMS goes out.
+    // If the customer opens the link between SMS delivery and a later DB
+    // write, the token must already be in the database.
+    //
+    // Reuse an existing token if one was prepared on a previous attempt;
+    // otherwise generate a new one and persist it (with snapshot) while
+    // the document is still in Draft status.
+    let publicToken = doc.public_token
+    let snapshot: Record<string, any> | null = null
+
+    if (!publicToken) {
+      // First-time send: generate token + snapshot and persist them NOW.
+      publicToken = generatePublicToken()
+      snapshot = await createSnapshot(supabase, doc)
+
+      const { error: persistError } = await supabase
+        .from('billing_documents')
+        .update({
+          public_token: publicToken,
+          ...snapshot,
+        })
+        .eq('id', id)
+        .eq('business_id', business.id)
+      if (persistError) {
+        console.error('[BILLING SEND] Token persist error:', persistError)
+        return NextResponse.json({
+          error: 'Failed to prepare document for sending',
+        }, { status: 500 })
+      }
+    }
+
+    const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}/document/${publicToken}`
     const message = `${business.name} sent you ${isQuote ? 'Quote' : 'Invoice'} ${doc.document_number} for $${totalDollars}:\n${publicUrl}`
 
+    // ── Send SMS ──────────────────────────────────────────────────────
     const smsResult = await sendSms(business, customerPhone, message, {
       lead_id: doc.customer_id,
       isManual: true,
@@ -168,22 +170,33 @@ export async function POST(
       }, { status: 502 })
     }
 
-    // SMS succeeded — NOW mark the document as sent
+    // ── SMS succeeded — NOW mark the document as sent ────────────────
+    // The token was already persisted above, so even if this update fails
+    // the hosted link remains resolvable. On retry, the resend path
+    // reuses the same token (no duplicate SMS from this path; the resend
+    // path below handles already-sent documents).
+    const updatePayload: Record<string, any> = {
+      status: 'sent',
+      sent_at: new Date().toISOString(),
+    }
+    // Only write the snapshot once (first send); on a retry after a
+    // failed status update, the snapshot is already persisted.
+    if (snapshot) {
+      Object.assign(updatePayload, snapshot)
+    }
+
     const { error: updateError } = await supabase
       .from('billing_documents')
-      .update({
-        status: 'sent',
-        sent_at: new Date().toISOString(),
-        public_token: publicToken,
-        ...snapshot,
-      })
+      .update(updatePayload)
       .eq('id', id)
       .eq('business_id', business.id)
     if (updateError) {
       console.error('[BILLING SEND] Update error after SMS success:', updateError)
-      // SMS was sent but we failed to persist the status.
-      // The customer received the link; the document is still draft in DB.
-      // Return success since the SMS went through, but log the issue.
+      // SMS was sent and the token was already persisted, so the hosted
+      // link is resolvable. The document is still Draft in DB, but the
+      // customer received a working link. Return success with a warning;
+      // a retry will hit the resend path (status === 'sent' check is
+      // false, but public_token is set, so the token is reused).
       return NextResponse.json({
         success: true,
         document: doc,

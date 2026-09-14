@@ -1206,7 +1206,10 @@ describe('NULL BATCH-2 FIELD SAFETY', () => {
   it('198. send route generates token only on first send', () => {
     const sendSrc = readSrc('src/app/api/billing-documents/[id]/send/route.ts')
     expect(sendSrc).toContain('generatePublicToken()')
-    expect(sendSrc).toContain("doc.status === 'sent' && doc.public_token")
+    // New unified flow: token is reused via `let publicToken = doc.public_token`
+    // and only generated when no existing token is present.
+    expect(sendSrc).toContain('let publicToken = doc.public_token')
+    expect(sendSrc).toContain('if (!publicToken)')
   })
 
   it('199. public token uses crypto.randomBytes (strong)', () => {
