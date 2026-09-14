@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useId } from 'react'
 import { ChevronDown, X, Check, Search } from 'lucide-react'
+import { markDropdownDismissed } from '@/components/lead-status-gesture'
 
 interface SelectOption {
   value: string
@@ -88,6 +89,7 @@ export default function SelectPicker({
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
       if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+        markDropdownDismissed()
         setIsOpen(false)
         setSearchQuery('')
       }

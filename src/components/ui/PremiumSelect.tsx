@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
+import { markDropdownDismissed } from '@/components/lead-status-gesture'
 
 interface PremiumSelectProps<T extends string> {
   value: T
@@ -22,17 +23,18 @@ export default function PremiumSelect<T extends string>({
   const containerRef = useRef<HTMLDivElement>(null)
   const selectRef = useRef<HTMLButtonElement>(null)
 
-  // Close on click outside
+  // Close on pointer down outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handlePointerDownOutside = (event: PointerEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        markDropdownDismissed()
         setIsOpen(false)
       }
     }
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
+      document.addEventListener('pointerdown', handlePointerDownOutside)
+      return () => document.removeEventListener('pointerdown', handlePointerDownOutside)
     }
   }, [isOpen])
 

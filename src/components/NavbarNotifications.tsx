@@ -11,6 +11,7 @@ import { generateCanonicalRequestTitle, validateRequestTitle } from '@/lib/ai-in
 import { Bell, Check, MessageCircle, PhoneMissed, Send, Calendar, Info, CheckCircle, AlertTriangle, User, MessageSquare, Clock, CreditCard, Trash2, X } from 'lucide-react'
 import { getNotificationIcon, getNotificationColor, getNotificationDotColor } from '@/lib/notification-icons'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { markDropdownDismissed } from '@/components/lead-status-gesture'
 
 // Hook to detect mobile breakpoint
 const useIsMobile = () => {
@@ -90,14 +91,15 @@ export default function NavbarNotifications() {
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handlePointerDownOutside = (event: PointerEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        markDropdownDismissed()
         setIsOpen(false)
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('pointerdown', handlePointerDownOutside)
+    return () => document.removeEventListener('pointerdown', handlePointerDownOutside)
   }, [])
 
   // Initialize notifications when business is available

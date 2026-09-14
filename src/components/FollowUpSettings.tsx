@@ -199,7 +199,7 @@ export default function FollowUpSettings({ isOpen, onClose, onSave, businessName
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 pt-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 md:p-4" style={{ paddingBottom: 'calc(var(--bottom-nav-height, 80px) + 16px)' }}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 pt-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 md:p-4" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div
         className="relative w-full max-w-2xl max-h-full md:max-h-[90vh] overflow-hidden rounded-2xl border border-border/50 bg-card shadow-2xl shadow-black/10 dark:shadow-black/30 flex flex-col animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}

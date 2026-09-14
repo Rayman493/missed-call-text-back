@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { X, MessageCircle, CheckCircle } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { markDropdownDismissed } from '@/components/lead-status-gesture'
 
 interface BetaFeedbackModalProps {
   isOpen: boolean
@@ -25,19 +26,20 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
   // Close category menu on outside click or Escape
   useEffect(() => {
     if (!catOpen) return
-    const onDocClick = (e: MouseEvent) => {
+    const onDocPointerDown = (e: PointerEvent) => {
       const t = e.target as Node
       if (catMenuRef.current && !catMenuRef.current.contains(t) && catButtonRef.current && !catButtonRef.current.contains(t)) {
+        markDropdownDismissed()
         setCatOpen(false)
       }
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setCatOpen(false)
     }
-    document.addEventListener('mousedown', onDocClick)
+    document.addEventListener('pointerdown', onDocPointerDown)
     document.addEventListener('keydown', onKey)
     return () => {
-      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('pointerdown', onDocPointerDown)
       document.removeEventListener('keydown', onKey)
     }
   }, [catOpen])

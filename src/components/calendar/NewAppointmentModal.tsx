@@ -9,6 +9,7 @@ import Modal from '@/components/ui/Modal'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
+import AddCustomerModal from '@/components/AddCustomerModal'
 import { getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
 
@@ -48,6 +49,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
   // Customer linking (optional)
   const [leadId, setLeadId] = useState<string | null>(null)
   const [leadDisplay, setLeadDisplay] = useState<string | null>(null)
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
+  const [newlyCreatedCustomer, setNewlyCreatedCustomer] = useState<Customer | null>(null)
 
   // Meeting type
   const [meetingType, setMeetingType] = useState<'in_person' | 'google_meet' | 'custom'>('in_person')
@@ -112,6 +115,19 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
     } else {
       setLeadDisplay(null)
     }
+  }
+
+  // Handle successful customer creation from inline Add Customer modal
+  const handleLeadCreated = (newLeadId: string, leadData?: any) => {
+    const newCustomer: Customer = {
+      id: newLeadId,
+      name: leadData?.raw_metadata?.customerName || leadData?.raw_metadata?.callerName || leadData?.name || null,
+      caller_phone: leadData?.caller_phone || leadData?.raw_metadata?.customerPhone || null,
+      raw_metadata: leadData?.raw_metadata || null,
+    }
+    setNewlyCreatedCustomer(newCustomer)
+    setLeadId(newLeadId)
+    handleCustomerSelect(newCustomer)
   }
 
   // Log close reason for scroll lock diagnostics
@@ -362,7 +378,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                 required={customerIsRequired}
                 allowClear={!isCustomerLocked}
                 placeholder="Search or select a customer..."
-                prefillCustomer={preselectedLeadCustomer}
+                prefillCustomer={newlyCreatedCustomer || preselectedLeadCustomer}
+                onAddCustomerClick={!isCustomerLocked ? () => setIsAddCustomerOpen(true) : undefined}
               />
             </div>
 
@@ -480,6 +497,13 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
             </div>
           </div>
       </Modal>
+
+      {/* Inline Add Customer modal — reuses canonical AddCustomerModal */}
+      <AddCustomerModal
+        isOpen={isAddCustomerOpen}
+        onClose={() => setIsAddCustomerOpen(false)}
+        onLeadCreated={handleLeadCreated}
+      />
     </>
   )
 }

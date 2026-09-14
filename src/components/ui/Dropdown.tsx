@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
+import { markDropdownDismissed } from '@/components/lead-status-gesture'
 
 export interface DropdownOption {
   value: string
@@ -39,14 +40,15 @@ export default function Dropdown({
   const selectedOption = options.find(opt => opt.value === value)
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handlePointerDownOutside = (event: PointerEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        markDropdownDismissed()
         setIsOpen(false)
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('pointerdown', handlePointerDownOutside)
+    return () => document.removeEventListener('pointerdown', handlePointerDownOutside)
   }, [])
 
   // Calculate menu position when opened

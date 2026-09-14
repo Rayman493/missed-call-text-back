@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusinessSafe } from '@/contexts/BusinessContext'
 import { Home } from 'lucide-react'
+import { markDropdownDismissed } from '@/components/lead-status-gesture'
 
 interface MobileDrawerProps {
   isOpen: boolean
@@ -113,18 +114,19 @@ export default function MobileDrawer({ isOpen, onClose, triggerRef }: MobileDraw
   useEffect(() => {
     if (!isOpen) return
 
-    const handleClickOutside = (event: MouseEvent) => {
+    const handlePointerDownOutside = (event: PointerEvent) => {
       const isClickInsideTrigger = triggerRef?.current?.contains(event.target as Node)
       const isClickInsideDropdown = dropdownContentRef.current?.contains(event.target as Node)
       if (!isClickInsideTrigger && !isClickInsideDropdown) {
+        markDropdownDismissed()
         onClose()
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('pointerdown', handlePointerDownOutside)
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('pointerdown', handlePointerDownOutside)
     }
   }, [isOpen, onClose, triggerRef])
 

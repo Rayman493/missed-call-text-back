@@ -766,17 +766,16 @@ html.light select:-moz-autofill:focus {
 
 /*
  * Modal bottom reservation
- * Mobile: safe-area inset only (modal backdrop covers bottom nav)
+ * Mobile: safe-area inset + 16px breathing room (modal backdrop covers bottom nav,
+ *   which hides via data-modal-open observer — no need to reserve nav space)
  * Desktop (md breakpoint and above): 16px only (no bottom nav)
  *
- * --modal-max-height ensures modals never collide with the app header or
- * viewport edges. On desktop we reserve 96px top + 32px bottom so the modal
- * has clear breathing room below the sticky app header. On mobile we use
- * 100dvh minus the safe areas.
+ * --modal-max-height ensures modals never collide with viewport edges.
+ * Mobile: 100dvh minus 32px total padding. Desktop: 100dvh minus 128px.
  */
 :root {
-  --modal-bottom-reserve: calc(env(safe-area-inset-bottom) + var(--bottom-nav-height, 72px));
-  --modal-max-height: calc(100dvh - var(--bottom-nav-height, 72px) - 32px);
+  --modal-bottom-reserve: calc(env(safe-area-inset-bottom) + 16px);
+  --modal-max-height: calc(100dvh - 32px);
 }
 
 @media (min-width: 768px) {

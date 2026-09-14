@@ -234,7 +234,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                        pathname === '/auth' ||
                        pathname?.startsWith('/signup')
 
-  const hideNav = isPublicPage || isAnyAssistantOpen || isModalOpen || (isNativePlatform && isKeyboardOpen)
+  const hideNav = isPublicPage || isAnyAssistantOpen || (isModalOpen && !isMoreMenuOpen) || (isNativePlatform && isKeyboardOpen)
 
   // Ensure body has an attribute to indicate bottom nav visibility for any layout that wishes to react
   // Also set a CSS variable with the actual nav height for precise positioning

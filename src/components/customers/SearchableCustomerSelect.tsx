@@ -5,6 +5,7 @@ import { ChevronDown, X, Check, Search, Loader2 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { filterLeadsBySearchQuery, normalizePhoneDigits, getCustomerDisplayName, getCustomerSecondaryText } from '@/components/payments/customer-search-helpers'
 import { formatForDisplay } from '@/utils/phone-formatting'
+import { markDropdownDismissed } from '@/components/lead-status-gesture'
 
 export interface Customer {
   id: string
@@ -105,6 +106,7 @@ export default function SearchableCustomerSelect({
         pointerDownInsideRef.current = true
       } else {
         pointerDownInsideRef.current = false
+        markDropdownDismissed()
         setIsOpen(false)
         setSearchQuery('')
       }
