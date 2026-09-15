@@ -327,16 +327,19 @@ describe('Part B: Schedule Map Camera Ownership', () => {
       expect(block).toContain('DOUBLE_TAP_DELAY_MS')
     })
 
-    it('stop-card single tap does NOT call focusStopOnMap', () => {
+    it('stop-card single tap calls focusStopOnMap (focuses map on tap)', () => {
+      // Updated: single tap on a stop card now focuses the map on that stop,
+      // reusing the canonical focusStopOnMap helper. This matches the user
+      // expectation that tapping a stop card brings the map to that stop.
       const cardIdx = map.indexOf('handleItemClick')
       const block = map.substring(cardIdx, cardIdx + 3000)
       // Find the single-tap timer block: it contains setTimeout and
-      // toggleMapItemDetails but NOT focusStopOnMap. The single-tap
+      // toggleMapItemDetails AND focusStopOnMap. The single-tap
       // timer is the LAST setTimeout in handleItemClick.
       const lastSetTimeout = block.lastIndexOf('setTimeout')
       const singleBlock = block.substring(lastSetTimeout - 200, lastSetTimeout + 400)
       expect(singleBlock).toContain('toggleMapItemDetails')
-      expect(singleBlock).not.toContain('focusStopOnMap')
+      expect(singleBlock).toContain('focusStopOnMap')
     })
   })
 

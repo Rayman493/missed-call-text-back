@@ -338,6 +338,13 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
   // This is the single canonical arbitration mechanism — no parallel competing timers.
   const singleTapTimerRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
+  // Tap-vs-swipe tracking for stop cards. The cards live in a horizontally
+  // scrollable row. A deliberate tap focuses the stop on the map; a horizontal
+  // swipe scrolls the card row and must NOT trigger focus. We track the
+  // pointer start position and movement threshold on the card buttons.
+  const cardPointerStartRef = useRef<{ x: number; y: number } | null>(null)
+  const cardMovedRef = useRef(false)
+
   // Production VECTOR rendering configuration
 const PRODUCTION_MAP_ID = 'c783fbbc07696bfd5be1f3c6'
 
@@ -2721,10 +2728,19 @@ useEffect(() => {
 
   
   const handleItemClick = (item: MapItem) => {
+    // Suppress click if the gesture was a horizontal swipe through the card row.
+    // The browser usually doesn't fire click on scroll, but some Android devices
+    // can fire a click after a short swipe. This explicit check prevents that.
+    if (cardMovedRef.current) {
+      cardMovedRef.current = false
+      cardPointerStartRef.current = null
+      return
+    }
+
     const platform = Capacitor.getPlatform()
 
     // CANONICAL SINGLE-TAP / DOUBLE-TAP CONTRACT (same as marker tap):
-    // SINGLE TAP: toggle info/selection only. NO camera command.
+    // SINGLE TAP: toggle info/selection + focus map on this stop.
     // DOUBLE TAP: toggle info/selection + camera focus/unfocus.
     // The single-tap action is delayed by DOUBLE_TAP_DELAY_MS so a
     // second tap can upgrade it to a double-tap.
@@ -2761,11 +2777,18 @@ useEffect(() => {
 
       lastClickTimeRef.current.delete(item.id)
     } else {
-      // SINGLE TAP: delay the info toggle so a second tap (double-tap)
+      // SINGLE TAP: delay the action so a second tap (double-tap)
       // can cancel it before it executes.
       const timer = setTimeout(() => {
         console.log('[ScheduleMap] marker_details_toggled', { source: 'card_tap', stopId: item.id, platform })
         toggleMapItemDetails(item.id)
+        // Focus the map on this stop for non-business items.
+        // This reuses the canonical focusStopOnMap helper (same as marker
+        // double-tap) so the camera animation is consistent.
+        if (item.type !== 'business') {
+          focusStopOnMap(item.id, item.latitude, item.longitude)
+          setFocusedMarkerId(item.id)
+        }
         singleTapTimerRef.current.delete(item.id)
       }, DOUBLE_TAP_DELAY_MS)
       singleTapTimerRef.current.set(item.id, timer)
@@ -2906,6 +2929,21 @@ useEffect(() => {
                   }
                 } : null}
                 onClick={() => handleItemClick(item)}
+                onPointerDown={(e) => {
+                  if (e.button !== 0) return
+                  cardPointerStartRef.current = { x: e.clientX, y: e.clientY }
+                  cardMovedRef.current = false
+                }}
+                onPointerMove={(e) => {
+                  if (!cardPointerStartRef.current) return
+                  const dx = e.clientX - cardPointerStartRef.current.x
+                  const dy = e.clientY - cardPointerStartRef.current.y
+                  if (Math.hypot(dx, dy) >= 10) {
+                    cardMovedRef.current = true
+                  }
+                }}
+                onPointerUp={() => { cardPointerStartRef.current = null }}
+                onPointerCancel={() => { cardPointerStartRef.current = null; cardMovedRef.current = false }}
                 className={`flex-shrink-0 snap-start px-1.5 py-1 rounded-md border transition-colors min-w-[100px] max-w-[140px] ${
                   selectedMapItemId === item.id
                     ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-300/60 dark:border-blue-700/60 ring-1 ring-blue-200/50 dark:ring-blue-800/30'
@@ -2978,6 +3016,21 @@ useEffect(() => {
                     }
                   } : null}
                   onClick={() => handleItemClick(item)}
+                  onPointerDown={(e) => {
+                    if (e.button !== 0) return
+                    cardPointerStartRef.current = { x: e.clientX, y: e.clientY }
+                    cardMovedRef.current = false
+                  }}
+                  onPointerMove={(e) => {
+                    if (!cardPointerStartRef.current) return
+                    const dx = e.clientX - cardPointerStartRef.current.x
+                    const dy = e.clientY - cardPointerStartRef.current.y
+                    if (Math.hypot(dx, dy) >= 10) {
+                      cardMovedRef.current = true
+                    }
+                  }}
+                  onPointerUp={() => { cardPointerStartRef.current = null }}
+                  onPointerCancel={() => { cardPointerStartRef.current = null; cardMovedRef.current = false }}
                   className={`flex-shrink-0 snap-start px-1.5 md:px-2 py-1 rounded-md border transition-colors min-w-[100px] md:min-w-[150px] max-w-[140px] md:max-w-[170px] ${
                     selectedMapItemId === item.id
                       ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-300/60 dark:border-blue-700/60 ring-1 ring-blue-200/50 dark:ring-blue-800/30'
@@ -3154,12 +3207,12 @@ useEffect(() => {
           )}
         </div>
         
-        {/* Selected Item Info Card - Compact on mobile, anchored bottom-left */}
+        {/* Selected Item Info Card - Compact floating callout, anchored bottom-left */}
         {selectedItem && (
-          <div className="absolute bottom-4 left-4 right-auto max-w-[280px] md:left-6 md:right-auto md:w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 z-20 p-3 md:p-4 duration-150">
+          <div className="absolute bottom-4 left-4 right-auto w-[68%] max-w-[300px] md:left-6 md:right-auto md:w-72 md:max-w-[320px] bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-lg shadow-md border border-slate-200/50 dark:border-slate-700/50 z-20 p-2.5 md:p-3 duration-150">
             {/* Mobile: Compact layout */}
             <div className="md:hidden">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2">
                 <div className={`w-5 h-5 rounded flex items-center justify-center font-bold text-[10px] flex-shrink-0 ${
                   selectedItem.type === 'business' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
                   selectedItem.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
@@ -3167,10 +3220,10 @@ useEffect(() => {
                   {selectedItem.type === 'business' ? '🏠' : selectedItem.stopNumber}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-semibold text-foreground truncate leading-tight">
+                  <p className="text-[12px] font-semibold text-foreground truncate leading-tight">
                     {selectedItem.type === 'business' ? selectedItem.title : (selectedItem.title || selectedItem.customerName || 'Untitled')}
                   </p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate leading-tight mt-0.5">
+                  <p className="text-[10px] text-slate-400 dark:text-slate-400 truncate leading-tight mt-0.5">
                     {selectedItem.type === 'business' ? 'Home Base' : (
                       <>
                         {selectedItem.type === 'job' ? 'Job' : 'Appointment'} {formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime) && ` · ${formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime)}`}
@@ -3180,7 +3233,7 @@ useEffect(() => {
                 </div>
                 <button
                   onClick={closeSelectedItem}
-                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors duration-150 flex-shrink-0"
+                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors duration-150 flex-shrink-0"
                   aria-label="Close"
                 >
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3192,62 +3245,54 @@ useEffect(() => {
               {selectedItem.type !== 'business' && (
                 <button
                   onClick={() => handleViewItem(selectedItem)}
-                  className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors duration-150"
+                  className="text-[10px] text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 font-medium transition-colors duration-150 mt-1.5"
                 >
                   View details →
                 </button>
               )}
             </div>
 
-            {/* Desktop: Simplified layout */}
+            {/* Desktop: Compact layout */}
             <div className="hidden md:block">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2.5">
-                  {selectedItem.type === 'business' ? (
-                    <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
-                      🏠
-                    </div>
-                  ) : (
-                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs ${
-                      selectedItem.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                    }`}>
-                      {selectedItem.stopNumber}
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="font-semibold text-sm text-slate-900 dark:text-foreground leading-tight">
-                      {selectedItem.type === 'business' ? selectedItem.title : (selectedItem.title || selectedItem.customerName || 'Untitled')}
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
-                      {selectedItem.type === 'business' ? 'Home Base' : (
-                        <>
-                          {selectedItem.type === 'job' ? 'Job' : 'Appointment'} {formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime) && ` · ${formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime)}`}
-                        </>
-                      )}
-                    </p>
+              <div className="flex items-center gap-2">
+                {selectedItem.type === 'business' ? (
+                  <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex-shrink-0">
+                    🏠
                   </div>
+                ) : (
+                  <div className={`w-5 h-5 rounded flex items-center justify-center font-bold text-[10px] flex-shrink-0 ${
+                    selectedItem.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                  }`}>
+                    {selectedItem.stopNumber}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-[13px] text-slate-900 dark:text-foreground leading-tight truncate">
+                    {selectedItem.type === 'business' ? selectedItem.title : (selectedItem.title || selectedItem.customerName || 'Untitled')}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight truncate">
+                    {selectedItem.type === 'business' ? 'Home Base' : (
+                      <>
+                        {selectedItem.type === 'job' ? 'Job' : 'Appointment'} {formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime) && ` · ${formatTimeRangeHHMM(selectedItem.scheduledTime, selectedItem.scheduledEndTime)}`}
+                      </>
+                    )}
+                  </p>
                 </div>
                 <button
                   onClick={closeSelectedItem}
-                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors duration-150"
+                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors duration-150 flex-shrink-0"
                   aria-label="Close"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
 
-              {selectedItem.address && (
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-3 truncate leading-tight">
-                  {selectedItem.address}
-                </p>
-              )}
-
               {selectedItem.type !== 'business' && (
                 <button
                   onClick={() => handleViewItem(selectedItem)}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors duration-150"
+                  className="text-[11px] text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 font-medium transition-colors duration-150 mt-1.5"
                 >
                   View details →
                 </button>

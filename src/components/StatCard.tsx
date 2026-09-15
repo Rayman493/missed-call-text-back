@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useTapGuard } from '@/lib/gesture/use-tap-guard'
 
@@ -36,6 +36,36 @@ export default function StatCard({
   // Shared tap-vs-drag guard. Suppresses onClick when the user is
   // scrolling/dragging across the card. Only a deliberate tap activates.
   const guard = useTapGuard()
+  // Explicit pressed state for tap feedback. Set on pointerdown, cleared
+  // when movement exceeds threshold (scroll), on pointerup, or on
+  // pointercancel. This replaces the browser's :active pseudo-class which
+  // can linger after a short swipe on mobile, leaving a half-pressed look.
+  const [pressed, setPressed] = useState(false)
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    setPressed(true)
+    guard.onPointerDown(e)
+  }, [guard])
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    // Clear pressed state as soon as the gesture is classified as a drag.
+    // This prevents the half-pressed visual from lingering during a scroll.
+    if (pressed && guard.isDragging()) {
+      setPressed(false)
+    }
+    guard.onPointerMove(e)
+  }, [guard, pressed])
+
+  const handlePointerUp = useCallback(() => {
+    setPressed(false)
+    guard.onPointerUp()
+  }, [guard])
+
+  const handlePointerCancel = useCallback(() => {
+    setPressed(false)
+    guard.onPointerCancel()
+  }, [guard])
+
   // Unified card foundation
   const baseClasses = `
     relative overflow-hidden
@@ -46,13 +76,18 @@ export default function StatCard({
     h-full
   `
 
-  // Interactive hover states
+  // Interactive hover states — gated to hover-capable devices only.
+  // On touch devices, :hover persists after a tap and causes a lingering
+  // half-pressed look. The [@media(hover:hover)] variant ensures these
+  // effects only apply on devices with a real pointer (desktop).
   const interactiveClasses = isInteractive ? `
     cursor-pointer
-    transition-all duration-200
-    hover:-translate-y-0.5
-    hover:shadow-sm
-    hover:border-slate-300/80 dark:hover:border-slate-600/60
+    transition-colors duration-150
+    [@media(hover:hover)]:hover:-translate-y-0.5
+    [@media(hover:hover)]:hover:shadow-sm
+    [@media(hover:hover)]:hover:border-slate-300/80
+    dark:[@media(hover:hover)]:hover:border-slate-600/60
+    ${pressed ? 'scale-[0.98] brightness-[0.97]' : ''}
     ${href ? 'group' : ''}
   ` : ''
 
@@ -86,10 +121,10 @@ export default function StatCard({
   const cardContent = (
     <div
       className={`${baseClasses} ${interactiveClasses} ${selectedClasses} ${className}`}
-      onPointerDown={isInteractive && onClick ? guard.onPointerDown : undefined}
-      onPointerMove={isInteractive && onClick ? guard.onPointerMove : undefined}
-      onPointerUp={isInteractive && onClick ? guard.onPointerUp : undefined}
-      onPointerCancel={isInteractive && onClick ? guard.onPointerCancel : undefined}
+      onPointerDown={isInteractive && onClick ? handlePointerDown : undefined}
+      onPointerMove={isInteractive && onClick ? handlePointerMove : undefined}
+      onPointerUp={isInteractive && onClick ? handlePointerUp : undefined}
+      onPointerCancel={isInteractive && onClick ? handlePointerCancel : undefined}
       onPointerLeave={isInteractive && onClick ? guard.onPointerLeave : undefined}
       onClick={isInteractive && onClick ? () => {
         // Suppress activation if this gesture was a drag/scroll

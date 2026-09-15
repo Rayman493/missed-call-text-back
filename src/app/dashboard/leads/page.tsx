@@ -1187,7 +1187,7 @@ export default function LeadsPage() {
                     <button
                       type="button"
                       onClick={() => setShowAddCustomerModal(true)}
-                      className="inline p-0 bg-transparent border-0 text-muted-foreground hover:text-foreground underline decoration-dotted underline-offset-2 cursor-pointer font-normal align-baseline"
+                      className="inline p-0 bg-transparent border-0 text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-700 dark:hover:text-blue-300 focus-visible:underline focus-visible:outline-none font-medium cursor-pointer align-baseline"
                     >
                       manually
                     </button>{' '}

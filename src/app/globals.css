@@ -295,6 +295,22 @@ select {
   font-size: 16px;
 }
 
+/* iOS Safari/WKWebView auto-zooms when form controls have effective
+   font-size below 16px. The rule above is an element selector (0,0,1
+   specificity) which Tailwind utilities like text-sm (0,1,0) override.
+   This mobile-only rule uses !important to ensure 16px on mobile/iOS
+   regardless of Tailwind classes, preventing viewport auto-zoom.
+   Desktop typography is unchanged (rule only applies below 768px).
+   Accessibility zoom support is preserved (no maximum-scale or
+   user-scalable restrictions in the viewport meta). */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 ::selection {
   background: rgba(59, 130, 246, 0.35);
   color: #ffffff;
