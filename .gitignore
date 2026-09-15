@@ -87,3 +87,8 @@ Thumbs.db
 # Security reports
 PENETRATION_TEST_REPORT.md
 SECURITY_AUDIT_FINAL.md
+
+# Local session/scratch artifacts
+.rf_session.json
+supabase/.temp/
+*-fly-logs.txt
