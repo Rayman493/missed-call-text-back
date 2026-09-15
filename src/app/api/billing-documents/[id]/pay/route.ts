@@ -143,7 +143,7 @@ export async function POST(
         description: `Invoice ${invoice.document_number}`,
         status: 'pending',
         checkout_url: session.url,
-        stripe_session_id: session.id,
+        stripe_checkout_session_id: session.id,
         requested_by: user.id,
       })
       .select()
