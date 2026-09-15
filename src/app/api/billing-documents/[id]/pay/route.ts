@@ -159,6 +159,29 @@ export async function POST(
       .update({ payment_request_id: paymentRequest.id })
       .eq('id', invoice.id)
 
+    // Update Stripe payment intent metadata so the webhook can reconcile
+    // (matches the canonical /api/payments/create pattern)
+    try {
+      if (session.payment_intent) {
+        await stripe.paymentIntents.update(
+          session.payment_intent as string,
+          {
+            metadata: {
+              payment_request_id: paymentRequest.id,
+              business_id: String(business.id),
+              lead_id: String(invoice.customer_id || ''),
+              invoice_id: String(invoice.id),
+              invoice_number: String(invoice.document_number),
+              source: 'billing_invoice',
+            },
+          }
+        )
+      }
+    } catch (metadataError) {
+      console.error('[INVOICE PAY] Failed to update payment intent metadata:', metadataError)
+      // Non-critical — webhook can still reconcile via stripe_checkout_session_id lookup
+    }
+
     return NextResponse.json({
       success: true,
       checkout_url: session.url,

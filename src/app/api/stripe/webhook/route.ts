@@ -1822,8 +1822,15 @@ export async function POST(request: Request) {
         console.log('[PAYMENT WEBHOOK] Final payment request ID:', paymentRequestId)
         
         if (!paymentRequestId) {
-          console.log('[PAYMENT WEBHOOK] Not a payment request, skipping')
-          break
+          // Billing invoice pay route sets source: 'billing_invoice' and invoice_id
+          // in metadata but not payment_request_id (created after the Stripe session).
+          // Fall through to the stripe_checkout_session_id lookup below to reconcile.
+          if (metadata.source === 'billing_invoice' || metadata.invoice_id) {
+            console.log('[PAYMENT WEBHOOK] No payment_request_id in metadata, but billing_invoice source detected — reconciling via session ID lookup')
+          } else {
+            console.log('[PAYMENT WEBHOOK] Not a payment request, skipping')
+            break
+          }
         }
 
         // Update payment_request record
