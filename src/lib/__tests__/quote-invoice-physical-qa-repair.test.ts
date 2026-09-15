@@ -27,9 +27,13 @@ describe('PDF PRODUCTION PACKAGING', () => {
     expect(pdfRouteSrc).toContain("runtime = 'nodejs'")
   })
 
-  it('2. next.config.js externalizes @react-pdf/renderer', () => {
-    expect(nextConfigSrc).toContain("'@react-pdf/renderer'")
+  it('2. next.config.js relies on Next.js default externalization for @react-pdf/renderer', () => {
+    // @react-pdf/renderer is in Next.js 15's default serverExternalPackages
+    // list; commit 153fc37f removed the explicit entry when the React #31
+    // root cause was fixed via the @react-pdf/reconciler patch.
     expect(nextConfigSrc).toContain('serverExternalPackages')
+    expect(nextConfigSrc).toContain("'pdfkit'")
+    expect(nextConfigSrc).toContain("'@react-pdf/font'")
   })
 
   it('3. no manual Helvetica.cjs path references', () => {

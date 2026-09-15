@@ -68,15 +68,16 @@ export async function buildDocumentPresentation(
       address: doc.snapshot_customer_address,
     }
   } else if (doc.customer_id) {
+    // leads columns: contact_name, caller_phone (no name/phone/email columns exist)
     const { data: lead } = await supabase
       .from('leads')
-      .select('contact_name, name, caller_phone, phone, email')
+      .select('contact_name, caller_phone')
       .eq('id', doc.customer_id)
       .maybeSingle()
     customerData = {
-      name: lead?.contact_name || lead?.name || null,
-      phone: lead?.caller_phone || lead?.phone || null,
-      email: lead?.email || null,
+      name: lead?.contact_name || null,
+      phone: lead?.caller_phone || null,
+      email: null,
       address: null,
     }
   } else {
@@ -169,14 +170,15 @@ export async function createSnapshot(
   let customerEmail: string | null = null
 
   if (doc.customer_id) {
+    // leads columns: contact_name, caller_phone (no name/phone/email columns exist)
     const { data: lead } = await supabase
       .from('leads')
-      .select('contact_name, name, caller_phone, phone, email')
+      .select('contact_name, caller_phone')
       .eq('id', doc.customer_id)
       .maybeSingle()
-    customerName = lead?.contact_name || lead?.name || null
-    customerPhone = lead?.caller_phone || lead?.phone || null
-    customerEmail = lead?.email || null
+    customerName = lead?.contact_name || null
+    customerPhone = lead?.caller_phone || null
+    customerEmail = null
   }
 
   return {
