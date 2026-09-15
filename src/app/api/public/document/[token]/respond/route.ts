@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +12,10 @@ export const dynamic = 'force-dynamic'
  * - Only works for quotes
  * - Only works when status is 'sent' (or already accepted/declined for idempotency)
  * - Cancelled/expired quotes cannot be accepted
+ *
+ * Uses the service role key because RLS blocks anon reads/updates of
+ * billing_documents. The route only mutates the document matching the specific
+ * token and only transitions sent→accepted/declined, so this is safe.
  */
 export async function POST(
   request: Request,
@@ -30,18 +33,10 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     }
 
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll() },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-          },
-        },
-      }
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
     // Fetch by public token

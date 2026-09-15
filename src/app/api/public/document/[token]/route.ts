@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 import { buildDocumentPresentation } from '@/lib/billing/document-builder'
 
 export const dynamic = 'force-dynamic'
@@ -9,6 +8,10 @@ export const dynamic = 'force-dynamic'
  * GET /api/public/document/[token]
  * Public endpoint: fetch a billing document by its public token.
  * No authentication required. Only returns the document matching the token.
+ *
+ * Uses the service role key because RLS blocks anon reads of billing_documents.
+ * The route only exposes data for the specific token and only for post-send
+ * statuses, so this is safe — the service role key never reaches the client.
  */
 export async function GET(
   request: Request,
@@ -20,18 +23,10 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid token' }, { status: 404 })
     }
 
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll() },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-          },
-        },
-      }
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
     // Fetch by public token only — no business_id filter (public route)
