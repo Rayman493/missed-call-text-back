@@ -613,23 +613,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }, [isFullScreen])
 
-  // Preserve and restore scroll position when toggling full-screen
+  // Preserve and restore scroll position when toggling full-screen.
+  // If the user was following latest, anchor the active (fullscreen) container to true bottom
+  // on open and re-anchor the normal container on close instead of copying a stale scroll offset.
   useEffect(() => {
-    const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
+    if (typeof window === 'undefined') return
+    const isDesktop = window.innerWidth >= 1024
     const source = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
-    if (isFullScreen) {
-      preservedScrollRef.current = source?.scrollTop || 0
-      if (typeof window !== 'undefined') {
-        const id = window.requestAnimationFrame(() => {
-          if (fullScreenScrollRef.current) {
-            fullScreenScrollRef.current.scrollTop = preservedScrollRef.current
-          }
+    const active = isFullScreen ? fullScreenScrollRef.current : source
+    const wasFollowingLatest = followLatestRef.current
+
+    if (wasFollowingLatest) {
+      // Anchor to true bottom of the active container after layout settles.
+      const raf = requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (active) active.scrollTop = active.scrollHeight
         })
-        return () => { if (typeof window.cancelAnimationFrame === 'function') window.cancelAnimationFrame(id) }
-      }
+      })
+      return () => cancelAnimationFrame(raf)
     } else {
-      const target = source
-      if (target) target.scrollTop = preservedScrollRef.current
+      // User was reading history: preserve relative position as before.
+      if (isFullScreen) {
+        if (source) preservedScrollRef.current = source.scrollTop || 0
+        const raf = requestAnimationFrame(() => {
+          if (fullScreenScrollRef.current) fullScreenScrollRef.current.scrollTop = preservedScrollRef.current
+        })
+        return () => cancelAnimationFrame(raf)
+      } else {
+        if (source) source.scrollTop = preservedScrollRef.current
+      }
     }
   }, [isFullScreen])
 
@@ -1239,17 +1251,34 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       })
     }
 
-    // Add Customer Sent Photos event
-    const messagesWithPhotos = messages.filter((msg: any) => msg.media_count && msg.media_count > 0)
-    if (messagesWithPhotos.length > 0) {
-      const firstPhotoMessage = messagesWithPhotos[0]
-      const totalPhotos = messagesWithPhotos.reduce((sum: number, msg: any) => sum + (msg.media_count || 0), 0)
+    // Add Photo attachment summary events, split by direction
+    const inboundPhotoMessages = messages.filter((msg: any) => msg.media_count && msg.media_count > 0 && msg.direction === 'inbound')
+    const outboundPhotoMessages = messages.filter((msg: any) => msg.media_count && msg.media_count > 0 && msg.direction === 'outbound')
+
+    if (inboundPhotoMessages.length > 0) {
+      const firstPhotoMessage = inboundPhotoMessages[0]
+      const totalPhotos = inboundPhotoMessages.reduce((sum: number, msg: any) => sum + (msg.media_count || 0), 0)
       systemEvents.push({
         type: 'system_event',
         id: `customer-sent-photos-${leadData.id}`,
         created_at: firstPhotoMessage.created_at,
         data: {
-          message: `Customer Sent ${totalPhotos} Photo${totalPhotos > 1 ? 's' : ''}`,
+          message: `Customer sent ${totalPhotos} photo${totalPhotos > 1 ? 's' : ''}`,
+          timestamp: firstPhotoMessage.created_at,
+          isDivider: true
+        }
+      })
+    }
+
+    if (outboundPhotoMessages.length > 0) {
+      const firstPhotoMessage = outboundPhotoMessages[0]
+      const totalPhotos = outboundPhotoMessages.reduce((sum: number, msg: any) => sum + (msg.media_count || 0), 0)
+      systemEvents.push({
+        type: 'system_event',
+        id: `business-sent-photos-${leadData.id}`,
+        created_at: firstPhotoMessage.created_at,
+        data: {
+          message: `You sent ${totalPhotos} photo${totalPhotos > 1 ? 's' : ''}`,
           timestamp: firstPhotoMessage.created_at,
           isDivider: true
         }
@@ -3430,8 +3459,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const handleMobileTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value)
     const textarea = e.target
+    const BASE_HEIGHT = 48
     textarea.style.height = 'auto'
-    const newHeight = Math.min(textarea.scrollHeight, 120)
+    const newHeight = Math.max(BASE_HEIGHT, Math.min(textarea.scrollHeight, 120))
     textarea.style.height = newHeight + 'px'
     setMobileTextareaAtMax(textarea.scrollHeight >= 120)
     // Reset scrollTop when empty or content fits (prevents placeholder drift)
@@ -5209,13 +5239,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                   setInternalNotesValue(leadData?.notes || '')
                                   setShowInternalNotesModal(true)
                                 }}
-                                className="w-full flex items-start gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200 cursor-pointer text-left"
+                                className="w-full flex items-start p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200 cursor-pointer text-left"
                               >
-                                <div className="flex-shrink-0 w-6 h-6 rounded bg-slate-500/10 flex items-center justify-center">
-                                  <svg className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                </div>
                                 <p className="min-w-0 flex-1 text-xs text-foreground line-clamp-3 break-words whitespace-pre-wrap">{note.trim()}</p>
                               </button>
                             ))}
@@ -5397,7 +5422,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           spellCheck={true}
                           autoComplete="on"
                           enterKeyHint="send"
-                          className={`composer-textarea-no-scrollbar w-full min-h-[44px] max-h-[120px] px-1.5 py-3 bg-transparent text-foreground resize-none focus:outline-none text-base leading-relaxed h-11 placeholder:text-muted-foreground/50 ${
+                          className={`composer-textarea-no-scrollbar w-full min-h-[48px] max-h-[120px] px-1.5 py-3 bg-transparent text-foreground resize-none focus:outline-none text-base leading-relaxed h-12 placeholder:text-muted-foreground/50 ${
                             mobileTextareaAtMax ? 'overflow-y-auto' : 'overflow-y-hidden'
                           }`}
                           rows={1}
@@ -5883,13 +5908,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         setInternalNotesValue(leadData?.notes || '')
                         setShowInternalNotesModal(true)
                       }}
-                      className="w-full flex items-start gap-2.5 p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors cursor-pointer text-left"
+                      className="w-full flex items-start p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors cursor-pointer text-left"
                     >
-                      <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center mt-0.5">
-                        <svg className="w-3.5 h-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </div>
                       <p className="min-w-0 flex-1 text-xs text-foreground leading-snug line-clamp-3 break-words whitespace-pre-wrap">{note.trim()}</p>
                     </button>
                   ))}

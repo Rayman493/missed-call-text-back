@@ -346,9 +346,10 @@ export default function ConversationComposer({
     setMessage(e.target.value)
     const textarea = e.target
     
-    // Auto-grow textarea
+    // Auto-grow textarea; keep one-line base height stable.
+    const BASE_HEIGHT = 48
     textarea.style.height = 'auto'
-    const newHeight = Math.min(textarea.scrollHeight, 150)
+    const newHeight = Math.max(BASE_HEIGHT, Math.min(textarea.scrollHeight, 150))
     textarea.style.height = newHeight + 'px'
     
     // Show scrollbar only when at max height
@@ -485,12 +486,12 @@ export default function ConversationComposer({
               autoCapitalize="sentences"
               autoComplete="on"
               spellCheck={true}
-              className={`flex-1 pl-2 pr-3 py-2.5 bg-transparent text-foreground resize-none focus:outline-none text-base leading-normal h-11 placeholder:text-muted-foreground/40 ${
+              className={`flex-1 pl-2 pr-3 py-2.5 bg-transparent text-foreground resize-none focus:outline-none text-base leading-normal h-12 min-h-[48px] placeholder:text-muted-foreground/40 ${
                 isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
               }`}
               rows={1}
               style={{ 
-                minHeight: '44px', 
+                minHeight: '48px',
                 maxHeight: '144px',
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',

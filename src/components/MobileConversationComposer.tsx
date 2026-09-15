@@ -186,10 +186,11 @@ export default function MobileConversationComposer({
     const newValue = e.target.value
     setMessage(newValue)
     
-    // Auto-resize on change
+    // Auto-resize on change; keep one-line base height stable.
     const textarea = e.target
+    const BASE_HEIGHT = 48
     textarea.style.height = 'auto'
-    textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px'
+    textarea.style.height = Math.max(BASE_HEIGHT, Math.min(textarea.scrollHeight, 100)) + 'px'
     
     // Show scrollbar only when at max height
     setIsAtMaxHeight(textarea.scrollHeight >= 100)
@@ -304,13 +305,12 @@ export default function MobileConversationComposer({
                 autoComplete="on"
                 spellCheck={true}
                 data-testid="composer-textarea-mobile"
-                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-muted-foreground text-sm leading-relaxed py-3 px-1 max-h-32 text-foreground disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-muted-foreground text-sm leading-relaxed py-3 px-1 max-h-32 min-h-[48px] text-foreground disabled:opacity-50 disabled:cursor-not-allowed ${
                   isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
                 }`}
                 rows={1}
                 style={{ 
-                  fieldSizing: 'content', 
-                  minHeight: '44px',
+                  minHeight: '48px',
                   scrollbarWidth: 'none',
                   msOverflowStyle: 'none',
                   touchAction: isAtMaxHeight ? 'pan-y' : 'none'

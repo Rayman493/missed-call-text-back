@@ -795,7 +795,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 return null
               })()}
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {(() => {
                   // Defensive check: only render if we have a valid array
                   if (!Array.isArray(normalizedTranscript) || normalizedTranscript.length === 0) {
@@ -830,13 +830,13 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                       {/* Message bubble */}
                       <div className={`flex ${isAI ? 'flex-row' : 'flex-row-reverse'}`}>
                         <div
-                          className={`px-3 py-2 rounded-2xl text-sm max-w-[85%] ${
+                          className={`px-3 py-2 rounded-2xl text-sm max-w-[80%] min-w-[4rem] ${
                             isAI
                               ? 'bg-blue-50 dark:bg-blue-900/20 text-foreground'
                               : 'bg-slate-100 dark:bg-slate-800 text-foreground'
                           }`}
                         >
-                          <p className="leading-relaxed whitespace-pre-wrap break-words">
+                          <p className="leading-snug whitespace-pre-wrap break-words min-w-[4rem]">
                             {turn.content}
                           </p>
                           {turn.timestamp && (
