@@ -550,11 +550,18 @@ describe('DOCUMENT LIST POLISH', () => {
     expect(listSrc).toContain('Convert to Invoice')
   })
 
-  it('paid/cancelled show View + Download only; declined shows View + Edit + Download', () => {
-    // Declined now has its own block with Edit for revision
-    expect(listSrc).toContain('isPaid || isCancelled')
-    expect(listSrc).toContain('isDeclined')
-    expect(listSrc).toContain('Declined: View + Edit + Download')
+  it('all statuses use same 5 action slots in canonical order', () => {
+    // Canonical order: Edit, Send/Resend, Download, View, Delete
+    // Disabled actions render as muted spans, not buttons
+    expect(listSrc).toContain('Slot 1: Edit')
+    expect(listSrc).toContain('Slot 2: Send / Resend / Convert')
+    expect(listSrc).toContain('Slot 3: Download')
+    expect(listSrc).toContain('Slot 4: View')
+    expect(listSrc).toContain('Slot 5: Delete')
+    // Draft enables all 5; sent enables Resend+Download+View; accepted enables Convert+Download+View
+    expect(listSrc).toContain('isDraft')
+    expect(listSrc).toContain('isSent')
+    expect(listSrc).toContain('isAccepted')
   })
 })
 

@@ -436,8 +436,14 @@ export default function PaymentsPage() {
     }
   }
 
-  const handleBillingSaved = () => {
+  const handleBillingSaved = (savedDoc?: BillingDocumentData) => {
     fetchBillingDocuments()
+    // Switch to the matching type filter so the newly created record is visible
+    if (savedDoc?.document_type === 'quote' && billingTypeFilter !== 'quote') {
+      setBillingTypeFilter('quote')
+    } else if (savedDoc?.document_type === 'invoice' && billingTypeFilter !== 'invoice') {
+      setBillingTypeFilter('invoice')
+    }
   }
 
   const handleDeleteBillingDoc = async (doc: BillingDocumentListItem) => {
@@ -971,7 +977,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           {/* Quote / Invoice Card */}
           <button
             onClick={() => setShowBillingChooser(true)}
-            className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.995]
+            className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.995] min-h-[120px]
             bg-violet-600 dark:bg-violet-500 border-violet-700 dark:border-violet-600 hover:bg-violet-700 dark:hover:bg-violet-600 shadow-[0_6px_18px_rgba(0,0,0,0.15)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
           >
             <div className="flex items-center gap-3.5 mb-2.5">
@@ -989,7 +995,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           {/* Request Payment Card */}
           <button
             onClick={handleStartPaymentRequest}
-            className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.995]
+            className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.995] min-h-[120px]
             bg-blue-600 dark:bg-blue-500 border-blue-700 dark:border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-600 shadow-[0_6px_18px_rgba(0,0,0,0.15)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
           >
             <div className="flex items-center gap-3.5 mb-2.5">
@@ -1015,7 +1021,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               return (
                 <button
                   onClick={() => setShowQuickTapToPay(true)}
-                  className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995]
+                  className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995] min-h-[120px]
                   bg-emerald-700 dark:bg-emerald-600 border-emerald-800 dark:border-emerald-700 hover:bg-emerald-800 dark:hover:bg-emerald-700 shadow-[0_6px_18px_rgba(0,0,0,0.15)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
                 >
                   <div className="flex items-center gap-3.5 mb-2.5">
@@ -1023,7 +1029,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                       <AppleTapToPayIcon size={20} color="#ffffff" className="text-white dark:text-white" />
                     </div>
                     <div>
-                      <h3 className="text-white dark:text-white font-semibold text-base sm:text-lg leading-tight">Tap to Pay</h3>
+                      <h3 className="text-white dark:text-white font-semibold text-sm sm:text-base leading-tight">Tap to Pay</h3>
                       <p className="text-emerald-100 dark:text-emerald-100 text-xs">Collect in-person</p>
                     </div>
                   </div>
@@ -1035,7 +1041,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             // State 3: Stripe ready + device unsupported (web)
             if (!isNativeSupported && isStripeReady) {
               return (
-                <div className="rounded-2xl p-4 sm:p-5 border border-slate-200/60 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/50 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.18)]">
+                <div className="rounded-2xl p-4 sm:p-5 border border-slate-200/60 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/50 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.18)] min-h-[120px]">
                   <div className="flex items-center gap-3.5 mb-2.5">
                     <div className="w-10 h-10 rounded-xl bg-slate-200/60 dark:bg-slate-700/60 ring-1 ring-inset ring-slate-300/40 dark:ring-slate-600/40 flex items-center justify-center">
                       <AppleTapToPayIcon size={20} className="text-slate-500 dark:text-slate-400" />
@@ -1055,7 +1061,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               return (
                 <button
                   onClick={() => setShowTapToPaySetup(true)}
-                  className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995]
+                  className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995] min-h-[120px]
                   bg-green-50 dark:bg-green-800/60 border-green-200/50 dark:border-green-700/60 hover:border-green-300 dark:hover:border-green-600/50 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
                 >
                   <div className="flex items-center gap-3.5 mb-2.5">
@@ -1076,7 +1082,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             return (
               <button
                 onClick={() => setShowTapToPaySetup(true)}
-                className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995]
+                className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995] min-h-[120px]
                 bg-green-50 dark:bg-green-900/40 border-green-200/50 dark:border-green-800/50 hover:border-green-300 dark:hover:border-green-700/50 shadow-[0_6px_18px_rgba(0,0,0,0.08)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
               >
                 <div className="flex items-center gap-3.5 mb-2.5">
@@ -1824,7 +1830,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         {/* ===== Quotes & Invoices Segment ===== */}
         {paymentsSegment === 'billing' && (
         <div className="mt-2">
-          {/* Billing type filter */}
+          {/* Billing type filter + create button */}
           <div className="flex items-center gap-1 mb-4 p-1 bg-muted/50 dark:bg-slate-800/50 rounded-lg w-fit max-w-full">
             <button
               onClick={() => setBillingTypeFilter('all')}
@@ -1855,6 +1861,14 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               }`}
             >
               Invoices
+            </button>
+            <button
+              onClick={() => setShowBillingChooser(true)}
+              className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-card dark:hover:bg-slate-700 transition-colors ml-0.5"
+              aria-label="Create Quote or Invoice"
+              title="Create Quote or Invoice"
+            >
+              <span className="text-lg leading-none font-medium">+</span>
             </button>
           </div>
 

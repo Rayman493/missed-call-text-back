@@ -112,6 +112,8 @@ export default function BillingEditorModal({
   const [terms, setTerms] = useState('')
   const [discountCents, setDiscountCents] = useState('0')
   const [taxCents, setTaxCents] = useState('0')
+  const [taxMode, setTaxMode] = useState<'percent' | 'dollars'>('percent')
+  const [taxPercent, setTaxPercent] = useState('0')
   const [lineItems, setLineItems] = useState<BillingLineItem[]>([emptyLineItem()])
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -154,6 +156,9 @@ export default function BillingEditorModal({
       setTerms(existingDocument.terms || '')
       setDiscountCents(centsToDollars(existingDocument.discount_cents))
       setTaxCents(centsToDollars(existingDocument.tax_cents))
+      // Load existing docs in $ mode to preserve exact saved tax amount
+      setTaxMode('dollars')
+      setTaxPercent('0')
       setLineItems(
         existingDocument.line_items && existingDocument.line_items.length > 0
           ? existingDocument.line_items.map((item) => {
@@ -186,6 +191,8 @@ export default function BillingEditorModal({
       setTerms('')
       setDiscountCents('0.00')
       setTaxCents('0.00')
+      setTaxMode('percent')
+      setTaxPercent('0')
       setLineItems([emptyLineItem()])
     }
     setSavedDoc(null)
@@ -349,7 +356,10 @@ export default function BillingEditorModal({
     return sum + Math.round(qty * priceCents)
   }, 0)
   const discount = dollarsToCents(discountCents)
-  const tax = dollarsToCents(taxCents)
+  // Tax: percent mode computes from subtotal, $ mode uses absolute input
+  const tax = taxMode === 'percent'
+    ? Math.round(subtotal * (parseFloat(taxPercent) || 0) / 100)
+    : dollarsToCents(taxCents)
   const total = Math.max(0, subtotal - discount + tax)
 
   // Build a preview presentation from current editor state (live data)
@@ -360,7 +370,9 @@ export default function BillingEditorModal({
       return sum + Math.round(qty * priceCents)
     }, 0)
     const disc = dollarsToCents(discountCents)
-    const tx = dollarsToCents(taxCents)
+    const tx = taxMode === 'percent'
+      ? Math.round(subtotal * (parseFloat(taxPercent) || 0) / 100)
+      : dollarsToCents(taxCents)
     const total = Math.max(0, subtotal - disc + tx)
     return {
       document_type: documentType,
@@ -393,7 +405,7 @@ export default function BillingEditorModal({
       terms: terms || null,
       payment_url: null,
     }
-  }, [lineItems, discountCents, taxCents, issueDate, validUntil, dueDate, isInvoice, documentType, existingDocument, savedDoc, customerName, customerPhone, customerEmail, notes, terms, business])
+  }, [lineItems, discountCents, taxCents, taxMode, taxPercent, issueDate, validUntil, dueDate, isInvoice, documentType, existingDocument, savedDoc, customerName, customerPhone, customerEmail, notes, terms, business])
 
   const handleSaveDraft = useCallback(async () => {
     setIsSaving(true)
@@ -479,17 +491,15 @@ export default function BillingEditorModal({
   }
 
   const footer = (
-    <div className="flex items-center justify-between gap-2 flex-wrap">
-      <div className="flex items-center gap-2">
-        <button
-          onClick={handlePreview}
-          className="px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
-          disabled={isSaving}
-        >
-          <Eye className="w-4 h-4" />
-          Preview
-        </button>
-      </div>
+    <div className="flex items-center justify-between gap-3">
+      <button
+        onClick={handlePreview}
+        className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
+        disabled={isSaving}
+      >
+        <Eye className="w-4 h-4" />
+        Preview
+      </button>
       <div className="flex items-center gap-2">
         <button
           onClick={handleAttemptClose}
@@ -501,10 +511,10 @@ export default function BillingEditorModal({
         <button
           onClick={() => handleSaveDraft()}
           disabled={isSaving}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-          Save Draft
+          {existingDocument ? 'Save Changes' : `Create ${isInvoice ? 'Invoice' : 'Quote'}`}
         </button>
       </div>
     </div>
@@ -829,16 +839,50 @@ export default function BillingEditorModal({
             />
           </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Tax ($)</span>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={taxCents}
-              onChange={(e) => { markDirty(); setTaxCents(e.target.value) }}
-              placeholder="0.00"
-              className="w-28 px-2 py-1 text-sm text-right rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            />
+            <span className="text-muted-foreground">Tax</span>
+            <div className="flex items-center gap-1.5">
+              {/* %/$ toggle */}
+              <div className="flex rounded border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => { markDirty(); setTaxMode('percent') }}
+                  className={`px-1.5 py-1 text-[10px] font-medium transition-colors ${
+                    taxMode === 'percent'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  %
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { markDirty(); setTaxMode('dollars') }}
+                  className={`px-1.5 py-1 text-[10px] font-medium transition-colors ${
+                    taxMode === 'dollars'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  $
+                </button>
+              </div>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={taxMode === 'percent' ? taxPercent : taxCents}
+                onChange={(e) => {
+                  markDirty()
+                  if (taxMode === 'percent') {
+                    setTaxPercent(e.target.value)
+                  } else {
+                    setTaxCents(e.target.value)
+                  }
+                }}
+                placeholder={taxMode === 'percent' ? '0' : '0.00'}
+                className="w-20 px-2 py-1 text-sm text-right rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              />
+            </div>
           </div>
           <div className="flex justify-between text-sm font-semibold pt-1.5 border-t border-slate-200 dark:border-slate-700">
             <span>Total</span>

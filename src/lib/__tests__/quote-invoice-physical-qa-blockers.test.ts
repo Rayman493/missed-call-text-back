@@ -1322,7 +1322,10 @@ describe('UNSAVED CHANGES CONFIRMATION', () => {
 
   it('222. markDirty called on discount/tax changes', () => {
     expect(editorSrc).toContain('markDirty(); setDiscountCents')
-    expect(editorSrc).toContain('markDirty(); setTaxCents')
+    // Tax input calls markDirty() then conditionally setTaxPercent or setTaxCents
+    expect(editorSrc).toContain('markDirty()')
+    expect(editorSrc).toContain('setTaxCents')
+    expect(editorSrc).toContain('setTaxPercent')
   })
 
   it('223. successful save calls markClean', () => {
