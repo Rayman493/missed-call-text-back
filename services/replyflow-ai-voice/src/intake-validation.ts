@@ -52,6 +52,9 @@ function isUncertaintyNonAnswer(text: string): boolean {
 
 /**
  * Validate service address - reject refusals but accept flexible address formats
+ *
+ * For onsite service, a plain person name (e.g. "Michael Carter") must NOT
+ * satisfy the address field. Only location-like responses are accepted.
  */
 export function isValidServiceAddress(text: string): boolean {
   if (!text || typeof text !== 'string') return false;
@@ -71,6 +74,36 @@ export function isValidServiceAddress(text: string): boolean {
   ];
   if (nonAnswerPatterns.some(pattern => pattern.test(trimmed))) return false;
 
+  // Reject plain person names (1-2 capitalized words, no address keywords).
+  // A person name like "Michael Carter" must NOT satisfy the address field.
+  // This check only applies when the text has no address/location indicators.
+  if (looksLikePersonNameOnly(trimmed)) return false;
+
+  return true;
+}
+
+/**
+ * Check if text looks like a plain person name with no address/location content.
+ * "Michael Carter" → true (reject as address)
+ * "942 Brookside Avenue" → false (has street number)
+ * "Pittsburgh" → false (single capitalized word, could be city)
+ * "Michael Carter in Pittsburgh" → false (has "in" location marker)
+ */
+function looksLikePersonNameOnly(text: string): boolean {
+  const trimmed = text.trim();
+  // If the text contains address indicators, it's not a person-name-only answer.
+  const addressIndicators = /\b(?:\d+\s|street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl|apartment|apt|suite|unit|in|near|at|located)\b/i;
+  if (addressIndicators.test(trimmed)) return false;
+
+  // Check if it looks like a person name: 1-2 capitalized words, no other content.
+  const words = trimmed.split(/\s+/);
+  if (words.length < 1 || words.length > 2) return false;
+
+  // Each word must be capitalized (first letter upper, rest lower) and alphabetic.
+  const isCapitalizedWord = (w: string) => /^[A-Z][a-z]+$/.test(w);
+  if (!words.every(isCapitalizedWord)) return false;
+
+  // It's a person-name-only answer — reject as address.
   return true;
 }
 
@@ -118,6 +151,10 @@ export function isValidServiceRequest(text: string): boolean {
 
 /**
  * Validate desired completion time - accept flexible timing expressions
+ *
+ * A field extracted for skip-ahead must be semantically plausible for a
+ * completion/timing field before it can satisfy/skip a stage. Work verbs
+ * like "patched", "painted", "repaired" are NOT valid completion times.
  */
 export function isValidCompletionTime(text: string): boolean {
   if (!text || typeof text !== 'string') return false;
@@ -134,7 +171,34 @@ export function isValidCompletionTime(text: string): boolean {
   if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
   if (isUncertaintyNonAnswer(trimmed)) return false;
 
+  // Reject work verbs / action words that are NOT timing expressions.
+  // These are commonly misextracted from service descriptions.
+  const workVerbs = /\b(?:patched|painting|painted|painted|repaired|repaired|replaced|replacing|fixed|fixing|installed|installing|cut|mowed|cleaned|cleaning|checked|checking|serviced|servicing|removed|removing|trimmed|trimming|done|completed|finished|built|demolished|inspected|inspecting)\b/i;
+  if (workVerbs.test(trimmed) && !hasTimingSemantics(trimmed)) {
+    return false;
+  }
+
   return true;
+}
+
+/**
+ * Check if text contains actual timing/urgency semantics.
+ * Valid: tomorrow, this week, next Monday, ASAP, within two weeks, etc.
+ */
+function hasTimingSemantics(text: string): boolean {
+  const lower = text.toLowerCase();
+  // Time units and temporal expressions
+  const timingPatterns = [
+    /\b(?:today|tomorrow|tonight)\b/,
+    /\b(?:this|next|coming|upcoming|following)\s+(?:week|month|year|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday|morning|afternoon|evening)\b/,
+    /\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/,
+    /\b(?:morning|afternoon|evening|night)\b/,
+    /\b(?:in|within|by|before|after|until)\s+\d/i,
+    /\b(?:asap|as soon as possible|right away|immediately|urgent|urgently|no rush|whenever)\b/,
+    /\b(?:in|within)\s+(?:a\s+|the\s+|one|two|three|four|five|couple|few|several|\d+)\s+(?:day|week|month|hour)s?\b/,
+    /\b(?:early|late)\s+(?:next|this)\s+(?:week|month|year)\b/,
+  ];
+  return timingPatterns.some(pattern => pattern.test(lower));
 }
 
 /**
@@ -276,7 +340,8 @@ export function mergeExtractedField(
   candidate: string | null | undefined,
   validator: (text: string) => boolean,
   currentStage: string,
-  transcript: string
+  transcript: string,
+  options?: { isCorrection?: boolean }
 ): boolean {
   // If candidate is undefined or empty, do not clear existing value
   if (candidate === undefined || candidate === null || (typeof candidate === 'string' && candidate.trim().length === 0)) {
@@ -302,7 +367,15 @@ export function mergeExtractedField(
       return false;
     }
 
-    // Allow overwrite if candidate is valid and different (correction scenario)
+    // Allow overwrite when a correction intent is detected — the newest
+    // explicit correction replaces the superseded value. Do not concatenate
+    // old + corrected scalar values.
+    if (options?.isCorrection) {
+      console.log('[correction_overwrite]', { field: fieldName, oldValue: existingValue, newValue: candidate.trim() });
+      (intake as any)[fieldName] = candidate.trim();
+      return true;
+    }
+
     // For now, be conservative: don't overwrite existing valid values
     return false;
   }

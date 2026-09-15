@@ -182,7 +182,7 @@ const ADDRESS_PATTERNS: { pattern: RegExp; type: string }[] = [
   },
   {
     pattern:
-      /\b(\d+\s+[a-z]+\s+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+[a-z]+)?)\b/i,
+      /\b(\d+\s+[a-z]+\s+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+[a-z]+)?(?:\s+in\s+[a-z][a-z\s]+?)?)\b/i,
     type: 'street-address',
   },
   // Privacy-aware partial location: city, neighborhood, or broad area.
@@ -262,6 +262,9 @@ const COMPLETION_PATTERNS: RegExp[] = [
   // Correction/short-form completions: "make it Monday instead" or "I need it Saturday".
   /\b((?:make it|make that|set it for|set it to)\s+([^.,;]+?))(?=\s+instead\b|\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
   /\b((?:i'd like|i would like|i want|i need)\s+it\s+(?:by\s+|on\s+|for\s+)?([^.,;]{2,30}?))(?=\s+instead\b|\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
+  // Standalone temporal words with optional "if possible" / "if you can" qualifier.
+  // Captures "tomorrow", "tomorrow if possible", "today if possible", "this week if possible".
+  /\b((?:today|tomorrow|tonight)(?:\s+if\s+(?:possible|you\s+(?:can|could)))?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
   // Vague completion phrases: keep the full semantic phrase, e.g. "Whenever you can".
   /\b((?:whenever\s+you\s+(?:can|could)|whenever|whenever\s+is\s+(?:fine|good|ok)|no\s+rush|as\s+soon\s+as\s+(?:you\s+can|possible)|asap))(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
   ...EARLY_COMPLETION_PATTERNS,
@@ -379,6 +382,10 @@ function findCallbackMatch(transcript: string): ExtractedMatch | null {
 function findIssueDescription(transcript: string, serviceRequested: string): string | null {
   const detailPatterns = [
     /(?:because|due to|the|it's|its)\s+(?:the\s+)?(?:hinge|handle|door|window|pipe|gutter|roof|floor|wall|ceiling|fence|gate|lock|faucet|sink|toilet|shower|tub|ac|heater|furnace|boiler|electrical|wire|outlet|switch|light|bulb|appliance|machine|device|system|unit)([^.!?]+)/i,
+    // Capture additional context after the main service request: "hole about two feet wide",
+    // "pipe repair", "patched and painted", etc.
+    /(?:hole|opening|gap|crack|leak|break|damage|section)\s+(?:about|around|of|in|after)?\s*[^.!?]{5,80}/i,
+    /(?:patched|painted|repaired|replaced|installed|removed|trimmed|serviced|cut|mowed|cleaned|checked)(?:\s+and\s+(?:patched|painted|repaired|replaced|installed|removed|trimmed|serviced|cut|mowed|cleaned|checked))?[^.!?]{0,60}/i,
   ];
   for (const pattern of detailPatterns) {
     const match = transcript.match(pattern);
