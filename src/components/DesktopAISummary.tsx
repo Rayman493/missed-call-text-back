@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { RefreshCw, Sparkles } from 'lucide-react'
 import { renderAISummary } from '@/lib/ai-summary-markdown'
 
@@ -34,6 +34,38 @@ export default function DesktopAISummary({ leadId, leadData }: DesktopAISummaryP
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasAttempted, setHasAttempted] = useState(false)
+
+  // Reset to the persisted summary for this lead whenever the lead data changes.
+  // This prevents Customer A's summary from lingering after navigation to Customer B,
+  // and invalidates the summary when a newer AI intake has completed after the
+  // summary was generated.
+  //
+  // Legacy notes: ai_summary_updated_at was added together with this component.
+  // If the timestamp is missing, we keep the persisted summary so legacy records
+  // are not treated as permanently stale. We only clear when a known newer call
+  // provably exists.
+  useEffect(() => {
+    const rawMetadata = leadData?.raw_metadata || {}
+    const records = (leadData?.ai_call_records || leadData?.aiCallRecords || []) as any[]
+
+    if (!rawMetadata.ai_summary_updated_at || records.length === 0) {
+      setAiSummary(persistedSummary)
+      return
+    }
+
+    const summaryUpdatedAt = new Date(rawMetadata.ai_summary_updated_at).getTime()
+    const latestCallAt = Math.max(
+      ...records.map(r => new Date(r.completed_at || r.created_at || 0).getTime())
+    )
+
+    if (latestCallAt > summaryUpdatedAt) {
+      // A newer completed call exists than the persisted summary: do not show stale text.
+      setAiSummary(null)
+      setHasAttempted(false)
+    } else {
+      setAiSummary(persistedSummary)
+    }
+  }, [leadId, persistedSummary, leadData])
 
   const handleGenerate = async () => {
     setIsGenerating(true)

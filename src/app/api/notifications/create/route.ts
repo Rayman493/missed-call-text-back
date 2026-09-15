@@ -108,17 +108,16 @@ export async function POST(request: NextRequest) {
       // Without this mapping, resolveCustomerDisplayName() always returns
       // 'Customer' → title is always "New Request" instead of the customer name.
       //
-      // Also pass aiCallRecordId (or callSid as fallback) so the server helper
-      // activates idempotency_key = `ai_${aiCallRecordId}`, preventing duplicate
-      // notifications when both the AI voice service and the voice-status
-      // webhook fire for the same call.
-      const effectiveAiCallRecordId = aiCallRecordId || callSid
+      // Canonical idempotency for ai_intake_completed is the Twilio CallSid.
+      // Always pass both `aiCallRecordId` (DB record) and `callSid` (telephony)
+      // separately so the notification helper can prefer CallSid for dedupe.
       data = {
         leadId,
         leadName: customerName || '',
         leadPhone: customerPhone || '',
         serviceRequested,
-        aiCallRecordId: effectiveAiCallRecordId
+        aiCallRecordId,
+        callSid
       }
       finalTitle = title || 'New Request'
       const nameLabel = customerName || null
@@ -127,7 +126,7 @@ export async function POST(request: NextRequest) {
         ? `${nameLabel} \u2022 ${serviceLabel}`
         : serviceLabel || nameLabel || 'New customer request'
       finalMessage = message || preview
-      console.log('[notification_preview_generated]', { nameLabel, serviceLabel, preview, hasIdempotencyKey: !!effectiveAiCallRecordId })
+      console.log('[notification_preview_generated]', { nameLabel, serviceLabel, preview, hasIdempotencyKey: !!(callSid || aiCallRecordId) })
       finalActionUrl = actionUrl || `/dashboard/leads/${leadId}`
       finalActionText = actionText || 'View Lead'
     } else if (type === 'new_lead') {

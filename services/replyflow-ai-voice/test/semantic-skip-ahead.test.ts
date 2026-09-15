@@ -265,4 +265,121 @@ describe('Semantic Skip-Ahead Extraction', () => {
     expect(intake.callbackTime).to.equal('tomorrow morning');
     expect(result.applied).to.include.members(['customerName', 'serviceRequested', 'serviceAddress', 'desiredCompletionTime', 'callbackTime']);
   });
+
+  // ---------------------------------------------------------------------------
+  // Bug 1 regression — address preservation
+  // ---------------------------------------------------------------------------
+
+  it('preserves full street address with "in <city>" suffix (Bug 1)', () => {
+    const intake: IntakeData = { stage: 'ask_location' };
+    const transcript = '742 Maple Avenue in Pittsburgh';
+    enrichIntakeFromTranscript(transcript, intake, 'ask_location', 'CA-test');
+
+    expect(intake.serviceAddress).to.equal('742 Maple Avenue in Pittsburgh');
+  });
+
+  it('preserves another full street address with "in <city>" suffix (Bug 1)', () => {
+    const intake: IntakeData = { stage: 'ask_location' };
+    const transcript = '1287 Meadowbrook Drive in Pittsburgh';
+    enrichIntakeFromTranscript(transcript, intake, 'ask_location', 'CA-test');
+
+    expect(intake.serviceAddress).to.equal('1287 Meadowbrook Drive in Pittsburgh');
+  });
+
+  it('preserves full street address with city and state (Bug 1)', () => {
+    const intake: IntakeData = { stage: 'ask_location' };
+    const transcript = '742 Maple Avenue, Pittsburgh, Pennsylvania';
+    enrichIntakeFromTranscript(transcript, intake, 'ask_location', 'CA-test');
+
+    expect(intake.serviceAddress).to.equal('742 Maple Avenue, Pittsburgh, Pennsylvania');
+  });
+
+  it('stops address extraction at the semantic boundary and does not absorb timing (Bug 1)', () => {
+    const intake: IntakeData = { stage: 'ask_location' };
+    const transcript = '742 Maple Avenue in Pittsburgh and sometime this week';
+    const result = enrichIntakeFromTranscript(transcript, intake, 'ask_location', 'CA-test');
+
+    expect(intake.serviceAddress).to.equal('742 Maple Avenue in Pittsburgh');
+    // The address must NOT greedily consume the timing text. Extraction of the
+    // timing itself is stage-gated, so at ask_location it is not expected.
+    expect(intake.serviceAddress).to.not.include('sometime this week');
+    expect(result.applied).to.include('serviceAddress');
+  });
+
+  it('correction: newest corrected address wins (Bug 1)', () => {
+    const intake: IntakeData = { stage: 'ask_location', serviceAddress: '742 Maple Avenue in Pittsburgh' };
+    const transcript = 'actually 918 Walnut Street in Pittsburgh';
+    const result = enrichIntakeFromTranscript(transcript, intake, 'ask_location', 'CA-test');
+
+    expect(intake.serviceAddress).to.equal('918 Walnut Street in Pittsburgh');
+    expect(result.applied).to.include('serviceAddress');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Bug 2 regression — details extraction from request sentence
+  // ---------------------------------------------------------------------------
+
+  it('splits spatial detail into issueDescription and keeps service request clean (Bug 2)', () => {
+    const intake: IntakeData = { stage: 'ask_name_reason' };
+    const transcript = 'My kitchen sink is leaking underneath the cabinet';
+    enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-test');
+
+    expect(intake.serviceRequested).to.equal('My kitchen sink is leaking');
+    expect(intake.issueDescription).to.equal('underneath the cabinet');
+  });
+
+  it('captures positional detail behind a fixture (Bug 2)', () => {
+    const intake: IntakeData = { stage: 'ask_name_reason' };
+    const transcript = 'There is water dripping behind the toilet';
+    enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-test');
+
+    expect(intake.issueDescription).to.equal('behind the toilet');
+  });
+
+  it('captures positional detail next to a fixture (Bug 2)', () => {
+    const intake: IntakeData = { stage: 'ask_name_reason' };
+    const transcript = 'The drywall is cracked next to the window';
+    enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-test');
+
+    expect(intake.issueDescription).to.equal('next to the window');
+  });
+
+  it('does not turn a location of service into an issueDescription (Bug 2 negative)', () => {
+    const intake: IntakeData = { stage: 'ask_name_reason' };
+    const transcript = 'I need a plumber in the kitchen';
+    enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-test');
+
+    expect(intake.serviceRequested).to.equal('a plumber in the kitchen');
+    expect(intake.issueDescription).to.be.oneOf([undefined, '']);
+  });
+
+  it('does not turn a general location into an issueDescription (Bug 2 negative)', () => {
+    const intake: IntakeData = { stage: 'ask_name_reason' };
+    const transcript = 'I need someone at the house tomorrow';
+    enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-test');
+
+    expect(intake.serviceRequested).to.not.be.empty;
+    // "at the house" is a service/location context, not a problem detail
+    expect(intake.issueDescription).to.not.equal('at the house');
+  });
+
+  it('does not turn a city/address into an issueDescription (Bug 2 negative)', () => {
+    const intake: IntakeData = { stage: 'ask_name_reason' };
+    const transcript = 'I need my sink fixed in Pittsburgh';
+    enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-test');
+
+    expect(intake.serviceRequested).to.not.be.empty;
+    expect(intake.issueDescription).to.not.equal('in Pittsburgh');
+  });
+
+  it('keeps "in the living room" as service context, not a manufactured issueDescription (Bug 2 boundary)', () => {
+    const intake: IntakeData = { stage: 'ask_name_reason' };
+    const transcript = 'I need painting done in the living room';
+    enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-test');
+
+    // The room is where the service is needed, not a problem detail.
+    // It should stay part of the request and not become an issueDescription.
+    expect(intake.serviceRequested).to.include('in the living room');
+    expect(intake.issueDescription).to.be.oneOf([undefined, '']);
+  });
 });

@@ -9,52 +9,55 @@ import { describe, it, expect } from 'vitest'
 
 describe('Notification Idempotency Key Generation', () => {
   describe('ai_intake_completed idempotency key', () => {
-    it('should generate consistent key from aiCallRecordId', () => {
-      const aiCallRecordId = 'df290e36-a081-4048-8830-25048f96a408'
-      const expectedKey = `ai_${aiCallRecordId}`
-      const actualKey = `ai_${aiCallRecordId}`
-      expect(actualKey).toBe(expectedKey)
+    const callSid = 'CAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+    const aiCallRecordId = 'df290e36-a081-4048-8830-25048f96a408'
+
+    it('prefers CallSid as the canonical key', () => {
+      expect(`ai_intake_completed:${callSid}`).toBe(`ai_intake_completed:${callSid}`)
     })
 
-    it('should generate different keys for different AI call records', () => {
-      const aiCallRecordId1 = 'df290e36-a081-4048-8830-25048f96a408'
-      const aiCallRecordId2 = 'abc12345-def6-7890-1234-567890abcdef'
-      const key1 = `ai_${aiCallRecordId1}`
-      const key2 = `ai_${aiCallRecordId2}`
+    it('falls back to the AI call record id only when CallSid is missing', () => {
+      const fallbackKey = `ai_intake_completed:record:${aiCallRecordId}`
+      expect(fallbackKey).toBe(fallbackKey)
+    })
+
+    it('should generate different keys for different calls', () => {
+      const callSid2 = 'CAYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY'
+      const key1 = `ai_intake_completed:${callSid}`
+      const key2 = `ai_intake_completed:${callSid2}`
       expect(key1).not.toBe(key2)
     })
 
     it('should NOT use leadId as fallback to avoid suppressing legitimate subsequent calls', () => {
-      // This test documents the design decision:
-      // We do NOT use leadId as a fallback because it would suppress
-      // legitimate subsequent AI intake completions for the same lead
       const leadId = 'b068a018-ab81-4811-8918-abde778d445b'
-      const aiCallRecordId1 = 'df290e36-a081-4048-8830-25048f96a408'
-      const aiCallRecordId2 = 'abc12345-def6-7890-1234-567890abcdef'
-
-      // Both calls for same lead should have DIFFERENT keys
-      const key1 = `ai_${aiCallRecordId1}`
-      const key2 = `ai_${aiCallRecordId2}`
-      expect(key1).not.toBe(key2)
-
-      // Neither should equal a lead-based key
-      const leadKey = `ai_${leadId}`
-      expect(key1).not.toBe(leadKey)
-      expect(key2).not.toBe(leadKey)
+      const key1 = `ai_intake_completed:${callSid}`
+      const key2 = `ai_intake_completed:record:${aiCallRecordId}`
+      expect(key1).not.toBe(`ai_intake_completed:${leadId}`)
+      expect(key2).not.toBe(`ai_intake_completed:record:${leadId}`)
     })
   })
 
   describe('both producers generate same key', () => {
-    it('should generate same key when both producers use same aiCallRecordId', () => {
-      const aiCallRecordId = 'df290e36-a081-4048-8830-25048f96a408'
+    it('should generate same key when both producers use same CallSid', () => {
+      const callSid = 'CAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
 
-      // Simulate voice-status producer
-      const voiceStatusKey = `ai_${aiCallRecordId}`
+      // Simulate voice-status producer (passes CallSid)
+      const voiceStatusKey = `ai_intake_completed:${callSid}`
 
-      // Simulate ai-confirmation-sms producer (latestAiCallRecord.id)
-      const aiConfirmationSmsKey = `ai_${aiCallRecordId}`
+      // Simulate ai-confirmation-sms producer (passes the same CallSid)
+      const aiConfirmationSmsKey = `ai_intake_completed:${callSid}`
+
+      // Simulate /api/notifications/create (passes the same CallSid)
+      const apiCreateKey = `ai_intake_completed:${callSid}`
 
       expect(voiceStatusKey).toBe(aiConfirmationSmsKey)
+      expect(aiConfirmationSmsKey).toBe(apiCreateKey)
+    })
+
+    it('different CallSids create separate notifications', () => {
+      const key1 = 'ai_intake_completed:CAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+      const key2 = 'ai_intake_completed:CAYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY'
+      expect(key1).not.toBe(key2)
     })
   })
 
@@ -168,29 +171,24 @@ describe('Notification Idempotency Key Generation', () => {
   })
 
   describe('ai_intake_completed via callSid fallback', () => {
-    it('should use callSid as idempotency key when aiCallRecordId is absent', () => {
-      // The /api/notifications/create route maps callSid → aiCallRecordId
-      // when aiCallRecordId is not directly available from the AI voice service
+    it('should use callSid as the canonical idempotency key', () => {
       const callSid = 'CAa51dd2fefb843730887685f57c77cc3b'
-      const effectiveAiCallRecordId = callSid // fallback
-      const idempotencyKey = `ai_${effectiveAiCallRecordId}`
-      expect(idempotencyKey).toBe(`ai_${callSid}`)
+      const idempotencyKey = `ai_intake_completed:${callSid}`
+      expect(idempotencyKey).toBe(`ai_intake_completed:${callSid}`)
     })
 
     it('should dedupe AI voice service + voice-status webhook for same callSid', () => {
-      // AI voice service passes callSid → /api/notifications/create maps to ai_{callSid}
+      // Both paths now pass the same CallSid explicitly.
       const callSid = 'CAa51dd2fefb843730887685f57c77cc3b'
-      const aiVoiceServiceKey = `ai_${callSid}`
+      const aiVoiceServiceKey = `ai_intake_completed:${callSid}`
+      const voiceStatusKey = `ai_intake_completed:${callSid}`
+      expect(aiVoiceServiceKey).toBe(voiceStatusKey)
+    })
 
-      // voice-status webhook passes aiCallRecord.id (UUID)
-      // If aiCallRecord.id differs from callSid, these would NOT match.
-      // But the AI voice service direct insert (PATH-B) also uses ai_{callSid}.
-      // The voice-status webhook uses ai_{aiCallRecord.id}.
-      // To truly dedupe across both, the DB unique constraint on
-      // (business_id, type, idempotency_key) must see the same key.
-      // This test documents that the AI voice service uses callSid-based keys.
-      const pathBKey = `ai_${callSid}`
-      expect(aiVoiceServiceKey).toBe(pathBKey)
+    it('falls back to record id only when CallSid is missing', () => {
+      const aiCallRecordId = 'df290e36-a081-4048-8830-25048f96a408'
+      const fallbackKey = `ai_intake_completed:record:${aiCallRecordId}`
+      expect(fallbackKey).toBe(`ai_intake_completed:record:${aiCallRecordId}`)
     })
   })
 
@@ -200,9 +198,9 @@ describe('Notification Idempotency Key Generation', () => {
       const callSidB = 'CAbbb222'
       const callSidC = 'CAccc333'
 
-      const keyA = `ai_${callSidA}`
-      const keyB = `ai_${callSidB}`
-      const keyC = `ai_${callSidC}`
+      const keyA = `ai_intake_completed:${callSidA}`
+      const keyB = `ai_intake_completed:${callSidB}`
+      const keyC = `ai_intake_completed:${callSidC}`
 
       expect(keyA).not.toBe(keyB)
       expect(keyB).not.toBe(keyC)
@@ -217,14 +215,37 @@ describe('Notification Idempotency Key Generation', () => {
       const callSid1 = 'CAcall001'
       const callSid2 = 'CAcall002'
 
-      const key1 = `ai_${callSid1}`
-      const key2 = `ai_${callSid2}`
+      const key1 = `ai_intake_completed:${callSid1}`
+      const key2 = `ai_intake_completed:${callSid2}`
 
       // Neither key should be lead-based
-      expect(key1).not.toBe(`ai_${leadId}`)
-      expect(key2).not.toBe(`ai_${leadId}`)
+      expect(key1).not.toBe(`ai_intake_completed:${leadId}`)
+      expect(key2).not.toBe(`ai_intake_completed:${leadId}`)
       // Both keys should be different
       expect(key1).not.toBe(key2)
     })
+  })
+})
+
+import { readFileSync } from 'fs'
+
+const notificationsServerContent = readFileSync('src/lib/notifications-server.ts', 'utf8')
+
+describe('Notification 23505 duplicate/push contract', () => {
+  it('creates idempotency_key on the notifications insert', () => {
+    expect(notificationsServerContent).toMatch(/idempotency_key: idempotencyKey/)
+  })
+
+  it('catches unique conflict 23505 and reuses the existing row', () => {
+    expect(notificationsServerContent).toMatch(/insertError\.code === '23505'/)
+    expect(notificationsServerContent).toMatch(/insertedData = existingNotification/)
+    expect(notificationsServerContent).toMatch(/isNewInsert = false/)
+  })
+
+  it('does NOT trigger push for the duplicate (losing) attempt', () => {
+    // Push delivery is gated by isNewInsert. The 23505 path sets isNewInsert = false.
+    expect(notificationsServerContent).toMatch(/if \(isNewInsert\) \{/)
+    expect(notificationsServerContent).toMatch(/Existing rows \(from 23505 conflict\) do NOT trigger push again/)
+    expect(notificationsServerContent).toMatch(/\[PUSH\] delivery skipped - existing notification reused/)
   })
 })

@@ -3522,7 +3522,7 @@ function extractFieldsFromTranscript(
         type: 'bare-at' as const
       },
       {
-        pattern: /(\d+\s+[a-z]+\s+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+[a-z]+)?)/i,
+        pattern: /\b(\d+\s+[a-z]+\s+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+(?:north|south|east|west|northeast|northwest|southeast|southwest|n|s|e|w|ne|nw|se|sw|apartment|apt|suite|ste|unit|#)(?:\s*[a-z0-9#]+)?)?(?:\s*,?\s*(?:in\s+)?[A-Za-z][A-Za-z\s,]+?)?)(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
         type: 'street-address' as const
       }
     ];
@@ -9359,6 +9359,34 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   };
   // ─────────────────────────────────────────────────────────────────────────
 
+  // Deterministic completion-gate diagnostics for Bug 4.
+  // Call this at every final-stage transition so the next physical call tells us
+  // exactly which gate is open without spaming every audio chunk.
+  const logCompletionGate = (label: string, extra?: Record<string, any>) => {
+    const requiredComplete = resolveNextRequiredStage(state.intakeData, state.serviceLocationType || 'onsite') === 'complete'
+    console.log('[COMPLETION GATE] =========================================')
+    console.log('[COMPLETION GATE] event: completion_gate')
+    console.log('[COMPLETION GATE] label:', label)
+    console.log('[COMPLETION GATE] callSid:', state.callSid)
+    console.log('[COMPLETION GATE] currentStage:', state.currentStage)
+    console.log('[COMPLETION GATE] requiredFieldsComplete:', requiredComplete)
+    console.log('[COMPLETION GATE] assistantSpeaking:', state.assistantSpeaking)
+    console.log('[COMPLETION GATE] transcriptionPending:', state.transcriptionPending)
+    console.log('[COMPLETION GATE] currentTurnId:', state.currentTurnId)
+    console.log('[COMPLETION GATE] activeResponseId:', (state as any).activeResponseId || null)
+    console.log('[COMPLETION GATE] finalGoodbyeMarkSent:', (state as any).finalGoodbyeMarkSent || false)
+    console.log('[COMPLETION GATE] finalGoodbyeMarkReceived:', (state as any).finalGoodbyeMarkReceived || false)
+    console.log('[COMPLETION GATE] simpleModeFinalTimeoutActive:', !!state.simpleModeFinalTimeout)
+    console.log('[COMPLETION GATE] completionPersistenceStarted:', state.completionPersistenceStarted)
+    console.log('[COMPLETION GATE] completionPersistenceFinished:', state.completionPersistenceFinished)
+    console.log('[COMPLETION GATE] completionPersistencePromise:', !!state.completionPersistencePromise)
+    console.log('[COMPLETION GATE] completionOuterPromise:', !!state.completionOuterPromise)
+    console.log('[COMPLETION GATE] intakeSnapshot:', JSON.stringify(state.intakeData))
+    if (extra) console.log('[COMPLETION GATE] extra:', extra)
+    console.log('[COMPLETION GATE] timestamp:', new Date().toISOString())
+    console.log('[COMPLETION GATE] =========================================')
+  }
+
   // Completion persistence function - runs exactly once when intake is complete
   const processSimpleModeCompletion = async () => {
     console.log('[COMPLETION OWNERSHIP] =========================================');
@@ -11701,6 +11729,7 @@ Reply to this message if you'd like to update or add any information.
           console.log('[SIMPLE MODE] event: final_cached_prompt_complete_close_scheduled');
           console.log('[SIMPLE MODE] delayMs:', 2000);
           console.log('[SIMPLE MODE] =========================================');
+          logCompletionGate('cached_prompt_complete_close_scheduled')
           setTimeout(() => {
             const doCompleteClose = () => {
               logSimple('call_complete');
@@ -12856,6 +12885,8 @@ Reply to this message if you'd like to update or add any information.
                   const previousStage = state.currentStage;
                   state.currentStage = 'complete';
 
+                  logCompletionGate('stage_advanced_to_complete', { previousStage, finalField: fieldName })
+
                   console.log('[STAGE TRANSITION] =========================================');
                   console.log('[STAGE TRANSITION] event: final_stage_advanced_to_complete');
                   console.log('[STAGE TRANSITION] trigger: queued_transcript_after_assistant_response');
@@ -12888,6 +12919,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: final_goodbye_audio_done');
             console.log('[SIMPLE MODE] =========================================');
+            logCompletionGate('response_output_audio_done_complete', { activeResponseId: (state as any).activeResponseId })
 
             // Send Twilio mark to track audio playback completion
             const markName = 'final-goodbye-complete';
@@ -12915,6 +12947,7 @@ Reply to this message if you'd like to update or add any information.
               console.log('[SIMPLE MODE] event: final_goodbye_fallback_timeout');
               console.log('[SIMPLE MODE] fallbackMs:', 15000);
               console.log('[SIMPLE MODE] =========================================');
+              logCompletionGate('final_goodbye_fallback_timeout', { fallbackMs: 15000 })
               const doFallbackClose = () => {
                 logSimple('call_complete');
                 ws.close();
@@ -14109,6 +14142,7 @@ Reply to this message if you'd like to update or add any information.
           console.log('[SIMPLE MODE] =========================================');
           console.log('[SIMPLE MODE] event: final_goodbye_mark_received');
           console.log('[SIMPLE MODE] =========================================');
+          logCompletionGate('final_goodbye_mark_received')
 
           // Clear fallback timeout since mark was received
           if (state.simpleModeFinalTimeout) {

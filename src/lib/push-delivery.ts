@@ -113,6 +113,41 @@ export async function sendPushForNotification(notification: {
     return { android: { attempted: 0, successful: 0, failed: 0 }, ios: { attempted: 0, successful: 0, failed: 0 } }
   }
 
+  // Structured exclusion log: explain the token universe for this business.
+  const allDevices = await supabaseAdmin
+    .from('push_devices')
+    .select('push_token, platform, enabled')
+    .eq('business_id', notification.business_id)
+
+  const exclusion = {
+    totalRows: allDevices.data?.length ?? 0,
+    enabledRows: allDevices.data?.filter((d: any) => d.enabled).length ?? 0,
+    disabledRows: allDevices.data?.filter((d: any) => !d.enabled).length ?? 0,
+    androidEnabled: allDevices.data?.filter((d: any) => d.platform === 'android' && d.enabled).length ?? 0,
+    iosEnabled: allDevices.data?.filter((d: any) => d.platform === 'ios' && d.enabled).length ?? 0,
+    androidDisabled: allDevices.data?.filter((d: any) => d.platform === 'android' && !d.enabled).length ?? 0,
+    iosDisabled: allDevices.data?.filter((d: any) => d.platform === 'ios' && !d.enabled).length ?? 0,
+  }
+
+  if (!devices || devices.length === 0) {
+    console.log('[PUSH DELIVERY] No eligible push devices for notification', {
+      notificationId: notification.id,
+      businessId: notification.business_id,
+      exclusion,
+      reason: 'zero_enabled_devices_for_business',
+      correlationId
+    })
+    return { android: { attempted: 0, successful: 0, failed: 0 }, ios: { attempted: 0, successful: 0, failed: 0 } }
+  }
+
+  console.log('[PUSH DELIVERY] Eligible tokens selected', {
+    notificationId: notification.id,
+    businessId: notification.business_id,
+    selectedTokens: devices.length,
+    exclusion,
+    correlationId
+  })
+
   const androidTokens = new Set<string>()
   const iosTokens = new Set<string>()
   for (const d of devices || []) {

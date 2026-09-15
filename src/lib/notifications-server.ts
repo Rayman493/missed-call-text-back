@@ -359,10 +359,16 @@ export class NotificationServiceServer {
     let idempotencyKey: string | null = null
     let useAtomicIdempotency = false
 
-    if (data && data.aiCallRecordId && type === 'ai_intake_completed') {
-      // AI intake: dedupe by ai_call_records.id (or callSid as fallback)
-      idempotencyKey = `ai_${data.aiCallRecordId}`
-      useAtomicIdempotency = true
+    if (data && type === 'ai_intake_completed') {
+      // AI intake: canonical idempotency is the Twilio CallSid because it is the
+      // only stable telephony identity available to every producer path. The DB
+      // record id is only used as a last-resort fallback when CallSid is missing.
+      idempotencyKey = data.callSid
+        ? `ai_intake_completed:${data.callSid}`
+        : data.aiCallRecordId
+          ? `ai_intake_completed:record:${data.aiCallRecordId}`
+          : null
+      useAtomicIdempotency = !!idempotencyKey
     } else if (data && data.messageSid && type === 'sms_failed') {
       // SMS failure: dedupe by Twilio MessageSid
       idempotencyKey = `sms_${data.messageSid}`
@@ -626,12 +632,20 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifyAiIntakeCompleted(businessId: string, leadName: string, leadPhone: string, leadId: string, serviceRequested?: string, aiCallRecordId?: string): Promise<boolean> {
+  async notifyAiIntakeCompleted(
+    businessId: string,
+    leadName: string,
+    leadPhone: string,
+    leadId: string,
+    serviceRequested?: string,
+    aiCallRecordId?: string,
+    callSid?: string
+  ): Promise<boolean> {
     return await this.createNotification(
       businessId,
       'ai_intake_completed',
       '',
-      { leadName, leadPhone, leadId, serviceRequested, aiCallRecordId }
+      { leadName, leadPhone, leadId, serviceRequested, aiCallRecordId, callSid }
     )
   }
 

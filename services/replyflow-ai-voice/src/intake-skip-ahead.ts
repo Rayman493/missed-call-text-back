@@ -182,7 +182,7 @@ const ADDRESS_PATTERNS: { pattern: RegExp; type: string }[] = [
   },
   {
     pattern:
-      /\b(\d+\s+[a-z]+\s+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+[a-z]+)?(?:\s+in\s+[a-z][a-z\s]+?)?)\b/i,
+      /\b(\d+\s+[a-z]+\s+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+(?:north|south|east|west|northeast|northwest|southeast|southwest|n|s|e|w|ne|nw|se|sw|apartment|apt|suite|ste|unit|#)(?:\s*[a-z0-9#]+)?)?(?:\s*,?\s*(?:in\s+)?[A-Za-z][A-Za-z\s,]+?)?)(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
     type: 'street-address',
   },
   // Privacy-aware partial location: city, neighborhood, or broad area.
@@ -379,18 +379,30 @@ function findCallbackMatch(transcript: string): ExtractedMatch | null {
   return null;
 }
 
-function findIssueDescription(transcript: string, serviceRequested: string): string | null {
+function findIssueDescription(transcript: string, serviceRequested: string): ExtractedMatch | null {
   const detailPatterns = [
     /(?:because|due to|the|it's|its)\s+(?:the\s+)?(?:hinge|handle|door|window|pipe|gutter|roof|floor|wall|ceiling|fence|gate|lock|faucet|sink|toilet|shower|tub|ac|heater|furnace|boiler|electrical|wire|outlet|switch|light|bulb|appliance|machine|device|system|unit)([^.!?]+)/i,
     // Capture additional context after the main service request: "hole about two feet wide",
     // "pipe repair", "patched and painted", etc.
     /(?:hole|opening|gap|crack|leak|break|damage|section)\s+(?:about|around|of|in|after)?\s*[^.!?]{5,80}/i,
     /(?:patched|painted|repaired|replaced|installed|removed|trimmed|serviced|cut|mowed|cleaned|checked)(?:\s+and\s+(?:patched|painted|repaired|replaced|installed|removed|trimmed|serviced|cut|mowed|cleaned|checked))?[^.!?]{0,60}/i,
+    // Capture spatial/positional detail phrases such as "underneath the cabinet",
+    // "behind the wall", "next to the sink". Deliberately exclude "in the/at the/
+    // on the/by the" because they usually describe the service location, not the
+    // problem detail (e.g. "a plumber in the kitchen", "someone at the house").
+    /(?:under|underneath|behind|inside|outside|below|above|next to|near)\s+(?:the\s+)?[^.!?]{3,80}/i,
   ];
   for (const pattern of detailPatterns) {
     const match = transcript.match(pattern);
     if (match && match[0]) {
-      return match[0].trim();
+      const value = match[0].trim();
+      // Don't let the issue description become the whole service request
+      if (value.toLowerCase() === serviceRequested.trim().toLowerCase()) return null;
+      return {
+        value,
+        fullMatch: value,
+        startIndex: match.index || 0,
+      };
     }
   }
   return null;
@@ -751,6 +763,24 @@ export function enrichIntakeFromTranscript(
     validCleanedService = null;
   }
 
+  // Extract an additional details phrase BEFORE applying the service request so
+  // the service request can be split from its detail (e.g. "My kitchen sink is
+  // leaking underneath the cabinet" -> service "My kitchen sink is leaking",
+  // details "underneath the cabinet").
+  // Only split on spatial/positional detail phrases (under, behind, next to, etc.)
+  // to avoid stripping work verbs or address text from the request.
+  const issueDescription = validCleanedService
+    ? findIssueDescription(transcript, validCleanedService)
+    : null;
+  const SPATIAL_PREFIX = /^(?:under|underneath|behind|inside|outside|below|above|next to|near)\b/i;
+  const isSpatialDetail = issueDescription && SPATIAL_PREFIX.test(issueDescription.value);
+  if (isSpatialDetail && issueDescription.value) {
+    const serviceWithoutDetail = cleanServiceRequest(validCleanedService, [issueDescription]);
+    if (serviceWithoutDetail && isValidServiceRequest(serviceWithoutDetail)) {
+      validCleanedService = serviceWithoutDetail;
+    }
+  }
+
   // Name containment: at non-name stages, suppress name extraction unless it's
   // a clear correction. This prevents garbled/misheard names from contaminating
   // the customerName field when the caller is answering a different question.
@@ -831,13 +861,12 @@ export function enrichIntakeFromTranscript(
     currentStageField === 'callbackTime'
   );
 
-  const issueDescription = findIssueDescription(transcript, intake.serviceRequested || '');
-  if (issueDescription) {
+  if (issueDescription && issueDescription.value) {
     detected.push('issueDescription');
     applyField(
       intake,
       'issueDescription',
-      issueDescription,
+      issueDescription.value,
       () => true,
       applied,
       skippedBecauseAlreadyPresent,

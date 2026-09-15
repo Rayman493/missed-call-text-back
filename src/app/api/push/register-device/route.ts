@@ -99,7 +99,23 @@ export async function POST(request: NextRequest) {
 
     console.log('[PUSH DEVICE REGISTRATION] Business found:', business.id)
 
-    // Upsert the device token (insert or update if exists)
+    // Upsert the device token (insert or update if exists).
+    //
+    // STABLE DEVICE IDENTITY AUDIT:
+    // The push_devices schema has an optional `device_identifier` column, but the
+    // current native client (src/lib/push-service.ts) always sends null because
+    // Capacitor's Device plugin is not wired up. Therefore we cannot distinguish
+    // a token rotation on Device A from a brand-new Device B. We MUST NOT disable
+    // other tokens for the same (user_id, business_id, platform) because that would
+    // implement "one active device per platform per user" and break iPhone + iPad,
+    // multiple Android devices, etc.
+    //
+    // Correct contract:
+    // - Same token re-registered -> idempotent update of last_seen_at (unique on
+    //   user_id, platform, push_token).
+    // - Different token registered -> new active row, old rows stay active.
+    // - Stale/invalid tokens are disabled later by the push sender when the provider
+    //   (FCM/APNs) reports them invalid (fcm-sender.ts / apns-sender.ts).
     console.log('[PUSH DEVICE REGISTRATION] Upserting device token')
     const { data: device, error: deviceError } = await supabaseAdmin
       .from('push_devices')
@@ -127,7 +143,8 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       businessId: business.id,
       platform,
-      deviceId: device.id
+      deviceId: device.id,
+      hasDeviceIdentifier: !!deviceIdentifier
     })
 
     return NextResponse.json({ success: true, device })
