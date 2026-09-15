@@ -83,12 +83,18 @@ export default function SetupStatusCard({
     (business?.forwarding_instructions_confirmed_at && isForwardingConfirmedForCurrentNumber(business?.forwarding_instructions_confirmed_at))
   )
 
-  // Detect number replacement: the business has a number but forwarding
-  // was NOT confirmed for this number (either never set up, or was set up
-  // for a previous number that was replaced). This triggers the recovery
-  // banner instead of the normal "Set Up" state.
+  // Detect number replacement: the business has a current number, but the
+  // current number's forwarding has not been confirmed. We must ALSO have
+  // evidence that a previous number existed and was confirmed. A first-time
+  // null → assigned transition has no historical forwarding confirmation
+  // timestamps, so it must NOT show the replacement warning.
   const hasNumber = Boolean(business?.twilio_phone_number)
-  const numberWasReplaced = hasNumber && !hasConfirmedForwardingInstructions && provisionedAt !== null
+  const hasPreviousConfirmedNumber = [business?.forwarding_verified_at, business?.forwarding_instructions_confirmed_at]
+    .some((timestamp) => {
+      if (!timestamp || provisionedAt === null) return false
+      return new Date(timestamp).getTime() < provisionedAt
+    })
+  const numberWasReplaced = hasNumber && !hasConfirmedForwardingInstructions && provisionedAt !== null && hasPreviousConfirmedNumber
 
   
   // Handle opening billing portal or checkout

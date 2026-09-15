@@ -2098,14 +2098,6 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     setDeletePasswordError('')
 
     try {
-      // Starting account deletion process
-
-      // Clear local storage and session storage BEFORE deletion to prevent stale state
-      if (typeof window !== 'undefined') {
-        localStorage.clear()
-        sessionStorage.clear()
-      }
-
       const response = await fetch('/api/account/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2137,22 +2129,28 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
         return
       }
 
-      // Account deleted successfully, redirecting to homepage
-
-      // Explicitly sign out from Supabase to clear auth state
+      // Account deleted successfully. Clear client state, sign out locally,
+      // and leave the protected dashboard before the guard can render a
+      // blank shell on the settings page.
       try {
-        const { error: signOutError } = await supabase.auth.signOut()
+        const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' })
         if (signOutError) {
           console.error('[Settings] SignOut error:', signOutError)
-          // Continue anyway - account is deleted
         }
       } catch (signOutError) {
         console.error('[Settings] SignOut exception:', signOutError)
-        // Continue anyway - account is deleted
       }
 
-      // Force redirect to homepage
-      window.location.href = '/'
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.clear()
+          sessionStorage.clear()
+        } catch (e) {
+          console.error('[Settings] Error clearing storage:', e)
+        }
+      }
+
+      router.replace('/auth/signin')
     } catch (error) {
       console.error('[Settings] Delete account network error:', error)
       showToast('Failed to delete account. Please try again.', 'error')

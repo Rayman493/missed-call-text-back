@@ -4,9 +4,9 @@
  * correction overwrite rules, callback extraction, and service cleanup.
  */
 
-import { expect } from 'chai';
-import { enrichIntakeFromTranscript } from '../src/intake-skip-ahead.ts';
-import type { IntakeData } from '../src/intake-skip-ahead.ts';
+import { describe, it, expect } from 'vitest';
+import { enrichIntakeFromTranscript } from '../src/intake-skip-ahead';
+import type { IntakeData } from '../src/intake-skip-ahead';
 
 describe('Semantic Skip-Ahead Extraction', () => {
   it('extracts all volunteered fields from a broad ask_name_reason answer (Christopher Miller)', () => {

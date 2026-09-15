@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { enrichIntakeFromTranscript } = require('../src/intake-skip-ahead');
+import { describe, it, expect } from 'vitest';
+import { enrichIntakeFromTranscript } from '../src/intake-skip-ahead';
 
 function makeIntake(partial: any = {}) {
   return {
