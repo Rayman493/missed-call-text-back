@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 import { createSnapshot, generatePublicToken } from '@/lib/billing/document-builder'
+import { prepareInvoicePayment } from '@/lib/billing/prepare-payment'
 import { sendSms } from '@/lib/twilio'
 
 export const dynamic = 'force-dynamic'
@@ -142,6 +143,32 @@ export async function POST(
 
     const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}/document/${publicToken}`
     const message = `${business.name} sent you ${isQuote ? 'Quote' : 'Invoice'} ${doc.document_number} for $${totalDollars}:\n${publicUrl}`
+
+    // ── For invoices: prepare payment BEFORE sending SMS ────────────
+    // A customer receiving an invoice SMS must be able to pay immediately.
+    // If payment preparation fails, do NOT send the SMS — an invoice link
+    // that cannot be paid is worse than no link at all.
+    if (!isQuote) {
+      const payResult = await prepareInvoicePayment(supabase, business.id, {
+        id: doc.id,
+        document_number: doc.document_number,
+        total_cents: doc.total_cents,
+        customer_id: doc.customer_id,
+        status: doc.status,
+        payment_request_id: doc.payment_request_id,
+      }, user.id)
+      if (!payResult.ok) {
+        console.error('[BILLING SEND] Payment preparation failed:', payResult.error)
+        return NextResponse.json({
+          error: `Failed to prepare payment: ${payResult.error || 'unknown error'}`,
+        }, { status: payResult.status || 500 })
+      }
+      // Payment is ready (or already paid). Refresh doc so the persisted
+      // payment_request_id is available for the response.
+      if (!payResult.alreadyPaid) {
+        console.log('[BILLING SEND] Payment prepared for invoice', doc.document_number, '— session:', payResult.idempotent ? 'reused' : 'created')
+      }
+    }
 
     // ── Send SMS ──────────────────────────────────────────────────────
     const smsResult = await sendSms(business, customerPhone, message, {

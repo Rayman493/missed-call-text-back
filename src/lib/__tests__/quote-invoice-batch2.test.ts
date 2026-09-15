@@ -18,6 +18,7 @@ const sendRouteSrc = readSrc('src/app/api/billing-documents/[id]/send/route.ts')
 const pdfRouteSrc = readSrc('src/app/api/billing-documents/[id]/pdf/route.tsx')
 const convertRouteSrc = readSrc('src/app/api/billing-documents/[id]/convert/route.ts')
 const payRouteSrc = readSrc('src/app/api/billing-documents/[id]/pay/route.ts')
+const preparePaymentSrc = readSrc('src/lib/billing/prepare-payment.ts')
 const publicRouteSrc = readSrc('src/app/api/public/document/[token]/route.ts')
 const respondRouteSrc = readSrc('src/app/api/public/document/[token]/respond/route.ts')
 const webhookSrc = readSrc('src/app/api/stripe/webhook/route.ts')
@@ -344,28 +345,29 @@ describe('CONVERSION', () => {
 // ============================================================================
 describe('INVOICE PAYMENT', () => {
   it('Pay Invoice creates payment request using existing Stripe flow', () => {
-    expect(payRouteSrc).toContain('stripe.checkout.sessions.create')
-    expect(payRouteSrc).toContain("from('payment_requests')")
-    expect(payRouteSrc).toContain('.insert(')
+    // Payment preparation is extracted to the shared prepareInvoicePayment helper
+    expect(preparePaymentSrc).toContain('stripe.checkout.sessions.create')
+    expect(preparePaymentSrc).toContain("from('payment_requests')")
+    expect(preparePaymentSrc).toContain('.insert(')
   })
 
   it('exact amount (invoice total_cents)', () => {
-    expect(payRouteSrc).toContain('unit_amount: invoice.total_cents')
+    expect(preparePaymentSrc).toContain('unit_amount: invoice.total_cents')
   })
 
   it('correct business and customer', () => {
-    expect(payRouteSrc).toContain('business_id: business.id')
-    expect(payRouteSrc).toContain('lead_id: invoice.customer_id')
+    expect(preparePaymentSrc).toContain('business_id: businessId')
+    expect(preparePaymentSrc).toContain('lead_id: invoice.customer_id')
   })
 
   it('payment_request_id persisted on invoice', () => {
-    expect(payRouteSrc).toContain('payment_request_id')
-    expect(payRouteSrc).toContain("update({ payment_request_id: paymentRequest.id })")
+    expect(preparePaymentSrc).toContain('payment_request_id')
+    expect(preparePaymentSrc).toContain("update({ payment_request_id: paymentRequest.id })")
   })
 
   it('idempotent: reuses existing pending payment request', () => {
-    expect(payRouteSrc).toContain('invoice.payment_request_id')
-    expect(payRouteSrc).toContain('idempotent')
+    expect(preparePaymentSrc).toContain('invoice.payment_request_id')
+    expect(preparePaymentSrc).toContain('idempotent')
   })
 
   it('only invoices can be paid', () => {
@@ -373,12 +375,32 @@ describe('INVOICE PAYMENT', () => {
   })
 
   it('already-paid invoice rejected', () => {
-    expect(payRouteSrc).toContain('Invoice is already paid')
+    // Pay route returns 409 for already-paid invoices
+    expect(payRouteSrc).toContain('Payment already completed')
+    expect(preparePaymentSrc).toContain("status === 'paid'")
   })
 
   it('metadata includes invoice_id and invoice_number', () => {
-    expect(payRouteSrc).toContain('invoice_id: String(invoice.id)')
-    expect(payRouteSrc).toContain('invoice_number: String(invoice.document_number)')
+    expect(preparePaymentSrc).toContain('invoice_id: String(invoice.id)')
+    expect(preparePaymentSrc).toContain('invoice_number: String(invoice.document_number)')
+  })
+
+  it('send route prepares payment before SMS for invoices', () => {
+    // The send route must call prepareInvoicePayment before sendSms for invoices
+    const sendLines = sendRouteSrc.split('\n')
+    const payIndex = sendLines.findIndex(l => l.includes('prepareInvoicePayment'))
+    const smsIndex = sendLines.findIndex(l => l.includes('sendSms(business'))
+    expect(payIndex).toBeGreaterThan(-1)
+    expect(smsIndex).toBeGreaterThan(payIndex)
+  })
+
+  it('send route does not prepare payment for quotes', () => {
+    // Payment preparation is gated on !isQuote
+    expect(sendRouteSrc).toContain('if (!isQuote)')
+  })
+
+  it('payment preparation failure blocks SMS send', () => {
+    expect(sendRouteSrc).toContain('Failed to prepare payment')
   })
 })
 

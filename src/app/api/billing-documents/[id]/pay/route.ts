@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
-import getStripe from '@/lib/stripe'
+import { prepareInvoicePayment } from '@/lib/billing/prepare-payment'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,8 +15,9 @@ export const dynamic = 'force-dynamic'
  * - Persist payment_request_id on the invoice
  * - Idempotent
  *
- * This does NOT duplicate Stripe logic — it reuses the existing payment_requests
- * table and Stripe Checkout creation from /api/payments/create.
+ * Payment preparation is also performed automatically by the /send route
+ * for invoices, so a customer receiving an invoice SMS can pay immediately.
+ * This route remains for manual/explicit payment requests.
  */
 export async function POST(
   request: Request,
@@ -62,130 +63,22 @@ export async function POST(
     if (invoice.document_type !== 'invoice') {
       return NextResponse.json({ error: 'Only invoices can be paid' }, { status: 400 })
     }
-    if (invoice.status === 'paid') {
-      return NextResponse.json({ error: 'Invoice is already paid' }, { status: 409 })
+
+    const result = await prepareInvoicePayment(supabase, business.id!, {
+      ...invoice,
+      customer_id: invoice.customer_id ?? null,
+    }, user.id)
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error || 'Failed to prepare payment' }, { status: result.status || 500 })
     }
-
-    // Idempotent: if already linked to a pending payment request, return its URL
-    if (invoice.payment_request_id) {
-      const { data: existingPr } = await supabase
-        .from('payment_requests')
-        .select('id, checkout_url, status')
-        .eq('id', invoice.payment_request_id)
-        .maybeSingle()
-      if (existingPr) {
-        if (existingPr.status === 'pending' && existingPr.checkout_url) {
-          return NextResponse.json({
-            success: true,
-            checkout_url: existingPr.checkout_url,
-            payment_request_id: existingPr.id,
-            idempotent: true,
-          })
-        }
-        if (existingPr.status === 'paid') {
-          // Reconcile: mark invoice as paid
-          await supabase
-            .from('billing_documents')
-            .update({ status: 'paid', paid_at: new Date().toISOString() })
-            .eq('id', invoice.id)
-          return NextResponse.json({ error: 'Payment already completed' }, { status: 409 })
-        }
-        // If cancelled/expired, fall through to create a new one
-      }
+    if (result.alreadyPaid) {
+      return NextResponse.json({ error: 'Payment already completed' }, { status: 409 })
     }
-
-    if (!invoice.customer_id) {
-      return NextResponse.json({ error: 'Invoice must have a customer to create a payment request' }, { status: 400 })
-    }
-
-    // Create a new payment request using the existing payment creation flow
-    const stripe = getStripe()
-    if (!stripe) {
-      return NextResponse.json({ error: 'Stripe is not configured' }, { status: 500 })
-    }
-
-    // Create Stripe Checkout Session
-    const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: `Invoice ${invoice.document_number}`,
-            },
-            unit_amount: invoice.total_cents,
-          },
-          quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      success_url: `${origin}/dashboard/payments?payment_success=1`,
-      cancel_url: `${origin}/dashboard/payments?payment_cancelled=1`,
-      metadata: {
-        business_id: String(business.id),
-        lead_id: String(invoice.customer_id || ''),
-        invoice_id: String(invoice.id),
-        invoice_number: String(invoice.document_number),
-        source: 'billing_invoice',
-      },
-    })
-
-    // Insert payment request
-    const { data: paymentRequest, error: prError } = await supabase
-      .from('payment_requests')
-      .insert({
-        business_id: business.id,
-        lead_id: invoice.customer_id,
-        amount_cents: invoice.total_cents,
-        currency: 'usd',
-        description: `Invoice ${invoice.document_number}`,
-        status: 'pending',
-        checkout_url: session.url,
-        stripe_checkout_session_id: session.id,
-        requested_by: user.id,
-      })
-      .select()
-      .single()
-    if (prError || !paymentRequest) {
-      console.error('[INVOICE PAY] Payment request insert error:', prError)
-      return NextResponse.json({ error: 'Failed to create payment request' }, { status: 500 })
-    }
-
-    // Link payment request to invoice
-    await supabase
-      .from('billing_documents')
-      .update({ payment_request_id: paymentRequest.id })
-      .eq('id', invoice.id)
-
-    // Update Stripe payment intent metadata so the webhook can reconcile
-    // (matches the canonical /api/payments/create pattern)
-    try {
-      if (session.payment_intent) {
-        await stripe.paymentIntents.update(
-          session.payment_intent as string,
-          {
-            metadata: {
-              payment_request_id: paymentRequest.id,
-              business_id: String(business.id),
-              lead_id: String(invoice.customer_id || ''),
-              invoice_id: String(invoice.id),
-              invoice_number: String(invoice.document_number),
-              source: 'billing_invoice',
-            },
-          }
-        )
-      }
-    } catch (metadataError) {
-      console.error('[INVOICE PAY] Failed to update payment intent metadata:', metadataError)
-      // Non-critical — webhook can still reconcile via stripe_checkout_session_id lookup
-    }
-
     return NextResponse.json({
       success: true,
-      checkout_url: session.url,
-      payment_request_id: paymentRequest.id,
+      checkout_url: result.checkout_url,
+      payment_request_id: result.payment_request_id,
+      idempotent: result.idempotent,
     })
   } catch (err) {
     console.error('[INVOICE PAY] Unexpected error:', err)
