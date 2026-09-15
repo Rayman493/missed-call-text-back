@@ -304,9 +304,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               {!isEditMode && ((correctedFields?.details?.length > 200 || (extractedInfo?.reasonForCalling?.length || 0) > 200 || (extractedInfo?.importantDetails?.length || 0) > 200)) && (
                 <button
                   onClick={() => setDetailsExpanded(!detailsExpanded)}
-                  className="text-[10px] text-primary hover:text-primary/80 font-medium"
+                  className="inline-flex items-center gap-1 text-primary hover:text-primary/80 p-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  aria-label={detailsExpanded ? 'Show less details' : 'Show more details'}
+                  title={detailsExpanded ? 'Show less' : 'Show more'}
                 >
-                  {detailsExpanded ? 'Show Less' : 'Show More'}
+                  {detailsExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
               )}
             </div>

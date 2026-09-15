@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import LegalNavigation from '@/components/LegalNavigation'
 
 interface DocumentationHeroProps {
@@ -33,12 +33,19 @@ export default function DocumentationHero({
   children,
 }: DocumentationHeroProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const fromApp = searchParams?.get('from') === 'more'
+  const backHref = fromApp ? '/dashboard' : '/'
+  const backLabel = fromApp ? 'Back to More' : 'Back'
 
-  // Back behavior: prefer router/browser history when available, fall back
-  // to the public home route for direct-loads (no history).
+  // Back behavior: when opened from the in-app More menu, always return to
+  // the dashboard so the user does not bounce among public legal pages.
+  // For direct public loads, prefer browser history and fall back to home.
   const handleBack = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
-    if (typeof window !== 'undefined' && window.history.length > 1) {
+    if (fromApp) {
+      router.push('/dashboard')
+    } else if (typeof window !== 'undefined' && window.history.length > 1) {
       router.back()
     } else {
       router.push('/')
@@ -52,7 +59,7 @@ export default function DocumentationHero({
         {showBackLink && (
           <div className="mb-3">
             <Link
-              href="/"
+              href={backHref}
               onClick={handleBack}
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 group"
             >
@@ -64,7 +71,7 @@ export default function DocumentationHero({
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Back
+              {backLabel}
             </Link>
           </div>
         )}

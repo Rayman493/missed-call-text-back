@@ -235,7 +235,7 @@ export default function NotificationsPage() {
             <div className="flex items-center justify-between gap-3">
               <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
               {notifications.length > 0 && (
-                <div className="hidden sm:flex items-center gap-2 shrink-0">
+                <div className="hidden sm:flex items-center gap-2 shrink-0 ml-auto">
                   {notificationCount.unread > 0 && (
                     <button
                       onClick={handleMarkAllAsRead}

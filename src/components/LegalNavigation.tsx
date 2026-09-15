@@ -2,17 +2,20 @@
 
 import { useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
 interface LegalNavigationProps {
   activePage: 'faq' | 'privacy' | 'terms' | 'compliance'
 }
 
 export default function LegalNavigation({ activePage }: LegalNavigationProps) {
+  const searchParams = useSearchParams()
+  const fromApp = searchParams?.get('from') === 'more'
   const pages = [
-    { href: '/faq', label: 'FAQ' },
-    { href: '/privacy', label: 'Privacy Policy' },
-    { href: '/terms', label: 'Terms of Service' },
-    { href: '/compliance', label: 'Compliance' },
+    { href: fromApp ? '/faq?from=more' : '/faq', label: 'FAQ' },
+    { href: fromApp ? '/privacy?from=more' : '/privacy', label: 'Privacy Policy' },
+    { href: fromApp ? '/terms?from=more' : '/terms', label: 'Terms of Service' },
+    { href: fromApp ? '/compliance?from=more' : '/compliance', label: 'Compliance' },
   ]
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)

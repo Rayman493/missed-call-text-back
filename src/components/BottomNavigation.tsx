@@ -527,7 +527,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
               </button>
 
               <Link
-                href="/faq"
+                href="/faq?from=more"
                 onClick={(e) => {
                   e.stopPropagation()
                   setIsMoreMenuOpen(false)
