@@ -12,6 +12,7 @@ export interface BillingDocumentListItem {
   document_type: BillingDocumentType
   status: string
   document_number: string
+  display_name: string | null
   issue_date: string
   valid_until: string | null
   due_date: string | null
@@ -19,6 +20,12 @@ export interface BillingDocumentListItem {
   customer_id: string | null
   public_token: string | null
   source_quote_id: string | null
+  payment_request_id: string | null
+  payment_request: {
+    id: string
+    status: string
+    paid_at: string | null
+  } | null
   leads: {
     id: string
     contact_name: string | null
@@ -139,6 +146,8 @@ export default function BillingDocumentList({
     <div className="space-y-2">
       {documents.map((doc) => {
         const isQuote = doc.document_type === 'quote'
+        const paymentRequest = doc.payment_request
+        const paymentStatus = paymentRequest?.status?.toLowerCase().trim() || null
         // Compute effective status (overdue/expired)
         const effective = effectiveStatus({
           document_type: doc.document_type,
@@ -156,17 +165,20 @@ export default function BillingDocumentList({
         const isDraft = doc.status === 'draft'
         const isSent = doc.status === 'sent' || effective === 'overdue' || effective === 'expired'
         const isAccepted = doc.status === 'accepted'
-        const isPaid = doc.status === 'paid'
+        const isPaid = doc.status === 'paid' || paymentStatus === 'paid'
         const isCancelled = doc.status === 'cancelled'
         const isDeclined = doc.status === 'declined'
+        const isPaymentCancelled = paymentStatus === 'cancelled' || paymentStatus === 'canceled'
+        const isPaymentPending = paymentStatus === 'pending' || paymentStatus === 'draft' || (!paymentStatus && isSent && !isQuote)
         const dateLabel = doc.sent_at ? `Sent ${formatDate(doc.sent_at)}` : `Updated ${formatDate(doc.updated_at)}`
 
-        // Contextual subline based on status
+        // Contextual subline based on status and canonical payment request state
         let subline = ''
         if (isDraft && isQuote) subline = 'Next: Send quote'
         else if (isAccepted && isQuote) subline = 'Next: Create invoice'
-        else if (isSent && !isQuote) subline = 'Waiting for payment'
         else if (isPaid) subline = 'Payment received'
+        else if (isPaymentCancelled) subline = 'Payment cancelled. Resend to request again.'
+        else if (isSent && !isQuote && isPaymentPending) subline = 'Waiting for payment'
         else if (effective === 'overdue') subline = 'Payment overdue'
         else if (isDeclined) subline = 'Customer declined'
 
@@ -186,11 +198,18 @@ export default function BillingDocumentList({
                 ) : (
                   <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                 )}
-                <span className="text-sm font-semibold text-foreground truncate">{doc.document_number}</span>
+                <span className="text-sm font-semibold text-foreground truncate">
+                  {doc.display_name || `${isQuote ? 'Quote' : 'Invoice'} ${doc.document_number}`}
+                </span>
                 <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap ${badge.className}`}>
                   {badge.label}
                 </span>
               </div>
+              {doc.display_name && (
+                <p className="text-xs text-muted-foreground truncate font-medium">
+                  {isQuote ? 'Quote' : 'Invoice'} {doc.document_number}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground truncate">
                 {customerLabel}
                 {customerSecondary && <span className="text-muted-foreground/60"> · {customerSecondary}</span>}
@@ -204,97 +223,199 @@ export default function BillingDocumentList({
               )}
             </button>
 
-            {/* Right: actions — always 5 slots in canonical order */}
+            {/* Right: actions — shared row with status-conditional buttons */}
             <div className="flex items-center gap-1 flex-shrink-0">
-              {/* Slot 1: Edit — only draft documents are editable */}
-              {isDraft ? (
-                <button
-                  onClick={() => onOpen(doc)}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
-                  aria-label="Edit document"
-                  title="Edit"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-              ) : (
-                <span className="w-8 h-8 flex items-center justify-center text-slate-300 dark:text-slate-600 rounded cursor-default" aria-hidden="true" title="Only draft documents can be edited">
-                  <Edit className="w-4 h-4" />
-                </span>
+              {isDraft && (
+                <>
+                  <button
+                    onClick={() => onOpen(doc)}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                    aria-label="Edit document"
+                    title="Edit"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onSend(doc)}
+                    disabled={sendingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
+                    aria-label={isQuote ? 'Send quote' : 'Send invoice'}
+                    title={isQuote ? 'Send Quote' : 'Send Invoice'}
+                  >
+                    {sendingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => onDownload(doc)}
+                    disabled={downloadingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
+                    aria-label="Download PDF"
+                    title="Download PDF"
+                  >
+                    {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => onView(doc)}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                    aria-label="View document"
+                    title="View"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget(doc)}
+                    disabled={deletingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
+                    aria-label="Delete document"
+                    title="Delete"
+                  >
+                    {deletingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  </button>
+                </>
               )}
 
-              {/* Slot 2: Send / Resend / Convert */}
-              {isDraft ? (
-                <button
-                  onClick={() => onSend(doc)}
-                  disabled={sendingId === doc.id}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
-                  aria-label={isQuote ? 'Send quote' : 'Send invoice'}
-                  title={isQuote ? 'Send Quote' : 'Send Invoice'}
-                >
-                  {sendingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                </button>
-              ) : isSent ? (
-                <button
-                  onClick={() => onSend(doc)}
-                  disabled={sendingId === doc.id}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
-                  aria-label="Resend SMS"
-                  title="Resend"
-                >
-                  {sendingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                </button>
-              ) : isAccepted && isQuote ? (
-                <button
-                  onClick={() => onConvert(doc)}
-                  disabled={convertingId === doc.id}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
-                  aria-label="Convert to Invoice"
-                  title="Convert to Invoice"
-                >
-                  {convertingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-                </button>
-              ) : (
-                <span className="w-8 h-8 flex items-center justify-center text-slate-300 dark:text-slate-600 rounded cursor-default" aria-hidden="true">
-                  {isSent ? <RefreshCw className="w-4 h-4" /> : isAccepted ? <ArrowRight className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-                </span>
+              {isSent && isQuote && (
+                <>
+                  <button
+                    onClick={() => onSend(doc)}
+                    disabled={sendingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
+                    aria-label="Resend SMS"
+                    title="Resend"
+                  >
+                    {sendingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => onDownload(doc)}
+                    disabled={downloadingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
+                    aria-label="Download PDF"
+                    title="Download PDF"
+                  >
+                    {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => onView(doc)}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                    aria-label="View document"
+                    title="View"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                </>
               )}
 
-              {/* Slot 3: Download */}
-              <button
-                onClick={() => onDownload(doc)}
-                disabled={downloadingId === doc.id}
-                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
-                aria-label="Download PDF"
-                title="Download PDF"
-              >
-                {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              </button>
+              {isAccepted && (
+                <>
+                  <button
+                    onClick={() => onConvert(doc)}
+                    disabled={convertingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
+                    aria-label="Convert to Invoice"
+                    title="Convert to Invoice"
+                  >
+                    {convertingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => onDownload(doc)}
+                    disabled={downloadingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
+                    aria-label="Download PDF"
+                    title="Download PDF"
+                  >
+                    {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => onView(doc)}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                    aria-label="View document"
+                    title="View"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                </>
+              )}
 
-              {/* Slot 4: View */}
-              <button
-                onClick={() => onView(doc)}
-                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
-                aria-label="View document"
-                title="View"
-              >
-                <Eye className="w-4 h-4" />
-              </button>
+              {isDeclined && (
+                <>
+                  <button
+                    onClick={() => onOpen(doc)}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                    aria-label="Edit document"
+                    title="Edit"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onDownload(doc)}
+                    disabled={downloadingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
+                    aria-label="Download PDF"
+                    title="Download PDF"
+                  >
+                    {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => onView(doc)}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                    aria-label="View document"
+                    title="View"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                </>
+              )}
 
-              {/* Slot 5: Delete */}
-              {isDraft ? (
-                <button
-                  onClick={() => setDeleteTarget(doc)}
-                  disabled={deletingId === doc.id}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
-                  aria-label="Delete document"
-                  title="Delete"
-                >
-                  {deletingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                </button>
-              ) : (
-                <span className="w-8 h-8 flex items-center justify-center text-slate-300 dark:text-slate-600 rounded cursor-default" aria-hidden="true">
-                  <Trash2 className="w-4 h-4" />
-                </span>
+              {isSent && !isQuote && (
+                <>
+                  <button
+                    onClick={() => onSend(doc)}
+                    disabled={sendingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
+                    aria-label="Resend SMS"
+                    title="Resend"
+                  >
+                    {sendingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => onDownload(doc)}
+                    disabled={downloadingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
+                    aria-label="Download PDF"
+                    title="Download PDF"
+                  >
+                    {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => onView(doc)}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                    aria-label="View document"
+                    title="View"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+
+              {(isPaid || isCancelled) && (
+                <>
+                  <button
+                    onClick={() => onDownload(doc)}
+                    disabled={downloadingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
+                    aria-label="Download PDF"
+                    title="Download PDF"
+                  >
+                    {downloadingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => onView(doc)}
+                    className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                    aria-label="View document"
+                    title="View"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                </>
               )}
             </div>
           </div>

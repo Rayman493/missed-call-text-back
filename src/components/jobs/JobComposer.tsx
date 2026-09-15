@@ -163,11 +163,26 @@ export default function JobComposer({
 
   // Handle successful customer creation from inline Add Customer modal
   const handleLeadCreated = (leadId: string, leadData?: any) => {
-    // Build a Customer object from the returned lead data
+    // Build a Customer object from the returned lead data, preserving all
+    // possible name sources so the picker field never collapses to an empty label.
+    const extracted = leadData?.raw_metadata?.extracted_info || {}
+    const canonicalName =
+      leadData?.name ||
+      leadData?.contact_name ||
+      extracted.customerName ||
+      extracted.callerName ||
+      leadData?.raw_metadata?.customerName ||
+      leadData?.raw_metadata?.callerName ||
+      null
+    const customerPhone =
+      leadData?.caller_phone ||
+      extracted.customerPhone ||
+      leadData?.raw_metadata?.customerPhone ||
+      null
     const newCustomer: Customer = {
       id: leadId,
-      name: leadData?.raw_metadata?.customerName || leadData?.raw_metadata?.callerName || leadData?.name || null,
-      caller_phone: leadData?.caller_phone || leadData?.raw_metadata?.customerPhone || null,
+      name: canonicalName,
+      caller_phone: customerPhone,
       raw_metadata: leadData?.raw_metadata || null,
     }
     // Hydrate the selector with the new customer so it appears immediately

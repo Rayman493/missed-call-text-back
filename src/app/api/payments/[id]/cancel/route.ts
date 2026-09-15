@@ -426,26 +426,10 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to cancel payment request' }, { status: 500 })
     }
 
-    // Sync any linked billing document to the canonical cancelled state
-    try {
-      const { data: linkedInvoices } = await supabase
-        .from('billing_documents')
-        .select('id, status')
-        .eq('payment_request_id', id)
-        .eq('business_id', paymentRequest.business_id)
-
-      if (linkedInvoices && linkedInvoices.length > 0) {
-        const invoiceIds = linkedInvoices.map((inv: any) => inv.id)
-        await supabase
-          .from('billing_documents')
-          .update({ status: 'cancelled' })
-          .in('id', invoiceIds)
-        console.log('[PAYMENT CANCEL] Synced linked invoice(s) to cancelled:', invoiceIds)
-      }
-    } catch (billingSyncError) {
-      console.error('[PAYMENT CANCEL] Failed to sync linked billing document:', billingSyncError)
-      // Non-critical: payment request is already cancelled, continue
-    }
+    // Cancelling the payment request does NOT cancel the invoice itself.
+    // The invoice remains sent; UI derives payment state from the linked
+    // payment_requests row (status) so that "Waiting for payment" does not
+    // outlive a cancelled payment request.
 
     // Fetch updated row to verify
     const { data: updatedPayment, error: fetchError } = await supabase

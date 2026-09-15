@@ -294,7 +294,10 @@ export default function SearchableCustomerSelect({
 
   const getDisplayText = (customer: Customer | null | undefined): string => {
     if (!customer) return placeholder
-    return getCustomerDisplayName(customer)
+    const display = getCustomerDisplayName(customer)
+    if (display && display.trim()) return display
+    if (customer.caller_phone) return formatForDisplay(customer.caller_phone)
+    return 'Customer'
   }
 
   const getSecondaryText = (customer: Customer | null | undefined): string | null => {
@@ -446,6 +449,7 @@ export default function SearchableCustomerSelect({
                     type="button"
                     role="option"
                     onClick={() => handleSelect(null)}
+                    onPointerDown={(e) => { e.preventDefault(); handleSelect(null) }}
                     className={`w-full px-3 py-2 text-sm text-left duration-150 flex items-center justify-between gap-2 ${
                       value === null ? 'bg-accent/40' : 'text-foreground hover:bg-accent/40'
                     }`}
@@ -464,6 +468,7 @@ export default function SearchableCustomerSelect({
                       type="button"
                       role="option"
                       onClick={() => handleSelect(customer.id)}
+                      onPointerDown={(e) => { e.preventDefault(); handleSelect(customer.id) }}
                       className={`w-full px-3 py-2 text-sm text-left duration-150 flex flex-col gap-0.5 ${
                         value === customer.id ? 'bg-accent/40' : 'text-foreground hover:bg-accent/40'
                       }`}

@@ -51,6 +51,7 @@ export async function GET(
       .select(`
         *,
         billing_document_items (*),
+        payment_request:payment_requests!payment_request_id ( id, status, paid_at ),
         leads ( id, contact_name, caller_phone )
       `)
       .eq('id', id)
@@ -137,6 +138,7 @@ export async function PATCH(
     const body = await request.json()
     const {
       customer_id,
+      display_name,
       job_id,
       issue_date,
       valid_until,
@@ -190,6 +192,7 @@ export async function PATCH(
       total_cents: totals.total_cents,
     }
     if (customer_id !== undefined) updatePayload.customer_id = customer_id || null
+    if (display_name !== undefined) updatePayload.display_name = (typeof display_name === 'string' ? display_name.trim() : null) || null
     if (job_id !== undefined) updatePayload.job_id = job_id || null
     if (issue_date !== undefined) updatePayload.issue_date = issue_date
     if (valid_until !== undefined) updatePayload.valid_until = valid_until || null

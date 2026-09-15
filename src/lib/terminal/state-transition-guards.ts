@@ -131,3 +131,18 @@ export function allowsRetry(status: PaymentRequestStatus): boolean {
 export function requiresRecovery(status: PaymentRequestStatus): boolean {
   return status === 'pending' || status === 'processing'
 }
+
+/**
+ * Authoritative Stripe correction: a verified succeeded PaymentIntent may
+ * correct a local terminal/ambiguous failure state to paid.
+ *
+ * This is intentionally narrow:
+ * - It only applies when Stripe (not the client) confirms success.
+ * - It does NOT allow paid/cancelled records to be overwritten.
+ * - It does NOT relax the general transition safety used by the rest of the app.
+ */
+const AUTHORITATIVE_PAID_CORRECTABLE: PaymentRequestStatus[] = ['failed', 'requires_payment_method']
+
+export function isAuthoritativePaidCorrection(fromStatus: PaymentRequestStatus): boolean {
+  return AUTHORITATIVE_PAID_CORRECTABLE.includes(canonicalStatus(fromStatus))
+}

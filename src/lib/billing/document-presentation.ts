@@ -50,6 +50,13 @@ export interface DocumentPresentation {
 
   // Payment link (invoice only, hosted page)
   payment_url: string | null
+
+  // Optional linked payment request state (invoicing)
+  payment_request?: {
+    id?: string
+    status: string
+    paid_at?: string | null
+  } | null
 }
 
 /**

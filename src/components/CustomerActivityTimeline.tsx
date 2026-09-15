@@ -215,16 +215,17 @@ export default function CustomerActivityTimeline({ leadData, onNavigateToJob, on
       }
     }
 
-    // Customer sent photos
+    // Customer/business sent photos
     if (leadData.messages && leadData.messages.length > 0) {
       const messagesWithPhotos = leadData.messages.filter((msg: any) => msg.media_count && msg.media_count > 0)
       if (messagesWithPhotos.length > 0) {
         const firstPhotoMessage = messagesWithPhotos[0]
         const totalPhotos = messagesWithPhotos.reduce((sum: number, msg: any) => sum + (msg.media_count || 0), 0)
+        const senderLabel = firstPhotoMessage.direction === 'outbound' ? 'You' : 'Customer'
         activityEvents.push({
           id: `photos-${firstPhotoMessage.id}`,
           type: 'photo_sent',
-          title: `Customer sent ${totalPhotos} photo${totalPhotos > 1 ? 's' : ''}`,
+          title: `${senderLabel} sent ${totalPhotos} photo${totalPhotos > 1 ? 's' : ''}`,
           timestamp: firstPhotoMessage.created_at,
         })
       }

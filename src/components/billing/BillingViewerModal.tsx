@@ -77,6 +77,7 @@ export default function BillingViewerModal({
           notes: d.notes,
           terms: d.terms,
           payment_url: null,
+          payment_request: d.payment_request,
         })
       } catch {
         // ignore
@@ -97,11 +98,16 @@ export default function BillingViewerModal({
     due_date: doc.due_date,
   } as any) : null
 
+  const paymentRequestStatus = (doc?.payment_request?.status || '').toLowerCase().trim() || null
+  const paymentIsPaid = paymentRequestStatus === 'paid'
+  const paymentIsCancelled = paymentRequestStatus === 'cancelled' || paymentRequestStatus === 'canceled'
+  const paymentIsPending = paymentRequestStatus === 'pending' || paymentRequestStatus === 'draft' || paymentRequestStatus === null
+
   const isDraft = rawStatus === 'draft'
   const isSent = rawStatus === 'sent'
   const isAccepted = rawStatus === 'accepted'
   const isDeclined = rawStatus === 'declined'
-  const isPaid = rawStatus === 'paid'
+  const isPaid = rawStatus === 'paid' || paymentIsPaid
   const isOverdue = effective === 'overdue'
   const isQuote = docType === 'quote'
   const isInvoice = docType === 'invoice'
@@ -139,7 +145,14 @@ export default function BillingViewerModal({
     nextStepCta = { label: 'Send Invoice', onClick: onSend, icon: Send }
   } else if (isSent && isInvoice && !isOverdue) {
     nextStepTitle = "What's next?"
-    nextStepBody = "Waiting for payment."
+    if (paymentIsCancelled) {
+      nextStepBody = "Payment cancelled. You can resend the invoice to request payment again."
+      nextStepCta = { label: 'Resend Invoice', onClick: onSend, icon: RefreshCw }
+    } else if (paymentIsPaid) {
+      nextStepBody = "Payment received."
+    } else {
+      nextStepBody = "Waiting for payment."
+    }
   } else if (isOverdue && isInvoice) {
     nextStepTitle = "What's next?"
     nextStepBody = "Payment is overdue. You can resend the invoice if needed."
@@ -213,7 +226,7 @@ export default function BillingViewerModal({
       footer={footer}
     >
       {loading ? (
-        <div className="min-h-[60dvh] flex flex-col items-center justify-center">
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center">
           <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
         </div>
       ) : doc ? (

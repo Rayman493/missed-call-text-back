@@ -127,7 +127,7 @@ export default function RevenueGraph() {
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="text-sm font-semibold text-foreground">Payments Received</h3>
           </div>

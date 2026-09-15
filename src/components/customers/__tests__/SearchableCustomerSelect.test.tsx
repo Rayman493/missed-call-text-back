@@ -147,10 +147,11 @@ describe('SearchableCustomerSelect', () => {
 
   it('should use standard modal form control styling', () => {
     expect(content).toContain('px-3 py-2.5')
-    expect(content).toContain('bg-background')
-    expect(content).toContain('border border-border')
+    expect(content).toContain('bg-muted/30')
+    expect(content).toContain('dark:bg-slate-900/55')
+    expect(content).toContain('border border-border/50')
     expect(content).toContain('rounded-lg')
-    expect(content).toContain('focus:ring-2 focus:ring-primary/50')
+    expect(content).toContain('focus:ring-2 focus:ring-blue-500/20')
   })
 
   it('should have max-h-[300px] for dropdown scroll', () => {
@@ -162,7 +163,8 @@ describe('SearchableCustomerSelect', () => {
   })
 
   it('should use semantic theme classes for dark mode', () => {
-    expect(content).toContain('bg-background')
+    expect(content).toContain('bg-muted/30')
+    expect(content).toContain('dark:bg-slate-900/55')
     expect(content).toContain('bg-card')
     expect(content).toContain('text-foreground')
     expect(content).toContain('text-muted-foreground')
@@ -196,16 +198,15 @@ describe('SearchableCustomerSelect', () => {
   })
 
   it('should add right padding for clear icon', () => {
-    expect(content).toContain('pr-14')
-    expect(content).toContain('pr-10')
+    expect(content).toContain('pr-[44px]')
+    expect(content).toContain('right-3')
   })
 
   it('should place clear and chevron in a single dedicated icon group with no overlap', () => {
-    expect(content).toContain('absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1')
+    expect(content).toContain('absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1')
     expect(content).toContain('pointer-events-none')
     expect(content).toContain('pointer-events-auto')
-    expect(content).toContain('pr-14')
-    expect(content).toContain('pr-10')
+    expect(content).toContain('pr-[44px]')
   })
 
   it('should prefer prefillCustomer when value matches selected ID', () => {
@@ -284,5 +285,23 @@ describe('SearchableCustomerSelect', () => {
 
   it('preserves WebkitOverflowScrolling momentum scrolling on the results list', () => {
     expect(content).toContain("style={{ WebkitOverflowScrolling: 'touch' }}")
+  })
+
+  it('should commit iOS selection via onPointerDown while keeping onClick for keyboard fallback', () => {
+    // The customer row has both handlers, both dispatching the same idempotent
+    // handleSelect so a pointer + click pair cannot produce a double selection.
+    expect(content).toContain('onPointerDown={(e) => { e.preventDefault(); handleSelect(customer.id) }}')
+    expect(content).toContain('onClick={() => handleSelect(customer.id)}')
+  })
+
+  it('should keep No customer option reachable from iOS pointerdown and click', () => {
+    expect(content).toContain('onPointerDown={(e) => { e.preventDefault(); handleSelect(null) }}')
+    expect(content).toContain('onClick={() => handleSelect(null)}')
+  })
+
+  it('should not double-open or double-close through pointer and click because handleSelect resets state', () => {
+    expect(content).toContain('const handleSelect = (customerId: string | null) =>')
+    expect(content).toContain('setIsOpen(false)')
+    expect(content).toContain("setSearchQuery('')")
   })
 })

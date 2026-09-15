@@ -17,6 +17,7 @@ const mmsMediaTokenSrc = readSrc('src/lib/mms-media-token.ts')
 const mmsMediaUrlHelperSrc = readSrc('src/lib/mms-media-url-helper.ts')
 const mmsUrlValidatorSrc = readSrc('src/lib/mms-url-validator.ts')
 const mmsServeRouteSrc = readSrc('src/app/api/mms-media/serve/route.ts')
+const authHelperSrc = readSrc('src/lib/supabase/auth-helper.ts')
 const messageMediaRouteSrc = readSrc('src/app/api/message-media/route.ts')
 const recoverUrlRouteSrc = readSrc('src/app/api/mms-media/recover-url/route.ts')
 const customerAttachmentsCardSrc = readSrc('src/components/CustomerAttachmentsCard.tsx')
@@ -71,9 +72,10 @@ describe('A. MMS MEDIA TOKEN LIFECYCLE', () => {
   })
 
   describe('A.3 Authorized user can obtain fresh authorization', () => {
-    it('8. serve route accepts Bearer token (session auth) as alternative', () => {
-      expect(mmsServeRouteSrc).toContain('authHeader.startsWith(\'Bearer \')')
-      expect(mmsServeRouteSrc).toContain('supabase.auth.getUser(bearerToken)')
+    it('8. serve route delegates session auth to getAuthenticatedUser (supports cookie + Bearer)', () => {
+      expect(mmsServeRouteSrc).toContain('getAuthenticatedUser(request)')
+      expect(authHelperSrc).toContain('Bearer ')
+      expect(authHelperSrc).toContain('supabase.auth.getUser()')
     })
 
     it('9. serve route verifies user owns the business before granting access', () => {

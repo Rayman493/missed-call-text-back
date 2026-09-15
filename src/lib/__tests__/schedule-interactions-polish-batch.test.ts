@@ -125,8 +125,8 @@ describe('CARDS: Job card two-zone structure', () => {
   const jobCardCompIdx = calendarPageSrc.indexOf('const JobCard')
   const jobCardCode = calendarPageSrc.slice(jobCardCompIdx, jobCardCompIdx + 5000)
 
-  it('8. Job card uses items-start (not items-center) for top-aligned actions', () => {
-    expect(jobCardCode).toContain('flex items-start justify-between')
+  it('8. Job card uses items-center (not items-start) for vertically centered actions', () => {
+    expect(jobCardCode).toContain('flex items-center justify-between')
   })
 
   it('Job card left zone uses min-w-0 flex-1', () => {
@@ -158,8 +158,8 @@ describe('CARDS: Appointment card two-zone structure', () => {
   const renderGroupStart = calendarPageSrc.lastIndexOf('renderGroup =', isEditableIdx)
   const renderGroupCode = calendarPageSrc.slice(renderGroupStart, isEditableIdx + 8000)
 
-  it('9. Appointment card uses items-start (not items-center) for top-aligned actions', () => {
-    expect(renderGroupCode).toContain('flex items-start justify-between')
+  it('9. Appointment card uses items-center (not items-start) for vertically centered actions', () => {
+    expect(renderGroupCode).toContain('flex items-center justify-between')
   })
 
   it('Appointment card left zone uses min-w-0 flex-1', () => {

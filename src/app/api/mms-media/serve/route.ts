@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
 import { verifyMmsMediaToken } from '@/lib/mms-media-token'
 import { detectMimeType } from '@/lib/mime-detection'
 import { isValidStoragePath } from '@/lib/mms-path-validation'
@@ -13,7 +14,6 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const filePath = searchParams.get('path')
     const authToken = searchParams.get('token')
-    const authHeader = request.headers.get('authorization')
 
     if (DEBUG) console.log('[MMS Media Serve] Request received:', {
       pathPresent: !!filePath,
@@ -24,8 +24,7 @@ export async function GET(request: NextRequest) {
       tokenSegmentCount: authToken ? authToken.split('.').length : 0,
       tokenDotCount: authToken ? authToken.split('.').length - 1 : 0,
       tokenPrefix: authToken ? authToken.substring(0, 6) : undefined,
-      tokenSuffix: authToken ? authToken.slice(-6) : undefined,
-      bearerTokenPresent: !!authHeader
+      tokenSuffix: authToken ? authToken.slice(-6) : undefined
     })
 
     if (!filePath) {
@@ -35,26 +34,25 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Accept either URL token or Bearer token authentication
-    let tokenPayload = null
+    // Accept either a valid signed URL token or an authenticated session (cookie/Bearer).
+    let tokenPayload: { path: string } | null = null
 
-    // First, try Bearer token (session auth)
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const bearerToken = authHeader.replace('Bearer ', '')
-      if (DEBUG) console.log('[MMS Media Serve] Attempting Bearer token authentication')
+    // First, try the signed URL token. This supports short-lived share links.
+    if (authToken) {
+      if (DEBUG) console.log('[MMS Media Serve] Attempting signed URL token authentication')
+      const verifiedPayload = await verifyMmsMediaToken(authToken, filePath)
+      if (verifiedPayload) {
+        tokenPayload = verifiedPayload as unknown as { path: string }
+      }
+    }
 
-      // Verify user session with Bearer token
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      )
-      const { data: { user }, error: authError } = await supabase.auth.getUser(bearerToken)
+    // If the token is missing or expired, fall back to a durable session. This is
+    // the path that keeps historical MMS attachments viewable after their JWT expires.
+    if (!tokenPayload) {
+      if (DEBUG) console.log('[MMS Media Serve] Token auth failed or absent; attempting session authentication')
+      const user = await getAuthenticatedUser(request)
 
-      if (authError || !user) {
-        console.error('[MMS Media Serve] Invalid Bearer token')
-      } else {
-        // Validate and normalize the file path
+      if (user) {
         if (!isValidStoragePath(filePath)) {
           console.error('[MMS Media Serve] Invalid file path structure')
           return NextResponse.json(
@@ -63,7 +61,6 @@ export async function GET(request: NextRequest) {
           )
         }
 
-        // Extract business_id from the file path (first segment)
         const pathSegments = filePath.split('/')
         const businessId = pathSegments[0]
 
@@ -75,27 +72,24 @@ export async function GET(request: NextRequest) {
           )
         }
 
-        // Verify the user owns this business
-        const { data: business, error: businessError } = await supabaseAdmin
+        const { data: business } = await supabaseAdmin
           .from('businesses')
           .select('id')
           .eq('id', businessId)
           .eq('user_id', user.id)
           .single()
 
-        if (!businessError && business) {
-          if (DEBUG) console.log('[MMS Media Serve] Bearer token authentication successful')
-          tokenPayload = { path: filePath } // Minimal payload for consistency
+        if (business) {
+          if (DEBUG) console.log('[MMS Media Serve] Session authentication successful')
+          tokenPayload = { path: filePath }
         } else {
           console.error('[MMS Media Serve] User not authorized for this business')
+          return NextResponse.json(
+            { error: 'Access denied' },
+            { status: 403 }
+          )
         }
       }
-    }
-
-    // If Bearer auth failed or not provided, fall back to URL token
-    if (!tokenPayload && authToken) {
-      if (DEBUG) console.log('[MMS Media Serve] Attempting URL token authentication')
-      tokenPayload = await verifyMmsMediaToken(authToken, filePath)
     }
 
     if (!tokenPayload) {
@@ -103,6 +97,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'Invalid or expired authentication token' },
         { status: 401 }
+      )
+    }
+
+    // Defensive: the signed token must still point to a safe storage path.
+    if (!isValidStoragePath(filePath)) {
+      console.error('[MMS Media Serve] Invalid file path structure')
+      return NextResponse.json(
+        { error: 'Invalid file path' },
+        { status: 400 }
       )
     }
 

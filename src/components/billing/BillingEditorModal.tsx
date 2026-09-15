@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Trash2, Search, User, X, Loader2, Eye } from 'lucide-react'
+import { Plus, Trash2, Search, User, X, Loader2, Eye, CalendarDays } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatCurrency } from '@/lib/utils'
@@ -44,6 +44,7 @@ export interface BillingDocumentData {
   customer_name?: string | null
   customer_phone?: string | null
   customer_email?: string | null
+  display_name?: string | null
   notes?: string | null
   terms?: string | null
   discount_cents: number
@@ -101,6 +102,7 @@ export default function BillingEditorModal({
     : `New ${isInvoice ? 'Invoice' : 'Quote'}`
 
   const [docNumber, setDocNumber] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [issueDate, setIssueDate] = useState(todayStr())
   const [validUntil, setValidUntil] = useState('')
   const [dueDate, setDueDate] = useState('')
@@ -145,6 +147,7 @@ export default function BillingEditorModal({
     if (!isOpen) return
     if (existingDocument) {
       setDocNumber(existingDocument.document_number || '')
+      setDisplayName(existingDocument.display_name || '')
       setIssueDate(existingDocument.issue_date || todayStr())
       setValidUntil(existingDocument.valid_until || '')
       setDueDate(existingDocument.due_date || '')
@@ -180,6 +183,7 @@ export default function BillingEditorModal({
     } else {
       // New document defaults
       setDocNumber('')
+      setDisplayName('')
       setIssueDate(todayStr())
       setValidUntil(isInvoice ? '' : '')
       setDueDate('')
@@ -419,6 +423,7 @@ export default function BillingEditorModal({
       const payload = {
         document_type: documentType,
         customer_id: customerId || null,
+        display_name: displayName.trim() || null,
         issue_date: issueDate,
         valid_until: isInvoice ? null : (validUntil || null),
         due_date: isInvoice ? (dueDate || null) : null,
@@ -469,7 +474,7 @@ export default function BillingEditorModal({
       setIsSaving(false)
     }
   }, [
-    customerId, issueDate, validUntil, dueDate, notes, terms, discount, tax,
+    customerId, displayName, issueDate, validUntil, dueDate, notes, terms, discount, tax,
     lineItems, documentType, isInvoice, existingDocument, savedDoc, onSaved, onClose,
     markClean,
   ])
@@ -529,7 +534,7 @@ export default function BillingEditorModal({
       footer={footer}
       contentMaxHeight="85vh"
     >
-      <div className="space-y-4">
+      <div className="space-y-4 min-w-0">
         {saveError && (
           <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 text-sm text-red-700 dark:text-red-300">
             {saveError}
@@ -550,6 +555,21 @@ export default function BillingEditorModal({
             />
           </div>
         )}
+
+        {/* Document name (optional) */}
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
+            Document name (optional)
+          </label>
+          <input
+            type="text"
+            value={displayName}
+            onChange={(e) => { markDirty(); setDisplayName(e.target.value) }}
+            maxLength={80}
+            placeholder={isInvoice ? 'e.g. Kitchen Sink Repair' : 'e.g. Backyard Fence Installation'}
+            className="w-full min-w-0 max-w-full box-border px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+          />
+        </div>
 
         {/* Customer */}
         <div ref={customerFieldRef}>
@@ -628,42 +648,57 @@ export default function BillingEditorModal({
         </div>
 
         {/* Issue Date */}
-        <div>
+        <div className="min-w-0">
           <label className="block text-xs font-medium text-muted-foreground mb-1">
             Issue Date
           </label>
-          <input
-            type="date"
-            value={issueDate}
-            onChange={(e) => { markDirty(); setIssueDate(e.target.value) }}
-            className="w-full min-w-0 max-w-full box-border pr-10 px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-          />
+          <div className="relative min-w-0">
+            <input
+              type="date"
+              value={issueDate}
+              onChange={(e) => { markDirty(); setIssueDate(e.target.value) }}
+              className="w-full min-w-0 max-w-full box-border px-3 py-2.5 sm:py-2 text-base sm:text-sm leading-5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40 appearance-none hide-native-picker min-h-10 pr-[44px]"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+              <CalendarDays className="w-4 h-4 text-slate-400" />
+            </div>
+          </div>
         </div>
 
         {/* Quote: Valid Until / Invoice: Due Date */}
         {isInvoice ? (
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-muted-foreground mb-1">
               Due Date
             </label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => { markDirty(); setDueDate(e.target.value) }}
-              className="w-full min-w-0 max-w-full box-border pr-10 px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            />
+            <div className="relative min-w-0">
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => { markDirty(); setDueDate(e.target.value) }}
+                className="w-full min-w-0 max-w-full box-border px-3 py-2.5 sm:py-2 text-base sm:text-sm leading-5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40 appearance-none hide-native-picker min-h-10 pr-[44px]"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <CalendarDays className="w-4 h-4 text-slate-400" />
+              </div>
+            </div>
           </div>
         ) : (
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-muted-foreground mb-1">
               Valid Until
             </label>
-            <input
-              type="date"
-              value={validUntil}
-              onChange={(e) => { markDirty(); setValidUntil(e.target.value) }}
-              className="w-full min-w-0 max-w-full box-border pr-10 px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            />
+            <div className="relative min-w-0">
+              <input
+                type="date"
+                value={validUntil}
+                onChange={(e) => { markDirty(); setValidUntil(e.target.value) }}
+                className="w-full min-w-0 max-w-full box-border px-3 py-2.5 sm:py-2 text-base sm:text-sm leading-5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40 appearance-none hide-native-picker min-h-10 pr-[44px]"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <CalendarDays className="w-4 h-4 text-slate-400" />
+              </div>
+            </div>
           </div>
         )}
 
@@ -846,7 +881,7 @@ export default function BillingEditorModal({
                 <button
                   type="button"
                   onClick={() => { markDirty(); setTaxMode('percent') }}
-                  className={`px-2.5 py-1.5 text-xs font-medium min-w-[2rem] min-h-[2rem] transition-colors ${
+                  className={`w-10 sm:w-9 h-9 sm:h-8 flex items-center justify-center text-sm sm:text-xs font-medium transition-colors ${
                     taxMode === 'percent'
                       ? 'bg-blue-600 text-white'
                       : 'text-muted-foreground hover:text-foreground'
@@ -857,7 +892,7 @@ export default function BillingEditorModal({
                 <button
                   type="button"
                   onClick={() => { markDirty(); setTaxMode('dollars') }}
-                  className={`px-2.5 py-1.5 text-xs font-medium min-w-[2rem] min-h-[2rem] transition-colors ${
+                  className={`w-10 sm:w-9 h-9 sm:h-8 flex items-center justify-center text-sm sm:text-xs font-medium transition-colors ${
                     taxMode === 'dollars'
                       ? 'bg-blue-600 text-white'
                       : 'text-muted-foreground hover:text-foreground'

@@ -79,9 +79,14 @@ describe('1. iOS MODAL BACKGROUND SCROLL LOCK', () => {
     expect(scrollLockSrc).toContain('originalHtmlWidth = document.documentElement.style.width')
   })
 
-  it('8. First lock applies html position:fixed for iOS scroll prevention', () => {
-    expect(scrollLockSrc).toContain("document.documentElement.style.position = 'fixed'")
-    expect(scrollLockSrc).toContain("document.documentElement.style.width = '100%'")
+  it('8. First lock freezes html overflow/height without position:fixed or width', () => {
+    // html.position:fixed and html.width:100% are intentionally omitted; they
+    // shift fixed-position descendants like the persistent bottom nav on iOS.
+    // The canonical contract is overflow/height freeze only.
+    expect(scrollLockSrc).toContain("document.documentElement.style.overflow = 'hidden'")
+    expect(scrollLockSrc).toContain("document.documentElement.style.height = '100%'")
+    expect(scrollLockSrc).not.toContain("document.documentElement.style.position = 'fixed'")
+    expect(scrollLockSrc).not.toContain("document.documentElement.style.width = '100%'")
   })
 
   it('9. Final unlock restores html position/width', () => {
@@ -279,8 +284,15 @@ describe('6. PER-UNIT UNIT SELECTOR', () => {
 // 7. DRAFT QUOTE/INVOICE SEND ACTION
 // ============================================================================
 describe('7. DRAFT QUOTE/INVOICE SEND ACTION', () => {
-  it('41. Draft cards expose Send action', () => {
-    expect(billingListSrc).toContain("Draft: Send + Edit + Download + Delete")
+  it('41. Draft cards expose the full action set (Edit, Send, Download, View, Delete)', () => {
+    const draftMatch = billingListSrc.match(/{isDraft && \(/)
+    expect(draftMatch).toBeTruthy()
+    const draftBlock = billingListSrc.slice(draftMatch!.index, draftMatch!.index + 4000)
+    expect(draftBlock).toContain('<Edit')
+    expect(draftBlock).toContain('<Send')
+    expect(draftBlock).toContain('<Download')
+    expect(draftBlock).toContain('<Eye')
+    expect(draftBlock).toContain('<Trash2')
   })
 
   it('42. Draft Send button calls onSend', () => {

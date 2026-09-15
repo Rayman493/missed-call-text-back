@@ -88,21 +88,21 @@ export function PremiumTooltip({ active, payload, label }: PremiumTooltipProps) 
   }
 
   return (
-    <div className="bg-card border border-border/50 rounded-lg shadow-lg px-3 py-2.5 min-w-[140px]">
+    <div className="bg-card border border-border/50 rounded-lg shadow-lg px-2 py-1.5 w-fit max-w-[min(70vw,220px)]">
       {label && (
-        <p className="text-[11px] font-semibold text-foreground mb-1.5">{label}</p>
+        <p className="text-[11px] font-semibold text-foreground mb-1">{label}</p>
       )}
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         {payload.map((entry: any, index: number) => (
-          <div key={index} className="flex items-center justify-between gap-3 text-[11px]">
-            <div className="flex items-center gap-2">
+          <div key={index} className="flex items-center justify-between gap-2 text-[11px]">
+            <div className="flex items-center gap-1.5">
               <div
                 className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: entry.color || entry.payload?.fill || 'hsl(var(--primary))' }}
               />
-              <span className="text-muted-foreground">{entry.name || entry.dataKey}</span>
+              <span className="text-muted-foreground truncate max-w-[120px]" title={entry.name || entry.dataKey}>{entry.name || entry.dataKey}</span>
             </div>
-            <span className="font-medium text-foreground tabular-nums">
+            <span className="font-medium text-foreground tabular-nums pl-1">
               {entry.value !== undefined ? formatNumber(entry.value, entry.name) : '-'}
             </span>
           </div>
@@ -212,7 +212,7 @@ export const CHART_STYLES = {
  *     </ResponsiveContainer>
  *   </ChartTouchWrapper>
  */
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { GESTURE_MOVEMENT_THRESHOLD } from '@/lib/gesture/tap-guard'
 
 type GestureMode = 'idle' | 'vertical' | 'horizontal'
@@ -232,6 +232,7 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
   const innerRef = useRef<HTMLDivElement>(null)
   const justDraggedRef = useRef(false)
   const [isScrubbing, setIsScrubbing] = useState(false)
+  const [hasSelection, setHasSelection] = useState(false)
 
   /**
    * Map a client X coordinate to the nearest data index by measuring
@@ -290,6 +291,7 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
       clientY: targetY,
     })
     surface.dispatchEvent(mouseMove)
+    setHasSelection(true)
   }, [data])
 
   const clearRechartsState = useCallback(() => {
@@ -307,7 +309,26 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
     if (wrapper) {
       wrapper.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }))
     }
+    setHasSelection(false)
   }, [])
+
+  // Dismiss an active chart selection when the user taps outside the chart
+  // (empty card area, another control, or a different chart). This is necessary
+  // on touch devices where mouseLeave never fires and the Recharts tooltip
+  // stays pinned until another point is tapped.
+  useEffect(() => {
+    if (!hasSelection) return
+
+    const handleOutsidePointerDown = (e: PointerEvent) => {
+      if (!innerRef.current) return
+      if (innerRef.current.contains(e.target as Node)) return
+      clearRechartsState()
+      onActiveIndexChange?.(null)
+    }
+
+    document.addEventListener('pointerdown', handleOutsidePointerDown, true)
+    return () => document.removeEventListener('pointerdown', handleOutsidePointerDown, true)
+  }, [hasSelection, clearRechartsState, onActiveIndexChange])
 
   // --- Touch handlers (primary on Android WebView) ---
 
@@ -483,7 +504,7 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
       // NO tabIndex — removes the giant white focus rectangle on Android.
       // Keyboard accessibility is preserved on individual data elements
       // (bars, dots, slices) via globals.css :focus-visible rules.
-      className="w-full h-full select-none rounded-lg [&_.recharts-surface]:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-rectangle-wrapper]:outline-none"
+      className="w-full h-full select-none rounded-lg [-webkit-tap-highlight-color:transparent] [&_.recharts-surface]:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-rectangle-wrapper]:outline-none [&_.recharts-surface]:[-webkit-tap-highlight-color:transparent] [&_.recharts-wrapper]:[-webkit-tap-highlight-color:transparent]"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -495,6 +516,7 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
       style={{
         touchAction: 'pan-y',
         pointerEvents: 'auto',
+        WebkitTapHighlightColor: 'transparent',
       }}
       data-chart-scrubbing={isScrubbing ? 'true' : undefined}
     >

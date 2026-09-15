@@ -271,6 +271,7 @@ export default function PaymentsPage() {
                 sent_at: row.sent_at ?? d.sent_at,
                 public_token: row.public_token ?? d.public_token,
                 payment_request_id: (row as any).payment_request_id ?? (d as any).payment_request_id,
+                payment_request: (row as any).payment_request ?? (d as any).payment_request,
                 updated_at: row.updated_at ?? d.updated_at,
                 total_cents: row.total_cents ?? d.total_cents,
               } : d)
@@ -280,6 +281,32 @@ export default function PaymentsPage() {
             fetchBillingDocuments()
             return prev
           })
+        }
+      )
+      .subscribe()
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [business?.id])
+
+  // Realtime: subscribe to payment_requests so that cancelling or paying a
+  // linked payment request is reflected on the Quotes & Invoices cards without
+  // an app restart.
+  useEffect(() => {
+    if (!business?.id) return
+    const supabase = createBrowserClient()
+    const channel = supabase
+      .channel('payment-requests-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payment_requests',
+          filter: `business_id=eq.${business.id}`,
+        },
+        () => {
+          fetchBillingDocuments()
         }
       )
       .subscribe()
@@ -456,7 +483,11 @@ export default function PaymentsPage() {
     // Merge the saved document into local state by id — no full refetch,
     // no loading flash. If it's a new doc (not in the list), prepend it.
     if (savedDoc?.document_type) {
-      setSuccessMessage(savedDoc.document_type === 'quote' ? 'Quote created' : 'Invoice created')
+      const label = savedDoc.document_type === 'quote' ? 'Quote' : 'Invoice'
+      const name = savedDoc.display_name?.trim()
+      const identity = name || (savedDoc.document_number || 'draft')
+      const quoted = name ? `“${identity}”` : identity
+      setSuccessMessage(`${label} ${quoted} created\nReady to review and send.`)
     }
     if (savedDoc?.id) {
       const savedId = savedDoc.id
@@ -468,6 +499,7 @@ export default function PaymentsPage() {
           document_type: savedDoc.document_type,
           status: savedDoc.status,
           document_number: savedDoc.document_number,
+          display_name: savedDoc.display_name ?? existing?.display_name ?? null,
           issue_date: savedDoc.issue_date,
           valid_until: savedDoc.valid_until ?? null,
           due_date: savedDoc.due_date ?? null,
@@ -475,6 +507,8 @@ export default function PaymentsPage() {
           customer_id: savedDoc.customer_id ?? null,
           public_token: (savedDoc as any).public_token ?? existing?.public_token ?? null,
           source_quote_id: (savedDoc as any).source_quote_id ?? existing?.source_quote_id ?? null,
+          payment_request_id: (savedDoc as any).payment_request_id ?? existing?.payment_request_id ?? null,
+          payment_request: existing?.payment_request ?? null,
           leads: baseLead,
           updated_at: new Date().toISOString(),
           sent_at: existing?.sent_at ?? null,
@@ -587,6 +621,7 @@ export default function PaymentsPage() {
               document_type: 'invoice',
               status: newInvoice.status || 'draft',
               document_number: newInvoice.document_number,
+              display_name: newInvoice.display_name || null,
               issue_date: newInvoice.issue_date,
               valid_until: newInvoice.valid_until,
               due_date: newInvoice.due_date,
@@ -594,6 +629,8 @@ export default function PaymentsPage() {
               customer_id: newInvoice.customer_id,
               public_token: newInvoice.public_token,
               source_quote_id: newInvoice.source_quote_id,
+              payment_request_id: newInvoice.payment_request_id ?? null,
+              payment_request: newInvoice.payment_request ?? null,
               leads: newInvoice.leads,
               updated_at: newInvoice.updated_at,
               sent_at: newInvoice.sent_at,
@@ -1050,7 +1087,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           <button
             onClick={() => setShowBillingChooser(true)}
             className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.995] min-h-[120px]
-            bg-violet-800 dark:bg-violet-700 border-violet-900 dark:border-violet-800 hover:bg-violet-900 dark:hover:bg-violet-800 shadow-[0_6px_18px_rgba(0,0,0,0.22)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.45)]"
+            bg-violet-900 dark:bg-violet-800 border-violet-950 dark:border-violet-900 hover:bg-violet-950 dark:hover:bg-violet-900 shadow-[0_6px_18px_rgba(0,0,0,0.22)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.45)]"
           >
             <div className="flex items-center gap-3.5 mb-2.5">
               <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-white/10 ring-1 ring-inset ring-white/30 dark:ring-white/20 flex items-center justify-center">
@@ -1942,7 +1979,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               aria-label="Create Quote or Invoice"
               title="Create Quote or Invoice"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
             </button>
           </div>
 

@@ -191,7 +191,7 @@ export default function BusinessActivityGraph() {
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="text-sm font-semibold text-foreground">Customer Engagement</h3>
           </div>
@@ -269,21 +269,21 @@ export default function BusinessActivityGraph() {
                       if (!active || !payload || payload.length === 0) return null
 
                       return (
-                        <div className="bg-card border border-border/50 rounded-lg shadow-lg px-3 py-2.5 min-w-[160px]">
-                          <p className="text-[11px] font-semibold text-foreground mb-1.5">{label}</p>
+                        <div className="bg-card border border-border/50 rounded-lg shadow-lg px-2 py-1.5 w-fit max-w-[min(70vw,220px)]">
+                          <p className="text-[11px] font-semibold text-foreground mb-1">{label}</p>
                           {payload.map((entry: any, index: number) => {
                             const key = entry.dataKey as string
                             const label = SERIES_LABELS[key] || entry.dataKey
                             return (
-                              <div key={index} className="flex items-center justify-between gap-3 text-[11px]">
-                                <div className="flex items-center gap-2">
+                              <div key={index} className="flex items-center justify-between gap-2 text-[11px]">
+                                <div className="flex items-center gap-1.5">
                                   <div
                                     className="w-2 h-2 rounded-full shrink-0"
                                     style={{ backgroundColor: entry.color }}
                                   />
-                                  <span className="text-muted-foreground">{label}</span>
+                                  <span className="text-muted-foreground truncate max-w-[120px]" title={label}>{label}</span>
                                 </div>
-                                <span className="font-medium text-foreground tabular-nums">{entry.value}</span>
+                                <span className="font-medium text-foreground tabular-nums pl-1">{entry.value}</span>
                               </div>
                             )
                           })}

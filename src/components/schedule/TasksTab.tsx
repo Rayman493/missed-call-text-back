@@ -502,14 +502,14 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
               onPointerCancel={cardGuard.onPointerCancel}
               onPointerLeave={cardGuard.onPointerLeave}
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-center gap-3">
                 <button
                   onClick={() => {
                     if (cardGuard.consumeDragSuppression()) return
                     toggleTaskComplete(task.id, task.completed)
                   }}
                   disabled={togglingTaskIds.has(task.id)}
-                  className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 transition-all flex items-center justify-center ${
+                  className={`flex-shrink-0 w-5 h-5 rounded border-2 transition-all flex items-center justify-center ${
                     task.completed
                       ? 'border-green-500 bg-green-500'
                       : isOverdue(task.due_date)

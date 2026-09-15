@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import getStripe from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
-import { validateStateTransition } from '@/lib/terminal/state-transition-guards'
+import { validateStateTransition, isAuthoritativePaidCorrection } from '@/lib/terminal/state-transition-guards'
 
 /**
  * POST /api/terminal/reconcile-payment
@@ -335,16 +335,37 @@ export async function POST(request: NextRequest) {
     switch (paymentIntent.status) {
       case 'succeeded': {
         console.log('[TERMINAL_RECONCILIATION] stage=local_update_start local_status=paid')
-        
+
         // Validate state transition before updating
         const validation = validateStateTransition(paymentRequest.status, 'paid')
-        if (!validation.allowed) {
+
+        // Authoritative Stripe correction: a verified succeeded PaymentIntent may
+        // correct a local failed/requires_payment_method record to paid. This is
+        // the iOS Tap to Pay race where the native layer can report failure before
+        // the server-verified PaymentIntent reaches its final succeeded state.
+        const isAuthoritative = !validation.allowed && isAuthoritativePaidCorrection(paymentRequest.status)
+
+        if (!validation.allowed && !isAuthoritative) {
           console.error('[TERMINAL_RECONCILIATION] invalid_transition=' + validation.reason)
           return NextResponse.json({
             status: paymentRequest.status,
             paymentRequestId: paymentRequest.id,
             message: 'Invalid state transition'
           }, { status: 409 })
+        }
+
+        // Safety: amount must match the authoritative Stripe PaymentIntent
+        if (paymentRequest.amount_cents !== paymentIntent.amount) {
+          console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=authoritative_amount_mismatch local=' + paymentRequest.amount_cents + ' stripe=' + paymentIntent.amount)
+          return NextResponse.json({
+            status: paymentRequest.status,
+            paymentRequestId: paymentRequest.id,
+            message: 'Payment amount mismatch'
+          }, { status: 409 })
+        }
+
+        if (isAuthoritative) {
+          console.log('[TERMINAL_RECONCILIATION] stage=authoritative_correction previous_status=' + paymentRequest.status + ' stripe_status=' + paymentIntent.status + ' payment_request_id=' + paymentRequest.id + ' reason=trusted_stripe_succeeded')
         }
 
         const { error: updateError } = await supabaseAdmin
@@ -409,6 +430,15 @@ export async function POST(request: NextRequest) {
       case 'canceled': {
         console.log('[TERMINAL_RECONCILIATION] stage=local_update_start local_status=cancelled')
 
+        // Idempotent: already cancelled
+        if (paymentRequest.status === 'cancelled') {
+          console.log('[TERMINAL_RECONCILIATION] stage=reconciliation_complete reason=already_cancelled local_status_unchanged')
+          return NextResponse.json({
+            status: 'cancelled',
+            paymentRequestId: paymentRequest.id,
+          })
+        }
+
         const cancelValidation = validateStateTransition(paymentRequest.status, 'cancelled')
         if (!cancelValidation.allowed) {
           console.error('[TERMINAL_RECONCILIATION] invalid_transition=' + cancelValidation.reason)
@@ -433,6 +463,24 @@ export async function POST(request: NextRequest) {
 
       case 'requires_payment_method': {
         console.log('[TERMINAL_RECONCILIATION] stage=local_update_start local_status=failed')
+
+        // Idempotent: already failed
+        if (paymentRequest.status === 'failed') {
+          console.log('[TERMINAL_RECONCILIATION] stage=reconciliation_complete reason=already_failed local_status_unchanged')
+          return NextResponse.json({
+            status: 'failed',
+            paymentRequestId: paymentRequest.id,
+          })
+        }
+
+        // Do not overwrite a cancelled record with failed; preserve the explicit cancellation
+        if (paymentRequest.status === 'cancelled') {
+          console.log('[TERMINAL_RECONCILIATION] stage=reconciliation_complete reason=failed_but_cancelled_preserved local_status_unchanged')
+          return NextResponse.json({
+            status: 'cancelled',
+            paymentRequestId: paymentRequest.id,
+          })
+        }
 
         const failedValidation = validateStateTransition(paymentRequest.status, 'failed')
         if (!failedValidation.allowed) {

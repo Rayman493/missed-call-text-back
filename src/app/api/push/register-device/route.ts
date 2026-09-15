@@ -113,9 +113,11 @@ export async function POST(request: NextRequest) {
     // Correct contract:
     // - Same token re-registered -> idempotent update of last_seen_at (unique on
     //   user_id, platform, push_token).
-    // - Different token registered -> new active row, old rows stay active.
-    // - Stale/invalid tokens are disabled later by the push sender when the provider
-    //   (FCM/APNs) reports them invalid (fcm-sender.ts / apns-sender.ts).
+    // - Different token registered -> new active row. Because the native client
+    //   does not yet send a stable deviceIdentifier, a new token for the same
+    //   platform is treated as the canonical active device. Older tokens for the
+    //   same (user_id, business_id, platform) are disabled immediately so stale
+    //   or invalid tokens cannot outvote the fresh one during push delivery.
     console.log('[PUSH DEVICE REGISTRATION] Upserting device token')
     const { data: device, error: deviceError } = await supabaseAdmin
       .from('push_devices')
@@ -133,6 +135,32 @@ export async function POST(request: NextRequest) {
       })
       .select()
       .single()
+
+    if (!deviceError) {
+      // Disable any other active token on the same business/platform for this user
+      // so a fresh registration becomes the only push target.
+      let disableQuery = supabaseAdmin
+        .from('push_devices')
+        .update({ enabled: false, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('business_id', business.id)
+        .eq('platform', platform)
+        .eq('enabled', true)
+        .neq('push_token', pushToken)
+
+      if (deviceIdentifier) {
+        disableQuery = disableQuery.eq('device_identifier', deviceIdentifier)
+      } else {
+        disableQuery = disableQuery.is('device_identifier', null)
+      }
+
+      const { error: disableError } = await disableQuery
+      if (disableError) {
+        console.error('[PUSH DEVICE REGISTRATION] Failed to disable stale tokens:', disableError)
+      } else {
+        console.log('[PUSH DEVICE REGISTRATION] Disabled older tokens for this platform')
+      }
+    }
 
     if (deviceError) {
       console.error('[PUSH DEVICE REGISTRATION] Device upsert failed:', deviceError?.message)

@@ -206,20 +206,20 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
   // in a realtime payload or API response would otherwise crash on .id access).
   if (!incomingMessage) return existingMessages
   const messageMap = new Map<string, any>()
-  
+
   // Add existing messages first
   existingMessages.forEach(msg => {
     messageMap.set(msg.id, msg)
   })
-  
+
   // Find existing message by multiple correlation keys
   let existingMessage: any = null
   let matchKey: string = ''
-  
+
   // Normalize field names for matching
   const incomingClientMessageId = incomingMessage.clientMessageId || incomingMessage.client_message_id
   const incomingTwilioSid = incomingMessage.twilio_message_sid
-  
+
   console.log('[SMS RECONCILE] =========================================')
   console.log('[SMS RECONCILE] source:', source)
   console.log('[SMS RECONCILE] incomingMessageId:', incomingMessage.id)
@@ -227,7 +227,7 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
   console.log('[SMS RECONCILE] incomingTwilioSid:', incomingTwilioSid)
   console.log('[SMS RECONCILE] incomingStatus:', incomingMessage.status)
   console.log('[SMS RECONCILE] =========================================')
-  
+
   // 1. Match by exact database ID
   if (incomingMessage.id && messageMap.has(incomingMessage.id)) {
     existingMessage = messageMap.get(incomingMessage.id)
@@ -257,12 +257,12 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
       }
     }
   }
-  
+
   if (existingMessage) {
     console.log('[SMS RECONCILE] Found existing message, merging...')
     console.log('[SMS RECONCILE] existingStatus:', existingMessage.status)
     console.log('[SMS RECONCILE] existingIsOptimistic:', existingMessage.isOptimistic)
-    
+
     // Merge with monotonic status
     const mergedMessage = {
       ...existingMessage,
@@ -273,10 +273,10 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
       isOptimistic: false,
       status: getMonotonicStatus(existingMessage.status, incomingMessage.status)
     }
-    
+
     console.log('[SMS RECONCILE] mergedStatus:', mergedMessage.status)
     console.log('[SMS RECONCILE] mergedIsOptimistic:', mergedMessage.isOptimistic)
-    
+
     // If matched by clientMessageId but incoming has real ID, update the map key
     if (matchKey === 'clientMessageId' && incomingMessage.id && incomingMessage.id !== existingMessage.id) {
       console.log('[SMS RECONCILE] Updating map key from optimistic ID to server ID:', {
@@ -293,20 +293,20 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
     // New message - add to map
     messageMap.set(incomingMessage.id, incomingMessage)
   }
-  
+
   console.log('[SMS RECONCILE] Total messages after merge:', messageMap.size)
   console.log('[SMS RECONCILE] =========================================')
-  
+
   // Convert back to array and sort chronologically
   const merged = Array.from(messageMap.values())
   const sorted = merged.sort((a: any, b: any) => {
     const timeDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     if (timeDiff !== 0) return timeDiff
-    
+
     // Tie-breaker: inbound before outbound if same timestamp
     if (a.direction === 'inbound' && b.direction === 'outbound') return -1
     if (a.direction === 'outbound' && b.direction === 'inbound') return 1
-    
+
     // Final tie-breaker: id ascending
     return a.id.localeCompare(b.id)
   })
@@ -359,7 +359,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [showInternalNotesModal, setShowInternalNotesModal] = useState(false)
   const [internalNotesValue, setInternalNotesValue] = useState('')
   const [triggerEditCustomerDetails, setTriggerEditCustomerDetails] = useState(false)
-  const [scrollPositionBeforeNotesModal, setScrollPositionBeforeNotesModal] = useState<number | null>(null)
+  // Shared scroll position for all customer-page modals (Add Job, Reminder, Payment,
+  // Appointment, Internal Note, etc.). Captured on open, restored on close.
+  const [customerPageScrollBeforeModal, setCustomerPageScrollBeforeModal] = useState<number | null>(null)
 
   // Note: useModalBackButton for Internal Notes modal is owned by the shared <Modal> component below.
 
@@ -493,7 +495,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const realtimeInstanceIdRef = useRef(
     `lead-realtime-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   )
-  
+
   // Fallback refresh for stuck messages
   const stuckMessageCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -712,7 +714,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setTriggerEditCustomerDetails(false)
     }
   }, [triggerEditCustomerDetails])
-  
+
   // === CANONICAL SCROLL SYSTEM ===
   // ONE followLatest model: followLatestRef tracks user intent.
   // ONE near-bottom threshold: NEAR_BOTTOM_THRESHOLD_PX (150px).
@@ -754,6 +756,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }, [])
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth', force = false, isInitialLoad = false) => {
+    // Container selection: fullScreenScrollRef.current when isFullScreen is true,
+    // otherwise conversationContainerRef.current (desktop) or
+    // mobileConversationContainerRef.current (mobile).
     // Guard against SSR
     if (typeof window === 'undefined') {
       return
@@ -764,7 +769,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       return
     }
 
-    // Use canonical near-bottom threshold
+    // Use canonical near-bottom threshold (NEAR_BOTTOM_THRESHOLD_PX)
     const isNearBottom = isContainerNearBottom(container)
 
     // Force scroll on initial load regardless of scroll position
@@ -987,8 +992,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // === Coalesced Image Load Scroll ===
   // Prevents overlapping smooth scroll animations for multi-image MMS.
   // Multiple onImageLoad calls within the same frame are coalesced into one scroll.
-  // Outgoing media: force anchor to true bottom (user just sent it).
-  // Inbound media: respect followLatestRef (don't yank user down if they scrolled up).
+  // Outgoing media: scrollToBottom('auto', true) — force anchor to true bottom.
+  // Inbound media: scrollToBottom('smooth', false) — respect followLatestRef and near-bottom.
   const handleCoalescedImageLoad = useCallback(() => {
     if (imageScrollRafRef.current !== null) return // already scheduled
     imageScrollRafRef.current = requestAnimationFrame(() => {
@@ -999,8 +1004,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         scrollToBottom('auto', true)
       } else {
         // Inbound media: only follow if user is already near bottom (followLatestRef)
+        // respects near-bottom: do not force scroll if the user has scrolled up
         if (followLatestRef.current) {
-          scrollToBottom('auto', false)
+          scrollToBottom('smooth', false)
         }
       }
     })
@@ -1018,13 +1024,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }, [localSendScrollGeneration, isFullScreen, getScrollContainer, scrollToTrueBottom])
 
-  // Realtime message scroll — deterministic, respects followLatestRef.
+  // === Realtime message scroll — deterministic, respects followLatestRef.
   // If user is intentionally scrolled up (followLatest=false), preserve their position (show jump button).
   // If user is following latest (followLatest=true), anchor to true bottom.
+  // respects near-bottom: scrollToBottom('smooth', false) — only auto-scroll if already near bottom
   useLayoutEffect(() => {
     if (realtimeScrollGeneration > 0) {
       if (followLatestRef.current) {
-        scrollToBottom('auto', false)
+        scrollToBottom('smooth', false)
       } else {
         // User is reading history — show jump button, don't scroll
         setShowJumpButton(true)
@@ -1065,8 +1072,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     setMobileImages(prev => prev.filter((_, i) => i !== index))
   }
 
-  
-  
+
+
   // Scroll to bottom after sending a message
   useEffect(() => {
     if (!sending && successMessage) {
@@ -1132,12 +1139,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Always re-sort by chronological timestamp with tie-breakers
   const mergeMessagesById = (existingMessages: any[], newMessages: any[], source: string = 'mergeMessagesById') => {
     let merged = existingMessages
-    
+
     // Merge each new message using the canonical merge function
     newMessages.forEach((msg, index) => {
       merged = mergeMessageWithMonotonicity(merged, msg, `${source}[${index}]`)
     })
-    
+
     return merged
   }
 
@@ -1146,7 +1153,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const messages = leadData?.messages || []
     const voicemails = leadData?.voicemailRecordings || []
     const systemEvents: any[] = []
-    
+
     // Add AI Intake events - show ALL AI call records as separate timeline events
     if (leadData?.aiCallRecords && leadData.aiCallRecords.length > 0) {
       leadData.aiCallRecords.forEach((aiCall: any) => {
@@ -1154,18 +1161,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         const intakeStatus = getAIIntakeStatus({ aiCallRecords: [aiCall] })
         const serviceRequested = getLeadRequestTitle(leadData) || 'Unknown request'
         const extractedInfo = aiCall.extracted_info || leadData?.raw_metadata?.extracted_info || {}
-        
+
         // Determine which fields are present for observability
         const hasName = Boolean(extractedInfo.customerName || extractedInfo.callerName || extractedInfo.name)
         const hasService = Boolean(extractedInfo.serviceRequested || extractedInfo.reasonForCalling || extractedInfo.request)
         const hasAddress = Boolean(extractedInfo.serviceAddress || extractedInfo.addressOrLocation)
         const hasTiming = Boolean(extractedInfo.desiredCompletionTime || extractedInfo.desiredCompletion)
         const hasCallback = Boolean(extractedInfo.callbackTime || extractedInfo.preferredCallbackTime)
-        
+
         // Detect quality issues
         const serviceRaw = extractedInfo.serviceRequested || extractedInfo.reasonForCalling || extractedInfo.request || ''
         const serviceLooksLikeQuestion = hasService && /^(how much|what do you charge|what are your|when are you|do you|can you|who|what|when|where|why|how)\s/i.test(serviceRaw)
-        
+
         // Determine message based on actual outcome
         let intakeMessage = ''
         if (intakeStatus === 'complete') {
@@ -1178,11 +1185,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           if (hasAddress) capturedFields.push('address')
           if (hasTiming) capturedFields.push('timing')
           if (hasCallback) capturedFields.push('callback')
-          
+
           const capturedText = capturedFields.length > 0 
             ? ` (${capturedFields.join(', ')})` 
             : ' (no fields captured)'
-          
+
           intakeMessage = `Partial Intake: ${serviceRequested}${capturedText}`
         } else if (outcome === 'early_hangup') {
           intakeMessage = `Caller Hung Up: ${serviceRequested}`
@@ -1193,7 +1200,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         } else {
           intakeMessage = `Request: ${serviceRequested}`
         }
-        
+
         systemEvents.push({
           type: 'system_event',
           id: `ai-intake-${aiCall.id}`,
@@ -1218,7 +1225,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         })
       })
     }
-    
+
     // Add address/information update event (neutral wording — no claim of customer intent)
     if (leadData?.raw_metadata?.customer_corrected_info || leadData?.raw_metadata?.corrected_fields) {
       const correctionTimestamp = leadData.raw_metadata.last_customer_reply_at || leadData.last_activity_at || leadData.created_at
@@ -1235,7 +1242,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       })
     }
-    
+
     // Add Follow-Ups Cancelled event
     const cancelledFollowUps = leadData?.followUpJobs?.filter((job: any) => job.status === 'cancelled')
     if (cancelledFollowUps && cancelledFollowUps.length > 0) {
@@ -1286,7 +1293,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       })
     }
-    
+
     // Add Payment Request events - permanent history for all statuses
     const paymentRequests = leadData?.paymentRequests || []
     const currentConversationId = leadData?.conversationId || leadData?.conversation?.id
@@ -1341,7 +1348,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       paymentEventCount: systemEvents.filter((e: any) => e.type === 'payment_requested').length,
       totalSystemEvents: systemEvents.length
     })
-    
+
     // Add Customer Marked Complete event
     if (leadData?.status === 'completed') {
       systemEvents.push({
@@ -1354,7 +1361,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       })
     }
-    
+
     // Add Customer Added Manually event - only for manual leads with no messages
     const isManualLead = leadData?.raw_metadata?.source === 'manual_entry'
     const hasNoMessages = messages.length === 0
@@ -1370,7 +1377,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       })
     }
-    
+
     // Convert voicemails to timeline items
     const voicemailItems = voicemails.map((voicemail: any) => ({
       type: 'voicemail',
@@ -1378,7 +1385,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       created_at: voicemail.created_at,
       data: voicemail
     }))
-    
+
     // Convert messages to timeline items
     const messageItems = messages.map((message: any) => ({
       type: 'message',
@@ -1412,7 +1419,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     return timeline
   }, [leadData?.messages, leadData?.voicemailRecordings, leadData?.aiCallRecords, leadData?.raw_metadata, leadData?.followUpJobs, leadData?.status, leadData?.last_activity_at, leadData?.created_at, leadData?.id])
-  
+
   const messagesArray = leadData?.messages || []
   const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
   const latestMessageStatus = latestMessage?.status || 'No messages'
@@ -1607,7 +1614,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     const handleAppResume = async () => {
       console.log('[APP RESUME] App resumed, checking for pending refresh')
-      
+
       try {
         const pendingRefresh = localStorage.getItem('pendingPaymentRefresh')
         if (!pendingRefresh) {
@@ -2142,24 +2149,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     try {
       // Desktop fallback: if Business Number is default but platform is not native mobile, use ReplyFlow
       const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
-      
+
       if (effectiveSource === 'business') {
         // Business Phone flow: get job details and open Business Phone modal
         const job = leadJobs.find(j => j.id === jobId)
         if (!job) {
           throw new Error('Job not found')
         }
-        
+
         const customerName = getCustomerName(lead, leadData)
         const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
-        
+
         // Format appointment date/time for message
         const appointmentDate = job.scheduled_date || ''
         const appointmentTime = job.scheduled_time || ''
         const dateTimeString = appointmentDate && appointmentTime 
           ? `${appointmentDate} at ${appointmentTime}` 
           : appointmentDate || appointmentTime || 'your scheduled time'
-        
+
         const message = `Hi ${customerName}, this is a reminder about your appointment on ${dateTimeString}. Please confirm or let us know if you need to reschedule.`
 
         // Phone-dependent gating: Check if customer has a phone number
@@ -2171,7 +2178,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         try {
           // Launch SMS using shared helper
           await openBusinessSms({ recipient: dialNumber, body: message, source: 'confirmation' })
-          
+
           // Record the Business Phone action only after successful launch
           await recordBusinessPhoneAction({
             actionType: 'appointment',
@@ -2181,7 +2188,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             message: message,
             relatedId: jobId
           })
-          
+
           setShowAppointmentSelection(false)
           setSuccessMessage(`Reminder sent\nMessage opened in your messaging app.`)
         } catch (error) {
@@ -2271,7 +2278,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // Show success message
       setSuccessMessage('Contact ignored. ReplyFlow will no longer send automatic texts to this number.')
       setShowIgnoreModal(false)
-      
+
       // Redirect to leads list after a short delay
       setTimeout(() => {
         if (typeof window !== 'undefined') {
@@ -2371,7 +2378,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setTimeout(() => {
         setSuccessMessage('')
       }, 3000)
-      
+
     } catch (error) {
       console.error('Error updating lead status:', error)
       setError(error instanceof Error ? error.message : `Failed to update lead status`)
@@ -2568,7 +2575,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       console.log('[REALTIME SUBSCRIPTION] Skipping - lead ID unchanged:', leadId)
       return
     }
-    
+
     // Update ref with new lead ID
     currentLeadIdRef.current = leadId
 
@@ -2872,7 +2879,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const maxChecks = 2
     stuckMessageCheckIntervalRef.current = setInterval(() => {
       checkCount++
-      
+
       const messages = leadData?.messages || []
       const stuckMessages = messages.filter((msg: any) => {
         // Check for messages stuck in "sending" for more than 10 seconds
@@ -2882,7 +2889,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
         return false
       })
-      
+
       if (stuckMessages.length > 0 && checkCount <= maxChecks) {
         console.log('[STUCK MESSAGE CHECK] Found stuck messages, refreshing:', {
           count: stuckMessages.length,
@@ -2948,14 +2955,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Check if media files were passed
     const mediaFiles = Array.isArray(e) ? e : undefined
     const isMMS = mediaFiles && mediaFiles.length > 0
-    
+
     console.log('[MMS] handleSendMessage called:', {
       isMMS,
       mediaCount: mediaFiles?.length || 0,
       messageLength: message.trim().length,
       mediaFileNames: mediaFiles?.map(f => f.name)
     })
-    
+
     // Don't send if message is empty (unless media is present), whitespace
     if (!message.trim() && !mediaFiles) return
 
@@ -2968,7 +2975,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     // Create stable client message ID for correlation
     const clientMessageId = crypto.randomUUID()
-    
+
     console.log('[OPTIMISTIC CREATION] Creating optimistic message:', {
       temporaryId: clientMessageId,
       clientMessageId,
@@ -2976,7 +2983,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       isMMS,
       mediaCount: submittedMediaFiles?.length || 0
     })
-    
+
     // Create optimistic message with local preview URLs for MMS
     const optimisticMedia = submittedMediaFiles?.map((file, index) => ({
       id: `${clientMessageId}-media-${index}`,
@@ -2985,7 +2992,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       isLocalPreview: true, // Mark as local preview for recovery
       filename: file.name
     })) || []
-    
+
     const optimisticMsg = {
       id: clientMessageId,
       clientMessageId,
@@ -2997,15 +3004,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       media: optimisticMedia,
       media_count: optimisticMedia.length
     }
-    
+
     // Atomic: merge optimistic message directly into messages array
     // This prevents duplicate flash by having single source of truth
     setLeadData((prev: any) => {
       if (!prev) return prev
-      
+
       const currentMessages = prev.messages || []
       const mergedMessages = mergeMessageWithMonotonicity(currentMessages, optimisticMsg, 'optimistic-create')
-      
+
       return {
         ...prev,
         messages: mergedMessages
@@ -3047,7 +3054,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         clearComposerImagesRef.current()
       }
     }
-    
+
     setSending(true)
     setError('')
     setSuccessMessage('')
@@ -3072,13 +3079,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           mediaFileSizes: submittedMediaFiles?.map(f => f.size) || [],
           mediaFileTypes: submittedMediaFiles?.map(f => f.type) || []
         })
-        
+
         // Use FormData for MMS
         const formData = new FormData()
         formData.append('leadId', params.id)
         formData.append('message', submittedText)
         formData.append('clientMessageId', clientMessageId)
-        
+
         if (submittedMediaFiles) {
         submittedMediaFiles.forEach((file, index) => {
           console.log('[MMS] Appending file to FormData:', {
@@ -3151,7 +3158,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         if (!isMMS) {
           setLeadData((prev: any) => {
             if (!prev) return prev
-            
+
             const currentMessages = prev.messages || []
             const failedMessage = {
               id: clientMessageId,
@@ -3163,15 +3170,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               created_at: new Date().toISOString(),
               isOptimistic: true
             }
-            
+
             const mergedMessages = mergeMessageWithMonotonicity(currentMessages, failedMessage, 'optimistic-failed')
-            
+
             return {
               ...prev,
               messages: mergedMessages
             }
           })
-          
+
           // Restore the submitted text to the composer only if it's still empty
           // This allows the user to retry without retyping, but doesn't overwrite new input
           setMessage(current => current.trim() === '' ? submittedText : current)
@@ -3213,25 +3220,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           body: result.message.body?.substring(0, 30),
           isMMS
         })
-        
+
         // For MMS: preserve local preview URLs in optimistic message until media records arrive
         const currentMessages = leadData?.messages || []
         const optimisticMessage = currentMessages.find((m: any) => m.id === clientMessageId)
         const localPreviewUrls = optimisticMessage?.media?.filter((m: any) => m.isLocalPreview) || []
-        
+
         // Add clientMessageId to the persisted message for proper reconciliation
         const persistedMessageWithClientId = {
           ...result.message,
           clientMessageId: result.message.client_message_id || clientMessageId
         }
-        
+
         // For MMS with local previews: keep only local previews initially
         // The fetchMessageMedia effect will fetch persisted media records from database
         // This prevents the image from swapping before the server URL is ready
         if (isMMS && localPreviewUrls.length > 0) {
           persistedMessageWithClientId.media = localPreviewUrls
           persistedMessageWithClientId.hasLocalPreview = true // Flag to indicate we're waiting for server media
-          
+
           // Fetch persisted media for this specific message after a short delay
           // This avoids full conversation refresh while still getting server URLs
           setTimeout(async () => {
@@ -3242,16 +3249,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               if (session?.access_token) {
                 headers['Authorization'] = `Bearer ${session.access_token}`
               }
-              
+
               const response = await fetch(`/api/message-media?messageId=${result.message.id}`, { headers })
               if (response.ok) {
                 const mediaData = await response.json()
                 console.log('[MMS] Fetched persisted media records:', mediaData.length)
-                
+
                 // Update the message with server media, preserving local preview until loaded
                 setLeadData((prev: any) => {
                   if (!prev) return prev
-                  
+
                   const updatedMessages = prev.messages.map((msg: any) => {
                     if (msg.id === result.message.id || msg.clientMessageId === result.message.client_message_id) {
                       // Replace local previews with server media
@@ -3268,7 +3275,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     }
                     return msg
                   })
-                  
+
                   return {
                     ...prev,
                     messages: updatedMessages
@@ -3284,21 +3291,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           // For SMS or MMS without local previews, use the persisted media from API response
           persistedMessageWithClientId.media = result.message.media
         }
-        
+
         // Atomic update: merge persisted message AND clear optimistic in single setState
         // This prevents the duplicate flash by ensuring both happen together
         setLeadData((prev: any) => {
           if (!prev) return prev
-          
+
           const currentMsgs = prev.messages || []
           const mergedMessages = mergeMessageWithMonotonicity(currentMsgs, persistedMessageWithClientId, 'send-response-reconcile')
-          
+
           return {
             ...prev,
             messages: mergedMessages
           }
         })
-        
+
         // Note: We no longer perform a delayed refresh for MMS media.
         // The fetchMessageMedia effect will automatically fetch persisted media records
         // once the message is no longer optimistic (isOptimistic becomes false).
@@ -3338,7 +3345,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const currentMessages = leadData?.messages || []
       const optimisticMessage = currentMessages.find((m: any) => m.id === clientMessageId)
       const localPreviewUrls = optimisticMessage?.media?.filter((m: any) => m.isLocalPreview) || []
-      
+
       const failedMessage = {
         id: clientMessageId,
         clientMessageId,
@@ -3351,19 +3358,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         media: localPreviewUrls.length > 0 ? localPreviewUrls : undefined,
         media_count: localPreviewUrls.length
       }
-      
+
       setLeadData((prev: any) => {
         if (!prev) return prev
-        
+
         const currentMsgs = prev.messages || []
         const mergedMessages = mergeMessageWithMonotonicity(currentMsgs, failedMessage, 'network-error-failed')
-        
+
         return {
           ...prev,
           messages: mergedMessages
         }
       })
-      
+
       // Restore the submitted text to the composer only if it's still empty
       setMessage(current => current.trim() === '' ? submittedText : current)
 
@@ -3395,7 +3402,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // refresh is allowed to proceed so the user always gets visible feedback.
     if (!silent && manualRefreshing) return
     if (silent && refreshing) return
-    
+
     const requestId = ++latestRefreshRequestRef.current
     setRefreshing(true)
     // Only user-initiated refreshes flip the visible "Refreshing…" label.
@@ -3407,10 +3414,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (!silent) {
       setError('')
     }
-    
+
     try {
       console.log('[Refresh] Refreshing conversation data for lead:', params.id, 'requestId:', requestId, 'silent:', silent)
-      
+
       const result = await getLeadDetails(params.id)
 
       // Check if this is still the latest refresh request (ignore stale responses)
@@ -3421,7 +3428,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         })
         return
       }
-      
+
       if (!result) {
         console.log('[Refresh] No response returned from API')
         if (!silent) {
@@ -3994,7 +4001,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <button
               type="button"
               onClick={() => {
-                setScrollPositionBeforeNotesModal(window.pageYOffset)
+
                 setInternalNotesValue(leadData?.notes || '')
                 setShowInternalNotesModal(true)
               }}
@@ -4028,6 +4035,53 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }
 
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false)
+
+  // === Customer-page modal scroll preservation ===
+  // Captures window.scrollY when ANY customer-page modal opens and restores it
+  // deterministically when the last modal closes (Save, Cancel, X, or success).
+  // This prevents the page from jumping back to the top when a modal dismisses.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const anyModalOpen =
+      showInternalNotesModal ||
+      showIgnoreModal ||
+      showPaymentModal ||
+      showPaymentEditModal ||
+      showTaskModal ||
+      showBusinessPhoneModal ||
+      showAppointmentSuccessModal ||
+      isAttachmentSheetOpen ||
+      isAppointmentModalOpen ||
+      isJobComposerOpen ||
+      isHistoricalDetailOpen ||
+      isNewAppointmentOpen
+
+    if (anyModalOpen && customerPageScrollBeforeModal === null) {
+      setCustomerPageScrollBeforeModal(window.scrollY)
+      return
+    }
+
+    if (!anyModalOpen && customerPageScrollBeforeModal !== null) {
+      window.scrollTo({ top: customerPageScrollBeforeModal, behavior: 'auto' })
+      setCustomerPageScrollBeforeModal(null)
+    }
+  }, [
+    showInternalNotesModal,
+    showIgnoreModal,
+    showPaymentModal,
+    showPaymentEditModal,
+    showTaskModal,
+    showBusinessPhoneModal,
+    showAppointmentSuccessModal,
+    isAttachmentSheetOpen,
+    isAppointmentModalOpen,
+    isJobComposerOpen,
+    isHistoricalDetailOpen,
+    isNewAppointmentOpen,
+    customerPageScrollBeforeModal
+  ])
+
   const handleAppointmentClick = () => {
     // Open unified appointment modal preselected to this customer; lock customer; disallow inline add
     setIsNewAppointmentOpen(true)
@@ -4210,23 +4264,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Generate comprehensive description
     let description = `Customer: ${leadName}\n`
     description += `Phone: ${leadPhone}\n`
-    
+
     if (leadCallbackNumber && leadCallbackNumber !== leadPhone) {
       description += `Callback number: ${leadCallbackNumber}\n`
     }
-    
+
     if (leadReason) {
       description += `Reason: ${leadReason}\n`
     }
-    
+
     if (leadDetails) {
       description += `Details: ${leadDetails}\n`
     }
-    
+
     if (leadUrgency) {
       description += `Urgency: ${leadUrgency}\n`
     }
-    
+
     if (leadCallbackTime) {
       description += `Preferred callback time: ${leadCallbackTime}\n`
     }
@@ -4299,7 +4353,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   const handleRetry = async (messageBody: string, messageId?: string, clientTempId?: string) => {
     if (sending) return
-    
+
     setSending(true)
     setError('')
 
@@ -4310,7 +4364,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (messageId || clientTempId) {
       setLeadData((prev: any) => {
         if (!prev) return prev
-        
+
         const currentMessages = prev.messages || []
         const updatedMessages = currentMessages.map((msg: any) => {
           if (msg.id === messageId || msg.clientMessageId === clientTempId) {
@@ -4322,7 +4376,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           }
           return msg
         })
-        
+
         return {
           ...prev,
           messages: updatedMessages
@@ -4355,7 +4409,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         if (messageId || clientTempId) {
           setLeadData((prev: any) => {
             if (!prev) return prev
-            
+
             const currentMessages = prev.messages || []
             const updatedMessages = currentMessages.map((msg: any) => {
               if (msg.id === messageId || msg.clientMessageId === clientTempId) {
@@ -4367,14 +4421,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               }
               return msg
             })
-            
+
             return {
               ...prev,
               messages: updatedMessages
             }
           })
         }
-        
+
         // Show appropriate error message based on response
         if (result.error === 'Lead not found') {
           setError('Customer not found. Please refresh the page and try again.')
@@ -4391,20 +4445,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // Update message with real message data using clientMessageId
       if (result.clientMessageId === retryClientMessageId && result.message) {
         console.log('[Retry] API returned message id:', result.message.id, 'status:', result.message.status)
-        
+
         // Merge the returned message into local state
         setLeadData((prev: any) => {
           if (!prev) return prev
-          
+
           const currentMessages = prev.messages || []
           const persistedMessageWithClientId = {
             ...result.message,
             clientMessageId: result.message.client_message_id || retryClientMessageId
           }
           const mergedMessages = mergeMessageWithMonotonicity(currentMessages, persistedMessageWithClientId)
-          
+
           console.log('[Retry] Messages after local update:', mergedMessages.length)
-          
+
           return {
             ...prev,
             messages: mergedMessages
@@ -4416,7 +4470,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       if (messageId || clientTempId) {
         setLeadData((prev: any) => {
           if (!prev) return prev
-          
+
           const currentMessages = prev.messages || []
           const updatedMessages = currentMessages.map((msg: any) => {
             if (msg.id === messageId || msg.clientMessageId === clientTempId) {
@@ -4428,7 +4482,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             }
             return msg
           })
-          
+
           return {
             ...prev,
             messages: updatedMessages
@@ -4452,7 +4506,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="h-4 bg-muted rounded w-1/2"></div>
             </div>
           </div>
-          
+
           {/* Skeleton Messages */}
           <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border border-border/50 p-6">
             <div className="space-y-6">
@@ -4524,7 +4578,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="flex-shrink-0">
                 <AppBackButton fallbackHref="/dashboard/leads" label="" />
               </div>
-              
+
               {/* Customer Avatar */}
               <div className="flex-shrink-0">
                 {lead?.photo_url ? (
@@ -4567,7 +4621,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   })()}
                 </div>
               </div>
-              
+
               {/* Actions — 44px mobile hit target, 32px visual treatment */}
               <div className="flex items-center gap-0.5 flex-shrink-0">
                 {/* Edit Customer Button */}
@@ -4659,7 +4713,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={() => {
-                            setScrollPositionBeforeNotesModal(window.pageYOffset)
+
                             setInternalNotesValue(leadData?.notes || '')
                             setShowInternalNotesModal(true)
                           }}
@@ -4855,7 +4909,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   type="button"
                   onClick={() => {
-                    setScrollPositionBeforeNotesModal(window.pageYOffset)
+
                     setInternalNotesValue(leadData?.notes || '')
                     setShowInternalNotesModal(true)
                   }}
@@ -4941,10 +4995,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   aria-label="Open conversation in full screen"
                   title="Open in full screen"
                 >
-                  <Maximize2 className="w-4 h-4 text-foreground/70 hover:text-foreground" />
+                  <Maximize2 className="w-4 h-4 text-foreground/70" />
                 </button>
               </div>
-              
+
               {/* Desktop Message Thread - Scrollable */}
               {!isFullScreen && (
               <div ref={conversationContainerRef} data-scroll-lock-allow className="flex-1 overflow-y-auto scroll-smooth px-5 py-4 min-h-0 bg-muted/20" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
@@ -5338,7 +5392,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <button
                             type="button"
                             onClick={() => {
-                              setScrollPositionBeforeNotesModal(window.pageYOffset)
+
                               setInternalNotesValue(leadData?.notes || '')
                               setShowInternalNotesModal(true)
                             }}
@@ -5357,7 +5411,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 key={i}
                                 type="button"
                                 onClick={() => {
-                                  setScrollPositionBeforeNotesModal(window.pageYOffset)
+
                                   setInternalNotesValue(leadData?.notes || '')
                                   setShowInternalNotesModal(true)
                                 }}
@@ -5389,7 +5443,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {/* Conversation Header - Distinct header */}
             <div className="px-4 py-3 border-b border-border/30 bg-muted/50 flex-shrink-0">
               <div className="flex items-center justify-between">
-                <h2 className="text-xs font-semibold text-foreground leading-none">Conversation</h2>
+                <h2 className="text-xs font-semibold text-foreground leading-tight">Conversation</h2>
                 <button
                   ref={fullScreenToggleBtnRef}
                   type="button"
@@ -5398,7 +5452,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   aria-label="Open conversation in full screen"
                   title="Open in full screen"
                 >
-                  <Maximize2 className="w-4 h-4 text-foreground/70 hover:text-foreground" />
+                  <Maximize2 className="w-4 h-4 text-foreground/70" />
                 </button>
               </div>
               <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60 mt-1">
@@ -6006,7 +6060,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
               <button
                 onClick={() => {
-                  setScrollPositionBeforeNotesModal(window.pageYOffset)
+
                   setInternalNotesValue(leadData?.notes || '')
                   setShowInternalNotesModal(true)
                 }}
@@ -6026,7 +6080,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       key={i}
                       type="button"
                       onClick={() => {
-                        setScrollPositionBeforeNotesModal(window.pageYOffset)
+
                         setInternalNotesValue(leadData?.notes || '')
                         setShowInternalNotesModal(true)
                       }}
@@ -6092,7 +6146,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </svg>
               Customer Information
             </h3>
-            
+
             {/* Customer Information */}
             <div className="space-y-4">
               {/* Contact Information */}
@@ -6141,7 +6195,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
               </div>
-              
+
               {/* System Information */}
               <div className="space-y-3">
                 <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -6162,7 +6216,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
             </div>
-            
+
             {/* Follow-up Status */}
             {automationStatus && (
               <div className="mt-4 pt-4 border-t border-border/50">
@@ -6180,7 +6234,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
             )}
-            
+
             {/* Actions */}
             <div className="flex gap-3 justify-end mt-6">
               <button
@@ -6365,7 +6419,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <p className="text-sm text-muted-foreground mb-6">
             Send a payment request to {getLeadDisplayName(leadData || lead) || 'this customer'} via text message.
           </p>
-          
+
           <div className="space-y-4">
             <div>
               <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
@@ -6386,7 +6440,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 />
               </div>
             </div>
-            
+
             <div>
               <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
                 Description
@@ -6652,7 +6706,7 @@ If you have questions, reply to this message.`
                         return
                       }
                       setIsLaunchingSMS(true)
-                      
+
                       console.log('[PAYMENT BUSINESS SMS] Storing payment data locally before modal close')
                       // Store payment data locally for app-resume refresh
                       const pendingPaymentRefresh = {
@@ -6661,21 +6715,21 @@ If you have questions, reply to this message.`
                         paymentRequestId: data.payment_request_id || data.id
                       }
                       localStorage.setItem('pendingPaymentRefresh', JSON.stringify(pendingPaymentRefresh))
-                      
+
                       console.log('[PAYMENT BUSINESS SMS] Closing modal before native launch')
                       // Close modal immediately before native launch
                       setShowPaymentModal(false)
                       setPaymentAmount('')
                       setPaymentDescription('')
                       setSuccessMessage(`Payment request sent\nMessage opened in your messaging app.`)
-                      
+
                       // Allow React to commit the close before native launch
                       await new Promise(resolve => setTimeout(resolve, 0))
-                      
+
                       console.log('[PAYMENT BUSINESS SMS] Launching native Messages')
                       // Launch SMS using shared helper
                       await openBusinessSms({ recipient, body: message, source: 'payment' })
-                      
+
                       console.log('[PAYMENT BUSINESS SMS] Native launch completed, refresh will happen on app resume')
                     } catch (error) {
                       console.error('[PAYMENT BUSINESS SMS] launch error:', error)
@@ -6991,7 +7045,7 @@ If you have questions, reply to this message.`
                   try {
                     // Launch SMS using shared helper
                     await openBusinessSms({ recipient: dialNumber, body: message, source: 'confirmation' })
-                    
+
                     // Record the Business Phone action only after successful launch
                     await recordBusinessPhoneAction({
                       actionType: 'appointment',
@@ -7000,7 +7054,7 @@ If you have questions, reply to this message.`
                       customerPhone: dialNumber,
                       message: message
                     })
-                    
+
                     setShowAppointmentSuccessModal(false)
                     setSuccessMessage(`Appointment sent\nMessage opened in your messaging app.`)
                   } catch (error) {

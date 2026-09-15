@@ -98,7 +98,7 @@ export default function CustomerPipelineGraph() {
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
-        <div className="mb-3">
+        <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground">Customer Workflow</h3>
         </div>
 

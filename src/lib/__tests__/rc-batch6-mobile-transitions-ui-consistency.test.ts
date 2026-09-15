@@ -159,12 +159,12 @@ describe('EDIT APPOINTMENT MODAL POSITIONING', () => {
 // 3. JOB / REMINDER / APPOINTMENT CARD ACTION ALIGNMENT
 // ============================================================================
 describe('CARD ACTION ALIGNMENT', () => {
-  it('18. Job card uses items-start on parent row (no shifting)', () => {
+  it('18. Job card vertically centers right-side actions on parent row (no shifting)', () => {
     const jobCardMatch = calendarPageSrc.match(
       /JobCard[\s\S]*?flex (items-\w+) justify-between gap-3/
     )
     expect(jobCardMatch).toBeTruthy()
-    expect(jobCardMatch![1]).toBe('items-start')
+    expect(jobCardMatch![1]).toBe('items-center')
   })
 
   it('19. Job card action container uses flex items-center', () => {
@@ -175,14 +175,14 @@ describe('CARD ACTION ALIGNMENT', () => {
     expect(calendarPageSrc).toContain('w-8 h-8 flex items-center justify-center')
   })
 
-  it('21. Reminder card (calendar page) uses items-start on parent row', () => {
-    // The RemindersList card must use items-start, not items-center,
-    // to prevent action shifting when badges/metadata grow.
+  it('21. Reminder card (calendar page) vertically centers right-side actions on parent row', () => {
+    // The RemindersList card uses items-center so the right-side action group
+    // is vertically centered against the full card, preventing high-perched buttons.
     const remindersSectionMatch = calendarPageSrc.match(
       /function RemindersList[\s\S]*?flex (items-\w+) justify-between gap-3/
     )
     expect(remindersSectionMatch).toBeTruthy()
-    expect(remindersSectionMatch![1]).toBe('items-start')
+    expect(remindersSectionMatch![1]).toBe('items-center')
   })
 
   it('22. Reminder card action buttons use w-8 h-8 hit target', () => {
@@ -194,12 +194,12 @@ describe('CARD ACTION ALIGNMENT', () => {
     expect(remindersSectionMatch![0]).toContain('w-8 h-8')
   })
 
-  it('23. Appointment card uses items-start on parent row', () => {
+  it('23. Appointment card vertically centers right-side actions on parent row', () => {
     const meetingsSectionMatch = calendarPageSrc.match(
       /function MeetingsTab[\s\S]*?flex (items-\w+) justify-between gap-3/
     )
     expect(meetingsSectionMatch).toBeTruthy()
-    expect(meetingsSectionMatch![1]).toBe('items-start')
+    expect(meetingsSectionMatch![1]).toBe('items-center')
   })
 
   it('24. Appointment card action buttons use w-8 h-8 hit target', () => {

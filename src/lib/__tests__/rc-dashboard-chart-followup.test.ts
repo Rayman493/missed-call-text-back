@@ -173,16 +173,15 @@ describe('RC Dashboard Chart Follow-up — Loading (16-26)', () => {
   })
 
   // 18. title does not change wrapping during loading
-  it('18. no inline Updating span in header (no width change to title area)', () => {
-    // The old code had an inline Updating span in the header flex row.
-    // The new code has the indicator only in the chart area.
-    // Verify the header does NOT contain the updating span
-    const revenueHeader = revenueGraph.match(/<div className="flex items-start justify-between mb-3">[\s\S]*?<\/div>\s*<\/div>/)
+  it('18. header uses items-center to keep title and control aligned; no inline Updating span', () => {
+    // The header uses items-center so the title and right-side PremiumSelect
+    // share a visual vertical centerline without an inline Updating span.
+    const revenueHeader = revenueGraph.match(/<div className="flex items-center justify-between mb-3">[\s\S]*?<\/div>\s*<\/div>/)
     expect(revenueHeader).toBeTruthy()
     if (revenueHeader) {
       expect(revenueHeader[0]).not.toContain('Updating…')
     }
-    const activityHeader = activityGraph.match(/<div className="flex items-start justify-between mb-3">[\s\S]*?<\/div>\s*<\/div>/)
+    const activityHeader = activityGraph.match(/<div className="flex items-center justify-between mb-3">[\s\S]*?<\/div>\s*<\/div>/)
     expect(activityHeader).toBeTruthy()
     if (activityHeader) {
       expect(activityHeader[0]).not.toContain('Updating…')

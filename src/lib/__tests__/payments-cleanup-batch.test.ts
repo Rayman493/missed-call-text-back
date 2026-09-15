@@ -451,16 +451,15 @@ describe('FIX 5: Venmo fallback card simplification', () => {
     expect(handoffSrc).not.toContain("doesn't open automatically")
   })
 
-  it('has a single instruction line with Pay @username $amount', () => {
-    // The simplified fallback should have a single "Pay @username $amount in Venmo" line
-    expect(handoffSrc).toContain('Pay ')
+  it('has a single manual instruction line with @username and no repeated amount', () => {
+    // The simplified fallback should have a single "Open Venmo manually and pay @username" line
+    expect(handoffSrc).toContain('Open Venmo manually and pay')
     expect(handoffSrc).toContain('@{venmoUsername}')
-    expect(handoffSrc).toContain('{formattedAmount}')
-    expect(handoffSrc).toContain('in Venmo')
+    expect(handoffSrc).toContain('as the payment note')
   })
 
   it('has a copy-username button in the fallback', () => {
-    expect(handoffSrc).toContain("copyToClipboard(venmoUsername, 'username-fallback')")
+    expect(handoffSrc).toContain("copyToClipboard(`@${venmoUsername}`, 'username-fallback')")
   })
 
   it('references the payment note (not a repeated Note row)', () => {

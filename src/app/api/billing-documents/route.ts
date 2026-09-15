@@ -52,10 +52,11 @@ export async function GET(request: Request) {
     let query = supabase
       .from('billing_documents')
       .select(`
-        id, document_type, status, document_number, issue_date, valid_until,
+        id, document_type, status, document_number, display_name, issue_date, valid_until,
         due_date, subtotal_cents, discount_cents, tax_cents, total_cents,
         currency, customer_id, job_id, sent_at, created_at, updated_at,
-        public_token, source_quote_id, paid_at,
+        public_token, source_quote_id, paid_at, payment_request_id,
+        payment_request:payment_requests!payment_request_id ( id, status, paid_at ),
         leads ( id, contact_name, caller_phone )
       `)
       .eq('business_id', business.id)
@@ -88,6 +89,7 @@ export async function GET(request: Request) {
  * Body:
  *   document_type: 'quote' | 'invoice'
  *   customer_id?: string (must belong to same business)
+ *   display_name?: string (max 80 chars, optional)
  *   job_id?: string (must belong to same business)
  *   issue_date?: string (YYYY-MM-DD, defaults to today)
  *   valid_until?: string (quote only)
@@ -129,6 +131,7 @@ export async function POST(request: Request) {
     const {
       document_type,
       customer_id,
+      display_name,
       job_id,
       issue_date,
       valid_until,
@@ -203,6 +206,7 @@ export async function POST(request: Request) {
       currency: 'usd',
     }
     if (customer_id) insertPayload.customer_id = customer_id
+    if (display_name !== undefined) insertPayload.display_name = (typeof display_name === 'string' ? display_name.trim() : null) || null
     if (job_id) insertPayload.job_id = job_id
     if (document_type === 'quote' && valid_until) insertPayload.valid_until = valid_until
     if (document_type === 'invoice' && due_date) insertPayload.due_date = due_date

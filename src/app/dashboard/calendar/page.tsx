@@ -128,10 +128,10 @@ function RemindersList({
                   : 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
             }`}
           >
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center justify-between gap-3">
               <button
                 onClick={() => onToggleComplete(task.id, task.completed)}
-                className={`flex-shrink-0 w-5 h-5 rounded border-2 transition-colors flex items-center justify-center mt-0.5 ${
+                className={`flex-shrink-0 w-5 h-5 rounded border-2 transition-colors flex items-center justify-center ${
                   task.completed
                     ? 'border-green-500 bg-green-50 dark:bg-green-900/20 hover:border-green-600'
                     : 'border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400'
@@ -318,7 +318,7 @@ function MeetingsTab({
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenEvent(ev) } }}
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <h3 className="min-w-0 line-clamp-1 text-sm font-semibold text-slate-900 dark:text-foreground">{ev.summary}</h3>
                   {customerName && (
@@ -2812,7 +2812,7 @@ function JobsTab({
               : 'bg-slate-50 dark:bg-slate-800/20 border-slate-200/50 dark:border-slate-700/20'
         }`}
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1 text-left">
             <p className={`truncate ${isActive ? 'text-base font-semibold text-slate-900 dark:text-foreground' : 'text-sm font-medium text-slate-700 dark:text-slate-300'}`}>
               {job.title}

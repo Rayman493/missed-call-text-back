@@ -48,39 +48,79 @@ async function blobToBase64(blob: Blob): Promise<string> {
   })
 }
 
-async function saveAndShareNativePdf(blob: Blob, filename: string) {
+async function getFilesystemAndShare() {
   const [{ Filesystem, Directory }, { Share }] = await Promise.all([
     import('@capacitor/filesystem'),
     import('@capacitor/share'),
   ])
+  return { Filesystem, Directory, Share }
+}
 
+/**
+ * Android: attempt a true public Documents save.
+ * Requires the publicStorage permission. If the permission is not granted or
+ * the write fails, fall back to cache + share so the user still has a path.
+ */
+async function saveAndroidPdf(blob: Blob, filename: string) {
+  const { Filesystem, Directory, Share } = await getFilesystemAndShare()
   const base64 = await blobToBase64(blob)
 
-  // Remove any stale copy of this filename before writing a fresh one.
-  // This runs BEFORE the share sheet is presented, so it never races the OS
-  // while the user is still saving/opening the file.
-  await Filesystem.deleteFile({ path: filename, directory: Directory.Cache }).catch(() => {})
+  const permission = await Filesystem.requestPermissions().catch(() => ({ publicStorage: 'denied' } as any))
 
-  // Write to cache so the OS can hand it off. Cache is private and safe for temp PDFs.
+  if (permission?.publicStorage === 'granted') {
+    try {
+      await Filesystem.deleteFile({ path: filename, directory: Directory.Documents }).catch(() => {})
+      const { uri } = await Filesystem.writeFile({
+        path: filename,
+        data: base64,
+        directory: Directory.Documents,
+      })
+      return { saved: true, message: `${filename} saved to Documents`, uri }
+    } catch (docErr) {
+      console.error('[Android PDF] Documents write failed:', docErr)
+    }
+  }
+
+  // Fallback: cache + share so the user can choose where to put it.
+  await Filesystem.deleteFile({ path: filename, directory: Directory.Cache }).catch(() => {})
   const { uri } = await Filesystem.writeFile({
     path: filename,
     data: base64,
     directory: Directory.Cache,
   })
-
   const shareTitle = filename.replace(/\.pdf$/, '')
-
-  // Present the native share sheet. On iOS this enables "Save to Files";
-  // on Android it lets the user open/save the file.
-  // Only resolve after the share sheet completes so the OS has had its chance
-  // to read/copy the file before any future download overwrites the path.
   await Share.share({
     title: shareTitle,
     files: [uri],
-    dialogTitle: 'Save or share PDF',
+    dialogTitle: 'Save PDF to Files',
+  })
+  return { saved: false, message: 'PDF ready to save', uri }
+}
+
+/**
+ * iOS: the app cannot write to a public user-visible location directly.
+ * Write the PDF to the app Documents directory and present the OS share sheet
+ * with "Save to Files" as the canonical handoff.
+ */
+async function saveIosPdf(blob: Blob, filename: string) {
+  const { Filesystem, Directory, Share } = await getFilesystemAndShare()
+  const base64 = await blobToBase64(blob)
+
+  await Filesystem.deleteFile({ path: filename, directory: Directory.Documents }).catch(() => {})
+  const { uri } = await Filesystem.writeFile({
+    path: filename,
+    data: base64,
+    directory: Directory.Documents,
   })
 
-  return true
+  const shareTitle = filename.replace(/\.pdf$/, '')
+  await Share.share({
+    title: shareTitle,
+    files: [uri],
+    dialogTitle: 'Save PDF to Files',
+  })
+
+  return 'PDF ready to save'
 }
 
 async function downloadWebPdf(blob: Blob, filename: string) {
@@ -95,13 +135,15 @@ async function downloadWebPdf(blob: Blob, filename: string) {
   } finally {
     URL.revokeObjectURL(url)
   }
-  return true
+  return `${filename} downloaded`
 }
 
 /**
  * Shared delivery abstraction for billing PDFs.
+ *
  * Web/desktop: normal browser download.
- * Native Capacitor: write to a cache file and invoke the OS share sheet.
+ * Android: attempts a true public Documents save; falls back to cache + share.
+ * iOS: writes to app Documents, then presents the OS share/save sheet.
  */
 export async function deliverBillingPdf(options: BillingPdfDeliveryOptions) {
   const { documentId, documentNumber, documentType, onStart, onSuccess, onError, onFinally } = options
@@ -111,14 +153,20 @@ export async function deliverBillingPdf(options: BillingPdfDeliveryOptions) {
   try {
     const blob = await fetchPdfBlob(documentId)
 
+    let message: string
     if (Capacitor.isNativePlatform()) {
-      await saveAndShareNativePdf(blob, filename)
+      const platform = Capacitor.getPlatform()
+      if (platform === 'android') {
+        const result = await saveAndroidPdf(blob, filename)
+        message = result.message
+      } else {
+        message = await saveIosPdf(blob, filename)
+      }
     } else {
-      await downloadWebPdf(blob, filename)
+      message = await downloadWebPdf(blob, filename)
     }
 
-    const readyMessage = documentType === 'quote' ? 'Quote ready' : 'Invoice ready'
-    onSuccess?.(readyMessage)
+    onSuccess?.(message)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to deliver PDF'
     onError?.(message)

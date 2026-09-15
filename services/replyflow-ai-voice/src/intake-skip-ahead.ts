@@ -47,6 +47,12 @@ type ExtractedMatch = {
   startIndex: number;
 };
 
+// Connector-style matches (at/call me/address is/etc.) begin a trailing field,
+// so the service should end before the fullMatch starts. Service-inclusive
+// matches (e.g. "I'd like it done next Friday") contain the service text before
+// the value, so the service should end at the start of the value.
+const CONNECTOR_PREFIX_RE = /^(?:at\s+|@\s+|call me(?: back)?\s+|you can call me(?: back)?\s+|reach me\s+|contact me\s+|located\s+(?:at\s+)?|the address is\s+|address is\s+|my address is\s+|it'?s at\s+|located at\s+)/i;
+
 const FILLER_PHRASES = [
   'all right', 'okay', 'ok', 'yeah', 'yes', 'thanks', 'thank you', 'sure',
 ];
@@ -81,7 +87,7 @@ function isNameOnlyTurn(transcript: string, customerName: string): boolean {
 }
 
 function stripServicePrefix(s: string): string {
-  const prefixRe = /^(?:(?:yeah|yep|yes|okay|ok|alright|well|so|uh|um)[,\s]+|(?:i want to|i would like to|i'd like to|i need to|i need|i'm(?:\s+just)?\s+looking to|i am(?:\s+just)?\s+looking to|(?:just\s+)?looking to|calling about|i'm calling about|i am calling about|need someone to|to get my|get my)\s+)/i;
+  const prefixRe = /^(?:(?:yeah|yep|yes|okay|ok|alright|well|so|uh|um)[,\s]+|(?:i want to|i would like to|i'd like to|i need to|i need(?!\s+(?:it|this|that|them|one)\b)|i'm(?:\s+just)?\s+looking to|i am(?:\s+just)?\s+looking to|(?:just\s+)?looking to|calling about|i'm calling about|i am calling about|need someone to|to get my|get my)\s+)/i;
   let prev: string;
   do {
     prev = s;
@@ -412,11 +418,17 @@ function cleanServiceRequest(serviceRequested: string, matches: (ExtractedMatch 
   const validMatches = matches.filter((m): m is ExtractedMatch => !!m);
   if (validMatches.length === 0) return serviceRequested;
 
-  // Find the earliest full match that appears inside the current service request text.
+  // Find the earliest value start inside the current service request text,
+  // using the full match to locate the exact occurrence and then offsetting
+  // to the start of the extracted value (not the whole matched phrase).
   let earliestIndex = serviceRequested.length;
   for (const match of validMatches) {
-    let idx = serviceRequested.indexOf(match.fullMatch);
-    if (idx === -1 && match.value) {
+    let idx = -1;
+    if (match.value && serviceRequested.indexOf(match.fullMatch) !== -1) {
+      const fullIdx = serviceRequested.indexOf(match.fullMatch);
+      const valueIdxInFull = match.fullMatch.indexOf(match.value);
+      idx = fullIdx + (valueIdxInFull >= 0 ? valueIdxInFull : 0);
+    } else if (match.value) {
       idx = serviceRequested.indexOf(match.value);
       // If we found the value but not the marker, walk back to swallow a connector/marker.
       if (idx > 0) {
@@ -458,10 +470,9 @@ function extractServiceRequestCandidate(
       s = s.slice(idx + customerName.length).trim();
     }
   }
-  // Remove leading punctuation/connectors before stripping service prefixes.
+  // Remove leading punctuation/connectors before matching service fields.
   s = s.replace(/^[.,;:]\s*/, '').trim();
   s = s.replace(/^(?:and|so|then|also)\s+/i, '');
-  s = stripServicePrefix(s);
 
   const matches: (ExtractedMatch | null)[] = [
     findAddressMatch(s),
@@ -474,9 +485,17 @@ function extractServiceRequestCandidate(
     .sort((a, b) => a.startIndex - b.startIndex)[0];
 
   if (earliestMatch && earliestMatch.startIndex >= 0) {
-    s = s.slice(0, earliestMatch.startIndex).trim();
+    const valueIndex = earliestMatch.fullMatch.indexOf(earliestMatch.value);
+    const valueStart = valueIndex >= 0 ? valueIndex : 0;
+    // Connector-style full matches (at, call me, etc.) begin the trailing field
+    // itself; slice before the whole match. Service-inclusive full matches (e.g.
+    // "I need it done next Friday") keep the service before the extracted value.
+    const valueOffset = CONNECTOR_PREFIX_RE.test(earliestMatch.fullMatch) ? 0 : valueStart;
+    const sliceIndex = earliestMatch.startIndex + valueOffset;
+    s = s.slice(0, sliceIndex).trim();
   }
 
+  s = stripServicePrefix(s);
   s = s.replace(/[.,;:]$/, '').trim();
   s = s.replace(/\s+(?:and|at|by|on|in)$/i, '').trim();
   if (isValidServiceRequest(s)) return s;
@@ -613,6 +632,11 @@ function applyField(
   const existing = (intake as any)[field];
   const existingTrimmed = typeof existing === 'string' ? existing.trim() : '';
   if (existingTrimmed.length === 0 || isCorrection || isCurrentStageField) {
+    // A re-uttered identical value is already present, not a new application.
+    if (existingTrimmed === trimmed) {
+      skipped.push(field as string);
+      return;
+    }
     // Don't replace with an identical value to avoid noisy applied logs.
     if (existingTrimmed !== trimmed) {
       (intake as any)[field] = trimmed;

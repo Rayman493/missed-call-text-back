@@ -99,12 +99,15 @@ export function reconcileScrollLock(): void {
     if (document.body.style.overflow !== 'hidden' ||
         document.documentElement.style.overflow !== 'hidden') {
       console.log('[SCROLL_RECONCILE] Applying lock (DOM was unlocked)')
+      const onlyMore = Array.from(activeOwners.values()).every(o => o.component === 'MoreMenu')
       document.body.style.overflow = 'hidden'
-      document.body.style.position = 'fixed'
-      document.body.style.top = `-${globalScrollPosition}px`
       document.body.style.width = '100%'
       document.body.style.touchAction = 'none'
       document.body.style.overscrollBehavior = 'none'
+      if (!onlyMore) {
+        document.body.style.position = 'fixed'
+        document.body.style.top = `-${globalScrollPosition}px`
+      }
       document.documentElement.style.overflow = 'hidden'
       document.documentElement.style.height = '100%'
       document.documentElement.style.touchAction = 'none'
@@ -253,14 +256,17 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
         // html.position='fixed' or html.width='100%' because that mutates the
         // root containing block and has been observed to shift fixed-position
         // descendants such as the persistent bottom nav and More menu on iOS.
+        const isMoreMenu = componentName === 'MoreMenu'
         document.body.style.overflow = 'hidden'
-        document.body.style.position = 'fixed'
-        document.body.style.top = `-${globalScrollPosition}px`
         document.body.style.width = '100%'
         document.body.style.touchAction = 'none'
         document.body.style.overscrollBehavior = 'none'
-        document.body.style.left = '0'
-        document.body.style.right = '0'
+        if (!isMoreMenu) {
+          document.body.style.position = 'fixed'
+          document.body.style.top = `-${globalScrollPosition}px`
+          document.body.style.left = '0'
+          document.body.style.right = '0'
+        }
         // Lock the root element to prevent background scroll in Android WebView
         // and iOS.  html itself stays in normal flow; only its overflow/touch
         // properties are frozen.
