@@ -793,7 +793,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       }}
       data-scroll-lock-allow
     >
-      <div className="bg-card rounded-2xl border border-border/60 shadow-2xl shadow-black/10 dark:shadow-black/40 w-full max-w-2xl flex max-h-[var(--modal-max-height)] flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+      <div className="bg-card rounded-2xl border border-border/60 shadow-2xl shadow-black/10 dark:shadow-black/40 w-full max-w-2xl flex max-h-[80dvh] sm:max-h-[var(--modal-max-height)] flex-col overflow-hidden animate-in zoom-in-95 duration-200"
            data-scroll-lock-allow>
         {/* Visually hidden title for accessibility */}
         <h2 id="event-title" className="sr-only">{event.summary}</h2>

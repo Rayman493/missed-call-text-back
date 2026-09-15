@@ -55,9 +55,16 @@ interface AttachmentActionSheetProps {
  * This avoids loading a full-resolution base64 DataUrl into JS memory.
  * The image bytes stay native (via webPath/uri) until fetched as a Blob.
  */
-async function mediaResultToFile(result: { webPath?: string; uri?: string; metadata?: { format?: string } }): Promise<File | null> {
-  // Prefer webPath (works on both native and web), fall back to uri
-  const path = result.webPath || result.uri
+async function mediaResultToFile(result: { path?: string; webPath?: string; uri?: string; metadata?: { format?: string } }): Promise<File | null> {
+  // On native, convertFileSrc converts the native file path to a WebView-accessible
+  // URL. This is more reliable on iOS than webPath/uri after app resume.
+  // Fall back to webPath/uri if no path is present.
+  let path: string | undefined
+  if (Capacitor.isNativePlatform() && result.path) {
+    path = Capacitor.convertFileSrc(result.path)
+  } else {
+    path = result.webPath || result.uri
+  }
   if (!path) return null
 
   // Fetch the native URI as a Blob — bytes stay native until this point

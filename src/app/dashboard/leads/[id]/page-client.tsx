@@ -1774,8 +1774,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     let previousHeight = window.visualViewport?.height || window.innerHeight
 
+    // Expose the actual visible viewport height as a CSS variable so the
+    // conversation workspace can size itself to the real viewport, including
+    // on iOS when 100dvh does not shrink with the software keyboard.
+    const updateVisibleHeight = (height: number) => {
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.setProperty('--visual-viewport-height', `${height}px`)
+      }
+    }
+    updateVisibleHeight(previousHeight)
+
     const handleResize = () => {
       const currentHeight = window.visualViewport?.height || window.innerHeight
+      updateVisibleHeight(currentHeight)
       const heightDiff = Math.abs(previousHeight - currentHeight)
 
       // Only respond to significant height changes (keyboard open/close)
@@ -1796,11 +1807,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Use visualViewport API for keyboard resize detection (more accurate on mobile)
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleResize)
-      return () => window.visualViewport?.removeEventListener('resize', handleResize)
+      return () => {
+        window.visualViewport?.removeEventListener('resize', handleResize)
+        // Prevent the CSS variable from leaking after this conversation page
+        // unmounts or the component is torn down during navigation.
+        if (typeof document !== 'undefined') {
+          document.documentElement.style.removeProperty('--visual-viewport-height')
+        }
+      }
     } else {
       // Fallback to window resize
       window.addEventListener('resize', handleResize)
-      return () => window.removeEventListener('resize', handleResize)
+      return () => {
+        window.removeEventListener('resize', handleResize)
+        if (typeof document !== 'undefined') {
+          document.documentElement.style.removeProperty('--visual-viewport-height')
+        }
+      }
     }
   }, [scrollToTrueBottom])
 
@@ -5263,7 +5286,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {isMobileView && (
           <div className="px-4 sm:px-5 space-y-3 pb-[calc(1rem+var(--bottom-nav-height,72px))]">
           {/* Conversation Workspace Card - Fixed height with internal scrolling */}
-          <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(100dvh-7rem-var(--bottom-nav-height,72px))]">
+          <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(var(--visual-viewport-height,100dvh)-7rem-var(--bottom-nav-height,72px))]">
             {/* Conversation Header - Distinct header */}
             <div className="px-4 py-3 border-b border-border/30 bg-muted/50 flex-shrink-0">
               <div className="flex items-center justify-between">
@@ -6121,13 +6144,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         onClose={() => {
           setShowInternalNotesModal(false)
           setInternalNotesValue('')
-          // Restore scroll position
-          if (scrollPositionBeforeNotesModal !== null) {
-            requestAnimationFrame(() => {
-              window.scrollTo(0, scrollPositionBeforeNotesModal)
-              setScrollPositionBeforeNotesModal(null)
-            })
-          }
         }}
         title={internalNotesValue?.trim() ? 'Edit Internal Notes' : 'Add Internal Notes'}
         footer={
@@ -6136,13 +6152,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               onClick={() => {
                 setShowInternalNotesModal(false)
                 setInternalNotesValue('')
-                // Restore scroll position
-                if (scrollPositionBeforeNotesModal !== null) {
-                  requestAnimationFrame(() => {
-                    window.scrollTo(0, scrollPositionBeforeNotesModal)
-                    setScrollPositionBeforeNotesModal(null)
-                  })
-                }
               }}
               className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -6173,13 +6182,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     const updatedData = await getLeadDetails(params.id)
                     if (updatedData?.ok && updatedData.lead) {
                       setLeadData((prev: any) => mergeLeadFetchResult(prev, { ...updatedData.lead, messages: updatedData.lead.messages || updatedData.messages || [] }, mergeMessagesById))
-                    }
-                    // Restore scroll position
-                    if (scrollPositionBeforeNotesModal !== null) {
-                      requestAnimationFrame(() => {
-                        window.scrollTo(0, scrollPositionBeforeNotesModal)
-                        setScrollPositionBeforeNotesModal(null)
-                      })
                     }
                   } else {
                     const errorData = await response.json()

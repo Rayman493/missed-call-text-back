@@ -11,11 +11,13 @@ let originalBodyPosition = ''
 let originalBodyTop = ''
 let originalBodyWidth = ''
 let originalBodyTouchAction = ''
+let originalBodyOverscrollBehavior = ''
 let originalBodyLeft = ''
 let originalBodyRight = ''
 let originalHtmlOverflow = ''
 let originalHtmlHeight = ''
 let originalHtmlTouchAction = ''
+let originalHtmlOverscrollBehavior = ''
 let originalHtmlPosition = ''
 let originalHtmlWidth = ''
 
@@ -56,11 +58,13 @@ export function resetAllScrollLocks(): void {
   document.body.style.top = originalBodyTop
   document.body.style.width = originalBodyWidth
   document.body.style.touchAction = originalBodyTouchAction
+  document.body.style.overscrollBehavior = originalBodyOverscrollBehavior
   document.body.style.left = originalBodyLeft
   document.body.style.right = originalBodyRight
   document.documentElement.style.overflow = originalHtmlOverflow
   document.documentElement.style.height = originalHtmlHeight
   document.documentElement.style.touchAction = originalHtmlTouchAction
+  document.documentElement.style.overscrollBehavior = originalHtmlOverscrollBehavior
   document.documentElement.style.position = originalHtmlPosition
   document.documentElement.style.width = originalHtmlWidth
   document.body.removeAttribute('data-modal-open')
@@ -100,11 +104,11 @@ export function reconcileScrollLock(): void {
       document.body.style.top = `-${globalScrollPosition}px`
       document.body.style.width = '100%'
       document.body.style.touchAction = 'none'
+      document.body.style.overscrollBehavior = 'none'
       document.documentElement.style.overflow = 'hidden'
       document.documentElement.style.height = '100%'
       document.documentElement.style.touchAction = 'none'
-      document.documentElement.style.position = 'fixed'
-      document.documentElement.style.width = '100%'
+      document.documentElement.style.overscrollBehavior = 'none'
     }
     // Ensure modal-open attribute is set when locked
     document.body.setAttribute('data-modal-open', 'true')
@@ -118,11 +122,13 @@ export function reconcileScrollLock(): void {
       document.body.style.top = originalBodyTop
       document.body.style.width = originalBodyWidth
       document.body.style.touchAction = originalBodyTouchAction
+      document.body.style.overscrollBehavior = originalBodyOverscrollBehavior
       document.body.style.left = originalBodyLeft
       document.body.style.right = originalBodyRight
       document.documentElement.style.overflow = originalHtmlOverflow
       document.documentElement.style.height = originalHtmlHeight
       document.documentElement.style.touchAction = originalHtmlTouchAction
+      document.documentElement.style.overscrollBehavior = originalHtmlOverscrollBehavior
       document.documentElement.style.position = originalHtmlPosition
       document.documentElement.style.width = originalHtmlWidth
     }
@@ -232,32 +238,36 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
         originalBodyTop = document.body.style.top
         originalBodyWidth = document.body.style.width
         originalBodyTouchAction = document.body.style.touchAction
+        originalBodyOverscrollBehavior = document.body.style.overscrollBehavior
         originalBodyLeft = document.body.style.left
         originalBodyRight = document.body.style.right
         originalHtmlOverflow = document.documentElement.style.overflow
         originalHtmlHeight = document.documentElement.style.height
         originalHtmlTouchAction = document.documentElement.style.touchAction
+        originalHtmlOverscrollBehavior = document.documentElement.style.overscrollBehavior
         originalHtmlPosition = document.documentElement.style.position
         originalHtmlWidth = document.documentElement.style.width
 
-        // Apply lock
+        // Apply lock.  Body is fixed in place at the current scroll offset so
+        // the page stays visually where it was.  We intentionally do NOT set
+        // html.position='fixed' or html.width='100%' because that mutates the
+        // root containing block and has been observed to shift fixed-position
+        // descendants such as the persistent bottom nav and More menu on iOS.
         document.body.style.overflow = 'hidden'
         document.body.style.position = 'fixed'
         document.body.style.top = `-${globalScrollPosition}px`
         document.body.style.width = '100%'
         document.body.style.touchAction = 'none'
+        document.body.style.overscrollBehavior = 'none'
         document.body.style.left = '0'
         document.body.style.right = '0'
         // Lock the root element to prevent background scroll in Android WebView
+        // and iOS.  html itself stays in normal flow; only its overflow/touch
+        // properties are frozen.
         document.documentElement.style.overflow = 'hidden'
         document.documentElement.style.height = '100%'
         document.documentElement.style.touchAction = 'none'
-        // iOS Safari: also fix the html element position. iOS Safari can
-        // still scroll the html element even when body is position:fixed,
-        // causing the background page to scroll behind the modal. Fixing
-        // the html element in place is the most reliable iOS scroll lock.
-        document.documentElement.style.position = 'fixed'
-        document.documentElement.style.width = '100%'
+        document.documentElement.style.overscrollBehavior = 'none'
         // Use global listeners to capture touchmove outside allowed scroll area.
         // Add on window as well — iOS Safari sometimes delivers touchmove to
         // window rather than document/body for touches on portal content.
@@ -346,11 +356,13 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
         document.body.style.top = originalBodyTop
         document.body.style.width = originalBodyWidth
         document.body.style.touchAction = originalBodyTouchAction
+        document.body.style.overscrollBehavior = originalBodyOverscrollBehavior
         document.body.style.left = originalBodyLeft
         document.body.style.right = originalBodyRight
         document.documentElement.style.overflow = originalHtmlOverflow
         document.documentElement.style.height = originalHtmlHeight
         document.documentElement.style.touchAction = originalHtmlTouchAction
+        document.documentElement.style.overscrollBehavior = originalHtmlOverscrollBehavior
         document.documentElement.style.position = originalHtmlPosition
         document.documentElement.style.width = originalHtmlWidth
         // Remove global listeners

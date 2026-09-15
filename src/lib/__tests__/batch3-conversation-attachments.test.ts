@@ -185,7 +185,7 @@ describe('Batch 3 — Keyboard-open layout', () => {
     const content = readContent('src/app/dashboard/leads/[id]/page-client.tsx')
     expect(content).not.toContain('pb-[calc(6rem+env(safe-area-inset-bottom))]')
     expect(content).toContain('pb-[calc(1rem+var(--bottom-nav-height,72px))]')
-    expect(content).toContain('h-[calc(100dvh-7rem-var(--bottom-nav-height,72px))]')
+    expect(content).toMatch(/h-\[calc\((100dvh|var\(--visual-viewport-height,100dvh\))-7rem-var\(--bottom-nav-height,72px\)\)\]/)
     expect(content).not.toContain('h-[calc(100dvh-12rem-var(--bottom-nav-height,72px))]')
   })
 
