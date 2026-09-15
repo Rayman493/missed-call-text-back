@@ -224,8 +224,8 @@ describe('MONEY', () => {
 describe('DRAFTS', () => {
   it('17. create draft (POST route inserts with status draft)', () => {
     expect(apiListSrc).toContain("status: 'draft'")
-    expect(apiListSrc).toContain('from(\'billing_documents\')')
-    expect(apiListSrc).toContain('.insert(insertPayload)')
+    expect(apiListSrc).toContain('insertBillingDocumentWithRetry')
+    expect(apiListSrc).toContain('insertPayload')
   })
 
   it('18. update draft (PATCH route updates existing)', () => {

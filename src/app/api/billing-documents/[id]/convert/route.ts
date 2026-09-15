@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
+import { insertBillingDocumentWithRetry } from '@/lib/billing/insert-with-retry'
 
 export const dynamic = 'force-dynamic'
 
@@ -101,10 +102,10 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to assign invoice number' }, { status: 500 })
     }
 
-    // Create the new invoice
-    const { data: invoice, error: insertError } = await supabase
-      .from('billing_documents')
-      .insert({
+    // Create the new invoice (with collision retry for document_number)
+    const { doc: invoice, error: insertError } = await insertBillingDocumentWithRetry(
+      supabase,
+      {
         business_id: business.id,
         document_type: 'invoice',
         status: 'draft',
@@ -120,9 +121,10 @@ export async function POST(
         notes: quote.notes,
         terms: quote.terms,
         source_quote_id: quote.id,
-      })
-      .select()
-      .single()
+      },
+      business.id!,
+      'invoice',
+    )
     if (insertError || !invoice) {
       console.error('[CONVERT] Insert error:', insertError)
       return NextResponse.json({ error: 'Failed to create invoice' }, { status: 500 })

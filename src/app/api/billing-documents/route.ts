@@ -9,6 +9,7 @@ import {
   BillingDocumentType,
   BillingLineItemInput,
 } from '@/lib/billing/billing-utils'
+import { insertBillingDocumentWithRetry } from '@/lib/billing/insert-with-retry'
 
 export const dynamic = 'force-dynamic'
 
@@ -208,11 +209,9 @@ export async function POST(request: Request) {
     if (notes) insertPayload.notes = notes
     if (terms) insertPayload.terms = terms
 
-    const { data: doc, error: insertError } = await supabase
-      .from('billing_documents')
-      .insert(insertPayload)
-      .select()
-      .single()
+    const { doc, error: insertError } = await insertBillingDocumentWithRetry(
+      supabase, insertPayload, business.id!, document_type,
+    )
     if (insertError || !doc) {
       console.error('[BILLING CREATE] Insert error:', insertError)
       return NextResponse.json({ error: 'Failed to create document' }, { status: 500 })
