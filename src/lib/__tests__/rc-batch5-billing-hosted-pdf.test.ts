@@ -175,9 +175,9 @@ describe('RC Batch 5 — Public Hosted Route Contract', () => {
       expect(publicRoute).not.toContain('requireSubscriptionAccess')
     })
 
-    it('public route uses anon key (not service role)', () => {
-      expect(publicRoute).toContain('NEXT_PUBLIC_SUPABASE_ANON_KEY')
-      expect(publicRoute).not.toContain('SUPABASE_SERVICE_ROLE_KEY')
+    it('public route uses service role key (RLS blocks anon reads of billing_documents)', () => {
+      expect(publicRoute).toContain('SUPABASE_SERVICE_ROLE_KEY')
+      expect(publicRoute).not.toContain('NEXT_PUBLIC_SUPABASE_ANON_KEY')
     })
 
     it('public route fetches by public_token (not by id)', () => {
