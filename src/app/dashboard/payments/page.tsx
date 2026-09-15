@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { CreditCard, Copy, ExternalLink, User, X, AlertCircle, Info, ChevronDown, MessageSquare, Link, Filter, Edit, RefreshCw } from 'lucide-react'
+import { CreditCard, Copy, ExternalLink, User, X, AlertCircle, Info, ChevronDown, Filter, Edit, RefreshCw } from 'lucide-react'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
@@ -12,6 +12,7 @@ import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { getPaymentStatusStyle } from '@/lib/payment-status'
+import { getPaymentMethodBadge } from '@/lib/payment-method-badge'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import QuickTapToPayModal from '@/components/payments/QuickTapToPayModal'
@@ -79,50 +80,6 @@ function getStatusColor(status: string): string {
   return style.badgeClass
 }
 
-function getPaymentMethodBadge(methodType: string | null, provider: string | null) {
-  // Tap to Pay (Terminal)
-  if (methodType === 'card_present') {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
-        <AppleTapToPayIcon size={12} className="h-3 w-3" />
-        Tap to Pay
-      </span>
-    )
-  }
-  // Venmo
-  if (provider === 'venmo') {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
-        <Link className="h-3 w-3" />
-        Venmo
-      </span>
-    )
-  }
-  // PayPal
-  if (provider === 'paypal') {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
-        <Link className="h-3 w-3" />
-        PayPal
-      </span>
-    )
-  }
-  // SMS Link (Stripe card)
-  if (methodType === 'card') {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50">
-        <MessageSquare className="h-3 w-3" />
-        SMS Link
-      </span>
-    )
-  }
-  // Unknown
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700/50">
-      —
-    </span>
-  )
-}
 
 const getStatusLabel = (status: string) => {
   const style = getPaymentStatusStyle(status)

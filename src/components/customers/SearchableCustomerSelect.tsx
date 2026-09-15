@@ -118,11 +118,13 @@ export default function SearchableCustomerSelect({
     }
 
     if (isOpen) {
-      document.addEventListener('pointerdown', handlePointerDown)
+      // Capture phase so pointerDownInsideRef is set before focusout/blur on
+      // iOS, where focus can leave the search input before the click bubbles.
+      document.addEventListener('pointerdown', handlePointerDown, true)
       document.addEventListener('pointerup', handlePointerUp)
       document.addEventListener('pointercancel', handlePointerUp)
       return () => {
-        document.removeEventListener('pointerdown', handlePointerDown)
+        document.removeEventListener('pointerdown', handlePointerDown, true)
         document.removeEventListener('pointerup', handlePointerUp)
         document.removeEventListener('pointercancel', handlePointerUp)
       }
@@ -180,6 +182,16 @@ export default function SearchableCustomerSelect({
       return () => clearTimeout(timer)
     }
   }, [isOpen])
+
+  // When a newly created customer is injected from the inline Add Customer flow,
+  // close any stale dropdown and clear the query so the selector re-renders with
+  // the new selection already committed and a normal re-measured list next open.
+  useEffect(() => {
+    if (prefillCustomer) {
+      setIsOpen(false)
+      setSearchQuery('')
+    }
+  }, [prefillCustomer])
 
   // Calculate available space (respecting the visual viewport, including on-screen keyboard)
   // and determine dropup/dropdown direction and a dynamic max-height for the dropdown.

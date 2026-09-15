@@ -247,22 +247,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
     return (
       <div className="space-y-5">
-        {/* Concise Request Title - Prominent in view mode */}
-        {!isEditMode && conciseTitle && (
-          <div className="bg-gradient-to-r from-blue-500/5 to-violet-500/5 border border-blue-500/10 rounded-lg px-4 py-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center">
-                <Pencil className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 mb-0.5">Request</p>
-                <p className="text-sm font-semibold text-foreground leading-tight">{conciseTitle}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Name */}
+        {/* Name - Customer first on mobile and desktop */}
         {isEditMode || meaningful(intake.customerName) || extractedInfo?.callerName ? (
           <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
             <div className="flex items-center justify-between mb-2">
@@ -289,6 +274,21 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             )}
           </div>
         ) : null}
+
+        {/* Concise Request Title - Prominent in view mode */}
+        {!isEditMode && conciseTitle && (
+          <div className="bg-gradient-to-r from-blue-500/5 to-violet-500/5 border border-blue-500/10 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center">
+                <Pencil className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 mb-0.5">Request</p>
+                <p className="text-sm font-semibold text-foreground leading-tight">{conciseTitle}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Request Details - Combined field */}
         {isEditMode || extractedInfo?.reasonForCalling || extractedInfo?.importantDetails || correctedFields?.details ? (

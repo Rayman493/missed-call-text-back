@@ -67,6 +67,8 @@ import Modal from '@/components/ui/Modal'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle, Pencil, ChevronDown, Video, ExternalLink } from 'lucide-react'
+import { getPaymentMethodBadge } from '@/lib/payment-method-badge'
+import PaymentEditModal from '@/components/payments/PaymentEditModal'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import NewTaskModal from '@/components/schedule/NewTaskModal'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
@@ -1847,6 +1849,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [paymentDescription, setPaymentDescription] = useState('')
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
   const [isLaunchingSMS, setIsLaunchingSMS] = useState(false)
+
+  // State for canonical payment detail/edit modal
+  const [showPaymentEditModal, setShowPaymentEditModal] = useState(false)
+  const [paymentToEdit, setPaymentToEdit] = useState<any>(null)
+  const [paymentEditLabel, setPaymentEditLabel] = useState('')
+  const [isSavingPaymentLabel, setIsSavingPaymentLabel] = useState(false)
+  const [isCancellingPayment, setIsCancellingPayment] = useState(false)
 
   // Handle Android back button for Payment Request modal
   useModalBackButton({ isOpen: showPaymentModal, onClose: () => {
@@ -3645,6 +3654,88 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
+  const handleOpenPaymentEdit = (payment: any) => {
+    setPaymentToEdit(payment)
+    setPaymentEditLabel(payment.display_name || '')
+    setShowPaymentEditModal(true)
+  }
+
+  const handleClosePaymentEdit = () => {
+    setShowPaymentEditModal(false)
+    setPaymentToEdit(null)
+    setPaymentEditLabel('')
+  }
+
+  const handleSavePaymentLabel = async (label: string) => {
+    if (!paymentToEdit) return
+    setIsSavingPaymentLabel(true)
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) throw new Error('Not authenticated')
+
+      const response = await fetch(`/api/payments/${paymentToEdit.id}/label`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ display_name: label }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update payment label')
+      }
+
+      // Refresh customer data so the payment row reflects the new display_name
+      await handleRefresh({ silent: true })
+    } catch (err) {
+      console.error('Error saving payment label:', err)
+      throw err
+    } finally {
+      setIsSavingPaymentLabel(false)
+    }
+  }
+
+  const handleCancelPayment = async (payment: any) => {
+    setIsCancellingPayment(true)
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) throw new Error('Not authenticated')
+
+      const response = await fetch(`/api/payments/${payment.id}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to cancel payment request')
+      }
+
+      await handleRefresh({ silent: true })
+    } catch (err) {
+      console.error('Error canceling payment request:', err)
+    } finally {
+      setIsCancellingPayment(false)
+    }
+  }
+
+  const handleCopyPaymentLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch (err) {
+      console.error('Failed to copy link:', err)
+    }
+  }
+
   const renderWorkspaceSection = () => {
     const paymentRequests = leadData?.paymentRequests || []
 
@@ -3775,7 +3866,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="space-y-3">
                   <div className="space-y-2">
                     {paymentRequests.map((pr: any) => (
-                      <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200">
+                      <div
+                        key={pr.id}
+                        onClick={() => handleOpenPaymentEdit(pr)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenPaymentEdit(pr) } }}
+                        className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200 cursor-pointer"
+                        aria-label="View payment details"
+                      >
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
                           <p className="text-xs text-muted-foreground/80">{formatDate(pr.created_at)}</p>
@@ -4832,7 +4931,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               {/* Desktop Conversation Header */}
               <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b border-slate-200/70 dark:border-border/30 bg-muted/40">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-semibold text-foreground/90">Conversation</h2>
+                  <h2 className="text-sm font-semibold text-foreground/90 leading-none">Conversation</h2>
                 </div>
                 <button
                   ref={fullScreenToggleBtnRef}
@@ -5290,7 +5389,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {/* Conversation Header - Distinct header */}
             <div className="px-4 py-3 border-b border-border/30 bg-muted/50 flex-shrink-0">
               <div className="flex items-center justify-between">
-                <h2 className="text-xs font-semibold text-foreground">Conversation</h2>
+                <h2 className="text-xs font-semibold text-foreground leading-none">Conversation</h2>
                 <button
                   ref={fullScreenToggleBtnRef}
                   type="button"
@@ -6629,6 +6728,21 @@ If you have questions, reply to this message.`
           </div>
         </div>
       </div>
+    )}
+
+    {/* Payment Edit Modal - canonical detail/edit UI from the Payments page */}
+    {paymentToEdit && (
+      <PaymentEditModal
+        isOpen={showPaymentEditModal}
+        onClose={handleClosePaymentEdit}
+        onSave={handleSavePaymentLabel}
+        onCopyLink={handleCopyPaymentLink}
+        onCancelPayment={handleCancelPayment}
+        isCancelling={isCancellingPayment}
+        payment={paymentToEdit}
+        currentLabel={paymentEditLabel}
+        methodBadge={getPaymentMethodBadge(paymentToEdit.payment_method_type, paymentToEdit.payment_provider)}
+      />
     )}
 
     <PhotoModal

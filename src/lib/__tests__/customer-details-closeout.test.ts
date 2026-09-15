@@ -16,25 +16,35 @@ function readSrc(rel: string): string {
 describe('Part A: Customer Filter Dismissal Click-Through', () => {
   const leadsPage = readSrc('app/dashboard/leads/page.tsx')
 
-  it('1. filterDismissedAtRef tracks dismissal timestamp', () => {
-    expect(leadsPage).toContain('filterDismissedAtRef')
+  it('1. filter menu uses a portal backdrop while open', () => {
+    expect(leadsPage).toContain('filterMenuOpen && createPortal')
+    expect(leadsPage).toContain('fixed inset-0 z-[9999]')
   })
 
   it('2. DropdownMenuContent has onInteractOutside handler', () => {
     expect(leadsPage).toContain('onInteractOutside')
   })
 
-  it('3. onInteractOutside sets filterDismissedAtRef.current = Date.now()', () => {
-    expect(leadsPage).toContain('filterDismissedAtRef.current = Date.now()')
+  it('3. backdrop onPointerDown consumes the tap and closes the menu', () => {
+    expect(leadsPage).toContain('onPointerDown={(e) => {')
+    expect(leadsPage).toContain('e.preventDefault()')
+    expect(leadsPage).toContain('e.stopPropagation()')
+    expect(leadsPage).toContain('setFilterMenuOpen(false)')
+    expect(leadsPage).toContain('markDropdownDismissed()')
   })
 
-  it('4. card onClick checks filterDismissedAtRef before navigating', () => {
-    expect(leadsPage).toContain('filterDismissedAtRef.current > 0')
+  it('4. no timestamp-based suppression ref exists', () => {
+    expect(leadsPage).not.toContain('filterDismissedAtRef')
   })
 
-  it('5. card onClick consumes the dismissal and returns without navigating', () => {
-    // The guard resets the ref and returns early
-    expect(leadsPage).toContain('filterDismissedAtRef.current = 0')
+  it('5. handleConversationClick does not consume a post-dismissal click', () => {
+    const handlerMatch = leadsPage.match(/const handleConversationClick = \(leadId: string\) => \{[\s\S]*?\n  \}/)
+    expect(handlerMatch).not.toBeNull()
+    if (handlerMatch) {
+      expect(handlerMatch[0]).not.toContain('filterDismissedAtRef')
+      expect(handlerMatch[0]).not.toContain('Date.now')
+      expect(handlerMatch[0]).toContain('router.push(`/dashboard/leads/${leadId}`)')
+    }
   })
 
   it('6. internal filter scrolling (touch-pan-y) is preserved', () => {

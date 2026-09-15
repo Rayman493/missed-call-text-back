@@ -1330,7 +1330,7 @@ export default function LeadsPage() {
                         // the suppress flag if the user scrolled.
                         setFilterMenuOpen(true)
                       }}
-                      className="h-10 px-3 inline-flex items-center justify-center gap-2 bg-background border border-border/50 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all whitespace-nowrap"
+                      className="h-10 px-3 inline-flex items-center justify-center gap-2 bg-background border border-border/50 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40 data-[state=open]:bg-muted/50 transition-all whitespace-nowrap"
                       title="Filter by status"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1416,6 +1416,21 @@ export default function LeadsPage() {
                     </DropdownMenuContent>
                   </DropdownMenuPortal>
                 </DropdownMenu>
+
+                {/* Filter menu dismiss backdrop - consumes taps before they reach customer cards */}
+                {filterMenuOpen && createPortal(
+                  <div
+                    className="fixed inset-0 z-[9999] touch-none"
+                    onPointerDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setFilterMenuOpen(false)
+                      markDropdownDismissed()
+                    }}
+                    aria-hidden="true"
+                  />,
+                  document.body
+                )}
 
                 {/* Add Customer button */}
                 <button
