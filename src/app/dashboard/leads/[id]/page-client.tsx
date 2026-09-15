@@ -1472,6 +1472,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 setHasScrolledToBottomOnLoad(true)
                 setInitialScrollReady(true)
                 followLatestRef.current = true
+                // Final true-bottom scroll after settle — ensures the
+                // conversation is at the absolute bottom even if the last
+                // ResizeObserver callback fired before the final layout
+                // pass completed.
+                scrollToTrueBottom(container)
               }
             } else {
               lastScrollHeight = currentHeight
@@ -1521,6 +1526,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               setHasScrolledToBottomOnLoad(true)
               setInitialScrollReady(true)
               followLatestRef.current = true
+              // Final true-bottom scroll after settle
+              scrollToTrueBottom(container)
             }
             // If content is still changing, the ResizeObserver will handle the settle
           }
@@ -2729,6 +2736,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           // Trigger full refetch to get updated voicemailRecordings
           // This is necessary when a voicemail is inserted and lead updated_at is changed
           console.log('[REALTIME LEAD UPDATE] Triggering full refetch for voicemailRecordings')
+          handleRefresh({ silent: true })
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ai_call_records',
+          filter: `lead_id=eq.${leadId}`
+        },
+        (payload: any) => {
+          console.log('[REALTIME AI CALL RECORD EVENT]', {
+            leadId,
+            eventType: payload.eventType,
+            recordId: payload.new?.id,
+            outcome: payload.new?.outcome
+          })
+          // AI intake completion updates ai_call_records. Trigger a silent
+          // refetch so customer context, AI summary, and intake fields
+          // reconcile without manual refresh.
           handleRefresh({ silent: true })
         }
       )

@@ -491,19 +491,19 @@ export default function BillingEditorModal({
   }
 
   const footer = (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-4 px-1 pb-[env(safe-area-inset-bottom)]">
       <button
         onClick={handlePreview}
-        className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
+        className="px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
         disabled={isSaving}
       >
         <Eye className="w-4 h-4" />
         Preview
       </button>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <button
           onClick={handleAttemptClose}
-          className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+          className="px-5 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
           disabled={isSaving}
         >
           Cancel
@@ -511,7 +511,7 @@ export default function BillingEditorModal({
         <button
           onClick={() => handleSaveDraft()}
           disabled={isSaving}
-          className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
           {existingDocument ? 'Save Changes' : `Create ${isInvoice ? 'Invoice' : 'Quote'}`}

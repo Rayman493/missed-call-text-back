@@ -23,6 +23,37 @@ function formatDuration(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
+/**
+ * Narrow filter for Personal Voicemail silence/noise transcript artifacts.
+ *
+ * Some providers return "you" as the transcription when the audio contains
+ * only silence or noise. This is a known artifact. Treat it as empty so
+ * historical records containing only the artifact do not render fake speech.
+ *
+ * This filter is NARROW by design — it only suppresses the exact known
+ * silence artifact. Legitimate short messages are preserved:
+ *   "Yes", "No", "Call me", "Thanks", etc.
+ *
+ * This does NOT modify AI Intake transcription.
+ */
+const SILENCE_TRANSCRIPT_ARTIFACTS = new Set([
+  'you',
+  'you.',
+  'you,',
+  'you?',
+]);
+
+function filterPersonalVoicemailTranscript(transcription: string | null): string | null {
+  if (!transcription) return null;
+  const trimmed = transcription.trim().toLowerCase();
+  // Only suppress if the ENTIRE transcript is the known artifact.
+  // Multi-word transcripts that contain "you" are legitimate.
+  if (SILENCE_TRANSCRIPT_ARTIFACTS.has(trimmed)) {
+    return null;
+  }
+  return transcription;
+}
+
 interface PersonalVoicemail {
   id: string
   business_id: string
@@ -354,42 +385,54 @@ export default function PersonalVoicemailPage() {
                         </div>
 
                         {/* Transcript Section */}
-                        {voicemail.transcription && (
-                          <div className="border-t border-border/50 pt-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                                Transcript
-                              </span>
-                            </div>
-                            <div className="text-sm text-foreground leading-relaxed">
-                              {isExpanded || voicemail.transcription.length <= 200 ? (
-                                voicemail.transcription
-                              ) : (
-                                <>
-                                  {voicemail.transcription.substring(0, 200)}...
-                                  <button
-                                    onClick={() => setExpandedTranscripts(new Set([...expandedTranscripts, voicemail.id]))}
-                                    className="text-blue-600 dark:text-blue-400 hover:underline ml-2 text-xs font-medium"
-                                  >
-                                    Show more
-                                  </button>
-                                </>
+                        {(() => {
+                          const filteredTranscription = filterPersonalVoicemailTranscript(voicemail.transcription);
+                          if (!filteredTranscription) {
+                            return (
+                              <div className="border-t border-border/50 pt-4">
+                                <span className="text-xs text-muted-foreground/60 italic">
+                                  No transcript available
+                                </span>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="border-t border-border/50 pt-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                                  Transcript
+                                </span>
+                              </div>
+                              <div className="text-sm text-foreground leading-relaxed">
+                                {isExpanded || filteredTranscription.length <= 200 ? (
+                                  filteredTranscription
+                                ) : (
+                                  <>
+                                    {filteredTranscription.substring(0, 200)}...
+                                    <button
+                                      onClick={() => setExpandedTranscripts(new Set([...expandedTranscripts, voicemail.id]))}
+                                      className="text-blue-600 dark:text-blue-400 hover:underline ml-2 text-xs font-medium"
+                                    >
+                                      Show more
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                              {isExpanded && filteredTranscription.length > 200 && (
+                                <button
+                                  onClick={() => {
+                                    const newSet = new Set(expandedTranscripts)
+                                    newSet.delete(voicemail.id)
+                                    setExpandedTranscripts(newSet)
+                                  }}
+                                  className="text-blue-600 dark:text-blue-400 hover:underline text-xs font-medium mt-2"
+                                >
+                                  Show less
+                                </button>
                               )}
                             </div>
-                            {isExpanded && voicemail.transcription.length > 200 && (
-                              <button
-                                onClick={() => {
-                                  const newSet = new Set(expandedTranscripts)
-                                  newSet.delete(voicemail.id)
-                                  setExpandedTranscripts(newSet)
-                                }}
-                                className="text-blue-600 dark:text-blue-400 hover:underline text-xs font-medium mt-2"
-                              >
-                                Show less
-                              </button>
-                            )}
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     )
                   })}

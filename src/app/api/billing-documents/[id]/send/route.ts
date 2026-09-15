@@ -156,6 +156,7 @@ export async function POST(
         customer_id: doc.customer_id,
         status: doc.status,
         payment_request_id: doc.payment_request_id,
+        public_token: publicToken,
       }, user.id)
       if (!payResult.ok) {
         console.error('[BILLING SEND] Payment preparation failed:', payResult.error)

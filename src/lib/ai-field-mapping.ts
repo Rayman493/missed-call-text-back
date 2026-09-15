@@ -378,13 +378,17 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
   const corrected = rawMetadata.corrected_fields || {}
 
   // CANONICAL MERGE CONTRACT:
-  // A later empty/partial intake must NOT erase previously valid canonical customer context.
-  // For each field, scan call records from newest to oldest and use the first non-empty value.
-  // This preserves historical context when the latest call was a silence/partial call.
+  // Call-scoped intake fields (reason, details, location, completion, callback)
+  // must represent ONE coherent latest intake snapshot. If the latest intake has
+  // no value for a field, that field is empty — do NOT inherit from older calls.
+  // This prevents "Frankenstein state" assembled from multiple historical calls.
+  // Customer name still uses historical fallback because identity persists across calls.
   // Explicit refusals (nameRefused, locationRefused) from the latest call still apply.
   const findLatestNonEmptyField = (
     fieldPaths: string[]
   ): string | null => {
+    // CUSTOMER NAME ONLY: scan historical records for a non-empty name.
+    // Call-scoped fields no longer use this fallback.
     for (const record of sortedAiCallRecords) {
       const info = record?.extracted_info
       if (!info) continue
@@ -393,6 +397,22 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
         const val = (norm as any)[path] ?? (info as any)[path]
         if (val && typeof val === 'string' && val.trim()) return val.trim()
       }
+    }
+    return null
+  }
+
+  // LATEST-CALL-ONLY resolver for call-scoped fields. Uses only the most recent
+  // ai_call_record's extracted_info. If empty, returns null (no historical fallback).
+  const findLatestCallField = (
+    fieldPaths: string[]
+  ): string | null => {
+    const record = sortedAiCallRecords[0]
+    const info = record?.extracted_info
+    if (!info) return null
+    const norm = normalizeExtractedInfo(info)
+    for (const path of fieldPaths) {
+      const val = (norm as any)[path] ?? (info as any)[path]
+      if (val && typeof val === 'string' && val.trim()) return val.trim()
     }
     return null
   }
@@ -447,8 +467,8 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
     corrected.reasonForCalling,
     effectiveNormalized.reasonForCalling,
     effectiveExtractedInfo.serviceRequested,
-    // Historical fallback: scan older call records for a non-empty value
-    findLatestNonEmptyField(['reasonForCalling', 'serviceRequested']),
+    // Latest-call-only: do not inherit reason from older calls
+    findLatestCallField(['reasonForCalling', 'serviceRequested']),
   ], pick));
 
   // A high-confidence name refusal in the current AI intake overrides the name
@@ -493,20 +513,19 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       corrected.importantDetails,
       effectiveNormalized.importantDetails,
       effectiveExtractedInfo.additionalDetails,
-      findLatestNonEmptyField(['importantDetails', 'additionalDetails'])
+      // Latest-call-only: do not inherit details from older calls
+      findLatestCallField(['importantDetails', 'additionalDetails'])
     )),
-    // Service address: current-call + historical fallback
-    // Priority: manual corrections > current-call normalized > current-call raw
-    // > historical call records (newest non-empty first)
+    // Service address: latest-call-only (call-scoped)
     serviceAddress: normalizeAddress(pick(
       corrected.address,
       corrected.serviceAddress,
       corrected.addressOrLocation,
       effectiveNormalized.addressOrLocation,
       effectiveExtractedInfo.serviceAddress,
-      findLatestNonEmptyField(['addressOrLocation', 'serviceAddress'])
+      findLatestCallField(['addressOrLocation', 'serviceAddress'])
     )),
-    // Desired completion time: current-call + historical fallback
+    // Desired completion time: latest-call-only (call-scoped)
     desiredCompletion: normalizeTiming(pick(
       corrected.desiredCompletion,
       corrected.urgency,
@@ -514,16 +533,16 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       corrected.desiredCompletionTime,
       effectiveNormalized.desiredCompletionTime,
       effectiveExtractedInfo.desiredCompletion,
-      findLatestNonEmptyField(['desiredCompletionTime', 'desiredCompletion'])
+      findLatestCallField(['desiredCompletionTime', 'desiredCompletion'])
     )),
-    // Callback time: current-call + historical fallback
+    // Callback time: latest-call-only (call-scoped)
     callbackTime: normalizeTiming(pick(
       corrected.callbackTime,
       corrected.callback_time,
       corrected.preferredCallbackTime,
       effectiveNormalized.preferredCallbackTime,
       effectiveExtractedInfo.callbackTime,
-      findLatestNonEmptyField(['preferredCallbackTime', 'callbackTime'])
+      findLatestCallField(['preferredCallbackTime', 'callbackTime'])
     )),
     conciseRequestTitle: generateConciseRequestTitle(
       serviceRequestedValue ||

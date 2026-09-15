@@ -147,7 +147,12 @@ export default function BillingDocumentList({
           due_date: doc.due_date,
         } as any)
         const badge = statusBadge(effective)
-        const customerName = doc.leads?.contact_name || doc.leads?.caller_phone || 'No customer'
+        const customerName = doc.leads?.contact_name || ''
+        const customerPhone = doc.leads?.caller_phone || ''
+        // Display priority: canonical name as primary, phone as secondary metadata,
+        // "Unnamed customer" only when no meaningful name truly exists.
+        const customerLabel = customerName || 'Unnamed customer'
+        const customerSecondary = customerName && customerPhone ? customerPhone : (customerPhone && !customerName ? '' : '')
         const isDraft = doc.status === 'draft'
         const isSent = doc.status === 'sent' || effective === 'overdue' || effective === 'expired'
         const isAccepted = doc.status === 'accepted'
@@ -186,7 +191,10 @@ export default function BillingDocumentList({
                   {badge.label}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground truncate">{customerName}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {customerLabel}
+                {customerSecondary && <span className="text-muted-foreground/60"> · {customerSecondary}</span>}
+              </p>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-sm font-medium text-foreground">{formatCurrency(doc.total_cents, true)}</span>
                 <span className="text-xs text-muted-foreground">· {dateLabel}</span>
@@ -198,8 +206,8 @@ export default function BillingDocumentList({
 
             {/* Right: actions — always 5 slots in canonical order */}
             <div className="flex items-center gap-1 flex-shrink-0">
-              {/* Slot 1: Edit */}
-              {isDraft || isDeclined ? (
+              {/* Slot 1: Edit — only draft documents are editable */}
+              {isDraft ? (
                 <button
                   onClick={() => onOpen(doc)}
                   className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
@@ -209,7 +217,7 @@ export default function BillingDocumentList({
                   <Edit className="w-4 h-4" />
                 </button>
               ) : (
-                <span className="w-8 h-8 flex items-center justify-center text-slate-300 dark:text-slate-600 rounded cursor-default" aria-hidden="true">
+                <span className="w-8 h-8 flex items-center justify-center text-slate-300 dark:text-slate-600 rounded cursor-default" aria-hidden="true" title="Only draft documents can be edited">
                   <Edit className="w-4 h-4" />
                 </span>
               )}

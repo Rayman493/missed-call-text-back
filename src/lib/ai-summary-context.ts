@@ -145,56 +145,49 @@ export function buildSummaryContext(lead: any): SummaryContext {
 
 /**
  * Generate deterministic fallback summary when AI is unavailable
+ *
+ * Produces a concise office-assistant summary in natural prose (2-4 sentences),
+ * omitting missing optional fields naturally. Avoids the awkward template-like
+ * "Wants work:" / "Prefers:" phrasing from the prior version.
  */
 export function generateFallbackSummary(context: SummaryContext): string {
-  const parts: string[] = []
+  const name = context.customer.name || 'This customer';
+  const title = (context.request.canonicalTitle || 'general service').toLowerCase();
+  const address = context.corrections.address || context.customer.address;
+  const timing = context.corrections.timing || context.request.desiredTiming;
+  const callback = context.corrections.callback || context.request.callbackPreference;
 
-  // Start with what they need
-  parts.push(`${context.customer.name} needs ${context.request.canonicalTitle.toLowerCase()}.`)
-
-  // Include corrected address if available
-  if (context.corrections.address) {
-    parts.push(`Service address: ${context.corrections.address}.`)
-  } else if (context.customer.address) {
-    parts.push(`Service address: ${context.customer.address}.`)
+  // Opening sentence: what they need
+  let summary = `${name} is looking to ${title}`;
+  if (address) {
+    summary += ` at ${address}`;
   }
+  summary += '.';
 
-  // Include desired timing
-  const timing = context.corrections.timing || context.request.desiredTiming
+  // Timing sentence (natural prose)
   if (timing) {
-    parts.push(`Wants work: ${timing}.`)
+    summary += ` They'd ideally like the work completed ${timing.toLowerCase()}.`;
   }
 
-  // Include callback preference
-  const callback = context.corrections.callback || context.request.callbackPreference
+  // Callback sentence (natural prose)
   if (callback) {
-    parts.push(`Prefers: ${callback}.`)
+    summary += ` They prefer a callback ${callback.toLowerCase()}.`;
   }
 
-  // Include communication preference if relevant
-  if (context.corrections.communication) {
-    parts.push(`Communication: ${context.corrections.communication}.`)
-  }
-
-  // Include operational state
+  // Operational state + next step
   if (context.operational.hasJob) {
     if (context.operational.jobStatus === 'scheduled') {
-      parts.push('Job is scheduled.')
+      summary += ' A job is already scheduled.';
     } else if (context.operational.jobStatus === 'completed') {
-      parts.push('Job has been completed.')
+      summary += ' The job has been completed.';
     }
+  } else if (context.operational.hasPendingPayment) {
+    summary += ' Next step: follow up on the pending payment.';
   } else {
-    parts.push('No job scheduled yet.')
+    summary += ' Next step: confirm the scope and schedule the job.';
   }
 
-  // Add next step
-  if (!context.operational.hasJob) {
-    parts.push('Next step: Confirm scope and schedule the job.')
-  } else if (context.operational.jobStatus === 'scheduled') {
-    parts.push('Next step: Prepare for the scheduled appointment.')
-  }
-
-  return parts.join(' ')
+  return summary;
 }
 
 /**

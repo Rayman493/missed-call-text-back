@@ -28,6 +28,7 @@ export async function prepareInvoicePayment(
     customer_id: string | null
     status: string
     payment_request_id: string | null
+    public_token?: string | null
   },
   requestedBy?: string
 ): Promise<{
@@ -83,6 +84,23 @@ export async function prepareInvoicePayment(
   }
 
   const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+  // Resolve the public token for the success/cancel redirect URLs.
+  // Customers paying an invoice do NOT have a ReplyFlow account — they must
+  // be redirected back to the public hosted document, not the dashboard.
+  let publicToken = invoice.public_token
+  if (!publicToken) {
+    const { data: tokenRow } = await supabase
+      .from('billing_documents')
+      .select('public_token')
+      .eq('id', invoice.id)
+      .single()
+    publicToken = tokenRow?.public_token
+  }
+  const publicPath = publicToken ? `/document/${publicToken}` : '/document'
+  const successUrl = `${origin}${publicPath}?payment=success`
+  const cancelUrl = `${origin}${publicPath}?payment=cancelled`
+
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     line_items: [
@@ -98,8 +116,8 @@ export async function prepareInvoicePayment(
       },
     ],
     mode: 'payment',
-    success_url: `${origin}/dashboard/payments?payment_success=1`,
-    cancel_url: `${origin}/dashboard/payments?payment_cancelled=1`,
+    success_url: successUrl,
+    cancel_url: cancelUrl,
     metadata: {
       business_id: String(businessId),
       lead_id: String(invoice.customer_id || ''),

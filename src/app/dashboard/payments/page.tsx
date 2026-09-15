@@ -272,6 +272,64 @@ export default function PaymentsPage() {
     fetchBillingDocuments()
   }, [])
 
+  // Realtime: subscribe to billing_documents changes for the current business
+  // so that accept/decline/paid status updates appear live without manual refresh.
+  useEffect(() => {
+    if (!business?.id) return
+    const supabase = createBrowserClient()
+    const channel = supabase
+      .channel('billing-documents-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'billing_documents',
+          filter: `business_id=eq.${business.id}`,
+        },
+        (payload: any) => {
+          // Reconcile the changed row into local state by id.
+          // For UPDATE: merge the changed fields into the existing row.
+          // For INSERT: prepend the new row (fetch full data since the
+          // realtime payload may not include joined leads data).
+          // For DELETE: remove the row.
+          const row = payload.new as any
+          const oldRow = payload.old as any
+          if (payload.eventType === 'DELETE') {
+            const deletedId = oldRow?.id
+            if (deletedId) {
+              setBillingDocuments((prev) => prev.filter((d) => d.id !== deletedId))
+            }
+            return
+          }
+          // For INSERT or UPDATE, check if the row is already in local state.
+          setBillingDocuments((prev) => {
+            const existing = prev.find((d) => d.id === row.id)
+            if (existing) {
+              // Merge changed fields — preserve joined leads data
+              return prev.map((d) => d.id === row.id ? {
+                ...d,
+                status: row.status ?? d.status,
+                sent_at: row.sent_at ?? d.sent_at,
+                public_token: row.public_token ?? d.public_token,
+                payment_request_id: (row as any).payment_request_id ?? (d as any).payment_request_id,
+                updated_at: row.updated_at ?? d.updated_at,
+                total_cents: row.total_cents ?? d.total_cents,
+              } : d)
+            }
+            // New row — fetch full data (with leads join) in the background.
+            // Don't block the realtime handler; just trigger a silent refetch.
+            fetchBillingDocuments()
+            return prev
+          })
+        }
+      )
+      .subscribe()
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [business?.id])
+
   // Listen for payment completion events to refresh the list
   useEffect(() => {
     const handlePaymentCompleted = (event: CustomEvent) => {
@@ -437,8 +495,38 @@ export default function PaymentsPage() {
   }
 
   const handleBillingSaved = (savedDoc?: BillingDocumentData) => {
-    fetchBillingDocuments()
-    // Switch to the matching type filter so the newly created record is visible
+    // Merge the saved document into local state by id — no full refetch,
+    // no loading flash. If it's a new doc (not in the list), prepend it.
+    if (savedDoc?.id) {
+      const savedId = savedDoc.id
+      setBillingDocuments((prev) => {
+        const existing = prev.find((d) => d.id === savedId)
+        const baseLead = existing?.leads || null
+        const item: BillingDocumentListItem = {
+          id: savedId,
+          document_type: savedDoc.document_type,
+          status: savedDoc.status,
+          document_number: savedDoc.document_number,
+          issue_date: savedDoc.issue_date,
+          valid_until: savedDoc.valid_until ?? null,
+          due_date: savedDoc.due_date ?? null,
+          total_cents: (savedDoc as any).total_cents ?? existing?.total_cents ?? 0,
+          customer_id: savedDoc.customer_id ?? null,
+          public_token: (savedDoc as any).public_token ?? existing?.public_token ?? null,
+          source_quote_id: (savedDoc as any).source_quote_id ?? existing?.source_quote_id ?? null,
+          leads: baseLead,
+          updated_at: new Date().toISOString(),
+          sent_at: existing?.sent_at ?? null,
+        }
+        if (existing) {
+          return prev.map((d) => d.id === savedId ? item : d)
+        }
+        return [item, ...prev]
+      })
+    }
+    // Switch to the billing segment and matching type filter so the
+    // newly created record is immediately visible.
+    setPaymentsSegment('billing')
     if (savedDoc?.document_type === 'quote' && billingTypeFilter !== 'quote') {
       setBillingTypeFilter('quote')
     } else if (savedDoc?.document_type === 'invoice' && billingTypeFilter !== 'invoice') {
@@ -505,7 +593,19 @@ export default function PaymentsPage() {
       if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
       const res = await fetch(`/api/billing-documents/${doc.id}/send`, { method: 'POST', headers })
       if (res.ok) {
-        await fetchBillingDocuments()
+        // Merge the returned document into local state by id — no full refetch,
+        // no loading flash, no scroll jump.
+        const json = await res.json()
+        const updated = json.document
+        if (updated) {
+          setBillingDocuments((prev) => prev.map((d) => d.id === updated.id ? {
+            ...d,
+            status: updated.status,
+            sent_at: updated.sent_at,
+            public_token: updated.public_token,
+            payment_request_id: updated.payment_request_id,
+          } : d))
+        }
       } else {
         const json = await res.json().catch(() => ({}))
         setSuccessMessage('')
@@ -528,7 +628,32 @@ export default function PaymentsPage() {
       if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
       const res = await fetch(`/api/billing-documents/${doc.id}/convert`, { method: 'POST', headers })
       if (res.ok) {
-        await fetchBillingDocuments()
+        const json = await res.json()
+        const newInvoice = json.document
+        if (newInvoice) {
+          // Mark the source quote as accepted (conversion implies acceptance)
+          // and prepend the new invoice to local state — no full refetch.
+          setBillingDocuments((prev) => {
+            const updated = prev.map((d) => d.id === doc.id ? { ...d, status: 'accepted' } : d)
+            const invoiceItem: BillingDocumentListItem = {
+              id: newInvoice.id,
+              document_type: 'invoice',
+              status: newInvoice.status || 'draft',
+              document_number: newInvoice.document_number,
+              issue_date: newInvoice.issue_date,
+              valid_until: newInvoice.valid_until,
+              due_date: newInvoice.due_date,
+              total_cents: newInvoice.total_cents,
+              customer_id: newInvoice.customer_id,
+              public_token: newInvoice.public_token,
+              source_quote_id: newInvoice.source_quote_id,
+              leads: newInvoice.leads,
+              updated_at: newInvoice.updated_at,
+              sent_at: newInvoice.sent_at,
+            }
+            return [invoiceItem, ...updated]
+          })
+        }
       }
     } catch {
       // ignore
@@ -1830,41 +1955,43 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         {/* ===== Quotes & Invoices Segment ===== */}
         {paymentsSegment === 'billing' && (
         <div className="mt-2">
-          {/* Billing type filter + create button */}
-          <div className="flex items-center gap-1 mb-4 p-1 bg-muted/50 dark:bg-slate-800/50 rounded-lg w-fit max-w-full">
-            <button
-              onClick={() => setBillingTypeFilter('all')}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-                billingTypeFilter === 'all'
-                  ? 'bg-card dark:bg-slate-700 text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setBillingTypeFilter('quote')}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-                billingTypeFilter === 'quote'
-                  ? 'bg-card dark:bg-slate-700 text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Quotes
-            </button>
-            <button
-              onClick={() => setBillingTypeFilter('invoice')}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-                billingTypeFilter === 'invoice'
-                  ? 'bg-card dark:bg-slate-700 text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Invoices
-            </button>
+          {/* Billing type filter (left) + create button (far right) */}
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <div className="flex items-center gap-1 p-1 bg-muted/50 dark:bg-slate-800/50 rounded-lg w-fit max-w-full">
+              <button
+                onClick={() => setBillingTypeFilter('all')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+                  billingTypeFilter === 'all'
+                    ? 'bg-card dark:bg-slate-700 text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setBillingTypeFilter('quote')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+                  billingTypeFilter === 'quote'
+                    ? 'bg-card dark:bg-slate-700 text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Quotes
+              </button>
+              <button
+                onClick={() => setBillingTypeFilter('invoice')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+                  billingTypeFilter === 'invoice'
+                    ? 'bg-card dark:bg-slate-700 text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Invoices
+              </button>
+            </div>
             <button
               onClick={() => setShowBillingChooser(true)}
-              className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-card dark:hover:bg-slate-700 transition-colors ml-0.5"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-foreground bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white transition-colors shadow-sm flex-shrink-0"
               aria-label="Create Quote or Invoice"
               title="Create Quote or Invoice"
             >

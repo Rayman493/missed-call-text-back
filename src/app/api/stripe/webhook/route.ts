@@ -10,6 +10,7 @@ import { normalizeStripeCustomerId } from '@/lib/supabase/admin'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { validateStateTransition } from '@/lib/terminal/state-transition-guards'
+import { reconcileBillingInvoiceCheckout } from '@/lib/stripe/billing-checkout-reconciliation'
 
 /**
  * Determine canonical Stripe Connect status from a Stripe account object
@@ -672,6 +673,25 @@ export async function POST(request: Request) {
         console.log('[ProvisioningState] CHECKOUT.SESSION.COMPLETED webhook triggered')
         
         const session = event.data.object as Stripe.Checkout.Session
+        const metadata = session.metadata || {}
+
+        // Dispatch billing-invoice one-time Checkout sessions to payment
+        // request reconciliation BEFORE enforcing subscription-specific
+        // customer requirements. Billing invoice Checkouts may not have
+        // session.customer (they are one-time payments, not subscriptions).
+        if (metadata.source === 'billing_invoice' || metadata.payment_request_id || metadata.invoice_id) {
+          console.log('[STRIPE WEBHOOK] Billing invoice checkout detected — dispatching to payment request reconciliation')
+          await reconcileBillingInvoiceCheckout({
+            supabase,
+            stripe,
+            session,
+            eventId: event.id,
+            reconstructFn: reconstructPaymentRequestFromStripe,
+            markProcessedFn: markEventProcessed,
+          })
+          break
+        }
+
         const customerId = normalizeStripeCustomerId(session.customer)
         const subscriptionId = session.subscription as string
 
@@ -1787,267 +1807,11 @@ export async function POST(request: Request) {
         break
       }
 
-      // Payment-related events for Stripe Connect
-      case 'checkout.session.completed': {
-        console.log('[PAYMENT WEBHOOK] ========== CHECKOUT.SESSION.COMPLETED START ==========')
-        console.log('[PAYMENT WEBHOOK] Event type:', event.type)
-        console.log('[PAYMENT WEBHOOK] Event id:', event.id)
-        
-        const session = event.data.object as Stripe.Checkout.Session
-        const sessionId = session.id
-        const paymentIntentId = session.payment_intent as string
-        const metadata = session.metadata || {}
-        
-        console.log('[PAYMENT WEBHOOK] Checkout session ID:', sessionId)
-        console.log('[PAYMENT WEBHOOK] Payment Intent ID:', paymentIntentId)
-        console.log('[PAYMENT WEBHOOK] Session metadata:', JSON.stringify(metadata))
-
-        // Check if this is a payment request (has payment_request_id in metadata)
-        let paymentRequestId = metadata.payment_request_id
-        console.log('[PAYMENT WEBHOOK] payment_request_id from session metadata:', paymentRequestId)
-        
-        // If not found in session metadata, check payment intent metadata
-        if (!paymentRequestId && paymentIntentId) {
-          console.log('[PAYMENT WEBHOOK] payment_request_id not in session metadata, checking payment intent metadata')
-          try {
-            const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
-            paymentRequestId = paymentIntent.metadata?.payment_request_id
-            console.log('[PAYMENT WEBHOOK] Payment intent metadata:', JSON.stringify(paymentIntent.metadata))
-            console.log('[PAYMENT WEBHOOK] Payment request ID from payment intent:', paymentRequestId)
-          } catch (piError) {
-            console.error('[PAYMENT WEBHOOK] Failed to retrieve payment intent:', piError)
-          }
-        }
-        
-        console.log('[PAYMENT WEBHOOK] Final payment request ID:', paymentRequestId)
-        
-        if (!paymentRequestId) {
-          // Billing invoice pay route sets source: 'billing_invoice' and invoice_id
-          // in metadata but not payment_request_id (created after the Stripe session).
-          // Fall through to the stripe_checkout_session_id lookup below to reconcile.
-          if (metadata.source === 'billing_invoice' || metadata.invoice_id) {
-            console.log('[PAYMENT WEBHOOK] No payment_request_id in metadata, but billing_invoice source detected — reconciling via session ID lookup')
-          } else {
-            console.log('[PAYMENT WEBHOOK] Not a payment request, skipping')
-            break
-          }
-        }
-
-        // Update payment_request record
-        console.log('[PAYMENT WEBHOOK] Looking up payment request by stripe_checkout_session_id:', sessionId)
-        let { data: paymentRequest, error: paymentRequestError } = await supabase
-          .from('payment_requests')
-          .select('id, lead_id, business_id, status, amount_cents')
-          .eq('stripe_checkout_session_id', sessionId)
-          .single()
-
-        if (paymentRequestError || !paymentRequest) {
-          // Distinguish between true "not found" vs database error
-          // Only attempt reconstruction if it's a true not-found (PGRST116), not a transient error
-          const isTrueNotFound = paymentRequestError?.code === 'PGRST116'
-
-          if (!isTrueNotFound) {
-            console.error('[PAYMENT WEBHOOK] Database error looking up payment request (not attempting reconstruction):', paymentRequestError)
-            console.error('[PAYMENT WEBHOOK] Error code:', paymentRequestError?.code)
-            console.error('[PAYMENT WEBHOOK] Error message:', paymentRequestError?.message)
-            // Do not mark as processed - allow retry
-            return NextResponse.json({ received: true, warning: 'Database error, will retry' }, { status: 200 })
-          }
-
-          console.log('[PAYMENT RECONSTRUCTION] Payment request not found, attempting reconstruction from Stripe metadata')
-          console.log('[PAYMENT RECONSTRUCTION] Session ID:', sessionId)
-          console.log('[PAYMENT RECONSTRUCTION] Payment Intent ID:', paymentIntentId)
-
-          // Attempt reconstruction from Stripe metadata
-          const reconstructionResult = await reconstructPaymentRequestFromStripe(
-            supabase,
-            sessionId,
-            paymentIntentId,
-            metadata,
-            session,
-            stripe
-          )
-
-          if (!reconstructionResult.success) {
-            console.error('[PAYMENT RECONSTRUCTION] Reconstruction failed:', reconstructionResult.error)
-            console.error('[PAYMENT RECONSTRUCTION] Reason:', reconstructionResult.reason)
-            // Do not mark as processed - allow manual recovery
-            return NextResponse.json({
-              received: true,
-              warning: 'Payment request reconstruction failed, manual recovery required',
-              reconstructionError: reconstructionResult.reason
-            }, { status: 200 })
-          }
-
-          console.log('[PAYMENT RECONSTRUCTION] Successfully reconstructed payment request:', reconstructionResult.paymentRequestId)
-          paymentRequest = reconstructionResult.paymentRequest
-        }
-
-        // Verify we have a payment request before continuing
-        if (!paymentRequest) {
-          console.error('[PAYMENT WEBHOOK] Payment request is null after lookup/reconstruction')
-          return NextResponse.json({ received: true, warning: 'Payment request unavailable' }, { status: 200 })
-        }
-
-        console.log('[PAYMENT WEBHOOK] Found payment request:', paymentRequest.id)
-        console.log('[PAYMENT WEBHOOK] Payment request current status:', paymentRequest.status)
-
-        // Update payment request status
-        const updatePayload: any = {
-          status: 'paid'
-        }
-        
-        // Only set paid_at if column exists in production
-        try {
-          const { error: testError } = await supabase
-            .from('payment_requests')
-            .select('paid_at')
-            .limit(1)
-            .single()
-          
-          if (!testError) {
-            updatePayload.paid_at = new Date().toISOString()
-            console.log('[PAYMENT WEBHOOK] paid_at column exists, setting to:', updatePayload.paid_at)
-          }
-        } catch (e) {
-          console.log('[PAYMENT WEBHOOK] paid_at column may not exist, skipping')
-        }
-
-        console.log('[PAYMENT WEBHOOK] Updating payment request with payload:', updatePayload)
-        console.log('[PAYMENT WEBHOOK] Updating payment request id:', paymentRequest.id)
-        
-        const { data: updatedPayment, error: updateError } = await supabase
-          .from('payment_requests')
-          .update(updatePayload)
-          .eq('id', paymentRequest.id)
-          .select()
-          .single()
-
-        if (updateError) {
-          console.error('[PAYMENT WEBHOOK] Failed to update payment request:', updateError)
-          console.error('[PAYMENT WEBHOOK] Error code:', updateError.code)
-          console.error('[PAYMENT WEBHOOK] Error message:', updateError.message)
-        } else {
-          console.log('[PAYMENT WEBHOOK] Successfully updated payment request to paid')
-          console.log('[PAYMENT WEBHOOK] Updated payment request data:', updatedPayment)
-
-          // Reconcile linked billing invoice (if any)
-          try {
-            const { data: linkedInvoice } = await supabase
-              .from('billing_documents')
-              .select('id, status')
-              .eq('payment_request_id', paymentRequest.id)
-              .eq('document_type', 'invoice')
-              .maybeSingle()
-            if (linkedInvoice && linkedInvoice.status !== 'paid') {
-              await supabase
-                .from('billing_documents')
-                .update({ status: 'paid', paid_at: new Date().toISOString() })
-                .eq('id', linkedInvoice.id)
-              console.log('[PAYMENT WEBHOOK] Reconciled billing invoice to paid:', linkedInvoice.id)
-            }
-          } catch (invoiceReconcileErr) {
-            console.error('[PAYMENT WEBHOOK] Invoice reconciliation failed (non-fatal):', invoiceReconcileErr)
-          }
-        }
-
-        // Update lead status to paid (optional - don't fail if this fails)
-        try {
-          const { data: lead } = await supabase
-            .from('leads')
-            .select('id, status, caller_phone')
-            .eq('id', paymentRequest.lead_id)
-            .single()
-
-          if (lead) {
-            console.log('[PAYMENT WEBHOOK] Found lead:', lead.id, 'current status:', lead.status)
-
-            // Use centralized transition helper for status update
-            const { applyCustomerStatusEvent } = await import('@/lib/customer-status-transitions')
-            const nextStatus = applyCustomerStatusEvent(lead.status, 'payment_succeeded')
-
-            if (nextStatus) {
-              const { error: leadUpdateError } = await supabase
-                .from('leads')
-                .update({ status: nextStatus })
-                .eq('id', paymentRequest.lead_id)
-
-              if (leadUpdateError) {
-                console.error('[PAYMENT WEBHOOK] Failed to update lead status:', leadUpdateError)
-                console.error('[PAYMENT WEBHOOK] Error code:', leadUpdateError.code)
-                console.error('[PAYMENT WEBHOOK] Error message:', leadUpdateError.message)
-              } else {
-                console.log('[PAYMENT WEBHOOK] Successfully updated lead status via transition helper:', {
-                  leadId: lead.id,
-                  previousStatus: lead.status,
-                  newStatus: nextStatus
-                })
-              }
-            } else {
-              console.log('[PAYMENT WEBHOOK] Status transition not allowed:', {
-                leadId: lead.id,
-                currentStatus: lead.status
-              })
-            }
-          } else {
-            console.log('[PAYMENT WEBHOOK] Lead not found, skipping lead update')
-          }
-        } catch (leadError) {
-          console.error('[PAYMENT WEBHOOK] Exception during lead update (non-critical):', leadError)
-          // Don't fail webhook for lead update errors
-        }
-
-        // Create timeline event for payment completion
-        try {
-          const { data: leadForTimeline } = await supabase
-            .from('leads')
-            .select('caller_phone')
-            .eq('id', paymentRequest.lead_id)
-            .single()
-
-          if (leadForTimeline) {
-            await timelineEvents.paymentCompleted(
-              paymentRequest.business_id,
-              paymentRequest.lead_id,
-              paymentRequest.id,
-              paymentRequest.amount_cents
-            )
-            console.log('[PAYMENT WEBHOOK] Timeline event created successfully')
-          }
-        } catch (timelineError) {
-          console.error('[PAYMENT WEBHOOK] Failed to create timeline event:', timelineError)
-          // Non-critical error, continue
-        }
-
-        // Create notification for payment completion
-        try {
-          const { data: leadForNotification } = await supabase
-            .from('leads')
-            .select('caller_phone')
-            .eq('id', paymentRequest.lead_id)
-            .single()
-
-          if (leadForNotification) {
-            await notificationServiceServer.notifyPaymentCompleted(
-              paymentRequest.business_id,
-              paymentRequest.lead_id,
-              leadForNotification.caller_phone,
-              paymentRequest.amount_cents,
-              paymentRequest.id
-            )
-            console.log('[PAYMENT WEBHOOK] Notification created successfully')
-          }
-        } catch (notificationError) {
-          console.error('[PAYMENT WEBHOOK] Failed to create notification:', notificationError)
-          // Non-critical error, continue
-        }
-
-        // Mark event as processed
-        await markEventProcessed(supabase, event.id)
-
-        console.log('[PAYMENT WEBHOOK] ========== CHECKOUT.SESSION.COMPLETED END ==========')
-        break
-      }
+      // NOTE: The billing-invoice checkout.session.completed handler was
+      // extracted to reconcileBillingInvoiceCheckout() and is dispatched at
+      // the TOP of the first case 'checkout.session.completed' block, before
+      // the subscription customer validation. This block was previously
+      // unreachable because the first case with the same label shadowed it.
 
       case 'checkout.session.expired': {
         console.log('[PAYMENT WEBHOOK] ========== CHECKOUT.SESSION.EXPIRED START ==========')
