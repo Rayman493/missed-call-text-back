@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import { resolve } from 'path'
 
 const root = resolve(__dirname, '..', '..', '..')
@@ -197,9 +197,16 @@ describe('RC Batch 5 — Public Hosted Route Contract', () => {
 
 describe('RC Batch 5 — PDF Production Packaging', () => {
   describe('7. Dependency externalization', () => {
-    it('next.config.js externalizes @react-pdf/renderer', () => {
-      expect(nextConfig).toContain("'@react-pdf/renderer'")
+    it('next.config.js relies on Next.js default externalization for @react-pdf/renderer', () => {
+      // @react-pdf/renderer is in Next.js 15's default serverExternalPackages
+      // list, so it does NOT need an explicit entry. Commit 153fc37f removed
+      // the explicit entry when the React #31 root cause was fixed via the
+      // @react-pdf/reconciler patch — the reconciler must resolve React from
+      // node_modules (externalized), not a bundled copy.
       expect(nextConfig).toContain('serverExternalPackages')
+      // The patch-package patch is what makes the externalized reconciler
+      // accept React 19 transitional elements.
+      expect(existsSync(resolve(root, 'patches', '@react-pdf+reconciler+2.0.0.patch'))).toBe(true)
     })
 
     it('next.config.js externalizes pdfkit (transitive dep)', () => {
