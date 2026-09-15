@@ -64,7 +64,7 @@ export default function DownloadPage() {
         {/* Hero Section */}
         <div className="text-center mb-6">
           <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl mx-auto">
-            Calls, customers, scheduling, payments, and more — wherever you work.
+            Calls, customers, scheduling, payments, quotes & invoices, and more — wherever you work.
           </p>
         </div>
 

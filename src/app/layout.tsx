@@ -9,9 +9,9 @@ import NativeOfflineBoundary from '@/components/NativeOfflineBoundary'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'ReplyFlow — Customers, Scheduling & Payments for Service Businesses',
-  description: 'Capture customer requests with AI, manage conversations and jobs, schedule work, and accept payments from one place. Built for local service businesses.',
-  keywords: ['missed call text back', 'automated SMS', 'local business', 'customer capture', 'customer communication', 'SMS automation'],
+  title: 'ReplyFlow — Customers, Scheduling, Payments & Quotes for Service Businesses',
+  description: 'Capture customer requests with AI, manage conversations and jobs, schedule work, send quotes & invoices, and accept payments from one place. Built for local service businesses.',
+  keywords: ['missed call text back', 'automated SMS', 'local business', 'customer capture', 'customer communication', 'SMS automation', 'quotes', 'invoices'],
   authors: [{ name: 'ReplyFlowHQ' }],
   creator: 'ReplyFlowHQ',
   publisher: 'ReplyFlowHQ',
@@ -28,8 +28,8 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: 'https://replyflowhq.com',
-    title: 'ReplyFlow — Customers, Scheduling & Payments for Service Businesses',
-    description: 'Capture customer requests with AI, manage conversations and jobs, schedule work, and accept payments from one place. Built for local service businesses.',
+    title: 'ReplyFlow — Customers, Scheduling, Payments & Quotes for Service Businesses',
+    description: 'Capture customer requests with AI, manage conversations and jobs, schedule work, send quotes & invoices, and accept payments from one place. Built for local service businesses.',
     siteName: 'ReplyFlow',
     images: [
       {
@@ -42,8 +42,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ReplyFlow — Customers, Scheduling & Payments for Service Businesses',
-    description: 'Capture customer requests with AI, manage conversations and jobs, schedule work, and accept payments from one place. Built for local service businesses.',
+    title: 'ReplyFlow — Customers, Scheduling, Payments & Quotes for Service Businesses',
+    description: 'Capture customer requests with AI, manage conversations and jobs, schedule work, send quotes & invoices, and accept payments from one place. Built for local service businesses.',
     images: ['/replyflow-r-logo.png'],
     creator: '@replyflowhq',
   },

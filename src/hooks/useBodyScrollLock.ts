@@ -16,6 +16,63 @@ let originalBodyRight = ''
 let originalHtmlOverflow = ''
 let originalHtmlHeight = ''
 let originalHtmlTouchAction = ''
+let originalHtmlPosition = ''
+let originalHtmlWidth = ''
+
+/**
+ * Forcibly reset ALL scroll-lock state and DOM styles.
+ * Called on auth transitions (sign-out / sign-in) to guarantee the
+ * next page starts fully unlocked even if a modal was open during
+ * sign-out or if passive effect cleanup hasn't flushed yet.
+ *
+ * This is the safety net — the normal unlock() path is still the
+ * primary mechanism. This function handles the edge case where
+ * React unmount cleanup is passive and the new page paints before
+ * the old modal's useBodyScrollLock cleanup runs.
+ */
+export function resetAllScrollLocks(): void {
+  if (typeof window === 'undefined') return
+
+  console.log('[SCROLL_LOCK_RESET] Forcibly resetting all scroll lock state', {
+    lockCountBefore: lockCount,
+    activeOwnersBefore: Array.from(activeOwners.entries()).map(([id, info]) => ({
+      id,
+      component: info.component,
+    })),
+    bodyOverflow: document.body.style.overflow,
+    bodyPosition: document.body.style.position,
+    htmlOverflow: document.documentElement.style.overflow,
+    timestamp: Date.now(),
+  })
+
+  // Reset module-level state
+  lockCount = 0
+  globalScrollPosition = 0
+  activeOwners.clear()
+
+  // Forcibly restore DOM to unlocked state
+  document.body.style.overflow = originalBodyOverflow
+  document.body.style.position = originalBodyPosition
+  document.body.style.top = originalBodyTop
+  document.body.style.width = originalBodyWidth
+  document.body.style.touchAction = originalBodyTouchAction
+  document.body.style.left = originalBodyLeft
+  document.body.style.right = originalBodyRight
+  document.documentElement.style.overflow = originalHtmlOverflow
+  document.documentElement.style.height = originalHtmlHeight
+  document.documentElement.style.touchAction = originalHtmlTouchAction
+  document.documentElement.style.position = originalHtmlPosition
+  document.documentElement.style.width = originalHtmlWidth
+  document.body.removeAttribute('data-modal-open')
+
+  console.log('[SCROLL_LOCK_RESET] Reset complete', {
+    lockCountAfter: lockCount,
+    bodyOverflowAfter: document.body.style.overflow,
+    bodyPositionAfter: document.body.style.position,
+    htmlOverflowAfter: document.documentElement.style.overflow,
+    timestamp: Date.now(),
+  })
+}
 
 /**
  * Reconcile DOM scroll-lock state with current ownership state
@@ -46,6 +103,8 @@ export function reconcileScrollLock(): void {
       document.documentElement.style.overflow = 'hidden'
       document.documentElement.style.height = '100%'
       document.documentElement.style.touchAction = 'none'
+      document.documentElement.style.position = 'fixed'
+      document.documentElement.style.width = '100%'
     }
     // Ensure modal-open attribute is set when locked
     document.body.setAttribute('data-modal-open', 'true')
@@ -64,6 +123,8 @@ export function reconcileScrollLock(): void {
       document.documentElement.style.overflow = originalHtmlOverflow
       document.documentElement.style.height = originalHtmlHeight
       document.documentElement.style.touchAction = originalHtmlTouchAction
+      document.documentElement.style.position = originalHtmlPosition
+      document.documentElement.style.width = originalHtmlWidth
     }
     // Ensure modal-open attribute is removed when unlocked
     document.body.removeAttribute('data-modal-open')
@@ -176,6 +237,8 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
         originalHtmlOverflow = document.documentElement.style.overflow
         originalHtmlHeight = document.documentElement.style.height
         originalHtmlTouchAction = document.documentElement.style.touchAction
+        originalHtmlPosition = document.documentElement.style.position
+        originalHtmlWidth = document.documentElement.style.width
 
         // Apply lock
         document.body.style.overflow = 'hidden'
@@ -189,9 +252,18 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
         document.documentElement.style.overflow = 'hidden'
         document.documentElement.style.height = '100%'
         document.documentElement.style.touchAction = 'none'
-        // Use global listeners to capture touchmove outside allowed scroll area
+        // iOS Safari: also fix the html element position. iOS Safari can
+        // still scroll the html element even when body is position:fixed,
+        // causing the background page to scroll behind the modal. Fixing
+        // the html element in place is the most reliable iOS scroll lock.
+        document.documentElement.style.position = 'fixed'
+        document.documentElement.style.width = '100%'
+        // Use global listeners to capture touchmove outside allowed scroll area.
+        // Add on window as well — iOS Safari sometimes delivers touchmove to
+        // window rather than document/body for touches on portal content.
         document.addEventListener('touchmove', preventTouchMove as any, { passive: false })
         document.body.addEventListener('touchmove', preventTouchMove as any, { passive: false })
+        window.addEventListener('touchmove', preventTouchMove as any, { passive: false })
 
         // Set body data attribute so BottomNavigation and other shell
         // components can detect that a blocking modal is open and
@@ -265,6 +337,8 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
           originalHtmlOverflow,
           originalHtmlHeight,
           originalHtmlTouchAction,
+          originalHtmlPosition,
+          originalHtmlWidth,
           timestamp: Date.now()
         })
         document.body.style.overflow = originalBodyOverflow
@@ -277,9 +351,12 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
         document.documentElement.style.overflow = originalHtmlOverflow
         document.documentElement.style.height = originalHtmlHeight
         document.documentElement.style.touchAction = originalHtmlTouchAction
+        document.documentElement.style.position = originalHtmlPosition
+        document.documentElement.style.width = originalHtmlWidth
         // Remove global listeners
         document.removeEventListener('touchmove', preventTouchMove as any)
         document.body.removeEventListener('touchmove', preventTouchMove as any)
+        window.removeEventListener('touchmove', preventTouchMove as any)
         window.scrollTo(0, globalScrollPosition)
 
         // Remove the modal-open body attribute now that the last modal

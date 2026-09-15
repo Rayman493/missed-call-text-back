@@ -41,6 +41,10 @@ interface BillingDocumentListProps {
   sendingId: string | null
   convertingId: string | null
   deletingId: string | null
+  // Active type filter for context-aware empty states
+  billingTypeFilter?: 'all' | 'quote' | 'invoice'
+  // Callback to open the creation chooser from the empty-state CTA
+  onCreate?: () => void
 }
 
 function statusBadge(status: string): { label: string; className: string } {
@@ -80,6 +84,8 @@ export default function BillingDocumentList({
   sendingId,
   convertingId,
   deletingId,
+  billingTypeFilter = 'all',
+  onCreate,
 }: BillingDocumentListProps) {
   const [deleteTarget, setDeleteTarget] = useState<BillingDocumentListItem | null>(null)
 
@@ -98,9 +104,33 @@ export default function BillingDocumentList({
   }
 
   if (documents.length === 0) {
+    // Context-aware empty state with creation CTA
+    const emptyTitle =
+      billingTypeFilter === 'quote' ? 'No quotes yet' :
+      billingTypeFilter === 'invoice' ? 'No invoices yet' :
+      'No quotes or invoices yet'
+    const emptyDesc =
+      billingTypeFilter === 'quote' ? 'Create your first quote for a customer.' :
+      billingTypeFilter === 'invoice' ? 'Create your first invoice for a customer.' :
+      'Create your first quote or invoice for a customer.'
+    const ctaLabel =
+      billingTypeFilter === 'quote' ? 'Create Quote' :
+      billingTypeFilter === 'invoice' ? 'Create Invoice' :
+      'Create Quote or Invoice'
+
     return (
-      <div className="text-center py-8">
-        <p className="text-sm text-muted-foreground">No quotes or invoices yet</p>
+      <div className="text-center py-8 px-4">
+        <p className="text-sm font-medium text-foreground">{emptyTitle}</p>
+        <p className="text-xs text-muted-foreground mt-1 mb-4">{emptyDesc}</p>
+        {onCreate && (
+          <button
+            onClick={onCreate}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg transition-colors shadow-sm"
+          >
+            <FileText className="w-4 h-4" />
+            {ctaLabel}
+          </button>
+        )}
       </div>
     )
   }
@@ -168,9 +198,18 @@ export default function BillingDocumentList({
 
             {/* Right: actions */}
             <div className="flex items-center gap-1 flex-shrink-0">
-              {/* Draft: Edit + Download + Delete (primary → download → destructive) */}
+              {/* Draft: Send + Edit + Download + Delete (send → primary → download → destructive) */}
               {isDraft && (
                 <>
+                  <button
+                    onClick={() => onSend(doc)}
+                    disabled={sendingId === doc.id}
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded disabled:opacity-50"
+                    aria-label={isQuote ? 'Send quote' : 'Send invoice'}
+                    title={isQuote ? 'Send Quote' : 'Send Invoice'}
+                  >
+                    {sendingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </button>
                   <button
                     onClick={() => onOpen(doc)}
                     className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"

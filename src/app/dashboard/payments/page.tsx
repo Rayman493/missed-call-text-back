@@ -1020,7 +1020,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                 >
                   <div className="flex items-center gap-3.5 mb-2.5">
                     <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-white/10 ring-1 ring-inset ring-white/30 dark:ring-white/20 flex items-center justify-center">
-                      <AppleTapToPayIcon size={20} className="text-white dark:text-white" />
+                      <AppleTapToPayIcon size={20} color="#ffffff" className="text-white dark:text-white" />
                     </div>
                     <div>
                       <h3 className="text-white dark:text-white font-semibold text-base sm:text-lg leading-tight">Tap to Pay</h3>
@@ -1871,6 +1871,8 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             downloadingId={billingDownloadingId}
             sendingId={billingSendingId}
             convertingId={billingConvertingId}
+            billingTypeFilter={billingTypeFilter}
+            onCreate={() => setShowBillingChooser(true)}
           />
         </div>
         )}

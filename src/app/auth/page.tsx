@@ -8,6 +8,7 @@ import SetupError from '@/components/SetupError'
 import Footer from '@/components/Footer'
 import PasswordInput from '@/components/PasswordInput'
 import BrandIcon from '@/components/BrandIcon'
+import { resetAllScrollLocks } from '@/hooks/useBodyScrollLock'
 import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { mapAuthError, type AuthErrorDisplay } from '@/lib/auth-error-mapper'
 import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
@@ -316,6 +317,10 @@ function AuthContent() {
       }
 
       await new Promise(resolve => setTimeout(resolve, 800))
+      // Reset any stale scroll-lock state before navigating to the
+      // authenticated shell. If the user signed out from a modal earlier,
+      // the lock may still be applied to body/html.
+      resetAllScrollLocks()
       router.push(redirectTarget)
     } catch (err: any) {
       const mappedError = mapAuthError(err)

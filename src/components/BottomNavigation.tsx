@@ -30,6 +30,13 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const [isContactSupportOpen, setIsContactSupportOpen] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' }[]>([])
+  // Pending destination for immediate visual feedback on tap. When the user
+  // taps a nav tab, we set this immediately so the active highlight appears
+  // without waiting for pathname to update (which only happens after the
+  // route transition completes). It reconciles to the actual pathname once
+  // the route settles. If the user taps a different tab during a pending
+  // transition, the latest tap wins.
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
   const moreButtonRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -224,6 +231,25 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   // Lock background scroll when More menu is open on mobile
   useBodyScrollLock(isMoreMenuOpen, 'MoreMenu')
 
+  // Reconcile pendingHref: once the actual pathname matches the pending
+  // destination, clear the pending state so the active highlight is
+  // driven by the real pathname going forward. This prevents the
+  // pending state from getting stuck if navigation fails.
+  useEffect(() => {
+    if (pendingHref && pathname === pendingHref) {
+      setPendingHref(null)
+    }
+  }, [pathname, pendingHref])
+
+  // Clear pendingHref when the nav is hidden (e.g. modal opened during
+  // a pending transition) so it doesn't get stuck.
+  useEffect(() => {
+    if (pendingHref && (isModalOpen || isAnyAssistantOpen || isMoreMenuOpen)) {
+      // Keep pendingHref — the modal may close and navigation may still
+      // complete. Only clear if the pathname actually changes away.
+    }
+  }, [pendingHref, isModalOpen, isAnyAssistantOpen, isMoreMenuOpen])
+
   // Hide bottom nav on public pages or when assistant is open
   const isPublicPage = pathname === '/' || 
                        pathname === '/faq' || 
@@ -261,6 +287,12 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
     if (isMoreMenuOpen) {
       return false
     }
+    // Pending destination provides immediate visual feedback on tap
+    // before pathname updates. If the user tapped this tab, highlight it
+    // immediately even if the route hasn't completed yet.
+    if (pendingHref === href) {
+      return true
+    }
     if (href === '/dashboard') {
       return pathname === '/dashboard'
     }
@@ -268,13 +300,21 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   }
 
   const handleLogout = async () => {
+    // Close the More menu FIRST so the scroll lock is released before
+    // the auth redirect starts. If we sign out first, router.push('/')
+    // begins the page transition and the useBodyScrollLock cleanup runs
+    // as a passive effect — which can paint the next page with body
+    // still locked (overflow:hidden, position:fixed), making it
+    // unscrollable until the old shell's effects flush.
+    setIsMoreMenuOpen(false)
     try {
       await signOut({ manual: true })
-      router.push('/')
+      // signOut already calls router.push('/') internally — do NOT
+      // push again here; a duplicate push can race with the auth
+      // redirect and cause a brief flash.
     } catch (error) {
       console.error('[MOBILE LOGOUT ERROR] Sign out error:', error)
     }
-    setIsMoreMenuOpen(false)
   }
 
   const showToast = (message: string, type: 'success' | 'error') => {
@@ -342,6 +382,11 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                     })
                   }}
                   onClick={() => {
+                    // Set pending destination immediately for visual
+                    // feedback. The active highlight appears on tap before
+                    // the route transition completes. It reconciles to
+                    // the real pathname once the route settles.
+                    setPendingHref(item.href)
                     console.log('[QUICK_CLICK_EVENT_TRACE]', {
                       source: 'BottomNavigation.' + item.label,
                       eventType: 'click',

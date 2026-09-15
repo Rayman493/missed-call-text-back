@@ -8,8 +8,8 @@ import DocumentationHero from '@/components/DocumentationHero'
 import ScrollToTopOnMount from '@/components/ScrollToTopOnMount'
 
 export const metadata: Metadata = {
-  title: 'ReplyFlow FAQ | AI Voice, Customer Management, Appointments & Payments',
-  description: 'Learn how ReplyFlow provides AI Voice, missed-call recovery, customer management, appointment scheduling, and Payment Requests. Setup, pricing, and compliance questions answered.',
+  title: 'ReplyFlow FAQ | AI Voice, Customer Management, Appointments, Payments & Quotes',
+  description: 'Learn how ReplyFlow provides AI Voice, missed-call recovery, customer management, appointment scheduling, Payment Requests, and Quotes & Invoices. Setup, pricing, and compliance questions answered.',
 }
 
 export default async function FAQPage({ searchParams }: { searchParams?: Promise<{ [key: string]: string | string[] | undefined }> }) {
@@ -24,7 +24,7 @@ export default async function FAQPage({ searchParams }: { searchParams?: Promise
       <DocumentationHero
         activePage="faq"
         title="Frequently Asked Questions"
-        subtitle="Everything you need to know about ReplyFlow's AI Voice, missed-call recovery, customer management, appointment scheduling, and Payment Requests."
+        subtitle="Everything you need to know about ReplyFlow's AI Voice, missed-call recovery, customer management, appointment scheduling, Payment Requests, and Quotes & Invoices."
       >
         <div className="mt-8 max-w-4xl mx-auto">
           <ReplyFlowAssistant defaultCategory="Overview" context={{ currentPage: undefined }} initialKbId={initialKbId} />
@@ -43,7 +43,7 @@ export default async function FAQPage({ searchParams }: { searchParams?: Promise
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  ReplyFlow is a customer management platform for local businesses. When a customer call goes unanswered and forwards to ReplyFlow, <strong>AI Voice</strong> answers live, collects their information, and sends a text summary. From there, you can reply via SMS, schedule an appointment with Google Calendar, and send a branded Payment Request — all from one dashboard.
+                  ReplyFlow is a customer management platform for local businesses. When a customer call goes unanswered and forwards to ReplyFlow, <strong>AI Voice</strong> answers live, collects their information, and sends a text summary. From there, you can reply via SMS, schedule an appointment with Google Calendar, send quotes & invoices, and send a branded Payment Request — all from one dashboard.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
                   This is <strong>not</strong> bulk marketing or cold outreach. Messages are only sent after
@@ -289,7 +289,7 @@ export default async function FAQPage({ searchParams }: { searchParams?: Promise
                   </div>
                 </div>
                 <p className="text-muted-foreground mt-4">
-                  Continue conversations naturally through the ReplyFlow dashboard. You can also schedule appointments directly from a lead and send Payment Requests via a branded ReplyFlow link — all within the same conversation view.
+                  Continue conversations naturally through the ReplyFlow dashboard. You can also schedule appointments directly from a lead, send quotes & invoices, and send Payment Requests via a branded ReplyFlow link — all within the same conversation view.
                 </p>
                 <p className="mt-4">
                   <Link href="/faq?kb=reply-customer" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
@@ -655,7 +655,7 @@ export default async function FAQPage({ searchParams }: { searchParams?: Promise
                   When a call goes unanswered and forwards to ReplyFlow, AI Voice answers the call live and converses with the caller to collect information.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  AI Voice collects details such as the caller's name, reason for calling, important details, location or address, desired completion time, and preferred callback time through a guided conversation. This information is stored in your ReplyFlow dashboard so you can follow up, schedule an appointment, or send a Payment Request without re-entering the details.
+                  AI Voice collects details such as the caller's name, reason for calling, important details, location or address, desired completion time, and preferred callback time through a guided conversation. This information is stored in your ReplyFlow dashboard so you can follow up, schedule an appointment, send a quote or invoice, or send a Payment Request without re-entering the details.
                 </p>
                 <p className="mt-4">
                   <Link href="/faq?kb=ai-voice" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
@@ -776,15 +776,15 @@ export default async function FAQPage({ searchParams }: { searchParams?: Promise
             <div className="grid gap-4 md:grid-cols-2">
               <div className="bg-card border border-border rounded-xl p-5">
                 <h3 className="font-semibold text-foreground mb-2">When should I use the ReplyFlow mobile app?</h3>
-                <p className="text-sm text-muted-foreground mb-3">Use the mobile app while you're on the go. It's optimized for communication, accepting Tap to Pay, sending payment requests, and managing your day from job sites.</p>
+                <p className="text-sm text-muted-foreground mb-3">Use the mobile app while you're on the go. It's optimized for communication, accepting Tap to Pay, sending payment requests, creating quotes & invoices, and managing your day from job sites.</p>
               </div>
               <div className="bg-card border border-border rounded-xl p-5">
                 <h3 className="font-semibold text-foreground mb-2">Can I manage my business from my desktop?</h3>
-                <p className="text-sm text-muted-foreground mb-3">Yes. Desktop is your business command center—review AI-captured leads, organize customers, manage jobs, track payments, and plan your day from one place.</p>
+                <p className="text-sm text-muted-foreground mb-3">Yes. Desktop is your business command center—review AI-captured leads, organize customers, manage jobs, create quotes & invoices, track payments, and plan your day from one place.</p>
               </div>
               <div className="bg-card border border-border rounded-xl p-5">
                 <h3 className="font-semibold text-foreground mb-2">Can I work entirely from my phone?</h3>
-                <p className="text-sm text-muted-foreground mb-3">Yes, the mobile app supports full customer communication, payments, and job management. However, desktop offers the best experience for organizing and planning your business.</p>
+                <p className="text-sm text-muted-foreground mb-3">Yes, the mobile app supports full customer communication, quotes & invoices, payments, and job management. However, desktop offers the best experience for organizing and planning your business.</p>
               </div>
             </div>
           </section>
@@ -843,6 +843,29 @@ export default async function FAQPage({ searchParams }: { searchParams?: Promise
                 <h3 className="font-semibold text-foreground mb-2">Do I need special card-reader hardware?</h3>
                 <p className="text-sm text-muted-foreground mb-3">No separate reader is required for Tap to Pay on compatible phones. Device, OS, Stripe eligibility, and region requirements apply.</p>
                 <Link href="/faq?kb=tap-to-pay-requirements" className="text-sm text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+              </div>
+            </div>
+          </section>
+
+          {/* Quotes & Invoices */}
+          <section>
+            <h2 className="text-xl font-semibold text-foreground mb-4">Quotes & Invoices</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">Can I send quotes to customers?</h3>
+                <p className="text-sm text-muted-foreground mb-3">Yes. Create a quote with line items and send it to the customer via SMS with a branded link. Customers can accept or decline from their phone.</p>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">Can I create invoices?</h3>
+                <p className="text-sm text-muted-foreground mb-3">Yes. Create invoices directly or convert an accepted quote into an invoice. Send invoices via SMS and track payment status in one place.</p>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">Do quotes and invoices support per-unit pricing?</h3>
+                <p className="text-sm text-muted-foreground mb-3">Yes. Line items support flat-rate or per-unit pricing with custom units (ft, hrs, ea, and more). Totals update automatically.</p>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">Can customers download a PDF?</h3>
+                <p className="text-sm text-muted-foreground mb-3">Yes. Each quote and invoice includes a downloadable PDF for your records and for the customer.</p>
               </div>
             </div>
           </section>

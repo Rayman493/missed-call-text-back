@@ -121,7 +121,43 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           .order('created_at', { ascending: false })
           .limit(5)
 
-        const voicemails = (voicemailLeads || []).flatMap((l: any) => l.voicemail_recordings || []).slice(0, 2)
+        const voicemails = (voicemailLeads || []).flatMap((l: any) => l.voicemail_recordings || []).slice(0, 4)
+
+        // Directly query recent jobs, tasks, and payment_requests by their
+        // own date columns. The lead-based query above only includes leads
+        // created within the 7-day window, which excludes recent activity on
+        // older leads. These direct queries capture that activity and are
+        // merged below. Dedup against lead-derived events is by id.
+        const { data: recentJobs } = await supabase
+          .from('jobs')
+          .select(`
+            id, title, status, created_at, updated_at, scheduled_date,
+            leads(id, caller_phone, name, business_id)
+          `)
+          .gte('created_at', sevenDaysAgo)
+          .order('created_at', { ascending: false })
+          .limit(10)
+
+        const { data: recentTasks } = await supabase
+          .from('tasks')
+          .select(`
+            id, title, status, created_at, updated_at,
+            leads(id, caller_phone, name, business_id)
+          `)
+          .eq('status', 'completed')
+          .gte('updated_at', sevenDaysAgo)
+          .order('updated_at', { ascending: false })
+          .limit(10)
+
+        const { data: recentPaymentRequests } = await supabase
+          .from('payment_requests')
+          .select(`
+            id, amount_cents, status, created_at, updated_at, paid_at, payment_method_type, lead_id,
+            leads(id, caller_phone, name, business_id)
+          `)
+          .gte('created_at', sevenDaysAgo)
+          .order('created_at', { ascending: false })
+          .limit(10)
 
         // Convert to activity events
         const events: ActivityEvent[] = []
@@ -385,10 +421,112 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           }
         })
 
-        // Sort by timestamp and take latest 8
+        // Merge directly-queried recent jobs (captures activity on leads
+        // created before the 7-day window). Dedup by event id against
+        // lead-derived events already added above.
+        const existingEventIds = new Set(events.map(e => e.id))
+        recentJobs?.forEach((job: any) => {
+          if (existingEventIds.has(`job-created-${job.id}`)) return
+          const lead = job.leads
+          if (!lead || lead.business_id !== business.id) return
+          const customerName = lead.name || 'Unknown'
+          const displayName = getDisplayName(customerName, lead.caller_phone)
+          const jobDate = job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''
+          events.push({
+            id: `job-created-${job.id}`,
+            type: 'job_created',
+            title: 'Job Scheduled',
+            description: jobDate ? `${job.title || 'Job'} • ${jobDate}` : (job.title || 'Job'),
+            timestamp: job.created_at,
+            icon: <Briefcase className="w-4 h-4" />,
+            iconBgColor: 'bg-teal-500/20',
+            iconTextColor: 'text-teal-400',
+            customerId: lead.id,
+            customerName: displayName,
+            jobId: job.id,
+            jobTitle: job.title,
+            jobScheduledDate: job.scheduled_date,
+          })
+          if (job.status === 'completed' && new Date(job.updated_at) >= new Date(sevenDaysAgo)) {
+            if (existingEventIds.has(`job-completed-${job.id}`)) return
+            events.push({
+              id: `job-completed-${job.id}`,
+              type: 'job_completed',
+              title: 'Job Completed',
+              description: job.title || 'Job',
+              timestamp: job.updated_at,
+              icon: <CheckCircle className="w-4 h-4" />,
+              iconBgColor: 'bg-emerald-500/20',
+              iconTextColor: 'text-emerald-400',
+              customerId: lead.id,
+              customerName: displayName,
+              jobId: job.id,
+              jobTitle: job.title,
+            })
+          }
+        })
+
+        // Merge directly-queried recently completed tasks
+        recentTasks?.forEach((task: any) => {
+          if (existingEventIds.has(`task-completed-${task.id}`)) return
+          const lead = task.leads
+          if (!lead || lead.business_id !== business.id) return
+          const customerName = lead.name || 'Unknown'
+          const displayName = getDisplayName(customerName, lead.caller_phone)
+          events.push({
+            id: `task-completed-${task.id}`,
+            type: 'task_completed',
+            title: 'Reminder Completed',
+            description: task.title || 'Reminder',
+            timestamp: task.updated_at,
+            icon: <CheckCircle className="w-4 h-4" />,
+            iconBgColor: 'bg-emerald-500/20',
+            iconTextColor: 'text-emerald-400',
+            customerId: lead.id,
+            customerName: displayName,
+          })
+        })
+
+        // Merge directly-queried recent payment requests
+        recentPaymentRequests?.forEach((pr: any) => {
+          const lead = pr.leads
+          if (!lead || lead.business_id !== business.id) return
+          const customerName = lead.name || 'Unknown'
+          const displayName = getDisplayName(customerName, lead.caller_phone)
+          const amount = formatCurrency(pr.amount_cents, true)
+          if (pr.status === 'pending' && !existingEventIds.has(`payment-requested-${pr.id}`)) {
+            events.push({
+              id: `payment-requested-${pr.id}`,
+              type: 'payment_requested',
+              title: 'Payment Request Sent',
+              description: amount,
+              timestamp: pr.created_at,
+              icon: <CreditCard className="w-4 h-4" />,
+              iconBgColor: 'bg-amber-500/20',
+              iconTextColor: 'text-amber-400',
+              customerId: lead.id,
+              customerName: displayName,
+            })
+          } else if (pr.status === 'paid' && pr.paid_at && new Date(pr.paid_at) >= new Date(sevenDaysAgo) && !existingEventIds.has(`payment-paid-${pr.id}`)) {
+            events.push({
+              id: `payment-paid-${pr.id}`,
+              type: 'payment_received',
+              title: 'Payment Received',
+              description: amount,
+              timestamp: pr.paid_at,
+              icon: <DollarSign className="w-4 h-4" />,
+              iconBgColor: 'bg-emerald-500/20',
+              iconTextColor: 'text-emerald-400',
+              customerId: lead.id,
+              customerName: displayName,
+            })
+          }
+        })
+
+        // Sort by timestamp and take latest 12 (display will show 6)
         const sortedEvents = events
           .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-          .slice(0, 8)
+          .slice(0, 12)
 
         setActivities(sortedEvents)
       } catch (error) {
@@ -435,8 +573,8 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         </div>
       ) : (
         <div className="space-y-0">
-          {activities.slice(0, 5).map((activity, index) => {
-            const baseClasses = `flex items-start gap-3 py-2 px-2 ${index < activities.slice(0, 5).length - 1 ? 'border-b border-border/30' : ''}`
+          {activities.slice(0, 6).map((activity, index) => {
+            const baseClasses = `flex items-start gap-3 py-2 px-2 ${index < activities.slice(0, 6).length - 1 ? 'border-b border-border/30' : ''}`
 
             if (activity.customerId) {
               return (

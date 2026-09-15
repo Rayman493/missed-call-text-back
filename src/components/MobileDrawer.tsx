@@ -139,8 +139,14 @@ export default function MobileDrawer({ isOpen, onClose, triggerRef }: MobileDraw
   }
 
   const handleSignOut = async () => {
-    await signOut({ manual: true })
+    // Close the drawer FIRST so the scroll lock is released before
+    // the auth redirect starts. If we sign out first, router.push('/')
+    // begins the page transition and the useBodyScrollLock cleanup runs
+    // as a passive effect — which can paint the next page with body
+    // still locked, making it unscrollable until the old shell's
+    // effects flush.
     onClose()
+    await signOut({ manual: true })
   }
 
   const handleNavClick = () => {

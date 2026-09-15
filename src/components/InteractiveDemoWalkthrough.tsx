@@ -34,7 +34,7 @@ const steps = [
   { id: 'lead-created', label: 'Customer Saved Automatically', description: 'Nothing is lost—even if nobody answered the phone.' },
   { id: 'sms-conversation', label: 'Customer Replies by Text', description: 'Customers can add or update information without another phone call.' },
   { id: 'schedule', label: 'Book the Job', description: 'Schedule the appointment directly from ReplyFlow.' },
-  { id: 'payment', label: 'Get Paid Your Way', description: 'Accept Tap to Pay on iPhone or Android while you\'re on-site, or send a branded SMS payment request when you\'re done.' },
+  { id: 'payment', label: 'Get Paid Your Way', description: 'Send a quote or invoice via SMS, accept Tap to Pay on iPhone or Android while you\'re on-site, or send a branded SMS payment request when you\'re done.' },
   { id: 'success', label: 'Another Job Captured', description: 'One missed call became a booked customer.' },
 ]
 
@@ -609,7 +609,7 @@ function StepSuccess() {
           Never lose another missed call.
         </h3>
         <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-6">
-          ReplyFlow automatically captures leads, keeps conversations organized, helps schedule jobs, and sends payment requests—all from one dashboard.
+          ReplyFlow automatically captures leads, keeps conversations organized, helps schedule jobs, sends quotes & invoices, and accepts payments — all from one dashboard.
         </p>
       </motion.div>
 

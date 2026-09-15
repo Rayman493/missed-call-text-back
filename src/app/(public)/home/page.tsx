@@ -159,7 +159,7 @@ export default function PublicHome() {
               Turn Missed Calls Into Paying Customers
             </h1>
             <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-3xl leading-relaxed">
-              Built for service businesses with a dedicated business phone number. Automatically text back missed callers, capture customers, and recover lost revenue. Fast setup.
+              Built for service businesses with a dedicated business phone number. Automatically text back missed callers, capture customers, send quotes & invoices, and recover lost revenue. Fast setup.
             </p>
 
             {/* Benefit Bullets */}
@@ -181,6 +181,12 @@ export default function PublicHome() {
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
                 <span className="text-base">Your existing business number</span>
+              </div>
+              <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
+                <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="text-base">Quotes & invoices via SMS</span>
               </div>
               <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
                 <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -862,7 +868,7 @@ export default function PublicHome() {
               Ready to capture more missed calls?
             </h2>
             <p className="text-xl md:text-2xl text-slate-600 dark:text-muted-foreground mb-12 leading-relaxed">
-              Built for contractors and home services that never want to miss another lead.
+              Built for contractors and home services that never want to miss another lead — from first call to quote, invoice, and payment.
             </p>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
               Recommended for service businesses with a dedicated business phone number.

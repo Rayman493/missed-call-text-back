@@ -36,7 +36,7 @@ export default function HomepageInteractiveDemo() {
             See How It Works
           </h2>
           <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
-            Watch a customer journey unfold from missed call to booked appointment and payment collection.
+            Watch a customer journey unfold from missed call to booked appointment, quote, and payment collection.
           </p>
         </motion.div>
 
@@ -57,7 +57,7 @@ export default function HomepageInteractiveDemo() {
           className="mt-6 sm:mt-8 text-center"
         >
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Already have existing customers? You can also manually add customers, jobs, appointments, and payments anytime.
+            Already have existing customers? You can also manually add customers, jobs, appointments, quotes, invoices, and payments anytime.
           </p>
         </motion.div>
 

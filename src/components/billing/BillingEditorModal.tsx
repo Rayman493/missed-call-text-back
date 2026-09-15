@@ -11,6 +11,18 @@ import { DocumentPresentation } from '@/lib/billing/document-presentation'
 
 export type BillingDocumentType = 'quote' | 'invoice'
 
+// Common unit options for the Per Unit pricing mode selector.
+// The `value` is what gets stored in `unit_label` (preserved on save).
+// Old saved units that match these values load seamlessly into the select.
+const UNIT_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Each', value: 'ea' },
+  { label: 'Hour', value: 'hrs' },
+  { label: 'Foot', value: 'ft' },
+  { label: 'Square foot', value: 'sq ft' },
+  { label: 'Day', value: 'day' },
+  { label: 'Job', value: 'job' },
+]
+
 export interface BillingLineItem {
   id?: string
   description: string
@@ -319,7 +331,13 @@ export default function BillingEditorModal({
       return `Flat rate = ${totalStr}`
     }
     const qty = item.quantity || '1'
-    const unit = item.unit_label || 'unit'
+    const unit = item.unit_label || ''
+    // When no unit is selected, show a clean formula without "unit" label:
+    //   "2 × $15.00 = $30.00"  (not "2 unit × $15/unit = $30.00")
+    if (!unit) {
+      const rateStr = item.unit_price_cents ? `$${item.unit_price_cents}` : `$0.00`
+      return `${qty} × ${rateStr} = ${totalStr}`
+    }
     const rateStr = item.unit_price_cents ? `$${item.unit_price_cents}/${unit}` : `$0.00/${unit}`
     return `${qty} ${unit} × ${rateStr} = ${totalStr}`
   }
@@ -705,17 +723,52 @@ export default function BillingEditorModal({
                     </div>
                     <div>
                       <label className="block text-[10px] text-muted-foreground mb-0.5">Unit</label>
-                      <input
-                        type="text"
-                        value={item.unit_label}
-                        onChange={(e) => updateLineItem(index, 'unit_label', e.target.value)}
-                        placeholder="ft, hrs, ea"
+                      <select
+                        value={
+                          // Map stored unit_label to select value.
+                          // If unit_label matches a known option, use it.
+                          // If it's a custom value, show "custom".
+                          // If empty, show "" (the placeholder option).
+                          item.unit_label
+                            ? (UNIT_OPTIONS.some(o => o.value === item.unit_label) ? item.unit_label : 'custom')
+                            : ''
+                        }
+                        onChange={(e) => {
+                          const val = e.target.value
+                          if (val === 'custom') {
+                            // Keep existing unit_label if it's already custom,
+                            // otherwise clear it so the user can type a new one
+                            if (!item.unit_label || UNIT_OPTIONS.some(o => o.value === item.unit_label)) {
+                              updateLineItem(index, 'unit_label', '')
+                            }
+                          } else if (val === '') {
+                            updateLineItem(index, 'unit_label', '')
+                          } else {
+                            updateLineItem(index, 'unit_label', val)
+                          }
+                        }}
                         className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-                      />
+                      >
+                        <option value="">—</option>
+                        {UNIT_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                        <option value="custom">Custom…</option>
+                      </select>
+                      {/* Custom unit text input — revealed when select is "custom" */}
+                      {item.unit_label !== '' && !UNIT_OPTIONS.some(o => o.value === item.unit_label) && (
+                        <input
+                          type="text"
+                          value={item.unit_label}
+                          onChange={(e) => updateLineItem(index, 'unit_label', e.target.value)}
+                          placeholder="Enter unit"
+                          className="w-full mt-1 px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                        />
+                      )}
                     </div>
                     <div className="col-span-2 sm:col-span-1">
                       <label className="block text-[10px] text-muted-foreground mb-0.5">
-                        Rate ({item.unit_label ? `$/${item.unit_label}` : '$/unit'})
+                        Rate ({item.unit_label ? `$/${item.unit_label}` : '$'})
                       </label>
                       <input
                         type="number"

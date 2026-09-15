@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { getCoordinatedSession, isRefreshTokenAlreadyUsed } from '@/lib/supabase/auth-session-coordinator'
 import { Capacitor } from '@capacitor/core'
+import { resetAllScrollLocks } from '@/hooks/useBodyScrollLock'
 
 const supabase = createBrowserClient()
 
@@ -484,6 +485,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Redirect: manual logout goes to homepage, session expiration goes to signin
+      // Reset all scroll-lock state BEFORE the redirect so the next page
+      // starts fully unlocked. If a modal was open during sign-out, the
+      // passive useBodyScrollLock cleanup may not have flushed yet, leaving
+      // body/html locked. This guarantees a clean unlocked state.
+      resetAllScrollLocks()
       if (isManualLogout) {
         router.push('/')
       } else {
