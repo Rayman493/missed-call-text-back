@@ -200,6 +200,9 @@ function getMonotonicStatus(currentStatus: string, newStatus: string): string {
  * - Clears optimistic flags on server reconciliation
  */
 function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: any, source: string = 'unknown'): any[] {
+  // Guard against null/undefined incoming messages (defensive: a null entry
+  // in a realtime payload or API response would otherwise crash on .id access).
+  if (!incomingMessage) return existingMessages
   const messageMap = new Map<string, any>()
   
   // Add existing messages first
@@ -6645,7 +6648,13 @@ If you have questions, reply to this message.`
       editJob={editingJob || undefined}
     />
 
-    {/* Event Details Modal — exact-record appointment drilldown */}
+    {/* Event Details Modal — exact-record appointment drilldown.
+        Conditionally rendered (matching the calendar page pattern) so the
+        component is NOT mounted with event=null. EventDetailsModal's hooks
+        access event.id/event.summary during render, before its own
+        if(!isOpen||!event) guard can run. Mounting it with null crashes the
+        entire customer page with "Cannot read properties of null (reading 'id')". */}
+    {selectedAppointmentEvent && (
     <EventDetailsModal
       isOpen={!!selectedAppointmentEvent}
       onClose={handleCloseAppointmentEvent}
@@ -6656,17 +6665,18 @@ If you have questions, reply to this message.`
           await fetchAppointments()
         }
       }}
-      lead={selectedAppointmentEvent ? {
+      lead={{
         id: params.id,
         name: getLeadDisplayName(leadData),
         caller_phone: leadData?.caller_phone || null
-      } : null}
+      }}
       onShowToast={(message, type) => {
         if (type === 'success') {
           setSuccessMessage(message)
         }
       }}
     />
+    )}
 
     {/* Appointment Selection Modal */}
       <Modal

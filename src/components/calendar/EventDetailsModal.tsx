@@ -154,7 +154,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   const [meetingRecord, setMeetingRecord] = useState<{ id: string; google_calendar_event_id: string | null } | null>(null)
 
   useEffect(() => {
-    if (!business?.id || !event.id) return
+    if (!business?.id || !event?.id) return
     let cancelled = false
     supabase
       .from('meeting_records')
@@ -169,10 +169,10 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [business?.id, event.id])
+  }, [business?.id, event?.id])
 
   // Ownership: an event is ReplyFlow-owned if local evidence links it to ReplyFlow
-  const isReplyFlowOwned = isReplyFlowOwnedEvent(event, { linkedJob: job, linkedMeeting: meetingRecord })
+  const isReplyFlowOwned = event ? isReplyFlowOwnedEvent(event, { linkedJob: job, linkedMeeting: meetingRecord }) : false
   const isJobEvent = !!job
 
   // Internal meeting metadata
@@ -203,14 +203,14 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   useModalBackButton({ isOpen, onClose })
   
   // Editable form state
-  const [editedSummary, setEditedSummary] = useState(event.summary)
-  const [editedDescription, setEditedDescription] = useState(event.description || '')
-  const [editedLocation, setEditedLocation] = useState(event.location || '')
+  const [editedSummary, setEditedSummary] = useState(event?.summary || '')
+  const [editedDescription, setEditedDescription] = useState(event?.description || '')
+  const [editedLocation, setEditedLocation] = useState(event?.location || '')
   const [editedNotes, setEditedNotes] = useState(notes)
   const [editedStartDate, setEditedStartDate] = useState('')
   const [editedStartTime, setEditedStartTime] = useState('')
   const [editedEndTime, setEditedEndTime] = useState('')
-  const [isAllDay, setIsAllDay] = useState(!!event.start.date)
+  const [isAllDay, setIsAllDay] = useState(!!event?.start?.date)
 
   // Initialize form state when event changes
   useEffect(() => {
