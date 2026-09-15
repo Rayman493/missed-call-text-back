@@ -636,7 +636,7 @@ export default function BillingEditorModal({
             type="date"
             value={issueDate}
             onChange={(e) => { markDirty(); setIssueDate(e.target.value) }}
-            className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+            className="w-full min-w-0 max-w-full box-border pr-10 px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
           />
         </div>
 
@@ -650,7 +650,7 @@ export default function BillingEditorModal({
               type="date"
               value={dueDate}
               onChange={(e) => { markDirty(); setDueDate(e.target.value) }}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className="w-full min-w-0 max-w-full box-border pr-10 px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
           </div>
         ) : (
@@ -662,7 +662,7 @@ export default function BillingEditorModal({
               type="date"
               value={validUntil}
               onChange={(e) => { markDirty(); setValidUntil(e.target.value) }}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className="w-full min-w-0 max-w-full box-border pr-10 px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
           </div>
         )}
@@ -683,7 +683,7 @@ export default function BillingEditorModal({
                   value={item.description}
                   onChange={(e) => updateLineItem(index, 'description', e.target.value)}
                   placeholder="Description (e.g. Fence installation)"
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="w-full min-w-0 max-w-full box-border px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                 />
                 {/* Pricing mode toggle */}
                 <div className="flex items-center gap-1 text-[11px]">
@@ -813,10 +813,10 @@ export default function BillingEditorModal({
           </div>
           <button
             onClick={addLineItem}
-            className="mt-2 flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+            className="mt-2 inline-flex items-center gap-1.5 text-sm leading-none text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
           >
-            <Plus className="w-4 h-4" />
-            Add Line Item
+            <Plus className="w-4 h-4 shrink-0" />
+            <span className="leading-none">Add Line Item</span>
           </button>
         </div>
 
@@ -846,7 +846,7 @@ export default function BillingEditorModal({
                 <button
                   type="button"
                   onClick={() => { markDirty(); setTaxMode('percent') }}
-                  className={`px-1.5 py-1 text-[10px] font-medium transition-colors ${
+                  className={`px-2.5 py-1.5 text-xs font-medium min-w-[2rem] min-h-[2rem] transition-colors ${
                     taxMode === 'percent'
                       ? 'bg-blue-600 text-white'
                       : 'text-muted-foreground hover:text-foreground'
@@ -857,7 +857,7 @@ export default function BillingEditorModal({
                 <button
                   type="button"
                   onClick={() => { markDirty(); setTaxMode('dollars') }}
-                  className={`px-1.5 py-1 text-[10px] font-medium transition-colors ${
+                  className={`px-2.5 py-1.5 text-xs font-medium min-w-[2rem] min-h-[2rem] transition-colors ${
                     taxMode === 'dollars'
                       ? 'bg-blue-600 text-white'
                       : 'text-muted-foreground hover:text-foreground'

@@ -298,13 +298,32 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[TERMINAL_RECONCILIATION] stage=stripe_retrieve_start')
-    const paymentIntent = await stripe.paymentIntents.retrieve(
+    const MAX_POLL_MS = 30000
+    const POLL_INTERVAL_MS = 2000
+    const pollStart = Date.now()
+    let paymentIntent = await stripe.paymentIntents.retrieve(
       paymentIntentId,
       {}, // API params (empty)
       { stripeAccount: trustedStripeAccountId } // Stripe request options
     )
 
     console.log('[TERMINAL_RECONCILIATION] stage=stripe_retrieve_success stripe_status=' + paymentIntent.status)
+
+    // iOS/Terminal payments can briefly report 'processing' before 'succeeded'.
+    // Poll Stripe with short bounded retries for a deterministic final state.
+    while (
+      (paymentIntent.status === 'processing' || paymentIntent.status === 'requires_capture') &&
+      Date.now() - pollStart < MAX_POLL_MS
+    ) {
+      console.log('[TERMINAL_RECONCILIATION] stage=stripe_polling status=' + paymentIntent.status)
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS))
+      paymentIntent = await stripe.paymentIntents.retrieve(
+        paymentIntentId,
+        {}, // API params (empty)
+        { stripeAccount: trustedStripeAccountId } // Stripe request options
+      )
+      console.log('[TERMINAL_RECONCILIATION] stage=stripe_polling_retrieve stripe_status=' + paymentIntent.status)
+    }
 
     // Verify the retrieved PaymentIntent ID matches the request
     if (paymentIntent.id !== paymentIntentId) {

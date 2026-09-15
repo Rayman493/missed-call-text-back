@@ -210,7 +210,7 @@ export default function BillingDocumentList({
               {isDraft ? (
                 <button
                   onClick={() => onOpen(doc)}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
                   aria-label="Edit document"
                   title="Edit"
                 >
@@ -227,7 +227,7 @@ export default function BillingDocumentList({
                 <button
                   onClick={() => onSend(doc)}
                   disabled={sendingId === doc.id}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded disabled:opacity-50"
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
                   aria-label={isQuote ? 'Send quote' : 'Send invoice'}
                   title={isQuote ? 'Send Quote' : 'Send Invoice'}
                 >
@@ -237,7 +237,7 @@ export default function BillingDocumentList({
                 <button
                   onClick={() => onSend(doc)}
                   disabled={sendingId === doc.id}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded disabled:opacity-50"
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
                   aria-label="Resend SMS"
                   title="Resend"
                 >
@@ -247,7 +247,7 @@ export default function BillingDocumentList({
                 <button
                   onClick={() => onConvert(doc)}
                   disabled={convertingId === doc.id}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded disabled:opacity-50"
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
                   aria-label="Convert to Invoice"
                   title="Convert to Invoice"
                 >
@@ -263,7 +263,7 @@ export default function BillingDocumentList({
               <button
                 onClick={() => onDownload(doc)}
                 disabled={downloadingId === doc.id}
-                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded disabled:opacity-50"
+                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
                 aria-label="Download PDF"
                 title="Download PDF"
               >
@@ -273,7 +273,7 @@ export default function BillingDocumentList({
               {/* Slot 4: View */}
               <button
                 onClick={() => onView(doc)}
-                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded"
+                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
                 aria-label="View document"
                 title="View"
               >
@@ -285,7 +285,7 @@ export default function BillingDocumentList({
                 <button
                   onClick={() => setDeleteTarget(doc)}
                   disabled={deletingId === doc.id}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded disabled:opacity-50"
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
                   aria-label="Delete document"
                   title="Delete"
                 >

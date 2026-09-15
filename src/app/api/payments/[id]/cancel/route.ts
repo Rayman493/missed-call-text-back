@@ -426,6 +426,27 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to cancel payment request' }, { status: 500 })
     }
 
+    // Sync any linked billing document to the canonical cancelled state
+    try {
+      const { data: linkedInvoices } = await supabase
+        .from('billing_documents')
+        .select('id, status')
+        .eq('payment_request_id', id)
+        .eq('business_id', paymentRequest.business_id)
+
+      if (linkedInvoices && linkedInvoices.length > 0) {
+        const invoiceIds = linkedInvoices.map((inv: any) => inv.id)
+        await supabase
+          .from('billing_documents')
+          .update({ status: 'cancelled' })
+          .in('id', invoiceIds)
+        console.log('[PAYMENT CANCEL] Synced linked invoice(s) to cancelled:', invoiceIds)
+      }
+    } catch (billingSyncError) {
+      console.error('[PAYMENT CANCEL] Failed to sync linked billing document:', billingSyncError)
+      // Non-critical: payment request is already cancelled, continue
+    }
+
     // Fetch updated row to verify
     const { data: updatedPayment, error: fetchError } = await supabase
       .from('payment_requests')

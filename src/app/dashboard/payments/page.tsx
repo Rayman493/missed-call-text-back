@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { CreditCard, Copy, ExternalLink, User, X, AlertCircle, Info, ChevronDown, Filter, Edit, RefreshCw } from 'lucide-react'
+import { CreditCard, Copy, ExternalLink, User, X, AlertCircle, Info, ChevronDown, Filter, Edit, RefreshCw, Plus } from 'lucide-react'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
@@ -13,6 +13,7 @@ import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { getPaymentStatusStyle } from '@/lib/payment-status'
 import { getPaymentMethodBadge } from '@/lib/payment-method-badge'
+import { deliverBillingPdf } from '@/lib/billing/download-billing-pdf'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import QuickTapToPayModal from '@/components/payments/QuickTapToPayModal'
@@ -454,6 +455,9 @@ export default function PaymentsPage() {
   const handleBillingSaved = (savedDoc?: BillingDocumentData) => {
     // Merge the saved document into local state by id — no full refetch,
     // no loading flash. If it's a new doc (not in the list), prepend it.
+    if (savedDoc?.document_type) {
+      setSuccessMessage(savedDoc.document_type === 'quote' ? 'Quote created' : 'Invoice created')
+    }
     if (savedDoc?.id) {
       const savedId = savedDoc.id
       setBillingDocuments((prev) => {
@@ -512,33 +516,19 @@ export default function PaymentsPage() {
   }
 
   const handleDownloadBillingDoc = async (doc: BillingDocumentListItem) => {
-    setBillingDownloadingId(doc.id)
-    try {
-      const supabase = createBrowserClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      const headers: HeadersInit = {}
-      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
-      const res = await fetch(`/api/billing-documents/${doc.id}/pdf`, { headers })
-      if (!res.ok) {
-        setError('Failed to download PDF. Please try again.')
-        return
-      }
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = doc.document_type === 'quote'
-        ? `Quote-${doc.document_number}.pdf`
-        : `Invoice-${doc.document_number}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    } catch {
-      // ignore
-    } finally {
-      setBillingDownloadingId(null)
-    }
+    await deliverBillingPdf({
+      documentId: doc.id,
+      documentNumber: doc.document_number,
+      documentType: doc.document_type === 'quote' ? 'quote' : 'invoice',
+      onStart: () => setBillingDownloadingId(doc.id),
+      onSuccess: (message) => {
+        setSuccessMessage(message)
+      },
+      onError: (message) => {
+        setError(message)
+      },
+      onFinally: () => setBillingDownloadingId(null),
+    })
   }
 
   const handleSendBillingDoc = async (doc: BillingDocumentListItem) => {
@@ -1060,18 +1050,18 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           <button
             onClick={() => setShowBillingChooser(true)}
             className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.995] min-h-[120px]
-            bg-violet-600 dark:bg-violet-500 border-violet-700 dark:border-violet-600 hover:bg-violet-700 dark:hover:bg-violet-600 shadow-[0_6px_18px_rgba(0,0,0,0.15)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
+            bg-violet-800 dark:bg-violet-700 border-violet-900 dark:border-violet-800 hover:bg-violet-900 dark:hover:bg-violet-800 shadow-[0_6px_18px_rgba(0,0,0,0.22)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.45)]"
           >
             <div className="flex items-center gap-3.5 mb-2.5">
               <div className="w-10 h-10 rounded-xl bg-white/20 dark:bg-white/10 ring-1 ring-inset ring-white/30 dark:ring-white/20 flex items-center justify-center">
                 <FileText className="w-5 h-5 text-white dark:text-white" />
               </div>
               <div>
-                <h3 className="text-white dark:text-white font-semibold text-sm sm:text-base leading-tight">Quote / Invoice</h3>
-                <p className="text-violet-100 dark:text-violet-100 text-xs">Create a document</p>
+                <h3 className="text-white font-semibold text-sm sm:text-base leading-tight">Quote / Invoice</h3>
+                <p className="text-white/80 text-xs">Create a document</p>
               </div>
             </div>
-            <p className="text-violet-50 dark:text-violet-50 text-xs sm:text-sm">Create a professional quote or invoice for your customer</p>
+            <p className="text-white/90 text-xs sm:text-sm">Create a professional quote or invoice for your customer</p>
           </button>
 
           {/* Request Payment Card */}
@@ -1952,7 +1942,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               aria-label="Create Quote or Invoice"
               title="Create Quote or Invoice"
             >
-              <span className="text-lg leading-none font-medium">+</span>
+              <Plus className="w-5 h-5" />
             </button>
           </div>
 

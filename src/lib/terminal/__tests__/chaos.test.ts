@@ -1618,4 +1618,148 @@ describe('Tap to Pay Chaos / Failure-Injection Tests', () => {
       expect(failedTerminalPayment.status).toBe('failed')
     })
   })
+
+  // ===================================================
+  // TEST 28: Processing / pending contract (Batch 3)
+  // ===================================================
+  describe('Test 28: Processing to pending and final state contract', () => {
+    it('should not transition a pending payment request to paid while Stripe is still processing', async () => {
+      const terminalAttemptId = generateTerminalAttemptId()
+
+      const pi = await mockStripe.paymentIntents.create(
+        {
+          amount: 1000,
+          currency: 'usd',
+          payment_method_types: ['card_present'],
+          capture_method: 'automatic',
+          metadata: { terminal_attempt_id: terminalAttemptId },
+        },
+        { idempotencyKey: `terminal-payment-business-123-${terminalAttemptId}` }
+      )
+
+      mockStripe.simulateStatusTransition(pi.id, 'processing')
+
+      await mockSupabase.from('payment_requests').insert({
+        business_id: 'business-123',
+        amount_cents: 1000,
+        currency: 'usd',
+        stripe_payment_intent_id: pi.id,
+        terminal_attempt_id: terminalAttemptId,
+        status: 'pending',
+      }).select().single()
+
+      const retrievedPI = await mockStripe.paymentIntents.retrieve(pi.id, {}, {})
+      expect(retrievedPI.status).toBe('processing')
+
+      const pr = mockSupabase.getPaymentRequestByPaymentIntentId(pi.id)
+      expect(pr?.status).toBe('pending')
+    })
+
+    it('should allow pending -> paid after Stripe reports succeeded', async () => {
+      const terminalAttemptId = generateTerminalAttemptId()
+
+      const pi = await mockStripe.paymentIntents.create(
+        {
+          amount: 1000,
+          currency: 'usd',
+          payment_method_types: ['card_present'],
+          capture_method: 'automatic',
+          metadata: { terminal_attempt_id: terminalAttemptId },
+        },
+        { idempotencyKey: `terminal-payment-business-123-${terminalAttemptId}` }
+      )
+
+      mockStripe.simulateStatusTransition(pi.id, 'processing')
+
+      await mockSupabase.from('payment_requests').insert({
+        business_id: 'business-123',
+        amount_cents: 1000,
+        currency: 'usd',
+        stripe_payment_intent_id: pi.id,
+        terminal_attempt_id: terminalAttemptId,
+        status: 'pending',
+      }).select().single()
+
+      // Stripe eventually succeeds
+      mockStripe.simulateStatusTransition(pi.id, 'succeeded')
+
+      const validation = validateStateTransition('pending', 'paid')
+      expect(validation.allowed).toBe(true)
+
+      await mockSupabase.from('payment_requests').update({ status: 'paid' }).eq('id', 'pr_1').select().single()
+
+      const pr = mockSupabase.getPaymentRequestByPaymentIntentId(pi.id)
+      expect(pr?.status).toBe('paid')
+    })
+
+    it('should allow pending -> failed after Stripe reports requires_payment_method', async () => {
+      const terminalAttemptId = generateTerminalAttemptId()
+
+      const pi = await mockStripe.paymentIntents.create(
+        {
+          amount: 1000,
+          currency: 'usd',
+          payment_method_types: ['card_present'],
+          capture_method: 'automatic',
+          metadata: { terminal_attempt_id: terminalAttemptId },
+        },
+        { idempotencyKey: `terminal-payment-business-123-${terminalAttemptId}` }
+      )
+
+      await mockSupabase.from('payment_requests').insert({
+        business_id: 'business-123',
+        amount_cents: 1000,
+        currency: 'usd',
+        stripe_payment_intent_id: pi.id,
+        terminal_attempt_id: terminalAttemptId,
+        status: 'pending',
+      }).select().single()
+
+      mockStripe.simulateStatusTransition(pi.id, 'requires_payment_method')
+
+      const validation = validateStateTransition('pending', 'failed')
+      expect(validation.allowed).toBe(true)
+
+      await mockSupabase.from('payment_requests').update({ status: 'failed' }).eq('id', 'pr_1').select().single()
+
+      const pr = mockSupabase.getPaymentRequestByPaymentIntentId(pi.id)
+      expect(pr?.status).toBe('failed')
+    })
+
+    it('should not fabricate success or failure when Stripe remains processing past a timeout', async () => {
+      const terminalAttemptId = generateTerminalAttemptId()
+
+      const pi = await mockStripe.paymentIntents.create(
+        {
+          amount: 1000,
+          currency: 'usd',
+          payment_method_types: ['card_present'],
+          capture_method: 'automatic',
+          metadata: { terminal_attempt_id: terminalAttemptId },
+        },
+        { idempotencyKey: `terminal-payment-business-123-${terminalAttemptId}` }
+      )
+
+      mockStripe.simulateStatusTransition(pi.id, 'processing')
+
+      await mockSupabase.from('payment_requests').insert({
+        business_id: 'business-123',
+        amount_cents: 1000,
+        currency: 'usd',
+        stripe_payment_intent_id: pi.id,
+        terminal_attempt_id: terminalAttemptId,
+        status: 'pending',
+      }).select().single()
+
+      // Simulate a bounded timeout elapsing; the PI is still processing
+      await new Promise(resolve => setTimeout(resolve, 50))
+
+      const retrievedPI = await mockStripe.paymentIntents.retrieve(pi.id, {}, {})
+      expect(retrievedPI.status).toBe('processing')
+
+      const pr = mockSupabase.getPaymentRequestByPaymentIntentId(pi.id)
+      expect(pr?.status).not.toBe('paid')
+      expect(pr?.status).not.toBe('failed')
+    })
+  })
 })

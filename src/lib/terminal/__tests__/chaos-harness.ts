@@ -201,6 +201,7 @@ export class MockSupabase {
   private updateFailure: boolean = false
   private queryLatency: number = 0
   private queryFailure: boolean = false
+  private paymentRequestIdCounter: number = 1
 
   constructor() {
     this.paymentRequests = new Map()
@@ -242,6 +243,7 @@ export class MockSupabase {
     this.updateFailure = false
     this.queryLatency = 0
     this.queryFailure = false
+    this.paymentRequestIdCounter = 1
   }
 
   addBusiness(business: any) {
@@ -351,10 +353,10 @@ export class MockSupabase {
                   // Check unique constraint
                   const existing = this.getPaymentRequestByTerminalAttemptId(data.business_id, data.terminal_attempt_id)
                   if (existing) {
-                    throw new Error('duplicate key value violates unique constraint')
+                    return { data: null, error: { message: 'duplicate key value violates unique constraint' } }
                   }
 
-                  const id = `pr_${Math.random().toString(36).substring(2, 15)}`
+                  const id = `pr_${this.paymentRequestIdCounter++}`
                   const paymentRequest: MockLocalPaymentRequest = {
                     id,
                     business_id: data.business_id,

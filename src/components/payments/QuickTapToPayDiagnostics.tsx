@@ -22,7 +22,7 @@ interface QuickTapToPayDiagnosticsProps {
   }
   lastCompletedAttempt?: {
     attemptId: string | null
-    outcome: 'success' | 'failure' | 'canceled' | null
+    outcome: 'success' | 'failure' | 'canceled' | 'pending' | null
     completedAt: string | null
     paymentRequestId: string | null
   }

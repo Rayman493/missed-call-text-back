@@ -81,7 +81,7 @@ export interface UseTapToPayOrchestrationReturn {
   paymentRequestId: string | null
   lastCompletedAttempt: {
     attemptId: string | null
-    outcome: 'success' | 'failure' | 'canceled' | null
+    outcome: 'success' | 'failure' | 'canceled' | 'pending' | null
     completedAt: string | null
     paymentRequestId: string | null
   }
@@ -124,7 +124,7 @@ export function useTapToPayOrchestration({
   const [paymentRequestId, setPaymentRequestId] = useState<string | null>(null)
   const [lastCompletedAttempt, setLastCompletedAttempt] = useState<{
     attemptId: string | null
-    outcome: 'success' | 'failure' | 'canceled' | null
+    outcome: 'success' | 'failure' | 'canceled' | 'pending' | null
     completedAt: string | null
     paymentRequestId: string | null
   }>({
@@ -2331,9 +2331,9 @@ export function useTapToPayOrchestration({
         updatePaymentStateRef('processing', 'reconciliation_started')
 
         try {
-          // Add bounded timeout for reconciliation (15 seconds)
+          // Allow server-side bounded polling up to ~30s for iOS/Terminal transient states.
           const abortController = new AbortController()
-          const timeoutId = setTimeout(() => abortController.abort(), 15000)
+          const timeoutId = setTimeout(() => abortController.abort(), 60000)
 
           const reconcileResponse = await fetch('/api/terminal/reconcile-payment', {
             method: 'POST',
@@ -2450,8 +2450,29 @@ export function useTapToPayOrchestration({
             // This prevents the page from refreshing while the success modal is still visible
 
             onPaymentComplete?.()
+          } else if (reconcileData.status === 'processing' || reconcileData.status === 'pending') {
+            // Payment is still being confirmed; do not fail. Keep the unresolved
+            // marker so the next recovery/mount cycle can resolve it.
+            console.log('[TTP Hook] RECONCILE_RETURNED_PENDING', reconcileData.status)
+            dispatchTTPEvent('RECONCILE_RETURNED_PENDING', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'pending', `status_${reconcileData.status}`)
+
+            setLastCompletedAttempt({
+              attemptId: terminalService.getCurrentAttemptId(),
+              outcome: 'pending',
+              completedAt: new Date().toISOString(),
+              paymentRequestId: reconcileData.paymentRequestId || null,
+            })
+
+            updatePaymentStateRef('pending', 'reconciliation_pending')
+            setError('Payment is still being confirmed. It will update when complete.')
+            setIsPaymentInProgress(false)
+            permissionLock.setTapToPayActive(false)
+            startInFlight.current = false
+            activeAttemptRef.current = false
+            activeAttemptIdRef.current = null
+            activeAttemptTokenRef.current = null
           } else {
-            // Reconciliation returned non-paid status - treat as failure
+            // Reconciliation returned a terminal non-paid status (canceled/failed)
             console.error('[TTP Hook] RECONCILE_RETURNED_NON_PAID', reconcileData.status)
             dispatchTTPEvent('RECONCILE_RETURNED_NON_PAID', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'failure', `status_${reconcileData.status}`)
 

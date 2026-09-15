@@ -148,10 +148,10 @@ export async function prepareInvoicePayment(
     return { ok: false, error: 'Failed to create payment request', status: 500 }
   }
 
-  // Link payment request to invoice
+  // Link payment request to invoice and restore "sent" status for resends
   const { error: linkError } = await supabase
     .from('billing_documents')
-    .update({ payment_request_id: paymentRequest.id })
+    .update({ payment_request_id: paymentRequest.id, status: 'sent' })
     .eq('id', invoice.id)
   if (linkError) {
     console.error('[PREPARE PAYMENT] Failed to link payment request to invoice:', linkError)

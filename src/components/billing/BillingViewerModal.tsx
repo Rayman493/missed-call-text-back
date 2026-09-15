@@ -150,12 +150,12 @@ export default function BillingViewerModal({
   }
 
   const footer = (
-    <div className="flex items-center justify-between gap-2 flex-wrap">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-2 w-full">
+      <div className="flex gap-2 w-full">
         {showEdit && onEdit && (
           <button
             onClick={onEdit}
-            className="px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
+            className="flex-1 justify-center px-3 py-2 text-sm font-medium text-foreground border border-border/60 hover:bg-muted/50 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 flex items-center gap-1.5"
           >
             <Edit className="w-4 h-4" />
             Edit
@@ -164,44 +164,42 @@ export default function BillingViewerModal({
         {showDownload && (
           <button
             onClick={onDownload}
-            className="px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
+            className="flex-1 justify-center px-3 py-2 text-sm font-medium text-foreground border border-border/60 hover:bg-muted/50 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 flex items-center gap-1.5"
           >
             <Download className="w-4 h-4" />
             Download PDF
           </button>
         )}
       </div>
-      <div className="flex items-center gap-2">
-        {showConvert && onConvert && (
-          <button
-            onClick={onConvert}
-            className="px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm flex items-center gap-1.5"
-          >
-            <ArrowRight className="w-4 h-4" />
-            Create Invoice
-          </button>
-        )}
-        {showSend && (
-          <button
-            onClick={onSend}
-            disabled={isSending}
-            className="px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm flex items-center gap-1.5 disabled:opacity-50"
-          >
-            {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            Send to Customer
-          </button>
-        )}
-        {showResend && (
-          <button
-            onClick={onSend}
-            disabled={isSending}
-            className="px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm flex items-center gap-1.5 disabled:opacity-50"
-          >
-            {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            Resend
-          </button>
-        )}
-      </div>
+      {showConvert && onConvert && (
+        <button
+          onClick={onConvert}
+          className="w-full justify-center px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm flex items-center gap-1.5"
+        >
+          <ArrowRight className="w-4 h-4" />
+          Create Invoice
+        </button>
+      )}
+      {showSend && (
+        <button
+          onClick={onSend}
+          disabled={isSending}
+          className="w-full justify-center px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+        >
+          {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          Send to Customer
+        </button>
+      )}
+      {showResend && (
+        <button
+          onClick={onSend}
+          disabled={isSending}
+          className="w-full justify-center px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+        >
+          {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          Resend
+        </button>
+      )}
     </div>
   )
 
@@ -215,7 +213,7 @@ export default function BillingViewerModal({
       footer={footer}
     >
       {loading ? (
-        <div className="flex items-center justify-center py-12">
+        <div className="min-h-[60dvh] flex flex-col items-center justify-center">
           <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
         </div>
       ) : doc ? (
