@@ -32,9 +32,11 @@ export async function buildDocumentPresentation(
       logo_url: doc.snapshot_business_logo_url,
     }
   } else {
+    // businesses columns: name, business_phone_number, business_address_*,
+    // logo_url (no business_phone/business_email columns exist)
     const { data: business } = await supabase
       .from('businesses')
-      .select('name, business_phone, business_email, business_address_line1, business_address_line2, business_address_city, business_address_state, business_address_postal_code, logo_url')
+      .select('name, business_phone_number, business_address_line1, business_address_line2, business_address_city, business_address_state, business_address_postal_code, logo_url')
       .eq('id', doc.business_id)
       .single()
     const addrParts = [
@@ -45,8 +47,8 @@ export async function buildDocumentPresentation(
     ].filter(Boolean)
     businessData = {
       name: business?.name || '',
-      phone: business?.business_phone || null,
-      email: business?.business_email || null,
+      phone: business?.business_phone_number || null,
+      email: null,
       address: addrParts.length > 0 ? addrParts.join(' ') : null,
       logo_url: business?.logo_url || null,
     }
@@ -152,9 +154,11 @@ export async function createSnapshot(
   supabase: ReturnType<typeof createServerClient>,
   doc: any
 ): Promise<Record<string, any>> {
+  // businesses columns: name, business_phone_number, business_address_*,
+  // logo_url (no business_phone/business_email columns exist)
   const { data: business } = await supabase
     .from('businesses')
-    .select('name, business_phone, business_email, business_address_line1, business_address_line2, business_address_city, business_address_state, business_address_postal_code, logo_url')
+    .select('name, business_phone_number, business_address_line1, business_address_line2, business_address_city, business_address_state, business_address_postal_code, logo_url')
     .eq('id', doc.business_id)
     .single()
 
@@ -183,8 +187,8 @@ export async function createSnapshot(
 
   return {
     snapshot_business_name: business?.name || null,
-    snapshot_business_phone: business?.business_phone || null,
-    snapshot_business_email: business?.business_email || null,
+    snapshot_business_phone: business?.business_phone_number || null,
+    snapshot_business_email: null,
     snapshot_business_address: addrParts.length > 0 ? addrParts.join(' ') : null,
     snapshot_business_logo_url: business?.logo_url || null,
     snapshot_customer_name: customerName,
