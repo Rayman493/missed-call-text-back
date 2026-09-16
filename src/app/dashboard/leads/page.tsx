@@ -182,6 +182,40 @@ function normalizeLead(lead: any): any {
   }
 }
 
+// Select used to refresh exactly one lead for realtime reconciliation.
+// Matches the shape the lead card expects (status, contact info, messages,
+// AI call records, activity timestamps) without re-fetching the whole list.
+const SINGLE_LEAD_SELECT = `
+  id,
+  business_id,
+  caller_phone,
+  contact_name,
+  status,
+  created_at,
+  first_contact_at,
+  last_message_at,
+  last_activity_at,
+  conversation_id,
+  deleted_at,
+  deleted_by,
+  deletion_reason,
+  raw_metadata,
+  messages (
+    id,
+    body,
+    direction,
+    created_at
+  ),
+  ai_call_records (
+    id,
+    extracted_info,
+    caller_phone,
+    business_id,
+    lead_id,
+    created_at
+  )
+`
+
 // Helper to get latest activity timestamp for sorting
 function getLatestActivity(lead: any): string {
   if (lead.last_activity_at) return lead.last_activity_at
@@ -516,23 +550,58 @@ export default function LeadsPage() {
     }
   }
 
-  // Realtime updates
-  useRealtimeLeads(
-    business?.id,
-    (newLead) => {
+  // Fetch the canonical single lead record and merge by persisted id.
+  // Used for realtime INSERT/UPDATE and cross-table events that only carry
+  // the lead id (payment_requests, jobs), keeping the overview card accurate.
+  const applySingleLead = useCallback(async (leadOrId: any) => {
+    const leadId = typeof leadOrId === 'string' ? leadOrId : leadOrId?.id
+    if (!leadId || !business?.id || !supabase) return
+
+    // Bump the generation so a stale full list fetch cannot overwrite this
+    // canonical update when it lands out of order.
+    fetchGenerationRef.current++
+
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select(SINGLE_LEAD_SELECT)
+        .eq('id', leadId)
+        .eq('business_id', business.id)
+        .maybeSingle()
+
+      if (error || !data) {
+        console.error('[applySingleLead] error fetching lead:', error)
+        return
+      }
+
+      const fullLead = normalizeLead(data)
+
       setLeads(prev => {
-        // Add new lead and re-deduplicate
-        const updatedLeads = [newLead, ...prev]
-        const deduplicated = mergeDuplicateLeads(updatedLeads)
-        // Sort by latest activity
-        deduplicated.sort((a, b) => {
+        const existingIndex = prev.findIndex(l => l.id === fullLead.id)
+        const updated = [...prev]
+        if (existingIndex >= 0) {
+          updated[existingIndex] = fullLead
+        } else {
+          updated.unshift(fullLead)
+        }
+
+        updated.sort((a, b) => {
           const aActivity = getLatestActivity(a)
           const bActivity = getLatestActivity(b)
           return new Date(bActivity).getTime() - new Date(aActivity).getTime()
         })
-        return deduplicated.slice(0, 100) // Keep only latest 100
+
+        return updated.slice(0, 100)
       })
-    },
+    } catch (error) {
+      console.error('[applySingleLead] error:', error)
+    }
+  }, [business?.id, supabase])
+
+  // Realtime updates
+  useRealtimeLeads(
+    business?.id,
+    (newLead) => applySingleLead(newLead),
     (newMessage) => {
       setLeads(prev => {
         // Update lead when new message arrives and re-deduplicate
@@ -557,28 +626,7 @@ export default function LeadsPage() {
         return deduplicated
       })
     },
-    (updatedLead) => {
-      // Bump fetch generation so any in-flight stale fetch cannot overwrite
-      // this newer realtime edit.
-      fetchGenerationRef.current++
-      setLeads(prev => {
-        // Update lead when it changes and re-deduplicate
-        // Merge the update into existing lead to preserve all fields,
-        // then recompute derived fields (name/email/phone) from the merged
-        // row so stale client-computed `name` cannot survive a realtime edit.
-        const updatedLeads = prev.map(lead =>
-          lead.id === updatedLead.id ? normalizeLead({ ...lead, ...updatedLead }) : lead
-        )
-        const deduplicated = mergeDuplicateLeads(updatedLeads)
-        // Sort by latest activity
-        deduplicated.sort((a, b) => {
-          const aActivity = getLatestActivity(a)
-          const bActivity = getLatestActivity(b)
-          return new Date(bActivity).getTime() - new Date(aActivity).getTime()
-        })
-        return deduplicated
-      })
-    },
+    (updatedLead) => applySingleLead(updatedLead),
     (aiCallRecord) => {
       setLeads(prev => {
         // Merge the new/updated ai_call_record into the affected lead.

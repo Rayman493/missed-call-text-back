@@ -138,7 +138,57 @@ export function useRealtimeLeads(
         }
       })
 
-    channelsRef.current = [leadsChannel, messagesChannel, aiCallRecordsChannel]
+    // Subscribe to payment_requests so customer cards reflect payment status changes
+    const paymentRequestsChannel = supabase
+      .channel(`payment-requests-${businessId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payment_requests',
+          filter: `business_id=eq.${businessId}`
+        },
+        (payload: any) => {
+          const leadId = payload.new?.lead_id
+          if (leadId && callbacksRef.current.onLeadUpdate) {
+            callbacksRef.current.onLeadUpdate({ id: leadId })
+          }
+        }
+      )
+      .subscribe((status: string) => {
+        console.log('[Realtime] Payment requests channel status:', status)
+        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          console.log('[Realtime] Payment requests channel disconnected, will reconnect on next effect')
+        }
+      })
+
+    // Subscribe to jobs so customer cards reflect scheduling/job status changes
+    const jobsChannel = supabase
+      .channel(`jobs-${businessId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'jobs',
+          filter: `business_id=eq.${businessId}`
+        },
+        (payload: any) => {
+          const leadId = payload.new?.lead_id
+          if (leadId && callbacksRef.current.onLeadUpdate) {
+            callbacksRef.current.onLeadUpdate({ id: leadId })
+          }
+        }
+      )
+      .subscribe((status: string) => {
+        console.log('[Realtime] Jobs channel status:', status)
+        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          console.log('[Realtime] Jobs channel disconnected, will reconnect on next effect')
+        }
+      })
+
+    channelsRef.current = [leadsChannel, messagesChannel, aiCallRecordsChannel, paymentRequestsChannel, jobsChannel]
 
     // Cleanup function
     return () => {

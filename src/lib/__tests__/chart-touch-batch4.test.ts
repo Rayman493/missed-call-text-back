@@ -177,11 +177,12 @@ describe('Batch 4 — Desktop/Accessibility Preservation', () => {
     expect(activityContent).toContain('activeDot')
   })
 
-  it('tooltips are always enabled (touch: click trigger, desktop: hover trigger)', () => {
+  it('tooltips are always enabled and ChartTouchWrapper drives touch selection via hover trigger', () => {
     const revenueContent = readContent('src/components/analytics/RevenueGraph.tsx')
-    // Tooltip should always be included; trigger switches by platform
+    // Tooltip should always be included; ChartTouchWrapper dispatches synthetic
+    // mousemove so the hover trigger is active for touch taps.
     expect(revenueContent).toContain('<Tooltip')
-    expect(revenueContent).toContain("trigger={isTouchDevice ? 'click' : 'hover'}")
+    expect(revenueContent).toMatch(/trigger\s*=\s*(['"])hover\1/)
     // Should NOT gate Tooltip on !isTouchDevice
     expect(revenueContent).not.toMatch(/\{!isTouchDevice\s*&&\s*\(\s*<Tooltip/)
 

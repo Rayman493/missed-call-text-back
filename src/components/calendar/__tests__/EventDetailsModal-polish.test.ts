@@ -28,7 +28,8 @@ describe('EventDetailsModal presentation polish', () => {
   })
 
   it('wraps footer actions on narrow widths', () => {
-    expect(content).toMatch(/flex\s+flex-wrap\s+gap-2/)
+    expect(content).toContain('flex flex-col gap-2 sm:flex-row')
+    expect(content).toContain('flex gap-2')
   })
 
   it('only renders Join when a meeting URL is present', () => {

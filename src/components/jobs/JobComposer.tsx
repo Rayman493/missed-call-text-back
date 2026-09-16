@@ -7,7 +7,6 @@ import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import { getCustomerStatusStyle } from '@/lib/customer-status'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
-import AddCustomerModal from '@/components/AddCustomerModal'
 import JobTimer from '@/components/jobs/JobTimer'
 import { firstNonPlaceholder, normalizeEditableContext, getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
@@ -110,10 +109,6 @@ export default function JobComposer({
   const [leadId, setLeadId] = useState<string | null>(null)
   const [leadDisplay, setLeadDisplay] = useState<string | null>(null)
 
-  // Inline Add Customer modal state
-  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
-  const [newlyCreatedCustomer, setNewlyCreatedCustomer] = useState<Customer | null>(null)
-
   const locationInputRef = useRef<HTMLInputElement>(null)
 
   const { business } = useBusiness()
@@ -159,37 +154,6 @@ export default function JobComposer({
       setServiceAddress('')
       // Do not clear title/notes on customer deselect — user may have typed them
     }
-  }
-
-  // Handle successful customer creation from inline Add Customer modal
-  const handleLeadCreated = (leadId: string, leadData?: any) => {
-    // Build a Customer object from the returned lead data, preserving all
-    // possible name sources so the picker field never collapses to an empty label.
-    const extracted = leadData?.raw_metadata?.extracted_info || {}
-    const canonicalName =
-      leadData?.name ||
-      leadData?.contact_name ||
-      extracted.customerName ||
-      extracted.callerName ||
-      leadData?.raw_metadata?.customerName ||
-      leadData?.raw_metadata?.callerName ||
-      null
-    const customerPhone =
-      leadData?.caller_phone ||
-      extracted.customerPhone ||
-      leadData?.raw_metadata?.customerPhone ||
-      null
-    const newCustomer: Customer = {
-      id: leadId,
-      name: canonicalName,
-      caller_phone: customerPhone,
-      raw_metadata: leadData?.raw_metadata || null,
-    }
-    // Hydrate the selector with the new customer so it appears immediately
-    setNewlyCreatedCustomer(newCustomer)
-    // Auto-select the new customer
-    setLeadId(leadId)
-    handleCustomerSelect(newCustomer)
   }
 
   // Autofocus location input when initialFocus is 'location'
@@ -387,8 +351,7 @@ export default function JobComposer({
                 required={!editJob}
                 allowClear={!editJob}
                 placeholder="Search or select a customer..."
-                prefillCustomer={newlyCreatedCustomer || prefill?.prefillCustomer}
-                onAddCustomerClick={!editJob ? () => setIsAddCustomerOpen(true) : undefined}
+                prefillCustomer={prefill?.prefillCustomer}
               />
             </div>
 
@@ -515,13 +478,6 @@ export default function JobComposer({
             )}
         </div>
       </Modal>
-
-      {/* Inline Add Customer modal — reuses canonical AddCustomerModal */}
-      <AddCustomerModal
-        isOpen={isAddCustomerOpen}
-        onClose={() => setIsAddCustomerOpen(false)}
-        onLeadCreated={handleLeadCreated}
-      />
     </>
   )
 }

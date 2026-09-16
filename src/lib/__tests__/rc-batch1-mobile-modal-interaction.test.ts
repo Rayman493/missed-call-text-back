@@ -226,41 +226,37 @@ describe('OUTSIDE-TAP DISMISSAL', () => {
 // ============================================================================
 
 describe('ADD CUSTOMER CONSISTENCY', () => {
-  it('23. Add Appointment exposes Add customer', () => {
-    expect(newAppointmentModalSrc).toContain('AddCustomerModal')
-    expect(newAppointmentModalSrc).toContain('onAddCustomerClick')
-    expect(newAppointmentModalSrc).toContain('setIsAddCustomerOpen')
+  it('23. Add Appointment no longer exposes Add customer', () => {
+    expect(newAppointmentModalSrc).not.toContain('AddCustomerModal')
+    expect(newAppointmentModalSrc).not.toContain('onAddCustomerClick')
+    expect(newAppointmentModalSrc).not.toContain('setIsAddCustomerOpen')
   })
 
-  it('24. Add Reminder exposes Add customer', () => {
-    expect(newTaskModalSrc).toContain('AddCustomerModal')
-    expect(newTaskModalSrc).toContain('onAddCustomerClick')
-    expect(newTaskModalSrc).toContain('setIsAddCustomerOpen')
+  it('24. Add Reminder no longer exposes Add customer', () => {
+    expect(newTaskModalSrc).not.toContain('AddCustomerModal')
+    expect(newTaskModalSrc).not.toContain('onAddCustomerClick')
+    expect(newTaskModalSrc).not.toContain('setIsAddCustomerOpen')
   })
 
-  it('25. Add Job remains unchanged/working', () => {
-    expect(jobComposerSrc).toContain('AddCustomerModal')
-    expect(jobComposerSrc).toContain('onAddCustomerClick')
+  it('25. Add Job no longer exposes Add customer', () => {
+    expect(jobComposerSrc).not.toContain('AddCustomerModal')
+    expect(jobComposerSrc).not.toContain('onAddCustomerClick')
   })
 
-  it('26. parent form state survives customer creation (handleLeadCreated preserves form)', () => {
-    // Appointment: handleLeadCreated only sets leadId and customer, doesn't reset title/date/etc.
-    expect(newAppointmentModalSrc).toContain('handleLeadCreated')
-    // Reminder: same pattern
-    expect(newTaskModalSrc).toContain('handleLeadCreated')
+  it('26. parent form state no longer contains inline customer creation', () => {
+    expect(newAppointmentModalSrc).not.toContain('handleLeadCreated')
+    expect(newTaskModalSrc).not.toContain('handleLeadCreated')
+    expect(jobComposerSrc).not.toContain('handleLeadCreated')
   })
 
-  it('27. newly created customer is auto-selected', () => {
-    // Appointment: setLeadId(newLeadId) called in handleLeadCreated
-    expect(newAppointmentModalSrc).toContain('setLeadId(newLeadId)')
-    // Reminder: setSelectedLeadId(newLeadId) called in handleLeadCreated
-    expect(newTaskModalSrc).toContain('setSelectedLeadId(newLeadId)')
+  it('27. no newly created customer is auto-selected (inline flow removed)', () => {
+    expect(newAppointmentModalSrc).not.toContain('setLeadId(newLeadId)')
+    expect(newTaskModalSrc).not.toContain('setSelectedLeadId(newLeadId)')
   })
 
-  it('28. cancel customer creation returns to parent form (AddCustomerModal onClose only closes)', () => {
-    // The AddCustomerModal onClose just sets isAddCustomerOpen to false
-    expect(newAppointmentModalSrc).toContain("onClose={() => setIsAddCustomerOpen(false)}")
-    expect(newTaskModalSrc).toContain("onClose={() => setIsAddCustomerOpen(false)}")
+  it('28. no cancel customer creation state remains in modals', () => {
+    expect(newAppointmentModalSrc).not.toContain("onClose={() => setIsAddCustomerOpen(false)}")
+    expect(newTaskModalSrc).not.toContain("onClose={() => setIsAddCustomerOpen(false)}")
   })
 
   it('29. modal/back stack remains correct (shared Modal + useModalBackButton)', () => {
@@ -274,15 +270,15 @@ describe('ADD CUSTOMER CONSISTENCY', () => {
     expect(modalSrc).toContain('useModalBackButton')
   })
 
-  it('31. all three modals reuse the same AddCustomerModal component', () => {
-    expect(newAppointmentModalSrc).toContain("from '@/components/AddCustomerModal'")
-    expect(newTaskModalSrc).toContain("from '@/components/AddCustomerModal'")
-    expect(jobComposerSrc).toContain("from '@/components/AddCustomerModal'")
+  it('31. all three modals no longer nest the AddCustomerModal component', () => {
+    expect(newAppointmentModalSrc).not.toContain("from '@/components/AddCustomerModal'")
+    expect(newTaskModalSrc).not.toContain("from '@/components/AddCustomerModal'")
+    expect(jobComposerSrc).not.toContain("from '@/components/AddCustomerModal'")
   })
 
-  it('32. all three modals use the same SearchableCustomerSelect with onAddCustomerClick', () => {
-    expect(newAppointmentModalSrc).toContain('onAddCustomerClick')
-    expect(newTaskModalSrc).toContain('onAddCustomerClick')
-    expect(jobComposerSrc).toContain('onAddCustomerClick')
+  it('32. all three modals use SearchableCustomerSelect without onAddCustomerClick', () => {
+    expect(newAppointmentModalSrc).not.toContain('onAddCustomerClick')
+    expect(newTaskModalSrc).not.toContain('onAddCustomerClick')
+    expect(jobComposerSrc).not.toContain('onAddCustomerClick')
   })
 })

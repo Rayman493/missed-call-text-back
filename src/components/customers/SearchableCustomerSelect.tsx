@@ -448,8 +448,7 @@ export default function SearchableCustomerSelect({
                   <button
                     type="button"
                     role="option"
-                    onClick={() => handleSelect(null)}
-                    onPointerDown={(e) => { e.preventDefault(); handleSelect(null) }}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelect(null) }}
                     className={`w-full px-3 py-2 text-sm text-left duration-150 flex items-center justify-between gap-2 ${
                       value === null ? 'bg-accent/40' : 'text-foreground hover:bg-accent/40'
                     }`}
@@ -467,8 +466,7 @@ export default function SearchableCustomerSelect({
                       key={customer.id}
                       type="button"
                       role="option"
-                      onClick={() => handleSelect(customer.id)}
-                      onPointerDown={(e) => { e.preventDefault(); handleSelect(customer.id) }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelect(customer.id) }}
                       className={`w-full px-3 py-2 text-sm text-left duration-150 flex flex-col gap-0.5 ${
                         value === customer.id ? 'bg-accent/40' : 'text-foreground hover:bg-accent/40'
                       }`}

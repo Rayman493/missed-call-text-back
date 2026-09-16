@@ -113,8 +113,8 @@ describe('3. Inline Add customer path reuses existing flow', () => {
     expect(searchableCustomerSelectContent).not.toContain("Can't find them?")
   })
 
-  it('JobComposer passes onAddCustomerClick to SearchableCustomerSelect for new jobs', () => {
-    expect(jobComposerContent).toMatch(/onAddCustomerClick=\{!editJob \? \(\) => setIsAddCustomerOpen\(true\) : undefined\}/)
+  it('JobComposer no longer passes onAddCustomerClick to SearchableCustomerSelect', () => {
+    expect(jobComposerContent).not.toContain('onAddCustomerClick')
   })
 })
 

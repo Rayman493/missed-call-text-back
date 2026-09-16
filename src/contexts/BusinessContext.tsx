@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useRef, useCallback, us
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { getCoordinatedUser } from '@/lib/supabase/auth-session-coordinator'
 import { useAuth } from '@/contexts/AuthContext'
+import { pushService } from '@/lib/push-service'
 import { Business } from '@/lib/types'
 import SetupError from '@/components/SetupError'
 
@@ -379,6 +380,11 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       invalidateBusinessCache
     }
   }, [business, loading, error, fetchComplete, businessMissingConfirmed, businessVerified, businessHydrated, fetchBusiness, invalidateBusinessCache])
+
+  // Reconcile push registration with the active business.
+  useEffect(() => {
+    pushService.setBusinessId(business?.id ?? null)
+  }, [business])
 
   // Show setup error if env vars are missing
   if (!supabase) {

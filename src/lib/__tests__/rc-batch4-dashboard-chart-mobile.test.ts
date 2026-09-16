@@ -142,9 +142,9 @@ describe('RC Batch 4 — Dashboard Chart Mobile Interaction + Loading Polish', (
       expect(content).not.toMatch(/\{!isTouchDevice\s*&&\s*\(\s*<Tooltip/)
     })
 
-    it('RevenueGraph uses trigger=click on touch devices, hover on desktop', () => {
+    it('RevenueGraph uses hover trigger and lets ChartTouchWrapper drive touch taps', () => {
       const content = read('src/components/analytics/RevenueGraph.tsx')
-      expect(content).toContain("trigger={isTouchDevice ? 'click' : 'hover'}")
+      expect(content).toMatch(/trigger\s*=\s*(['"])hover\1/)
     })
 
     it('RevenueGraph preserves activeDot for datum selection', () => {
@@ -158,9 +158,9 @@ describe('RC Batch 4 — Dashboard Chart Mobile Interaction + Loading Polish', (
       expect(content).not.toMatch(/\{!isTouchDevice\s*&&\s*\(\s*<Tooltip/)
     })
 
-    it('BusinessActivityGraph uses trigger=click on touch devices, hover on desktop', () => {
+    it('BusinessActivityGraph uses hover trigger and lets ChartTouchWrapper drive touch taps', () => {
       const content = read('src/components/analytics/BusinessActivityGraph.tsx')
-      expect(content).toContain("trigger={isTouchDevice ? 'click' : 'hover'}")
+      expect(content).toMatch(/trigger\s*=\s*(['"])hover\1/)
     })
 
     it('BusinessActivityGraph preserves activeDot on all Line components', () => {
@@ -365,11 +365,11 @@ describe('RC Batch 4 — Dashboard Chart Mobile Interaction + Loading Polish', (
       expect(activity).toContain('useTouchDevice')
     })
 
-    it('desktop hover tooltips preserved (trigger=hover on non-touch)', () => {
+    it('desktop hover tooltips preserved (constant hover trigger)', () => {
       const revenue = read('src/components/analytics/RevenueGraph.tsx')
       const activity = read('src/components/analytics/BusinessActivityGraph.tsx')
-      expect(revenue).toContain("'hover'")
-      expect(activity).toContain("'hover'")
+      expect(revenue).toMatch(/trigger\s*=\s*(['"])hover\1/)
+      expect(activity).toMatch(/trigger\s*=\s*(['"])hover\1/)
     })
 
     it('BusinessActivityGraph legend buttons preserve focus-visible ring', () => {

@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { MessageMedia } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 import { FileText, FileSpreadsheet, File } from 'lucide-react'
 
 const DEBUG = process.env.NODE_ENV === 'development'
@@ -375,6 +377,11 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
     }
   }
 
+  // Lock body scroll and integrate with the modal back stack so the first
+  // Android/system Back closes the fullscreen viewer without navigating away.
+  useBodyScrollLock(Boolean(expandedMedia), 'message-media-viewer')
+  useModalBackButton({ isOpen: Boolean(expandedMedia), onClose: handleCloseExpanded })
+
   const handleImageLoad = (mediaId: string) => {
     setLoadedMedia(prev => new Set(prev).add(mediaId))
     
@@ -567,7 +574,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
       {/* Expanded media modal */}
       {expandedMedia && (
         <div
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 touch-none overflow-hidden"
           onClick={handleCloseExpanded}
           onKeyDown={handleKeyDown}
           role="dialog"
@@ -576,7 +583,8 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
         >
           <button
             onClick={handleCloseExpanded}
-            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10 p-2 hover:bg-white/10 rounded-full"
+            className="absolute z-10 p-2 text-white hover:text-gray-300 transition-colors hover:bg-white/10 rounded-full"
+            style={{ top: 'max(1rem, env(safe-area-inset-top))', right: 'max(1rem, env(safe-area-inset-right))' }}
             aria-label="Close"
           >
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -586,7 +594,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
           <img
             src={expandedMedia}
             alt="Expanded media"
-            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            className="max-h-full max-w-full object-contain select-none"
             onClick={(e) => e.stopPropagation()}
           />
         </div>

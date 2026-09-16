@@ -231,6 +231,7 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
   const gestureModeRef = useRef<GestureMode>('idle')
   const innerRef = useRef<HTMLDivElement>(null)
   const justDraggedRef = useRef(false)
+  const lastPointerTypeRef = useRef<string>('mouse')
   const [isScrubbing, setIsScrubbing] = useState(false)
   const [hasSelection, setHasSelection] = useState(false)
 
@@ -239,7 +240,7 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
    * the actual rendered plot area bounds. This avoids requiring exact
    * dot hit-testing — the user can tap anywhere on the chart.
    */
-  const getNearestIndex = useCallback((clientX: number): number | null => {
+  const getNearestIndex = useCallback((clientX: number, clamp = true): number | null => {
     if (!data || data.length === 0 || !innerRef.current) return null
 
     const surface = innerRef.current.querySelector('.recharts-surface') as SVGElement | null
@@ -257,6 +258,9 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
     if (plotWidth <= 0) return null
 
     const relativeX = clientX - plotLeft
+    if (!clamp) {
+      if (relativeX < 0 || relativeX > plotWidth) return null
+    }
     // Clamp to plot bounds
     const clampedX = Math.max(0, Math.min(plotWidth, relativeX))
     const ratio = clampedX / plotWidth
@@ -334,6 +338,7 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length !== 1) return
+    lastPointerTypeRef.current = 'touch'
     startXRef.current = e.touches[0].clientX
     startYRef.current = e.touches[0].clientY
     gestureModeRef.current = 'idle'
@@ -413,6 +418,7 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
   // --- Pointer handlers (fire before touch on some Android WebViews) ---
 
   const handlePointerDown = (e: React.PointerEvent) => {
+    lastPointerTypeRef.current = e.pointerType
     if (e.pointerType !== 'touch') return
     startXRef.current = e.clientX
     startYRef.current = e.clientY
@@ -487,16 +493,45 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
     onActiveIndexChange?.(null)
   }
 
-  // Capture-phase click handler: suppresses the click event that the
-  // browser fires after a drag/scrub/scroll. Without this, Recharts'
-  // onClick handler receives the post-gesture click and activates a
-  // random datum.
+  // Capture-phase click handler: on touch it converts the tap into a
+  // controlled datum activation and suppresses the browser's synthesized
+  // click. Taps outside the plottable area consume the gesture and clear
+  // the tooltip instead of producing an empty shell. Desktop lets Recharts'
+  // hover behavior work normally; only post-drag clicks are suppressed.
   const handleClickCapture = (e: React.MouseEvent) => {
+    if (lastPointerTypeRef.current !== 'touch') {
+      if (justDraggedRef.current) {
+        e.preventDefault()
+        e.stopPropagation()
+        justDraggedRef.current = false
+      }
+      return
+    }
+
     if (justDraggedRef.current) {
+      // Scrub/scroll just finished — suppress the post-gesture click.
       e.preventDefault()
       e.stopPropagation()
       justDraggedRef.current = false
+      return
     }
+
+    e.preventDefault()
+    e.stopPropagation()
+
+    const idx = getNearestIndex(e.clientX, false)
+    if (idx === null) {
+      // Whitespace or outside the plottable area: do not leave an empty
+      // tooltip; clear any active Recharts state and notify the consumer.
+      clearRechartsState()
+      onActiveIndexChange?.(null)
+      return
+    }
+
+    // Valid datum: keep selection and activate the Recharts tooltip.
+    setHasSelection(true)
+    onActiveIndexChange?.(idx)
+    activateDatum(idx)
   }
 
   return (

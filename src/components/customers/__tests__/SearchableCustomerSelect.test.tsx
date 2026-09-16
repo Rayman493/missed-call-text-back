@@ -231,7 +231,7 @@ describe('SearchableCustomerSelect', () => {
   })
 
   it('should call onChange(null) when No customer option is selected', () => {
-    expect(content).toContain('onClick={() => handleSelect(null)}')
+    expect(content).toContain('onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelect(null) }}')
     expect(content).toContain('const handleSelect = (customerId: string | null) =>')
   })
 
@@ -287,16 +287,14 @@ describe('SearchableCustomerSelect', () => {
     expect(content).toContain("style={{ WebkitOverflowScrolling: 'touch' }}")
   })
 
-  it('should commit iOS selection via onPointerDown while keeping onClick for keyboard fallback', () => {
-    // The customer row has both handlers, both dispatching the same idempotent
-    // handleSelect so a pointer + click pair cannot produce a double selection.
-    expect(content).toContain('onPointerDown={(e) => { e.preventDefault(); handleSelect(customer.id) }}')
-    expect(content).toContain('onClick={() => handleSelect(customer.id)}')
+  it('should commit selection via onClick while stopping propagation to prevent tap bleed', () => {
+    // The customer row now uses onClick only, with preventDefault + stopPropagation
+    // so the selection gesture is consumed and cannot pass through to inputs below.
+    expect(content).toContain('onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelect(customer.id) }}')
   })
 
-  it('should keep No customer option reachable from iOS pointerdown and click', () => {
-    expect(content).toContain('onPointerDown={(e) => { e.preventDefault(); handleSelect(null) }}')
-    expect(content).toContain('onClick={() => handleSelect(null)}')
+  it('should keep No customer option reachable via onClick', () => {
+    expect(content).toContain('onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelect(null) }}')
   })
 
   it('should not double-open or double-close through pointer and click because handleSelect resets state', () => {

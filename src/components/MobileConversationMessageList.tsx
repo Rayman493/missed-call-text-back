@@ -425,6 +425,7 @@ export default function MobileConversationMessageList({
           </div>
         )
       })}
+      <div data-bottom-sentinel aria-hidden className="h-0 w-full !mt-0" />
     </div>
     </div>
   )

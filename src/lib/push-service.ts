@@ -15,6 +15,7 @@
 import { PushNotifications } from '@capacitor/push-notifications'
 import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
+import { Device } from '@capacitor/device'
 import { nativePermissionsStore } from '@/lib/native-permissions/native-permissions-store'
 
 export interface PushNotificationData {
@@ -39,6 +40,10 @@ class PushService {
   private currentToken: string | null = null
   private currentPlatform: 'android' | 'ios' | null = null
   private accessToken: string | null = null
+  private currentBusinessId: string | null = null
+  private deviceId: string | null = null
+  private lastRegisteredToken: string | null = null
+  private lastRegisteredBusinessId: string | null = null
   private registrationStatus: 'none' | 'in-flight' | 'succeeded' | 'failed' = 'none'
   private permissionUnsubscribe: (() => void) | null = null
 
@@ -49,17 +54,24 @@ class PushService {
     const hasFCMToken = !!this.currentToken
     const hasAccessToken = !!this.accessToken
     const hasPlatform = !!this.currentPlatform
-    const canAttempt = this.registrationStatus === 'none' || this.registrationStatus === 'failed'
+    const notInFlight = this.registrationStatus !== 'in-flight'
+    const alreadyRegistered =
+      this.registrationStatus === 'succeeded' &&
+      this.currentToken === this.lastRegisteredToken &&
+      this.currentBusinessId === this.lastRegisteredBusinessId
 
     console.log('[PUSH SERVICE] Registration check:', {
       hasFCMToken,
       hasAccessToken,
       hasPlatform,
       registrationStatus: this.registrationStatus,
-      canAttempt
+      notInFlight,
+      alreadyRegistered,
+      currentBusinessId: this.currentBusinessId,
+      lastRegisteredBusinessId: this.lastRegisteredBusinessId
     })
 
-    return hasFCMToken && hasAccessToken && hasPlatform && canAttempt
+    return hasFCMToken && hasAccessToken && hasPlatform && notInFlight && !alreadyRegistered
   }
 
   /**
@@ -82,10 +94,27 @@ class PushService {
     console.log('[PUSH SERVICE] setAccessToken called, token present:', token ? 'yes' : 'no')
     console.log('[PUSH SERVICE] FCM token cached:', this.currentToken ? 'yes' : 'no')
     console.log('[PUSH SERVICE] Current registration status:', this.registrationStatus)
-    
+
     this.accessToken = token
-    
+
     // Attempt registration if conditions are met
+    this.maybeRegisterDevice()
+  }
+
+  /**
+   * Set the active business ID from BusinessContext.
+   * Re-registers the current push token when the active business changes.
+   */
+  setBusinessId(businessId: string | null): void {
+    if (!Capacitor.isNativePlatform()) return
+    if (this.currentBusinessId === businessId) return
+
+    console.log('[PUSH SERVICE] setBusinessId:', {
+      previous: this.currentBusinessId,
+      next: businessId
+    })
+
+    this.currentBusinessId = businessId
     this.maybeRegisterDevice()
   }
 
@@ -119,6 +148,15 @@ class PushService {
       console.log('[PUSH SERVICE] Starting initialization')
       this.currentPlatform = Capacitor.getPlatform() === 'android' ? 'android' : 'ios'
       console.log('[PUSH SERVICE] Platform:', this.currentPlatform)
+
+      try {
+        const deviceInfo = await Device.getId()
+        this.deviceId = deviceInfo.identifier
+        console.log('[PUSH SERVICE] Device identifier loaded:', this.deviceId ? this.deviceId.slice(-8) : null)
+      } catch (deviceError) {
+        console.warn('[PUSH SERVICE] Device.getId() failed:', deviceError)
+        this.deviceId = null
+      }
 
       // Set up listeners only once
       if (!this.listenersSetup) {
@@ -242,13 +280,16 @@ class PushService {
 
     // Listen for token registration
     PushNotifications.addListener('registration', (token) => {
-      console.log('[PUSH SERVICE] FCM registration event received', {
-        tokenPrefix: token.value.substring(0, 8) + '...'
+      console.log('[PUSH SERVICE] FCM/APNs registration event received', {
+        platform: this.currentPlatform,
+        tokenPrefix: token.value.substring(0, 8) + '...',
+        businessId: this.currentBusinessId
       })
       this.currentToken = token.value
       console.log('[PUSH SERVICE] Access token cached:', this.accessToken ? 'yes' : 'no')
+      console.log('[PUSH SERVICE] Business cached:', this.currentBusinessId ? 'yes' : 'no')
       console.log('[PUSH SERVICE] Current registration status:', this.registrationStatus)
-      
+
       // Attempt registration if conditions are met
       this.maybeRegisterDevice()
     })
@@ -299,6 +340,8 @@ class PushService {
     try {
       console.log('[PUSH SERVICE] Server registration started', {
         platform: this.currentPlatform,
+        businessId: this.currentBusinessId,
+        deviceIdentifier: this.getDeviceIdentifier(),
         tokenPrefix: token.substring(0, 8) + '...'
       })
 
@@ -325,7 +368,8 @@ class PushService {
         body: JSON.stringify({
           pushToken: token,
           platform: this.currentPlatform,
-          deviceIdentifier: this.getDeviceIdentifier()
+          deviceIdentifier: this.getDeviceIdentifier(),
+          businessId: this.currentBusinessId
         })
       })
 
@@ -348,9 +392,14 @@ class PushService {
       } else {
         const result = await response.json()
         console.log('[PUSH SERVICE] Server registration success:', {
-          deviceId: result.device?.id
+          deviceId: result.device?.id,
+          platform: this.currentPlatform,
+          businessId: result.device?.business_id,
+          enabled: result.device?.enabled
         })
         this.registrationStatus = 'succeeded'
+        this.lastRegisteredToken = token
+        this.lastRegisteredBusinessId = this.currentBusinessId
       }
     } catch (error) {
       console.error('[PUSH SERVICE] Server registration error:', error)
@@ -379,8 +428,13 @@ class PushService {
   clearRegistrationState(): void {
     console.log('[PUSH SERVICE] Clearing registration state')
     this.registrationStatus = 'none'
-    this.currentToken = null
     this.accessToken = null
+    this.currentBusinessId = null
+    this.lastRegisteredToken = null
+    this.lastRegisteredBusinessId = null
+
+    // Keep the native token, platform, and device ID so the next
+    // authenticated session can re-register with the same installation.
 
     // Unsubscribe from permission state changes
     if (this.permissionUnsubscribe) {
@@ -510,9 +564,10 @@ class PushService {
    * This is optional and used for debugging purposes
    */
   private getDeviceIdentifier(): string | null {
-    // In the future, this could use Device plugin to get a unique device ID
-    // For now, return null as it's optional
-    return null
+    // Capacitor Device plugin provides a stable installation identifier.
+    // This lets the server disable only prior tokens for the same
+    // installation, not all tokens for the same user/business/platform.
+    return this.deviceId
   }
 
   /**

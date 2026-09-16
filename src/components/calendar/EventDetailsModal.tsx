@@ -793,7 +793,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       }}
       data-scroll-lock-allow
     >
-      <div className="bg-card rounded-2xl border border-border/60 shadow-2xl shadow-black/10 dark:shadow-black/40 w-full max-w-2xl flex max-h-[80dvh] sm:max-h-[var(--modal-max-height)] flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+      <div className="bg-card rounded-2xl border border-border/60 shadow-2xl shadow-black/10 dark:shadow-black/40 w-full max-w-2xl flex max-h-[var(--modal-max-height)] flex-col overflow-hidden animate-in zoom-in-95 duration-200"
            data-scroll-lock-allow>
         {/* Visually hidden title for accessibility */}
         <h2 id="event-title" className="sr-only">{event.summary}</h2>
@@ -1237,7 +1237,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-border/60 dark:border-border/50 bg-muted/30 flex-shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+        <div className="px-5 py-3 border-t border-border/60 dark:border-border/50 bg-muted/30 flex-shrink-0">
           {error && (
             <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
@@ -1300,56 +1300,60 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               </button>
             </div>
           ) : (
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Secondary actions (left cluster) */}
-              <button
-                onClick={openGoogleCalendar}
-                disabled={!event.htmlLink}
-                className="h-9 px-3 text-xs font-medium bg-muted hover:bg-muted/80 text-foreground border border-border/50 rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
-              >
-                <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
-                <span className="truncate hidden sm:inline">Google Calendar</span>
-                <span className="truncate sm:hidden">Calendar</span>
-              </button>
-              {!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)) && (
-                <button
-                  onClick={() => setIsSmsOpen(true)}
-                  className="h-9 px-3 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-1.5"
-                >
-                  <Send className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="truncate">Text Details</span>
-                </button>
-              )}
-              {!event.isHoliday && isReplyFlowOwned && !isJobEvent && (
-                <button
-                  onClick={handleEditClick}
-                  className="h-9 px-3 text-xs font-medium text-foreground hover:bg-muted/50 border border-border/50 rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-1.5"
-                >
-                  <Pencil className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="truncate">Edit</span>
-                </button>
-              )}
-              {!event.isHoliday && isReplyFlowOwned && !isJobEvent && (
-                <button
-                  onClick={handleDeleteClick}
-                  className="h-9 w-9 px-0 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg transition-colors inline-flex items-center justify-center"
-                  aria-label="Delete appointment"
-                  title="Delete"
-                >
-                  <Trash2 className="w-3.5 h-3.5 flex-shrink-0" />
-                </button>
-              )}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              {/* Primary row */}
+              <div className="flex gap-2">
+                {event.meetingUrl && (
+                  <button
+                    onClick={openMeetingLink}
+                    className="h-10 flex-1 px-4 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <LinkIcon className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">Join</span>
+                  </button>
+                )}
+                {!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)) && (
+                  <button
+                    onClick={() => setIsSmsOpen(true)}
+                    className="h-10 flex-1 px-4 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-1.5"
+                  >
+                    <Send className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate">Text Details</span>
+                  </button>
+                )}
+              </div>
 
-              {/* Primary action (far right) */}
-              {event.meetingUrl && (
+              {/* Secondary/destructive row */}
+              <div className="flex gap-2">
                 <button
-                  onClick={openMeetingLink}
-                  className="ml-auto h-9 px-4 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2 shadow-sm"
+                  onClick={openGoogleCalendar}
+                  disabled={!event.htmlLink}
+                  className="h-10 flex-1 px-3 text-xs font-medium bg-muted hover:bg-muted/80 text-foreground border border-border/50 rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
                 >
-                  <LinkIcon className="w-4 h-4 flex-shrink-0" />
-                  Join
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="truncate hidden sm:inline">Google Calendar</span>
+                  <span className="truncate sm:hidden">Calendar</span>
                 </button>
-              )}
+                {!event.isHoliday && isReplyFlowOwned && !isJobEvent && (
+                  <button
+                    onClick={handleEditClick}
+                    className="h-10 flex-1 px-3 text-xs font-medium text-foreground hover:bg-muted/50 border border-border/50 rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-1.5"
+                  >
+                    <Pencil className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate">Edit</span>
+                  </button>
+                )}
+                {!event.isHoliday && isReplyFlowOwned && !isJobEvent && (
+                  <button
+                    onClick={handleDeleteClick}
+                    className="h-10 w-10 px-0 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg transition-colors inline-flex items-center justify-center"
+                    aria-label="Delete appointment"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 flex-shrink-0" />
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>

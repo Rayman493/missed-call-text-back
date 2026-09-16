@@ -4,6 +4,9 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 
+// Token invalidation for permanent provider failures is delegated to
+// fcm-sender.ts and apns-sender.ts when FCM/APNs report an invalid token.
+
 export async function POST(request: NextRequest) {
   console.log('[PUSH DEVICE REGISTRATION] Request received')
 
@@ -65,7 +68,7 @@ export async function POST(request: NextRequest) {
     console.log('[PUSH DEVICE REGISTRATION] User authenticated:', user.id)
 
     const body = await request.json()
-    const { pushToken, platform, deviceIdentifier } = body
+    const { pushToken, platform, deviceIdentifier, businessId: requestedBusinessId } = body
 
     if (!pushToken || !platform) {
       console.error('[PUSH DEVICE REGISTRATION] Missing required fields')
@@ -77,19 +80,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid platform. Must be android or ios' }, { status: 400 })
     }
 
-    console.log('[PUSH DEVICE REGISTRATION] Looking up business for user:', user.id)
+    console.log('[PUSH DEVICE REGISTRATION] Looking up business for user:', user.id, 'requested business:', requestedBusinessId)
 
-    // Get the user's business_id from the businesses table using canonical user_id column
-    const { data: business, error: businessError } = await supabaseAdmin
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
+    // Use the active business provided by the native client when available.
+    // Otherwise fall back to the first business owned by the user.
+    let business: { id: string } | null = null
+    let businessError: any = null
+
+    if (requestedBusinessId) {
+      const { data: requestedBusiness, error } = await supabaseAdmin
+        .from('businesses')
+        .select('id, user_id')
+        .eq('id', requestedBusinessId)
+        .single()
+      business = requestedBusiness
+      businessError = error
+      if (business && (business as any).user_id !== user.id) {
+        console.error('[PUSH DEVICE REGISTRATION] Requested business does not belong to user')
+        return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+      }
+    }
+
+    if (!business) {
+      const { data: userBusiness, error } = await supabaseAdmin
+        .from('businesses')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+      business = userBusiness
+      businessError = error
+    }
 
     if (businessError || !business) {
       console.error('[PUSH DEVICE REGISTRATION] Business lookup failed:', businessError?.message)
       console.log('[PUSH DEVICE REGISTRATION] Business lookup details:', {
         userId: user.id,
+        requestedBusinessId,
         errorCode: businessError?.code,
         errorMessage: businessError?.message,
         businessFound: !!business
@@ -97,7 +123,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    console.log('[PUSH DEVICE REGISTRATION] Business found:', business.id)
+    console.log('[PUSH DEVICE REGISTRATION] Business resolved:', business.id)
 
     // Upsert the device token (insert or update if exists).
     //
@@ -137,28 +163,27 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!deviceError) {
-      // Disable any other active token on the same business/platform for this user
-      // so a fresh registration becomes the only push target.
-      let disableQuery = supabaseAdmin
-        .from('push_devices')
-        .update({ enabled: false, updated_at: new Date().toISOString() })
-        .eq('user_id', user.id)
-        .eq('business_id', business.id)
-        .eq('platform', platform)
-        .eq('enabled', true)
-        .neq('push_token', pushToken)
-
+      // Disable only prior tokens from the same installation. Without a stable
+      // device identifier we cannot safely distinguish a token rotation on the
+      // current device from a new separate device, so we leave other rows alone.
       if (deviceIdentifier) {
-        disableQuery = disableQuery.eq('device_identifier', deviceIdentifier)
-      } else {
-        disableQuery = disableQuery.is('device_identifier', null)
-      }
+        const { error: disableError } = await supabaseAdmin
+          .from('push_devices')
+          .update({ enabled: false, updated_at: new Date().toISOString() })
+          .eq('user_id', user.id)
+          .eq('business_id', business.id)
+          .eq('platform', platform)
+          .eq('device_identifier', deviceIdentifier)
+          .eq('enabled', true)
+          .neq('push_token', pushToken)
 
-      const { error: disableError } = await disableQuery
-      if (disableError) {
-        console.error('[PUSH DEVICE REGISTRATION] Failed to disable stale tokens:', disableError)
+        if (disableError) {
+          console.error('[PUSH DEVICE REGISTRATION] Failed to disable stale tokens:', disableError)
+        } else {
+          console.log('[PUSH DEVICE REGISTRATION] Disabled older tokens for this device')
+        }
       } else {
-        console.log('[PUSH DEVICE REGISTRATION] Disabled older tokens for this platform')
+        console.log('[PUSH DEVICE REGISTRATION] No device identifier; skipping stale-token cleanup')
       }
     }
 

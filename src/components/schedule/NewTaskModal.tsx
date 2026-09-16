@@ -8,7 +8,6 @@ import TimePicker from '@/components/ui/TimePicker'
 import SelectPicker from '@/components/ui/SelectPicker'
 import Modal from '@/components/ui/Modal'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
-import AddCustomerModal from '@/components/AddCustomerModal'
 import { getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 
 interface Task {
@@ -53,8 +52,6 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
   const [reminderOffsetMinutes, setReminderOffsetMinutes] = useState<number | null>(null)
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(preselectedLeadCustomer || null)
-  const [newlyCreatedCustomer, setNewlyCreatedCustomer] = useState<Customer | null>(null)
-  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -253,21 +250,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
     setReminderOffsetMinutes(null)
     setSelectedLeadId(null)
     setSelectedJobId(null)
-    setNewlyCreatedCustomer(null)
     onClose()
-  }
-
-  // Handle successful customer creation from inline Add Customer modal
-  const handleLeadCreated = (newLeadId: string, leadData?: any) => {
-    const newCustomer: Customer = {
-      id: newLeadId,
-      name: leadData?.raw_metadata?.customerName || leadData?.raw_metadata?.callerName || leadData?.name || null,
-      caller_phone: leadData?.caller_phone || leadData?.raw_metadata?.customerPhone || null,
-      raw_metadata: leadData?.raw_metadata || null,
-    }
-    setNewlyCreatedCustomer(newCustomer)
-    setSelectedLeadId(newLeadId)
-    setSelectedCustomer(newCustomer)
   }
 
   // Early return if modal is closed to prevent rendering
@@ -339,8 +322,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               onCustomerSelect={setSelectedCustomer}
               label="Customer"
               allowClear={true}
-              prefillCustomer={newlyCreatedCustomer || preselectedLeadCustomer}
-              onAddCustomerClick={() => setIsAddCustomerOpen(true)}
+              prefillCustomer={preselectedLeadCustomer}
             />
 
             <SelectPicker
@@ -464,13 +446,6 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         </form>
       </div>
     </Modal>
-
-    {/* Inline Add Customer modal — reuses canonical AddCustomerModal */}
-    <AddCustomerModal
-      isOpen={isAddCustomerOpen}
-      onClose={() => setIsAddCustomerOpen(false)}
-      onLeadCreated={handleLeadCreated}
-    />
     </>
   )
 }

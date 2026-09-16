@@ -145,7 +145,7 @@ export default function DesktopConversationMessageList({
           <span>New messages</span>
         </button>
       )}
-      <div className="space-y-3 pb-24" data-desktop-layout data-active-conversation-list>
+      <div className="space-y-3" data-desktop-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle payment requested events
         if (item.type === 'payment_requested') {
@@ -466,6 +466,7 @@ export default function DesktopConversationMessageList({
           </div>
         )
       })}
+      <div data-bottom-sentinel aria-hidden className="h-0 w-full !mt-0" />
     </div>
     </div>
   )

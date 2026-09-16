@@ -743,11 +743,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         : mobileConversationContainerRef.current
   }, [isFullScreen])
 
-  // True-bottom helper: scroll the container to its maximum valid scroll position.
-  // Uses direct scrollTop assignment (not scrollTo/scrollIntoView) for deterministic
-  // true-bottom landing. No magic pixel offsets.
+  // True-bottom helper: scroll the container so the last content is flush with
+  // the bottom of the viewport. Uses the explicit bottom sentinel (rendered by
+  // the message list). Because the sentinel's offsetParent is the message list
+  // wrapper, we measure in viewport coordinates so padding, borders, and the
+  // scroll container's own offsetParent do not mis-align the anchor. Falls back
+  // to the exact scrollable maximum when the sentinel is not present.
   const scrollToTrueBottom = useCallback((container: HTMLDivElement) => {
-    container.scrollTop = container.scrollHeight
+    const sentinel = container.querySelector('[data-bottom-sentinel]') as HTMLElement | null
+    if (sentinel) {
+      const containerRect = container.getBoundingClientRect()
+      const contentTop = containerRect.top + container.clientTop
+      const sentinelTop = sentinel.getBoundingClientRect().top
+      const target = Math.max(
+        0,
+        Math.round(sentinelTop - contentTop + sentinel.clientHeight - container.clientHeight)
+      )
+      container.scrollTop = target
+      return
+    }
+    container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight)
   }, [])
 
   // Check if the container is at/near the bottom using the canonical threshold
@@ -1773,15 +1788,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // If user was following latest (near bottom), scroll to true bottom after resize.
   // If user was reading history (scrolled up), preserve their position.
   useEffect(() => {
-    // Guard against SSR and desktop
-    if (typeof window === 'undefined' || window.innerWidth >= 1024) {
+    // Guard against SSR
+    if (typeof window === 'undefined') {
       return
     }
 
-    const container = mobileConversationContainerRef.current
-    if (!container) return
+    // Use the canonical scroll container (mobile, desktop, or fullscreen).
+    const getContainer = getScrollContainer
+    if (!getContainer()) return
 
-    let previousHeight = window.visualViewport?.height || window.innerHeight
+    // Always track the active visual viewport height for the CSS sizing variable.
 
     // Expose the actual visible viewport height as a CSS variable so the
     // conversation workspace can size itself to the real viewport, including
@@ -1791,26 +1807,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         document.documentElement.style.setProperty('--visual-viewport-height', `${height}px`)
       }
     }
-    updateVisibleHeight(previousHeight)
+    updateVisibleHeight(window.visualViewport?.height || window.innerHeight)
 
     const handleResize = () => {
       const currentHeight = window.visualViewport?.height || window.innerHeight
       updateVisibleHeight(currentHeight)
-      const heightDiff = Math.abs(previousHeight - currentHeight)
 
-      // Only respond to significant height changes (keyboard open/close)
-      if (heightDiff > 100) {
-        // Use followLatestRef as the canonical follow-latest state.
-        // If user was near bottom before keyboard resize, anchor to true bottom.
-        // If user was reading history, preserve their position (no jump).
-        if (followLatestRef.current) {
-          requestAnimationFrame(() => {
-            scrollToTrueBottom(container)
-          })
-        }
+      // Re-anchor to the true bottom on any viewport/keyboard/window resize
+      // when the user is following the latest message. This avoids arbitrary
+      // 100 px thresholds and keeps the conversation pinned through dynamic
+      // viewport changes on both desktop and mobile.
+      if (followLatestRef.current) {
+        requestAnimationFrame(() => {
+          const container = getContainer()
+          if (container) scrollToTrueBottom(container)
+        })
       }
-
-      previousHeight = currentHeight
     }
 
     // Use visualViewport API for keyboard resize detection (more accurate on mobile)
@@ -1834,7 +1846,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       }
     }
-  }, [scrollToTrueBottom])
+  }, [getScrollContainer, scrollToTrueBottom])
 
   const followUpJobs = leadData?.followUpJobs || []
   const hasCancelledFollowUps = followUpJobs.some((job: any) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied')

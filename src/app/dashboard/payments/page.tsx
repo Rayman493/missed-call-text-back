@@ -305,7 +305,16 @@ export default function PaymentsPage() {
           table: 'payment_requests',
           filter: `business_id=eq.${business.id}`,
         },
-        () => {
+        (payload: any) => {
+          // Payment requests may carry the payment status but not the joined
+          // lead/job data needed by the Payments list. Use the realtime event
+          // as an invalidation signal and refetch the canonical payment list.
+          console.log('[Payments Page] payment_requests realtime event:', {
+            eventType: payload.eventType,
+            paymentRequestId: payload.new?.id,
+            status: payload.new?.status
+          })
+          fetchPayments()
           fetchBillingDocuments()
         }
       )

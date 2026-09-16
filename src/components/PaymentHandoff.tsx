@@ -50,8 +50,14 @@ export default function PaymentHandoff({
   //   handling which can bounce back to the payment page.
   // - On web, use the real checkoutUrl (not a hard-coded homepage) so the
   //   merchant's profile opens directly.
+  // - On Android for Venmo, open the Venmo app/website GENERICALLY instead of
+  //   navigating to /u/{username}, which stalls in Venmo's profile deep-link.
   const openProvider = async () => {
-    const url = checkoutUrl || (provider === 'venmo' ? 'https://venmo.com' : '#')
+    const isAndroidNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
+    const defaultVenmoUrl = isAndroidNative ? 'https://venmo.com' : 'https://venmo.com'
+    const url = isAndroidNative && provider === 'venmo'
+      ? 'https://venmo.com'
+      : (checkoutUrl || (provider === 'venmo' ? defaultVenmoUrl : '#'))
     if (!url || url === '#') return
 
     setOpening(true)

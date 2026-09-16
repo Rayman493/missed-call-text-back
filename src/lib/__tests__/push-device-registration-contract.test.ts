@@ -10,19 +10,19 @@ const fcmSenderContent = readFileSync('src/lib/fcm-sender.ts', 'utf8')
 const apnsSenderContent = readFileSync('src/lib/apns-sender.ts', 'utf8')
 
 describe('Push device registration identity and rotation contract', () => {
-  it('does not have a stable native installation identifier today', () => {
-    // getDeviceIdentifier currently returns null because the Capacitor Device
-    // plugin is not wired. The DB device_identifier column is therefore null
-    // in practice.
+  it('uses a stable native installation identifier from the Device plugin', () => {
+    // getDeviceIdentifier now returns the Capacitor Device plugin's
+    // installation identifier so the server can scope stale-token cleanup.
+    expect(pushServiceContent).toMatch(/import\s+{\s*Device\s*}\s+from\s+['"]@capacitor\/device['"]/)
     expect(pushServiceContent).toMatch(/private getDeviceIdentifier\(\): string \| null/)
-    expect(pushServiceContent).toMatch(/return null/)
+    expect(pushServiceContent).toMatch(/return this\.deviceId/)
   })
 
-  it('does not disable other tokens by user+business+platform only', () => {
-    // Without a stable device id, disabling by (user, business, platform)
-    // would collapse multiple legitimate devices into a single active token.
-    // The route must NOT contain any bulk `enabled: false` update.
-    expect(registrationRouteContent).not.toMatch(/\.update\(\{\s*enabled:\s*false/)
+  it('disables stale tokens only for the same installation identifier', () => {
+    // The cleanup query is constrained by device_identifier and always
+    // excludes the just-registered push_token.
+    expect(registrationRouteContent).toMatch(/\.eq\(['"]device_identifier['"],\s*deviceIdentifier\)/)
+    expect(registrationRouteContent).not.toMatch(/\.is\(['"]device_identifier['"],\s*null\)/)
   })
 
   it('uses the unique (user_id, platform, push_token) identity for idempotent re-registration', () => {
@@ -30,7 +30,8 @@ describe('Push device registration identity and rotation contract', () => {
   })
 
   it('explains stale-token handling is delegated to the providers', () => {
-    // Stale tokens are disabled when FCM/APNs rejects them, not at registration.
+    // Registration disables only same-installation prior tokens.
+    // Provider-side permanent failures are handled in fcm-sender.ts/apns-sender.ts.
     expect(registrationRouteContent).toMatch(/fcm-sender\.ts/)
     expect(registrationRouteContent).toMatch(/apns-sender\.ts/)
     expect(fcmSenderContent).toMatch(/disableInvalidToken\(/)

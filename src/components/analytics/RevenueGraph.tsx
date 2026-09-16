@@ -212,7 +212,7 @@ export default function RevenueGraph() {
                   />
                   <Tooltip
                     content={<PremiumTooltip />}
-                    trigger={isTouchDevice ? 'click' : 'hover'}
+                    trigger="hover"
                   />
                   <Line
                     type="monotone"

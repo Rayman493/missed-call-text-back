@@ -290,7 +290,7 @@ export default function BusinessActivityGraph() {
                         </div>
                       )
                     }}
-                    trigger={isTouchDevice ? 'click' : 'hover'}
+                    trigger="hover"
                   />
                   <Legend
                     content={({ payload }: any) => (
