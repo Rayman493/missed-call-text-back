@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Calendar, Clock, MapPin, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2, ClipboardList, MessageSquareText, CheckSquare, ChevronDown, ChevronUp } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -779,7 +780,11 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
     }
   }
 
-  return (
+  // Render via portal so the overlay escapes any transformed/animated
+  // ancestors (e.g. animate-in wrappers): inline fixed positioning would
+  // otherwise be trapped by an ancestor containing block and the sticky
+  // app header could paint above the modal.
+  const modalOverlay = (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden px-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 md:p-4"
       style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, var(--modal-bottom-reserve))' }}
@@ -1383,5 +1388,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       />
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(modalOverlay, document.body) : null
 }
 

@@ -132,13 +132,14 @@ describe('Batch 5 — Agenda view-only', () => {
     expect(todayCommandCenterSrc).toContain('Agenda is view-only')
   })
 
-  // 9. Agenda job row has no edit action
+  // 9. Agenda job row has no inline actions
   it('Agenda timeline job items have no edit pencil', () => {
-    // The edit pencil was removed from job items in the timeline
-    const timelineIdx = todayCommandCenterSrc.indexOf("item.type === 'job'")
-    const timelineSection = todayCommandCenterSrc.substring(timelineIdx, timelineIdx + 500)
+    // Job rows carry no inline actions in the agenda — no edit pencil and no
+    // inline View button; details live on the dedicated Jobs surface.
+    const timelineIdx = todayCommandCenterSrc.indexOf('sortedWorkItems.map')
+    const timelineSection = todayCommandCenterSrc.substring(timelineIdx, timelineIdx + 2000)
     expect(timelineSection).not.toContain('onEditJob')
-    expect(timelineSection).toContain('View')
+    expect(timelineSection).not.toContain('onJobClick')
   })
 
   // 10. Agenda appointment row has no edit action (never had one)

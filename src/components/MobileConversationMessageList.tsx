@@ -362,6 +362,7 @@ export default function MobileConversationMessageList({
                     <MessageMediaRenderer
                       media={msg.media}
                       isInbound={isInbound}
+                      isSendingOverlay={Boolean(isOptimistic && isSending)}
                       onImageLoad={index === conversationTimeline.length - 1 ? onImageLoad : undefined}
                     />
                   )}

@@ -284,7 +284,6 @@ export default function CustomerAttachmentsCard({ messages }: CustomerAttachment
         isOpen={showAllModal}
         onClose={() => setShowAllModal(false)}
         title={`Photos & Attachments (${allAttachments.length})`}
-        bottomSheetOnMobile
         contentMaxHeight="70vh"
       >
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">

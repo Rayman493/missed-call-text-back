@@ -124,17 +124,15 @@ export default function CalendarDayCell({
           Enlarged hit target (w-7 h-7 on mobile, w-8 h-8 on desktop) for
           reliable tapping on crowded days. */}
       <div
-        className={`
-          relative z-10 flex items-start justify-start w-7 h-7 md:w-8 md:h-8 flex-none leading-none p-0
-          ${isToday
-            ? 'bg-blue-500 rounded-md'
-            : ''
-          }
-        `}
+        className="relative z-10 flex items-start justify-start w-7 h-7 md:w-8 md:h-8 flex-none leading-none p-0"
       >
         <span
           className={`
-            text-[10px] md:text-sm font-semibold leading-none pl-0.5 pt-0.5
+            text-[10px] md:text-sm font-semibold leading-none
+            ${isToday
+              ? 'inline-flex items-center justify-center w-5 h-5 md:w-6 md:h-6 m-0.5 bg-blue-500 text-white rounded-full'
+              : 'pl-0.5 pt-0.5'
+            }
             ${isCurrentMonth
               ? isWeekend && !isToday
                 ? 'text-slate-500 dark:text-slate-400'

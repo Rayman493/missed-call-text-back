@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Navigation from './Navigation'
@@ -20,7 +20,29 @@ export default function AppHeader({
   sticky = true
 }: AppHeaderProps) {
   const pathname = usePathname()
-  
+
+  // Hide the top app chrome while a blocking modal overlay is open, matching
+  // how BottomNavigation suppresses itself via data-modal-open. The lock
+  // system sets data-chrome-covered only for true blocking modals (chrome-
+  // owned overlays like the notifications panel and More menu are excluded),
+  // so this header never collapses underneath its own dropdown.
+  const [isChromeCovered, setIsChromeCovered] = useState(false)
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+
+    const checkChromeCovered = () => {
+      setIsChromeCovered(document.body.getAttribute('data-chrome-covered') === 'true')
+    }
+
+    checkChromeCovered()
+
+    const observer = new MutationObserver(checkChromeCovered)
+    observer.observe(document.body, { attributes: true, attributeFilter: ['data-chrome-covered'] })
+
+    return () => observer.disconnect()
+  }, [])
+
   // Check if we're on a public/marketing page
   const isPublicPage = pathname === '/' || 
                        pathname === '/faq' || 
@@ -31,7 +53,7 @@ export default function AppHeader({
 
   return (
     <>
-      <header className={`${sticky ? 'sticky top-0' : ''} z-50 flex-shrink-0 border-b border-border/10 bg-background shadow-[0_1px_0_rgba(0,0,0,0.06),0_18px_52px_rgba(0,0,0,0.12)] dark:shadow-[0_1px_0_rgba(255,255,255,0.06),0_18px_52px_rgba(2,6,23,0.34)] relative`}>
+      <header className={`${isChromeCovered ? 'hidden' : ''} ${sticky ? 'sticky top-0' : ''} z-50 flex-shrink-0 border-b border-border/10 bg-background shadow-[0_1px_0_rgba(0,0,0,0.06),0_18px_52px_rgba(0,0,0,0.12)] dark:shadow-[0_1px_0_rgba(255,255,255,0.06),0_18px_52px_rgba(2,6,23,0.34)] relative`}>
         <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 pt-4 sm:pt-4.5 pb-2 sm:pb-2.5 border-0" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 8px)' }}>
           <div className="flex items-center justify-between h-11">
             {/* Left side - Logo and navigation */}

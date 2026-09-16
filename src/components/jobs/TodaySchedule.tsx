@@ -368,16 +368,6 @@ export default function TodaySchedule({
                             <span className="text-sm font-medium text-slate-500 dark:text-slate-400 truncate line-through">{job.title}</span>
                           </div>
                         </div>
-                        <button
-                          onClick={() => {
-                            if (cardGuard.consumeDragSuppression()) return
-                            onJobClick(job)
-                          }}
-                          className="px-2 py-1 text-[10px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"
-                          title="View details"
-                        >
-                          View
-                        </button>
                       </div>
                     ))}
                   </div>

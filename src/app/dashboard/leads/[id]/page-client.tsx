@@ -394,6 +394,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         customerHealth: false,
         quickActions: false,
         aiIntake: false,
+        aiSummary: false,
         schedule: false,
         jobs: false,
         reminders: false,
@@ -408,6 +409,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       customerHealth: false,
       quickActions: false,
       aiIntake: false,
+      aiSummary: false,
       schedule: false,
       jobs: false,
       reminders: false,
@@ -5184,6 +5186,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <SidebarSection
                         title="AI Summary"
                         className="mb-3"
+                        collapsible
+                        isCollapsed={Boolean(collapsedSections.aiSummary)}
+                        onToggleCollapse={() => setCollapsedSections((prev: any) => ({ ...prev, aiSummary: !prev.aiSummary }))}
                       >
                         <DesktopAISummary leadId={params.id} leadData={leadData} />
                       </SidebarSection>
@@ -5740,9 +5745,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
 
-          {/* AI Summary - canonical card for ALL customer origins */}
+          {/* AI Summary - canonical card for ALL customer origins (collapsible) */}
           <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
+            <button
+              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, aiSummary: !prev.aiSummary }))}
+              className="flex items-center justify-between w-full"
+              aria-expanded={!collapsedSections.aiSummary}
+            >
               <div className="flex items-center gap-2">
                 <div className="w-5 h-5 flex items-center justify-center">
                   <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
@@ -5751,10 +5760,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
                 <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">AI Summary</span>
               </div>
-            </div>
-            <div className="mt-2">
-              <DesktopAISummary leadId={params.id} leadData={leadData} />
-            </div>
+              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.aiSummary ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {!collapsedSections.aiSummary && (
+              <div className="mt-2">
+                <DesktopAISummary leadId={params.id} leadData={leadData} />
+              </div>
+            )}
           </div>
 
           {/* Photos & Attachments - surfaces media from conversation history */}
@@ -6376,6 +6390,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </button>
             <button
               onClick={async () => {
+                if (isSavingNotes) return
+                setIsSavingNotes(true)
                 const supabase = createBrowserClient()
                 const { data: { session } } = await supabase.auth.getSession()
                 const headers: HeadersInit = { 'Content-Type': 'application/json' }
@@ -6407,11 +6423,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 } catch (error) {
                   console.error('Error saving notes:', error)
                   setError(error instanceof Error ? error.message : 'Failed to save notes')
+                } finally {
+                  setIsSavingNotes(false)
                 }
               }}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              disabled={isSavingNotes}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Save
+              {isSavingNotes && (
+                <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white/40 border-t-white" aria-hidden="true" />
+              )}
+              {isSavingNotes ? 'Saving…' : 'Save'}
             </button>
           </div>
         }

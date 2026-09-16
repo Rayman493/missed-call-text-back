@@ -497,21 +497,10 @@ export default function TodayCommandCenter({
                     </div>
                   )}
                 </div>
+                {/* Agenda is view-only — no inline actions; job/task details
+                    live on the dedicated Jobs/Reminders surfaces. */}
                 {item.type === 'task' && (
-                  <div className="flex items-center gap-0.5">
-                    {/* Agenda is view-only — no edit pencil. Quick-complete checkbox remains as canonical quick-action. */}
-                  </div>
-                )}
-                {item.type === 'job' && (
-                  <div className="flex items-center gap-0.5">
-                    <button
-                      onClick={() => onJobClick?.(item.data)}
-                      className="flex-shrink-0 text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      View
-                    </button>
-                    {/* Agenda is view-only — no edit pencil. */}
-                  </div>
+                  <div className="flex items-center gap-0.5" />
                 )}
               </div>
             ))}

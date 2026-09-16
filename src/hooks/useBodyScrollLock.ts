@@ -5,6 +5,27 @@ let lockCount = 0
 let globalScrollPosition = 0
 const activeOwners = new Map<string, { component: string; mountedAt: number }>()
 
+// Overlay owners that are anchored to app chrome (dropdowns/menus) rather
+// than blocking modals. While only these are open, the top app header must
+// remain visible — e.g. the notifications panel is anchored to the header
+// bell and the More menu is anchored to the bottom nav.
+const CHROME_OWNED_OVERLAY_OWNERS = new Set(['MoreMenu', 'navbar-notifications'])
+
+// Keep data-chrome-covered truthful: set while any blocking modal owns a
+// scroll lock, cleared when only chrome-owned overlays (or nothing) remain.
+// AppHeader observes this to suppress itself under true modal overlays.
+function syncChromeCoverAttr(): void {
+  if (typeof document === 'undefined') return
+  const hasBlockingModal = Array.from(activeOwners.values()).some(
+    o => !CHROME_OWNED_OVERLAY_OWNERS.has(o.component)
+  )
+  if (hasBlockingModal) {
+    document.body.setAttribute('data-chrome-covered', 'true')
+  } else {
+    document.body.removeAttribute('data-chrome-covered')
+  }
+}
+
 // Store original DOM values when first lock is acquired
 let originalBodyOverflow = ''
 let originalBodyPosition = ''
@@ -68,6 +89,7 @@ export function resetAllScrollLocks(): void {
   document.documentElement.style.position = originalHtmlPosition
   document.documentElement.style.width = originalHtmlWidth
   document.body.removeAttribute('data-modal-open')
+  document.body.removeAttribute('data-chrome-covered')
 
   console.log('[SCROLL_LOCK_RESET] Reset complete', {
     lockCountAfter: lockCount,
@@ -115,6 +137,7 @@ export function reconcileScrollLock(): void {
     }
     // Ensure modal-open attribute is set when locked
     document.body.setAttribute('data-modal-open', 'true')
+    syncChromeCoverAttr()
   } else {
     // Should be unlocked - restore original values
     if (document.body.style.overflow !== '' ||
@@ -137,6 +160,7 @@ export function reconcileScrollLock(): void {
     }
     // Ensure modal-open attribute is removed when unlocked
     document.body.removeAttribute('data-modal-open')
+    syncChromeCoverAttr()
   }
 }
 
@@ -301,6 +325,7 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
       }
       lockCount++
       activeOwners.set(ownerId, { component: componentName || 'unknown', mountedAt: Date.now() })
+      syncChromeCoverAttr()
 
       console.log('[SCROLL_LOCK_ACQUIRE] LOCK_COMPLETE', {
         ownerId,
@@ -336,6 +361,7 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
         lockCount = 0 // Guard against negative counts
       }
       activeOwners.delete(ownerId)
+      syncChromeCoverAttr()
 
       if (lockCount === 0) {
         // Last unlock: restore original DOM values and scroll position

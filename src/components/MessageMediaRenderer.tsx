@@ -5,7 +5,7 @@ import { MessageMedia } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
-import { FileText, FileSpreadsheet, File } from 'lucide-react'
+import { FileText, FileSpreadsheet, File, Image as ImageIcon, ImageOff } from 'lucide-react'
 
 const DEBUG = process.env.NODE_ENV === 'development'
 
@@ -13,6 +13,9 @@ interface MessageMediaRendererProps {
   media: MessageMedia[]
   isInbound?: boolean
   onImageLoad?: () => void
+  // True while the parent message is still sending — shows an understated
+  // overlay over each image instead of dimming/replacing the bubble.
+  isSendingOverlay?: boolean
 }
 
 // Helper function to format file size
@@ -198,7 +201,7 @@ async function fetchAuthenticatedMedia(
   }
 }
 
-export default function MessageMediaRenderer({ media, isInbound = false, onImageLoad }: MessageMediaRendererProps) {
+export default function MessageMediaRenderer({ media, isInbound = false, onImageLoad, isSendingOverlay = false }: MessageMediaRendererProps) {
   const [expandedMedia, setExpandedMedia] = useState<string | null>(null)
   const [loadedMedia, setLoadedMedia] = useState<Set<string>>(new Set())
   const [failedMedia, setFailedMedia] = useState<Set<string>>(new Set())
@@ -208,6 +211,9 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
   const [resolvingMedia, setResolvingMedia] = useState<Set<string>>(new Set())
   // Track retry attempts per media item
   const [retryCount, setRetryCount] = useState<Record<string, number>>({})
+  // Bump per media item on manual retry to remount the <img> so the browser
+  // re-attempts the load (an unchanged src will not refire onError).
+  const [loadNonces, setLoadNonces] = useState<Record<string, number>>({})
 
   // Track blob URLs with a ref to ensure proper cleanup
   const blobUrlsRef = useRef<Set<string>>(new Set())
@@ -396,10 +402,44 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
   }
 
   const handleImageError = (mediaId: string) => {
-    // Only mark as failed if we have an authenticated URL (not a stale fallback)
-    // If still resolving, the error is from a stale source — don't show terminal failure
-    if (authenticatedUrls[mediaId]) {
-      setFailedMedia(prev => new Set(prev).add(mediaId))
+    // The <img> only renders once an effective URL exists (authenticated,
+    // direct Supabase, or local blob preview), so an error here is a real
+    // load failure — mark it so the compact failure placeholder can show.
+    setFailedMedia(prev => new Set(prev).add(mediaId))
+  }
+
+  // Manual retry after terminal failure. Reuses the existing resolution
+  // pipeline: re-queue auth-required media for resolution (resetting the
+  // retry budget) and remount the <img> for direct URLs.
+  const handleManualRetry = (mediaItem: MessageMedia) => {
+    const id = mediaItem.id
+    setFailedMedia(prev => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+    setLoadedMedia(prev => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+    setRetryCount(prev => ({ ...prev, [id]: 0 }))
+    setLoadNonces(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }))
+
+    const needsAuthResolution = !mediaItem.isLocalPreview &&
+      !mediaItem.media_url.includes('supabase.co') &&
+      !mediaItem.media_url.includes('/storage/v1') &&
+      !mediaItem.media_url.startsWith('blob:')
+
+    if (needsAuthResolution) {
+      // Clear any stale resolved URL and re-enter the resolution queue; the
+      // existing retry effect picks it up now that retryCount is reset.
+      setAuthenticatedUrls(prev => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      setResolvingMedia(prev => new Set(prev).add(id))
     }
   }
 
@@ -421,7 +461,11 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
           const isFailed = failedMedia.has(mediaItem.id)
           const isResolving = resolvingMedia.has(mediaItem.id) && !mediaUrl
           const retriesExhausted = (retryCount[mediaItem.id] || 0) >= MAX_RETRIES
-          const isTerminalFailed = isFailed && retriesExhausted && !mediaUrl
+          // Terminal failure = the image element errored on a resolved URL,
+          // OR authenticated URL resolution exhausted its retry budget. (The
+          // previous `isFailed && !mediaUrl` shape could never be true:
+          // failedMedia is only set once an authenticated URL exists.)
+          const isTerminalFailed = isFailed || (isResolving && retriesExhausted)
 
           // For local previews and Supabase URLs, getMediaUrl is safe (no auth needed)
           const safeDirectUrl = mediaItem.isLocalPreview ||
@@ -448,6 +492,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                     Fades in over the placeholder once decoded to avoid abrupt pop. */}
                 {!isTerminalFailed && effectiveUrl && (
                   <img
+                    key={`${mediaItem.id}-${loadNonces[mediaItem.id] || 0}`}
                     src={effectiveUrl}
                     alt="Message attachment"
                     className={`
@@ -465,19 +510,40 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                 )}
 
                 {/* Loading state — subtle shimmer placeholder, stable dimensions.
-                    Fades out when image is loaded. No large layout jump. */}
+                    Reserves the expected image area so the thread doesn't jump
+                    when the image finishes decoding. */}
                 {!isLoaded && !isTerminalFailed && (
-                  <div className={`aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center animate-pulse transition-opacity duration-300 ${isLoaded ? 'opacity-0' : 'opacity-100'}`}>
+                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center animate-pulse transition-opacity duration-300">
                     <div className="flex flex-col items-center gap-2 text-slate-400 dark:text-slate-500">
-                      <div className="w-5 h-5 border-2 border-slate-300 dark:border-slate-600 border-t-slate-400 dark:border-t-slate-400 rounded-full animate-spin" />
+                      <ImageIcon className="w-5 h-5 opacity-70" />
+                      <div className="w-4 h-4 border-2 border-slate-300 dark:border-slate-600 border-t-slate-400 dark:border-t-slate-400 rounded-full animate-spin" />
                     </div>
                   </div>
                 )}
 
-                {/* Terminal error state — only after retries exhausted */}
+                {/* Terminal error state — compact, deliberate placeholder with
+                    manual retry wired into the existing resolution pipeline. */}
                 {isTerminalFailed && (
-                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Image failed to load</p>
+                  <button
+                    type="button"
+                    onClick={() => handleManualRetry(mediaItem)}
+                    className="aspect-video w-full bg-slate-100 dark:bg-slate-800 rounded-xl flex flex-col items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700/80 transition-colors"
+                    aria-label="Retry loading image"
+                  >
+                    <ImageOff className="w-5 h-5 opacity-70" />
+                    <span className="text-xs">Couldn't load image</span>
+                    <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400">Tap to retry</span>
+                  </button>
+                )}
+
+                {/* Sending overlay — understated, keeps the thumbnail visible
+                    while the parent message is in 'sending' state. */}
+                {isSendingOverlay && !isTerminalFailed && effectiveUrl && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/25 rounded-xl pointer-events-none">
+                    <div className="flex items-center gap-1.5 bg-black/55 px-2.5 py-1 rounded-full text-white text-[10px] font-medium">
+                      <div className="animate-spin rounded-full h-2.5 w-2.5 border border-white/40 border-t-white" />
+                      Sending…
+                    </div>
                   </div>
                 )}
 
