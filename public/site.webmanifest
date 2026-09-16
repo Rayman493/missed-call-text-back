@@ -1,6 +1,8 @@
 {
   "name": "ReplyFlowHQ",
   "short_name": "ReplyFlow",
+  "start_url": "/dashboard",
+  "scope": "/dashboard/",
   "icons": [
     {
       "src": "/icon-192.png",

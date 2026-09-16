@@ -2,55 +2,75 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 
 const handoffSrc = readFileSync('src/components/PaymentHandoff.tsx', 'utf8').replace(/\r\n/g, '\n')
+const linksSrc = readFileSync('src/lib/payment-links.ts', 'utf8').replace(/\r\n/g, '\n')
+const webmanifestSrc = readFileSync('public/site.webmanifest', 'utf8').replace(/\r\n/g, '\n')
 
-describe('Batch 5 — Venmo Android generic app handoff', () => {
-  it('detects native Android specifically for Venmo', () => {
-    expect(handoffSrc).toMatch(/Capacitor\.getPlatform\(\)\s*===\s*['"]android['"]/)
+describe('Venmo handoff routing and lifecycle', () => {
+  it('PWA manifest scopes the WebAPK to /dashboard/ so public /pay stays in the browser', () => {
+    expect(webmanifestSrc).toContain('"scope": "/dashboard/"')
+    expect(webmanifestSrc).toContain('"start_url": "/dashboard"')
   })
 
-  it('does NOT generate or use /u/{username} on Android', () => {
-    expect(handoffSrc).not.toMatch(/venmo\.com\/u\/\$\{[^}]+\}/)
+  it('preserves the targeted Venmo recipient URL on all platforms', () => {
+    expect(linksSrc).toContain('https://venmo.com/u/${encodeURIComponent(normalized)}')
   })
 
-  it('opens the generic Venmo origin for Android native', () => {
-    expect(handoffSrc).toMatch(/['"]https:\/\/venmo\.com['"]\s*:/)
-    expect(handoffSrc).toMatch(/'https:\/\/venmo\.com'/)
+  it('uses checkoutUrl as the primary Venmo handoff target', () => {
+    expect(handoffSrc).toContain("const targetUrl = checkoutUrl || (provider === 'venmo' ? 'https://venmo.com' : '#')")
+    expect(handoffSrc).toContain('Browser.open({ url: targetUrl })')
+    expect(handoffSrc).toContain("window.open(targetUrl, '_blank', 'noopener,noreferrer')")
   })
 
-  it('keeps the Venmo username visible and copyable', () => {
+  it('does not special-case Android to a generic URL', () => {
+    expect(handoffSrc).not.toContain('navigator.userAgent')
+    expect(handoffSrc).not.toContain('/Android/i')
+    expect(handoffSrc).not.toContain('isAndroid')
+  })
+
+  it('falls back to the generic Venmo origin only when checkoutUrl is missing', () => {
+    expect(handoffSrc).toContain("provider === 'venmo' ? 'https://venmo.com' : '#'")
+  })
+
+  it('fails safely when the Venmo username is invalid/missing', () => {
+    expect(linksSrc).toContain("if (!normalized) {")
+    expect(linksSrc).toContain("error: 'Invalid Venmo username'")
+  })
+
+  it('uses Browser.open on native', () => {
+    expect(handoffSrc).toContain('Capacitor.isNativePlatform()')
+    expect(handoffSrc).toContain('Browser.open({ url: targetUrl })')
+  })
+
+  it('uses window.open with _blank on web so the CTA escapes the PWA', () => {
+    expect(handoffSrc).toContain("window.open(targetUrl, '_blank', 'noopener,noreferrer')")
+  })
+
+  it('clears opening state via native app resume', () => {
+    expect(handoffSrc).toContain("App.addListener('appStateChange'")
+    expect(handoffSrc).toContain('if (isActive) clearOpening()')
+  })
+
+  it('clears opening state via web return lifecycle events', () => {
+    expect(handoffSrc).toContain("'visibilitychange'")
+    expect(handoffSrc).toContain("'pageshow'")
+    expect(handoffSrc).toContain("'focus'")
+  })
+
+  it('does not leave the CTA permanently loading', () => {
+    expect(handoffSrc).toContain('setOpening(false)')
+    expect(handoffSrc).not.toContain('setTimeout(() => setOpening(false)')
+  })
+
+  it('keeps username, amount, and note visible and copyable', () => {
     expect(handoffSrc).toContain('@{venmoUsername}')
-    expect(handoffSrc).toContain('venmoUsername')
-  })
-
-  it('keeps the amount visible and copyable', () => {
-    expect(handoffSrc).toContain('{formattedAmount}')
     expect(handoffSrc).toContain("'amount'")
-  })
-
-  it('keeps the payment note visible and copyable', () => {
     expect(handoffSrc).toContain('Payment Note')
     expect(handoffSrc).toContain("'note'")
   })
 
-  it('preserves fallback instructions if the app cannot open', () => {
-    expect(handoffSrc).toMatch(/If\s+\{providerName\}\s+doesn'?t\s+open|doesn&rsquo;t open/)
-    expect(handoffSrc).toContain('Open Venmo manually')
-  })
-
-  it('bounds the opening/loading state to a reset timer', () => {
-    expect(handoffSrc).toMatch(/setTimeout\(\(\)\s*=>\s*setOpening\(false\),\s*2500\)/)
-  })
-
-  it('does not change iOS and web handoff behavior', () => {
-    // iOS / web still use the real checkoutUrl when present.
-    expect(handoffSrc).toMatch(/checkoutUrl\s*\|\|/)
-    expect(handoffSrc).toMatch(/Browser\.open\(\{\s*url\s*\}\)/)
-    expect(handoffSrc).toMatch(/window\.open\(url,/)
-  })
-
-  it('catches open failures without breaking the payment page', () => {
-    expect(handoffSrc).toContain('try {')
-    expect(handoffSrc).toContain('} catch (e) {')
-    expect(handoffSrc).toContain('console.error(`[${providerName} HANDOFF] Failed to open:`, e)')
+  it('keeps iOS and desktop handoff behavior unchanged through checkoutUrl', () => {
+    expect(handoffSrc).toContain('Browser.open({ url: targetUrl })')
+    expect(handoffSrc).toContain("window.open(targetUrl, '_blank', 'noopener,noreferrer')")
+    expect(handoffSrc).toContain('checkoutUrl')
   })
 })

@@ -49,7 +49,7 @@ export function generateVenmoLink(
   // Use canonical Venmo profile URL
   // Prefilled parameters (amount, note, txn) are not supported in production
   // Real-device testing shows these cause redirects to homepage
-  const finalUrl = `https://venmo.com/u/${normalized}`;
+  const finalUrl = `https://venmo.com/u/${encodeURIComponent(normalized)}`;
   console.log('[VENMO LINK] Generated profile URL:', finalUrl);
   
   return {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import { Capacitor } from '@capacitor/core'
 import { Browser } from '@capacitor/browser'
@@ -24,11 +24,53 @@ export default function PaymentHandoff({
 }: PaymentHandoffProps) {
   const [copied, setCopied] = useState<string | null>(null)
   const [opening, setOpening] = useState(false)
-  const openTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
+    const clearOpening = () => setOpening(false)
+
+    const isNative = Capacitor.isNativePlatform()
+    if (isNative) {
+      let listenerHandle: { remove: () => void } | undefined
+      let mounted = true
+
+      import('@capacitor/app')
+        .then((mod) => {
+          if (!mounted) return
+          const { App } = mod as any
+          App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
+            if (isActive) clearOpening()
+          }).then((handle: any) => {
+            listenerHandle = handle
+          })
+        })
+        .catch(() => {
+          // Not a Capacitor build; lifecycle fallback is not needed.
+        })
+
+      return () => {
+        mounted = false
+        listenerHandle?.remove?.()
+      }
+    }
+
+    // Web/PWA: clear the CTA state when the customer returns to the page
+    // from Venmo/Chrome, including bfcache restores.
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') clearOpening()
+    }
+    const handlePageShow = (e: any) => {
+      if (e.persisted) clearOpening()
+    }
+    const handleFocus = () => clearOpening()
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    window.addEventListener('pageshow', handlePageShow)
+    window.addEventListener('focus', handleFocus)
+
     return () => {
-      if (openTimeout.current) clearTimeout(openTimeout.current)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('pageshow', handlePageShow)
+      window.removeEventListener('focus', handleFocus)
     }
   }, [])
 
@@ -43,41 +85,36 @@ export default function PaymentHandoff({
   const formattedAmount = formatCurrency(amountNumber)
 
   // Deterministic external handoff:
-  // - On native (Capacitor), use Browser.open() which launches the system browser
-  //   (Chrome Custom Tab on Android, Safari View Controller on iOS). The system
-  //   browser then opens Venmo/PayPal via Universal Links / App Links, keeping
-  //   ReplyFlow in the background. This avoids the WebView's target="_blank"
-  //   handling which can bounce back to the payment page.
-  // - On web, use the real checkoutUrl (not a hard-coded homepage) so the
-  //   merchant's profile opens directly.
-  // - On Android for Venmo, open the Venmo app/website GENERICALLY instead of
-  //   navigating to /u/{username}, which stalls in Venmo's profile deep-link.
+  // - Preserve the configured recipient destination (checkoutUrl) on all
+  //   platforms. The canonical Venmo URL is https://venmo.com/u/{username}.
+  // - The generic https://venmo.com is only a safe fallback when the
+  //   targeted checkoutUrl is missing.
+  // - On native, use Browser.open so the OS resolves the app/App Link.
+  // - On web/PWA, use window.open with _blank so the customer leaves the
+  //   PWA/web surface and can return to it cleanly.
+  const targetUrl = checkoutUrl || (provider === 'venmo' ? 'https://venmo.com' : '#')
+
   const openProvider = async () => {
-    const isAndroidNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
-    const defaultVenmoUrl = isAndroidNative ? 'https://venmo.com' : 'https://venmo.com'
-    const url = isAndroidNative && provider === 'venmo'
-      ? 'https://venmo.com'
-      : (checkoutUrl || (provider === 'venmo' ? defaultVenmoUrl : '#'))
-    if (!url || url === '#') return
+    if (!targetUrl || targetUrl === '#') return
 
     setOpening(true)
-    if (openTimeout.current) clearTimeout(openTimeout.current)
 
     try {
       if (Capacitor.isNativePlatform()) {
         // Browser.open launches Chrome Custom Tab / SFSafariViewController;
         // the system then resolves the Universal/App Link to Venmo if installed.
-        await Browser.open({ url })
+        await Browser.open({ url: targetUrl })
       } else {
-        window.open(url, '_blank', 'noopener,noreferrer')
+        window.open(targetUrl, '_blank', 'noopener,noreferrer')
       }
     } catch (e) {
       console.error(`[${providerName} HANDOFF] Failed to open:`, e)
+    } finally {
+      // Reset immediately after the handoff is dispatched. The lifecycle
+      // listeners above guarantee the state is also cleared if the user
+      // returns through bfcache or app resume.
+      setOpening(false)
     }
-
-    // Clear the pressed state after a short window; the OS handoff is async
-    // and Browser.open does not reliably report whether the app launched.
-    openTimeout.current = setTimeout(() => setOpening(false), 2500)
   }
 
   return (
@@ -143,20 +180,20 @@ export default function PaymentHandoff({
               <div className="flex items-center gap-2">
                 <span className="text-gray-900 font-medium">{formattedAmount}</span>
                 <button
-                  onClick={() => copyToClipboard(amount, 'amount')}
-                  className="p-1.5 hover:bg-gray-100 text-gray-500 rounded transition-colors"
-                  title="Copy amount"
-                >
-                  {copied === 'amount' ? (
-                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  )}
-                </button>
+                    onClick={() => copyToClipboard(amount, 'amount')}
+                    className="p-1.5 hover:bg-gray-100 text-gray-500 rounded transition-colors"
+                    title="Copy amount"
+                  >
+                    {copied === 'amount' ? (
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                  </button>
               </div>
             </div>
 
