@@ -38,7 +38,7 @@ describe('SearchableCustomerSelect field-as-search interaction', () => {
   it('does not clear selection merely by opening the search field', () => {
     // Opening only resets the query; onChange is not called in the open effect.
     expect(content).toContain('setSearchQuery(\'\')')
-    const openStart = content.indexOf('// Reset query and focus search input when opened')
+    const openStart = content.indexOf('// Reset query and scroll the picker into view when opened')
     const openEnd = content.indexOf('}, [isOpen]', openStart)
     const openEffect = content.slice(openStart, openEnd)
     expect(openEffect).toContain("setSearchQuery('')")

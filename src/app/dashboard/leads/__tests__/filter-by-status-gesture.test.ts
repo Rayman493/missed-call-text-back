@@ -54,9 +54,17 @@ describe('Filter by Status — gesture contract (12-18)', () => {
     expect(pageContent).toContain('filterSuppressNextOpenRef.current = true')
   })
 
-  it('14. drag does not flash-open (onOpenChange suppresses when suppress flag is set)', () => {
+  it('14. drag does not flash-open (onClick suppresses the synthetic click and onOpenChange never opens)', () => {
+    // Opening is deferred to onClick. onClick checks filterSuppressNextOpenRef
+    // and returns early when a drag/scroll happened, so the post-drag synthetic
+    // click cannot open the menu. onOpenChange never calls setFilterMenuOpen(true).
     expect(pageContent).toContain('filterSuppressNextOpenRef.current')
-    expect(pageContent).toContain('if (open && filterSuppressNextOpenRef.current)')
+    const onClickMatch = pageContent.match(/onClick=\{\(e\) => \{[\s\S]*?setFilterMenuOpen\(true\)[\s\S]*?\}\}/)
+    expect(onClickMatch).toBeTruthy()
+    if (onClickMatch) {
+      expect(onClickMatch[0]).toContain('filterSuppressNextOpenRef.current')
+    }
+    expect(pageContent).not.toContain('setFilterMenuOpen(open)')
   })
 
   it('15. next clean tap after drag opens (stale suppress cleared on pointerdown)', () => {
@@ -66,9 +74,22 @@ describe('Filter by Status — gesture contract (12-18)', () => {
     expect(pageContent).toMatch(/onPointerDown=\{[\s\S]*?filterSuppressNextOpenRef\.current = false/)
   })
 
-  it('16. outside dismissal unchanged (Radix onOpenChange handles close)', () => {
+  it('16. outside dismissal unchanged (onOpenChange only closes; pointer ownership consumes the same gesture)', () => {
+    // Radix onOpenChange is intentionally not trusted to open the menu — it
+    // only closes when !open. The actual outside-dismiss pointer sequence is
+    // owned by a document-level pointerup listener and a backdrop portal: both
+    // setFilterMenuOpen(false) and call markDropdownDismissed() to consume the
+    // synthesized click so it does not reach customer cards.
     expect(pageContent).toContain('onOpenChange={(open) => {')
-    expect(pageContent).toContain('setFilterMenuOpen(open)')
+    expect(pageContent).not.toContain('setFilterMenuOpen(open)')
+    const openChangeMatch = pageContent.match(/onOpenChange=\{\(open\) => \{[\s\S]*?\}\}/)
+    expect(openChangeMatch).toBeTruthy()
+    if (openChangeMatch) {
+      expect(openChangeMatch[0]).toContain('if (!open)')
+      expect(openChangeMatch[0]).toContain('setFilterMenuOpen(false)')
+    }
+    expect(pageContent).toContain('markDropdownDismissed()')
+    expect(pageContent).toContain('// Outside tap: dismiss and consume the synthesized click.')
   })
 
   it('17. Add button behavior unchanged (plain button, no gesture handlers)', () => {

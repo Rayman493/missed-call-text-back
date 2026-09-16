@@ -49,16 +49,15 @@ describe('Part 1 — Modal Right-Edge / Form Grid Alignment', () => {
     expect(block).not.toContain('flex flex-wrap gap-2 min-w-0')
   })
 
-  it('JobComposer uses grid-cols-2 for Date|Time row', () => {
-    // Find the Date|Time grid by looking for the Date label in the scheduling section
+  it('JobComposer uses responsive grid for Date + Start Time + End Time row', () => {
+    // Date + Start/End Time use a 3-column grid on desktop (single-col on mobile)
     const dateLabelIdx = jobComposer.indexOf('label="Date"')
-    // Search backwards for the grid div
-    const gridIdx = jobComposer.lastIndexOf('grid grid-cols-2 gap-3', dateLabelIdx)
+    const gridIdx = jobComposer.lastIndexOf('grid grid-cols-1 sm:grid-cols-3 gap-3', dateLabelIdx)
     expect(gridIdx).toBeGreaterThan(-1)
-    // Verify the grid contains both Date and Time (wider window)
-    const block = jobComposer.substring(gridIdx, gridIdx + 500)
+    const block = jobComposer.substring(gridIdx, gridIdx + 800)
     expect(block).toContain('label="Date"')
-    expect(block).toContain('label="Time"')
+    expect(block).toContain('label="Start Time"')
+    expect(block).toContain('label="End Time"')
   })
 })
 
@@ -99,8 +98,8 @@ describe('Part 2 — Single Save Model (EventDetailsModal)', () => {
 })
 
 describe('Part 3 — Appointment Card Hierarchy', () => {
-  it('card padding is p-3.5 (tightened from p-4)', () => {
-    expect(calendarPage).toContain('p-3.5')
+  it('card padding is p-4', () => {
+    expect(calendarPage).toContain('p-4')
   })
 
   it('type badge spacing tightened to mt-0.5 (from mt-1)', () => {
@@ -286,22 +285,17 @@ describe('Part 5b — Bottom Nav Height Audit', () => {
 })
 
 describe('Part 6 — Agenda Desktop Density', () => {
-  it('Today card has sm:min-h for desktop presence', () => {
-    expect(todayCommandCenter).toContain('sm:min-h-[180px]')
-  })
-
   it('Today card uses flex-col for proper layout', () => {
     const todayIdx = todayCommandCenter.indexOf('Today - Premium Daily Summary Card')
     const block = todayCommandCenter.substring(todayIdx, todayIdx + 250)
     expect(block).toContain('flex flex-col')
   })
 
-  it('summary cards have sm:min-h for consistent presence', () => {
-    expect(todayCommandCenter).toContain('sm:min-h-[110px]')
-  })
-
-  it('summary cards use mt-auto for View link alignment', () => {
-    expect(todayCommandCenter).toContain('mt-auto pt-2')
+  it('summary cards use flex-col and mt-auto for consistent presence and View link alignment', () => {
+    const summaryIdx = todayCommandCenter.indexOf('Compact category navigation links')
+    const block = todayCommandCenter.substring(summaryIdx, summaryIdx + 1500)
+    expect(block).toContain('flex flex-col')
+    expect(block).toContain('mt-auto pt-1.5')
   })
 
   it('empty state uses flex-1 for centering', () => {
@@ -312,9 +306,8 @@ describe('Part 6 — Agenda Desktop Density', () => {
     expect(todayCommandCenter).toContain('space-y-0.5 flex-1')
   })
 
-  it('mobile does not inherit desktop min-height (sm: prefix)', () => {
-    expect(todayCommandCenter).toContain('sm:min-h-[180px]')
-    expect(todayCommandCenter).toContain('sm:min-h-[110px]')
+  it('mobile does not inherit desktop min-height (sm: prefix not used for min-h)', () => {
+    expect(todayCommandCenter).not.toContain('sm:min-h-')
   })
 })
 

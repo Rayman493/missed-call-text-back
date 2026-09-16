@@ -102,9 +102,9 @@ describe('Schedule Polish — AI Summary Disclosure', () => {
 // ---------------------------------------------------------------------------
 
 describe('Schedule Polish — Cross-Surface Consistency', () => {
-  it('Jobs card padding normalized to p-4 (not p-4 sm:p-5)', () => {
+  it('Jobs card padding normalized to p-4 with border', () => {
     expect(pageContent).not.toContain('rounded-xl p-4 sm:p-5 transition-all hover:shadow-sm')
-    expect(pageContent).toContain('rounded-xl p-4 transition-all hover:shadow-sm')
+    expect(pageContent).toContain('rounded-xl border p-4 transition-all hover:shadow-sm')
   })
 
   it('Appointments badges use rounded-full (matching Jobs)', () => {

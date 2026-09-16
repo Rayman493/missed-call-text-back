@@ -230,12 +230,15 @@ describe('Batch 13 — Appointments Tab Improvements', () => {
 })
 
 describe('Batch 13 — Mobile Safety', () => {
-  it('mobile tab strip uses horizontal scroll with no-scrollbar', () => {
-    const mobileSection = pageContent.split('md:hidden mb-4 mt-2')[1]?.split('</div>\n                  </div>')[0] || ''
-    expect(mobileSection).toContain('overflow-x-auto')
-    expect(mobileSection).toContain('no-scrollbar')
-    expect(mobileSection).toContain('whitespace-nowrap')
-    expect(mobileSection).toContain('flex-shrink-0')
+  it('mobile tab strip uses a compact fixed 6-column grid (no horizontal scroll)', () => {
+    const mobileSection = pageContent.split('md:hidden mb-4 mt-2')[1]?.split('</div>')[0] || ''
+    expect(mobileSection).toContain('grid grid-cols-6 gap-0.5')
+    expect(mobileSection).toContain("setScheduleTab('agenda')")
+    expect(mobileSection).toContain("setScheduleTab('reminders')")
+    expect(mobileSection).toContain("setScheduleTab('jobs')")
+    expect(mobileSection).toContain("setScheduleTab('appointments')")
+    expect(mobileSection).toContain("setScheduleTab('calendar')")
+    expect(mobileSection).toContain("setScheduleTab('map')")
   })
 
   it('mobile Add buttons have short labels (Add/New)', () => {
@@ -243,9 +246,12 @@ describe('Batch 13 — Mobile Safety', () => {
     expect(pageContent).toContain('<span className="sm:hidden">New</span>')
   })
 
-  it('Jobs tab row actions are tap-friendly (not cramped)', () => {
+  it('Jobs tab row actions use a tap-friendly inline flex row with w-8 h-8 targets', () => {
     const jobsTabFunction = pageContent.split('function JobsTab(')[1]?.split('function ')[0] || ''
-    expect(jobsTabFunction).toContain('border-t border-slate-100')
+    expect(jobsTabFunction).toContain('flex items-center gap-1 flex-shrink-0')
+    expect(jobsTabFunction).toContain('w-8 h-8')
+    expect(jobsTabFunction).toContain('aria-label="Edit job"')
+    expect(jobsTabFunction).toContain('aria-label="Delete job"')
   })
 })
 

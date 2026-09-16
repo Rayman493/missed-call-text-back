@@ -195,29 +195,26 @@ describe('5. Modal structure uses bounded content scroll + reachable footer', ()
     expect(modalContent).toContain('env(safe-area-inset-bottom)')
   })
 
-  it('globals.css --modal-max-height accounts for bottom nav on mobile', () => {
-    // Mobile: must subtract bottom-nav-height from 100dvh
-    expect(globalsCssContent).toMatch(/--modal-max-height: calc\(100dvh - var\(--bottom-nav-height/)
+  it('globals.css --modal-max-height accounts for viewport clearance on mobile', () => {
+    // Mobile modal height leaves 32px of breathing room
+    expect(globalsCssContent).toMatch(/--modal-max-height: calc\(100dvh - 32px\)/)
   })
 
-  it('globals.css --modal-bottom-reserve includes bottom nav on mobile', () => {
-    expect(globalsCssContent).toMatch(/--modal-bottom-reserve: calc\(env\(safe-area-inset-bottom\) \+ var\(--bottom-nav-height/)
+  it('globals.css --modal-bottom-reserve uses safe-area + 16px only', () => {
+    // Bottom reserve is safe-area-inset-bottom + 16px (no bottom-nav double-count)
+    expect(globalsCssContent).toMatch(/--modal-bottom-reserve: calc\(env\(safe-area-inset-bottom\) \+ 16px\)/)
   })
 
   it('globals.css desktop modal reserves 128px (no bottom nav)', () => {
     expect(globalsCssContent).toMatch(/min-width: 768px[\s\S]*?--modal-max-height: calc\(100dvh - 128px\)/)
   })
 
-  it('EventDetailsModal uses bottom-nav-aware max-height on mobile', () => {
-    expect(eventDetailsModalContent).toContain('max-h-[calc(100dvh-var(--bottom-nav-height,72px)-32px)]')
+  it('EventDetailsModal uses shared --modal-max-height for bounded height', () => {
+    expect(eventDetailsModalContent).toContain('max-h-[var(--modal-max-height)]')
   })
 
-  it('EventDetailsModal uses var(--modal-max-height) on desktop', () => {
-    expect(eventDetailsModalContent).toContain('sm:max-h-[var(--modal-max-height)]')
-  })
-
-  it('EventDetailsModal outer container reserves bottom-nav space', () => {
-    expect(eventDetailsModalContent).toMatch(/paddingBottom.*bottom-nav-height/)
+  it('EventDetailsModal outer container uses --modal-bottom-reserve for safe bottom padding', () => {
+    expect(eventDetailsModalContent).toContain('var(--modal-bottom-reserve)')
   })
 
   it('EventDetailsModal content area uses overflow-y-auto for internal scroll', () => {
@@ -228,8 +225,9 @@ describe('5. Modal structure uses bounded content scroll + reachable footer', ()
     expect(eventDetailsModalContent).toMatch(/Footer[\s\S]*?flex-shrink-0/s)
   })
 
-  it('JobDetailsModal uses bottom-nav-aware max-height', () => {
-    expect(jobDetailsModalContent).toContain('max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px)]')
+  it('JobDetailsModal uses shared --modal-max-height for bounded height', () => {
+    expect(jobDetailsModalContent).toContain('max-h-[var(--modal-max-height)]')
+    expect(jobDetailsModalContent).toContain('sm:max-h-[90vh]')
   })
 
   it('JobDetailsModal content area uses overflow-y-auto for internal scroll', () => {

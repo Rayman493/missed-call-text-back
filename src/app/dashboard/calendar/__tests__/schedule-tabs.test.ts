@@ -33,10 +33,9 @@ describe('Schedule Tab Architecture — Tab Strip', () => {
     expect(mapBtn).toBe(true)
   })
 
-  it('mobile tab strip has all 6 tabs with horizontal scroll', () => {
-    const mobileSection = pageContent.split('md:hidden mb-4 mt-2')[1]?.split('</div>\n                  </div>')[0] || ''
-    expect(mobileSection).toContain('overflow-x-auto')
-    expect(mobileSection).toContain('no-scrollbar')
+  it('mobile tab strip has all 6 tabs in a compact fixed grid', () => {
+    const mobileSection = pageContent.split('md:hidden mb-4 mt-2')[1]?.split('</div>')[0] || ''
+    expect(mobileSection).toContain('grid grid-cols-6 gap-0.5')
     expect(mobileSection).toContain("setScheduleTab('agenda')")
     expect(mobileSection).toContain("setScheduleTab('reminders')")
     expect(mobileSection).toContain("setScheduleTab('jobs')")
@@ -45,10 +44,11 @@ describe('Schedule Tab Architecture — Tab Strip', () => {
     expect(mobileSection).toContain("setScheduleTab('map')")
   })
 
-  it('mobile tabs use whitespace-nowrap and flex-shrink-0 to prevent wrapping', () => {
-    const mobileSection = pageContent.split('md:hidden mb-4 mt-2')[1]?.split('</div>\n                  </div>')[0] || ''
-    expect(mobileSection).toContain('whitespace-nowrap')
-    expect(mobileSection).toContain('flex-shrink-0')
+  it('mobile tabs use icon + label stacked layout with safe min-w-0', () => {
+    const mobileSection = pageContent.split('md:hidden mb-4 mt-2')[1]?.split('</div>')[0] || ''
+    expect(mobileSection).toContain('flex flex-col items-center justify-center')
+    expect(mobileSection).toContain('min-w-0')
+    expect(mobileSection).toContain('text-[10px]')
   })
 
   it('uses single tab strip (no second navigation bar)', () => {
@@ -132,7 +132,8 @@ describe('Schedule Tab Architecture — Jobs Tab', () => {
   })
 
   it('JobsTab has a useful empty state', () => {
-    expect(pageContent).toContain('No active jobs yet')
+    expect(pageContent).toContain('No active jobs')
+    expect(pageContent).toContain('Create a job to start tracking customer work.')
   })
 
   it('JobsTab groups by active/completed/cancelled', () => {
@@ -172,7 +173,8 @@ describe('Schedule Tab Architecture — Appointments Tab', () => {
   })
 
   it('MeetingsTab has a useful empty state', () => {
-    expect(pageContent).toContain('No meetings scheduled')
+    expect(pageContent).toContain('No appointments scheduled')
+    expect(pageContent).toContain('Schedule an appointment to keep customer time organized.')
   })
 })
 

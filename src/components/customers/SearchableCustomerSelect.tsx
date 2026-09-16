@@ -168,18 +168,14 @@ export default function SearchableCustomerSelect({
     }
   }, [isOpen])
 
-  // Reset query and focus search input when opened
+  // Reset query and scroll the picker into view when opened.
+  // Mobile UX: do NOT auto-focus the search input so the keyboard stays
+  // hidden and the current customer list is immediately scrollable. The
+  // user can tap the search bar explicitly to focus it.
   useEffect(() => {
     if (isOpen) {
       setSearchQuery('')
-      // Small timeout to ensure the input is rendered before focusing on mobile
-      const timer = setTimeout(() => {
-        if (searchInputRef.current) {
-          searchInputRef.current.focus()
-          pickerRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-        }
-      }, 0)
-      return () => clearTimeout(timer)
+      pickerRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
     }
   }, [isOpen])
 

@@ -255,8 +255,8 @@ describe('RC Dashboard Chart Follow-up — Loading (16-26)', () => {
 
 describe('RC Dashboard Chart Follow-up — Desktop Preservation', () => {
   it('desktop hover tooltip preserved (trigger=hover on non-touch)', () => {
-    expect(revenueGraph).toContain("'hover'")
-    expect(activityGraph).toContain("'hover'")
+    expect(revenueGraph).toMatch(/trigger=["']hover["']/)
+    expect(activityGraph).toMatch(/trigger=["']hover["']/)
   })
 
   it('desktop mouse interaction preserved (pointer handlers only fire for touch)', () => {

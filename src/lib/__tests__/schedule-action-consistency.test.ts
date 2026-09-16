@@ -101,20 +101,22 @@ describe('Part A: Event Card Action Consistency', () => {
       expect(page).toContain('ev.meetingUrl')
     })
 
-    it('7. Join does not displace Edit/Delete (Join is below the button row)', () => {
-      // The Join link should come after the Edit/Delete button group
-      const joinIdx = page.indexOf('Join')
-      const deleteApptIdx = page.indexOf('aria-label="Delete appointment"')
-      // Find the Join that's in the MeetingsTab (after the delete button)
-      const joinInMeetingsTab = page.indexOf('Join', deleteApptIdx)
-      expect(joinInMeetingsTab).toBeGreaterThan(deleteApptIdx)
+    it('7. Join stays with informational content on the LEFT (before the right action column)', () => {
+      // The Join link is part of the left info region, not the management row.
+      const meetingUrlIdx = page.indexOf('ev.meetingUrl && (')
+      const joinIdx = page.indexOf('Join', meetingUrlIdx)
+      const editApptIdx = page.indexOf('aria-label="Edit appointment"')
+      expect(joinIdx).toBeGreaterThan(meetingUrlIdx)
+      expect(editApptIdx).toBeGreaterThan(-1)
+      expect(joinIdx).toBeLessThan(editApptIdx)
     })
 
     it('8. Edit + Delete are in the same flex row (same right alignment)', () => {
-      // Both should be inside a <div className="flex items-center gap-1"> wrapper
+      // Both should be inside the right-side management row
       const editApptIdx = page.indexOf('aria-label="Edit appointment"')
       const deleteApptIdx = page.indexOf('aria-label="Delete appointment"')
-      const blockStart = page.lastIndexOf('<div className="flex items-center gap-1">', editApptIdx)
+      const rightColumnPattern = 'flex items-center gap-1 flex-shrink-0'
+      const blockStart = page.lastIndexOf(rightColumnPattern, editApptIdx)
       const blockEnd = page.indexOf('</div>', deleteApptIdx)
       expect(blockStart).toBeGreaterThan(-1)
       expect(blockEnd).toBeGreaterThan(deleteApptIdx)
@@ -170,8 +172,9 @@ describe('Part A: Event Card Action Consistency', () => {
     })
 
     it('4e. all three use the same right-side container pattern', () => {
-      // All three use flex flex-col items-end gap-1.5 flex-shrink-0
-      const count = (page.match(/flex flex-col items-end gap-1\.5 flex-shrink-0/g) || []).length
+      // Reminder, Job, and Appointment management actions share the same
+      // horizontal inline row.
+      const count = (page.match(/flex items-center gap-1 flex-shrink-0/g) || []).length
       // Should appear at least 3 times (Reminders, Jobs, Appointments)
       expect(count).toBeGreaterThanOrEqual(3)
     })
@@ -216,8 +219,8 @@ describe('Part B: Event Details Modal Height', () => {
     })
 
     it('8. modal shell has max-h (bounded to viewport)', () => {
-      expect(eventModal).toContain('max-h-[calc(100dvh-var(--bottom-nav-height,72px)-32px)]')
-      expect(eventModal).toContain('sm:max-h-[var(--modal-max-height)]')
+      // EventDetailsModal reuses the shared --modal-max-height CSS variable
+      expect(eventModal).toContain('max-h-[var(--modal-max-height)]')
     })
 
     it('modal shell has overflow-hidden (clips body scroll)', () => {
@@ -236,12 +239,15 @@ describe('Part B: Event Details Modal Height', () => {
       expect(eventModal).toContain('aria-label="Close modal"')
     })
 
-    it('safe-area preserved in footer', () => {
-      expect(eventModal).toContain("paddingBottom: 'max(12px, env(safe-area-inset-bottom))'")
+    it('safe-area / bottom-reserve preserved in outer modal positioning', () => {
+      // The backdrop/padding area uses safe-area-inset-top and the shared
+      // --modal-bottom-reserve variable (not a hardcoded bottom-nav height).
+      expect(eventModal).toContain('env(safe-area-inset-top)')
+      expect(eventModal).toContain('var(--modal-bottom-reserve)')
     })
 
     it('bottom-nav clearance preserved in backdrop', () => {
-      expect(eventModal).toContain('var(--bottom-nav-height, 72px)')
+      expect(eventModal).toContain('var(--modal-bottom-reserve)')
     })
   })
 
@@ -253,7 +259,8 @@ describe('Part B: Event Details Modal Height', () => {
     })
 
     it('8. modal shell has max-h (bounded to viewport)', () => {
-      expect(jobModal).toContain('max-h-[calc(100dvh-var(--bottom-nav-height,80px)-32px)]')
+      expect(jobModal).toContain('max-h-[var(--modal-max-height)]')
+      expect(jobModal).toContain('sm:max-h-[90vh]')
     })
 
     it('body has overflow-y-auto (internal scroll for long content)', () => {

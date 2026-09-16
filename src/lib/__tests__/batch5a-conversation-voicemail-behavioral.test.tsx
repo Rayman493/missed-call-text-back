@@ -516,7 +516,7 @@ describe('M. Seek overlay has background for Android WebView hit-testing', () =>
     unmount()
   })
 
-  it('progress overlay has z-10 to paint above waveform bars', async () => {
+  it('progress overlay has a paintable background (bg-black/[0.001]) for Android WebView hit-testing', async () => {
     const audio = createRealAudioElement(30)
     const audioRef = { current: audio }
 
@@ -537,7 +537,7 @@ describe('M. Seek overlay has background for Android WebView hit-testing', () =>
     )
 
     const progressTrack = getByLabel(container, 'Audio progress') as HTMLElement
-    expect(progressTrack.className).toContain('z-10')
+    expect(progressTrack.className).toContain('bg-black/[0.001]')
     unmount()
   })
 

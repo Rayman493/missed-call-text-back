@@ -301,14 +301,11 @@ function MeetingsTab({
           const customerName = job?.customer_name || null
           const typeLabel = labelType(ev)
           const isMeet = typeLabel === 'Google Meet'
-          // Manageability: any event in the user's connected primary calendar
-          // can be safely updated/deleted by event ID through the existing
-          // Google Calendar PATCH/DELETE routes (which operate on
-          // calendars/primary/events/{eventId} using the user's OAuth token).
-          // Holidays are read-only and excluded. ReplyFlow ownership is no
-          // longer required for Edit/Delete — it is only used for provenance
-          // labels (ReplyFlow vs Google badge).
-          const isEditable = !ev.isHoliday && ev.source !== 'holiday'
+          // Manageability: only ReplyFlow-owned appointments (linked job,
+          // replyflow_lead_id, replyflow_meeting_url, or replyflow_created) are
+          // editable/deletable from the card. The user can still view any
+          // appointment-like event. Holidays remain read-only and excluded.
+          const isEditable = !ev.isHoliday && ev.source !== 'holiday' && isReplyFlowOwnedEvent(ev as any, { linkedJob: job })
           return (
             <div
               key={ev.id}
@@ -2211,7 +2208,7 @@ export default function SchedulePage() {
                                       const time = formatEventTimeRange(event.start.dateTime, event.end.dateTime, event.start.date)
                                       const job = jobs.find(j => j.google_calendar_event_id === event.id)
                                       const isReplyFlow = isReplyFlowOwnedEvent(event as any, { linkedJob: job })
-                                      const isEditable = !event.isHoliday && event.source !== 'holiday'
+                                      const isEditable = !event.isHoliday && event.source !== 'holiday' && isReplyFlow
                                       const customerName = job?.customer_name || null
 
                                       return (
@@ -2252,17 +2249,30 @@ export default function SchedulePage() {
                                             </div>
                                           </button>
                                           {isEditable ? (
-                                            <button
-                                              onClick={(e) => {
-                                                e.stopPropagation()
-                                                handleCalendarItemClick({ id: event.id, type: 'appointment' })
-                                              }}
-                                              aria-label={`Edit appointment: ${event.summary}`}
-                                              className="flex-shrink-0 p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
-                                              title="Edit appointment"
-                                            >
-                                              <Pencil className="w-4 h-4" />
-                                            </button>
+                                            <div className="flex items-center gap-1 flex-shrink-0">
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation()
+                                                  handleCalendarItemClick({ id: event.id, type: 'appointment' })
+                                                }}
+                                                aria-label={`Edit appointment: ${event.summary}`}
+                                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                                                title="Edit appointment"
+                                              >
+                                                <Pencil className="w-4 h-4" />
+                                              </button>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation()
+                                                  setAppointmentToDelete(event)
+                                                }}
+                                                aria-label={`Delete appointment: ${event.summary}`}
+                                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                                                title="Delete appointment"
+                                              >
+                                                <Trash2 className="w-4 h-4" />
+                                              </button>
+                                            </div>
                                           ) : (
                                             <a
                                               href={event.htmlLink || 'https://calendar.google.com'}
@@ -2305,17 +2315,30 @@ export default function SchedulePage() {
                                               </p>
                                             </div>
                                           </button>
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              handleCalendarItemClick({ id: task.id, type: 'task' })
-                                            }}
-                                            aria-label={`Edit reminder: ${task.title}`}
-                                            className="flex-shrink-0 p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
-                                            title="Edit reminder"
-                                          >
-                                            <Pencil className="w-4 h-4" />
-                                          </button>
+                                          <div className="flex items-center gap-1 flex-shrink-0">
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                handleCalendarItemClick({ id: task.id, type: 'task' })
+                                              }}
+                                              aria-label={`Edit reminder: ${task.title}`}
+                                              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                                              title="Edit reminder"
+                                            >
+                                              <Pencil className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                handleDeleteTask(task.id)
+                                              }}
+                                              aria-label={`Delete reminder: ${task.title}`}
+                                              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                                              title="Delete reminder"
+                                            >
+                                              <Trash2 className="w-4 h-4" />
+                                            </button>
+                                          </div>
                                         </div>
                                       )
                                     } else {
@@ -2359,20 +2382,33 @@ export default function SchedulePage() {
                                               </div>
                                             </div>
                                           </button>
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              setEditingJob(job as Job)
-                                              setJobPrefill(undefined)
-                                              setNewJobDefaultDate(undefined)
-                                              setIsJobComposerOpen(true)
-                                            }}
-                                            aria-label={`Edit job: ${job.title}`}
-                                            className="flex-shrink-0 p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
-                                            title="Edit job"
-                                          >
-                                            <Pencil className="w-4 h-4" />
-                                          </button>
+                                          <div className="flex items-center gap-1 flex-shrink-0">
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                setEditingJob(job as Job)
+                                                setJobPrefill(undefined)
+                                                setNewJobDefaultDate(undefined)
+                                                setIsJobComposerOpen(true)
+                                              }}
+                                              aria-label={`Edit job: ${job.title}`}
+                                              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                                              title="Edit job"
+                                            >
+                                              <Pencil className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                setJobToDelete(job as Job)
+                                              }}
+                                              aria-label={`Delete job: ${job.title}`}
+                                              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                                              title="Delete job"
+                                            >
+                                              <Trash2 className="w-4 h-4" />
+                                            </button>
+                                          </div>
                                         </div>
                                       )
                                     }

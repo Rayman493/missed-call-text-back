@@ -70,17 +70,16 @@ describe('Part A: Schedule Card Layout', () => {
       expect(isReplyFlowOwnedEvent(event, { linkedJob: null })).toBe(false)
     })
 
-    it('appointment card uses primary-calendar manageability for isEditable (not ownership)', () => {
-      // The fix: isEditable now checks whether the event is in the user's
-      // connected writable primary calendar (not a holiday), rather than
-      // requiring ReplyFlow ownership. This allows external Google Calendar
-      // appointments (e.g., Steelers vs Falcons) to get Edit/Delete.
+    it('appointment card editability uses ReplyFlow ownership (including replyflow_meeting_url)', () => {
+      // ReplyFlow-owned appointments (linked job, replyflow_lead_id,
+      // replyflow_meeting_url, replyflow_created) remain editable/deletable.
+      // External Google Calendar appointments without ReplyFlow provenance stay
+      // view-only. Holidays are excluded.
       expect(page).toContain('!ev.isHoliday && ev.source !== \'holiday\'')
-      // The old ownership-gated check should not be used for isEditable
       const editableIdx = page.indexOf('const isEditable = !ev.isHoliday')
       expect(editableIdx).toBeGreaterThan(-1)
       const editableBlock = page.substring(editableIdx, editableIdx + 200)
-      expect(editableBlock).not.toContain('isReplyFlowOwnedEvent')
+      expect(editableBlock).toContain('isReplyFlowOwnedEvent')
     })
 
     it('Virtual badge renders on the LEFT (inside min-w-0 flex-1)', () => {

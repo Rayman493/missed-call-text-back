@@ -56,41 +56,43 @@ describe('Batch 5 — Schedule card consistency', () => {
     expect(meetingsSection).toContain('text-sm font-semibold')
   })
 
-  // 3. Action area aligns predictably (right side, flex-shrink-0)
-  it('All card types have action area on right with flex-shrink-0', () => {
-    // Reminder actions — canonical right column (Batch E: status badge at top + actions beneath)
-    expect(calendarPageSrc).toContain('flex flex-col items-end gap-1.5 flex-shrink-0')
+  // 3. Action area aligns predictably (right side, flex items-center gap-1 flex-shrink-0)
+  it('All card types have action area on right with flex items-center gap-1 flex-shrink-0', () => {
+    // Reminder/Job/Appointment right-side management actions use the same
+    // inline flex row for Edit/Delete, keeping informational badges on the left.
+    const rightColumnPattern = 'flex items-center gap-1 flex-shrink-0'
+    expect(calendarPageSrc).toContain(rightColumnPattern)
     // Job actions
     const jobCardIdx = calendarPageSrc.indexOf('const JobCard =')
-    const jobCardSection = calendarPageSrc.substring(jobCardIdx, jobCardIdx + 3000)
-    expect(jobCardSection).toContain('flex-col items-end gap-1.5 flex-shrink-0')
+    const jobCardSection = calendarPageSrc.substring(jobCardIdx, jobCardIdx + 7000)
+    expect(jobCardSection).toContain(rightColumnPattern)
     // Appointment actions
     const meetingsTabIdx = calendarPageSrc.indexOf('function MeetingsTab')
-    const meetingsSection = calendarPageSrc.substring(meetingsTabIdx, meetingsTabIdx + 8000)
-    expect(meetingsSection).toContain('flex-col items-end gap-1.5 flex-shrink-0')
+    const meetingsSection = calendarPageSrc.substring(meetingsTabIdx, meetingsTabIdx + 25000)
+    expect(meetingsSection).toContain(rightColumnPattern)
   })
 
   // 4. Appointment editable card has Edit action (only for ReplyFlow-owned)
   it('Appointment cards have Edit action gated by isEditable (pencil icon)', () => {
     const meetingsTabIdx = calendarPageSrc.indexOf('function MeetingsTab')
-    const meetingsSection = calendarPageSrc.substring(meetingsTabIdx, meetingsTabIdx + 8000)
+    const meetingsSection = calendarPageSrc.substring(meetingsTabIdx, meetingsTabIdx + 25000)
     expect(meetingsSection).toContain('isEditable')
     expect(meetingsSection).toContain('aria-label="Edit appointment"')
     expect(meetingsSection).toContain('Pencil')
   })
 
   // 4a. Editability rule: only ReplyFlow-owned events show Edit
-  it('Editability uses isReplyFlowOwnedEvent rule (linked job or rfLead metadata)', () => {
+  it('Editability uses isReplyFlowOwnedEvent rule (linked job or replyflow metadata)', () => {
     const meetingsTabIdx = calendarPageSrc.indexOf('function MeetingsTab')
-    const meetingsSection = calendarPageSrc.substring(meetingsTabIdx, meetingsTabIdx + 8000)
-    // isEditable is computed from job link or replyflow_lead_id metadata
-    expect(meetingsSection).toContain('const isEditable = Boolean(job || rfLead)')
+    const meetingsSection = calendarPageSrc.substring(meetingsTabIdx, meetingsTabIdx + 25000)
+    // isEditable now uses the canonical ownership predicate
+    expect(meetingsSection).toContain('isReplyFlowOwnedEvent')
   })
 
   // 4b. Read-only external events do not show Edit
   it('Read-only external events do not show Edit (isEditable gate)', () => {
     const meetingsTabIdx = calendarPageSrc.indexOf('function MeetingsTab')
-    const meetingsSection = calendarPageSrc.substring(meetingsTabIdx, meetingsTabIdx + 8000)
+    const meetingsSection = calendarPageSrc.substring(meetingsTabIdx, meetingsTabIdx + 25000)
     // Edit is only rendered when isEditable is true
     expect(meetingsSection).toContain('{isEditable && (')
   })
@@ -98,7 +100,7 @@ describe('Batch 5 — Schedule card consistency', () => {
   // 5. Join remains available where valid
   it('Appointment cards with meetingUrl have Join action', () => {
     const meetingsTabIdx = calendarPageSrc.indexOf('function MeetingsTab')
-    const meetingsSection = calendarPageSrc.substring(meetingsTabIdx, meetingsTabIdx + 8000)
+    const meetingsSection = calendarPageSrc.substring(meetingsTabIdx, meetingsTabIdx + 25000)
     expect(meetingsSection).toContain('meetingUrl')
     expect(meetingsSection).toContain('Join')
   })

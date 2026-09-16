@@ -10,6 +10,13 @@ const jobTimeUtilsContent = readFileSync('src/lib/job-time-utils.ts', 'utf8')
 const leadPickerContent = readFileSync('src/components/jobs/LeadPickerModal.tsx', 'utf8')
 const aiFieldMappingContent = readFileSync('src/lib/ai-field-mapping.ts', 'utf8')
 
+const customerSelectStart = jobComposerContent.indexOf('const handleCustomerSelect = ')
+const customerSelectEnd = jobComposerContent.indexOf('// Autofocus location input', customerSelectStart)
+const customerSelectSection =
+  customerSelectStart >= 0 && customerSelectEnd >= 0
+    ? jobComposerContent.substring(customerSelectStart, customerSelectEnd)
+    : ''
+
 // ---------------------------------------------------------------------------
 // A — TRACKED TIME ON JOB OVERVIEW ROWS
 // ---------------------------------------------------------------------------
@@ -121,65 +128,44 @@ describe('Batch 14 — Prefill: Canonical Field Extraction', () => {
   })
 
   it('handleCustomerSelect uses getLeadAIIntake to extract intake fields', () => {
-    const handlerSection = jobComposerContent.substring(
-      jobComposerContent.indexOf('const handleCustomerSelect'),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const handlerSection = customerSelectSection
     expect(handlerSection).toContain('getLeadAIIntake(customer)')
   })
 })
 
 describe('Batch 14 — Prefill: Field Mappings', () => {
   it('Job Title prefills from canonical getLeadRequestTitle when empty', () => {
-    const handlerSection = jobComposerContent.substring(
-      jobComposerContent.indexOf('const handleCustomerSelect'),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const handlerSection = customerSelectSection
     expect(handlerSection).toContain('getLeadRequestTitle(customer)')
     expect(handlerSection).toContain('setTitle(prev =>')
   })
 
   it('Service Address prefills from canonical intake.serviceAddress when empty', () => {
-    const handlerSection = jobComposerContent.substring(
-      jobComposerContent.indexOf('const handleCustomerSelect'),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const handlerSection = customerSelectSection
     expect(handlerSection).toContain('intake.serviceAddress')
     expect(handlerSection).toContain('setServiceAddress(prev =>')
   })
 
   it('Notes prefills from canonical intake.additionalDetails when empty', () => {
-    const handlerSection = jobComposerContent.substring(
-      jobComposerContent.indexOf('const handleCustomerSelect'),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const handlerSection = customerSelectSection
     expect(handlerSection).toContain('intake.additionalDetails')
     expect(handlerSection).toContain('setNotes(prev =>')
   })
 
   it('Customer Name prefills from canonical intake.customerName', () => {
-    const handlerSection = jobComposerContent.substring(
-      jobComposerContent.indexOf('const handleCustomerSelect'),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const handlerSection = customerSelectSection
     expect(handlerSection).toContain('intake.customerName')
   })
 
   it('Customer Phone prefills from canonical intake.customerPhone', () => {
-    const handlerSection = jobComposerContent.substring(
-      jobComposerContent.indexOf('const handleCustomerSelect'),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const handlerSection = customerSelectSection
     expect(handlerSection).toContain('intake.customerPhone')
   })
 })
 
 describe('Batch 14 — Prefill: Manual Input Precedence', () => {
   it('Job Title is only prefilled when empty (prev check)', () => {
-    const handlerSection = jobComposerContent.substring(
-      jobComposerContent.indexOf('const handleCustomerSelect'),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const handlerSection = customerSelectSection
     const titleBlock = handlerSection.substring(
       handlerSection.indexOf('setTitle(prev =>'),
       handlerSection.indexOf('})', handlerSection.indexOf('setTitle(prev =>')) + 2
@@ -188,10 +174,7 @@ describe('Batch 14 — Prefill: Manual Input Precedence', () => {
   })
 
   it('Service Address is only prefilled when empty (prev check)', () => {
-    const handlerSection = jobComposerContent.substring(
-      jobComposerContent.indexOf('const handleCustomerSelect'),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const handlerSection = customerSelectSection
     const addrBlock = handlerSection.substring(
       handlerSection.indexOf('setServiceAddress(prev =>'),
       handlerSection.indexOf('})', handlerSection.indexOf('setServiceAddress(prev =>')) + 2
@@ -200,10 +183,7 @@ describe('Batch 14 — Prefill: Manual Input Precedence', () => {
   })
 
   it('Notes is only prefilled when empty (prev check)', () => {
-    const handlerSection = jobComposerContent.substring(
-      jobComposerContent.indexOf('const handleCustomerSelect'),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const handlerSection = customerSelectSection
     const notesBlock = handlerSection.substring(
       handlerSection.indexOf('setNotes(prev =>'),
       handlerSection.indexOf('})', handlerSection.indexOf('setNotes(prev =>')) + 2
@@ -212,20 +192,15 @@ describe('Batch 14 — Prefill: Manual Input Precedence', () => {
   })
 
   it('Date/Time/Status are NOT touched by handleCustomerSelect', () => {
-    const handlerSection = jobComposerContent.substring(
-      jobComposerContent.indexOf('const handleCustomerSelect'),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const handlerSection = customerSelectSection
     expect(handlerSection).not.toContain('setScheduledDate')
     expect(handlerSection).not.toContain('setScheduledTime')
     expect(handlerSection).not.toContain('setStatus')
   })
 
   it('Customer deselect does NOT clear title/notes (preserves manual input)', () => {
-    const elseBlock = jobComposerContent.substring(
-      jobComposerContent.indexOf('} else {', jobComposerContent.indexOf('const handleCustomerSelect')),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const elseStart = customerSelectSection.indexOf('} else {')
+    const elseBlock = elseStart >= 0 ? customerSelectSection.substring(elseStart) : ''
     expect(elseBlock).not.toContain('setTitle')
     expect(elseBlock).not.toContain('setNotes')
   })
@@ -233,19 +208,13 @@ describe('Batch 14 — Prefill: Manual Input Precedence', () => {
 
 describe('Batch 14 — Prefill: Timing Safety', () => {
   it('handleCustomerSelect does NOT map callback time to scheduled time', () => {
-    const handlerSection = jobComposerContent.substring(
-      jobComposerContent.indexOf('const handleCustomerSelect'),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const handlerSection = customerSelectSection
     expect(handlerSection).not.toContain('callbackTime')
     expect(handlerSection).not.toContain('setScheduledTime')
   })
 
   it('handleCustomerSelect does NOT map desired completion to scheduled date', () => {
-    const handlerSection = jobComposerContent.substring(
-      jobComposerContent.indexOf('const handleCustomerSelect'),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const handlerSection = customerSelectSection
     expect(handlerSection).not.toContain('desiredCompletion')
     expect(handlerSection).not.toContain('setScheduledDate')
   })
@@ -270,10 +239,7 @@ describe('Batch 14 — Prefill: Timing Safety', () => {
 
 describe('Batch 14 — Prefill: Customer Switching', () => {
   it('switching customer does not leave stale derived data (name/phone always refresh)', () => {
-    const handlerSection = jobComposerContent.substring(
-      jobComposerContent.indexOf('const handleCustomerSelect'),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const handlerSection = customerSelectSection
     // Name and phone are identity fields — always overwritten (not prev-guarded)
     const nameLine = handlerSection.match(/setCustomerName\(([^)]+)\)/)
     const phoneLine = handlerSection.match(/setCustomerPhone\(([^)]+)\)/)
@@ -285,10 +251,7 @@ describe('Batch 14 — Prefill: Customer Switching', () => {
   })
 
   it('switching customer preserves manual title/notes/address (prev-guarded)', () => {
-    const handlerSection = jobComposerContent.substring(
-      jobComposerContent.indexOf('const handleCustomerSelect'),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const handlerSection = customerSelectSection
     expect(handlerSection).toContain('setTitle(prev =>')
     expect(handlerSection).toContain('setServiceAddress(prev =>')
     expect(handlerSection).toContain('setNotes(prev =>')
@@ -296,23 +259,26 @@ describe('Batch 14 — Prefill: Customer Switching', () => {
 })
 
 describe('Batch 14 — Prefill: Inline Add Customer Preservation', () => {
-  it('inline Add Customer still calls handleCustomerSelect with new customer', () => {
-    expect(jobComposerContent).toContain('handleLeadCreated')
-    expect(jobComposerContent).toContain('handleCustomerSelect(newCustomer)')
+  it('inline Add Customer is delegated to SearchableCustomerSelect', () => {
+    expect(jobComposerContent).toContain('SearchableCustomerSelect')
+    expect(jobComposerContent).toContain('onCustomerSelect={handleCustomerSelect}')
+    expect(jobComposerContent).toContain('onChange={setLeadId}')
   })
 
-  it('inline Add Customer preserves draft (does not reset title/notes)', () => {
-    // The handler only sets isAddCustomerOpen(true), no field resets
-    expect(jobComposerContent).toContain('() => setIsAddCustomerOpen(true)')
+  it('inline Add Customer preserves draft and supports clear/prefill', () => {
+    // The composer uses SearchableCustomerSelect with controlled value,
+    // optional clear (new jobs only), and a prefillCustomer prop.
+    expect(jobComposerContent).toContain('allowClear={!editJob}')
+    expect(jobComposerContent).toContain('prefillCustomer={prefill?.prefillCustomer}')
   })
 
-  it('inline Add Customer auto-selects created customer', () => {
-    expect(jobComposerContent).toContain('setLeadId(leadId)')
-    expect(jobComposerContent).toContain('setNewlyCreatedCustomer(newCustomer)')
-  })
-
-  it('inline Add Customer hydrates selector with newlyCreatedCustomer', () => {
-    expect(jobComposerContent).toContain('newlyCreatedCustomer || prefill?.prefillCustomer')
+  it('handleCustomerSelect only prefills identity fields and read-only metadata', () => {
+    expect(customerSelectSection).toContain('getLeadAIIntake(customer)')
+    expect(customerSelectSection).toContain('setCustomerName')
+    expect(customerSelectSection).toContain('setCustomerPhone')
+    expect(customerSelectSection).not.toContain('setScheduledDate')
+    expect(customerSelectSection).not.toContain('setScheduledTime')
+    expect(customerSelectSection).not.toContain('setStatus')
   })
 })
 
@@ -328,10 +294,7 @@ describe('Batch 14 — Prefill: No Customer Mutation', () => {
   })
 
   it('handleCustomerSelect only reads from customer, never writes', () => {
-    const handlerSection = jobComposerContent.substring(
-      jobComposerContent.indexOf('const handleCustomerSelect'),
-      jobComposerContent.indexOf('const handleLeadCreated')
-    )
+    const handlerSection = customerSelectSection
     expect(handlerSection).not.toContain('fetch')
     expect(handlerSection).not.toContain('supabase')
   })

@@ -71,9 +71,10 @@ describe('Batch 5 — Customer detail card order (desktop sidebar)', () => {
   const page = readFileSync('src/app/dashboard/leads/[id]/page-client.tsx', 'utf8')
 
   it('Desktop sidebar renders cards in exact desired order', () => {
+    // Current desktop sidebar order (SidebarSection title= props)
     const titles = [
-      'title="Previous Job Requests"',
-      'title="Schedule"',
+      'title="AI Summary"',
+      'title="Request History"',
       'title="Jobs"',
       'title="Reminders"',
       'title="Payments"',
@@ -96,19 +97,23 @@ describe('Batch 5 — Customer detail card order (desktop sidebar)', () => {
   })
 
   it('Mobile workspace renders cards in exact desired order', () => {
-    // Mobile uses uppercase tracking-wider spans, not SidebarSection title= props.
-    // We check the order of the mobile section comments.
+    // Mobile main render uses uppercase tracking-wider section headers and the
+    // shared RequestHistory component. The dead renderWorkspaceSection helper
+    // is intentionally not exercised here.
     const mobileMarkers = [
-      'Previous Job Requests - prior AI/call intake records */',
-      'Schedule - active/upcoming scheduled jobs only */',
-      'Tasks */',
-      'Payments */',
-      'Appointments */',
-      'Internal Notes */',
+      'uppercase tracking-wider">AI Intake</span>',
+      'uppercase tracking-wider">AI Summary</span>',
+      '<RequestHistory',
+      'uppercase tracking-wider">Jobs</span>',
+      'uppercase tracking-wider">Reminders</span>',
+      'uppercase tracking-wider">Payments</span>',
+      'uppercase tracking-wider">Appointments</span>',
+      'uppercase tracking-wider">Internal Notes</span>',
     ]
 
-    // Find the mobile section start (after the AI Intake / VoicemailSummary area)
-    const mobileStart = page.indexOf('Collapsible Sections - Below conversation')
+    // The mobile-only stack starts after the first md:hidden boundary; using the
+    // first AI Intake header as the mobile start marker keeps us out of desktop markup.
+    const mobileStart = page.indexOf('uppercase tracking-wider">AI Intake</span>')
     expect(mobileStart).toBeGreaterThan(-1)
 
     const mobileSection = page.substring(mobileStart)
@@ -124,14 +129,14 @@ describe('Batch 5 — Customer detail card order (desktop sidebar)', () => {
     }
   })
 
-  it('Jobs card appears after Schedule in mobile workspace', () => {
-    const mobileStart = page.indexOf('Collapsible Sections - Below conversation')
+  it('Jobs card appears after Request History in mobile workspace', () => {
+    const mobileStart = page.indexOf('uppercase tracking-wider">AI Intake</span>')
     const mobileSection = page.substring(mobileStart)
-    const schedulePos = mobileSection.indexOf('Schedule - active/upcoming scheduled jobs only */')
+    const historyPos = mobileSection.indexOf('<RequestHistory')
     const jobsPos = mobileSection.indexOf('uppercase tracking-wider">Jobs</span>')
-    expect(schedulePos).toBeGreaterThan(-1)
+    expect(historyPos).toBeGreaterThan(-1)
     expect(jobsPos).toBeGreaterThan(-1)
-    expect(jobsPos).toBeGreaterThan(schedulePos)
+    expect(jobsPos).toBeGreaterThan(historyPos)
   })
 })
 
@@ -397,8 +402,10 @@ describe('Batch 5 — LeadStatusDropdown hit targets', () => {
   })
 
   it('Status trigger visual pill remains compact (inner span with sizeClasses)', () => {
-    // The inner span retains the compact px-2 py-0.5 text-xs visual treatment
-    expect(dropdown).toContain('px-2 py-0.5 text-xs max-w-[140px]')
+    // Current size classes tightened max-widths for long labels; md keeps py-1.5
+    expect(dropdown).toContain("sm: 'px-2 py-0.5 text-xs max-w-[120px]'")
+    expect(dropdown).toContain("md: 'px-2.5 py-1.5 text-xs max-w-[150px]'")
+    expect(dropdown).toContain("lg: 'px-3 py-1 text-sm max-w-[180px]'")
     // The inner span has the visual border/bg, not the button
     expect(dropdown).toContain('border border-border dark:border-border/50 rounded-lg')
   })
@@ -425,8 +432,8 @@ describe('Batch 5 — LeadStatusDropdown hit targets', () => {
   })
 
   it('Desktop visual density preserved (sizeClasses still sm/md/lg)', () => {
-    expect(dropdown).toContain("sm: 'px-2 py-0.5 text-xs max-w-[140px]'")
-    expect(dropdown).toContain("md: 'px-2.5 py-0.5 text-xs max-w-[160px]'")
+    expect(dropdown).toContain("sm: 'px-2 py-0.5 text-xs max-w-[120px]'")
+    expect(dropdown).toContain("md: 'px-2.5 py-1.5 text-xs max-w-[150px]'")
     expect(dropdown).toContain("lg: 'px-3 py-1 text-sm max-w-[180px]'")
   })
 
@@ -477,7 +484,8 @@ describe('Batch 5 — Notifications mobile alignment', () => {
 
   it('Header uses flex-row (not flex-col) for title + actions on mobile', () => {
     // Should NOT use flex-col md:flex-row — should be flex-row at all breakpoints
-    expect(notifications).toContain('flex flex-row flex-wrap items-center gap-3')
+    expect(notifications).toContain('flex items-center justify-between gap-3')
+    expect(notifications).not.toContain('flex-col md:flex-row')
   })
 
   it('Actions use ml-auto (not md:ml-auto) for mobile right alignment', () => {

@@ -130,9 +130,13 @@ describe('SearchableCustomerSelect', () => {
     expect(content).toContain('setIsOpen(false)')
   })
 
-  it('should focus search input when dropdown opens', () => {
-    expect(content).toContain('searchInputRef.current')
-    expect(content).toContain('.focus()')
+  it('should NOT auto-focus search input when dropdown opens', () => {
+    // Mobile-first UX: the picker opens showing the customer list first.
+    // Tapping the search bar focuses it; programmatic autofocus would
+    // immediately open the mobile keyboard and hide the list.
+    expect(content).toContain('searchInputRef')
+    expect(content).not.toMatch(/searchInputRef\.current\.focus\(\)/)
+    expect(content).not.toMatch(/searchInputRef\.current\?\.focus\(\)/)
   })
 
   it('should use type="button" on trigger to prevent form submit', () => {
