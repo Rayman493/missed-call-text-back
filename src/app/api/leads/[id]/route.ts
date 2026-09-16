@@ -96,6 +96,25 @@ export async function PATCH(
       const correctedFieldsUpdatedAt = { ...(currentMetadata.corrected_fields_updated_at || {}) }
       const now = new Date().toISOString()
 
+      // The "Customer information updated" timeline divider is derived from
+      // customer_corrected_info / corrected_fields. It must only be recorded
+      // when a meaningful field actually changed relative to what the form
+      // displayed — the current EFFECTIVE value (manual correction first,
+      // then latest ai_call_record intake, then raw_metadata.extracted_info,
+      // then lead columns). A same-value save writes nothing and emits no
+      // event.
+      const { data: latestIntakeRecord } = await supabase
+        .from('ai_call_records')
+        .select('id, extracted_info')
+        .eq('lead_id', leadId)
+        .eq('business_id', business.id!)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      const latestExtracted = latestIntakeRecord?.extracted_info || {}
+      const metadataExtracted = currentMetadata.extracted_info || {}
+
       const firstCorrectedValue = (aliases: string[]): string | undefined => {
         for (const alias of aliases) {
           if (correctedFields[alias]) return correctedFields[alias]
@@ -103,9 +122,26 @@ export async function PATCH(
         return undefined
       }
 
-      const setCorrected = (canonicalKey: string, aliases: string[], value: string | null) => {
+      // Effective value = what the customer surfaces currently display for a
+      // canonical field. Manual corrections win, then current-call intake,
+      // then lead-level extracted_info, then the explicit column fallback.
+      const effectiveFieldValue = (canonicalKey: string, columnValue?: string | null): string => {
+        if (columnValue && columnValue.trim()) return columnValue.trim()
+        const corrected = firstCorrectedValue(MANUAL_FIELD_ALIASES[canonicalKey])
+        if (corrected) return corrected
+        const extractedKeys = EXTRACTED_FIELD_KEYS[canonicalKey] || []
+        return firstValue(latestExtracted, extractedKeys)
+          || firstValue(metadataExtracted, extractedKeys)
+          || ''
+      }
+
+      let changedCount = 0
+      const setCorrected = (canonicalKey: string, aliases: string[], value: string | null, effective: string) => {
         if (value === undefined) return
         const trimmed = value ? value.trim() : ''
+        // No meaningful change vs the currently displayed value: record
+        // nothing so a same-value save cannot produce a false event.
+        if (trimmed === effective.trim()) return
         const previous = firstCorrectedValue(aliases) || ''
         if (trimmed) {
           for (const alias of aliases) correctedFields[alias] = trimmed
@@ -115,38 +151,64 @@ export async function PATCH(
         if (trimmed !== previous) {
           correctedFieldsUpdatedAt[canonicalKey] = now
         }
+        changedCount++
       }
+
+      const normalizePhoneDigits = (value: string | null | undefined): string =>
+        (value || '').replace(/\D/g, '').slice(-10)
 
       if (contact_name !== undefined) {
         updateData.contact_name = contact_name
-        setCorrected('callerName', MANUAL_FIELD_ALIASES.callerName, contact_name)
+        setCorrected('callerName', MANUAL_FIELD_ALIASES.callerName, contact_name,
+          effectiveFieldValue('callerName', currentLead.contact_name))
       }
       if (caller_phone !== undefined) {
         updateData.caller_phone = caller_phone ? normalizePhoneNumberForStorage(caller_phone) : null
+        const effectivePhone =
+          currentLead.caller_phone ||
+          firstValue(latestExtracted, ['customerPhone', 'callerPhone', 'phone', 'caller_phone']) ||
+          firstValue(metadataExtracted, ['customerPhone', 'callerPhone', 'phone', 'caller_phone']) ||
+          ''
+        if (normalizePhoneDigits(caller_phone) !== normalizePhoneDigits(effectivePhone)) {
+          changedCount++
+        }
       }
       if (email !== undefined) {
         const trimmed = email ? email.trim() : ''
-        const previous = correctedFields.email || ''
-        if (trimmed) correctedFields.email = trimmed
-        else delete correctedFields.email
-        if (trimmed !== previous) {
-          correctedFieldsUpdatedAt.email = now
+        const effectiveEmail =
+          correctedFields.email ||
+          firstValue(latestExtracted, ['email']) ||
+          firstValue(metadataExtracted, ['email']) ||
+          ''
+        if (trimmed !== effectiveEmail.trim()) {
+          const previous = correctedFields.email || ''
+          if (trimmed) correctedFields.email = trimmed
+          else delete correctedFields.email
+          if (trimmed !== previous) {
+            correctedFieldsUpdatedAt.email = now
+          }
+          changedCount++
         }
       }
       if (reasonForCalling !== undefined) {
-        setCorrected('reasonForCalling', MANUAL_FIELD_ALIASES.reasonForCalling, reasonForCalling)
+        setCorrected('reasonForCalling', MANUAL_FIELD_ALIASES.reasonForCalling, reasonForCalling,
+          effectiveFieldValue('reasonForCalling'))
       }
       if (importantDetails !== undefined) {
-        setCorrected('importantDetails', MANUAL_FIELD_ALIASES.importantDetails, importantDetails)
+        setCorrected('importantDetails', MANUAL_FIELD_ALIASES.importantDetails, importantDetails,
+          effectiveFieldValue('importantDetails'))
       }
       if (addressOrLocation !== undefined) {
-        setCorrected('addressOrLocation', MANUAL_FIELD_ALIASES.addressOrLocation, addressOrLocation)
+        setCorrected('addressOrLocation', MANUAL_FIELD_ALIASES.addressOrLocation, addressOrLocation,
+          effectiveFieldValue('addressOrLocation'))
       }
       if (desiredCompletionTime !== undefined) {
-        setCorrected('desiredCompletionTime', MANUAL_FIELD_ALIASES.desiredCompletionTime, desiredCompletionTime)
+        setCorrected('desiredCompletionTime', MANUAL_FIELD_ALIASES.desiredCompletionTime, desiredCompletionTime,
+          effectiveFieldValue('desiredCompletionTime'))
       }
       if (preferredCallbackTime !== undefined) {
-        setCorrected('preferredCallbackTime', MANUAL_FIELD_ALIASES.preferredCallbackTime, preferredCallbackTime)
+        setCorrected('preferredCallbackTime', MANUAL_FIELD_ALIASES.preferredCallbackTime, preferredCallbackTime,
+          effectiveFieldValue('preferredCallbackTime'))
       }
       if (company_name !== undefined) updateData.company_name = company_name
       if (notes !== undefined) updateData.notes = notes
@@ -155,9 +217,15 @@ export async function PATCH(
         ...currentMetadata,
         corrected_fields: correctedFields,
         corrected_fields_updated_at: correctedFieldsUpdatedAt,
-        customer_corrected_info: true,
-        last_correction_at: now,
-        last_correction_source: 'manual_edit_customer'
+        // Correction flags are only stamped when a meaningful customer field
+        // actually changed. Same-value saves, updated_at-only writes, and
+        // refetches must not mint a "Customer information updated" event.
+        ...(changedCount > 0 ? {
+          customer_corrected_info: true,
+          last_correction_at: now,
+          last_correction_source: 'manual_edit_customer',
+          corrections_count: (currentMetadata.corrections_count || 0) + changedCount
+        } : {})
       }
       updateData.raw_metadata = mergedRawMetadata
 
@@ -174,7 +242,7 @@ export async function PATCH(
         return NextResponse.json({ error: 'Failed to update lead' }, { status: 500 });
       }
 
-      return NextResponse.json({ lead: updatedLead });
+      return NextResponse.json({ lead: updatedLead, changed: changedCount > 0 });
     }
 
     // Handle customer profile field updates (contact_name, company_name, tags, notes)

@@ -463,6 +463,10 @@ export default function PaymentsPage() {
         document_type: d.document_type,
         status: d.status,
         document_number: d.document_number,
+        // Persisted document name must round-trip into the editor — without
+        // this, reopening a draft shows a blank name field and "loses" the
+        // saved value.
+        display_name: d.display_name ?? null,
         issue_date: d.issue_date,
         valid_until: d.valid_until,
         due_date: d.due_date,
@@ -502,13 +506,19 @@ export default function PaymentsPage() {
       const savedId = savedDoc.id
       setBillingDocuments((prev) => {
         const existing = prev.find((d) => d.id === savedId)
-        const baseLead = existing?.leads || null
+        // The PATCH/POST response carries the canonical `leads` join for the
+        // saved customer_id. Use it (including explicit null on customer
+        // removal) — carrying over the old join leaves the card showing a
+        // stale customer or "Unnamed customer" until a full refresh.
+        const savedLeads = (savedDoc as any).leads
         const item: BillingDocumentListItem = {
           id: savedId,
           document_type: savedDoc.document_type,
           status: savedDoc.status,
           document_number: savedDoc.document_number,
-          display_name: savedDoc.display_name ?? existing?.display_name ?? null,
+          // Explicit undefined-check: a cleared name persists as null and must
+          // clear on the card too — `??` would wrongly resurrect the old name.
+          display_name: savedDoc.display_name !== undefined ? savedDoc.display_name : (existing?.display_name ?? null),
           issue_date: savedDoc.issue_date,
           valid_until: savedDoc.valid_until ?? null,
           due_date: savedDoc.due_date ?? null,
@@ -518,7 +528,7 @@ export default function PaymentsPage() {
           source_quote_id: (savedDoc as any).source_quote_id ?? existing?.source_quote_id ?? null,
           payment_request_id: (savedDoc as any).payment_request_id ?? existing?.payment_request_id ?? null,
           payment_request: existing?.payment_request ?? null,
-          leads: baseLead,
+          leads: savedLeads !== undefined ? savedLeads : (existing?.leads ?? null),
           updated_at: new Date().toISOString(),
           sent_at: existing?.sent_at ?? null,
         }

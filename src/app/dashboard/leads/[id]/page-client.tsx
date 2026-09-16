@@ -42,7 +42,7 @@ import { formatEventTimeRange } from '@/lib/calendar-date-utils'
 import { reconcileLeadData } from '@/lib/payment-reconciliation'
 import { mergeLeadRealtimeUpdate, replaceAuthoritativeChildSnapshot, mergeIncrementalChildRecords, reconcileScopedChildSnapshot, mergeLeadFetchResult } from '@/lib/lead-merge'
 import Link from 'next/link'
-import { Lead, Message, Conversation } from '@/lib/types'
+import { Lead, Message, Conversation, normalizeLeadForApplication } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
@@ -6917,16 +6917,25 @@ If you have questions, reply to this message.`
       onClose={() => setShowEditCustomer(false)}
       leadId={params.id}
       leadData={leadData}
-      onCustomerUpdated={async () => {
+      onCustomerUpdated={async (updatedLead?: any, changed?: boolean) => {
         // Preserve scroll position before refresh to prevent jump
         const container = conversationContainerRef.current || mobileConversationContainerRef.current
         const scrollPosition = container?.scrollTop || 0
+        // Reconcile immediately from the canonical persisted row returned by
+        // the PATCH — this is real server state, not an optimistic guess, so
+        // Customer Details reflects the save even if the follow-up refetch is
+        // slow, dropped, or superseded by a newer request.
+        if (updatedLead && updatedLead.id === params.id) {
+          const normalizedLead = normalizeLeadForApplication(updatedLead)
+          setLeadData((prev: any) => (prev ? mergeLeadRealtimeUpdate(prev, normalizedLead) : prev))
+        }
         await handleRefresh()
         // Restore scroll position after refresh
         if (container) {
           container.scrollTop = scrollPosition
         }
-        setSuccessMessage('Cheers! Customer info updated.')
+        // Only claim an update when the server reported a meaningful change.
+        setSuccessMessage(changed === false ? 'Customer info saved.' : 'Cheers! Customer info updated.')
       }}
     />
 

@@ -12,7 +12,9 @@ interface EditCustomerModalProps {
   onClose: () => void
   leadId: string
   leadData: any
-  onCustomerUpdated?: () => void
+  // Receives the canonical persisted lead row returned by PATCH /api/leads/[id]
+  // plus whether any meaningful customer field actually changed.
+  onCustomerUpdated?: (updatedLead?: any, changed?: boolean) => void
 }
 
 interface CustomerFormData {
@@ -45,23 +47,34 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const submitInFlightRef = useRef(false)
+  // Tracks which lead the form was last seeded for, so a refresh of the same
+  // lead does not wipe in-progress edits and a customer switch can never leak
+  // the previous customer's values into the form.
+  const seededForLeadRef = useRef<string | null>(null)
 
-  // Initialize form from the canonical current customer context
+  // Initialize form from the canonical current customer context.
+  // Seeds once per open per customer: only when leadData.id matches the leadId
+  // this modal was opened for, and only on the first matching hydration.
   useEffect(() => {
-    if (isOpen && leadData) {
-      const context = getCurrentCustomerContext(leadData)
-      setFormData({
-        customerName: context.customerName,
-        reasonForCalling: context.reasonForCalling,
-        details: context.details,
-        location: context.location,
-        desiredCompletionTime: context.desiredCompletionTime,
-        preferredCallbackTime: context.preferredCallbackTime,
-        phoneNumber: context.phoneNumber,
-        email: context.email
-      })
+    if (!isOpen) {
+      seededForLeadRef.current = null
+      return
     }
-  }, [isOpen, leadData])
+    if (!leadData || leadData.id !== leadId) return
+    if (seededForLeadRef.current === leadId) return
+    const context = getCurrentCustomerContext(leadData)
+    setFormData({
+      customerName: context.customerName,
+      reasonForCalling: context.reasonForCalling,
+      details: context.details,
+      location: context.location,
+      desiredCompletionTime: context.desiredCompletionTime,
+      preferredCallbackTime: context.preferredCallbackTime,
+      phoneNumber: context.phoneNumber,
+      email: context.email
+    })
+    seededForLeadRef.current = leadId
+  }, [isOpen, leadData, leadId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -131,8 +144,13 @@ export default function EditCustomerModal({ isOpen, onClose, leadId, leadData, o
         throw new Error(errorData.error || 'Failed to update customer')
       }
 
+      // The PATCH returns the canonical persisted lead row plus whether any
+      // meaningful field actually changed. Hand both to the caller so the
+      // customer surfaces reconcile from persisted state immediately — not
+      // from a later, possibly stale or dropped, refetch.
+      const json = await response.json().catch(() => ({}))
       if (onCustomerUpdated) {
-        onCustomerUpdated()
+        onCustomerUpdated(json?.lead, json?.changed)
       }
 
       onClose()
