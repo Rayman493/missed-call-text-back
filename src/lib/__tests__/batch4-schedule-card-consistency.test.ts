@@ -209,8 +209,8 @@ describe('5. Modal structure uses bounded content scroll + reachable footer', ()
     expect(globalsCssContent).toMatch(/min-width: 768px[\s\S]*?--modal-max-height: calc\(100dvh - 128px\)/)
   })
 
-  it('EventDetailsModal uses shared --modal-max-height for bounded height', () => {
-    expect(eventDetailsModalContent).toContain('max-h-[var(--modal-max-height)]')
+  it('EventDetailsModal uses shared details-modal max-height token for bounded height', () => {
+    expect(eventDetailsModalContent).toContain('max-h-[var(--details-modal-max-height)]')
   })
 
   it('EventDetailsModal outer container uses --modal-bottom-reserve for safe bottom padding', () => {
@@ -225,8 +225,8 @@ describe('5. Modal structure uses bounded content scroll + reachable footer', ()
     expect(eventDetailsModalContent).toMatch(/Footer[\s\S]*?flex-shrink-0/s)
   })
 
-  it('JobDetailsModal uses shared --modal-max-height for bounded height', () => {
-    expect(jobDetailsModalContent).toContain('max-h-[var(--modal-max-height)]')
+  it('JobDetailsModal uses shared details-modal max-height token for bounded height', () => {
+    expect(jobDetailsModalContent).toContain('max-h-[var(--details-modal-max-height)]')
     expect(jobDetailsModalContent).toContain('sm:max-h-[90vh]')
   })
 

@@ -92,9 +92,12 @@ describe('Batch 3 — Modal scroll / viewport / save semantics', () => {
     expect(footerSection).toContain('env(safe-area-inset-bottom)')
   })
 
-  // 7. JobDetailsModal shell accounts for bottom nav
+  // 7. JobDetailsModal shell accounts for bottom nav via the shared details token
   it('JobDetailsModal shell max-h accounts for bottom-nav-height', () => {
-    expect(jobDetailsModalSrc).toContain('var(--bottom-nav-height')
+    expect(jobDetailsModalSrc).toContain('max-h-[var(--details-modal-max-height)]')
+    // The shared details token subtracts the bottom app-chrome band
+    const globalsSrc = readSrc('src/app/globals.css')
+    expect(globalsSrc).toContain('--details-modal-max-height: calc(100dvh - var(--bottom-nav-height')
   })
 
   // 7b. New Payment Request content stays inside viewport (uses shared Modal)

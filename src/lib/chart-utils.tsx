@@ -217,6 +217,38 @@ import { GESTURE_MOVEMENT_THRESHOLD } from '@/lib/gesture/tap-guard'
 
 type GestureMode = 'idle' | 'vertical' | 'horizontal'
 
+/**
+ * Axis dominance margin (px). The leading axis must outpace the other by at
+ * least this much before the chart claims horizontal ownership. First-move
+ * touch deltas are noisy near the 10px threshold — without a dominance margin,
+ * a vertical-intent scroll that crosses the threshold lateral-first gets
+ * locked into chart mode for the whole gesture (pointer-events flip, datum
+ * activation, suppressed follow-up click).
+ */
+const GESTURE_AXIS_MARGIN = 4
+
+/**
+ * If a gesture travels this far without a dominant axis, ownership resolves
+ * to vertical (page scroll). A long ambiguous diagonal drag must never claim
+ * the chart or activate a datum.
+ */
+const GESTURE_AMBIGUOUS_DISTANCE = GESTURE_MOVEMENT_THRESHOLD * 2
+
+/**
+ * Classify a touch gesture by dominant axis.
+ * Returns null while undecided (below threshold or within the ambiguity band)
+ * — an undecided gesture must never preventDefault, capture, or activate.
+ */
+function classifyGestureAxis(deltaX: number, deltaY: number): GestureMode | null {
+  if (deltaX <= GESTURE_MOVEMENT_THRESHOLD && deltaY <= GESTURE_MOVEMENT_THRESHOLD) {
+    return null
+  }
+  const dominance = deltaX - deltaY
+  if (dominance >= GESTURE_AXIS_MARGIN) return 'horizontal'
+  if (dominance <= -GESTURE_AXIS_MARGIN) return 'vertical'
+  return Math.max(deltaX, deltaY) > GESTURE_AMBIGUOUS_DISTANCE ? 'vertical' : null
+}
+
 interface ChartTouchWrapperProps {
   children: React.ReactNode
   /** Chart data array (used to map X position → nearest datum index) */
@@ -332,30 +364,30 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
     const deltaX = Math.abs(touchX - startXRef.current)
     const deltaY = Math.abs(touchY - startYRef.current)
 
-    // Classify gesture once movement exceeds threshold
+    // Classify gesture once movement exceeds threshold — but only when one
+    // axis clearly dominates. Ambiguous deltas stay unowned so the browser's
+    // native scroll is never contested.
     if (gestureModeRef.current === 'idle') {
-      if (deltaX <= GESTURE_MOVEMENT_THRESHOLD && deltaY <= GESTURE_MOVEMENT_THRESHOLD) {
-        return // Still below threshold — wait
-      }
-      // Axis-aware classification
-      if (deltaY > deltaX) {
-        gestureModeRef.current = 'vertical'
-      } else {
-        gestureModeRef.current = 'horizontal'
+      const mode = classifyGestureAxis(deltaX, deltaY)
+      if (!mode) return
+      gestureModeRef.current = mode
+      if (mode === 'horizontal') {
         setIsScrubbing(true)
         // Disable pointer events on the chart so Recharts doesn't fight
         // our scrub with its own touch handlers
         if (innerRef.current) {
           innerRef.current.style.pointerEvents = 'none'
         }
+      } else {
+        // Vertical scroll — clear any transient Recharts state once, then
+        // stay out of the way entirely.
+        clearRechartsState()
       }
     }
 
     if (gestureModeRef.current === 'vertical') {
-      // Vertical scroll — let the page scroll natively. Do not select
-      // datum, do not preventDefault. Clear any active Recharts state.
-      clearRechartsState()
-      e.stopPropagation()
+      // Page owns this gesture — no preventDefault, no stopPropagation,
+      // no pointer capture, no datum selection.
       return
     }
 
@@ -409,7 +441,7 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
   const handlePointerMove = (e: React.PointerEvent) => {
     if (e.pointerType !== 'touch') return
     if (gestureModeRef.current === 'vertical') {
-      e.stopPropagation()
+      // Page owns this gesture — do not interfere.
       return
     }
     if (gestureModeRef.current === 'horizontal') {
@@ -423,17 +455,15 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
       return
     }
 
-    // idle — classify
+    // idle — classify by dominant axis; ambiguous stays unowned
     const deltaX = Math.abs(e.clientX - startXRef.current)
     const deltaY = Math.abs(e.clientY - startYRef.current)
-    if (deltaX <= GESTURE_MOVEMENT_THRESHOLD && deltaY <= GESTURE_MOVEMENT_THRESHOLD) {
-      return
-    }
-    if (deltaY > deltaX) {
-      gestureModeRef.current = 'vertical'
+    const mode = classifyGestureAxis(deltaX, deltaY)
+    if (!mode) return
+    gestureModeRef.current = mode
+    if (mode === 'vertical') {
       clearRechartsState()
     } else {
-      gestureModeRef.current = 'horizontal'
       setIsScrubbing(true)
       if (innerRef.current) {
         innerRef.current.style.pointerEvents = 'none'

@@ -604,7 +604,62 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       created_at: inboundMessage.created_at,
       body: sanitizedBody.substring(0, 50)
     })
-    
+
+    // Create notification for customer reply immediately after the inbound
+    // message is persisted. This must not wait on the enrichment/correction
+    // pipeline below (LLM calls and follow-up cancellation are not required to
+    // alert the business about a customer reply).
+    try {
+      console.log('[NOTIFICATION CREATE ATTEMPT]', {
+        businessId: business.id,
+        type: 'customer_reply',
+        leadId: lead.id,
+        messageId: inboundMessage.id
+      });
+
+      // The inbound lead lookup returns leads.* only; attach the latest AI
+      // intake record so getLeadDisplayName sees the same name sources as the
+      // lead surfaces (which join ai_call_records).
+      const aiRecordForName = await db.getMostRecentAiCallRecordForLead(business.id, lead.id)
+      const leadForName = aiRecordForName ? { ...lead, aiCallRecords: [aiRecordForName] } : lead
+      const leadName = getLeadDisplayName(leadForName);
+
+      // Determine message text for notification
+      let notificationMessage = sanitizedBody;
+      if (!sanitizedBody || sanitizedBody.trim() === '') {
+        notificationMessage = 'sent a photo';
+      } else {
+        // Truncate long messages
+        notificationMessage = sanitizedBody.length > 60
+          ? sanitizedBody.substring(0, 60) + '...'
+          : sanitizedBody;
+      }
+
+      const notificationSuccess = await notificationServiceServer.notifyCustomerReply(
+        business.id,
+        leadName,
+        notificationMessage,
+        lead.id,
+        inboundMessage.id
+      );
+
+      if (notificationSuccess) {
+        console.log('[NOTIFICATION CREATE SUCCESS]', {
+          businessId: business.id,
+          leadId: lead.id,
+          messageId: inboundMessage.id
+        });
+      } else {
+        console.log('[NOTIFICATION CREATE FAILED]', {
+          businessId: business.id,
+          leadId: lead.id,
+          messageId: inboundMessage.id
+        });
+      }
+    } catch (error: any) {
+      console.error('[NOTIFICATION CREATE ERROR]', error);
+    }
+
     // CRITICAL: Update lead status when customer sends an inbound message
     console.log('[LEAD STATUS UPDATE TRIGGERED]', {
       leadId: lead.id,
@@ -1645,56 +1700,6 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   } catch (followUpError) {
     console.error('[SMS Processing] Failed to cancel follow-up jobs for lead (non-fatal):', followUpError)
     // Continue processing - don't let follow-up cancellation failure block the rest
-  }
-  
-  // Create notification for customer reply (only if message was inserted)
-  if (inboundMessage) {
-    try {
-      console.log('[NOTIFICATION CREATE ATTEMPT]', { 
-        businessId: business.id, 
-        type: 'customer_reply', 
-        leadId: lead.id,
-        messageId: inboundMessage.id
-      });
-    
-    // Get lead name using canonical display name resolution
-    const leadName = getLeadDisplayName(lead);
-    
-    // Determine message text for notification
-    let notificationMessage = sanitizedBody;
-    if (!sanitizedBody || sanitizedBody.trim() === '') {
-      notificationMessage = 'sent a photo';
-    } else {
-      // Truncate long messages
-      notificationMessage = sanitizedBody.length > 60 
-        ? sanitizedBody.substring(0, 60) + '...'
-        : sanitizedBody;
-    }
-    
-    const notificationSuccess = await notificationServiceServer.notifyCustomerReply(
-        business.id,
-        leadName,
-        notificationMessage,
-        lead.id,
-        inboundMessage.id
-      );
-      
-      if (notificationSuccess) {
-        console.log('[NOTIFICATION CREATE SUCCESS]', { 
-          businessId: business.id, 
-          leadId: lead.id,
-          messageId: inboundMessage.id
-        });
-      } else {
-        console.log('[NOTIFICATION CREATE FAILED]', { 
-          businessId: business.id, 
-          leadId: lead.id,
-          messageId: inboundMessage.id
-        });
-      }
-    } catch (error: any) {
-      console.error('[NOTIFICATION CREATE ERROR]', error);
-    }
   }
   
   // Return success response without TwiML message (since we already sent via sendSms)

@@ -39,7 +39,11 @@ describe('A. True-bottom conversation anchor', () => {
     expect(source).toContain('resizeObserver.observe(innerContent')
     expect(source).toContain('lastScrollHeight')
     expect(source).toContain('settleCount >= 2')
-    expect(source).toContain('followLatestRef.current && isContainerNearBottom(container)')
+    // Gate on followLatestRef (recorded user intent) only — do NOT re-check
+    // isContainerNearBottom inside the RO callback: it fires BECAUSE content
+    // just grew, so a post-growth measurement falsely reads "not near bottom".
+    expect(source).toMatch(/if \(followLatestRef\.current\) \{\s*scrollToTrueBottom\(container\)/)
+    expect(source).not.toContain('followLatestRef.current && isContainerNearBottom(container)')
   })
 
   it('A.4 user scroll intent updates followLatestRef via near-bottom threshold', () => {

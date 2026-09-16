@@ -305,7 +305,7 @@ describe('Batch 5 — Race Condition Scenarios (Code-Level Proofs)', () => {
   it('SAME FILE: select A → reset → select A again => change fires', () => {
     const sheetContent = readContent('src/components/conversation/AttachmentActionSheet.tsx')
     // Input value is reset AFTER reading files (not before)
-    const changeMatch = sheetContent.match(/handleFileChange = \(e[\s\S]*?\}\n  \}/)
+    const changeMatch = sheetContent.match(/handleFileChange = \(e[\s\S]*?\n  \}/)
     expect(changeMatch).toBeTruthy()
     if (changeMatch) {
       // Files are read before value is reset
@@ -373,11 +373,13 @@ describe('Batch 5 — Local Text Send (No setTimeout 50)', () => {
 
   it('local send useLayoutEffect forces scroll to bottom', () => {
     const content = readContent('src/app/dashboard/leads/[id]/page-client.tsx')
-    // The useLayoutEffect for local send should set scrollTop = scrollHeight
-    const layoutEffectMatch = content.match(/useLayoutEffect\(\(\) => \{[\s\S]*?localSendScrollGeneration[\s\S]*?\}\)/)
+    // The useLayoutEffect for local send anchors to true bottom via the
+    // canonical scrollToTrueBottom helper (which sets scrollTop to the
+    // scrollable maximum).
+    const layoutEffectMatch = content.match(/useLayoutEffect\(\(\) => \{\s*if \(localSendScrollGeneration > 0\)[\s\S]*?\}\)/)
     expect(layoutEffectMatch).toBeTruthy()
     if (layoutEffectMatch) {
-      expect(layoutEffectMatch[0]).toContain('scrollHeight')
+      expect(layoutEffectMatch[0]).toContain('scrollToTrueBottom')
     }
   })
 
@@ -524,9 +526,11 @@ describe('Batch 5 — Batch 3 Regression', () => {
 describe('Batch 5 — Batch 4 Regression', () => {
   it('ChartTouchWrapper uses canonical 10px threshold with both X and Y', () => {
     const content = readContent('src/lib/chart-utils.tsx')
-    // Uses canonical isDragGesture from tap-guard (10px threshold, both X and Y)
-    expect(content).toContain('isDragGesture')
+    // Uses the canonical GESTURE_MOVEMENT_THRESHOLD (10px) from tap-guard,
+    // applied to both X and Y axes.
     expect(content).toContain('GESTURE_MOVEMENT_THRESHOLD')
+    expect(content).toContain("from '@/lib/gesture/tap-guard'")
+    expect(content).toMatch(/deltaX <= GESTURE_MOVEMENT_THRESHOLD && deltaY <= GESTURE_MOVEMENT_THRESHOLD/)
   })
 
   it('Personal Voicemail link is always rendered (no conditional)', () => {

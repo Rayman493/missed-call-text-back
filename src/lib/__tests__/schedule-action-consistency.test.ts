@@ -219,8 +219,8 @@ describe('Part B: Event Details Modal Height', () => {
     })
 
     it('8. modal shell has max-h (bounded to viewport)', () => {
-      // EventDetailsModal reuses the shared --modal-max-height CSS variable
-      expect(eventModal).toContain('max-h-[var(--modal-max-height)]')
+      // EventDetailsModal reuses the shared --details-modal-max-height CSS variable
+      expect(eventModal).toContain('max-h-[var(--details-modal-max-height)]')
     })
 
     it('modal shell has overflow-hidden (clips body scroll)', () => {
@@ -259,7 +259,7 @@ describe('Part B: Event Details Modal Height', () => {
     })
 
     it('8. modal shell has max-h (bounded to viewport)', () => {
-      expect(jobModal).toContain('max-h-[var(--modal-max-height)]')
+      expect(jobModal).toContain('max-h-[var(--details-modal-max-height)]')
       expect(jobModal).toContain('sm:max-h-[90vh]')
     })
 

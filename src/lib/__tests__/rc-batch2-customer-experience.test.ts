@@ -26,7 +26,11 @@ describe('RC Batch 2 — Customer Experience Regression Suite', () => {
     })
 
     it('keeps the follow-latest else branch that respects user scroll position', () => {
-      expect(pageClient).toContain('followLatestRef.current && isContainerNearBottom(container)')
+      // Gate on followLatestRef (recorded user intent), not a post-resize
+      // near-bottom measurement — the RO fires after content growth, which
+      // would falsely read "not near bottom" for a bottom-pinned user.
+      expect(pageClient).toMatch(/if \(followLatestRef\.current\) \{\s*scrollToTrueBottom\(container\)/)
+      expect(pageClient).not.toContain('followLatestRef.current && isContainerNearBottom(container)')
     })
   })
 

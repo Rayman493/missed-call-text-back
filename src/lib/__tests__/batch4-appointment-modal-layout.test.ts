@@ -12,8 +12,8 @@ const createEventRoute = readSrc('src/app/api/google/calendar/create-event/route
 
 describe('Batch 4 — Appointment modal layout + creation status cleanup', () => {
   describe('A. Phantom bottom spacing removed', () => {
-    it('1. EventDetailsModal uses shared --modal-max-height for all sizes', () => {
-      expect(eventDetailsModal).toContain('max-h-[var(--modal-max-height)]')
+    it('1. EventDetailsModal uses shared details-modal max-height token for all sizes', () => {
+      expect(eventDetailsModal).toContain('max-h-[var(--details-modal-max-height)]')
     })
 
     it('2. EventDetailsModal uses --modal-bottom-reserve for outer positioning', () => {

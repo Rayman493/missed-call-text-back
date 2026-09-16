@@ -792,12 +792,21 @@ html.light select:-moz-autofill:focus {
 :root {
   --modal-bottom-reserve: calc(env(safe-area-inset-bottom) + 16px);
   --modal-max-height: calc(100dvh - 32px);
+  /* Details modals (Appointment/Event Details, Job Details): tighter mobile
+   * ceiling so long content presents as a centered dialog inside the usable
+   * viewport band instead of a near-full-screen sheet. Subtracts the bottom
+   * app-chrome band (shared --bottom-nav-height), both OS safe-area insets,
+   * and 32px breathing room, so the cap always stays inside the
+   * safe-area-padded backdrop box and cannot ride under the status bar/app
+   * header or crowd OS navigation. */
+  --details-modal-max-height: calc(100dvh - var(--bottom-nav-height, 72px) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px);
 }
 
 @media (min-width: 768px) {
   :root {
     --modal-bottom-reserve: 16px;
     --modal-max-height: calc(100dvh - 128px);
+    --details-modal-max-height: var(--modal-max-height);
   }
 }
 

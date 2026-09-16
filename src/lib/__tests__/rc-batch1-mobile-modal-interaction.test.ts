@@ -75,8 +75,8 @@ describe('MOBILE MODAL GEOMETRY', () => {
     // Must use the shared --modal-bottom-reserve CSS variable for paddingBottom
     // (consistent with the shared Modal component and Batch 1 bottom-nav fix)
     expect(eventDetailsModalSrc).toContain('var(--modal-bottom-reserve)')
-    // Must use --modal-max-height for max-height (not hardcoded calc with bottom-nav)
-    expect(eventDetailsModalSrc).toContain('max-h-[var(--modal-max-height)]')
+    // Must use the shared details-modal max-height token (not a hardcoded calc)
+    expect(eventDetailsModalSrc).toContain('max-h-[var(--details-modal-max-height)]')
   })
 
   it('7. desktop modal positioning unchanged', () => {
@@ -97,9 +97,9 @@ describe('HAND-BUILT MODAL GEOMETRY', () => {
     expect(dayDetailModalSrc).toContain('max-h-[var(--modal-max-height)]')
   })
 
-  it('JobDetailsModal does not reserve bottom-nav-height', () => {
+  it('JobDetailsModal does not reserve bottom-nav-height inline', () => {
     expect(jobDetailsModalSrc).not.toContain('max-h-[calc(100dvh-var(--bottom-nav-height')
-    expect(jobDetailsModalSrc).toContain('max-h-[var(--modal-max-height)]')
+    expect(jobDetailsModalSrc).toContain('max-h-[var(--details-modal-max-height)]')
   })
 
   it('LeadPickerModal does not reserve bottom-nav-height', () => {

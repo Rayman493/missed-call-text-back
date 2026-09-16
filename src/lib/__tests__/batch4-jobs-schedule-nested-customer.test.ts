@@ -89,8 +89,8 @@ describe('Batch 4 — Jobs / Schedule / Nested Customer Flows', () => {
   })
 
   describe('D. Appointment detail modal uses shared viewport-aware sizing', () => {
-    it('modal container uses the shared viewport max height', () => {
-      expect(eventModal).toContain('max-h-[var(--modal-max-height)]')
+    it('modal container uses the shared details-modal viewport max height', () => {
+      expect(eventModal).toContain('max-h-[var(--details-modal-max-height)]')
       expect(eventModal).toContain('flex-col overflow-hidden')
     })
 

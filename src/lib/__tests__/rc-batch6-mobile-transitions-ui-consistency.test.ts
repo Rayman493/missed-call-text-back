@@ -141,8 +141,8 @@ describe('EDIT APPOINTMENT MODAL POSITIONING', () => {
     expect(eventDetailsModalSrc).toContain('var(--modal-bottom-reserve)')
   })
 
-  it('15. EventDetailsModal uses max-h with modal-max-height variable', () => {
-    expect(eventDetailsModalSrc).toContain('max-h-[var(--modal-max-height)]')
+  it('15. EventDetailsModal uses max-h with details-modal max-height variable', () => {
+    expect(eventDetailsModalSrc).toContain('max-h-[var(--details-modal-max-height)]')
   })
 
   it('16. EventDetailsModal has internal scroll (overflow-hidden on panel, scroll on body)', () => {

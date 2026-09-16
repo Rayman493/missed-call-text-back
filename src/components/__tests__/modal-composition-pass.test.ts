@@ -38,8 +38,8 @@ describe('Modal Composition — Viewport Constraints', () => {
     expect(modalShellContent).toContain('max-h-[var(--modal-max-height)]')
   })
 
-  it('EventDetailsModal uses --modal-max-height (not md:max-h-[90vh] override)', () => {
-    expect(eventDetailsContent).toContain('max-h-[var(--modal-max-height)]')
+  it('EventDetailsModal uses --details-modal-max-height (not md:max-h-[90vh] override)', () => {
+    expect(eventDetailsContent).toContain('max-h-[var(--details-modal-max-height)]')
     expect(eventDetailsContent).not.toContain('md:max-h-[90vh]')
   })
 

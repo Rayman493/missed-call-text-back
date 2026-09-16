@@ -80,13 +80,28 @@ describe('Part B: True-Bottom Helper', () => {
       expect(pageClientContent).toMatch(/scrollToTrueBottom/)
     })
 
-    it('uses container.scrollTop = container.scrollHeight (not scrollTo/scrollIntoView)', () => {
+    it('uses direct scrollTop assignment to the bottom (not scrollTo/scrollIntoView)', () => {
       const match = pageClientContent.match(/const scrollToTrueBottom = useCallback\([\s\S]*?\}, \[\]\)/)
       expect(match).toBeTruthy()
       if (match) {
-        expect(match[0]).toMatch(/container\.scrollTop = container\.scrollHeight/)
+        // Sentinel path assigns an absolute target; fallback assigns the exact
+        // scrollable maximum (scrollHeight - clientHeight).
+        expect(match[0]).toMatch(/container\.scrollTop = target/)
+        expect(match[0]).toMatch(/container\.scrollTop = Math\.max\(0, container\.scrollHeight - container\.clientHeight\)/)
         expect(match[0]).not.toMatch(/scrollIntoView/)
         expect(match[0]).not.toMatch(/scrollTo\(/)
+      }
+    })
+
+    it('converts viewport-relative sentinel geometry into an absolute scroll target', () => {
+      // Regression: sentinelTop - contentTop is measured in viewport space, so
+      // it already reflects the current scrollTop. The target must add
+      // container.scrollTop back — otherwise a repeat call computes
+      // target = correct - currentScrollTop and scrolls toward the TOP.
+      const match = pageClientContent.match(/const scrollToTrueBottom = useCallback\([\s\S]*?\}, \[\]\)/)
+      expect(match).toBeTruthy()
+      if (match) {
+        expect(match[0]).toMatch(/container\.scrollTop \+ sentinelTop - contentTop/)
       }
     })
   })
@@ -100,9 +115,10 @@ describe('Part B: True-Bottom Helper', () => {
   })
 
   describe('B3. bottomDistance effectively zero', () => {
-    it('true-bottom sets scrollTop to scrollHeight (bottomDistance = 0)', () => {
-      // scrollTop = scrollHeight means bottomDistance = scrollHeight - clientHeight - scrollTop = 0
-      expect(pageClientContent).toMatch(/container\.scrollTop = container\.scrollHeight/)
+    it('true-bottom sets scrollTop to the scrollable maximum (bottomDistance = 0)', () => {
+      // scrollTop = scrollHeight - clientHeight (or the equivalent sentinel
+      // target) means bottomDistance = scrollHeight - clientHeight - scrollTop = 0
+      expect(pageClientContent).toMatch(/container\.scrollTop = Math\.max\(0, container\.scrollHeight - container\.clientHeight\)/)
     })
   })
 })
@@ -117,7 +133,11 @@ describe('Part C: Layout-Aware Final Reconciliation', () => {
     })
 
     it('ResizeObserver scrolls to true bottom when followLatest is true', () => {
-      expect(pageClientContent).toMatch(/followLatestRef\.current && isContainerNearBottom/)
+      // Gate on recorded user intent (followLatestRef). A post-resize
+      // isContainerNearBottom re-check is invalid: the RO fires BECAUSE the
+      // content grew, so it would falsely read "not near bottom".
+      expect(pageClientContent).toMatch(/if \(followLatestRef\.current\) \{\s*scrollToTrueBottom\(container\)/)
+      expect(pageClientContent).not.toMatch(/followLatestRef\.current && isContainerNearBottom/)
     })
   })
 
@@ -212,7 +232,7 @@ describe('Part E: Keyboard/VisualViewport Behavior', () => {
     it('does not use separate threshold for keyboard resize', () => {
       // The old code used `scrollThreshold = isDesktop ? 200 : 40` for keyboard
       // The new code uses followLatestRef
-      const keyboardBlock = pageClientContent.match(/Handle keyboard resize[\s\S]*?\}, \[scrollToTrueBottom\]\)/)
+      const keyboardBlock = pageClientContent.match(/Handle keyboard resize[\s\S]*?\}, \[getScrollContainer, scrollToTrueBottom\]\)/)
       expect(keyboardBlock).toBeTruthy()
       if (keyboardBlock) {
         expect(keyboardBlock[0]).toMatch(/followLatestRef\.current/)
@@ -422,8 +442,8 @@ describe('Part J: Test Matrix Verification', () => {
   })
 
   // 11. Final bottomDistance after auto-follow → effectively zero
-  it('11. true bottom: scrollTop = scrollHeight (bottomDistance = 0)', () => {
-    expect(pageClientContent).toMatch(/container\.scrollTop = container\.scrollHeight/)
+  it('11. true bottom: scrollTop = scrollable maximum (bottomDistance = 0)', () => {
+    expect(pageClientContent).toMatch(/container\.scrollTop = Math\.max\(0, container\.scrollHeight - container\.clientHeight\)/)
   })
 
   // 12. Media-only outgoing bubble → wrapper does not retain excess width

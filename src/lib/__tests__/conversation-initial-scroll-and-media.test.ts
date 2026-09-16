@@ -100,8 +100,11 @@ describe('B. Initial entry true bottom', () => {
       const source = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
 
       // The follow-latest behavior is preserved — the ResizeObserver callback
-      // checks followLatestRef.current after initial scroll is done.
-      expect(source).toContain('followLatestRef.current && isContainerNearBottom(container)')
+      // gates on followLatestRef after initial scroll is done. It must NOT
+      // re-check isContainerNearBottom post-resize: the RO fires BECAUSE the
+      // content just grew, so measuring near-bottom then falsely reads false.
+      expect(source).toMatch(/if \(followLatestRef\.current\) \{\s*scrollToTrueBottom\(container\)/)
+      expect(source).not.toContain('followLatestRef.current && isContainerNearBottom(container)')
     })
 
     it('does NOT force scroll after user scrolls up', () => {
@@ -276,5 +279,93 @@ describe('A. Voicemail seek — VoicemailMessage.seekTo uses canonical duration'
 
     // The clamp should use canonicalDuration, not duration
     expect(source).toContain('Math.min(time, canonicalDuration)')
+  })
+})
+
+// ============================================================================
+// PART D: SCROLL OWNERSHIP — TOP-JUMP REGRESSION
+// ============================================================================
+// Physical bug: the conversation could land near the bottom and then jump
+// toward the TOP/oldest messages during layout/media settling.
+// Root causes fixed in page-client.tsx:
+//   1. scrollToTrueBottom measured the sentinel in viewport space but never
+//      added container.scrollTop back — a repeat call computed
+//      target = correct - currentScrollTop, i.e. scrollTop = 0 when already
+//      at the bottom.
+//   2. The initial-scroll effect's cleanup marked the scroll as "settled" on
+//      teardown, so an effect re-run mid-settle (messagesArray.length change
+//      while media hydrated) permanently abandoned the bottom anchor.
+//   3. The customer-switch reset ran as a passive effect AFTER the
+//      initial-scroll effect on the same commit, so a same-count new thread
+//      could inherit the previous conversation's settled flag.
+//   4. The post-settle ResizeObserver branch re-measured isContainerNearBottom
+//      AFTER the growth that triggered it — falsely reading "not near bottom"
+//      for a bottom-pinned user.
+
+describe('D. Scroll ownership — no jump toward oldest/top', () => {
+  describe('D.1 scrollToTrueBottom is idempotent (repeat calls stay at bottom)', () => {
+    it('adds container.scrollTop when converting viewport-relative sentinel geometry', () => {
+      const source = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
+      const match = source.match(/const scrollToTrueBottom = useCallback\([\s\S]*?\}, \[\]\)/)
+      expect(match).toBeTruthy()
+      // Regression assertion: without `container.scrollTop +`, a second call
+      // lands at scrollTop = 0 (true top) when the conversation is at bottom.
+      expect(match![0]).toContain('container.scrollTop + sentinelTop - contentTop')
+    })
+
+    it('still falls back to the exact scrollable maximum when no sentinel exists', () => {
+      const source = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
+      const match = source.match(/const scrollToTrueBottom = useCallback\([\s\S]*?\}, \[\]\)/)
+      expect(match).toBeTruthy()
+      expect(match![0]).toContain('container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight)')
+    })
+  })
+
+  describe('D.2 Effect teardown must not fake a completed settle', () => {
+    it('cleanup only disconnects/cancels — never marks initialScrollSettledRef', () => {
+      const source = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
+      const cleanup = source.match(/const cleanup = \(\) => \{[\s\S]*?\n      \}/)
+      expect(cleanup).toBeTruthy()
+      expect(cleanup![0]).not.toContain('initialScrollSettledRef.current = true')
+      expect(cleanup![0]).not.toContain('setHasScrolledToBottomOnLoad(true)')
+      expect(cleanup![0]).not.toContain('setInitialScrollReady(true)')
+    })
+  })
+
+  describe('D.3 Customer switch re-anchors the new conversation', () => {
+    it('initial-scroll effect re-runs on params.id change', () => {
+      const source = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
+      expect(source).toContain('}, [loading, messagesArray.length, params.id, scrollToTrueBottom, isContainerNearBottom])')
+    })
+
+    it('scroll-state reset uses useLayoutEffect so it runs before the initial-scroll effect', () => {
+      const source = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
+      const reset = source.match(/Reset scroll state when navigating to a different customer[\s\S]*?\}, \[params\.id\]\)/)
+      expect(reset).toBeTruthy()
+      expect(reset![0]).toContain('useLayoutEffect(() => {')
+      expect(reset![0]).toContain('initialScrollSettledRef.current = false')
+      expect(reset![0]).toContain('followLatestRef.current = true')
+    })
+  })
+
+  describe('D.4 No scroll writer targets the top/oldest message', () => {
+    it('no conversation-container path writes scrollTop = 0', () => {
+      const source = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
+      // scrollTop = 0 on the scroll container would jump to oldest messages.
+      // (Composer textarea scrollTop resets are unrelated and not matched.)
+      expect(source).not.toMatch(/container\.scrollTop = 0/)
+      expect(source).not.toMatch(/conversationContainerRef\.current\.scrollTop = 0/)
+      expect(source).not.toMatch(/mobileConversationContainerRef\.current\.scrollTop = 0/)
+    })
+
+    it('no scrollIntoView call is used to position the conversation container', () => {
+      const source = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
+      const scrollSection = source.substring(
+        source.indexOf('=== CANONICAL SCROLL SYSTEM ==='),
+        source.indexOf('const handleSaveNotes')
+      )
+      // Match actual calls, not the word appearing in explanatory comments.
+      expect(scrollSection).not.toMatch(/\.scrollIntoView\(/)
+    })
   })
 })

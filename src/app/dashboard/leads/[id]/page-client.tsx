@@ -263,7 +263,18 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
     console.log('[SMS RECONCILE] existingStatus:', existingMessage.status)
     console.log('[SMS RECONCILE] existingIsOptimistic:', existingMessage.isOptimistic)
 
-    // Merge with monotonic status
+    // Merge with monotonic status. The optimistic 'sending' state is a LOCAL
+    // pseudo-status (API call in flight) — it is NOT the Twilio 'sending'
+    // lifecycle state. If it were compared directly, the canonical server
+    // snapshot ('queued'/'accepted') would be rejected as a regression and the
+    // bubble would stay "Sending" forever once persisted. Treat optimistic
+    // 'sending' as 'pending' for the comparison so any real server status wins.
+    // A persisted Twilio 'sending' row still correctly rejects 'queued'.
+    const effectiveExistingStatus =
+      existingMessage.isOptimistic && existingMessage.status === 'sending'
+        ? 'pending'
+        : existingMessage.status
+
     const mergedMessage = {
       ...existingMessage,
       ...incomingMessage,
@@ -271,7 +282,7 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
       clientMessageId: existingMessage.clientMessageId || incomingMessage.clientMessageId || incomingMessage.client_message_id,
       // Clear optimistic flag when server confirms
       isOptimistic: false,
-      status: getMonotonicStatus(existingMessage.status, incomingMessage.status)
+      status: getMonotonicStatus(effectiveExistingStatus, incomingMessage.status)
     }
 
     console.log('[SMS RECONCILE] mergedStatus:', mergedMessage.status)
@@ -755,9 +766,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const containerRect = container.getBoundingClientRect()
       const contentTop = containerRect.top + container.clientTop
       const sentinelTop = sentinel.getBoundingClientRect().top
+      // getBoundingClientRect is viewport-relative: sentinelTop - contentTop is
+      // the CURRENT on-screen offset of the sentinel, which already reflects
+      // the container's scrollTop. Adding container.scrollTop converts it back
+      // to the sentinel's document-space offset so repeated calls are
+      // idempotent. Without it, a second call computes target = correct - S
+      // and scrolls toward the TOP of the conversation.
       const target = Math.max(
         0,
-        Math.round(sentinelTop - contentTop + sentinel.clientHeight - container.clientHeight)
+        Math.round(container.scrollTop + sentinelTop - contentTop + sentinel.clientHeight - container.clientHeight)
       )
       container.scrollTop = target
       return
@@ -1536,9 +1553,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               settleCount = 0
             }
           } else {
-            // After initial positioning, respect user's scroll position via followLatestRef.
-            // Only re-scroll if the user is already near the bottom (no yanking).
-            if (followLatestRef.current && isContainerNearBottom(container)) {
+            // After initial positioning, respect the user's scroll intent via
+            // followLatestRef. Do NOT re-check isContainerNearBottom here: this
+            // callback fires BECAUSE the content just resized, so measuring
+            // near-bottom after the growth falsely reads "not near bottom" even
+            // when the user was pinned to the latest message. followLatestRef
+            // already encodes that intent (false once the user scrolls up).
+            if (followLatestRef.current) {
               scrollToTrueBottom(container)
             }
           }
@@ -1587,7 +1608,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         })
       })
 
-      // Cleanup function
+      // Cleanup function. Only tears down observers/timers — it must NOT mark
+      // the initial scroll as settled. If the effect re-runs mid-settle (e.g.
+      // messagesArray.length changes while media hydrates), marking settled
+      // here would permanently abandon the bottom anchor with the conversation
+      // stranded at whatever position the interrupted pass left behind.
       const cleanup = () => {
         if (resizeObserver) {
           resizeObserver.disconnect()
@@ -1599,17 +1624,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           cancelAnimationFrame(settleRafId)
         }
         isInitialAutoScrollingRef.current = false
-        initialScrollSettledRef.current = true
-        setHasScrolledToBottomOnLoad(true)
-        setInitialScrollReady(true)
       }
 
       return cleanup
     }
-  }, [loading, messagesArray.length, scrollToTrueBottom, isContainerNearBottom])
+  }, [loading, messagesArray.length, params.id, scrollToTrueBottom, isContainerNearBottom])
 
-  // Reset scroll state when navigating to a different customer
-  useEffect(() => {
+  // Reset scroll state when navigating to a different customer.
+  // useLayoutEffect (not useEffect) so this runs BEFORE the initial-scroll
+  // effect below on the same commit — otherwise the scroll effect would see the
+  // previous conversation's settled flag and skip anchoring the new thread.
+  useLayoutEffect(() => {
     setHasScrolledToBottomOnLoad(false)
     setInitialScrollReady(false)
     isInitialAutoScrollingRef.current = false

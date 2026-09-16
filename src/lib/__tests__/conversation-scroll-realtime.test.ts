@@ -5,52 +5,16 @@
  */
 
 import { describe, it, expect } from 'vitest'
+import { getMonotonicMessageStatus } from '@/lib/twilio/status-monotonic'
 
-// Mock the mergeMessageWithMonotonicity function from page-client
-// Since it's defined in the component file, we'll recreate it here for testing
+// Mock the mergeMessageWithMonotonicity function from page-client.
+// It MUST mirror the production implementation: the canonical transition-map
+// state machine (getMonotonicMessageStatus) plus the optimistic-aware rule
+// that treats a local 'sending' pseudo-status as 'pending' so the server's
+// 'queued'/'accepted' snapshot can reconcile the optimistic bubble.
 
 function getMonotonicStatus(currentStatus: string, newStatus: string): string {
-  const statusRank: Record<string, number> = {
-    sending: 0,
-    queued: 1,
-    sent: 2,
-    delivered: 3,
-    read: 4,
-    failed: 5,
-    undelivered: 6
-  }
-
-  const currentRank = statusRank[currentStatus] ?? 0
-  const newRank = statusRank[newStatus] ?? 0
-
-  // If current is failed, keep it (can't recover from failed)
-  if (currentStatus === 'failed') {
-    return currentStatus
-  }
-
-  // If current is undelivered, only upgrade to failed or keep undelivered
-  if (currentStatus === 'undelivered') {
-    if (newStatus === 'failed') return newStatus
-    return currentStatus
-  }
-
-  // Queued cannot replace Sent
-  if (currentStatus === 'sent' && newStatus === 'queued') {
-    return currentStatus
-  }
-
-  // Sent cannot replace Delivered
-  if (currentStatus === 'delivered' && newStatus === 'sent') {
-    return currentStatus
-  }
-
-  // Only upgrade if new status has higher or equal rank
-  if (newRank >= currentRank) {
-    return newStatus
-  }
-
-  // Keep current status if new status would downgrade
-  return currentStatus
+  return getMonotonicMessageStatus(currentStatus, newStatus)
 }
 
 function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: any, source: string = 'unknown'): any[] {
@@ -97,6 +61,14 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
   }
 
   if (existingMessage) {
+    // Mirror production: optimistic 'sending' is a LOCAL pseudo-status, not a
+    // Twilio lifecycle state — compare as 'pending' so the canonical server
+    // snapshot always wins. Persisted 'sending' rows keep strict monotonicity.
+    const effectiveExistingStatus =
+      existingMessage.isOptimistic && existingMessage.status === 'sending'
+        ? 'pending'
+        : existingMessage.status
+
     // Merge with monotonic status
     const mergedMessage = {
       ...existingMessage,
@@ -105,7 +77,7 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
       clientMessageId: existingMessage.clientMessageId || incomingMessage.clientMessageId || incomingMessage.client_message_id,
       // Clear optimistic flag when server confirms
       isOptimistic: false,
-      status: getMonotonicStatus(existingMessage.status, incomingMessage.status)
+      status: getMonotonicStatus(effectiveExistingStatus, incomingMessage.status)
     }
 
     // If matched by clientMessageId but incoming has real ID, update the map key
@@ -316,6 +288,147 @@ describe('Conversation Scroll and Realtime Reliability', () => {
       expect(merged[0].id).toBe('server-456') // Server ID replaces optimistic ID
       expect(merged[0].isOptimistic).toBe(false) // Optimistic flag cleared
       expect(merged[0].status).toBe('sent') // Status upgraded
+    })
+
+    it('reconciles optimistic sending → server queued (the actual API response status)', () => {
+      // Regression: /api/send-sms persists with status 'queued'. The optimistic
+      // pseudo-status 'sending' must yield to it — otherwise the bubble shows
+      // "Sending" forever even though the send succeeded.
+      const optimisticMessage = {
+        id: 'optimistic-123',
+        clientMessageId: 'client-abc',
+        body: 'Optimistic message',
+        direction: 'outbound',
+        status: 'sending',
+        isOptimistic: true,
+        created_at: '2026-01-15T10:00:00Z'
+      }
+
+      const serverMessage = {
+        id: 'server-456',
+        client_message_id: 'client-abc',
+        body: 'Optimistic message',
+        direction: 'outbound',
+        status: 'queued',
+        twilio_message_sid: 'SM123',
+        created_at: '2026-01-15T10:00:00Z'
+      }
+
+      const merged = mergeMessageWithMonotonicity([optimisticMessage], serverMessage, 'send-response-reconcile')
+
+      expect(merged).toHaveLength(1)
+      expect(merged[0].id).toBe('server-456')
+      expect(merged[0].isOptimistic).toBe(false)
+      expect(merged[0].status).toBe('queued') // exits local 'sending'
+    })
+
+    it('reconciles optimistic sending → server accepted', () => {
+      const optimisticMessage = {
+        id: 'optimistic-123',
+        clientMessageId: 'client-abc',
+        body: 'Optimistic message',
+        direction: 'outbound',
+        status: 'sending',
+        isOptimistic: true,
+        created_at: '2026-01-15T10:00:00Z'
+      }
+
+      const serverMessage = {
+        id: 'server-456',
+        client_message_id: 'client-abc',
+        body: 'Optimistic message',
+        direction: 'outbound',
+        status: 'accepted',
+        created_at: '2026-01-15T10:00:00Z'
+      }
+
+      const merged = mergeMessageWithMonotonicity([optimisticMessage], serverMessage, 'send-response-reconcile')
+      expect(merged[0].status).toBe('accepted')
+    })
+
+    it('realtime INSERT with persisted queued row reconciles the optimistic bubble (no duplicate)', () => {
+      const optimisticMessage = {
+        id: 'optimistic-123',
+        clientMessageId: 'client-abc',
+        body: 'Optimistic message',
+        direction: 'outbound',
+        status: 'sending',
+        isOptimistic: true,
+        created_at: '2026-01-15T10:00:00Z'
+      }
+
+      // Realtime INSERT payload carries the persisted row (with client_message_id)
+      const realtimeInsert = {
+        id: 'server-456',
+        client_message_id: 'client-abc',
+        body: 'Optimistic message',
+        direction: 'outbound',
+        status: 'queued',
+        twilio_message_sid: 'SM123',
+        created_at: '2026-01-15T10:00:00Z'
+      }
+
+      const merged = mergeMessageWithMonotonicity([optimisticMessage], realtimeInsert, 'realtime-insert')
+      expect(merged).toHaveLength(1)
+      expect(merged[0].id).toBe('server-456')
+      expect(merged[0].status).toBe('queued')
+    })
+
+    it('refetch of queued row reconciles an optimistic sending bubble (watchdog recovery)', () => {
+      const optimisticMessage = {
+        id: 'optimistic-123',
+        clientMessageId: 'client-abc',
+        body: 'Optimistic message',
+        direction: 'outbound',
+        status: 'sending',
+        isOptimistic: true,
+        created_at: '2026-01-15T10:00:00Z'
+      }
+
+      const fetchedRow = {
+        id: 'server-456',
+        client_message_id: 'client-abc',
+        body: 'Optimistic message',
+        direction: 'outbound',
+        status: 'queued',
+        created_at: '2026-01-15T10:00:00Z'
+      }
+
+      const merged = mergeMessageWithMonotonicity([optimisticMessage], fetchedRow, 'mergeMessagesById[0]')
+      expect(merged[0].status).toBe('queued')
+    })
+
+    it('stale sent update cannot downgrade a delivered message', () => {
+      const deliveredMessage = {
+        id: 'server-456',
+        clientMessageId: 'client-abc',
+        body: 'Message',
+        direction: 'outbound',
+        status: 'delivered',
+        isOptimistic: false,
+        created_at: '2026-01-15T10:00:00Z'
+      }
+
+      const staleSent = { ...deliveredMessage, status: 'sent' }
+      const merged = mergeMessageWithMonotonicity([deliveredMessage], staleSent, 'realtime-update')
+      expect(merged[0].status).toBe('delivered')
+    })
+
+    it('a persisted (non-optimistic) sending row still rejects a stale queued update', () => {
+      // The optimistic-pending rule must NOT weaken real Twilio monotonicity:
+      // a persisted 'sending' row must not regress to 'queued'.
+      const persistedSending = {
+        id: 'server-456',
+        body: 'Message',
+        direction: 'outbound',
+        status: 'sending',
+        isOptimistic: false,
+        created_at: '2026-01-15T10:00:00Z'
+      }
+
+      const staleQueued = { ...persistedSending, status: 'queued' }
+      const merged = mergeMessageWithMonotonicity([persistedSending], staleQueued, 'realtime-update')
+      expect(merged[0].status).toBe('sending')
     })
   })
 
