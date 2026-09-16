@@ -761,6 +761,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // scroll container's own offsetParent do not mis-align the anchor. Falls back
   // to the exact scrollable maximum when the sentinel is not present.
   const scrollToTrueBottom = useCallback((container: HTMLDivElement) => {
+    // Pin instantly: the containers carry `scroll-smooth`, which would turn a
+    // direct scrollTop write into an interruptible animation. An animation can
+    // be cut short by the next keyboard/composer resize and land short of true
+    // bottom; its intermediate scroll events also flip followLatestRef off, so
+    // later resizes would fail to re-pin. Temporarily override scroll-behavior
+    // inline so the assignment is a deterministic, single-step jump.
+    const previousScrollBehavior = container.style.scrollBehavior
+    container.style.scrollBehavior = 'auto'
     const sentinel = container.querySelector('[data-bottom-sentinel]') as HTMLElement | null
     if (sentinel) {
       const containerRect = container.getBoundingClientRect()
@@ -777,9 +785,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         Math.round(container.scrollTop + sentinelTop - contentTop + sentinel.clientHeight - container.clientHeight)
       )
       container.scrollTop = target
-      return
+    } else {
+      container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight)
     }
-    container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight)
+    container.style.scrollBehavior = previousScrollBehavior
   }, [])
 
   // Check if the container is at/near the bottom using the canonical threshold
@@ -1820,7 +1829,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     // Use the canonical scroll container (mobile, desktop, or fullscreen).
     const getContainer = getScrollContainer
-    if (!getContainer()) return
+    const container = getContainer()
+    if (!container) return
 
     // Always track the active visual viewport height for the CSS sizing variable.
 
@@ -1844,16 +1854,32 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // viewport changes on both desktop and mobile.
       if (followLatestRef.current) {
         requestAnimationFrame(() => {
-          const container = getContainer()
-          if (container) scrollToTrueBottom(container)
+          const c = getContainer()
+          if (c) scrollToTrueBottom(c)
         })
       }
+    }
+
+    // Re-anchor on ANY container resize, including composer auto-grow and
+    // footer changes that shrink the viewport without a visualViewport event.
+    // ResizeObserver callbacks run before paint, so the pin is applied
+    // before the resized frame is visible. Only when following latest —
+    // a user reading history keeps their scroll position untouched.
+    let containerObserver: ResizeObserver | null = null
+    if (typeof ResizeObserver !== 'undefined') {
+      containerObserver = new ResizeObserver(() => {
+        if (followLatestRef.current) {
+          scrollToTrueBottom(container)
+        }
+      })
+      containerObserver.observe(container)
     }
 
     // Use visualViewport API for keyboard resize detection (more accurate on mobile)
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleResize)
       return () => {
+        containerObserver?.disconnect()
         window.visualViewport?.removeEventListener('resize', handleResize)
         // Prevent the CSS variable from leaking after this conversation page
         // unmounts or the component is torn down during navigation.
@@ -1865,6 +1891,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // Fallback to window resize
       window.addEventListener('resize', handleResize)
       return () => {
+        containerObserver?.disconnect()
         window.removeEventListener('resize', handleResize)
         if (typeof document !== 'undefined') {
           document.documentElement.style.removeProperty('--visual-viewport-height')

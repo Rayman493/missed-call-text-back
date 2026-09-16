@@ -5,72 +5,59 @@ const handoffSrc = readFileSync('src/components/PaymentHandoff.tsx', 'utf8').rep
 const linksSrc = readFileSync('src/lib/payment-links.ts', 'utf8').replace(/\r\n/g, '\n')
 const webmanifestSrc = readFileSync('public/site.webmanifest', 'utf8').replace(/\r\n/g, '\n')
 
-describe('Venmo handoff routing and lifecycle', () => {
+describe('Venmo/PayPal handoff — instruction page (no app launch)', () => {
   it('PWA manifest scopes the WebAPK to /dashboard/ so public /pay stays in the browser', () => {
     expect(webmanifestSrc).toContain('"scope": "/dashboard/"')
     expect(webmanifestSrc).toContain('"start_url": "/dashboard"')
   })
 
-  it('preserves the targeted Venmo recipient URL on all platforms', () => {
+  it('preserves the targeted Venmo recipient URL generation in payment-links', () => {
     expect(linksSrc).toContain('https://venmo.com/u/${encodeURIComponent(normalized)}')
   })
 
-  it('uses checkoutUrl as the primary Venmo handoff target', () => {
-    expect(handoffSrc).toContain("const targetUrl = checkoutUrl || (provider === 'venmo' ? 'https://venmo.com' : '#')")
-    expect(handoffSrc).toContain('Browser.open({ url: targetUrl })')
-    expect(handoffSrc).toContain("window.open(targetUrl, '_blank', 'noopener,noreferrer')")
+  it('does NOT launch the native app or deep-link out of the page', () => {
+    expect(handoffSrc).not.toContain('Browser.open(')
+    expect(handoffSrc).not.toContain('window.open(')
+    expect(handoffSrc).not.toContain('Capacitor.isNativePlatform')
+    expect(handoffSrc).not.toContain('@capacitor/')
+    expect(handoffSrc).not.toContain('openProvider')
+    expect(handoffSrc).not.toContain('setOpening')
   })
 
-  it('does not special-case Android to a generic URL', () => {
-    expect(handoffSrc).not.toContain('navigator.userAgent')
-    expect(handoffSrc).not.toContain('/Android/i')
-    expect(handoffSrc).not.toContain('isAndroid')
+  it('has no app-launch CTA label', () => {
+    expect(handoffSrc).not.toContain('Open {providerName}')
+    expect(handoffSrc).not.toContain('Opening {providerName}')
+    expect(handoffSrc).not.toMatch(/<a[^>]*href=\{?(checkoutUrl|targetUrl)/)
   })
 
-  it('falls back to the generic Venmo origin only when checkoutUrl is missing', () => {
-    expect(handoffSrc).toContain("provider === 'venmo' ? 'https://venmo.com' : '#'")
+  it('shows numbered how-to-pay instructions', () => {
+    expect(handoffSrc).toContain('How to pay with {providerName}')
+    expect(handoffSrc).toContain('Open Venmo on your phone')
+    expect(handoffSrc).toContain('Open PayPal (app or paypal.com)')
+    expect(handoffSrc).toContain('Send ${formattedAmount}')
+    expect(handoffSrc).toContain('as the payment note')
+  })
+
+  it('does not imply automatic payment confirmation', () => {
+    expect(handoffSrc).toContain('will confirm your payment once it arrives')
+    expect(handoffSrc).not.toContain('automatically confirmed')
+  })
+
+  it('keeps recipient, amount, and note visible and copyable', () => {
+    expect(handoffSrc).toContain('@{venmoUsername}')
+    expect(handoffSrc).toContain('paypal.me/{paypalHandle}')
+    expect(handoffSrc).toContain("'amount'")
+    expect(handoffSrc).toContain('Payment Note')
+    expect(handoffSrc).toContain("'note'")
+    expect(handoffSrc).toContain('copyToClipboard')
+  })
+
+  it('does not surface AI-intake placeholders as a payment note', () => {
+    expect(handoffSrc).toContain('isPlaceholderValue(description)')
   })
 
   it('fails safely when the Venmo username is invalid/missing', () => {
     expect(linksSrc).toContain("if (!normalized) {")
     expect(linksSrc).toContain("error: 'Invalid Venmo username'")
-  })
-
-  it('uses Browser.open on native', () => {
-    expect(handoffSrc).toContain('Capacitor.isNativePlatform()')
-    expect(handoffSrc).toContain('Browser.open({ url: targetUrl })')
-  })
-
-  it('uses window.open with _blank on web so the CTA escapes the PWA', () => {
-    expect(handoffSrc).toContain("window.open(targetUrl, '_blank', 'noopener,noreferrer')")
-  })
-
-  it('clears opening state via native app resume', () => {
-    expect(handoffSrc).toContain("App.addListener('appStateChange'")
-    expect(handoffSrc).toContain('if (isActive) clearOpening()')
-  })
-
-  it('clears opening state via web return lifecycle events', () => {
-    expect(handoffSrc).toContain("'visibilitychange'")
-    expect(handoffSrc).toContain("'pageshow'")
-    expect(handoffSrc).toContain("'focus'")
-  })
-
-  it('does not leave the CTA permanently loading', () => {
-    expect(handoffSrc).toContain('setOpening(false)')
-    expect(handoffSrc).not.toContain('setTimeout(() => setOpening(false)')
-  })
-
-  it('keeps username, amount, and note visible and copyable', () => {
-    expect(handoffSrc).toContain('@{venmoUsername}')
-    expect(handoffSrc).toContain("'amount'")
-    expect(handoffSrc).toContain('Payment Note')
-    expect(handoffSrc).toContain("'note'")
-  })
-
-  it('keeps iOS and desktop handoff behavior unchanged through checkoutUrl', () => {
-    expect(handoffSrc).toContain('Browser.open({ url: targetUrl })')
-    expect(handoffSrc).toContain("window.open(targetUrl, '_blank', 'noopener,noreferrer')")
-    expect(handoffSrc).toContain('checkoutUrl')
   })
 })

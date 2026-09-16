@@ -53,33 +53,29 @@ describe('A. payment / billing document status sync', () => {
   })
 })
 
-describe('B/C. Venmo handoff and fallback card', () => {
-  it('shows opening/loading state before handoff', () => {
-    expect(handoffSrc).toContain('setOpening(true)')
-    expect(handoffSrc).toContain('Opening ${providerName}')
+describe('B/C. Venmo/PayPal instruction page (no app launch)', () => {
+  it('does not attempt to open the provider app or deep-link out', () => {
+    expect(handoffSrc).not.toContain('Browser.open(')
+    expect(handoffSrc).not.toContain('window.open(')
+    expect(handoffSrc).not.toContain('Capacitor.isNativePlatform')
+    expect(handoffSrc).not.toContain('openProvider')
+    expect(handoffSrc).not.toContain('setOpening')
   })
 
-  it('clears opening state after a bounded timeout', () => {
-    expect(handoffSrc).toMatch(/setTimeout.*setOpening\(false\)/)
-    expect(handoffSrc).toMatch(/2500/)
-  })
-
-  it('does not wait on analytics or unrelated network before opening', () => {
+  it('does not wait on analytics or unrelated network', () => {
     expect(handoffSrc).not.toContain('analytics')
   })
 
-  it('simplified fallback card shows manual instructions and useful copy only', () => {
-    expect(handoffSrc).toContain('Open Venmo manually and pay')
-    expect(handoffSrc).toContain('username-fallback')
-    // Fallback block should not repeat the amount or the primary details
-    const fallbackStart = handoffSrc.indexOf("If {providerName} doesn't open")
-    const fallbackSrc = fallbackStart >= 0 ? handoffSrc.slice(fallbackStart) : ''
-    expect(fallbackSrc).not.toContain('formattedAmount')
-    expect(fallbackSrc).not.toContain("copyToClipboard(amount,")
+  it('shows manual how-to-pay instructions', () => {
+    expect(handoffSrc).toContain('How to pay with {providerName}')
+    expect(handoffSrc).toContain('Open Venmo on your phone')
+    expect(handoffSrc).toContain('Send ${formattedAmount}')
+    expect(handoffSrc).toContain('as the payment note')
   })
 
-  it('does not duplicate recipient or note in fallback card', () => {
-    // Recovery card should not include the primary Payment Details again
-    expect(handoffSrc).not.toContain('Pay <span className="font-medium text-gray-900">@{venmoUsername}</span> {formattedAmount} in Venmo.')
+  it('keeps recipient/amount/note copy controls in the details card', () => {
+    expect(handoffSrc).toContain('@{venmoUsername}')
+    expect(handoffSrc).toContain("'amount'")
+    expect(handoffSrc).toContain('Payment Note')
   })
 })

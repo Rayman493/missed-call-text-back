@@ -51,7 +51,7 @@ export const PAYMENT_STATUS_STYLES: Record<PaymentStatus, PaymentStatusStyle> = 
     color: '#EF4444'
   },
   cancelled: {
-    label: 'Canceled',
+    label: 'Cancelled',
     badgeClass: 'border-gray-200/40 bg-gray-100/12 text-gray-400 dark:border-gray-700/40 dark:bg-gray-800/12 dark:text-gray-300',
     color: '#94A3B8'
   },

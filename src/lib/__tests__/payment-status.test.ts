@@ -9,7 +9,7 @@
  * - Normalization handles both 'cancelled' and 'canceled' spellings
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it, expect } from 'vitest'
 import {
   normalizePaymentStatus,
   getPaymentStatusStyle,
@@ -92,14 +92,14 @@ describe('Payment Status Utility', () => {
 
     it('should return correct style for cancelled', () => {
       const style = getPaymentStatusStyle('cancelled')
-      expect(style.label).toBe('Canceled')
+      expect(style.label).toBe('Cancelled')
       expect(style.badgeClass).toContain('gray')
       expect(style.color).toBe('#94A3B8')
     })
 
     it('should return correct style for canceled (alternative spelling)', () => {
       const style = getPaymentStatusStyle('canceled')
-      expect(style.label).toBe('Canceled')
+      expect(style.label).toBe('Cancelled')
       expect(style.badgeClass).toContain('gray')
       expect(style.color).toBe('#94A3B8')
     })
@@ -129,7 +129,7 @@ describe('Payment Status Utility', () => {
       expect(getPaymentStatusLabel('pending')).toBe('Pending')
       expect(getPaymentStatusLabel('paid')).toBe('Paid')
       expect(getPaymentStatusLabel('failed')).toBe('Failed')
-      expect(getPaymentStatusLabel('cancelled')).toBe('Canceled')
+      expect(getPaymentStatusLabel('cancelled')).toBe('Cancelled')
       expect(getPaymentStatusLabel('expired')).toBe('Expired')
     })
 

@@ -139,6 +139,22 @@ export default async function PayPage({ params }: PayPageProps) {
       }
     }
 
+    // For PayPal, extract the PayPal.Me handle from checkout_url for display.
+    // Canonical shape: https://paypal.me/{handle}/{amount} — the handle is the
+    // first path segment (the trailing segment is the prefilled amount).
+    let paypalHandle = ''
+    if (paymentRequest.payment_provider === 'paypal' && paymentRequest.checkout_url) {
+      try {
+        const url = new URL(paymentRequest.checkout_url)
+        paypalHandle = url.pathname.split('/').filter(Boolean)[0] || ''
+      } catch (e) {
+        const match = paymentRequest.checkout_url.match(/paypal\.me\/([^/?]+)/)
+        if (match) {
+          paypalHandle = match[1]
+        }
+      }
+    }
+
     return (
       <PaymentHandoff
         provider={paymentRequest.payment_provider === 'venmo' ? 'venmo' : 'paypal'}
@@ -147,6 +163,7 @@ export default async function PayPage({ params }: PayPageProps) {
         description={paymentRequest.description}
         checkoutUrl={paymentRequest.checkout_url}
         venmoUsername={venmoUsername}
+        paypalHandle={paypalHandle}
       />
     )
   }

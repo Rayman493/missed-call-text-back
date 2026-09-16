@@ -8,6 +8,7 @@ import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { generatePaymentLink, PaymentProvider, isProviderAvailable } from '@/lib/payment-links'
+import { isPlaceholderValue } from '@/components/payments/customer-search-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -301,11 +302,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Conversation not found or unauthorized' }, { status: 403 })
     }
 
-    // Prefill description from canonical AI intake service if not provided
+    // Prefill description from canonical AI intake service if not provided.
+    // AI-intake placeholders (e.g. "Not collected", "General Service") are
+    // generated sentinel text, not a genuine service description — do not
+    // persist them as the payment note.
     let paymentDescription = description
     if (!paymentDescription) {
       const intake = getLeadAIIntake(lead)
-      paymentDescription = intake.serviceRequested || 'Service payment'
+      paymentDescription = isPlaceholderValue(intake.serviceRequested)
+        ? 'Service payment'
+        : intake.serviceRequested
     }
 
     console.log('[PAYMENT REQUEST] Payment description:', paymentDescription)

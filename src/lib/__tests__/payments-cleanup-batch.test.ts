@@ -41,55 +41,30 @@ const modalBackButtonSrc = readSrc('src/lib/modalBackButton.ts')
 const useModalBackButtonSrc = readSrc('src/hooks/useModalBackButton.ts')
 
 // ============================================================================
-// FIX 1 — Venmo external handoff
+// FIX 1 — Venmo/PayPal handoff is an instruction page (no app launch)
 // ============================================================================
-describe('FIX 1: Venmo external handoff', () => {
-  describe('uses real checkoutUrl instead of hard-coded venmo.com', () => {
-    it('does NOT hard-code href="https://venmo.com" for the Open Venmo button', () => {
-      // The old code had: href={provider === 'venmo' ? 'https://venmo.com' : ...}
-      // This should be gone — the button should use checkoutUrl.
-      expect(handoffSrc).not.toContain("'https://venmo.com' : (checkoutUrl")
-      expect(handoffSrc).not.toContain('"https://venmo.com" : (checkoutUrl')
-    })
-
-    it('uses checkoutUrl as the primary navigation target', () => {
-      expect(handoffSrc).toContain('checkoutUrl ||')
-    })
-
-    it('uses a button with onClick (not an anchor with target="_blank")', () => {
-      // The old code used <a href=... target="_blank"> which bounces back
-      // in Android WebView. The fix uses a <button> with an onClick handler.
-      expect(handoffSrc).toContain('onClick={openProvider}')
-      expect(handoffSrc).toContain('<button')
-    })
-
-    it('does NOT use target="_blank" on the Open Provider button', () => {
-      // The old anchor had target="_blank" which doesn't work in Capacitor WebView
-      const openButtonSection = handoffSrc.substring(
-        handoffSrc.indexOf('Open {providerName}'),
-        handoffSrc.indexOf('Open {providerName}') + 200
-      )
-      expect(openButtonSection).not.toContain('target="_blank"')
-    })
+describe('FIX 1: Venmo/PayPal instruction page', () => {
+  it('does NOT open the provider app or deep-link out of the page', () => {
+    // Confirmed Android behavior: Venmo app links can hang on a loading
+    // spinner, so the public payment page must not attempt app handoff.
+    expect(handoffSrc).not.toContain('Browser.open(')
+    expect(handoffSrc).not.toContain('window.open(')
+    expect(handoffSrc).not.toContain('Capacitor.isNativePlatform')
+    expect(handoffSrc).not.toContain('@capacitor/')
+    expect(handoffSrc).not.toContain('openProvider')
   })
 
-  describe('uses @capacitor/browser Browser.open() on native', () => {
-    it('imports Capacitor and Browser', () => {
-      expect(handoffSrc).toContain("from '@capacitor/core'")
-      expect(handoffSrc).toContain("from '@capacitor/browser'")
-    })
+  it('has no launch CTA or anchor navigation to the provider', () => {
+    expect(handoffSrc).not.toContain('Open {providerName}')
+    expect(handoffSrc).not.toContain('target="_blank"')
+  })
 
-    it('checks Capacitor.isNativePlatform()', () => {
-      expect(handoffSrc).toContain('Capacitor.isNativePlatform()')
-    })
-
-    it('calls Browser.open() on native', () => {
-      expect(handoffSrc).toContain('Browser.open(')
-    })
-
-    it('falls back to window.open on web', () => {
-      expect(handoffSrc).toContain('window.open(')
-    })
+  it('shows truthful manual instructions instead', () => {
+    expect(handoffSrc).toContain('How to pay with {providerName}')
+    expect(handoffSrc).toContain('Send ${formattedAmount}')
+    expect(handoffSrc).toContain('as the payment note')
+    // Manual confirmation only — no automatic-confirmation implication
+    expect(handoffSrc).toContain('will confirm your payment once it arrives')
   })
 })
 
@@ -395,7 +370,7 @@ describe('FIX 4: Payment Name vs Description semantics', () => {
     it('does NOT return display_name from getPaymentDescription', () => {
       const descIdx = paymentsPageSrc.indexOf('getPaymentDescription')
       expect(descIdx).toBeGreaterThan(-1)
-      const fnSection = paymentsPageSrc.substring(descIdx, descIdx + 500)
+      const fnSection = paymentsPageSrc.substring(descIdx, descIdx + 800)
       // The function should return payment.description, NOT payment.display_name
       expect(fnSection).toContain('return payment.description')
       expect(fnSection).not.toContain('if (payment.display_name)')
@@ -440,44 +415,30 @@ describe('FIX 4: Payment Name vs Description semantics', () => {
 })
 
 // ============================================================================
-// FIX 5 — Venmo fallback card simplification
+// FIX 5 — Venmo/PayPal payment details card (copy controls preserved)
 // ============================================================================
-describe('FIX 5: Venmo fallback card simplification', () => {
-  it('uses simplified heading "If Venmo doesn\'t open"', () => {
-    expect(handoffSrc).toContain("doesn&rsquo;t open")
-  })
-
-  it('does NOT have the old "If Venmo doesn\'t open automatically" heading', () => {
-    expect(handoffSrc).not.toContain("doesn't open automatically")
-  })
-
-  it('has a single manual instruction line with @username and no repeated amount', () => {
-    // The simplified fallback should have a single "Open Venmo manually and pay @username" line
-    expect(handoffSrc).toContain('Open Venmo manually and pay')
+describe('FIX 5: payment details card and copy controls', () => {
+  it('shows the Venmo recipient username', () => {
     expect(handoffSrc).toContain('@{venmoUsername}')
+  })
+
+  it('shows the PayPal recipient handle', () => {
+    expect(handoffSrc).toContain('paypal.me/{paypalHandle}')
+  })
+
+  it('keeps copy controls for recipient, amount, and note', () => {
+    expect(handoffSrc).toContain('copyToClipboard')
+    expect(handoffSrc).toContain("'username'")
+    expect(handoffSrc).toContain("'recipient'")
+    expect(handoffSrc).toContain("'amount'")
+    expect(handoffSrc).toContain("'note'")
+  })
+
+  it('references the payment note in the instructions', () => {
     expect(handoffSrc).toContain('as the payment note')
   })
 
-  it('has a copy-username button in the fallback', () => {
-    expect(handoffSrc).toContain("copyToClipboard(`@${venmoUsername}`, 'username-fallback')")
-  })
-
-  it('references the payment note (not a repeated Note row)', () => {
-    expect(handoffSrc).toContain('as the payment note')
-  })
-
-  it('does NOT have separate Recipient/Amount/Note rows in the fallback section', () => {
-    // The old fallback had three separate rows duplicating the payment details.
-    // The simplified fallback should not have those repeated label rows.
-    // Find the fallback section (after "doesn&rsquo;t open")
-    const fallbackIdx = handoffSrc.indexOf("doesn&rsquo;t open")
-    expect(fallbackIdx).toBeGreaterThan(-1)
-    // Get a generous window for the fallback section
-    const fallbackSection = handoffSrc.substring(fallbackIdx, fallbackIdx + 1500)
-    // Should NOT have the old separate rows with these labels
-    // (the payment details card above still has them, but the fallback should not)
-    expect(fallbackSection).not.toContain('>Recipient<')
-    expect(fallbackSection).not.toContain('>Amount<')
-    expect(fallbackSection).not.toContain('>Note<')
+  it('does not render AI-intake placeholders as a payment note', () => {
+    expect(handoffSrc).toContain('isPlaceholderValue(description)')
   })
 })

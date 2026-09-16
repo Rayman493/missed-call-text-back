@@ -4,6 +4,7 @@ import VoicemailMessage from '@/components/VoicemailMessage'
 import MessageMediaRenderer from '@/components/MessageMediaRenderer'
 import BusinessPhoneHistoryActions from '@/components/BusinessPhoneHistoryActions'
 import { Smartphone, CreditCard, CheckCircle2, XCircle, Clock, AlertCircle, ArrowDown } from 'lucide-react'
+import { firstNonPlaceholder } from '@/components/payments/customer-search-helpers'
 
 // Payment status to UI mapping
 function getPaymentStatusUI(status: string) {
@@ -37,8 +38,8 @@ function getPaymentStatusUI(status: string) {
       bgColor: 'bg-red-500/10'
     },
     cancelled: {
-      title: 'Payment canceled',
-      label: 'Canceled',
+      title: 'Payment cancelled',
+      label: 'Cancelled',
       icon: XCircle,
       iconColor: 'text-slate-500',
       bgColor: 'bg-slate-500/10'
@@ -174,9 +175,9 @@ export default function DesktopConversationMessageList({
                 <div className="text-sm font-semibold text-foreground">
                   {formatCurrency(payment.amount_cents, true)}
                 </div>
-                {payment.description && (
+                {firstNonPlaceholder(payment.description) && (
                   <div className="text-xs text-foreground/70">
-                    For: {payment.description}
+                    For: {firstNonPlaceholder(payment.description)}
                   </div>
                 )}
                 <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">

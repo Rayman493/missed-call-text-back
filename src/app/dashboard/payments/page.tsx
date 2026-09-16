@@ -12,6 +12,7 @@ import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { getPaymentStatusStyle } from '@/lib/payment-status'
+import { isPlaceholderValue } from '@/components/payments/customer-search-helpers'
 import { getPaymentMethodBadge } from '@/lib/payment-method-badge'
 import { deliverBillingPdf } from '@/lib/billing/download-billing-pdf'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
@@ -843,6 +844,10 @@ const getPaymentDescription = (payment: PaymentRequest) => {
     // display_name is the human-facing payment title (shown in the card header),
     // NOT the description. The description is the original payment note and
     // remains secondary supporting text. Do not conflate the two.
+    // AI-intake placeholders (e.g. "Not collected") can be persisted as the
+    // description when the intake summary is used as the prefill — they are
+    // generated fallback text, not a genuine note, so they are suppressed.
+    if (isPlaceholderValue(payment.description)) return null
     return payment.description
   }
 
@@ -2105,10 +2110,10 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                   <span className="text-muted-foreground text-sm">Amount</span>
                   <span className="text-foreground font-semibold">{paymentToMarkPaid ? formatCurrency(paymentToMarkPaid.amount_cents, true) : ''}</span>
                 </div>
-                {paymentToMarkPaid?.description && (
+                {paymentToMarkPaid && getPaymentDescription(paymentToMarkPaid) && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground text-sm">Description</span>
-                    <span className="text-foreground text-sm">{paymentToMarkPaid.description}</span>
+                    <span className="text-foreground text-sm">{getPaymentDescription(paymentToMarkPaid)}</span>
                   </div>
                 )}
               </div>
