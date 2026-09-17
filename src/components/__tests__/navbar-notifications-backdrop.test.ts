@@ -34,4 +34,15 @@ describe('NavbarNotifications outside-click shield', () => {
     expect(content).toContain('data-scroll-lock-allow')
     expect(content).toContain('overscroll-contain')
   })
+
+  it('registers the open panel as a transient overlay for hardware back dismissal', () => {
+    expect(content).toContain('registerTransientOverlay')
+    expect(content).toContain('unregisterTransientOverlay')
+    expect(content).toMatch(/registerTransientOverlay\(\s*close\s*\)/)
+  })
+
+  it('dismisses the panel via setIsOpen(false) from the back-handler callback', () => {
+    expect(content).toMatch(/registerTransientOverlay\(close\)/)
+    expect(content).toMatch(/const close = \(\) => setIsOpen\(false\)/)
+  })
 })

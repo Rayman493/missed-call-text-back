@@ -114,7 +114,11 @@ export default function CustomerPipelineGraph() {
                 {totalCustomers === 1 ? 'customer' : 'total customers'}
               </span>
             </div>
-            {totalCustomers === 1 && data.length === 1 ? (
+            {selectedIndex !== null && data[selectedIndex] ? (
+              <div className="text-[11px] text-muted-foreground/70 mt-1">
+                {data[selectedIndex].status} — {data[selectedIndex].count} {data[selectedIndex].count === 1 ? 'customer' : 'customers'}
+              </div>
+            ) : totalCustomers === 1 && data.length === 1 ? (
               <div className="text-[11px] text-muted-foreground/70 mt-1">
                 {data[0].status}
               </div>
@@ -186,7 +190,7 @@ export default function CustomerPipelineGraph() {
                       radius={[0, 3, 3, 0]}
                       barSize={24}
                       maxBarSize={CHART_STYLES.barMaxSize}
-                      activeBar={{ fillOpacity: 1, stroke: 'hsl(var(--background))', strokeWidth: 2 }}
+                      activeBar={false}
                       onClick={(_, index, event) => {
                         event.stopPropagation()
                         setSelectedIndex((prev) => (prev === index ? null : index))

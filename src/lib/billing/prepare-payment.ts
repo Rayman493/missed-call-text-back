@@ -86,6 +86,11 @@ export async function prepareInvoicePayment(
     return { ok: true, alreadyPaid: true }
   }
 
+  // Zero-dollar invoices cannot enter the payment lifecycle.
+  if (invoice.total_cents <= 0) {
+    return { ok: false, error: 'Add an amount greater than $0 before sending this invoice.', status: 400 }
+  }
+
   // ── Step 1: resolve or resume the canonical payment_request anchor ─────
   // If the invoice already links to a usable pending request, return it.
   // If it links to a draft request (previous partial attempt), resume it.

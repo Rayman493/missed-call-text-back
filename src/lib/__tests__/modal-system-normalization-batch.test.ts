@@ -290,6 +290,36 @@ describe('CONTRACT 11: Android/back history hooks remain wired', () => {
 })
 
 // ============================================================================
+// CONTRACT 13 — Transient overlays (dropdowns/popovers) consume hardware back
+// ============================================================================
+describe('CONTRACT 13: Transient overlays consume hardware back without history', () => {
+  it('modalBackButton exports transient overlay registration functions', () => {
+    expect(modalBackButtonSrc).toContain('registerTransientOverlay')
+    expect(modalBackButtonSrc).toContain('unregisterTransientOverlay')
+    expect(modalBackButtonSrc).toContain('hasOpenTransientOverlay')
+    expect(modalBackButtonSrc).toContain('handleTransientOverlayBackButton')
+  })
+
+  it('transient overlay stack is separate from modal stack', () => {
+    expect(modalBackButtonSrc).toContain('const transientOverlayStack')
+    expect(modalBackButtonSrc).not.toContain('const transientOverlayStack: Array<() => void> = modalStack')
+  })
+
+  it('Capacitor back handler checks transient overlays before modals', () => {
+    const initSrc = readSrc('src/capacitor/init.ts')
+    const backIdx = initSrc.indexOf("App.addListener('backButton'")
+    expect(backIdx).toBeGreaterThan(-1)
+    const afterBack = initSrc.slice(backIdx, backIdx + 1200)
+    expect(afterBack).toContain('hasOpenTransientOverlay')
+    expect(afterBack).toContain('handleTransientOverlayBackButton')
+    expect(afterBack).toContain('hasOpenModal')
+    expect(afterBack).toContain('handleCapacitorBackButton')
+    // transient check must come before modal check
+    expect(afterBack.indexOf('hasOpenTransientOverlay')).toBeLessThan(afterBack.indexOf('hasOpenModal'))
+  })
+})
+
+// ============================================================================
 // CONTRACT 12 — Destructive modal retains destructive variant/requirements
 // ============================================================================
 describe('CONTRACT 12: Destructive modal retains destructive variant/requirements', () => {
@@ -441,5 +471,39 @@ describe('Z-index normalization: hand-built modals elevated above bottom nav (z-
     const src = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
     expect(src).not.toContain('fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm')
     expect(src).toContain('fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm')
+  })
+})
+
+// ============================================================================
+// CONTRACT 13 — Photo lightbox uses the shared global overlay layer
+// ============================================================================
+const photoModalSrc = readSrc('src/components/PhotoModal.tsx')
+const appHeaderSrc = readSrc('src/components/AppHeader.tsx')
+
+describe('CONTRACT 13: Photo lightbox uses the shared global overlay layer', () => {
+  it('PhotoModal portals its overlay to document.body', () => {
+    expect(photoModalSrc).toContain("createPortal(lightbox, document.body)")
+  })
+
+  it('PhotoModal uses the same blocking overlay z-index as the shared Modal', () => {
+    expect(photoModalSrc).toContain('z-[60]')
+    expect(photoModalSrc).not.toContain('z-[200]')
+  })
+
+  it('PhotoModal keeps an edge-to-edge backdrop with bg-black/90', () => {
+    expect(photoModalSrc).toContain('fixed inset-0')
+    expect(photoModalSrc).toContain('bg-black/90')
+  })
+
+  it('AppHeader observes chrome-covered state with useLayoutEffect to hide before paint', () => {
+    const headerEffect = appHeaderSrc.match(/useLayoutEffect\(\(\) => \{[\s\S]*?data-chrome-covered[\s\S]*?\}, \[\]\)/)?.[0] || ''
+    expect(headerEffect).toContain("data-chrome-covered")
+    expect(headerEffect).toContain('MutationObserver')
+  })
+
+  it('BottomNavigation observes data-modal-open with useLayoutEffect to hide before paint', () => {
+    const navEffect = bottomNavSrc.match(/useLayoutEffect\(\(\) => \{[\s\S]*?data-modal-open[\s\S]*?\}, \[\]\)/)?.[0] || ''
+    expect(navEffect).toContain("data-modal-open")
+    expect(navEffect).toContain('MutationObserver')
   })
 })

@@ -191,9 +191,15 @@ describe('Batch A — realtime + keyboard true-bottom contracts', () => {
   })
 
   describe('Android keyboard anchoring uses deterministic layout events', () => {
-    it('focuses composer re-anchors to true bottom when near bottom', () => {
+    it('focuses composer re-anchors based on followLatest intent, not intermediate geometry', () => {
       expect(pageClientSrc).toContain('onFocus={handleMobileTextareaFocus}')
-      expect(pageClientSrc).toMatch(/handleMobileTextareaFocus\s*=\s*\(\)\s*=>\s*\{[\s\S]*?isContainerNearBottom\(container\)[\s\S]*?scrollToTrueBottom\(container\)/)
+      // Focus handler must preserve the user's follow-latest INTENT and not
+      // re-derive it from near-bottom geometry, which is unstable during the
+      // keyboard-open resize sequence.
+      const focusHandler = pageClientSrc.match(/handleMobileTextareaFocus\s*=\s*\(\)\s*=>\s*\{[\s\S]*?\}/)?.[0] || ''
+      expect(focusHandler).toContain('followLatestRef.current')
+      expect(focusHandler).toContain('scrollToTrueBottom(container)')
+      expect(focusHandler).not.toContain('isContainerNearBottom(container)')
     })
 
     it('uses double requestAnimationFrame in visualViewport resize handler', () => {

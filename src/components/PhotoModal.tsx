@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
@@ -31,10 +32,11 @@ export default function PhotoModal({ imageUrl, isOpen, onClose }: PhotoModalProp
 
   if (!isOpen) return null
 
-  return (
+  const lightbox = (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       onClick={onClose}
+      data-overlay="photo-lightbox"
     >
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
       <div className="relative max-w-5xl max-h-[90vh] w-full" onClick={(e) => e.stopPropagation()}>
@@ -53,4 +55,6 @@ export default function PhotoModal({ imageUrl, isOpen, onClose }: PhotoModalProp
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(lightbox, document.body) : null
 }

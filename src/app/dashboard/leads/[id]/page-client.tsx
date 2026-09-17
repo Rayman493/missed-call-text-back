@@ -3649,15 +3649,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  // When the composer receives focus, the keyboard will open. If the user was
-  // already following the latest message, reaffirm follow intent and anchor
-  // to true bottom so the newest message remains directly above the composer
-  // through the keyboard resize sequence.
+  // When the composer receives focus, the keyboard will open. Preserve the
+  // user's follow-latest INTENT rather than re-deriving it from the current
+  // geometry, which becomes unstable while the keyboard/resize sequence is in
+  // progress. If they were following latest, anchor to true bottom now and
+  // rely on visualViewport/ResizeObserver re-anchors through the resize.
   const handleMobileTextareaFocus = () => {
     const container = mobileConversationContainerRef.current
     if (!container) return
-    if (isContainerNearBottom(container)) {
-      followLatestRef.current = true
+    if (followLatestRef.current) {
       scrollToTrueBottom(container)
     }
   }

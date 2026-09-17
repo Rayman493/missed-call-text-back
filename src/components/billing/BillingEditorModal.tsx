@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Trash2, Search, User, X, Loader2, Eye, CalendarDays } from 'lucide-react'
+import { Plus, Trash2, Search, User, X, Loader2, Eye, CalendarDays, AlertCircle } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatCurrency } from '@/lib/utils'
@@ -136,6 +136,7 @@ export default function BillingEditorModal({
   // Unsaved-changes confirmation state
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
   const [showCreateAndSendConfirm, setShowCreateAndSendConfirm] = useState(false)
+  const [createAndSendError, setCreateAndSendError] = useState('')
   const isDirtyRef = useRef(false)
   const markDirty = useCallback(() => { isDirtyRef.current = true }, [])
   const markClean = useCallback(() => { isDirtyRef.current = false }, [])
@@ -1020,7 +1021,7 @@ export default function BillingEditorModal({
 
       <Modal
         isOpen={showCreateAndSendConfirm}
-        onClose={() => setShowCreateAndSendConfirm(false)}
+        onClose={() => { setShowCreateAndSendConfirm(false); setCreateAndSendError('') }}
         title={`Create and send ${isInvoice ? 'invoice' : 'quote'}?`}
       >
         <div className="space-y-4">
@@ -1029,10 +1030,24 @@ export default function BillingEditorModal({
             <p>{customerName} • {customerPhone}</p>
             <p className="font-medium text-foreground">{formatCurrency(total, true)}</p>
           </div>
+          {createAndSendError && (
+            <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-3 py-2 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" />
+              <div className="flex-1 text-xs text-red-900 dark:text-red-100">{createAndSendError}</div>
+            </div>
+          )}
           <div className="flex items-center justify-end gap-2">
-            <button onClick={() => setShowCreateAndSendConfirm(false)} className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg">Cancel</button>
+            <button onClick={() => { setShowCreateAndSendConfirm(false); setCreateAndSendError('') }} className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg">Cancel</button>
             <button
-              onClick={() => { setShowCreateAndSendConfirm(false); handleSaveDraft(true) }}
+              onClick={() => {
+                if (isInvoice && total <= 0) {
+                  setCreateAndSendError('Add an amount greater than $0 before sending this invoice.')
+                  return
+                }
+                setCreateAndSendError('')
+                setShowCreateAndSendConfirm(false)
+                handleSaveDraft(true)
+              }}
               disabled={pendingAction !== null}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
             >

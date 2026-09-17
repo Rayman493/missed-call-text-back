@@ -11,6 +11,7 @@ import { generateCanonicalRequestTitle, validateRequestTitle } from '@/lib/ai-in
 import { Bell, Check, MessageCircle, PhoneMissed, Send, Calendar, Info, CheckCircle, AlertTriangle, User, MessageSquare, Clock, CreditCard, Trash2, X } from 'lucide-react'
 import { getNotificationIcon, getNotificationColor, getNotificationDotColor } from '@/lib/notification-icons'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { registerTransientOverlay, unregisterTransientOverlay } from '@/lib/modalBackButton'
 import { markDropdownDismissed } from '@/components/lead-status-gesture'
 
 // Hook to detect mobile breakpoint
@@ -50,13 +51,27 @@ export default function NavbarNotifications() {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const [buttonPosition, setButtonPosition] = useState<{ top: number; right: number } | null>(null)
   const isMobile = useIsMobile()
-  
+
+  // Stable callback used by the shared back-button registry so that Android
+  // hardware Back dismisses the open notification panel without navigating.
+  const closeDropdownRef = useRef<() => void>(() => setIsOpen(false))
+
   // Scroll detection state
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const isScrollingRef = useRef(false)
 
   // Lock body scroll when notifications panel is open
   useBodyScrollLock(isOpen, 'navbar-notifications')
+
+  // Register the open notification dropdown as a transient overlay so the
+  // hardware back button dismisses it before any navigation takes place.
+  useEffect(() => {
+    if (!isOpen) return
+    const close = () => setIsOpen(false)
+    closeDropdownRef.current = close
+    registerTransientOverlay(close)
+    return () => unregisterTransientOverlay(close)
+  }, [isOpen])
 
   // Calculate button position when dropdown opens
   useEffect(() => {

@@ -67,7 +67,9 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   // modal is open. useBodyScrollLock sets this attribute (reference-counted
   // for nested modals), so this works for both the shared <Modal> component
   // and hand-built modals that call useBodyScrollLock.
-  useEffect(() => {
+  // useLayoutEffect keeps the nav hidden before the first paint of an open
+  // overlay so it never flashes above the backdrop.
+  useLayoutEffect(() => {
     if (typeof document === 'undefined') return
 
     const checkModalOpen = () => {

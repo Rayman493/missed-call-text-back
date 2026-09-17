@@ -217,7 +217,7 @@ export default function LeadsSourceGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <ChartTouchWrapper>
+            <ChartTouchWrapper chartType="pie">
               <div onClick={() => setSelectedIndex(null)} className="w-full h-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>

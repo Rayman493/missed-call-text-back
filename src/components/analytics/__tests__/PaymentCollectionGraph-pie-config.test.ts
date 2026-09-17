@@ -25,8 +25,8 @@ describe('PaymentCollectionGraph - Pie Configuration', () => {
     expect(content).toContain('outerRadius={CHART_STYLES.donutOuterRadius}')
   })
 
-  it('should use paddingAngle from CHART_STYLES', () => {
-    expect(content).toContain('paddingAngle={CHART_STYLES.donutPaddingAngle}')
+  it('should use paddingAngle from CHART_STYLES (with single-slice guard)', () => {
+    expect(content).toContain('CHART_STYLES.donutPaddingAngle')
   })
 
   it('should use value as dataKey', () => {

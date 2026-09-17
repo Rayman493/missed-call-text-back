@@ -114,12 +114,14 @@ export default function NewCustomersGraph() {
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground/70 mt-1">
-              {totalCustomers === 1 && timeRange === '30d'
+              {selectedIndex !== null && data[selectedIndex]
+                ? `${data[selectedIndex].date} — ${data[selectedIndex].customers} ${data[selectedIndex].customers === 1 ? 'new customer' : 'new customers'}`
+                : totalCustomers === 1 && timeRange === '30d'
                 ? '1 new customer this month'
                 : averageDaily > 0
                   ? `${averageDaily.toFixed(1)} per day average`
                   : 'No data yet'}
-              {peakDay && ` • Peak: ${peakDay.date} (${peakDay.customers})`}
+              {!selectedIndex && peakDay && ` • Peak: ${peakDay.date} (${peakDay.customers})`}
             </div>
           </div>
         )}
@@ -181,7 +183,7 @@ export default function NewCustomersGraph() {
                       dataKey="customers"
                       radius={CHART_STYLES.barRadius}
                       maxBarSize={CHART_STYLES.barMaxSize}
-                      activeBar={{ fillOpacity: 1 }}
+                      activeBar={false}
                       onClick={(_, index, event) => {
                         event.stopPropagation()
                         setSelectedIndex((prev) => (prev === index ? null : index))

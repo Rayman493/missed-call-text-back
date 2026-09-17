@@ -386,6 +386,27 @@ describe('prepareInvoicePayment', () => {
     expect(mockStripe.checkout.sessions.create).not.toHaveBeenCalled()
   })
 
+  it('rejects zero-dollar invoices before creating a payment_request', async () => {
+    const supabase = makeMockSupabase({
+      invoice: { status: 'draft', payment_request_id: null, public_token: 'tok_1' },
+    })
+    const result = await prepareInvoicePayment(supabase as any, 'biz_1', {
+      id: 'inv_1',
+      document_number: 'INV-1',
+      total_cents: 0,
+      customer_id: 'lead_1',
+      status: 'draft',
+      payment_request_id: null,
+      public_token: 'tok_1',
+    }, 'user_1')
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe(400)
+    expect(result.error).toMatch(/greater than \$0/i)
+    expect(supabase._inserts['payment_requests']).toBeUndefined()
+    expect(mockStripe.checkout.sessions.create).not.toHaveBeenCalled()
+  })
+
   it('fails when invoice has no customer', async () => {
     const supabase = makeMockSupabase({ invoice: { status: 'draft' } })
     const result = await prepareInvoicePayment(supabase as any, 'biz_1', {

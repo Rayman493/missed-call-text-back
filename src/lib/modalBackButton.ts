@@ -9,6 +9,10 @@
 // Module-level stack of active modal close callbacks
 const modalStack: Array<() => void> = []
 
+// Module-level stack of transient non-modal overlays (dropdowns, popovers)
+// that should consume the hardware back button but do NOT push browser history.
+const transientOverlayStack: Array<() => void> = []
+
 /**
  * One-shot suppression flag for navigation-driven modal closes.
  *
@@ -63,6 +67,45 @@ export function unregisterModal(onClose: () => void) {
   if (index !== -1) {
     modalStack.splice(index, 1)
   }
+}
+
+/**
+ * Register a transient overlay close callback at the top of its stack.
+ * Transient overlays (dropdowns, popovers) consume the hardware back button
+ * without pushing browser history.
+ */
+export function registerTransientOverlay(onClose: () => void) {
+  transientOverlayStack.push(onClose)
+}
+
+/**
+ * Remove a transient overlay close callback from the stack.
+ */
+export function unregisterTransientOverlay(onClose: () => void) {
+  const index = transientOverlayStack.indexOf(onClose)
+  if (index !== -1) {
+    transientOverlayStack.splice(index, 1)
+  }
+}
+
+/**
+ * Check if any transient overlay is open.
+ */
+export function hasOpenTransientOverlay(): boolean {
+  return transientOverlayStack.length > 0
+}
+
+/**
+ * Handle Capacitor backButton by closing the topmost transient overlay.
+ * Returns true if an overlay was closed, false otherwise.
+ */
+export function handleTransientOverlayBackButton(): boolean {
+  const topOverlay = transientOverlayStack[transientOverlayStack.length - 1]
+  if (topOverlay) {
+    topOverlay()
+    return true
+  }
+  return false
 }
 
 /**

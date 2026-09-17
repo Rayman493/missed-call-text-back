@@ -107,6 +107,14 @@ export async function POST(
     }
 
     const isQuote = doc.document_type === 'quote'
+
+    // Zero-dollar invoices cannot enter the payment lifecycle (and the
+    // payment_requests table enforces amount_cents > 0). Reject early so we do
+    // not persist a token, create a payment_request, or send an SMS.
+    if (!isQuote && doc.total_cents <= 0) {
+      return NextResponse.json({ error: 'Add an amount greater than $0 before sending this invoice.' }, { status: 400 })
+    }
+
     const totalDollars = (doc.total_cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
     // ── Token invariant: persist BEFORE sending SMS ──────────────────

@@ -202,10 +202,18 @@ export async function initializeCapacitor() {
     App.addListener('backButton', (data) => {
       console.log('[Capacitor] Back button pressed, canGoBack:', data.canGoBack);
 
-      // Check if there are any open modals - if so, let the modal handler take precedence
+      // Check transient overlays (dropdowns/popovers) first, then modals.
+      // If any overlay is open, consume the back button without navigating.
       // Dynamic import to avoid requiring this in non-native environments
       try {
         const modalBack = require('@/lib/modalBackButton')
+        if (modalBack && modalBack.hasOpenTransientOverlay && modalBack.hasOpenTransientOverlay()) {
+          console.log('[Capacitor] Transient overlay is open, dismissing it');
+          const consumed = modalBack.handleTransientOverlayBackButton();
+          if (consumed) {
+            return; // Transient overlay consumed this event
+          }
+        }
         if (modalBack && modalBack.hasOpenModal && modalBack.hasOpenModal()) {
           console.log('[Capacitor] Modal is open, deferring to modal back handler');
           const consumed = modalBack.handleCapacitorBackButton();

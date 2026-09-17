@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useLayoutEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Navigation from './Navigation'
@@ -28,7 +28,8 @@ export default function AppHeader({
   // so this header never collapses underneath its own dropdown.
   const [isChromeCovered, setIsChromeCovered] = useState(false)
 
-  useEffect(() => {
+  // Hide before paint so the header never flashes above a blocking overlay.
+  useLayoutEffect(() => {
     if (typeof document === 'undefined') return
 
     const checkChromeCovered = () => {

@@ -151,6 +151,7 @@ export default function PaymentsPage() {
   const [billingSendingId, setBillingSendingId] = useState<string | null>(null)
   const [billingConvertingId, setBillingConvertingId] = useState<string | null>(null)
   const [billingSendTarget, setBillingSendTarget] = useState<BillingDocumentListItem | null>(null)
+  const [billingSendError, setBillingSendError] = useState('')
   const [billingConvertTarget, setBillingConvertTarget] = useState<BillingDocumentListItem | null>(null)
   const [viewingBillingDoc, setViewingBillingDoc] = useState<BillingDocumentListItem | null>(null)
   const [showBillingViewer, setShowBillingViewer] = useState(false)
@@ -2252,7 +2253,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
 
         <Modal
           isOpen={!!billingSendTarget}
-          onClose={() => setBillingSendTarget(null)}
+          onClose={() => { setBillingSendTarget(null); setBillingSendError('') }}
           title={`Send ${billingSendTarget?.document_type === 'quote' ? 'quote' : 'invoice'} to customer?`}
         >
           <div className="space-y-4">
@@ -2261,13 +2262,25 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               <p>{billingSendTarget?.leads?.contact_name || 'Unnamed customer'}{billingSendTarget?.leads?.caller_phone ? ` • ${billingSendTarget.leads.caller_phone}` : ''}</p>
               <p className="font-medium text-foreground">{billingSendTarget ? formatCurrency(billingSendTarget.total_cents, true) : ''}</p>
             </div>
+            {billingSendError && (
+              <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-3 py-2 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" />
+                <div className="flex-1 text-xs text-red-900 dark:text-red-100">{billingSendError}</div>
+              </div>
+            )}
             <div className="flex justify-end gap-2">
-              <button onClick={() => setBillingSendTarget(null)} className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted rounded-lg">Cancel</button>
+              <button onClick={() => { setBillingSendTarget(null); setBillingSendError('') }} className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted rounded-lg">Cancel</button>
               <button
                 onClick={() => {
                   const target = billingSendTarget
+                  if (!target) return
+                  if (target.document_type === 'invoice' && target.total_cents <= 0) {
+                    setBillingSendError('Add an amount greater than $0 before sending this invoice.')
+                    return
+                  }
+                  setBillingSendError('')
                   setBillingSendTarget(null)
-                  if (target) handleSendBillingDoc(target)
+                  handleSendBillingDoc(target)
                 }}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
               >
