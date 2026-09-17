@@ -9,7 +9,6 @@ interface PaymentHandoffProps {
   businessName: string
   amount: string
   description?: string | null
-  checkoutUrl?: string | null
   venmoUsername?: string
   paypalHandle?: string
 }
@@ -35,7 +34,6 @@ export default function PaymentHandoff({
   businessName,
   amount,
   description,
-  checkoutUrl,
   venmoUsername,
   paypalHandle
 }: PaymentHandoffProps) {
@@ -66,7 +64,7 @@ export default function PaymentHandoff({
 
   // Recipient as shown inside each provider's app
   const venmoRecipient = venmoUsername ? `@${venmoUsername}` : businessName
-  const paypalRecipient = paypalHandle ? `paypal.me/${paypalHandle}` : businessName
+  const paypalRecipient = paypalHandle ? `@${paypalHandle}` : businessName
 
   // How-to-pay steps per provider. These are instructions only — the launch UI
   // intentionally does not open the native app or deep-link out (confirmed
@@ -133,8 +131,8 @@ export default function PaymentHandoff({
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-600">Recipient</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-900 font-medium">paypal.me/{paypalHandle}</span>
-                  {copyButton(`paypal.me/${paypalHandle}`, 'recipient', 'Copy recipient')}
+                  <span className="text-gray-900 font-medium">@{paypalHandle}</span>
+                  {copyButton(`@${paypalHandle}`, 'recipient', 'Copy recipient')}
                 </div>
               </div>
             )}
@@ -157,15 +155,6 @@ export default function PaymentHandoff({
               </div>
             )}
 
-            {provider === 'paypal' && checkoutUrl && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-600">Payment Link</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-900 font-medium text-right max-w-[200px] truncate">{checkoutUrl}</span>
-                  {copyButton(checkoutUrl, 'link', 'Copy link')}
-                </div>
-              </div>
-            )}
           </div>
         </div>
 

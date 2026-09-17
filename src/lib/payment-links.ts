@@ -62,27 +62,24 @@ export function generateVenmoLink(
  * Normalize PayPal payment link
  * Handles both paypal.me/... format and full URLs
  */
+export function normalizePaypalUsername(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const normalized = value.trim().replace(/^@/, '');
+  if (!normalized) return null;
+  try {
+    const url = new URL(normalized.startsWith('http') ? normalized : `https://${normalized}`);
+    if (url.hostname.toLowerCase().replace(/^www\./, '') === 'paypal.me') {
+      return url.pathname.split('/').filter(Boolean)[0] || null;
+    }
+  } catch {
+    // Continue with username validation.
+  }
+  return /^[a-z0-9._-]+$/i.test(normalized) ? normalized : null;
+}
+
 export function normalizePaypalLink(link: string | null | undefined): string | null {
-  if (!link) return null;
-  
-  const normalized = link.trim();
-  
-  // If already a full URL, return as-is
-  if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
-    return normalized;
-  }
-  
-  // If it's a paypal.me handle without protocol, add https://
-  if (normalized.startsWith('paypal.me/')) {
-    return `https://${normalized}`;
-  }
-  
-  // If it's just a handle, convert to paypal.me format
-  if (!normalized.includes('/')) {
-    return `https://paypal.me/${normalized}`;
-  }
-  
-  return normalized || null;
+  const username = normalizePaypalUsername(link);
+  return username ? `https://paypal.me/${encodeURIComponent(username)}` : null;
 }
 
 /**

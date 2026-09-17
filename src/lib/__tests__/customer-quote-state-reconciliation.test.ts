@@ -69,7 +69,7 @@ describe('Issue B — "Customer information updated" only on meaningful change',
   })
 
   it('toast claims an update only when the server reported a change', () => {
-    expect(pageClient).toContain("changed === false ? 'Customer info saved.' : 'Cheers! Customer info updated.'")
+    expect(pageClient).toContain("if (changed !== false) setSuccessMessage('Customer updated')")
   })
 })
 
@@ -103,7 +103,7 @@ describe('Issue D — draft document name editable and persisted', () => {
     expect(nameField).toContain('value={displayName}')
     expect(nameField).toContain('setDisplayName')
     expect(nameField).not.toContain('readOnly')
-    expect(nameField).not.toContain('disabled')
+    expect(nameField).toContain("disabled={!!existingDocument && existingDocument.status !== 'draft'}")
   })
 
   it('opening an existing document maps persisted display_name into the editor', () => {

@@ -24,6 +24,7 @@ import { Capacitor } from '@capacitor/core'
 import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import Link from 'next/link'
 import { formatPhoneNumber } from '@/lib/utils'
+import { normalizePaypalUsername } from '@/lib/payment-links'
 import Navigation from '@/components/Navigation'
 import PageBackground from '@/components/PageBackground'
 import UserDropdown from '@/components/UserDropdown'
@@ -886,7 +887,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
         after_hours_message: businessData.after_hours_message || DEFAULT_AFTER_HOURS_MESSAGE,
         automation_settings: automationSettings,
         venmo_username: businessData.venmo_username,
-        paypal_payment_link: businessData.paypal_payment_link
+        paypal_payment_link: normalizePaypalUsername(businessData.paypal_payment_link)
       }
 
       // Log Out of Office save attempt
@@ -4590,20 +4591,21 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           )}
                         </div>
                         <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                          Accept PayPal payments by link.
+                          Accept PayPal payments by username.
                         </p>
                       </div>
                     </div>
                     <div className="mt-auto">
+                      <label className="block text-xs font-medium text-foreground mb-1">PayPal username</label>
                       <input
                         type="text"
                         value={formBusiness.paypal_payment_link || ''}
                         onChange={(e) => updateBusiness({ paypal_payment_link: e.target.value })}
-                        placeholder="https://paypal.me/yourbusiness"
+                        placeholder="yourbusiness"
                         className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                       />
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        Example: https://paypal.me/joesplumbing
+                        With or without @
                       </p>
                     </div>
                   </div>

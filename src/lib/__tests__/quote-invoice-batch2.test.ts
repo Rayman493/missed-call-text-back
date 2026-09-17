@@ -17,6 +17,7 @@ const migration2Src = readSrc('supabase/migrations/20260913220000_add_billing_sn
 const sendRouteSrc = readSrc('src/app/api/billing-documents/[id]/send/route.ts')
 const pdfRouteSrc = readSrc('src/app/api/billing-documents/[id]/pdf/route.tsx')
 const convertRouteSrc = readSrc('src/app/api/billing-documents/[id]/convert/route.ts')
+const conversionMigrationSrc = readSrc('supabase/migrations/20260919000100_billing_conversion_lifecycle.sql')
 const payRouteSrc = readSrc('src/app/api/billing-documents/[id]/pay/route.ts')
 const preparePaymentSrc = readSrc('src/lib/billing/prepare-payment.ts')
 const publicRouteSrc = readSrc('src/app/api/public/document/[token]/route.ts')
@@ -293,50 +294,54 @@ describe('QUOTE ACCEPT / DECLINE', () => {
 // CONVERSION
 // ============================================================================
 describe('CONVERSION', () => {
-  it('accepted quote converts to invoice', () => {
-    expect(convertRouteSrc).toContain("document_type: 'invoice'")
+  it('accepted quote converts to a separate invoice', () => {
+    expect(convertRouteSrc).toContain("rpc('convert_quote_to_invoice'")
+    expect(conversionMigrationSrc).toContain("v_quote.document_type <> 'quote'")
+    expect(conversionMigrationSrc).toContain("v_quote.status <> 'accepted'")
   })
 
   it('items copied from quote to invoice', () => {
-    expect(convertRouteSrc).toContain('billing_document_items')
-    expect(convertRouteSrc).toContain('itemRows')
+    expect(conversionMigrationSrc).toContain('INSERT INTO billing_document_items')
+    expect(conversionMigrationSrc).toContain('WHERE item.document_id = v_quote.id')
   })
 
   it('customer_id copied', () => {
-    expect(convertRouteSrc).toContain('customer_id: quote.customer_id')
+    expect(conversionMigrationSrc).toContain('v_quote.customer_id')
   })
 
   it('totals copied (subtotal, discount, tax, total)', () => {
-    expect(convertRouteSrc).toContain('subtotal_cents: quote.subtotal_cents')
-    expect(convertRouteSrc).toContain('discount_cents: quote.discount_cents')
-    expect(convertRouteSrc).toContain('tax_cents: quote.tax_cents')
-    expect(convertRouteSrc).toContain('total_cents: quote.total_cents')
+    expect(conversionMigrationSrc).toContain('v_quote.subtotal_cents')
+    expect(conversionMigrationSrc).toContain('v_quote.discount_cents')
+    expect(conversionMigrationSrc).toContain('v_quote.tax_cents')
+    expect(conversionMigrationSrc).toContain('v_quote.total_cents')
   })
 
   it('new INV number assigned', () => {
-    expect(convertRouteSrc).toContain("p_document_type: 'invoice'")
+    expect(conversionMigrationSrc).toContain("assign_billing_document_number(v_quote.business_id, 'invoice')")
   })
 
   it('source_quote_id preserved on new invoice', () => {
-    expect(convertRouteSrc).toContain('source_quote_id: quote.id')
+    expect(conversionMigrationSrc).toContain('v_quote.id')
+    expect(conversionMigrationSrc).toContain('source_quote_id')
   })
 
-  it('duplicate conversion prevented (idempotent check)', () => {
-    expect(convertRouteSrc).toContain('source_quote_id')
-    expect(convertRouteSrc).toContain('idempotent')
-    expect(convertRouteSrc).toContain('existingInvoice')
+  it('duplicate conversion prevented transactionally', () => {
+    expect(conversionMigrationSrc).toContain('FOR UPDATE')
+    expect(conversionMigrationSrc).toContain('IF v_invoice_id IS NOT NULL')
+    expect(conversionMigrationSrc).toContain('RETURN v_invoice_id')
   })
 
   it('only quotes can be converted', () => {
-    expect(convertRouteSrc).toContain('Only quotes can be converted to invoices')
+    expect(conversionMigrationSrc).toContain('Only quotes can be converted to invoices')
   })
 
   it('business ownership enforced', () => {
+    expect(conversionMigrationSrc).toContain('business.user_id = auth.uid()')
     expect(convertRouteSrc).toContain("eq('business_id', business.id)")
   })
 
   it('new invoice gets draft status', () => {
-    expect(convertRouteSrc).toContain("status: 'draft'")
+    expect(conversionMigrationSrc).toContain("'invoice', 'draft'")
   })
 })
 
@@ -544,24 +549,19 @@ describe('DOCUMENT LIST POLISH', () => {
     expect(listSrc).toContain('onSend')
   })
 
-  it('accepted quote shows Convert to Invoice', () => {
+  it('accepted quote shows Create or View Invoice', () => {
     expect(listSrc).toContain('isAccepted')
     expect(listSrc).toContain('onConvert')
-    expect(listSrc).toContain('Convert to Invoice')
+    expect(listSrc).toContain("title={doc.derived_invoice ? 'View Invoice' : 'Create Invoice'}")
   })
 
-  it('all statuses use same 5 action slots in canonical order', () => {
-    // Canonical order: Edit, Send/Resend, Download, View, Delete
-    // Disabled actions render as muted spans, not buttons
-    expect(listSrc).toContain('Slot 1: Edit')
-    expect(listSrc).toContain('Slot 2: Send / Resend / Convert')
-    expect(listSrc).toContain('Slot 3: Download')
-    expect(listSrc).toContain('Slot 4: View')
-    expect(listSrc).toContain('Slot 5: Delete')
-    // Draft enables all 5; sent enables Resend+Download+View; accepted enables Convert+Download+View
-    expect(listSrc).toContain('isDraft')
-    expect(listSrc).toContain('isSent')
-    expect(listSrc).toContain('isAccepted')
+  it('all statuses use the same 5 stable action columns', () => {
+    expect(listSrc).toContain('grid grid-cols-5 gap-1 w-40')
+    expect(listSrc).toContain('style={{ gridColumn: 1 }}')
+    expect(listSrc).toContain('style={{ gridColumn: 2 }}')
+    expect(listSrc).toContain('style={{ gridColumn: 3 }}')
+    expect(listSrc).toContain('style={{ gridColumn: 4 }}')
+    expect(listSrc).toContain('style={{ gridColumn: 5 }}')
   })
 })
 
@@ -583,10 +583,11 @@ describe('MOBILE / MODAL', () => {
     expect(editorSrc).not.toContain('handleDownload')
   })
 
-  it('editor does NOT have Send to Customer (moved to viewer)', () => {
-    // Send is now only on the saved document viewer, not the editor
-    expect(editorSrc).not.toContain('handleSend')
-    expect(editorSrc).not.toContain('Send to Customer')
+  it('editor supports confirmed Create & Send through the canonical send route', () => {
+    expect(editorSrc).toContain('Create & Send')
+    expect(editorSrc).toContain('showCreateAndSendConfirm')
+    expect(editorSrc).toContain('/send`')
+    expect(editorSrc).toContain('Send to Customer')
   })
 
   it('preview modal uses shared Modal with Back to Edit', () => {

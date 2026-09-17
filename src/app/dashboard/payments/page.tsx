@@ -149,6 +149,8 @@ export default function PaymentsPage() {
   const [billingDownloadingId, setBillingDownloadingId] = useState<string | null>(null)
   const [billingSendingId, setBillingSendingId] = useState<string | null>(null)
   const [billingConvertingId, setBillingConvertingId] = useState<string | null>(null)
+  const [billingSendTarget, setBillingSendTarget] = useState<BillingDocumentListItem | null>(null)
+  const [billingConvertTarget, setBillingConvertTarget] = useState<BillingDocumentListItem | null>(null)
   const [viewingBillingDoc, setViewingBillingDoc] = useState<BillingDocumentListItem | null>(null)
   const [showBillingViewer, setShowBillingViewer] = useState(false)
 
@@ -211,8 +213,21 @@ export default function PaymentsPage() {
 
   // Filter billing documents by type within the Quotes & Invoices segment
   const filteredBillingDocuments = useMemo(() => {
-    if (billingTypeFilter === 'all') return billingDocuments
-    return billingDocuments.filter((d) => d.document_type === billingTypeFilter)
+    const linkedDocuments = billingDocuments.map((document) => {
+      const derivedInvoice = document.document_type === 'quote'
+        ? billingDocuments.find((candidate) => candidate.document_type === 'invoice' && candidate.source_quote_id === document.id)
+        : null
+      const sourceQuote = document.source_quote_id
+        ? billingDocuments.find((candidate) => candidate.id === document.source_quote_id && candidate.document_type === 'quote')
+        : null
+      return {
+        ...document,
+        derived_invoice: derivedInvoice ? { id: derivedInvoice.id, document_number: derivedInvoice.document_number } : null,
+        source_quote: sourceQuote ? { id: sourceQuote.id, document_number: sourceQuote.document_number } : null,
+      }
+    })
+    if (billingTypeFilter === 'all') return linkedDocuments
+    return linkedDocuments.filter((document) => document.document_type === billingTypeFilter)
   }, [billingDocuments, billingTypeFilter])
 
   // Auto-switch if current selection becomes unavailable
@@ -268,7 +283,11 @@ export default function PaymentsPage() {
               // Merge changed fields — preserve joined leads data
               return prev.map((d) => d.id === row.id ? {
                 ...d,
+                document_type: row.document_type ?? d.document_type,
                 status: row.status ?? d.status,
+                customer_id: row.customer_id !== undefined ? row.customer_id : d.customer_id,
+                source_quote_id: row.source_quote_id !== undefined ? row.source_quote_id : d.source_quote_id,
+                display_name: row.display_name !== undefined ? row.display_name : d.display_name,
                 sent_at: row.sent_at ?? d.sent_at,
                 public_token: row.public_token ?? d.public_token,
                 payment_request_id: (row as any).payment_request_id ?? (d as any).payment_request_id,
@@ -501,7 +520,9 @@ export default function PaymentsPage() {
       const name = savedDoc.display_name?.trim()
       const identity = name || (savedDoc.document_number || 'draft')
       const quoted = name ? `“${identity}”` : identity
-      setSuccessMessage(`${label} ${quoted} created\nReady to review and send.`)
+      setSuccessMessage(savedDoc.status === 'sent'
+        ? `${label} ${quoted} sent to customer.`
+        : `${label} ${quoted} created\nReady to review and send.`)
     }
     if (savedDoc?.id) {
       const savedId = savedDoc.id
@@ -632,10 +653,7 @@ export default function PaymentsPage() {
         const json = await res.json()
         const newInvoice = json.document
         if (newInvoice) {
-          // Mark the source quote as accepted (conversion implies acceptance)
-          // and prepend the new invoice to local state — no full refetch.
           setBillingDocuments((prev) => {
-            const updated = prev.map((d) => d.id === doc.id ? { ...d, status: 'accepted' } : d)
             const invoiceItem: BillingDocumentListItem = {
               id: newInvoice.id,
               document_type: 'invoice',
@@ -655,7 +673,10 @@ export default function PaymentsPage() {
               updated_at: newInvoice.updated_at,
               sent_at: newInvoice.sent_at,
             }
-            return [invoiceItem, ...updated]
+            const existing = prev.some((document) => document.id === invoiceItem.id)
+            return existing
+              ? prev.map((document) => document.id === invoiceItem.id ? { ...document, ...invoiceItem } : document)
+              : [invoiceItem, ...prev]
           })
         }
       }
@@ -2013,9 +2034,13 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             onOpen={handleOpenBillingDoc}
             onDelete={handleDeleteBillingDoc}
             onDownload={handleDownloadBillingDoc}
-            onSend={handleSendBillingDoc}
-            onConvert={handleConvertBillingDoc}
+            onSend={setBillingSendTarget}
+            onConvert={setBillingConvertTarget}
             onView={handleViewBillingDoc}
+            onViewRelated={(documentId) => {
+              const related = billingDocuments.find((document) => document.id === documentId)
+              if (related) handleViewBillingDoc(related)
+            }}
             deletingId={billingDeletingId}
             downloadingId={billingDownloadingId}
             sendingId={billingSendingId}
@@ -2186,16 +2211,66 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           }}
           documentId={viewingBillingDoc?.id || null}
           onDownload={() => viewingBillingDoc && handleDownloadBillingDoc(viewingBillingDoc)}
-          onSend={() => viewingBillingDoc && handleSendBillingDoc(viewingBillingDoc)}
+          onSend={() => viewingBillingDoc && setBillingSendTarget(viewingBillingDoc)}
           onEdit={() => {
             if (viewingBillingDoc) {
               setShowBillingViewer(false)
               handleOpenBillingDoc(viewingBillingDoc)
             }
           }}
-          onConvert={() => viewingBillingDoc && handleConvertBillingDoc(viewingBillingDoc)}
+          onConvert={() => viewingBillingDoc && setBillingConvertTarget(viewingBillingDoc)}
           isSending={billingSendingId === viewingBillingDoc?.id}
         />
+
+        <Modal
+          isOpen={!!billingSendTarget}
+          onClose={() => setBillingSendTarget(null)}
+          title={`Send ${billingSendTarget?.document_type === 'quote' ? 'quote' : 'invoice'} to customer?`}
+        >
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p>{billingSendTarget?.display_name || `${billingSendTarget?.document_type === 'quote' ? 'Quote' : 'Invoice'} ${billingSendTarget?.document_number}`}</p>
+              <p>{billingSendTarget?.leads?.contact_name || 'Unnamed customer'}{billingSendTarget?.leads?.caller_phone ? ` • ${billingSendTarget.leads.caller_phone}` : ''}</p>
+              <p className="font-medium text-foreground">{billingSendTarget ? formatCurrency(billingSendTarget.total_cents, true) : ''}</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setBillingSendTarget(null)} className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted rounded-lg">Cancel</button>
+              <button
+                onClick={() => {
+                  const target = billingSendTarget
+                  setBillingSendTarget(null)
+                  if (target) handleSendBillingDoc(target)
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+              >
+                Send to Customer
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        <Modal
+          isOpen={!!billingConvertTarget}
+          onClose={() => setBillingConvertTarget(null)}
+          title={`Create invoice from ${billingConvertTarget?.document_number || 'quote'}?`}
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">The original quote will remain accepted and viewable in history. A new draft invoice will be created.</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setBillingConvertTarget(null)} className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted rounded-lg">Cancel</button>
+              <button
+                onClick={() => {
+                  const target = billingConvertTarget
+                  setBillingConvertTarget(null)
+                  if (target) handleConvertBillingDoc(target)
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+              >
+                Create Invoice
+              </button>
+            </div>
+          </div>
+        </Modal>
     </DashboardShell>
   )
 }

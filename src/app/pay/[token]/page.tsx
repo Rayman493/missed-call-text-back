@@ -161,7 +161,6 @@ export default async function PayPage({ params }: PayPageProps) {
         businessName={businessName}
         amount={amount}
         description={paymentRequest.description}
-        checkoutUrl={paymentRequest.checkout_url}
         venmoUsername={venmoUsername}
         paypalHandle={paypalHandle}
       />

@@ -135,6 +135,7 @@ export default function BillingEditorModal({
 
   // Unsaved-changes confirmation state
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
+  const [showCreateAndSendConfirm, setShowCreateAndSendConfirm] = useState(false)
   const isDirtyRef = useRef(false)
   const markDirty = useCallback(() => { isDirtyRef.current = true }, [])
   const markClean = useCallback(() => { isDirtyRef.current = false }, [])
@@ -411,7 +412,7 @@ export default function BillingEditorModal({
     }
   }, [lineItems, discountCents, taxCents, taxMode, taxPercent, issueDate, validUntil, dueDate, isInvoice, documentType, existingDocument, savedDoc, customerName, customerPhone, customerEmail, notes, terms, business])
 
-  const handleSaveDraft = useCallback(async () => {
+  const handleSaveDraft = useCallback(async (sendAfterSave = false) => {
     setIsSaving(true)
     setSaveError('')
     try {
@@ -462,11 +463,20 @@ export default function BillingEditorModal({
 
       const json = await res.json()
       const savedDocument = json.document
-      // Always close the editor after successful save.
-      // The saved document appears in the list after refresh.
-      // Send/Download are available from the saved document viewer, not the editor.
       markClean()
-      onSaved?.(savedDocument)
+      if (sendAfterSave) {
+        const sendRes = await fetch(`/api/billing-documents/${savedDocument.id}/send`, { method: 'POST', headers })
+        if (!sendRes.ok) {
+          const sendError = await sendRes.json().catch(() => ({}))
+          setSavedDoc({ id: savedDocument.id, document_number: savedDocument.document_number })
+          onSaved?.(savedDocument)
+          throw new Error(`${sendError.error || 'Failed to send document'}. Draft saved and ready to retry.`)
+        }
+        const sentJson = await sendRes.json()
+        onSaved?.(sentJson.document || savedDocument)
+      } else {
+        onSaved?.(savedDocument)
+      }
       onClose()
     } catch (err: any) {
       setSaveError(err.message || 'Failed to save')
@@ -516,11 +526,26 @@ export default function BillingEditorModal({
         <button
           onClick={() => handleSaveDraft()}
           disabled={isSaving}
-          className="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-4 py-2.5 text-sm font-medium text-foreground border border-border/50 hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
         >
           {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-          {existingDocument ? 'Save Changes' : `Create ${isInvoice ? 'Invoice' : 'Quote'}`}
+          {existingDocument ? 'Save Changes' : 'Create Draft'}
         </button>
+        {!existingDocument && (
+          <button
+            onClick={() => {
+              if (!customerId || !customerPhone) {
+                setSaveError('Select a customer with a valid phone number before creating and sending.')
+                return
+              }
+              setShowCreateAndSendConfirm(true)
+            }}
+            disabled={isSaving}
+            className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+          >
+            Create & Send
+          </button>
+        )}
       </div>
     </div>
   )
@@ -566,6 +591,7 @@ export default function BillingEditorModal({
             value={displayName}
             onChange={(e) => { markDirty(); setDisplayName(e.target.value) }}
             maxLength={80}
+            disabled={!!existingDocument && existingDocument.status !== 'draft'}
             placeholder={isInvoice ? 'e.g. Kitchen Sink Repair' : 'e.g. Backyard Fence Installation'}
             className="w-full min-w-0 max-w-full box-border px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
           />
@@ -601,7 +627,6 @@ export default function BillingEditorModal({
                   onChange={(e) => setCustomerSearch(e.target.value)}
                   placeholder="Search customers..."
                   className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-                  autoFocus
                 />
               </div>
               <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800">
@@ -986,6 +1011,30 @@ export default function BillingEditorModal({
           </div>
         </Modal>
       )}
+
+      <Modal
+        isOpen={showCreateAndSendConfirm}
+        onClose={() => setShowCreateAndSendConfirm(false)}
+        title={`Create and send ${isInvoice ? 'invoice' : 'quote'}?`}
+      >
+        <div className="space-y-4">
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p>{displayName.trim() || `New ${isInvoice ? 'Invoice' : 'Quote'}`}</p>
+            <p>{customerName} • {customerPhone}</p>
+            <p className="font-medium text-foreground">{formatCurrency(total, true)}</p>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <button onClick={() => setShowCreateAndSendConfirm(false)} className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg">Cancel</button>
+            <button
+              onClick={() => { setShowCreateAndSendConfirm(false); handleSaveDraft(true) }}
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
+            >
+              Send to Customer
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Discard unsaved changes confirmation */}
       <Modal

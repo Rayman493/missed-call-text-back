@@ -169,7 +169,9 @@ export async function deliverBillingPdf(options: BillingPdfDeliveryOptions) {
     onSuccess?.(message)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to deliver PDF'
-    onError?.(message)
+    const cancelled = /cancel(?:led|ed)|dismissed/i.test(message)
+    if (cancelled) onSuccess?.('Share canceled')
+    else onError?.(message)
   } finally {
     onFinally?.()
   }

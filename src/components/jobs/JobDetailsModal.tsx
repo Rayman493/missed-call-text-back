@@ -100,6 +100,7 @@ export default function JobDetailsModal({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null)
   const [isLoadingPayment, setIsLoadingPayment] = useState(false)
+  const [paymentLoadedForLeadId, setPaymentLoadedForLeadId] = useState<string | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showTapToPayModal, setShowTapToPayModal] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
@@ -157,6 +158,8 @@ export default function JobDetailsModal({
   const fetchPaymentRequest = async () => {
     if (!job.lead_id) return
 
+    setPaymentRequest(null)
+    setPaymentLoadedForLeadId(null)
     setIsLoadingPayment(true)
     try {
       const supabase = createBrowserClient()
@@ -175,6 +178,7 @@ export default function JobDetailsModal({
     } catch (err) {
       console.error('Error fetching payment request:', err)
     } finally {
+      setPaymentLoadedForLeadId(job.lead_id)
       setIsLoadingPayment(false)
     }
   }
@@ -485,6 +489,11 @@ export default function JobDetailsModal({
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Payment</p>
               {!job.lead_id ? (
                 <p className="text-sm text-slate-500 dark:text-slate-400 italic">No lead associated with this job</p>
+              ) : isLoadingPayment || paymentLoadedForLeadId !== job.lead_id ? (
+                <div className="space-y-2" aria-label="Loading payment details">
+                  <div className="h-5 w-20 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                  <div className="h-3 w-32 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                </div>
               ) : !paymentRequest ? (
                 <div className="space-y-2">
                   <p className="text-sm text-slate-600 dark:text-slate-300">No payment requested</p>
@@ -518,7 +527,7 @@ export default function JobDetailsModal({
                     </span>
                   </div>
                   
-                  {paymentRequest.description && (
+                  {paymentRequest.description && !/^not collected$/i.test(paymentRequest.description.trim()) && (
                     <p className="text-xs text-slate-600 dark:text-slate-300">{paymentRequest.description}</p>
                   )}
                   
