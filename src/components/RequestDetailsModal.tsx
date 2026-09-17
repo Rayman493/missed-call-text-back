@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Modal from '@/components/ui/Modal'
-import { MessageSquare, FileText, MapPin, Clock, Phone, Calendar, CheckCircle2 } from 'lucide-react'
+import { MessageSquare, FileText, MapPin, Clock, Phone, Calendar, CheckCircle2, User } from 'lucide-react'
 import type { NormalizedIntake } from '@/lib/ai-call-record-normalizer'
 
 interface RequestDetailsModalProps {
@@ -66,6 +66,12 @@ export default function RequestDetailsModal({ isOpen, onClose, record }: Request
 
         {/* Divider */}
         <div className="border-t border-border/50" />
+
+        <DetailRow
+          icon={<User className="w-4 h-4" />}
+          label="Customer"
+          value={record.customerName}
+        />
 
         {/* Request / Reason */}
         <DetailRow

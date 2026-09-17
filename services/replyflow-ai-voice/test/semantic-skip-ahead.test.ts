@@ -36,6 +36,57 @@ describe('Semantic Skip-Ahead Extraction', () => {
     expect(result.applied).to.not.include.members(['desiredCompletionTime', 'callbackTime']);
   });
 
+  it('preserves numbered multi-word, split-number, and unit street addresses', () => {
+    const cases = [
+      ['The address is 1632 South Pine Drive.', '1632 South Pine Drive'],
+      ['The address is 2847 Maple Avenue.', '2847 Maple Avenue'],
+      ['The address is 28 47 Maple Avenue.', '28 47 Maple Avenue'],
+      ['The address is 12-14 North Main Street apartment 5B.', '12-14 North Main Street apartment 5B'],
+      ['The address is 500 West 42nd Street.', '500 West 42nd Street'],
+      ['The address is 123 Main Street, Pittsburgh, I want it done by Friday.', '123 Main Street, Pittsburgh'],
+    ];
+
+    for (const [transcript, expected] of cases) {
+      const intake: IntakeData = { stage: 'ask_location' };
+      enrichIntakeFromTranscript(transcript, intake, 'ask_location', 'CA-test');
+      expect(intake.serviceAddress).to.equal(expected);
+    }
+  });
+
+  it('does not invent a house number for a partial location', () => {
+    const intake: IntakeData = { stage: 'ask_location' };
+    enrichIntakeFromTranscript('The location is South Pine Drive.', intake, 'ask_location', 'CA-test');
+
+    expect(intake.serviceAddress).to.equal('South Pine Drive');
+  });
+
+  it('preserves useful compound request context instead of a repeated fragment', () => {
+    const intake: IntakeData = { stage: 'ask_request' };
+    enrichIntakeFromTranscript(
+      'A storm knocked a large tree onto the backyard fence and I need the tree removed from the fence and the fence repaired.',
+      intake,
+      'ask_request',
+      'CA-test'
+    );
+
+    expect(intake.issueDescription).to.include('storm knocked a large tree onto the backyard fence');
+    expect(intake.issueDescription).to.include('tree removed');
+    expect(intake.issueDescription).to.not.equal('the fence and the fence repaired');
+  });
+
+  it('does not collapse useful faucet context to a one-word repair fragment', () => {
+    const intake: IntakeData = { stage: 'ask_request' };
+    enrichIntakeFromTranscript(
+      'My kitchen faucet is leaking and dripping constantly from the handle and needs repaired.',
+      intake,
+      'ask_request',
+      'CA-test'
+    );
+
+    expect(intake.issueDescription).to.include('dripping constantly from the handle');
+    expect(intake.issueDescription?.toLowerCase()).to.not.equal('repaired');
+  });
+
   it('does not hallucinate fields when they are absent', () => {
     const intake: IntakeData = { stage: 'ask_name_reason' };
     const transcript = "I'm David. My sink is leaking.";

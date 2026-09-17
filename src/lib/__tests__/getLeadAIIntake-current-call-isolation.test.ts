@@ -329,29 +329,35 @@ describe('getLeadAIIntake Current-Call Isolation', () => {
     })
   })
 
-  describe('No AI call record', () => {
-    it('no ai_call_record → intake fields are "Not collected"', () => {
-      const lead = {
+  describe('Raw metadata fallback', () => {
+    it('uses raw metadata only when no AI call record exists', () => {
+      const rawMetadata = {
+        extracted_info: {
+          reasonForCalling: 'Plumbing',
+          callerName: 'Alex'
+        }
+      }
+      const withoutCallRecord = getLeadAIIntake({
         id: 'lead-1',
         name: 'Alex Johnson',
-        raw_metadata: {
-          extracted_info: {
-            reasonForCalling: 'Plumbing',
-            callerName: 'Alex'
-          }
-        },
-        aiCallRecords: [] // No current call
-      }
+        raw_metadata: rawMetadata,
+        aiCallRecords: []
+      })
+      const withCurrentCall = getLeadAIIntake({
+        id: 'lead-1',
+        raw_metadata: rawMetadata,
+        aiCallRecords: [{
+          id: 'call-1',
+          call_sid: 'CA123',
+          extracted_info: { reasonForCalling: 'Lawn Mowing', callerName: 'Ryan' }
+        }]
+      })
 
-      const intake = getLeadAIIntake(lead)
-
-      // Should return "Not collected" since no current call
-      expect(intake.serviceRequested).toBe('Not collected')
-      // customerName falls back to lead profile (acceptable for identity)
-      expect(intake.customerName).toBe('Alex Johnson')
-
-      // Historical raw_metadata should NOT leak into serviceRequested
-      expect(intake.serviceRequested).not.toBe('Plumbing')
+      expect(withoutCallRecord.serviceRequested).toBe('Plumbing')
+      expect(withoutCallRecord.customerName).toBe('Alex')
+      expect(withCurrentCall.serviceRequested).toBe('Lawn Mowing')
+      expect(withCurrentCall.customerName).toBe('Ryan')
+      expect(withCurrentCall.serviceRequested).not.toBe('Plumbing')
     })
   })
 

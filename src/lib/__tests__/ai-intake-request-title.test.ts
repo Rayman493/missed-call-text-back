@@ -361,4 +361,14 @@ describe('generateCanonicalRequestTitle', () => {
     const input = 'I need new pipes installed in my new house at 123 Main Street. It\'s getting built right now.'
     expect(generateCanonicalRequestTitle(input)).toBe('New-Construction Plumbing Installation')
   })
+
+  it('preserves tree removal and fence repair as a compound request', () => {
+    expect(generateCanonicalRequestTitle('remove the tree and repair the fence')).toBe('Tree Removal & Fence Repair')
+    expect(generateCanonicalRequestTitle('tree removal and fence repair')).toBe('Tree Removal & Fence Repair')
+  })
+
+  it('preserves existing single-service faucet and lawn labels', () => {
+    expect(generateCanonicalRequestTitle('my kitchen faucet is leaking and dripping constantly from the handle')).toBe('Plumbing Repair')
+    expect(generateCanonicalRequestTitle('I need my grass cut')).toBe('Lawn Mowing')
+  })
 })

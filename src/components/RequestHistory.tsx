@@ -17,9 +17,6 @@ interface RequestHistoryProps {
   businessId: string
   conversationId?: string
   callerPhone?: string
-  onNavigateToTimeline?: (recordId: string) => void
-  onSelectRecord?: (recordId: string) => void
-  selectedRecordId?: string | null
 }
 
 /**
@@ -43,9 +40,6 @@ export default function RequestHistory({
   businessId,
   conversationId,
   callerPhone,
-  onNavigateToTimeline,
-  onSelectRecord,
-  selectedRecordId: externalSelectedId,
 }: RequestHistoryProps) {
   const supabase = createBrowserClient()
   const [aiCallRecords, setAiCallRecords] = useState<any[]>([])
@@ -55,8 +49,6 @@ export default function RequestHistory({
   // Historical Request Details modal state. Holds the EXACT record
   // whose fields should be displayed. Identity is ai_call_record.id.
   const [modalRecord, setModalRecord] = useState<NormalizedIntake | null>(null)
-
-  const selectedRecordId = externalSelectedId ?? internalSelectedId
 
   useEffect(() => {
     fetchAICallRecords()
@@ -100,7 +92,6 @@ export default function RequestHistory({
   const handleSelectRecord = (record: NormalizedIntake) => {
     // Set selection state for highlight (optional, does not navigate)
     setInternalSelectedId(record.id)
-    onSelectRecord?.(record.id)
 
     // Open the historical Request Details modal with the EXACT record.
     // This is view-only — it does NOT call onNavigateToTimeline, does NOT
@@ -151,8 +142,8 @@ export default function RequestHistory({
                   key={record.id}
                   onClick={() => handleSelectRecord(record)}
                   className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all duration-200 ${
-                    selectedRecordId === record.id
-                      ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                    internalSelectedId === record.id
+                      ? 'bg-slate-50 dark:bg-slate-900/30 border-foreground/30 ring-1 ring-foreground/10'
                       : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900/50'
                   }`}
                   aria-label={`View request details: ${getHistoryCardTitle(record)}`}

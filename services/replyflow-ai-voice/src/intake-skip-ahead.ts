@@ -188,7 +188,7 @@ const ADDRESS_PATTERNS: { pattern: RegExp; type: string }[] = [
   },
   {
     pattern:
-      /\b(\d+\s+[a-z]+\s+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+(?:north|south|east|west|northeast|northwest|southeast|southwest|n|s|e|w|ne|nw|se|sw|apartment|apt|suite|ste|unit|#)(?:\s*[a-z0-9#]+)?)?(?:\s*,?\s*(?:in\s+)?[A-Za-z][A-Za-z\s,]+?)?)(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
+      /\b(\d+(?:[\s-]+\d+)*\s+(?:[a-z0-9'-]+\s+){1,6}(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+(?:north|south|east|west|northeast|northwest|southeast|southwest|n|s|e|w|ne|nw|se|sw|apartment|apt|suite|ste|unit|#)(?:\s*[a-z0-9#-]+)?)?(?:\s*,?\s*(?:in\s+)?[A-Za-z][A-Za-z\s,]+?)?)(?=\s*(?:,?\s*(?:and\b|i\s+(?:want|need|would|can)\b|i['’]?d\b|call\b|you\s+can\s+call\b)|[.!?](?:\s|$)|;|$))/i,
     type: 'street-address',
   },
   // Privacy-aware partial location: city, neighborhood, or broad area.
@@ -232,7 +232,9 @@ function findAddressMatch(transcript: string): ExtractedMatch | null {
   for (const { pattern, type } of ADDRESS_PATTERNS) {
     const match = transcript.match(pattern);
     if (match && match[1]) {
-      const candidate = match[1].trim();
+      const candidate = match[1]
+        .replace(/,\s*(?:i\s+(?:want|need|would|can)\b|i['’]?d\b|call\b|you\s+can\s+call\b).*$/i, '')
+        .trim();
       if (isConfidentEarlyServiceAddress(candidate, type)) {
         const value = candidate
           .replace(/[.,;]\s*$/, '')
@@ -402,14 +404,27 @@ function findIssueDescription(transcript: string, serviceRequested: string): Ext
     const match = transcript.match(pattern);
     if (match && match[0]) {
       const value = match[0].trim();
+      const words = value.match(/[a-z0-9'-]+/gi) || [];
+      const repeatedClause = /\b(?:the\s+)?([a-z][a-z'-]*)\s+and\s+(?:the\s+)?\1\b/i.test(value);
+      const danglingFixtureClause = /^the\s+(?:hinge|handle|door|window|pipe|gutter|roof|floor|wall|ceiling|fence|gate|lock|faucet|sink|toilet|shower|tub|ac|heater|furnace|boiler|electrical|wire|outlet|switch|light|bulb|appliance|machine|device|system|unit)\s+and\b/i.test(value);
+      if (words.length < 3 || repeatedClause || danglingFixtureClause) continue;
       // Don't let the issue description become the whole service request
-      if (value.toLowerCase() === serviceRequested.trim().toLowerCase()) return null;
+      if (value.toLowerCase() === serviceRequested.trim().toLowerCase()) continue;
       return {
         value,
         fullMatch: value,
         startIndex: match.index || 0,
       };
     }
+  }
+  const serviceWords = serviceRequested.match(/[a-z0-9'-]+/gi) || [];
+  const hasProblemContext = /\b(?:storm|fell|fallen|onto|leak|leaking|drip|dripping|constantly|broken|broke|damage|damaged|crack|cracked|snapped|clogged|overflowing|won't|cannot|can't)\b/i.test(serviceRequested);
+  if (serviceWords.length >= 6 && hasProblemContext) {
+    return {
+      value: serviceRequested.trim(),
+      fullMatch: serviceRequested.trim(),
+      startIndex: Math.max(0, transcript.toLowerCase().indexOf(serviceRequested.trim().toLowerCase())),
+    };
   }
   return null;
 }

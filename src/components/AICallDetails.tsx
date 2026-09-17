@@ -277,7 +277,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
         {/* Concise Request Title - Prominent in view mode */}
         {!isEditMode && conciseTitle && (
-          <div className="bg-gradient-to-r from-blue-500/5 to-violet-500/5 border border-blue-500/10 rounded-lg px-4 py-3">
+          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center">
                 <Pencil className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />

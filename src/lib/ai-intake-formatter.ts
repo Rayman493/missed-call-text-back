@@ -415,6 +415,9 @@ function normalizeSemanticService(servicePair: string): string | null {
   if (['trim', 'maintain'].includes(verb) && ['tree', 'shrub', 'hedge'].includes(object)) {
     return 'Tree Trimming';
   }
+  if (['remove', 'clear'].includes(verb) && object === 'tree') {
+    return 'Tree Removal';
+  }
   // Fence/deck services
   if (['install', 'set', 'setup', 'put'].includes(verb) && object === 'fence') {
     return 'Fence Installation';
@@ -669,6 +672,7 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     'Pool Service': [/\bpool\s*(?:clean|cleaning|maintenance|service|repair)/i],
     'Junk Removal': [/\bjunk\s*(?:remove|removal|haul|pickup)/i],
     'Moving Service': [/\b(?:move|moving)\s*(?:service|help|company)/i],
+    'Tree Removal': [/\btree\s*(?:remove|removal|clear)/i, /\b(?:remove|clear)\s*(?:the\s+)?tree\b/i],
     'Tree Service': [/\btree\s*(?:trim|prune|remove|removal|cut|service)/i],
     'Landscaping': [/\blandscape\s*(?:design|install|maintenance|service)/i, /\bgarden\s*(?:service|maintenance|design)/i],
     'Gutter Cleaning': [/\bgutter\s*(?:clean|cleaning|clear|remove)/i],
@@ -711,6 +715,17 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     for (const pattern of patterns) {
       if (pattern.test(processed)) {
         return title;
+      }
+    }
+  }
+  const compoundClauses = processed.split(/\s+(?:and|&)\s+/i).map(clause => clause.trim()).filter(Boolean);
+  if (compoundClauses.length === 2) {
+    const compoundObject = /\b(?:lawn|yard|grass|tree|shrub|hedge|fence|gate|deck|roof|gutter|window|door|sink|toilet|faucet|pipe|drain|shower|tub|ac|heater|furnace|car|truck|vehicle|carpet|floor|pool|piano|guitar|violin|drums)\b/i;
+    const compoundAction = /\b(?:repair|repaired|fix|fixed|remove|removed|removal|clear|install|installed|installation|replace|replaced|replacement|trim|trimmed|mow|mowed|cut|clean|cleaned|paint|painted)\b/i;
+    if (compoundClauses.every(clause => compoundObject.test(clause) && compoundAction.test(clause))) {
+      const compoundTitles = compoundClauses.map(clause => generateCanonicalRequestTitle(clause));
+      if (compoundTitles.every(title => title !== 'General Service') && compoundTitles[0] !== compoundTitles[1]) {
+        return compoundTitles.join(' & ');
       }
     }
   }

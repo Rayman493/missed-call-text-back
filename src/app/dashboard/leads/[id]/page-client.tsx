@@ -5265,7 +5265,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           businessId={business?.id || ''}
                           conversationId={leadData?.conversation?.id}
                           callerPhone={leadData?.phone_number || lead?.phone}
-                          onNavigateToTimeline={handleNavigateToTimeline}
                         />
                       </SidebarSection>
 
@@ -5799,7 +5798,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     leadData={leadData}
                     triggerEdit={triggerEditCustomerDetails}
                     collapsible={false}
-                    onSave={async () => { await handleRefresh(); setSuccessMessage('Cheers! Customer info updated.') }}
+                    onSave={async () => { await handleRefresh(); setSuccessMessage('Customer updated') }}
                     onNavigateToTimeline={handleNavigateToTimeline}
                   />
                 </div>
@@ -5844,7 +5843,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             businessId={business?.id || ''}
             conversationId={leadData?.conversation?.id}
             callerPhone={leadData?.phone_number || lead?.phone}
-            onNavigateToTimeline={handleNavigateToTimeline}
           />
 
           {/* Jobs - actual job entities */}
@@ -7046,7 +7044,7 @@ If you have questions, reply to this message.`
           container.scrollTop = scrollPosition
         }
         // Only claim an update when the server reported a meaningful change.
-        setSuccessMessage(changed === false ? 'Customer info saved.' : 'Cheers! Customer info updated.')
+        if (changed !== false) setSuccessMessage('Customer updated')
       }}
     />
 

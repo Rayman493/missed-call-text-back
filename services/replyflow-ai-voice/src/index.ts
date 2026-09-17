@@ -3522,7 +3522,7 @@ function extractFieldsFromTranscript(
         type: 'bare-at' as const
       },
       {
-        pattern: /\b(\d+\s+[a-z]+\s+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+(?:north|south|east|west|northeast|northwest|southeast|southwest|n|s|e|w|ne|nw|se|sw|apartment|apt|suite|ste|unit|#)(?:\s*[a-z0-9#]+)?)?(?:\s*,?\s*(?:in\s+)?[A-Za-z][A-Za-z\s,]+?)?)(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
+        pattern: /\b(\d+(?:[\s-]+\d+)*\s+(?:[a-z0-9'-]+\s+){1,6}(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+(?:north|south|east|west|northeast|northwest|southeast|southwest|n|s|e|w|ne|nw|se|sw|apartment|apt|suite|ste|unit|#)(?:\s*[a-z0-9#-]+)?)?(?:\s*,?\s*(?:in\s+)?[A-Za-z][A-Za-z\s,]+?)?)(?=\s*(?:,?\s*(?:and\b|i\s+(?:want|need|would|can)\b|i['’]?d\b|call\b|you\s+can\s+call\b)|[.!?](?:\s|$)|;|$))/i,
         type: 'street-address' as const
       }
     ];
@@ -3530,7 +3530,9 @@ function extractFieldsFromTranscript(
     for (const { pattern, type } of addressPatterns) {
       const match = transcript.match(pattern);
       if (match && match[1]) {
-        const candidateAddress = match[1].trim();
+        const candidateAddress = match[1]
+          .replace(/,\s*(?:i\s+(?:want|need|would|can)\b|i['’]?d\b|call\b|you\s+can\s+call\b).*$/i, '')
+          .trim();
 
         // Use early-confidence validation for opportunistic extraction
         if (isConfidentEarlyServiceAddress(candidateAddress, type)) {

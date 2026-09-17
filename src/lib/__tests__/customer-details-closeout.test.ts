@@ -146,18 +146,12 @@ describe('Part D: Request History Historical Modal', () => {
     expect(requestHistorySrc).toContain('onClose={() => setModalRecord(null)}')
   })
 
-  it('9. handleSelectRecord does NOT call onNavigateToTimeline (no conversation change)', () => {
-    // The old code called onNavigateToTimeline?.(recordId) — the new code does not
-    // inside handleSelectRecord. The prop is still accepted for backwards compat
-    // but is not invoked from the click handler.
-    const handlerMatch = requestHistorySrc.match(/const handleSelectRecord[\s\S]*?\n  \}/)
-    expect(handlerMatch).toBeTruthy()
-    if (handlerMatch) {
-      // Strip comments before checking — the comment mentions onNavigateToTimeline
-      // but the actual code must not call it
-      const withoutComments = handlerMatch[0].replace(/\/\/[^\n]*/g, '')
-      expect(withoutComments).not.toContain('onNavigateToTimeline')
-    }
+  it('9. history exposes no callback that can change current intake state', () => {
+    const propsMatch = requestHistorySrc.match(/interface RequestHistoryProps \{[\s\S]*?\n\}/)
+    expect(propsMatch).toBeTruthy()
+    expect(propsMatch?.[0]).not.toContain('onSelectRecord')
+    expect(propsMatch?.[0]).not.toContain('onNavigateToTimeline')
+    expect(propsMatch?.[0]).not.toContain('selectedRecordId')
   })
 
   it('10. modal does NOT mutate Customer Context (view-only)', () => {
@@ -175,6 +169,11 @@ describe('Part D: Request History Historical Modal', () => {
   it('10c. modal identity is ai_call_record.id via NormalizedIntake.id', () => {
     // The modal takes a NormalizedIntake which has an id field
     expect(modalSrc).toContain('NormalizedIntake')
+  })
+
+  it('10d. modal shows the selected record customer name', () => {
+    expect(modalSrc).toContain('label="Customer"')
+    expect(modalSrc).toContain('value={record.customerName}')
   })
 
   it('11. long historical details scroll internally (Modal has overflow-y-auto)', () => {
@@ -210,5 +209,23 @@ describe('Part D: Request History Historical Modal', () => {
     expect(modalSrc).not.toContain('useState')
     expect(modalSrc).not.toContain('useEffect')
     expect(modalSrc).not.toContain('useContext')
+  })
+})
+
+describe('AI intake customer polish', () => {
+  const aiCallDetailsSrc = readSrc('components/AICallDetails.tsx')
+  const pageClientSrc = readSrc('app/dashboard/leads/[id]/page-client.tsx')
+
+  it('uses the shared neutral field-card surface for Request', () => {
+    const requestCard = aiCallDetailsSrc.match(/!isEditMode && conciseTitle[\s\S]*?\{\/\* Request Details/)
+    expect(requestCard).toBeTruthy()
+    expect(requestCard?.[0]).toContain('border-border/25 bg-background/25')
+    expect(requestCard?.[0]).not.toContain('bg-gradient-to-r')
+  })
+
+  it('shows one canonical success message only for a changed customer', () => {
+    expect(pageClientSrc).toContain("if (changed !== false) setSuccessMessage('Customer updated')")
+    expect(pageClientSrc).not.toContain('Cheers! Customer info updated.')
+    expect(pageClientSrc).not.toContain('Customer info saved.')
   })
 })

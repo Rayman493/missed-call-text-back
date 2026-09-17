@@ -75,8 +75,7 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    // reasonForCalling should NOT be treated as details - only canonical fields count
-    expect(sms).not.toContain('• Details:')
+    expect(sms).toContain('• Details: My kitchen sink repaired because it is leaking')
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
   })
@@ -92,8 +91,7 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    // reasonForCalling should NOT be treated as details - only canonical fields count
-    expect(sms).not.toContain('• Details:')
+    expect(sms).toContain('• Details: Need plumbing repair due to broken pipe in basement')
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
   })
@@ -109,8 +107,7 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    // reasonForCalling should NOT be treated as details - only canonical fields count
-    expect(sms).not.toContain('• Details:')
+    expect(sms).toContain('• Details: The toilet is leaking and needs immediate repair')
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
   })
@@ -126,8 +123,7 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    // reasonForCalling should NOT be treated as details - only canonical fields count
-    expect(sms).not.toContain('• Details:')
+    expect(sms).toContain('• Details: My garage door opener is not working after the storm')
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
   })
@@ -143,8 +139,7 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    // reasonForCalling should NOT be treated as details - only canonical fields count
-    expect(sms).not.toContain('• Details:')
+    expect(sms).toContain('• Details: The water heater is broken and we have no hot water')
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
   })
@@ -436,9 +431,10 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      // Request field is missing from output - should show "Still needed:"
-      expect(sms).toContain('Still needed:')
-      expect(sms).not.toContain('Any helpful details')  // Details are optional // Generic action should not count
+      expect(sms).toContain('• Request: I started looking for a plumber')
+      expect(sms).toContain('• Details: No additional details provided')
+      expect(sms).not.toContain('Still needed:')
+      expect(sms).not.toContain('Any helpful details')
     })
 
     it('should NOT treat "come out today" as meaningful details', () => {
@@ -603,7 +599,8 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
-    expect(sms).not.toContain('• Details:')
+    expect(sms).toContain('• Details: No additional details provided')
+    expect(sms).not.toContain('• Details: Lawn mowing')
   })
 
   it('should NOT treat 4-word service name as details', () => {
@@ -619,7 +616,8 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
-    expect(sms).not.toContain('• Details:')
+    expect(sms).toContain('• Details: Weekly lawn mowing service')
+    expect(sms).not.toContain('• Details: Lawn Mowing')
   })
 })
 
@@ -806,9 +804,8 @@ describe('AI Intake Details Detection - Adaptive SMS Formatter', () => {
 
     const sms = formatAdaptiveIntakeSms(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    // reasonForCalling should NOT be treated as details - only canonical fields count
+    expect(sms).toContain('• Details: The toilet is leaking and needs immediate repair')
     expect(sms).not.toContain('Any important details')
-    expect(sms).not.toContain('Details:')
   })
 
   it('should recognize details in adaptive formatter with canonical field', () => {
@@ -861,12 +858,10 @@ describe('AI Intake Details Detection - SMS Format Constraints', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    // Should maintain proper bullet point format - but no Details from reasonForCalling
     expect(sms).toContain('• Request:')
+    expect(sms).toContain('• Details: My kitchen sink repaired because it is leaking')
     expect(sms).toContain('• Address:')
     expect(sms).toContain('• Desired completion:')
     expect(sms).toContain('• Preferred callback:')
-    // Details should NOT appear because they're not in a canonical field
-    expect(sms).not.toContain('• Details:')
   })
 })
