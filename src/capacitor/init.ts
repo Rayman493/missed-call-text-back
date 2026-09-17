@@ -232,6 +232,33 @@ export async function initializeCapacitor() {
       document.body.classList.remove('keyboard-open');
     });
 
+    // Backup hide signal — willHide is not guaranteed when the keyboard is
+    // dismissed by a modal close, blur, or navigation rather than by the user.
+    // A stale `keyboard-open` class keeps the bottom nav hidden with no modal
+    // open, so reconcile against any signal that focus left editable content.
+    Keyboard.addListener('keyboardDidHide', () => {
+      document.body.classList.remove('keyboard-open');
+    });
+
+    const isEditableFocused = () => {
+      const el = document.activeElement as HTMLElement | null;
+      return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+    };
+
+    document.addEventListener('focusout', (e) => {
+      const next = (e as FocusEvent).relatedTarget as HTMLElement | null;
+      const nextEditable = !!next && (next.tagName === 'INPUT' || next.tagName === 'TEXTAREA' || next.isContentEditable);
+      if (!nextEditable) document.body.classList.remove('keyboard-open');
+    });
+
+    // Reconcile on app resume/visibility — if no editable element holds focus,
+    // the keyboard cannot be up, so a leftover class would be stale.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && !isEditableFocused()) {
+        document.body.classList.remove('keyboard-open');
+      }
+    });
+
     console.log('[Capacitor] Native plugins initialized successfully');
 
     // Initialize push notification service

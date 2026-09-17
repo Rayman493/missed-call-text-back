@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { MessageMedia } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -637,8 +638,10 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
         })}
       </div>
 
-      {/* Expanded media modal */}
-      {expandedMedia && (
+      {/* Expanded media modal — portaled to document.body so an animated
+          (transform-containing) ancestor can't trap the fixed overlay and
+          leave an undimmed strip at the top of the visual viewport. */}
+      {expandedMedia && typeof document !== 'undefined' && createPortal(
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 touch-none overflow-hidden"
           onClick={handleCloseExpanded}
@@ -663,7 +666,8 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
             className="max-h-full max-w-full object-contain select-none"
             onClick={(e) => e.stopPropagation()}
           />
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )

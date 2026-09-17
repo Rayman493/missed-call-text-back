@@ -680,6 +680,18 @@ export default function LeadsPage() {
       // Reset outside flag on each new pointerdown; Radix will set it
       // via onInteractOutside if this pointerdown is outside the menu.
       filterGestureOutsideRef.current = false
+
+      // Consume the dismissal tap at pointerdown so the underlying element
+      // never enters its pressed/:active state and never synthesizes a click.
+      // This does NOT block scrolling — native pan is driven by touch-action,
+      // not pointerdown default — so a scroll that starts outside still works
+      // and keeps the menu open via the pointerup movement classification.
+      const target = event.target as Element | null
+      const inMenu = !!target?.closest?.('[role="menu"], [data-radix-popper-content-wrapper]')
+      const onTrigger = !!target?.closest?.('[aria-haspopup="menu"]')
+      if (!inMenu && !onTrigger) {
+        event.preventDefault()
+      }
     }
 
     const handlePointerUp = (event: PointerEvent) => {

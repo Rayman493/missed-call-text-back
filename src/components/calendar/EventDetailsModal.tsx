@@ -200,8 +200,13 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   const [isSavingCustomer, setIsSavingCustomer] = useState(false)
   const [currentLeadId, setCurrentLeadId] = useState<string | null>(lead?.id || null)
   const [currentLeadName, setCurrentLeadName] = useState<string | null>(lead?.name || job?.customer_name || null)
-  useBodyScrollLock(isOpen, 'event-details-modal')
-  useModalBackButton({ isOpen, onClose })
+  // Gate chrome/scroll ownership on actual visibility: the render guard below
+  // returns null when `event` is null, so locking on `isOpen` alone could hold
+  // an invisible lock (chrome hidden, body frozen) if a parent ever keeps
+  // isOpen true while the event clears.
+  const isVisible = isOpen && !!event
+  useBodyScrollLock(isVisible, 'event-details-modal')
+  useModalBackButton({ isOpen: isVisible, onClose })
   
   // Editable form state
   const [editedSummary, setEditedSummary] = useState(event?.summary || '')

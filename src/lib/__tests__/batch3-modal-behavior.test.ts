@@ -407,7 +407,10 @@ describe('Batch 3 — Modal scroll / viewport / save semantics', () => {
   // 1. EventDetailsModal Back closes modal
   it('EventDetailsModal uses useModalBackButton (Android Back closes modal)', () => {
     expect(eventDetailsSrc).toContain('useModalBackButton')
-    expect(eventDetailsSrc).toContain("useModalBackButton({ isOpen, onClose })")
+    // Back ownership and the scroll lock are gated on actual visibility
+    // (isOpen && !!event) so an invisible modal can never hold chrome/back.
+    expect(eventDetailsSrc).toContain("useModalBackButton({ isOpen: isVisible, onClose })")
+    expect(eventDetailsSrc).toContain("useBodyScrollLock(isVisible, 'event-details-modal')")
   })
 
   // 2. EventDetailsModal Back does not navigate (no direct App.addListener)

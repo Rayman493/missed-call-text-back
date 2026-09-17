@@ -63,8 +63,12 @@ describe('Batch 2 — Canonical gesture model', () => {
 describe('Batch 2 — Part 1: Dashboard chart gesture ownership', () => {
   const chartUtils = readSrc('src/lib/chart-utils.tsx')
 
-  it('ChartTouchWrapper imports canonical isDragGesture', () => {
-    expect(chartUtils).toContain("import { GESTURE_MOVEMENT_THRESHOLD, isDragGesture } from '@/lib/gesture/tap-guard'")
+  it('ChartTouchWrapper uses the canonical gesture threshold primitive', () => {
+    // Ownership is decided by classifyGestureAxis over the shared
+    // GESTURE_MOVEMENT_THRESHOLD — a bare isDragGesture call cannot express
+    // the axis-dominance contract vertical page scroll requires.
+    expect(chartUtils).toContain("import { GESTURE_MOVEMENT_THRESHOLD } from '@/lib/gesture/tap-guard'")
+    expect(chartUtils).toContain('function classifyGestureAxis')
   })
 
   it('ChartTouchWrapper tracks start X/Y on touch start', () => {
@@ -72,8 +76,10 @@ describe('Batch 2 — Part 1: Dashboard chart gesture ownership', () => {
     expect(chartUtils).toContain('startYRef')
   })
 
-  it('ChartTouchWrapper uses isDragGesture in touch move', () => {
-    expect(chartUtils).toContain('isDragGesture(startXRef.current, startYRef.current, touchX, touchY)')
+  it('ChartTouchWrapper classifies the gesture axis in touch move', () => {
+    const touchMoveBlock = chartUtils.match(/const handleTouchMove = \([\s\S]*?\n  \}/)
+    expect(touchMoveBlock).toBeTruthy()
+    expect(touchMoveBlock![0]).toContain('classifyGestureAxis(deltaX, deltaY)')
   })
 
   it('ChartTouchWrapper synchronously disables pointer events on drag (direct DOM)', () => {
@@ -101,8 +107,12 @@ describe('Batch 2 — Part 1: Dashboard chart gesture ownership', () => {
     expect(chartUtils).toContain("innerRef.current.style.pointerEvents = 'auto'")
   })
 
-  it('ChartTouchWrapper uses pan-y pan-x touch-action (native scroll preserved)', () => {
-    expect(chartUtils).toContain("touchAction: 'pan-y pan-x'")
+  it('ChartTouchWrapper uses pan-y touch-action (vertical page scroll always wins)', () => {
+    // pan-y hands the vertical axis to the browser natively; horizontal chart
+    // scrubbing is classified in JS. pan-x is intentionally absent so a
+    // vertical gesture beginning on the chart always scrolls the page.
+    expect(chartUtils).toContain("touchAction: 'pan-y'")
+    expect(chartUtils).not.toContain("pan-x")
   })
 
   it('ChartTouchWrapper does NOT use setTimeout or requestAnimationFrame', () => {
@@ -131,9 +141,14 @@ describe('Batch 2 — Part 1: Dashboard chart gesture ownership', () => {
     }
   })
 
-  it('prior scroll does not prevent next deliberate tap (state resets on touch end)', () => {
-    // handleTouchEnd must reset isDraggingRef so the next gesture starts fresh
-    expect(chartUtils).toContain('isDraggingRef.current = false')
+  it('prior scroll does not prevent next deliberate tap (gesture state resets on end and cancel)', () => {
+    // handleTouchEnd and handleTouchCancel must reset gestureModeRef so the
+    // next gesture starts fresh — a stuck mode would eat subsequent taps.
+    const touchEndBlock = chartUtils.match(/const handleTouchEnd = \([\s\S]*?\n  \}/)
+    expect(touchEndBlock![0]).toContain("gestureModeRef.current = 'idle'")
+    const touchCancelBlock = chartUtils.match(/const handleTouchCancel = \([\s\S]*?\n  \}/)
+    expect(touchCancelBlock![0]).toContain("gestureModeRef.current = 'idle'")
+    expect(chartUtils).toContain('onTouchCancel={handleTouchCancel}')
   })
 })
 
@@ -487,22 +502,22 @@ describe('Batch 2 — One-shot suppression lifecycle', () => {
     expect(guard.consumeDragSuppression()).toBe(false)
   })
 
-  it('12. synthetic mouseleave occurs exactly once per completed drag, never normal tap', () => {
+  it('12. synthetic mouseleave fires on owned gestures only, never normal tap', () => {
     const chartUtils = readSrc('src/lib/chart-utils.tsx')
     // The synthetic mouseleave dispatch is delegated through clearRechartsState(),
     // which is the canonical helper that dispatches mouseleave on the Recharts
-    // surface and wrapper. The call must be inside the isDraggingRef.current
-    // check in handleTouchEnd, so it only fires after a drag, not after a tap.
+    // surface and wrapper. In the axis-classification contract it fires when a
+    // gesture was classified (vertical scroll takeover) — the 'idle' tap path
+    // must never call it so a clean tap still reaches Recharts.
     const touchEndBlock = chartUtils.match(/const handleTouchEnd = \([\s\S]*?\n  \}/)
     expect(touchEndBlock).toBeTruthy()
     const body = touchEndBlock![0]
-    // The clearRechartsState call must be guarded by isDraggingRef.current
-    expect(body).toContain('if (isDraggingRef.current)')
+    expect(body).toContain("mode === 'vertical'")
     expect(body).toContain('clearRechartsState()')
     // Must NOT use the old remount approach
     expect(body).not.toContain('setChartResetKey')
     // clearRechartsState itself must dispatch mouseleave (the canonical mechanism)
-    const clearBlock = chartUtils.match(/const clearRechartsState = \([\s\S]*?\n  \}/)
+    const clearBlock = chartUtils.match(/const clearRechartsState = useCallback\([\s\S]*?\n  \},/)
     expect(clearBlock).toBeTruthy()
     expect(clearBlock![0]).toContain('mouseleave')
   })

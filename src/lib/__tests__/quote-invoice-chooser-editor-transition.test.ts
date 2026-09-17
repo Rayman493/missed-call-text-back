@@ -603,8 +603,10 @@ describe('REGRESSION — PRESERVE EXISTING BEHAVIOR', () => {
     expect(editorSrc).toContain('bottomSheetOnMobile')
   })
 
-  it('viewer still uses bottomSheetOnMobile', () => {
-    expect(viewerSrc).toContain('bottomSheetOnMobile')
+  it('viewer renders centered on mobile (no bottom sheet)', () => {
+    // Physical QA: the document preview must open as a centered modal on
+    // mobile, not a bottom sheet pinned to the screen edge.
+    expect(viewerSrc).not.toContain('bottomSheetOnMobile')
   })
 
   it('unsaved-warning behavior unchanged (isDirtyRef)', () => {

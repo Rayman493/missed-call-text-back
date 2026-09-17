@@ -26,6 +26,27 @@ function syncChromeCoverAttr(): void {
   }
 }
 
+// Shared touch-move guard. This MUST be a single module-level function:
+// listeners are added by whichever owner acquires the first lock and removed
+// by whichever owner releases the last one — often different hook instances.
+// A per-effect closure made removeEventListener a no-op across instances, so
+// the first locker's preventDefault listener stayed attached forever and all
+// touch scrolling outside [data-scroll-lock-allow] died until page reload.
+const preventTouchMove = (e: TouchEvent) => {
+  if (e.target instanceof Element && e.target.closest('[data-scroll-lock-allow]')) {
+    return
+  }
+  // Prevent background scrolling
+  e.preventDefault()
+}
+
+const removeTouchMoveGuard = () => {
+  if (typeof document === 'undefined') return
+  document.removeEventListener('touchmove', preventTouchMove as any)
+  document.body?.removeEventListener('touchmove', preventTouchMove as any)
+  window.removeEventListener('touchmove', preventTouchMove as any)
+}
+
 // Store original DOM values when first lock is acquired
 let originalBodyOverflow = ''
 let originalBodyPosition = ''
@@ -90,6 +111,10 @@ export function resetAllScrollLocks(): void {
   document.documentElement.style.width = originalHtmlWidth
   document.body.removeAttribute('data-modal-open')
   document.body.removeAttribute('data-chrome-covered')
+
+  // Orphaned touchmove guards would keep preventDefault-ing all scrolling
+  // after the reset — remove them here since no live owner will.
+  removeTouchMoveGuard()
 
   console.log('[SCROLL_LOCK_RESET] Reset complete', {
     lockCountAfter: lockCount,
@@ -160,6 +185,9 @@ export function reconcileScrollLock(): void {
     }
     // Ensure modal-open attribute is removed when unlocked
     document.body.removeAttribute('data-modal-open')
+    // No live owners means no guard may remain attached — otherwise stale
+    // preventDefault would keep killing page scroll after reconciliation.
+    removeTouchMoveGuard()
     syncChromeCoverAttr()
   }
 }
@@ -231,14 +259,6 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
       timestamp: Date.now()
     })
 
-    const preventTouchMove = (e: TouchEvent) => {
-      if (e.target instanceof Element && e.target.closest('[data-scroll-lock-allow]')) {
-        return
-      }
-      // Prevent background scrolling
-      e.preventDefault()
-    }
-
     const lock = () => {
       const ownerId = ownerIdRef.current
       const ownerInfo = activeOwners.get(ownerId)
@@ -301,9 +321,9 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
         // Use global listeners to capture touchmove outside allowed scroll area.
         // Add on window as well — iOS Safari sometimes delivers touchmove to
         // window rather than document/body for touches on portal content.
-        document.addEventListener('touchmove', preventTouchMove as any, { passive: false })
-        document.body.addEventListener('touchmove', preventTouchMove as any, { passive: false })
-        window.addEventListener('touchmove', preventTouchMove as any, { passive: false })
+        document.addEventListener('touchmove', preventTouchMove, { passive: false })
+        document.body.addEventListener('touchmove', preventTouchMove, { passive: false })
+        window.addEventListener('touchmove', preventTouchMove, { passive: false })
 
         // Set body data attribute so BottomNavigation and other shell
         // components can detect that a blocking modal is open and
@@ -398,9 +418,7 @@ export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
         document.documentElement.style.position = originalHtmlPosition
         document.documentElement.style.width = originalHtmlWidth
         // Remove global listeners
-        document.removeEventListener('touchmove', preventTouchMove as any)
-        document.body.removeEventListener('touchmove', preventTouchMove as any)
-        window.removeEventListener('touchmove', preventTouchMove as any)
+        removeTouchMoveGuard()
         window.scrollTo(0, globalScrollPosition)
 
         // Remove the modal-open body attribute now that the last modal

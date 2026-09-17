@@ -33,16 +33,22 @@ describe('Batch 5 — Chart tooltip, dismissal, and touch polish', () => {
     expect(businessGraph).not.toContain('min-w-[160px]')
   })
 
-  it('B. ChartTouchWrapper can track selection and dismiss on outside pointer', () => {
-    expect(chartUtils).toContain('const [hasSelection, setHasSelection]')
-    expect(chartUtils).toContain("document.addEventListener('pointerdown', handleOutsidePointerDown, true)")
-    expect(chartUtils).toContain('clearRechartsState()')
-    expect(chartUtils).toContain('onActiveIndexChange?.(null)')
+  it('B. ChartTouchWrapper dismisses on outside tap without trapping gestures', () => {
+    // Outside dismissal is handled by the capture-phase click handler
+    // (whitespace tap -> clear). There is deliberately no document-level
+    // pointer/touch listener: one would contest page scrolling.
+    expect(chartUtils).not.toContain("document.addEventListener('pointerdown'")
+    const clickBlock = chartUtils.match(/const handleClickCapture = \([\s\S]*?\n  \}/)
+    expect(clickBlock).toBeTruthy()
+    expect(clickBlock![0]).toContain('clearRechartsState()')
+    expect(clickBlock![0]).toContain('onActiveIndexChange?.(null)')
   })
 
-  it('B. activateDatum sets selection state; clearRechartsState clears it', () => {
-    expect(chartUtils).toContain('setHasSelection(true)')
-    expect(chartUtils).toContain('setHasSelection(false)')
+  it('B. tap activates a datum; whitespace tap clears it', () => {
+    const clickBlock = chartUtils.match(/const handleClickCapture = \([\s\S]*?\n  \}/)
+    expect(clickBlock).toBeTruthy()
+    expect(clickBlock![0]).toContain('activateDatum(idx)')
+    expect(clickBlock![0]).toContain('idx === null')
   })
 
   it('C. ChartTouchWrapper removes Android tap highlight', () => {

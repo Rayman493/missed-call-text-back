@@ -100,7 +100,7 @@ describe('ChartTouchWrapper — Android WebView event ordering', () => {
     teardown(root, container)
   })
 
-  it('pointerdown(touch) fires BEFORE touchstart — inner pointer events disabled before Recharts receives pointermove', async () => {
+  it('touch gesture ownership is deferred — inner pointer events disabled only after horizontal classification', async () => {
     const { ChartTouchWrapper } = await import('@/lib/chart-utils')
 
     const InnerChart = () => (
@@ -123,35 +123,42 @@ describe('ChartTouchWrapper — Android WebView event ordering', () => {
     // Initially pointer events should be auto
     expect(innerDiv.style.pointerEvents).toBe('auto')
 
-    // Android WebView ordering: pointerdown fires FIRST
+    // pointerdown only records the gesture start — it must NOT claim the
+    // gesture eagerly, or a vertical page-scroll gesture would be contested
+    // before the axis is known.
     await act(async () => {
       dispatchPointer(outerDiv, 'pointerdown', { pointerType: 'touch', clientX: 100, clientY: 100 })
     })
+    expect(innerDiv.style.pointerEvents).toBe('auto')
 
-    // Inner div should have pointer events disabled IMMEDIATELY
-    // (before any pointermove can reach Recharts)
-    expect(innerDiv.style.pointerEvents).toBe('none')
-
-    // Even if touchstart fires after pointerdown, the chart is already disabled
+    // A vertical-dominant move classifies as page scroll — inner stays enabled
+    // and no chart state is owned.
     await act(async () => {
-      dispatchTouch(outerDiv, 'touchstart', [{ clientX: 100, clientY: 100 }])
+      dispatchPointer(outerDiv, 'pointermove', { pointerType: 'touch', clientX: 100, clientY: 160 })
+    })
+    expect(innerDiv.style.pointerEvents).toBe('auto')
+    expect(outerDiv.getAttribute('data-chart-scrubbing')).toBeNull()
+
+    await act(async () => {
+      dispatchPointer(outerDiv, 'pointerup', { pointerType: 'touch', clientX: 100, clientY: 160 })
     })
 
-    expect(innerDiv.style.pointerEvents).toBe('none')
-
-    // pointermove should NOT activate the chart (pointer events disabled)
+    // A new gesture that moves horizontally classifies as chart scrub — only
+    // then does the wrapper take ownership and disable inner pointer events
+    // so Recharts cannot fight the scrub.
     await act(async () => {
-      dispatchPointer(outerDiv, 'pointermove', { pointerType: 'touch', clientX: 100, clientY: 150 })
+      dispatchPointer(outerDiv, 'pointerdown', { pointerType: 'touch', clientX: 100, clientY: 100 })
+      dispatchPointer(outerDiv, 'pointermove', { pointerType: 'touch', clientX: 160, clientY: 100 })
     })
-
     expect(innerDiv.style.pointerEvents).toBe('none')
+    expect(outerDiv.getAttribute('data-chart-scrubbing')).toBe('true')
 
     // pointerup restores pointer events
     await act(async () => {
-      dispatchPointer(outerDiv, 'pointerup', { pointerType: 'touch', clientX: 100, clientY: 150 })
+      dispatchPointer(outerDiv, 'pointerup', { pointerType: 'touch', clientX: 160, clientY: 100 })
     })
-
     expect(innerDiv.style.pointerEvents).toBe('auto')
+    expect(outerDiv.getAttribute('data-chart-scrubbing')).toBeNull()
   })
 
   it('pointercancel restores pointer events (chart re-interactive after cancel)', async () => {
@@ -172,19 +179,26 @@ describe('ChartTouchWrapper — Android WebView event ordering', () => {
     const outerDiv = container.firstChild as HTMLElement
     const innerDiv = outerDiv.querySelector('div') as HTMLElement
 
-    // Start touch
+    // pointerdown alone must not disable the chart
     await act(async () => {
       dispatchPointer(outerDiv, 'pointerdown', { pointerType: 'touch', clientX: 100, clientY: 100 })
+    })
+    expect(innerDiv.style.pointerEvents).toBe('auto')
+
+    // Horizontal classification claims ownership
+    await act(async () => {
+      dispatchPointer(outerDiv, 'pointermove', { pointerType: 'touch', clientX: 160, clientY: 100 })
     })
     expect(innerDiv.style.pointerEvents).toBe('none')
 
     // Browser cancels the pointer (e.g., scroll takeover)
     await act(async () => {
-      dispatchPointer(outerDiv, 'pointercancel', { pointerType: 'touch', clientX: 100, clientY: 100 })
+      dispatchPointer(outerDiv, 'pointercancel', { pointerType: 'touch', clientX: 160, clientY: 100 })
     })
 
     // Pointer events should be restored
     expect(innerDiv.style.pointerEvents).toBe('auto')
+    expect(outerDiv.getAttribute('data-chart-scrubbing')).toBeNull()
   })
 
   it('mouse pointer remains interactive (desktop hover preserved)', async () => {
@@ -220,7 +234,7 @@ describe('ChartTouchWrapper — Android WebView event ordering', () => {
     expect(innerDiv.style.pointerEvents).toBe('auto')
   })
 
-  it('page scroll is not prevented (touchAction allows pan-y pan-x)', async () => {
+  it('page scroll is not prevented (touchAction pan-y lets the browser own vertical gestures)', async () => {
     const { ChartTouchWrapper } = await import('@/lib/chart-utils')
 
     const InnerChart = () => <div className="recharts-surface" />
@@ -235,11 +249,13 @@ describe('ChartTouchWrapper — Android WebView event ordering', () => {
 
     const outerDiv = container.firstChild as HTMLElement
 
-    // touchAction should allow scrolling in both axes
-    expect(outerDiv.style.touchAction).toBe('pan-y pan-x')
+    // pan-y: the browser natively owns vertical page scroll; horizontal chart
+    // scrubbing is classified in JS. (pan-x is intentionally absent so a
+    // vertical gesture starting on the chart always scrolls the page.)
+    expect(outerDiv.style.touchAction).toBe('pan-y')
   })
 
-  it('drag beyond threshold sets data-chart-dragging and clears on pointerup', async () => {
+  it('horizontal drag beyond threshold sets data-chart-scrubbing and clears on pointerup', async () => {
     const { ChartTouchWrapper } = await import('@/lib/chart-utils')
 
     const InnerChart = () => <div className="recharts-surface" />
@@ -260,23 +276,24 @@ describe('ChartTouchWrapper — Android WebView event ordering', () => {
       dispatchTouch(outerDiv, 'touchstart', [{ clientX: 100, clientY: 100 }])
     })
 
-    // Move beyond threshold (20px)
+    // Move horizontally beyond threshold (60px) — vertical moves classify as
+    // page scroll and must NOT mark the chart as scrubbing.
     await act(async () => {
-      dispatchPointer(outerDiv, 'pointermove', { pointerType: 'touch', clientX: 100, clientY: 120 })
-      dispatchTouch(outerDiv, 'touchmove', [{ clientX: 100, clientY: 120 }])
+      dispatchPointer(outerDiv, 'pointermove', { pointerType: 'touch', clientX: 160, clientY: 100 })
+      dispatchTouch(outerDiv, 'touchmove', [{ clientX: 160, clientY: 100 }])
     })
 
-    // Should be dragging
-    expect(outerDiv.getAttribute('data-chart-dragging')).toBe('true')
+    // Should be scrubbing
+    expect(outerDiv.getAttribute('data-chart-scrubbing')).toBe('true')
 
     // End touch
     await act(async () => {
-      dispatchPointer(outerDiv, 'pointerup', { pointerType: 'touch', clientX: 100, clientY: 120 })
+      dispatchPointer(outerDiv, 'pointerup', { pointerType: 'touch', clientX: 160, clientY: 100 })
       dispatchTouch(outerDiv, 'touchend', [])
     })
 
-    // Dragging cleared
-    expect(outerDiv.getAttribute('data-chart-dragging')).toBeNull()
+    // Scrubbing cleared
+    expect(outerDiv.getAttribute('data-chart-scrubbing')).toBeNull()
   })
 })
 

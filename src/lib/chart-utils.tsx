@@ -426,6 +426,18 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
     gestureModeRef.current = 'idle'
   }
 
+  const handleTouchCancel = () => {
+    // Browser took over the gesture (native scroll or interruption): reset all
+    // ownership state so a later touch starts clean and the inner chart never
+    // stays pointer-events:none, which would eat subsequent taps/scrubs.
+    gestureModeRef.current = 'idle'
+    setIsScrubbing(false)
+    justDraggedRef.current = false
+    if (innerRef.current) {
+      innerRef.current.style.pointerEvents = 'auto'
+    }
+  }
+
   // --- Pointer handlers (fire before touch on some Android WebViews) ---
 
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -548,6 +560,7 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

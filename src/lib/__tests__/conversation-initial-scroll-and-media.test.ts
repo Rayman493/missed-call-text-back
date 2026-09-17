@@ -304,20 +304,16 @@ describe('A. Voicemail seek — VoicemailMessage.seekTo uses canonical duration'
 
 describe('D. Scroll ownership — no jump toward oldest/top', () => {
   describe('D.1 scrollToTrueBottom is idempotent (repeat calls stay at bottom)', () => {
-    it('adds container.scrollTop when converting viewport-relative sentinel geometry', () => {
+    it('pins the exact scrollable maximum, not sentinel geometry', () => {
       const source = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
       const match = source.match(/const scrollToTrueBottom = useCallback\([\s\S]*?\}, \[\]\)/)
       expect(match).toBeTruthy()
-      // Regression assertion: without `container.scrollTop +`, a second call
-      // lands at scrollTop = 0 (true top) when the conversation is at bottom.
-      expect(match![0]).toContain('container.scrollTop + sentinelTop - contentTop')
-    })
-
-    it('still falls back to the exact scrollable maximum when no sentinel exists', () => {
-      const source = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
-      const match = source.match(/const scrollToTrueBottom = useCallback\([\s\S]*?\}, \[\]\)/)
-      expect(match).toBeTruthy()
+      // scrollHeight - clientHeight is inherently idempotent: repeat calls land
+      // on the same maximum regardless of the current scrollTop. The old
+      // sentinel-position path depended on wrapper padding and landed short.
       expect(match![0]).toContain('container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight)')
+      expect(match![0]).not.toContain('sentinelTop')
+      expect(match![0]).not.toContain('data-bottom-sentinel')
     })
   })
 

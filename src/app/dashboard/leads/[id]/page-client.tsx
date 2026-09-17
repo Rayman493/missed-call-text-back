@@ -537,6 +537,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // false = user deliberately scrolled up to read history
   // This is the SINGLE canonical follow-latest state for the conversation viewport.
   const followLatestRef = useRef(true)
+  // Scroll-intent attribution: only gestures that originate from the user's
+  // finger/wheel may clear followLatestRef. Scroll events caused by keyboard /
+  // visualViewport resizes, scroll anchoring, or our own programmatic pinning
+  // must never flip the user out of "following latest" — that was the physical
+  // Android failure where opening the keyboard left the user stranded above
+  // the newest message. Momentum after the gesture ends stays attributed while
+  // it continues in the gesture's scroll direction (deterministic, no timers).
+  const userScrollGestureActiveRef = useRef(false)
+  const userScrollDirectionRef = useRef<0 | 1 | -1>(0)
+  const lastObservedScrollTopRef = useRef(-1)
   // latestMessageIdRef tracks the ID of the latest message the user has seen.
   // Used to detect when new messages arrived while away from the conversation.
   const latestMessageIdRef = useRef<string | null>(null)
@@ -756,12 +766,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         : mobileConversationContainerRef.current
   }, [isFullScreen])
 
-  // True-bottom helper: scroll the container so the last content is flush with
-  // the bottom of the viewport. Uses the explicit bottom sentinel (rendered by
-  // the message list). Because the sentinel's offsetParent is the message list
-  // wrapper, we measure in viewport coordinates so padding, borders, and the
-  // scroll container's own offsetParent do not mis-align the anchor. Falls back
-  // to the exact scrollable maximum when the sentinel is not present.
+  // True-bottom helper: pin the container to its exact scrollable maximum.
+  // TRUE BOTTOM is `scrollHeight - clientHeight` — the maximum scrollTop.
+  // (An earlier version measured a [data-bottom-sentinel] element's position;
+  // that landed short whenever wrapper/container padding sat below the
+  // sentinel — e.g. the mobile thread's py-2 — leaving the scrollbar thumb a
+  // few px above the real bottom.)
   const scrollToTrueBottom = useCallback((container: HTMLDivElement) => {
     // Pin instantly: the containers carry `scroll-smooth`, which would turn a
     // direct scrollTop write into an interruptible animation. An animation can
@@ -771,25 +781,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // inline so the assignment is a deterministic, single-step jump.
     const previousScrollBehavior = container.style.scrollBehavior
     container.style.scrollBehavior = 'auto'
-    const sentinel = container.querySelector('[data-bottom-sentinel]') as HTMLElement | null
-    if (sentinel) {
-      const containerRect = container.getBoundingClientRect()
-      const contentTop = containerRect.top + container.clientTop
-      const sentinelTop = sentinel.getBoundingClientRect().top
-      // getBoundingClientRect is viewport-relative: sentinelTop - contentTop is
-      // the CURRENT on-screen offset of the sentinel, which already reflects
-      // the container's scrollTop. Adding container.scrollTop converts it back
-      // to the sentinel's document-space offset so repeated calls are
-      // idempotent. Without it, a second call computes target = correct - S
-      // and scrolls toward the TOP of the conversation.
-      const target = Math.max(
-        0,
-        Math.round(container.scrollTop + sentinelTop - contentTop + sentinel.clientHeight - container.clientHeight)
-      )
-      container.scrollTop = target
-    } else {
-      container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight)
-    }
+    container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight)
     container.style.scrollBehavior = previousScrollBehavior
   }, [])
 
@@ -1780,26 +1772,84 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     if (!container) return
 
+    // Mark scroll gestures that originate from the user (finger on the
+    // container, or a wheel tick). touch/pointer end clears the active flag;
+    // inertial momentum keeps attribution via userScrollDirectionRef until a
+    // scroll event moves in a different direction or the gesture settles.
+    const handleGestureStart = () => {
+      userScrollGestureActiveRef.current = true
+    }
+    const handleGestureEnd = () => {
+      userScrollGestureActiveRef.current = false
+    }
+    const handleWheel = (e: WheelEvent) => {
+      // A wheel tick is a user scroll with an inherent direction; arm the
+      // direction tracker so its scroll events are attributed to the user.
+      if (e.deltaY !== 0) userScrollDirectionRef.current = e.deltaY > 0 ? 1 : -1
+    }
+
     const handleScroll = () => {
+      const scrollTop = container.scrollTop
+      const previous = lastObservedScrollTopRef.current
+      lastObservedScrollTopRef.current = scrollTop
+      const delta = previous < 0 ? 0 : scrollTop - previous
+
       // Don't interfere during initial auto-scrolling phase
       if (isInitialAutoScrollingRef.current) {
         return
       }
 
-      // Update followLatestRef based on user scroll position
       const isNearBottom = isContainerNearBottom(container)
-      followLatestRef.current = isNearBottom
-      setShowJumpButton(!isNearBottom && messagesArray.length > 0)
+
+      // Attribute the scroll to the user only when a gesture is active or the
+      // event continues an armed gesture/momentum direction. Non-user scrolls
+      // (keyboard/visualViewport resize, scroll anchoring, programmatic pins)
+      // may only RE-ENABLE following when they land at the bottom — they must
+      // never clear it, or a keyboard-open resize would strand the user above
+      // the newest message.
+      const isUserDriven =
+        userScrollGestureActiveRef.current ||
+        (delta !== 0 &&
+          userScrollDirectionRef.current !== 0 &&
+          Math.sign(delta) === userScrollDirectionRef.current)
+
+      if (isUserDriven) {
+        followLatestRef.current = isNearBottom
+        setShowJumpButton(!isNearBottom && messagesArray.length > 0)
+        if (delta !== 0) {
+          userScrollDirectionRef.current = Math.sign(delta) as 1 | -1
+        }
+      } else if (isNearBottom) {
+        followLatestRef.current = true
+        setShowJumpButton(false)
+      }
     }
 
+    lastObservedScrollTopRef.current = container.scrollTop
     container.addEventListener('scroll', handleScroll)
+    container.addEventListener('touchstart', handleGestureStart, { passive: true })
+    container.addEventListener('touchend', handleGestureEnd, { passive: true })
+    container.addEventListener('touchcancel', handleGestureEnd, { passive: true })
+    container.addEventListener('pointerdown', handleGestureStart)
+    container.addEventListener('pointerup', handleGestureEnd)
+    container.addEventListener('pointercancel', handleGestureEnd)
+    container.addEventListener('wheel', handleWheel, { passive: true })
 
     // Only check initial position if not during initial auto-scrolling
     if (!isInitialAutoScrollingRef.current) {
       handleScroll()
     }
 
-    return () => container.removeEventListener('scroll', handleScroll)
+    return () => {
+      container.removeEventListener('scroll', handleScroll)
+      container.removeEventListener('touchstart', handleGestureStart)
+      container.removeEventListener('touchend', handleGestureEnd)
+      container.removeEventListener('touchcancel', handleGestureEnd)
+      container.removeEventListener('pointerdown', handleGestureStart)
+      container.removeEventListener('pointerup', handleGestureEnd)
+      container.removeEventListener('pointercancel', handleGestureEnd)
+      container.removeEventListener('wheel', handleWheel)
+    }
   }, [messagesArray.length, isFullScreen, getScrollContainer, isContainerNearBottom])
 
   // Track viewport size for conditional rendering
@@ -1880,9 +1930,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Use visualViewport API for keyboard resize detection (more accurate on mobile)
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleResize)
+      // Android also fires visualViewport 'scroll' while it pans the page to
+      // reveal the focused composer during the keyboard animation. Re-pin to
+      // true bottom on those offset changes too — same deterministic write,
+      // gated on the user's follow intent.
+      const handleViewportScroll = () => {
+        if (followLatestRef.current) {
+          const c = getContainer()
+          if (c) scrollToTrueBottom(c)
+        }
+      }
+      window.visualViewport.addEventListener('scroll', handleViewportScroll)
       return () => {
         containerObserver?.disconnect()
         window.visualViewport?.removeEventListener('resize', handleResize)
+        window.visualViewport?.removeEventListener('scroll', handleViewportScroll)
         // Prevent the CSS variable from leaking after this conversation page
         // unmounts or the component is torn down during navigation.
         if (typeof document !== 'undefined') {

@@ -84,24 +84,25 @@ describe('Part B: True-Bottom Helper', () => {
       const match = pageClientContent.match(/const scrollToTrueBottom = useCallback\([\s\S]*?\}, \[\]\)/)
       expect(match).toBeTruthy()
       if (match) {
-        // Sentinel path assigns an absolute target; fallback assigns the exact
-        // scrollable maximum (scrollHeight - clientHeight).
-        expect(match[0]).toMatch(/container\.scrollTop = target/)
+        // True bottom is the exact scrollable maximum; sentinel-position math
+        // was removed because wrapper padding below the sentinel made it land
+        // short of scrollHeight - clientHeight.
         expect(match[0]).toMatch(/container\.scrollTop = Math\.max\(0, container\.scrollHeight - container\.clientHeight\)/)
         expect(match[0]).not.toMatch(/scrollIntoView/)
         expect(match[0]).not.toMatch(/scrollTo\(/)
+        expect(match[0]).not.toMatch(/data-bottom-sentinel/)
       }
     })
 
-    it('converts viewport-relative sentinel geometry into an absolute scroll target', () => {
-      // Regression: sentinelTop - contentTop is measured in viewport space, so
-      // it already reflects the current scrollTop. The target must add
-      // container.scrollTop back — otherwise a repeat call computes
-      // target = correct - currentScrollTop and scrolls toward the TOP.
+    it('pins the exact scrollable maximum instead of sentinel geometry', () => {
+      // The old contract converted the sentinel's viewport-relative position into
+      // an absolute target. That landed ~8px short of true bottom whenever wrapper
+      // padding sat below the sentinel, so the scrollbar thumb stayed above max.
       const match = pageClientContent.match(/const scrollToTrueBottom = useCallback\([\s\S]*?\}, \[\]\)/)
       expect(match).toBeTruthy()
       if (match) {
-        expect(match[0]).toMatch(/container\.scrollTop \+ sentinelTop - contentTop/)
+        expect(match[0]).not.toMatch(/sentinelTop/)
+        expect(match[0]).not.toMatch(/getBoundingClientRect/)
       }
     })
   })

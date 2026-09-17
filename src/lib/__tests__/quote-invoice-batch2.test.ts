@@ -597,7 +597,9 @@ describe('MOBILE / MODAL', () => {
   it('viewer modal uses shared Modal', () => {
     const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
     expect(viewerSrc).toContain("from '@/components/ui/Modal'")
-    expect(viewerSrc).toContain('bottomSheetOnMobile')
+    // Centered modal on mobile — physical QA: document preview must not render
+    // as a bottom sheet.
+    expect(viewerSrc).not.toContain('bottomSheetOnMobile')
   })
 
   it('hosted page works on mobile (responsive)', () => {

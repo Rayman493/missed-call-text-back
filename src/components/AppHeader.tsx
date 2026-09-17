@@ -54,7 +54,7 @@ export default function AppHeader({
   return (
     <>
       <header className={`${isChromeCovered ? 'hidden' : ''} ${sticky ? 'sticky top-0' : ''} z-50 flex-shrink-0 border-b border-border/10 bg-background shadow-[0_1px_0_rgba(0,0,0,0.06),0_18px_52px_rgba(0,0,0,0.12)] dark:shadow-[0_1px_0_rgba(255,255,255,0.06),0_18px_52px_rgba(2,6,23,0.34)] relative`}>
-        <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 pt-4 sm:pt-4.5 pb-2 sm:pb-2.5 border-0" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 8px)' }}>
+        <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 pt-4 sm:pt-4.5 pb-1 sm:pb-1.5 border-0" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)' }}>
           <div className="flex items-center justify-between h-11">
             {/* Left side - Logo and navigation */}
             <div className="flex items-center gap-2 md:gap-4 lg:gap-8">

@@ -20,18 +20,18 @@ describe('A. True-bottom conversation anchor', () => {
     expect(mobile).toContain('data-bottom-sentinel')
   })
 
-  it('A.2 scrollToTrueBottom uses viewport-relative sentinel geometry', () => {
+  it('A.2 scrollToTrueBottom pins the exact scrollable maximum', () => {
     const source = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
-    expect(source).toMatch(/querySelector\('\[data-bottom-sentinel\]'\)/)
-    expect(source).toContain('sentinel.getBoundingClientRect().top')
-    expect(source).toContain('container.clientTop')
-    expect(source).toContain('Math.round(')
-    expect(source).toContain('container.scrollHeight - container.clientHeight')
+    // True bottom is scrollHeight - clientHeight — the maximum scrollTop.
+    // Sentinel-position math was removed: wrapper padding below the sentinel
+    // (e.g. the mobile thread's py-2) made it land short of the real bottom.
     const functionBody = source.substring(
       source.indexOf('const scrollToTrueBottom = useCallback'),
       source.indexOf('const isContainerNearBottom')
     )
-    expect(functionBody).not.toContain('container.scrollTop = container.scrollHeight')
+    expect(functionBody).toContain('container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight)')
+    expect(functionBody).not.toContain('data-bottom-sentinel')
+    expect(functionBody).not.toContain('scrollIntoView')
   })
 
   it('A.3 ResizeObserver observes the actual message-list content for late growth', () => {
@@ -133,10 +133,9 @@ describe('G. Sentinel DOM geometry and composer clearance', () => {
       source.indexOf('const scrollToTrueBottom = useCallback'),
       source.indexOf('const isContainerNearBottom')
     )
-    expect(body).toContain('getBoundingClientRect')
-    // The fallback is the exact scrollable maximum; the primary sentinel path does
-    // not read scrollHeight and does not add any padding offset.
-    expect(body).not.toContain('container.scrollTop = container.scrollHeight')
+    // The pin targets the exact scrollable maximum — no spacer, no padding
+    // offset, no scrollIntoView approximation.
+    expect(body).toContain('container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight)')
     expect(body).not.toContain('+ 96')
     expect(body).not.toContain('parseFloat')
   })
@@ -207,7 +206,10 @@ describe('C. Attachment viewer reliability', () => {
 
   it('C.3 viewer overlay is fixed, full viewport, and above app chrome', () => {
     const source = readSrc('src/components/MessageMediaRenderer.tsx')
-    const modalMatch = source.match(/\{expandedMedia && \(\s*<div[\s\S]*?<\/div>\s*\)\}/)
+    // Portal to document.body is required: transformed/animated ancestors make
+    // `fixed` positioning element-relative, which left an uncovered top strip.
+    expect(source).toContain('createPortal(')
+    const modalMatch = source.match(/createPortal\(\s*<div[\s\S]*?<\/div>\s*,\s*document\.body\s*\)/)
     expect(modalMatch).toBeTruthy()
     const modal = modalMatch![0]
     expect(modal).toContain('fixed inset-0')

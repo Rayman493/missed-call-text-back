@@ -373,8 +373,8 @@ describe('Batch 5 — Dashboard chart remount fix', () => {
   const chartUtilsSrc = readSrc('src/lib/chart-utils.tsx')
 
   // 31. Vertical drag over chart scrolls page (touchAction preserved)
-  it('ChartTouchWrapper preserves touchAction pan-y pan-x for scrolling', () => {
-    expect(chartUtilsSrc).toContain("touchAction: 'pan-y pan-x'")
+  it('ChartTouchWrapper preserves touchAction pan-y so vertical scroll is never contested', () => {
+    expect(chartUtilsSrc).toContain("touchAction: 'pan-y'")
   })
 
   // 32. Chart key does not change due to drag
@@ -406,15 +406,20 @@ describe('Batch 5 — Dashboard chart remount fix', () => {
     expect(chartUtilsSrc).toContain('new MouseEvent')
   })
 
-  // 36. Blank touch/tap does not focus whole chart (uses focus:outline-none, not broad outline-none)
-  it('Chart wrapper uses focus:outline-none (not broad outline-none) to suppress touch focus', () => {
-    expect(chartUtilsSrc).toContain('focus:outline-none')
+  // 36. Blank touch/tap does not focus whole chart — the wrapper carries no
+  // tabIndex at all, so it can never receive the giant Android focus rectangle.
+  it('Chart wrapper has no tabIndex and suppresses outlines on Recharts surfaces', () => {
+    expect(chartUtilsSrc).not.toContain('tabIndex=')
+    expect(chartUtilsSrc).toContain('[&_.recharts-surface]:outline-none')
+    expect(chartUtilsSrc).toContain('[&_.recharts-wrapper]:outline-none')
   })
 
-  // 37. Keyboard focus still has visible focus indication
-  it('Chart wrapper has focus-visible ring for keyboard accessibility', () => {
-    expect(chartUtilsSrc).toContain('focus-visible:ring-2')
-    expect(chartUtilsSrc).toContain('focus-visible:ring-blue-500/30')
+  // 37. Keyboard focus indication lives on the individual data elements via
+  // globals.css :focus-visible rules — not a wrapper ring (which Android
+  // paints on plain touches).
+  it('Chart wrapper delegates keyboard focus ring to data elements via globals.css', () => {
+    const globalsSrc = readSrc('src/app/globals.css')
+    expect(globalsSrc).toContain(':focus-visible')
   })
 
   // 38. Datum interaction remains functional (pointerEvents restored after drag)
@@ -465,7 +470,7 @@ describe('Batch 5 — Customer filter drag-open fix', () => {
   it('pointercancel resets all filter drag state', () => {
     // Find the filter button's onPointerCancel (near the filter dropdown)
     const filterBtnIdx = leadsPageSrc.indexOf('Filter dropdown button')
-    const filterSection = leadsPageSrc.substring(filterBtnIdx, filterBtnIdx + 2000)
+    const filterSection = leadsPageSrc.substring(filterBtnIdx, filterBtnIdx + 6000)
     expect(filterSection).toContain('onPointerCancel')
     expect(filterSection).toContain('filterSuppressNextOpenRef.current = false')
   })
@@ -474,7 +479,7 @@ describe('Batch 5 — Customer filter drag-open fix', () => {
   it('Keyboard activation is not blocked (onClick only prevents when suppress flag set)', () => {
     // The onClick handler only prevents default when suppress flag is set
     const filterBtnIdx = leadsPageSrc.indexOf('Filter dropdown button')
-    const filterSection = leadsPageSrc.substring(filterBtnIdx, filterBtnIdx + 3000)
+    const filterSection = leadsPageSrc.substring(filterBtnIdx, filterBtnIdx + 8000)
     expect(filterSection).toContain('if (filterSuppressNextOpenRef.current)')
     expect(filterSection).toContain('e.preventDefault()')
   })

@@ -21,19 +21,34 @@ describe('Batch 4B — Dashboard graph interaction cleanup', () => {
       expect(businessActivityGraph).toMatch(/trigger\s*=\s*(['"])hover\1/)
     })
 
-    it('3. ChartTouchWrapper attaches document pointerdown only when selection is active', () => {
-      expect(chartUtils).toContain("if (!hasSelection) return")
-      expect(chartUtils).toContain("document.addEventListener('pointerdown', handleOutsidePointerDown, true)")
+    it('3. ChartTouchWrapper installs NO document-level gesture listener', () => {
+      // The old hasSelection + document-pointerdown dismissal mechanism was
+      // removed: any document-level pointer/touch listener on the chart path
+      // can contest page scrolling. Outside dismissal now happens through the
+      // capture-phase click handler, which cannot trap gestures.
+      expect(chartUtils).not.toContain("document.addEventListener('pointerdown'")
+      expect(chartUtils).not.toContain("document.addEventListener('touchstart'")
+      expect(chartUtils).not.toContain('hasSelection')
     })
 
-    it('4. ChartTouchWrapper cleans the listener on deselect/unmount', () => {
-      expect(chartUtils).toContain("return () => document.removeEventListener('pointerdown', handleOutsidePointerDown, true)")
+    it('4. ChartTouchWrapper dismissal lives in the capture-phase click handler', () => {
+      // A tap outside the plottable area clears the tooltip — no document
+      // listener lifecycle to leak or to hold the gesture.
+      const clickBlock = chartUtils.match(/const handleClickCapture = \([\s\S]*?\n  \}/)
+      expect(clickBlock).toBeTruthy()
+      expect(clickBlock![0]).toContain('clearRechartsState()')
+      expect(clickBlock![0]).toContain('onActiveIndexChange?.(null)')
     })
   })
 
   describe('B. Outside dismissal and tap behavior', () => {
-    it('5. ChartTouchWrapper checks containment against innerRef', () => {
-      expect(chartUtils).toContain('innerRef.current.contains(e.target as Node)')
+    it('5. ChartTouchWrapper dismissal is a whitespace click, not a containment check', () => {
+      // No document listener means no containment test is needed: a tap that
+      // misses the plottable area resolves to idx === null inside
+      // handleClickCapture and clears the tooltip there.
+      const clickBlock = chartUtils.match(/const handleClickCapture = \([\s\S]*?\n  \}/)
+      expect(clickBlock).toBeTruthy()
+      expect(clickBlock![0]).toContain('idx === null')
     })
 
     it('6. outside pointerdown clears selection and notifies consumer', () => {

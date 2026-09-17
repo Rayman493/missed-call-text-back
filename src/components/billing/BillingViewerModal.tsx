@@ -221,12 +221,11 @@ export default function BillingViewerModal({
       isOpen={isOpen}
       onClose={onClose}
       title="Document"
-      bottomSheetOnMobile
       contentMaxHeight="85vh"
       footer={footer}
     >
       {loading ? (
-        <div className="flex-1 min-h-0 flex flex-col items-center justify-center">
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center py-16">
           <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
         </div>
       ) : doc ? (

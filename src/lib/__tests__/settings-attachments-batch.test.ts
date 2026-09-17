@@ -144,8 +144,10 @@ describe('ATTACHMENTS CARD COMPONENT', () => {
     expect(attachmentsCardSrc).toContain('<Modal')
   })
 
-  it('Modal uses bottomSheetOnMobile', () => {
-    expect(attachmentsCardSrc).toContain('bottomSheetOnMobile')
+  it('Modal renders centered on mobile (no bottom sheet)', () => {
+    // Physical QA: attachments grid must open as a centered modal, not a
+    // bottom sheet pinned to the screen edge.
+    expect(attachmentsCardSrc).not.toContain('bottomSheetOnMobile')
   })
 
   it('Modal has contentMaxHeight for internal scroll', () => {
