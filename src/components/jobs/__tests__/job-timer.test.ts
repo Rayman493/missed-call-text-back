@@ -7,6 +7,8 @@ import {
   findActiveEntry,
   formatEntryTime,
   formatEntryDate,
+  JOB_TIME_CHANGED_EVENT,
+  notifyJobTimeChanged,
   type JobTimeEntry,
 } from '@/lib/job-time-utils'
 
@@ -234,6 +236,39 @@ describe('Time Tracking — Duration Utilities', () => {
   })
 })
 
+describe('Time Tracking — Cross-UI Invalidation', () => {
+  it('dispatches the selected job and active state', () => {
+    let detail: { jobId: string; active: boolean } | null = null
+    const listener = (event: Event) => { detail = (event as CustomEvent).detail }
+    window.addEventListener(JOB_TIME_CHANGED_EVENT, listener)
+    notifyJobTimeChanged('job-a', true)
+    window.removeEventListener(JOB_TIME_CHANGED_EVENT, listener)
+    expect(detail).toEqual({ jobId: 'job-a', active: true })
+  })
+
+  it('JobTimer refetches canonical entries and availability after invalidation', () => {
+    expect(timerContent).toContain("window.addEventListener(JOB_TIME_CHANGED_EVENT, handleJobTimeChanged)")
+    expect(timerContent).toContain("fetch('/api/jobs/time-summary')")
+    expect(timerContent).toContain('setOtherTimerActive(!!summary.active_timer && !findActiveEntry(nextEntries))')
+  })
+
+  it('successful per-job start and stop publish active-state changes', () => {
+    expect(timerContent).toContain('notifyJobTimeChanged(jobId, true)')
+    expect(timerContent).toContain('notifyJobTimeChanged(jobId, false)')
+  })
+
+  it('another active job suppresses the conflicting Start control', () => {
+    expect(timerContent).toContain('!activeEntry && !otherTimerActive && !conflictJob')
+    expect(timerContent).toContain('Another job has a running timer')
+  })
+
+  it('server conflict publishes only the canonical active job', () => {
+    expect(timerContent).toContain('notifyJobTimeChanged(data.activeJob.id, true)')
+    const startBlock = timerContent.slice(timerContent.indexOf('const handleStart'), timerContent.indexOf('const handleStop'))
+    expect(startBlock.indexOf('if (!res.ok) return')).toBeLessThan(startBlock.indexOf('notifyJobTimeChanged(jobId, true)'))
+  })
+})
+
 describe('Time Tracking — UI Component', () => {
   it('JobTimer renders Start Timer button when no active entry', () => {
     expect(timerContent).toContain('Start Timer')
@@ -286,8 +321,16 @@ describe('Time Tracking — UI Component', () => {
     expect(timerContent).toContain('Delete this entry?')
   })
 
-  it('JobTimer edit validates end > start via API', () => {
+  it('JobTimer edit keeps Start and End fully visible by stacking on mobile', () => {
+    expect(timerContent).toContain('grid grid-cols-1 sm:grid-cols-2 gap-2')
+    expect(timerContent).toContain('type="datetime-local"')
+    expect(timerContent).toContain('value={editStartedAt}')
+    expect(timerContent).toContain('value={editEndedAt}')
+  })
+
+  it('JobTimer edit preserves end-after-start validation through the API', () => {
     expect(timerContent).toContain('editError')
+    expect(entryRouteContent).toContain('End time must be after start time')
   })
 
   it('JobTimer uses persisted timestamps (no background timer)', () => {

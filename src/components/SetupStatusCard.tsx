@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import Link from 'next/link'
 import { Business } from '@/lib/types'
 import { hasActiveSubscription, hasActiveTrial, deriveSetupState } from '@/lib/subscription-utils'
@@ -44,6 +44,7 @@ export default function SetupStatusCard({
   const [showForwardingInstructions, setShowForwardingInstructions] = useState(false)
   const [showTestYourSetup, setShowTestYourSetup] = useState(false)
   const [expandedStep, setExpandedStep] = useState<number | null>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
   const { user } = useAuth()
   const { refreshBusiness } = useBusiness()
   const setupState = deriveSetupState(business, missedCallCount)
@@ -226,6 +227,20 @@ export default function SetupStatusCard({
     return shouldAutoExpand
   })
 
+  const expandWithHeaderAnchor = () => {
+    setUserHasToggled(true)
+    setIsExpanded(true)
+    requestAnimationFrame(() => {
+      const card = cardRef.current
+      if (!card) return
+      const headerBottom = document.querySelector('header')?.getBoundingClientRect().bottom || 0
+      const cardTop = card.getBoundingClientRect().top
+      if (cardTop < headerBottom) {
+        window.scrollBy({ top: cardTop - headerBottom, behavior: 'smooth' })
+      }
+    })
+  }
+
   React.useEffect(() => {
     // Reset userHasToggled when setup completes to allow auto-collapse
     if (cardState === 'setup-complete' || cardState === 'healthy') {
@@ -352,7 +367,7 @@ export default function SetupStatusCard({
     return (
       <>
         {modalPortal}
-        <div className="bg-card text-card-foreground rounded-lg border border-border/40 shadow-sm hover:shadow-md transition-all">
+        <div ref={cardRef} className="bg-card text-card-foreground rounded-lg border border-border/40 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between gap-3 p-3 sm:p-4">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="flex-shrink-0">
@@ -378,8 +393,7 @@ export default function SetupStatusCard({
             aria-expanded={false}
             onClick={(e) => {
               e.preventDefault()
-              setUserHasToggled(true)
-              setIsExpanded(true)
+              expandWithHeaderAnchor()
             }}
             className="inline-flex items-center gap-1.5 px-2 py-1.5 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-xs sm:text-sm font-medium rounded-md transition-colors cursor-pointer flex-shrink-0"
           >
@@ -743,7 +757,7 @@ export default function SetupStatusCard({
   
   // Render main card (for setup states)
   return (
-    <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border/40">
+    <div ref={cardRef} className="bg-card text-card-foreground rounded-lg shadow-md border border-border/40">
       {modalPortal}
       <div className={`flex flex-col gap-3 sm:gap-4 ${cardState === 'setup-complete' || cardState === 'healthy' ? '' : 'p-4 sm:p-5'}`}>
         {/* MODE 1: Setup Incomplete */}

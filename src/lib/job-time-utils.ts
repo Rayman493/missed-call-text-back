@@ -1,6 +1,5 @@
 /**
- * Time tracking formatting helpers.
- * Pure functions for formatting durations and time entries.
+ * Time tracking formatting and client invalidation helpers.
  */
 
 export interface JobTimeEntry {
@@ -8,6 +7,13 @@ export interface JobTimeEntry {
   job_id: string
   started_at: string
   ended_at: string | null
+}
+
+export const JOB_TIME_CHANGED_EVENT = 'replyflow:job-time-changed'
+
+export function notifyJobTimeChanged(jobId: string, active: boolean): void {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent(JOB_TIME_CHANGED_EVENT, { detail: { jobId, active } }))
 }
 
 /**

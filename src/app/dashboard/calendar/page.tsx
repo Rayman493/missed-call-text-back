@@ -8,7 +8,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Toast, { ToastContainer } from '@/components/Toast'
 import Link from 'next/link'
-import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink, Pencil, Bell, Trash2, Video, Clock } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink, Pencil, Bell, Trash2, Video, Clock, Play } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
@@ -38,7 +38,7 @@ import { openOAuthFlow } from '@/capacitor/oauth'
 import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import { formatEventTimeRange } from '@/lib/calendar-date-utils'
 import { isReplyFlowOwnedEvent } from '@/lib/calendar-ownership'
-import { formatDuration } from '@/lib/job-time-utils'
+import { formatDuration, JOB_TIME_CHANGED_EVENT, notifyJobTimeChanged } from '@/lib/job-time-utils'
 
 interface CalendarEvent {
   id: string
@@ -1566,7 +1566,9 @@ export default function SchedulePage() {
     <DashboardShell
       title="Schedule"
       contentClassName="flex-1 pt-6 sm:pt-8 lg:pt-10 px-4 sm:px-5 lg:px-7 pb-20 md:pb-10 relative z-10"
-      contentStyle={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}
+      contentStyle={scheduleTab === 'map'
+        ? { paddingBottom: 0, overflowY: 'clip' }
+        : { paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}
       innerClassName=""
       maxWidthClassName="max-w-[1400px] mx-auto"
     >
@@ -2754,6 +2756,10 @@ function JobsTab({
 }) {
   const hasLoadedOnceRef = useRef(false)
   const [timeSummary, setTimeSummary] = useState<{ today_ms: number; week_ms: number; week_job_count: number; active_timer: boolean } | null>(null)
+  const [showTimerJobPicker, setShowTimerJobPicker] = useState(false)
+  const [timerJobId, setTimerJobId] = useState('')
+  const [timerActionInFlight, setTimerActionInFlight] = useState(false)
+  const [timerError, setTimerError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isLoading) {
@@ -2762,34 +2768,69 @@ function JobsTab({
   }, [isLoading])
 
   // Fetch business-level time summary (today/week) — single query, no N+1.
-  useEffect(() => {
-    let cancelled = false
-    const fetchTimeSummary = async () => {
-      try {
-        const supabase = createBrowserClient()
-        if (!supabase) return
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.access_token) return
-        const res = await fetch('/api/jobs/time-summary', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
+  const fetchTimeSummary = useCallback(async () => {
+    try {
+      const supabase = createBrowserClient()
+      if (!supabase) return
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) return
+      const res = await fetch('/api/jobs/time-summary', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      if (data) {
+        setTimeSummary({
+          today_ms: data.today_ms || 0,
+          week_ms: data.week_ms || 0,
+          week_job_count: data.week_job_count || 0,
+          active_timer: !!data.active_timer,
         })
-        if (!res.ok) return
-        const data = await res.json()
-        if (!cancelled && data) {
-          setTimeSummary({
-            today_ms: data.today_ms || 0,
-            week_ms: data.week_ms || 0,
-            week_job_count: data.week_job_count || 0,
-            active_timer: !!data.active_timer,
-          })
-        }
-      } catch {
-        // Silent — summary is non-critical
       }
+    } catch {
+      // Silent — summary is non-critical
     }
+  }, [])
+
+  useEffect(() => {
     fetchTimeSummary()
-    return () => { cancelled = true }
-  }, [jobs.length])
+    const handleJobTimeChanged = () => { fetchTimeSummary() }
+    window.addEventListener(JOB_TIME_CHANGED_EVENT, handleJobTimeChanged)
+    return () => window.removeEventListener(JOB_TIME_CHANGED_EVENT, handleJobTimeChanged)
+  }, [jobs.length, fetchTimeSummary])
+
+  const startSummaryTimer = async () => {
+    if (!timerJobId || timerActionInFlight || timeSummary?.active_timer) return
+    setTimerActionInFlight(true)
+    setTimerError(null)
+    try {
+      const res = await fetch(`/api/jobs/${timerJobId}/time-entries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start' }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setTimerError(res.status === 409 && data?.activeJob
+          ? `A timer is already running for ${data.activeJob.title}.`
+          : data?.error || 'Failed to start timer')
+        if (res.status === 409 && data?.activeJob?.id) {
+          setTimeSummary(summary => summary ? { ...summary, active_timer: true } : summary)
+          notifyJobTimeChanged(data.activeJob.id, true)
+        }
+        return
+      }
+      setTimeSummary(summary => summary ? { ...summary, active_timer: true } : summary)
+      notifyJobTimeChanged(timerJobId, true)
+      setShowTimerJobPicker(false)
+      setTimerJobId('')
+    } catch {
+      setTimerError('Failed to start timer')
+    } finally {
+      setTimerActionInFlight(false)
+    }
+  }
+
   const active = jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress')
   const completed = jobs.filter(j => j.status === 'completed')
   const cancelled = jobs.filter(j => j.status === 'cancelled')
@@ -2928,7 +2969,7 @@ function JobsTab({
   }
 
   return (
-    <div>
+    <div className="pb-[calc(var(--bottom-nav-height,80px)+env(safe-area-inset-bottom)+16px)] md:pb-8">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-4">
         <div>
@@ -2955,32 +2996,37 @@ function JobsTab({
       </div>
 
       {/* Time Tracked Summary — compact business-level aggregate */}
-      {timeSummary && (timeSummary.today_ms > 0 || timeSummary.week_ms > 0 || timeSummary.active_timer) && (
-        <div className="mb-4 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-900/60 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-            <h3 className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Time Tracked
-            </h3>
-            {timeSummary.active_timer && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 dark:text-blue-400 ml-auto">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                Timer running
-              </span>
-            )}
-          </div>
+      <div className="sticky top-[calc(4.5rem+env(safe-area-inset-top))] md:top-20 z-20 mb-4 min-h-[132px] rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+          <h3 className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            Time Tracked
+          </h3>
+          {timeSummary?.active_timer ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 dark:text-blue-400 ml-auto">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              Timer running
+            </span>
+          ) : timeSummary && active.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setShowTimerJobPicker(value => !value)}
+              className="inline-flex items-center gap-1.5 ml-auto px-2.5 py-1.5 text-xs font-medium text-foreground border border-border/50 rounded-lg hover:bg-muted/50 transition-colors"
+            >
+              <Play className="w-3.5 h-3.5" />
+              Start Timer
+            </button>
+          ) : null}
+        </div>
+        {timeSummary ? (
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">Today</p>
-              <p className="text-lg font-semibold text-slate-900 dark:text-foreground tabular-nums">
-                {formatDuration(timeSummary.today_ms)}
-              </p>
+              <p className="text-lg font-semibold text-slate-900 dark:text-foreground tabular-nums">{formatDuration(timeSummary.today_ms)}</p>
             </div>
             <div>
               <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">This Week</p>
-              <p className="text-lg font-semibold text-slate-900 dark:text-foreground tabular-nums">
-                {formatDuration(timeSummary.week_ms)}
-              </p>
+              <p className="text-lg font-semibold text-slate-900 dark:text-foreground tabular-nums">{formatDuration(timeSummary.week_ms)}</p>
               {timeSummary.week_job_count > 0 && (
                 <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
                   {timeSummary.week_job_count} {timeSummary.week_job_count === 1 ? 'job' : 'jobs'}
@@ -2988,8 +3034,36 @@ function JobsTab({
               )}
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="grid grid-cols-2 gap-4" aria-label="Loading time tracked summary">
+            <div className="space-y-2"><div className="h-2.5 w-10 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" /><div className="h-7 w-14 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" /></div>
+            <div className="space-y-2"><div className="h-2.5 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" /><div className="h-7 w-14 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" /></div>
+          </div>
+        )}
+        {showTimerJobPicker && !timeSummary?.active_timer && (
+          <div className="mt-3 pt-3 border-t border-border/40 flex flex-col sm:flex-row gap-2">
+            <label className="sr-only" htmlFor="summary-timer-job">Job for timer</label>
+            <select
+              id="summary-timer-job"
+              value={timerJobId}
+              onChange={(event) => setTimerJobId(event.target.value)}
+              className="min-h-10 flex-1 min-w-0 px-3 text-sm bg-background border border-border/50 rounded-lg text-foreground"
+            >
+              <option value="">Select a job</option>
+              {active.map(job => <option key={job.id} value={job.id}>{job.title}</option>)}
+            </select>
+            <button
+              type="button"
+              onClick={startSummaryTimer}
+              disabled={!timerJobId || timerActionInFlight}
+              className="min-h-10 px-3 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
+            >
+              {timerActionInFlight ? 'Starting…' : 'Start'}
+            </button>
+          </div>
+        )}
+        {timerError && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{timerError}</p>}
+      </div>
 
       {jobs.length === 0 ? (
         <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6 sm:p-8 text-center">

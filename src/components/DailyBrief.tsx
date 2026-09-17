@@ -5,7 +5,7 @@ import { AlertCircle, DollarSign, Calendar, Users, Activity, ChevronDown, Chevro
 import { dailyBriefService } from '@/lib/daily-brief/daily-brief-service'
 import { analyticsService } from '@/lib/analytics/analytics-service'
 import type { DailyBrief, BriefSection } from '@/lib/daily-brief/daily-brief-types'
-import { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
+import { ListItemSkeleton } from '@/components/ui/Skeleton'
 
 interface DailyBriefProps {
   business: { id: string } | null
@@ -15,7 +15,7 @@ export default function DailyBrief({ business }: DailyBriefProps) {
   const [brief, setBrief] = useState<DailyBrief | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['priorities', 'schedule'])) // Expand key sections by default
+  const [isExpanded, setIsExpanded] = useState(true)
 
   useEffect(() => {
     if (!business) {
@@ -40,16 +40,6 @@ export default function DailyBrief({ business }: DailyBriefProps) {
       })
       .finally(() => setLoading(false))
   }, [business])
-
-  const toggleSection = (sectionType: string) => {
-    const newExpanded = new Set(expandedSections)
-    if (newExpanded.has(sectionType)) {
-      newExpanded.delete(sectionType)
-    } else {
-      newExpanded.add(sectionType)
-    }
-    setExpandedSections(newExpanded)
-  }
 
   if (!business) return null
 
@@ -96,48 +86,41 @@ export default function DailyBrief({ business }: DailyBriefProps) {
   return (
     <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-2xl shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="px-4 sm:px-5 py-3 border-b border-slate-200/70 dark:border-slate-700/50">
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">
-          Daily Brief
-        </h2>
-        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-          What you need to know today
-        </p>
-      </div>
+      <button
+        type="button"
+        onClick={() => setIsExpanded(value => !value)}
+        aria-expanded={isExpanded}
+        className={`w-full px-4 sm:px-5 py-3 flex items-center justify-between text-left ${isExpanded ? 'border-b border-slate-200/70 dark:border-slate-700/50' : ''}`}
+      >
+        <div>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Daily Brief</h2>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">What you need to know today</p>
+        </div>
+        {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+      </button>
 
       {/* Sections */}
-      <div className="divide-y divide-slate-200/70 dark:divide-slate-700/50">
-        {brief.sections.map(section => (
-          <BriefSectionItem
-            key={section.type}
-            section={section}
-            isExpanded={expandedSections.has(section.type)}
-            onToggle={() => toggleSection(section.type)}
-          />
-        ))}
-      </div>
+      {isExpanded && (
+        <div className="divide-y divide-slate-200/70 dark:divide-slate-700/50">
+          {brief.sections.map(section => <BriefSectionItem key={section.type} section={section} />)}
+        </div>
+      )}
     </div>
   )
 }
 
 interface BriefSectionItemProps {
   section: BriefSection
-  isExpanded: boolean
-  onToggle: () => void
 }
 
-function BriefSectionItem({ section, isExpanded, onToggle }: BriefSectionItemProps) {
+function BriefSectionItem({ section }: BriefSectionItemProps) {
   const icon = getSectionIcon(section.type)
   const isHealthSection = section.type === 'health'
   const itemCount = section.items.length
-  const isExpandable = !isHealthSection && itemCount > 0
 
   return (
     <div className="px-4 py-2.5">
-      <button
-        onClick={isExpandable ? onToggle : undefined}
-        className={`w-full flex items-center justify-between group ${!isExpandable ? 'cursor-default' : ''}`}
-      >
+      <div className="w-full flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${getSectionIconBg(section.type)}`}>
             {icon}
@@ -146,22 +129,13 @@ function BriefSectionItem({ section, isExpanded, onToggle }: BriefSectionItemPro
             {section.title}
           </span>
         </div>
-        {isExpandable && (
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-slate-500 dark:text-slate-400">
-              {itemCount}
-            </span>
-            {isExpanded ? (
-              <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
-            ) : (
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            )}
-          </div>
+        {!isHealthSection && itemCount > 0 && (
+          <span className="text-[10px] text-slate-500 dark:text-slate-400">{itemCount}</span>
         )}
-      </button>
+      </div>
 
       {/* Content */}
-      {isExpanded && !isHealthSection && (
+      {!isHealthSection && (
         <div className="mt-2 ml-9.5 space-y-1.5">
           {section.items.map(item => (
             <BriefItem key={item.id} item={item} />

@@ -48,12 +48,16 @@ describe('Android Date/Time Clipping — Affordance space', () => {
   const timePicker = readFileSync('src/components/ui/TimePicker.tsx', 'utf8')
   const globals = readFileSync('src/app/globals.css', 'utf8')
 
-  it('3. DatePicker reserves 44px right padding for affordance (pr-[44px])', () => {
-    expect(datePicker).toContain('pr-[44px]')
+  it('3. DatePicker reserves a shared right accessory slot', () => {
+    expect(datePicker).toContain('pr-12')
+    expect(datePicker).toContain('right-1.5')
+    expect(datePicker).toContain('w-9 h-9')
   })
 
-  it('4. TimePicker reserves 44px right padding for affordance (pr-[44px])', () => {
-    expect(timePicker).toContain('pr-[44px]')
+  it('4. TimePicker reserves the same shared right accessory slot', () => {
+    expect(timePicker).toContain('pr-12')
+    expect(timePicker).toContain('right-1.5')
+    expect(timePicker).toContain('w-9 h-9')
   })
 
   it('4a. TimePicker uses step=60 (no seconds in display)', () => {

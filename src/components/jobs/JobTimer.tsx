@@ -9,6 +9,8 @@ import {
   findActiveEntry,
   formatEntryTime,
   formatEntryDate,
+  JOB_TIME_CHANGED_EVENT,
+  notifyJobTimeChanged,
   type JobTimeEntry,
 } from '@/lib/job-time-utils'
 
@@ -27,6 +29,7 @@ export default function JobTimer({ jobId }: JobTimerProps) {
   const [editEndedAt, setEditEndedAt] = useState('')
   const [editError, setEditError] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [otherTimerActive, setOtherTimerActive] = useState(false)
   const fetchedRef = useRef(false)
 
   // Tick every second when there's an active timer
@@ -43,7 +46,13 @@ export default function JobTimer({ jobId }: JobTimerProps) {
       const res = await fetch(`/api/jobs/${jobId}/time-entries`)
       if (!res.ok) return
       const data = await res.json()
-      setEntries(data.entries || [])
+      const nextEntries = data.entries || []
+      setEntries(nextEntries)
+      const summaryRes = await fetch('/api/jobs/time-summary')
+      if (summaryRes.ok) {
+        const summary = await summaryRes.json()
+        setOtherTimerActive(!!summary.active_timer && !findActiveEntry(nextEntries))
+      }
     } catch (err) {
       console.error('[JobTimer] fetch error:', err)
     } finally {
@@ -56,6 +65,12 @@ export default function JobTimer({ jobId }: JobTimerProps) {
     fetchedRef.current = false
     fetchEntries()
   }, [jobId, fetchEntries])
+
+  useEffect(() => {
+    const handleJobTimeChanged = () => { fetchEntries() }
+    window.addEventListener(JOB_TIME_CHANGED_EVENT, handleJobTimeChanged)
+    return () => window.removeEventListener(JOB_TIME_CHANGED_EVENT, handleJobTimeChanged)
+  }, [fetchEntries])
 
   const activeEntry = findActiveEntry(entries)
   const completedTotal = totalCompletedDuration(entries)
@@ -74,10 +89,11 @@ export default function JobTimer({ jobId }: JobTimerProps) {
       const data = await res.json()
       if (res.status === 409 && data?.activeJob) {
         setConflictJob(data.activeJob)
+        notifyJobTimeChanged(data.activeJob.id, true)
         return
       }
       if (!res.ok) return
-      await fetchEntries()
+      notifyJobTimeChanged(jobId, true)
     } catch (err) {
       console.error('[JobTimer] start error:', err)
     } finally {
@@ -95,7 +111,7 @@ export default function JobTimer({ jobId }: JobTimerProps) {
         body: JSON.stringify({ action: 'stop' }),
       })
       if (!res.ok) return
-      await fetchEntries()
+      notifyJobTimeChanged(jobId, false)
     } catch (err) {
       console.error('[JobTimer] stop error:', err)
     } finally {
@@ -134,7 +150,7 @@ export default function JobTimer({ jobId }: JobTimerProps) {
         return
       }
       setEditingId(null)
-      await fetchEntries()
+      notifyJobTimeChanged(jobId, body.ended_at === null)
     } catch (err) {
       setEditError('Failed to update entry')
     }
@@ -145,7 +161,7 @@ export default function JobTimer({ jobId }: JobTimerProps) {
       const res = await fetch(`/api/jobs/${jobId}/time-entries/${entryId}`, { method: 'DELETE' })
       if (!res.ok) return
       setDeleteConfirmId(null)
-      await fetchEntries()
+      notifyJobTimeChanged(jobId, false)
     } catch (err) {
       console.error('[JobTimer] delete error:', err)
     }
@@ -189,15 +205,15 @@ export default function JobTimer({ jobId }: JobTimerProps) {
       </div>
 
       {/* Conflict notice */}
-      {conflictJob && !activeEntry && (
+      {(conflictJob || otherTimerActive) && !activeEntry && (
         <div className="mb-2 p-2 rounded bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 text-xs text-amber-700 dark:text-amber-300">
-          A timer is already running for <span className="font-medium">{conflictJob.title}</span>. Stop it before starting a new one.
+          {conflictJob ? <>A timer is already running for <span className="font-medium">{conflictJob.title}</span>. Stop it before starting a new one.</> : 'Another job has a running timer. Stop it before starting a new one.'}
         </div>
       )}
 
       {/* Start/Stop button */}
       <div className="flex items-center gap-2">
-        {!activeEntry ? (
+        {!activeEntry && !otherTimerActive && !conflictJob ? (
           <button
             onClick={handleStart}
             disabled={actionInFlight}
@@ -206,7 +222,7 @@ export default function JobTimer({ jobId }: JobTimerProps) {
             <Play className="w-3.5 h-3.5" />
             Start Timer
           </button>
-        ) : (
+        ) : activeEntry ? (
           <button
             onClick={handleStop}
             disabled={actionInFlight}
@@ -215,7 +231,7 @@ export default function JobTimer({ jobId }: JobTimerProps) {
             <Square className="w-3.5 h-3.5" />
             Stop Timer
           </button>
-        )}
+        ) : null}
       </div>
 
       {/* Entry History */}
@@ -231,8 +247,8 @@ export default function JobTimer({ jobId }: JobTimerProps) {
             if (isEditing) {
               return (
                 <div key={entry.id} className="p-3 rounded-lg bg-muted/30 dark:bg-slate-800/60 border border-blue-200 dark:border-blue-700/40 space-y-2.5">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="min-w-0">
                       <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">Start</label>
                       <input
                         type="datetime-local"
@@ -241,7 +257,7 @@ export default function JobTimer({ jobId }: JobTimerProps) {
                         className="w-full text-xs px-2 py-1.5 rounded-md border border-border/50 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                       />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider block mb-1">End</label>
                       <input
                         type="datetime-local"

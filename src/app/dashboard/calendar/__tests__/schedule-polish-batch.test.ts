@@ -7,6 +7,8 @@ const jobTimerContent = readFileSync('src/components/jobs/JobTimer.tsx', 'utf8')
 const newTaskModalContent = readFileSync('src/components/schedule/NewTaskModal.tsx', 'utf8')
 const businessDateUtilsContent = readFileSync('src/lib/business-date-utils.ts', 'utf8')
 const timeSummaryRouteContent = readFileSync('src/app/api/jobs/time-summary/route.ts', 'utf8')
+const dailyBriefContent = readFileSync('src/components/DailyBrief.tsx', 'utf8')
+const setupStatusContent = readFileSync('src/components/SetupStatusCard.tsx', 'utf8')
 
 // ---------------------------------------------------------------------------
 // 1. DUPLICATE APPOINTMENT SUCCESS TOAST FIX
@@ -239,18 +241,53 @@ describe('Schedule Polish — Jobs Time Tracked Summary', () => {
   it('Time Tracked card shows week job count', () => {
     const timeTrackedBlock = pageContent.substring(
       pageContent.indexOf('Time Tracked Summary'),
-      pageContent.indexOf('Time Tracked Summary') + 2000
+      pageContent.indexOf('Time Tracked Summary') + 4000
     )
     expect(timeTrackedBlock).toContain('week_job_count')
   })
 
-  it('Time Tracked card only renders when there is time data', () => {
+  it('Time Tracked shell remains mounted while summary data loads', () => {
     const timeTrackedBlock = pageContent.substring(
       pageContent.indexOf('Time Tracked Summary'),
-      pageContent.indexOf('Time Tracked Summary') + 200
+      pageContent.indexOf('Time Tracked Summary') + 6000
     )
-    // Should be conditionally rendered
-    expect(timeTrackedBlock).toContain('timeSummary &&')
+    expect(timeTrackedBlock).toContain('min-h-[132px]')
+    expect(timeTrackedBlock).toContain('Loading time tracked summary')
+    expect(timeTrackedBlock).not.toContain('timeSummary && (timeSummary.today_ms')
+  })
+
+  it('unresolved summary uses skeletons instead of false zero values', () => {
+    expect(pageContent).toContain('timeSummary ? (')
+    expect(pageContent).toContain('animate-pulse')
+    expect(pageContent).toContain('formatDuration(timeSummary.today_ms)')
+  })
+
+  it('summary remains sticky below the app header', () => {
+    expect(pageContent).toContain('sticky top-[calc(4.5rem+env(safe-area-inset-top))] md:top-20')
+  })
+
+  it('summary Start Timer requires an explicit job association', () => {
+    expect(pageContent).toContain('if (!timerJobId || timerActionInFlight || timeSummary?.active_timer) return')
+    expect(pageContent).toContain('/api/jobs/${timerJobId}/time-entries')
+    expect(pageContent).toContain("body: JSON.stringify({ action: 'start' })")
+    expect(pageContent).toContain('<option value="">Select a job</option>')
+  })
+
+  it('summary respects an existing active timer', () => {
+    expect(pageContent).toContain('timeSummary?.active_timer ? (')
+    expect(pageContent).toContain('showTimerJobPicker && !timeSummary?.active_timer')
+  })
+
+  it('summary and per-job controls share canonical invalidation', () => {
+    expect(pageContent).toContain('window.addEventListener(JOB_TIME_CHANGED_EVENT, handleJobTimeChanged)')
+    expect(pageContent).toContain('const handleJobTimeChanged = () => { fetchTimeSummary() }')
+    expect(pageContent).toContain('notifyJobTimeChanged(timerJobId, true)')
+  })
+
+  it('summary start failure does not publish fake active state', () => {
+    const startBlock = pageContent.slice(pageContent.indexOf('const startSummaryTimer'), pageContent.indexOf('const active = jobs.filter'))
+    expect(startBlock.indexOf('if (!res.ok)')).toBeLessThan(startBlock.indexOf('notifyJobTimeChanged(timerJobId, true)'))
+    expect(startBlock).toContain('notifyJobTimeChanged(data.activeJob.id, true)')
   })
 
   it('API route exists at /api/jobs/time-summary', () => {
@@ -345,5 +382,30 @@ describe('Schedule Polish — No Behavioral Changes', () => {
   it('Schedule tabs use fixed six-column grid on mobile (no horizontal scroll)', () => {
     expect(pageContent).toContain('grid grid-cols-6')
     expect(pageContent).not.toContain('overflow-x-auto')
+  })
+})
+
+describe('Schedule Polish — Batch 3 Layout Contracts', () => {
+  it('Map removes duplicate outer bottom padding without touching ScheduleMap behavior', () => {
+    expect(pageContent).toMatch(/scheduleTab === 'map'\s*\? \{ paddingBottom: 0, overflowY: 'clip' \}/)
+    expect(pageContent).toContain('<ScheduleMap')
+  })
+
+  it('Jobs reserve bottom-navigation and safe-area clearance', () => {
+    expect(pageContent).toContain('pb-[calc(var(--bottom-nav-height,80px)+env(safe-area-inset-bottom)+16px)]')
+  })
+
+  it('Daily Brief has one global header toggle and no section toggle state', () => {
+    expect(dailyBriefContent).toContain('const [isExpanded, setIsExpanded] = useState(true)')
+    expect(dailyBriefContent).toContain('aria-expanded={isExpanded}')
+    expect(dailyBriefContent).not.toContain('expandedSections')
+    expect(dailyBriefContent).not.toContain('toggleSection')
+  })
+
+  it('ReplyFlow Ready anchors expansion to measured header geometry', () => {
+    expect(setupStatusContent).toContain('expandWithHeaderAnchor')
+    expect(setupStatusContent).toContain("document.querySelector('header')?.getBoundingClientRect().bottom")
+    expect(setupStatusContent).toContain("window.scrollBy({ top: cardTop - headerBottom, behavior: 'smooth' })")
+    expect(setupStatusContent).not.toMatch(/setTimeout\([\s\S]{0,200}scroll/)
   })
 })
