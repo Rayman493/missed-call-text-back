@@ -145,6 +145,32 @@ function formatNumber(value: number, name?: string): string {
 }
 
 /**
+ * Floating contextual popup for a selected chart datum.
+ * Appears inside the chart area and is dismissed by clearing the selection.
+ */
+export function ChartDatumPopup({
+  children,
+  className,
+  style,
+}: {
+  children: React.ReactNode
+  className?: string
+  style?: React.CSSProperties
+}) {
+  return (
+    <div
+      style={style}
+      className={
+        "absolute top-2 z-10 bg-card border border-border/50 rounded-lg shadow-lg px-3 py-2 max-w-[min(70vw,220px)] " +
+        (className || '')
+      }
+    >
+      {children}
+    </div>
+  )
+}
+
+/**
  * Common chart styling constants
  */
 export const CHART_STYLES = {

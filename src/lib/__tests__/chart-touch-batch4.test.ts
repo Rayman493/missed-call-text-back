@@ -198,9 +198,11 @@ describe('Batch 4 — Desktop/Accessibility Preservation', () => {
     expect(leadsContent).toContain('onClick')
   })
 
-  it('BusinessActivityGraph legend buttons preserve focus-visible ring', () => {
+  it('BusinessActivityGraph legend is informational only (no interactive buttons)', () => {
     const content = readContent('src/components/analytics/BusinessActivityGraph.tsx')
-    expect(content).toContain('focus-visible:ring-2')
+    expect(content).toContain('aria-label="Series legend"')
+    expect(content).not.toContain('onClick={() => toggleSeries(key)}')
+    expect(content).not.toContain('aria-pressed={!hidden}')
   })
 })
 

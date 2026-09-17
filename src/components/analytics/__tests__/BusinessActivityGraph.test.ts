@@ -4,52 +4,36 @@ import { readFileSync } from 'fs'
 describe('BusinessActivityGraph', () => {
   const content = readFileSync('src/components/analytics/BusinessActivityGraph.tsx', 'utf8')
 
-  it('tracks hidden series state and toggles series visibility', () => {
-    expect(content).toContain('const [hiddenSeries, setHiddenSeries]')
-    expect(content).toContain('const toggleSeries =')
-    expect(content).toContain('setHiddenSeries((prev) =>')
+  it('uses a dedicated series filter state instead of legend toggling', () => {
+    expect(content).toContain('const [seriesFilter, setSeriesFilter]')
+    expect(content).toContain('setSeriesFilter')
+    expect(content).not.toContain('const toggleSeries')
+    expect(content).not.toContain('setHiddenSeries')
   })
 
-  it('renders metric controls as buttons with aria-pressed', () => {
-    expect(content).toContain('aria-pressed={!hidden}')
-    expect(content).toContain('type="button"')
-    expect(content).toContain('onClick={() => toggleSeries(key)}')
+  it('exposes Filter and time-range controls independently', () => {
+    expect(content).toMatch(/value=\{seriesFilter\}[\s\S]*?options=\{SERIES_FILTER_OPTIONS\}/)
+    expect(content).toMatch(/value=\{timeRange\}[\s\S]*?options=\{ANALYTICS_TIMEFRAME_OPTIONS\}/)
   })
 
-  it('shows a discoverability hint near the metrics', () => {
-    expect(content).toContain('Tap metrics to show or hide')
+  it('clears the selected datum when the filter or time range changes', () => {
+    expect(content).toContain('setSeriesFilter(value)')
+    expect(content).toContain('setActiveIndex(null)')
+    expect(content).toMatch(/setTimeRange\(value\)[\s\S]*?setActiveIndex\(null\)/)
   })
 
-  it('visually distinguishes hidden metrics beyond color alone', () => {
-    expect(content).toContain('opacity-40 line-through')
-    expect(content).toContain('opacity-100')
+  it('renders an informational legend, not clickable metric buttons', () => {
+    expect(content).not.toContain('aria-pressed={!hidden}')
+    expect(content).not.toContain('onClick={() => toggleSeries(key)}')
+    expect(content).not.toContain('Tap metrics to show or hide')
+    expect(content).toContain('role="group" aria-label="Series legend"')
   })
 
-  it('reserves extra vertical space for the wrapped legend', () => {
-    expect(content).toContain('height={64}')
-  })
-
-  it('keeps a clear gap between x-axis labels and the legend', () => {
-    expect(content).toContain('bottom: 12')
-  })
-
-  it('uses touch-friendly metric control sizing', () => {
-    expect(content).toContain('min-h-[28px]')
-  })
-
-  it('includes accessible labels for showing or hiding each metric', () => {
-    expect(content).toContain('aria-label={`${hidden ? \'Show\' : \'Hide\'} ${label}`}')
-  })
-
-  it('does not merge date-range and metric-filter concepts', () => {
-    expect(content).toContain('ANALYTICS_TIMEFRAME_OPTIONS')
-    expect(content).toContain('setTimeRange')
-    expect(content).toContain('setHiddenSeries')
-  })
-
-  it('keeps the Last 30 Days / time-range selector independent of metric toggles', () => {
-    expect(content).toContain('value={timeRange}')
-    expect(content).toContain('onChange={setTimeRange}')
+  it('hides lines according to the explicit series filter', () => {
+    expect(content).toContain("hide={seriesFilter !== 'all' && seriesFilter !== 'conversations'}")
+    expect(content).toContain("hide={seriesFilter !== 'all' && seriesFilter !== 'appointments'}")
+    expect(content).toContain("hide={seriesFilter !== 'all' && seriesFilter !== 'paymentRequests'}")
+    expect(content).toContain("hide={seriesFilter !== 'all' && seriesFilter !== 'completedJobs'}")
   })
 
   it('defines canonical series labels for Appointments, Completed Jobs, Conversations, Payment Requests', () => {
@@ -57,5 +41,10 @@ describe('BusinessActivityGraph', () => {
     expect(content).toContain("appointments: 'Appointments'")
     expect(content).toContain("paymentRequests: 'Payment Requests'")
     expect(content).toContain("completedJobs: 'Completed Jobs'")
+  })
+
+  it('shows a contextual popup for the selected datum', () => {
+    expect(content).toContain('activeIndex !== null && data[activeIndex]')
+    expect(content).toContain('<ChartDatumPopup')
   })
 })

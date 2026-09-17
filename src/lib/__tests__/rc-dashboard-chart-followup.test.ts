@@ -263,8 +263,10 @@ describe('RC Dashboard Chart Follow-up — Desktop Preservation', () => {
     expect(chartUtils).toContain("e.pointerType !== 'touch'")
   })
 
-  it('BusinessActivityGraph legend buttons preserve focus-visible ring', () => {
-    expect(activityGraph).toContain('focus-visible:ring-2')
+  it('BusinessActivityGraph legend is informational only (no interactive buttons)', () => {
+    expect(activityGraph).toContain('aria-label="Series legend"')
+    expect(activityGraph).not.toContain('onClick={() => toggleSeries(key)}')
+    expect(activityGraph).not.toContain('aria-pressed={!hidden}')
   })
 
   it('analytics calculations unchanged', () => {

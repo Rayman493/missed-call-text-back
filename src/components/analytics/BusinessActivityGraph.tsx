@@ -8,7 +8,7 @@ import { Activity } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice, ChartDatumPopup } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 
@@ -18,6 +18,20 @@ const SERIES_LABELS: Record<string, string> = {
   paymentRequests: 'Payment Requests',
   completedJobs: 'Completed Jobs'
 }
+
+const SERIES_COLORS: Record<string, string> = {
+  conversations: '#3b82f6',
+  appointments: '#22c55e',
+  paymentRequests: '#f59e0b',
+  completedJobs: '#8b5cf6',
+}
+
+const SERIES_KEYS = Object.keys(SERIES_LABELS) as (keyof ActivityData)[]
+
+const SERIES_FILTER_OPTIONS = [
+  { value: 'all', label: 'All' },
+  ...SERIES_KEYS.map((key) => ({ value: key as string, label: SERIES_LABELS[key] }))
+]
 
 interface ActivityData {
   date: string
@@ -33,19 +47,13 @@ export default function BusinessActivityGraph() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
-  const [hiddenSeries, setHiddenSeries] = useState<string[]>([])
+  const [seriesFilter, setSeriesFilter] = useState<string>('all')
   const isTouchDevice = useTouchDevice()
   // Tracks whether the initial load has completed. Distinguishes the
   // first fetch (full "Loading..." state) from subsequent range changes
   // (subtle "Updating..." indicator that keeps the previous chart visible).
   const hasInitialLoadRef = useRef(false)
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
-
-  const toggleSeries = (key: string) => {
-    setHiddenSeries((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    )
-  }
 
   useEffect(() => {
     let isStale = false
@@ -172,20 +180,22 @@ export default function BusinessActivityGraph() {
 
   const isEmpty = data.length === 0
 
-  // Calculate summary KPIs
-  const totalInteractions = data.reduce((sum, day) =>
-    sum + day.conversations + day.appointments + day.paymentRequests + day.completedJobs, 0
-  )
-  const peakDay = data.length > 0 ? data.reduce((max, day) => {
-    const dayTotal = day.conversations + day.appointments + day.paymentRequests + day.completedJobs
-    return dayTotal > (max.conversations + max.appointments + max.paymentRequests + max.completedJobs) ? day : max
-  }, data[0]) : null
+  // Determine which series are currently visible
+  const visibleKeys: (keyof ActivityData)[] =
+    seriesFilter === 'all' ? SERIES_KEYS : [seriesFilter as keyof ActivityData]
+
+  // Calculate summary KPIs from visible series only
+  const getDayTotal = (day: ActivityData) =>
+    visibleKeys.reduce((sum, key) => sum + (day[key] as number), 0)
+
+  const totalInteractions = data.reduce((sum, day) => sum + getDayTotal(day), 0)
+  const peakDay = data.length > 0
+    ? data.reduce((max, day) => getDayTotal(day) > getDayTotal(max) ? day : max, data[0])
+    : null
   const averageDaily = data.length > 0 ? Math.round(totalInteractions / data.length) : 0
 
-  // Calculate max value for Y-axis ticks
-  const maxValue = data.length > 0 ? Math.max(...data.map(d =>
-    d.conversations + d.appointments + d.paymentRequests + d.completedJobs
-  )) : 0
+  // Calculate max value for Y-axis ticks from visible series only
+  const maxValue = data.length > 0 ? Math.max(...data.map(getDayTotal)) : 0
   const yTicks = getIntegerTicks(maxValue)
 
   return (
@@ -197,8 +207,19 @@ export default function BusinessActivityGraph() {
           </div>
           <div className="flex items-center gap-2">
             <PremiumSelect
+              value={seriesFilter}
+              onChange={(value) => {
+                setSeriesFilter(value)
+                setActiveIndex(null)
+              }}
+              options={SERIES_FILTER_OPTIONS}
+            />
+            <PremiumSelect
               value={timeRange}
-              onChange={setTimeRange}
+              onChange={(value) => {
+                setTimeRange(value)
+                setActiveIndex(null)
+              }}
               options={ANALYTICS_TIMEFRAME_OPTIONS}
             />
           </div>
@@ -239,6 +260,31 @@ export default function BusinessActivityGraph() {
                 Updating…
               </div>
             )}
+            {activeIndex !== null && data[activeIndex] && (
+              <ChartDatumPopup
+                className="right-auto"
+                style={{
+                  left: data.length > 1 ? `${(activeIndex / (data.length - 1)) * 100}%` : '50%',
+                  transform: 'translateX(-50%)',
+                }}
+              >
+                <p className="text-[11px] font-semibold text-foreground">{data[activeIndex].date}</p>
+                <div className="space-y-0.5">
+                  {visibleKeys.map((key) => (
+                    <div key={key as string} className="flex items-center justify-between gap-3 text-[11px]">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: SERIES_COLORS[key as keyof typeof SERIES_COLORS] }}
+                        />
+                        <span className="text-muted-foreground">{SERIES_LABELS[key as string]}</span>
+                      </div>
+                      <span className="font-medium text-foreground tabular-nums">{data[activeIndex][key]}</span>
+                    </div>
+                  ))}
+                </div>
+              </ChartDatumPopup>
+            )}
             <ChartTouchWrapper data={data} onActiveIndexChange={setActiveIndex}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={{ ...CHART_STYLES.margin, bottom: 12 }}>
@@ -265,6 +311,7 @@ export default function BusinessActivityGraph() {
                     tickFormatter={formatInteger}
                   />
                   <Tooltip
+                    cursor={false}
                     content={({ active, payload, label }: any) => {
                       if (!active || !payload || payload.length === 0) return null
 
@@ -294,44 +341,32 @@ export default function BusinessActivityGraph() {
                   />
                   <Legend
                     content={({ payload }: any) => (
-                      <div className="flex flex-col items-center justify-center gap-1 h-full px-2">
-                        <p className="text-[10px] text-muted-foreground/60 leading-none mb-0.5">
-                          Tap metrics to show or hide
-                        </p>
-                        <div className="flex flex-wrap gap-2 sm:gap-3 justify-center" role="group" aria-label="Metric filters">
-                          {payload.map((entry: any, index: number) => {
+                      <div className="flex flex-wrap gap-2 sm:gap-3 justify-center px-2" role="group" aria-label="Series legend">
+                        {payload
+                          .filter((entry: any) => entry.inactive !== true)
+                          .map((entry: any, index: number) => {
                             const key = entry.dataKey as string
                             const label = SERIES_LABELS[key] || entry.dataKey
-                            const hidden = hiddenSeries.includes(key)
-                            const total = hidden
-                              ? 0
-                              : data.reduce((sum, day) => {
-                                  const value = day[key as keyof ActivityData]
-                                  return sum + (typeof value === 'number' ? value : 0)
-                                }, 0)
+                            const total = data.reduce((sum, day) => {
+                              const value = day[key as keyof ActivityData]
+                              return sum + (typeof value === 'number' ? value : 0)
+                            }, 0)
                             return (
-                              <button
+                              <div
                                 key={index}
-                                type="button"
-                                onClick={() => toggleSeries(key)}
-                                aria-pressed={!hidden}
-                                aria-label={`${hidden ? 'Show' : 'Hide'} ${label}`}
-                                className={`flex items-center gap-1.5 rounded-md px-2 py-1 min-h-[28px] transition-opacity duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                                  hidden ? 'opacity-40 line-through' : 'opacity-100'
-                                }`}
+                                className="flex items-center gap-1.5 text-[10px] text-muted-foreground"
                               >
                                 <span
                                   className="w-2.5 h-2.5 rounded-full"
                                   style={{ backgroundColor: entry.color }}
                                   aria-hidden="true"
                                 />
-                                <span className="text-[10px] text-muted-foreground">
+                                <span>
                                   {label}: <span className="font-medium text-foreground">{total}</span>
                                 </span>
-                              </button>
+                              </div>
                             )
                           })}
-                        </div>
                       </div>
                     )}
                     wrapperStyle={{ paddingTop: 0 }}
@@ -348,7 +383,7 @@ export default function BusinessActivityGraph() {
                     dot={false}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#3b82f6', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Conversations"
-                    hide={hiddenSeries.includes('conversations')}
+                    hide={seriesFilter !== 'all' && seriesFilter !== 'conversations'}
                   />
                   <Line
                     type="monotone"
@@ -358,7 +393,7 @@ export default function BusinessActivityGraph() {
                     dot={false}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#22c55e', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Appointments"
-                    hide={hiddenSeries.includes('appointments')}
+                    hide={seriesFilter !== 'all' && seriesFilter !== 'appointments'}
                   />
                   <Line
                     type="monotone"
@@ -368,7 +403,7 @@ export default function BusinessActivityGraph() {
                     dot={false}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#f59e0b', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Payment Requests"
-                    hide={hiddenSeries.includes('paymentRequests')}
+                    hide={seriesFilter !== 'all' && seriesFilter !== 'paymentRequests'}
                   />
                   <Line
                     type="monotone"
@@ -378,7 +413,7 @@ export default function BusinessActivityGraph() {
                     dot={false}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#8b5cf6', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Completed Jobs"
-                    hide={hiddenSeries.includes('completedJobs')}
+                    hide={seriesFilter !== 'all' && seriesFilter !== 'completedJobs'}
                   />
                 </LineChart>
               </ResponsiveContainer>

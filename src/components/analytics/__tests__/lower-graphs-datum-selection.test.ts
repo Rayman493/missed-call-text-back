@@ -22,10 +22,10 @@ describe('CustomerPipelineGraph', () => {
     expect(content).toMatch(/setSelectedIndex\(\(prev\) => \(prev === index \? null : index\)\)/)
   })
 
-  it('shows selected datum context in the summary area', () => {
-    expect(content).toMatch(/selectedIndex !== null && data\[selectedIndex\]/)
-    expect(content).toMatch(/data\[selectedIndex\]\.status/)
-    expect(content).toMatch(/data\[selectedIndex\]\.count/)
+  it('shows selected datum context in a floating popup', () => {
+    expect(content).toMatch(/selectedIndex !== null && (?:data|displayData)\[selectedIndex\]/)
+    expect(content).toMatch(/(?:data|displayData)\[selectedIndex\]\.status/)
+    expect(content).toMatch(/(?:data|displayData)\[selectedIndex\]\.count/)
   })
 
   it('clears selection when tapping chart background/surface', () => {
@@ -46,10 +46,10 @@ describe('CustomersStatusGraph', () => {
     expect(content).toMatch(/setSelectedIndex\(\(prev\) => \(prev === index \? null : index\)\)/)
   })
 
-  it('shows selected datum context in the summary area', () => {
-    expect(content).toMatch(/selectedIndex !== null && data\[selectedIndex\]/)
-    expect(content).toMatch(/data\[selectedIndex\]\.status/)
-    expect(content).toMatch(/data\[selectedIndex\]\.count/)
+  it('shows selected datum context in a floating popup', () => {
+    expect(content).toMatch(/selectedIndex !== null && (?:data|displayData)\[selectedIndex\]/)
+    expect(content).toMatch(/(?:data|displayData)\[selectedIndex\]\.status/)
+    expect(content).toMatch(/(?:data|displayData)\[selectedIndex\]\.count/)
   })
 })
 

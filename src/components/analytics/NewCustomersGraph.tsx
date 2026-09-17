@@ -8,7 +8,7 @@ import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice, ChartDatumPopup } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getDaysInTimeframe } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 
@@ -114,14 +114,12 @@ export default function NewCustomersGraph() {
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground/70 mt-1">
-              {selectedIndex !== null && data[selectedIndex]
-                ? `${data[selectedIndex].date} — ${data[selectedIndex].customers} ${data[selectedIndex].customers === 1 ? 'new customer' : 'new customers'}`
-                : totalCustomers === 1 && timeRange === '30d'
+              {totalCustomers === 1 && timeRange === '30d'
                 ? '1 new customer this month'
                 : averageDaily > 0
                   ? `${averageDaily.toFixed(1)} per day average`
                   : 'No data yet'}
-              {!selectedIndex && peakDay && ` • Peak: ${peakDay.date} (${peakDay.customers})`}
+              {peakDay && ` • Peak: ${peakDay.date} (${peakDay.customers})`}
             </div>
           </div>
         )}
@@ -137,7 +135,15 @@ export default function NewCustomersGraph() {
             description="Missed calls converted to customers will appear here over time."
           />
         ) : (
-          <div className="h-[260px]">
+          <div className="h-[260px] relative">
+            {selectedIndex !== null && data[selectedIndex] && (
+              <ChartDatumPopup>
+                <p className="text-[11px] font-semibold text-foreground">{data[selectedIndex].date}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {data[selectedIndex].customers} {data[selectedIndex].customers === 1 ? 'new customer' : 'new customers'}
+                </p>
+              </ChartDatumPopup>
+            )}
             <ChartTouchWrapper chartType="bar">
               <div
                 className="w-full h-full"

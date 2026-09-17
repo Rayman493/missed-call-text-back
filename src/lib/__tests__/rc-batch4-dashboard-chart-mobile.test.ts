@@ -372,9 +372,11 @@ describe('RC Batch 4 — Dashboard Chart Mobile Interaction + Loading Polish', (
       expect(activity).toMatch(/trigger\s*=\s*(['"])hover\1/)
     })
 
-    it('BusinessActivityGraph legend buttons preserve focus-visible ring', () => {
+    it('BusinessActivityGraph legend is informational only (no interactive buttons)', () => {
       const content = read('src/components/analytics/BusinessActivityGraph.tsx')
-      expect(content).toContain('focus-visible:ring-2')
+      expect(content).toContain('aria-label="Series legend"')
+      expect(content).not.toContain('onClick={() => toggleSeries(key)}')
+      expect(content).not.toContain('aria-pressed={!hidden}')
     })
 
     it('analytics calculations unchanged (no new data sources)', () => {

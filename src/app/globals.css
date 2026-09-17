@@ -892,7 +892,8 @@ html.light select:-moz-autofill:focus {
 .recharts-bar-rectangle,
 .recharts-pie-sector,
 .recharts-line-dot,
-.recharts-cursor {
+.recharts-cursor,
+.recharts-rectangle-wrapper {
   touch-action: pan-y;
 }
 
@@ -907,7 +908,9 @@ html.light select:-moz-autofill:focus {
 .recharts-bar-rectangles:focus,
 .recharts-bar-rectangles:focus-visible,
 .recharts-cursor:focus,
-.recharts-cursor:focus-visible {
+.recharts-cursor:focus-visible,
+.recharts-rectangle-wrapper:focus,
+.recharts-rectangle-wrapper:focus-visible {
   outline: none !important;
 }
 

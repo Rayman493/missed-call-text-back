@@ -1,13 +1,14 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
+import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice, ChartDatumPopup } from '@/lib/chart-utils'
 import { CUSTOMER_STATUS_STYLES, CustomerStatus, normalizeCustomerStatus } from '@/lib/customer-status'
 
 interface CustomerStatusData {
@@ -16,11 +17,22 @@ interface CustomerStatusData {
   color: string
 }
 
+const STATUS_ORDER: CustomerStatus[] = ['new', 'needs_reply', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'cancelled', 'ignored', 'lost']
+
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: 'All' },
+  ...STATUS_ORDER.map((status) => ({
+    value: status,
+    label: CUSTOMER_STATUS_STYLES[status].label,
+  }))
+]
+
 export default function CustomersStatusGraph() {
   const { business } = useBusiness()
   const [data, setData] = useState<CustomerStatusData[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string>('all')
   const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
@@ -75,15 +87,21 @@ export default function CustomersStatusGraph() {
     return () => { isMounted = false }
   }, [business?.id])
 
-  const isEmpty = data.length === 0
+  const displayData = useMemo(() => {
+    if (statusFilter === 'all') return data
+    const label = STATUS_FILTER_OPTIONS.find((o) => o.value === statusFilter)?.label
+    return data.filter((d) => d.status === label)
+  }, [data, statusFilter])
 
-  // Calculate summary KPIs
-  const totalCustomers = data.reduce((sum, item) => sum + item.count, 0)
-  const activeCustomers = data.find(d => d.status === 'Active')?.count || 0
-  const newCustomers = data.find(d => d.status === 'New')?.count || 0
+  const isEmpty = displayData.length === 0
+
+  // Calculate summary KPIs from the filtered view
+  const totalCustomers = displayData.reduce((sum, item) => sum + item.count, 0)
+  const activeCustomers = displayData.find(d => d.status === 'Active')?.count || 0
+  const newCustomers = displayData.find(d => d.status === 'New')?.count || 0
 
   // Calculate max value for X-axis ticks
-  const maxValue = data.length > 0 ? Math.max(...data.map(d => d.count)) : 0
+  const maxValue = displayData.length > 0 ? Math.max(...displayData.map(d => d.count)) : 0
   const xTicks = getIntegerTicks(maxValue)
 
   return (
@@ -93,6 +111,14 @@ export default function CustomersStatusGraph() {
           <div>
             <h3 className="text-sm font-semibold text-foreground">Customers by Status</h3>
           </div>
+          <PremiumSelect
+            value={statusFilter}
+            onChange={(value) => {
+              setStatusFilter(value)
+              setSelectedIndex(null)
+            }}
+            options={STATUS_FILTER_OPTIONS}
+          />
         </div>
 
         {!isEmpty && (
@@ -104,10 +130,8 @@ export default function CustomersStatusGraph() {
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground/70 mt-1">
-              {selectedIndex !== null && data[selectedIndex]
-                ? `${data[selectedIndex].status} — ${data[selectedIndex].count} ${data[selectedIndex].count === 1 ? 'customer' : 'customers'}`
-                : totalCustomers === 1 && data.length === 1
-                ? `${data[0].status}`
+              {totalCustomers === 1 && displayData.length === 1
+                ? `${displayData[0].status}`
                 : `${newCustomers} new, ${activeCustomers} active`}
             </div>
           </div>
@@ -124,7 +148,15 @@ export default function CustomersStatusGraph() {
             description="Customers from missed calls and other sources will appear here with their status."
           />
         ) : (
-          <div className="h-[260px]">
+          <div className="h-[260px] relative">
+            {selectedIndex !== null && displayData[selectedIndex] && (
+              <ChartDatumPopup>
+                <p className="text-[11px] font-semibold text-foreground">{displayData[selectedIndex].status}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {displayData[selectedIndex].count} {displayData[selectedIndex].count === 1 ? 'customer' : 'customers'}
+                </p>
+              </ChartDatumPopup>
+            )}
             <ChartTouchWrapper chartType="bar">
               <div
                 className="w-full h-full"
@@ -135,7 +167,7 @@ export default function CustomersStatusGraph() {
                 }}
               >
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data} layout="vertical" margin={{ top: 8, right: 12, bottom: 8, left: 4 }}>
+                  <BarChart data={displayData} layout="vertical" margin={{ top: 8, right: 12, bottom: 8, left: 4 }}>
                     <CartesianGrid
                       strokeDasharray={CHART_STYLES.gridStrokeDasharray}
                       stroke={CHART_STYLES.gridStroke}
@@ -179,7 +211,7 @@ export default function CustomersStatusGraph() {
                         setSelectedIndex((prev) => (prev === index ? null : index))
                       }}
                     >
-                      {data.map((entry, index) => (
+                      {displayData.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={entry.color}
