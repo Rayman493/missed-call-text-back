@@ -160,28 +160,28 @@ export default function DesktopConversationMessageList({
               id={item.id}
               className="flex items-center justify-center my-4"
             >
-              <div className="flex flex-col items-center gap-2 bg-muted/30 px-4 py-3 rounded-md border border-border/20 shadow-sm max-w-md">
-                <div className="flex items-center gap-2 w-full justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <StatusIcon className={`w-4 h-4 ${statusUI.iconColor}`} />
-                    <span className="text-xs font-semibold text-foreground">
-                      {statusUI.title}
+              <div className="flex flex-col gap-1.5 bg-muted/30 px-4 py-2.5 rounded-md border border-border/20 shadow-sm max-w-md min-w-[220px]">
+                <div className="flex items-center justify-between gap-3 w-full">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <StatusIcon className={`w-3.5 h-3.5 ${statusUI.iconColor} flex-shrink-0`} />
+                    <span className="text-[11px] font-medium text-foreground truncate">
+                      Payment request sent
                     </span>
                   </div>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${statusUI.bgColor} ${statusUI.iconColor}`}>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${statusUI.bgColor} ${statusUI.iconColor}`}>
                     {statusUI.label}
                   </span>
                 </div>
-                <div className="text-sm font-semibold text-foreground">
+                <div className="text-base font-semibold text-foreground">
                   {formatCurrency(payment.amount_cents, true)}
                 </div>
                 {firstNonPlaceholder(payment.description) && (
-                  <div className="text-xs text-foreground/70">
-                    For: {firstNonPlaceholder(payment.description)}
+                  <div className="text-xs text-muted-foreground truncate">
+                    {firstNonPlaceholder(payment.description)}
                   </div>
                 )}
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
-                  <span>{formatRelativeTime(payment.timestamp)}</span>
+                <div className="text-[10px] text-muted-foreground/60">
+                  {formatRelativeTime(payment.timestamp)}
                 </div>
               </div>
             </div>

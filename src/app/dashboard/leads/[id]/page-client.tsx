@@ -5019,14 +5019,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
                   <button
                   type="button"
-                  onClick={() => setShowEditCustomer(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                  <span>Edit Customer</span>
-                </button>
-                  <button
-                  type="button"
                   onClick={handleCreateJobClick}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                 >

@@ -1,5 +1,3 @@
-import { ReactNode } from 'react'
-import { Calendar, Briefcase, CheckCircle2 } from 'lucide-react'
 import { useTapGuard } from '@/lib/gesture/use-tap-guard'
 
 interface CalendarEvent {
@@ -36,40 +34,8 @@ export default function CalendarDayCell({
   // when the user is scrolling/dragging across the calendar grid.
   const dayGuard = useTapGuard()
 
-  // Separate guard for event chips. An event tap must open the event modal
-  // and NOT bubble to the day cell's onClick. An event drag must suppress
-  // both the event action AND the day selection.
-  const eventGuard = useTapGuard()
-
-  const getEventIcon = (type: string) => {
-    switch (type) {
-      case 'appointment':
-        return <Calendar className="w-3 h-3 flex-none" />
-      case 'job':
-        return <Briefcase className="w-3 h-3 flex-none" />
-      case 'task':
-        return <CheckCircle2 className="w-3 h-3 flex-none" />
-      default:
-        return null
-    }
-  }
-
-  const getEventColor = (type: string) => {
-    switch (type) {
-      case 'appointment':
-        return 'text-blue-600 dark:text-blue-400'
-      case 'job':
-        return 'text-green-600 dark:text-green-400'
-      case 'task':
-        return 'text-purple-600 dark:text-purple-400'
-      default:
-        return 'text-slate-600 dark:text-slate-400'
-    }
-  }
-
-  const visibleEvents = events.slice(0, 2)
-  const overflowCount = Math.max(0, events.length - 2)
   const hasEvents = events.length > 0
+  const eventCountLabel = `${events.length} ${events.length === 1 ? 'event' : 'events'}`
 
   return (
     <div
@@ -124,14 +90,14 @@ export default function CalendarDayCell({
           Enlarged hit target (w-7 h-7 on mobile, w-8 h-8 on desktop) for
           reliable tapping on crowded days. */}
       <div
-        className="relative z-10 flex items-start justify-start w-7 h-7 md:w-8 md:h-8 flex-none leading-none p-0"
+        className="relative z-10 flex items-center justify-center w-7 h-7 md:w-8 md:h-8 flex-none leading-none p-0"
       >
         <span
           className={`
             text-[10px] md:text-sm font-semibold leading-none
             ${isToday
-              ? 'inline-flex items-center justify-center w-5 h-5 md:w-6 md:h-6 m-0.5 bg-blue-500 text-white rounded-full'
-              : 'pl-0.5 pt-0.5'
+              ? 'inline-flex items-center justify-center w-5 h-5 md:w-6 md:h-6 bg-blue-500 text-white rounded-full'
+              : ''
             }
             ${isCurrentMonth
               ? isWeekend && !isToday
@@ -148,47 +114,17 @@ export default function CalendarDayCell({
           {day}
         </span>
       </div>
-      <div className="relative z-10 w-full flex flex-col gap-0.5 min-h-0">
-        {visibleEvents.map((event, index) => (
+      <div className="relative z-10 w-full flex flex-col items-center justify-center flex-1 min-h-0">
+        {hasEvents && (
           <div
-            key={`${event.id}-${index}`}
-            className={`flex items-center gap-1 text-[10px] sm:text-[11px] leading-tight cursor-pointer hover:opacity-80 ${getEventColor(event.type)}`}
-            title={event.summary}
-            role="button"
-            tabIndex={0}
-            onPointerDown={eventGuard.onPointerDown}
-            onPointerMove={eventGuard.onPointerMove}
-            onPointerUp={eventGuard.onPointerUp}
-            onPointerCancel={eventGuard.onPointerCancel}
-            onPointerLeave={eventGuard.onPointerLeave}
+            className="flex items-center gap-1 text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
             onClick={(e) => {
-              // Always stop propagation so the day cell's onClick doesn't
-              // also fire (prevents day selection when tapping an event).
               e.stopPropagation()
-              // Suppress event modal if this gesture was a drag/scroll.
-              // One-shot: consumeDragSuppression() returns true once then
-              // resets, so later keyboard activation is never stale-suppressed.
-              if (eventGuard.consumeDragSuppression()) return
-              onEventClick?.(event)
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                e.stopPropagation()
-                onEventClick?.(event)
-              }
+              onClick?.()
             }}
           >
-            <div className="flex items-center justify-center w-3 h-3 sm:w-3.5 sm:h-3.5 flex-none shrink-0">
-              {getEventIcon(event.type)}
-            </div>
-            <span className="truncate font-medium min-w-0 flex-1">{event.summary}</span>
+            <span>{eventCountLabel}</span>
           </div>
-        ))}
-        {overflowCount > 0 && (
-          <span className={`text-[10px] sm:text-[11px] leading-tight ${overflowCount > 3 ? 'font-semibold' : 'font-normal'} text-slate-500 dark:text-slate-400`}>
-            +{overflowCount} more
-          </span>
         )}
       </div>
     </div>

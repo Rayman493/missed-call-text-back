@@ -9,10 +9,10 @@
  *
  * The fix:
  * - Enlarge the date number hit target (w-7 h-7 on mobile, w-8 h-8 on desktop)
- * - Add a transparent overlay (absolute inset-0 z-0) behind the event chips
+ * - Add a transparent overlay (absolute inset-0 z-0) behind the event summary
  *   that captures day-selection taps on any non-event area
- * - Event chips are positioned above the overlay (z-10) and use
- *   stopPropagation so their taps open the event, not the day
+ * - Month cells now show a single compact event-count summary instead of
+ *   individual stacked chips; tapping it opens the day detail view.
  */
 
 import { describe, it, expect } from 'vitest'
@@ -24,12 +24,13 @@ describe('CalendarDayCell — crowded-day hit area', () => {
   it('date number hit target is enlarged (w-7 h-7 on mobile, w-8 h-8 on desktop)', () => {
     expect(content).toContain('w-7 h-7')
     expect(content).toContain('md:w-8 md:h-8')
-    // Must NOT have the old small hit target
-    expect(content).not.toContain('w-5 h-5 md:w-6 md:h-6')
+    // The date number container is the enlarged hit target; the old 20px hit
+    // target should not exist outside the today circle indicator.
+    expect(content).not.toContain('className="w-5 h-5 md:w-6 md:h-6"')
   })
 
   it('transparent overlay fills the entire cell for day selection', () => {
-    // The overlay is absolute inset-0 z-0, behind the event chips
+    // The overlay is absolute inset-0 z-0, behind the event summary
     expect(content).toContain('absolute inset-0 z-0')
     expect(content).toContain('aria-hidden="true"')
   })
@@ -38,19 +39,20 @@ describe('CalendarDayCell — crowded-day hit area', () => {
     expect(content).toContain('relative z-10')
   })
 
-  it('event chips container is positioned above the overlay (z-10)', () => {
-    // The event chips container must be z-10 so taps on events don't
+  it('event summary is positioned above the overlay (z-10)', () => {
+    // The summary container must be z-10 so taps on it don't
     // reach the day-selection overlay
     expect(content).toMatch(/relative z-10 w-full flex flex-col/)
   })
 
-  it('event chips stopPropagation to prevent day selection on event tap', () => {
+  it('event summary stopPropagation to prevent day selection on summary tap', () => {
     expect(content).toContain('e.stopPropagation()')
   })
 
-  it('event chips have their own tap guard (eventGuard)', () => {
-    expect(content).toContain('eventGuard.onPointerDown')
-    expect(content).toContain('eventGuard.consumeDragSuppression()')
+  it('month cell shows a compact event count summary instead of stacked titles', () => {
+    expect(content).toContain('eventCountLabel')
+    expect(content).not.toContain('+{overflowCount} more')
+    expect(content).not.toContain('{event.summary}')
   })
 
   it('day cell has its own tap guard (dayGuard)', () => {

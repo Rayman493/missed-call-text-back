@@ -75,6 +75,45 @@ describe('quote to invoice lifecycle', () => {
   })
 })
 
+describe('quote to invoice conversion UI feedback', () => {
+  const convertFn = paymentsPage.slice(paymentsPage.indexOf('const handleConvertBillingDoc = async'))
+
+  it('shows a success toast only after a successful new conversion', () => {
+    expect(paymentsPage).toContain('showToast(')
+    expect(paymentsPage).toContain('`Invoice ${newInvoice.document_number || \'\'} created`')
+    expect(paymentsPage).toContain('if (isNewlyCreated)')
+  })
+
+  it('does not show a duplicate success toast when an existing invoice is returned', () => {
+    expect(paymentsPage).toContain('const existing = prev.some((document) => document.id === invoiceItem.id)')
+    expect(paymentsPage).toContain('isNewlyCreated = !existing')
+    const afterIsNewlyCreated = convertFn.slice(convertFn.indexOf('if (isNewlyCreated)'))
+    expect(afterIsNewlyCreated).toContain('showToast(')
+  })
+
+  it('shows a visible error toast when the conversion response is not OK', () => {
+    expect(paymentsPage).toContain('showToast(errorMessage, \'error\')')
+    expect(paymentsPage).toContain('Failed to create invoice')
+  })
+
+  it('shows a fallback error toast when fetch/network throws', () => {
+    const catchBlock = convertFn.slice(convertFn.indexOf('catch (err)'))
+    expect(catchBlock).toContain('showToast(')
+  })
+
+  it('does not mutate invoice state on conversion failure', () => {
+    const okBranch = convertFn.slice(
+      convertFn.indexOf('if (res.ok)'),
+      convertFn.indexOf('} else {')
+    )
+    expect(okBranch).toContain('setBillingDocuments')
+
+    const failureBranch = convertFn.slice(convertFn.indexOf('} else {'))
+    expect(failureBranch).not.toContain('setBillingDocuments')
+    expect(failureBranch).toContain('showToast(errorMessage, \'error\')')
+  })
+})
+
 describe('document realtime and safe actions', () => {
   it('publishes full billing document updates for realtime acceptance', () => {
     expect(migration).toContain('ALTER PUBLICATION supabase_realtime ADD TABLE billing_documents')
@@ -111,9 +150,9 @@ describe('document realtime and safe actions', () => {
   })
 
   it('uses stable action columns', () => {
-    expect(list).toContain('grid grid-cols-5 gap-1 w-40')
+    expect(list).toContain('grid grid-cols-6 gap-1 w-48')
     expect(list).toContain('style={{ gridColumn: 1 }}')
-    expect(list).toContain('style={{ gridColumn: 5 }}')
+    expect(list).toContain('style={{ gridColumn: 6 }}')
   })
 
   it('maps actual share cancellation to transient normal feedback', () => {

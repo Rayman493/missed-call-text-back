@@ -229,8 +229,10 @@ export default function BillingDocumentList({
               )}
             </button>
 
-            {/* Right: actions — shared row with status-conditional buttons */}
-            <div className="grid grid-cols-5 gap-1 w-40 flex-shrink-0">
+            {/* Right: actions — stable slot order across statuses
+                 col 1 Edit, col 2 Send/Resend, col 3 Convert/View Invoice,
+                 col 4 Download, col 5 View, col 6 Delete */}
+            <div className="grid grid-cols-6 gap-1 w-48 flex-shrink-0">
               {isDraft && (
                 <>
                   <button
@@ -256,7 +258,7 @@ export default function BillingDocumentList({
                     onClick={() => onDownload(doc)}
                     disabled={downloadingId === doc.id}
                     className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
-                    style={{ gridColumn: 3 }}
+                    style={{ gridColumn: 4 }}
                     aria-label="Download PDF"
                     title="Download PDF"
                   >
@@ -265,7 +267,7 @@ export default function BillingDocumentList({
                   <button
                     onClick={() => onView(doc)}
                     className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
-                    style={{ gridColumn: 4 }}
+                    style={{ gridColumn: 5 }}
                     aria-label="View document"
                     title="View"
                   >
@@ -275,7 +277,7 @@ export default function BillingDocumentList({
                     onClick={() => setDeleteTarget(doc)}
                     disabled={deletingId === doc.id}
                     className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
-                    style={{ gridColumn: 5 }}
+                    style={{ gridColumn: 6 }}
                     aria-label="Delete document"
                     title="Delete"
                   >
@@ -300,7 +302,7 @@ export default function BillingDocumentList({
                     onClick={() => onDownload(doc)}
                     disabled={downloadingId === doc.id}
                     className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
-                    style={{ gridColumn: 3 }}
+                    style={{ gridColumn: 4 }}
                     aria-label="Download PDF"
                     title="Download PDF"
                   >
@@ -309,7 +311,7 @@ export default function BillingDocumentList({
                   <button
                     onClick={() => onView(doc)}
                     className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
-                    style={{ gridColumn: 4 }}
+                    style={{ gridColumn: 5 }}
                     aria-label="View document"
                     title="View"
                   >
@@ -324,7 +326,7 @@ export default function BillingDocumentList({
                     onClick={() => doc.derived_invoice ? onViewRelated?.(doc.derived_invoice.id) : onConvert(doc)}
                     disabled={convertingId === doc.id || (!!doc.derived_invoice && !onViewRelated)}
                     className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
-                    style={{ gridColumn: 2 }}
+                    style={{ gridColumn: 3 }}
                     aria-label={doc.derived_invoice ? `View invoice ${doc.derived_invoice.document_number}` : 'Create Invoice'}
                     title={doc.derived_invoice ? 'View Invoice' : 'Create Invoice'}
                   >
@@ -334,7 +336,7 @@ export default function BillingDocumentList({
                     onClick={() => onDownload(doc)}
                     disabled={downloadingId === doc.id}
                     className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
-                    style={{ gridColumn: 3 }}
+                    style={{ gridColumn: 4 }}
                     aria-label="Download PDF"
                     title="Download PDF"
                   >
@@ -343,7 +345,7 @@ export default function BillingDocumentList({
                   <button
                     onClick={() => onView(doc)}
                     className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
-                    style={{ gridColumn: 4 }}
+                    style={{ gridColumn: 5 }}
                     aria-label="View document"
                     title="View"
                   >
@@ -367,7 +369,7 @@ export default function BillingDocumentList({
                     onClick={() => onDownload(doc)}
                     disabled={downloadingId === doc.id}
                     className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
-                    style={{ gridColumn: 3 }}
+                    style={{ gridColumn: 4 }}
                     aria-label="Download PDF"
                     title="Download PDF"
                   >
@@ -376,7 +378,7 @@ export default function BillingDocumentList({
                   <button
                     onClick={() => onView(doc)}
                     className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
-                    style={{ gridColumn: 4 }}
+                    style={{ gridColumn: 5 }}
                     aria-label="View document"
                     title="View"
                   >
@@ -401,7 +403,7 @@ export default function BillingDocumentList({
                     onClick={() => onDownload(doc)}
                     disabled={downloadingId === doc.id}
                     className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
-                    style={{ gridColumn: 3 }}
+                    style={{ gridColumn: 4 }}
                     aria-label="Download PDF"
                     title="Download PDF"
                   >
@@ -410,7 +412,7 @@ export default function BillingDocumentList({
                   <button
                     onClick={() => onView(doc)}
                     className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
-                    style={{ gridColumn: 4 }}
+                    style={{ gridColumn: 5 }}
                     aria-label="View document"
                     title="View"
                   >
@@ -425,7 +427,7 @@ export default function BillingDocumentList({
                     onClick={() => onDownload(doc)}
                     disabled={downloadingId === doc.id}
                     className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50"
-                    style={{ gridColumn: 3 }}
+                    style={{ gridColumn: 4 }}
                     aria-label="Download PDF"
                     title="Download PDF"
                   >
@@ -434,7 +436,7 @@ export default function BillingDocumentList({
                   <button
                     onClick={() => onView(doc)}
                     className="w-8 h-8 flex items-center justify-center active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
-                    style={{ gridColumn: 4 }}
+                    style={{ gridColumn: 5 }}
                     aria-label="View document"
                     title="View"
                   >

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { CreditCard, Copy, ExternalLink, User, X, AlertCircle, Info, ChevronDown, Filter, Edit, RefreshCw, Plus } from 'lucide-react'
 import DashboardShell from '@/components/layout/DashboardShell'
+import Toast, { ToastContainer } from '@/components/Toast'
 import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
@@ -153,6 +154,7 @@ export default function PaymentsPage() {
   const [billingConvertTarget, setBillingConvertTarget] = useState<BillingDocumentListItem | null>(null)
   const [viewingBillingDoc, setViewingBillingDoc] = useState<BillingDocumentListItem | null>(null)
   const [showBillingViewer, setShowBillingViewer] = useState(false)
+  const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
 
   // Payments page segmented view: "payments" or "billing"
   const [paymentsSegment, setPaymentsSegment] = useState<'payments' | 'billing'>('payments')
@@ -570,6 +572,15 @@ export default function PaymentsPage() {
     }
   }
 
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
+    const id = Date.now().toString()
+    setToasts(prev => [...prev, { id, message, type }])
+  }
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id))
+  }
+
   const handleDeleteBillingDoc = async (doc: BillingDocumentListItem) => {
     // Confirmation is handled by the BillingDocumentList's custom Modal.
     // Do NOT add a second browser-native confirm() here.
@@ -653,6 +664,7 @@ export default function PaymentsPage() {
         const json = await res.json()
         const newInvoice = json.document
         if (newInvoice) {
+          let isNewlyCreated = false
           setBillingDocuments((prev) => {
             const invoiceItem: BillingDocumentListItem = {
               id: newInvoice.id,
@@ -674,14 +686,30 @@ export default function PaymentsPage() {
               sent_at: newInvoice.sent_at,
             }
             const existing = prev.some((document) => document.id === invoiceItem.id)
+            isNewlyCreated = !existing
             return existing
               ? prev.map((document) => document.id === invoiceItem.id ? { ...document, ...invoiceItem } : document)
               : [invoiceItem, ...prev]
           })
+          if (isNewlyCreated) {
+            showToast(`Invoice ${newInvoice.document_number || ''} created`.trim(), 'success')
+          }
         }
+      } else {
+        let errorMessage = 'Failed to create invoice'
+        try {
+          const errorJson = await res.json()
+          if (errorJson?.message || errorJson?.error) {
+            errorMessage = errorJson.message || errorJson.error
+          }
+        } catch {
+          // response body was not JSON; keep fallback
+        }
+        showToast(errorMessage, 'error')
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      const fallback = err instanceof Error ? err.message : 'Failed to create invoice'
+      showToast(fallback, 'error')
     } finally {
       setBillingConvertingId(null)
     }
@@ -2271,6 +2299,8 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             </div>
           </div>
         </Modal>
+
+        <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
     </DashboardShell>
   )
 }

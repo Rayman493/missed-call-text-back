@@ -222,7 +222,7 @@ describe('B. CONSISTENT LIST-CARD ACTIONS', () => {
     // Action buttons are NOT inside the card-body button, so no bubbling.
     // Verify the action div comes AFTER the info button closes (sibling, not child).
     const infoButtonClose = billingListSrc.indexOf('</button>')
-    const actionDivIdx = billingListSrc.indexOf('className="flex items-center gap-1 flex-shrink-0"')
+    const actionDivIdx = billingListSrc.indexOf('className="grid grid-cols-6 gap-1 w-48 flex-shrink-0"')
     expect(infoButtonClose).toBeGreaterThan(-1)
     expect(actionDivIdx).toBeGreaterThan(-1)
     // The action div must come after the info button closes

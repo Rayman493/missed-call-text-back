@@ -555,13 +555,14 @@ describe('DOCUMENT LIST POLISH', () => {
     expect(listSrc).toContain("title={doc.derived_invoice ? 'View Invoice' : 'Create Invoice'}")
   })
 
-  it('all statuses use the same 5 stable action columns', () => {
-    expect(listSrc).toContain('grid grid-cols-5 gap-1 w-40')
+  it('all statuses use the same 6 stable action columns', () => {
+    expect(listSrc).toContain('grid grid-cols-6 gap-1 w-48')
     expect(listSrc).toContain('style={{ gridColumn: 1 }}')
     expect(listSrc).toContain('style={{ gridColumn: 2 }}')
     expect(listSrc).toContain('style={{ gridColumn: 3 }}')
     expect(listSrc).toContain('style={{ gridColumn: 4 }}')
     expect(listSrc).toContain('style={{ gridColumn: 5 }}')
+    expect(listSrc).toContain('style={{ gridColumn: 6 }}')
   })
 })
 

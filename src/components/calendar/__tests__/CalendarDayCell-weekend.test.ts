@@ -5,7 +5,7 @@ describe('CalendarDayCell weekend light-mode styling', () => {
   const content = readFileSync('src/components/calendar/CalendarDayCell.tsx', 'utf8')
 
   it('applies a darker neutral background to current-month weekend cells', () => {
-    expect(content).toContain('bg-slate-100/70')
+    expect(content).toContain('bg-slate-100/80')
   })
 
   it('keeps current-month weekday background unchanged', () => {
@@ -23,7 +23,6 @@ describe('CalendarDayCell weekend light-mode styling', () => {
   })
 
   it('preserves today indicator on the day number', () => {
-    expect(content).toContain('bg-blue-500 rounded-md')
-    expect(content).toContain('text-white')
+    expect(content).toContain('bg-blue-500 text-white rounded-full')
   })
 })

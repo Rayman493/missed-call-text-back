@@ -117,7 +117,7 @@ export default function BillingEditorModal({
   const [taxMode, setTaxMode] = useState<'percent' | 'dollars'>('percent')
   const [taxPercent, setTaxPercent] = useState('0')
   const [lineItems, setLineItems] = useState<BillingLineItem[]>([emptyLineItem()])
-  const [isSaving, setIsSaving] = useState(false)
+  const [pendingAction, setPendingAction] = useState<'draft' | 'send' | null>(null)
   const [saveError, setSaveError] = useState('')
   const [showPreview, setShowPreview] = useState(false)
   const [previewDoc, setPreviewDoc] = useState<DocumentPresentation | null>(null)
@@ -413,7 +413,7 @@ export default function BillingEditorModal({
   }, [lineItems, discountCents, taxCents, taxMode, taxPercent, issueDate, validUntil, dueDate, isInvoice, documentType, existingDocument, savedDoc, customerName, customerPhone, customerEmail, notes, terms, business])
 
   const handleSaveDraft = useCallback(async (sendAfterSave = false) => {
-    setIsSaving(true)
+    setPendingAction(sendAfterSave ? 'send' : 'draft')
     setSaveError('')
     try {
       const supabase = createBrowserClient()
@@ -481,7 +481,7 @@ export default function BillingEditorModal({
     } catch (err: any) {
       setSaveError(err.message || 'Failed to save')
     } finally {
-      setIsSaving(false)
+      setPendingAction(null)
     }
   }, [
     customerId, displayName, issueDate, validUntil, dueDate, notes, terms, discount, tax,
@@ -506,46 +506,52 @@ export default function BillingEditorModal({
   }
 
   const footer = (
-    <div className="flex items-center justify-between gap-4 px-1 pb-[env(safe-area-inset-bottom)]">
-      <button
-        onClick={handlePreview}
-        className="px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
-        disabled={isSaving}
-      >
-        <Eye className="w-4 h-4" />
-        Preview
-      </button>
-      <div className="flex items-center gap-3">
-        <button
-          onClick={handleAttemptClose}
-          className="px-5 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-          disabled={isSaving}
-        >
-          Cancel
-        </button>
-        <button
-          onClick={() => handleSaveDraft()}
-          disabled={isSaving}
-          className="px-4 py-2.5 text-sm font-medium text-foreground border border-border/50 hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
-        >
-          {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-          {existingDocument ? 'Save Changes' : 'Create Draft'}
-        </button>
-        {!existingDocument && (
+    <div className="flex flex-col gap-2 px-1 pb-[env(safe-area-inset-bottom)]">
+      {/* Mobile: secondary actions on their own row; desktop: all in one row */}
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => {
-              if (!customerId || !customerPhone) {
-                setSaveError('Select a customer with a valid phone number before creating and sending.')
-                return
-              }
-              setShowCreateAndSendConfirm(true)
-            }}
-            disabled={isSaving}
-            className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+            onClick={handlePreview}
+            className="px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
+            disabled={pendingAction !== null}
           >
-            Create & Send
+            <Eye className="w-4 h-4" />
+            Preview
           </button>
-        )}
+          <button
+            onClick={handleAttemptClose}
+            className="px-5 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            disabled={pendingAction !== null}
+          >
+            Cancel
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+          <button
+            onClick={() => handleSaveDraft(false)}
+            disabled={pendingAction !== null}
+            className="px-4 py-2.5 text-sm font-medium text-foreground border border-border/50 hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {pendingAction === 'draft' && <Loader2 className="w-4 h-4 animate-spin" />}
+            {existingDocument ? 'Save Changes' : 'Create Draft'}
+          </button>
+          {!existingDocument && (
+            <button
+              onClick={() => {
+                if (!customerId || !customerPhone) {
+                  setSaveError('Select a customer with a valid phone number before creating and sending.')
+                  return
+                }
+                setShowCreateAndSendConfirm(true)
+              }}
+              disabled={pendingAction !== null}
+              className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {pendingAction === 'send' && <Loader2 className="w-4 h-4 animate-spin" />}
+              Create & Send
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -996,11 +1002,11 @@ export default function BillingEditorModal({
                 Back to Edit
               </button>
               <button
-                onClick={() => handleSaveDraft()}
-                disabled={isSaving}
+                onClick={() => handleSaveDraft(false)}
+                disabled={pendingAction !== null}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {pendingAction === 'draft' && <Loader2 className="w-4 h-4 animate-spin" />}
                 Save Draft
               </button>
             </div>
@@ -1027,9 +1033,10 @@ export default function BillingEditorModal({
             <button onClick={() => setShowCreateAndSendConfirm(false)} className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg">Cancel</button>
             <button
               onClick={() => { setShowCreateAndSendConfirm(false); handleSaveDraft(true) }}
-              disabled={isSaving}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
+              disabled={pendingAction !== null}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
             >
+              {pendingAction === 'send' && <Loader2 className="w-4 h-4 animate-spin" />}
               Send to Customer
             </button>
           </div>

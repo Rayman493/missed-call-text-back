@@ -17,10 +17,13 @@ describe('Calendar ownership and edit routing', () => {
     expect(grid).toContain("type: 'task'")
   })
 
-  it('CalendarDayCell exposes per-event click with stopPropagation', () => {
+  it('CalendarDayCell exposes a compact event summary that opens day detail with stopPropagation', () => {
     expect(cell).toContain('onEventClick?:')
-    expect(cell).toContain('onEventClick?.(event)')
+    expect(cell).toContain('eventCountLabel')
+    expect(cell).toContain('onClick?.()')
     expect(cell).toContain('e.stopPropagation()')
+    // Month view no longer renders individual event titles or overflow counts
+    expect(cell).not.toContain('+{overflowCount} more')
   })
 
   it('Schedule page routes calendar items to the canonical editor', () => {
