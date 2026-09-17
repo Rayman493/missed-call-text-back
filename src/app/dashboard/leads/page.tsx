@@ -798,7 +798,13 @@ export default function LeadsPage() {
       return matchesSearch && isDeleted
     }
 
-    const matchesStatus = statusFilter === 'all' ? leadStatus !== 'ignored' : leadStatus === statusFilter
+    // The dropdown statusFilter excludes ignored from the default "All" view,
+    // but the quickFilter tab "Ignored" must still be able to show ignored leads.
+    const matchesStatus = statusFilter === 'all'
+      ? quickFilter === 'ignored'
+        ? true
+        : leadStatus !== 'ignored'
+      : leadStatus === statusFilter
 
     // Hide deleted customers from default view (when filter is not 'deleted')
     const shouldShowDeleted = !isDeleted

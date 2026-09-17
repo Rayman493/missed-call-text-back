@@ -107,22 +107,27 @@ export async function verifyMmsMediaToken(token: string, expectedPath: string): 
     // Check expiration
     const now = Math.floor(Date.now() / 1000)
     if (typedPayload.exp && typedPayload.exp < now) {
-      console.error('[MMS Media Token] Token expired', {
-        exp: typedPayload.exp,
-        now,
-        expiredSeconds: now - typedPayload.exp
-      })
+      // Expired tokens are expected for historical attachments. The serve route
+      // falls back to durable session/cookie auth, so this must not be an error log.
+      if (DEBUG) console.log('[MMS Media Token] Token expired (custom check), allowing fallback auth')
       return null
     }
 
     if (DEBUG) console.log('[MMS Media Token] Verification successful')
     return typedPayload
   } catch (error) {
-    console.error('[MMS Media Token] Verification failed:', {
-      code: (error as any)?.code,
-      message: (error as any)?.message,
-      name: (error as any)?.name
-    })
+    const err = error as any
+    // Expected expiration is a normal fallback condition, not a security event.
+    if (err?.code === 'ERR_JWT_EXPIRED' || err?.name === 'JWTExpired') {
+      if (DEBUG) console.log('[MMS Media Token] Token expired, allowing fallback auth')
+    } else {
+      // Tampered, malformed, or otherwise invalid tokens are still logged as errors.
+      console.error('[MMS Media Token] Verification failed (non-expired):', {
+        code: err?.code,
+        message: err?.message,
+        name: err?.name
+      })
+    }
     return null
   }
 }

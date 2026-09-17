@@ -1,4 +1,5 @@
 import { formatForDisplay } from '@/utils/phone-formatting'
+import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 
 export interface Lead {
   id: string
@@ -114,6 +115,11 @@ export function getCustomerServiceText(lead: Lead): string {
  * Falls back to a consistent placeholder when no useful location exists.
  */
 export function getCustomerLocationText(lead: Lead): string {
+  // Prefer the canonical AI-intake address resolver so the picker always agrees
+  // with Customer Details / AI Intake (which uses getLeadAIIntake).
+  const aiAddress = normalizeEditableContext(getLeadAIIntake(lead).serviceAddress)
+  if (aiAddress) return aiAddress
+
   const location = firstNonPlaceholder(
     lead.raw_metadata?.serviceAddress,
     lead.raw_metadata?.addressOrLocation,

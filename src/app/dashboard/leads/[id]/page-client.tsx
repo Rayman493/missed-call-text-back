@@ -1777,13 +1777,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // container, or a wheel tick). touch/pointer end clears the active flag;
     // inertial momentum keeps attribution via userScrollDirectionRef until a
     // scroll event moves in a different direction or the gesture settles.
-    const handleGestureStart = () => {
+    //
+    // IMPORTANT: taps on the composer (textarea, buttons) live inside the
+    // scroll container and must NOT be misclassified as a scroll gesture. If
+    // a pointerdown on the composer arms the gesture tracker, the subsequent
+    // keyboard-open resize/scroll events will be treated as user-driven and
+    // clear followLatestRef, leaving the newest message hidden below the fold.
+    const isInteractiveScrollTarget = (e: Event): boolean => {
+      const target = e.target as HTMLElement
+      if (!target) return false
+      return !!target.closest('textarea, input, button, a, [role="button"], [role="textbox"]')
+    }
+
+    const handleGestureStart = (e: Event) => {
+      if (isInteractiveScrollTarget(e)) return
       userScrollGestureActiveRef.current = true
     }
     const handleGestureEnd = () => {
       userScrollGestureActiveRef.current = false
     }
     const handleWheel = (e: WheelEvent) => {
+      if (isInteractiveScrollTarget(e)) return
       // A wheel tick is a user scroll with an inherent direction; arm the
       // direction tracker so its scroll events are attributed to the user.
       if (e.deltaY !== 0) userScrollDirectionRef.current = e.deltaY > 0 ? 1 : -1
@@ -5994,17 +6008,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               ) : (
                 <div className="space-y-1">
                   {(leadData?.paymentRequests || []).slice(0, 3).map((pr: any) => (
-                    <div key={pr.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-foreground">{formatCurrency(pr.amount_cents, true)}</p>
-                        <p className="text-[10px] text-muted-foreground">{formatRelativeTime(pr.created_at)}</p>
-                      </div>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 ${
-                        pr.status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300'
-                      }`}>
-                        {formatPaymentStatus(pr.status).text}
-                      </span>
-                    </div>
+                    <CustomerDetailPreviewCard
+                      key={pr.id}
+                      title={formatCurrency(pr.amount_cents, true)}
+                      subtitle={formatRelativeTime(pr.created_at)}
+                      onClick={() => handleOpenPaymentOverview(pr)}
+                      ariaLabel="View payment details"
+                      badge={
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize whitespace-nowrap border ${
+                          pr.status === 'paid'
+                            ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
+                            : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                        }`}>
+                          {formatPaymentStatus(pr.status).text}
+                        </span>
+                      }
+                    />
                   ))}
                 </div>
               )}

@@ -38,6 +38,8 @@ export default function PhotoModal({ imageUrl, isOpen, onClose }: PhotoModalProp
       onClick={onClose}
       data-overlay="photo-lightbox"
     >
+      {/* Backdrop MUST be a child of the fixed viewport root, not of the content
+          wrapper, so it covers the full viewport including any top/bottom gaps. */}
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
       <div className="relative max-w-5xl max-h-[90vh] w-full" onClick={(e) => e.stopPropagation()}>
         <button

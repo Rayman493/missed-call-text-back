@@ -125,7 +125,12 @@ export default function PaymentsPage() {
   const [successMessage, setSuccessMessage] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
   const [isMarkingPaid, setIsMarkingPaid] = useState(false)
+  const [isMarkingUnpaid, setIsMarkingUnpaid] = useState(false)
   const [showMarkPaidConfirm, setShowMarkPaidConfirm] = useState(false)
+  const [showMarkUnpaidConfirm, setShowMarkUnpaidConfirm] = useState(false)
+  const [paymentToMarkUnpaid, setPaymentToMarkUnpaid] = useState<PaymentRequest | null>(null)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [paymentToCancel, setPaymentToCancel] = useState<PaymentRequest | null>(null)
   const [showQuickTapToPay, setShowQuickTapToPay] = useState(false)
   const [isNativeSupported, setIsNativeSupported] = useState(false)
   const [showTapToPaySetup, setShowTapToPaySetup] = useState(false)
@@ -1008,6 +1013,52 @@ const getPaymentDescription = (payment: PaymentRequest) => {
     }
   }
 
+  const canManuallyReversePaid = (payment: PaymentRequest): boolean => {
+    // Only PayPal/Venmo payments that were manually confirmed are eligible.
+    // Stripe/card-present processor-confirmed payments are not reversible here.
+    return payment.status === 'paid' &&
+      (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') &&
+      payment.payment_method_type !== 'card_present'
+  }
+
+  const handleMarkUnpaid = async (payment: PaymentRequest) => {
+    setIsMarkingUnpaid(true)
+    setError('')
+    setShowMarkUnpaidConfirm(false)
+    setPaymentToMarkUnpaid(null)
+
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch(`/api/payments/${payment.id}/mark-unpaid`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to mark payment as unpaid')
+      }
+
+      setSuccessMessage('Payment marked as unpaid')
+      await fetchPayments()
+    } catch (err) {
+      console.error('Error marking payment as unpaid:', err)
+      setError(err instanceof Error ? err.message : 'Failed to mark payment as unpaid')
+    } finally {
+      setIsMarkingUnpaid(false)
+    }
+  }
+
   const handleOpenEditModal = (payment: PaymentRequest) => {
     // Capture scroll position before opening modal
     setScrollPositionBeforeEdit(window.pageYOffset)
@@ -1540,6 +1591,20 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                 Mark Paid
                               </button>
                             )}
+                            {canManuallyReversePaid(payment) && (
+                              <button
+                                onClick={() => {
+                                  setPaymentToMarkUnpaid(payment)
+                                  setShowMarkUnpaidConfirm(true)
+                                }}
+                                disabled={isMarkingUnpaid}
+                                className="p-1.5 text-amber-400 hover:text-amber-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
+                                title="Mark as unpaid"
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                                Mark Unpaid
+                              </button>
+                            )}
                             {payment.status === 'pending' && payment.payment_method_type === 'card_present' && (
                               <button
                                 onClick={() => handleCheckStatus(payment)}
@@ -1554,7 +1619,10 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                           </div>
                           {payment.status === 'pending' && (
                             <button
-                              onClick={() => handleCancelPayment(payment)}
+                              onClick={() => {
+                                setPaymentToCancel(payment)
+                                setShowCancelConfirm(true)
+                              }}
                               disabled={isCancelling}
                               className="ml-auto p-1.5 text-red-400 hover:text-red-300 disabled:opacity-50 flex-shrink-0"
                               title="Cancel payment request"
@@ -1685,6 +1753,20 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                         Mark Paid
                                       </button>
                                     )}
+                                    {canManuallyReversePaid(payment) && (
+                                      <button
+                                        onClick={() => {
+                                          setPaymentToMarkUnpaid(payment)
+                                          setShowMarkUnpaidConfirm(true)
+                                        }}
+                                        disabled={isMarkingUnpaid}
+                                        className="p-1.5 text-amber-400 hover:text-amber-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
+                                        title="Mark as unpaid"
+                                      >
+                                        <RefreshCw className="h-4 w-4" />
+                                        Mark Unpaid
+                                      </button>
+                                    )}
                                     {payment.status === 'pending' && payment.payment_method_type === 'card_present' && (
                                       <button
                                         onClick={() => handleCheckStatus(payment)}
@@ -1710,7 +1792,10 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                   </div>
                                   {payment.status === 'pending' && (
                                     <button
-                                      onClick={() => handleCancelPayment(payment)}
+                                      onClick={() => {
+                                        setPaymentToCancel(payment)
+                                        setShowCancelConfirm(true)
+                                      }}
                                       disabled={isCancelling}
                                       className="ml-auto p-1.5 text-red-400 hover:text-red-300 disabled:opacity-50 flex-shrink-0"
                                       title="Cancel payment request"
@@ -1859,6 +1944,20 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                       Mark Paid
                                     </button>
                                   )}
+                                  {canManuallyReversePaid(payment) && (
+                                    <button
+                                      onClick={() => {
+                                        setPaymentToMarkUnpaid(payment)
+                                        setShowMarkUnpaidConfirm(true)
+                                      }}
+                                      disabled={isMarkingUnpaid}
+                                      className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 text-xs font-medium transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                      aria-label="Mark as unpaid"
+                                    >
+                                      <RefreshCw className="h-3.5 w-3.5" />
+                                      Mark Unpaid
+                                    </button>
+                                  )}
                                   {payment.status === 'pending' && payment.payment_method_type === 'card_present' && (
                                     <button
                                       onClick={() => handleCheckStatus(payment)}
@@ -1873,7 +1972,10 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                 </div>
                                 {payment.status === 'pending' && !(payment.payment_method_type === 'card' && payment.checkout_url) && (
                                   <button
-                                    onClick={() => handleCancelPayment(payment)}
+                                    onClick={() => {
+                                      setPaymentToCancel(payment)
+                                      setShowCancelConfirm(true)
+                                    }}
                                     disabled={isCancelling}
                                     className="ml-auto h-8 w-8 flex items-center justify-center rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500/50 flex-shrink-0"
                                     title="Cancel payment request"
@@ -1970,6 +2072,20 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                           Mark Paid
                                         </button>
                                       )}
+                                      {canManuallyReversePaid(payment) && (
+                                        <button
+                                          onClick={() => {
+                                            setPaymentToMarkUnpaid(payment)
+                                            setShowMarkUnpaidConfirm(true)
+                                          }}
+                                          disabled={isMarkingUnpaid}
+                                          className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 text-xs font-medium transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                          aria-label="Mark as unpaid"
+                                        >
+                                          <RefreshCw className="h-3.5 w-3.5" />
+                                          Mark Unpaid
+                                        </button>
+                                      )}
                                       {payment.status === 'pending' && payment.payment_method_type === 'card_present' && (
                                         <button
                                           onClick={() => handleCheckStatus(payment)}
@@ -1984,7 +2100,10 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                   </div>
                                   {payment.status === 'pending' && !(payment.payment_method_type === 'card' && payment.checkout_url) && (
                                       <button
-                                        onClick={() => handleCancelPayment(payment)}
+                                        onClick={() => {
+                                          setPaymentToCancel(payment)
+                                          setShowCancelConfirm(true)
+                                        }}
                                         disabled={isCancelling}
                                         className="ml-auto h-8 w-8 flex items-center justify-center rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500/50 flex-shrink-0"
                                         title="Cancel payment request"
@@ -2173,6 +2292,104 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               </div>
         </Modal>
 
+        {/* Cancel Payment Confirmation Modal */}
+        <Modal
+          isOpen={showCancelConfirm && !!paymentToCancel}
+          onClose={() => {
+            setShowCancelConfirm(false)
+            setPaymentToCancel(null)
+          }}
+          title="Cancel this payment request?"
+          footer={
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowCancelConfirm(false)
+                  setPaymentToCancel(null)
+                }}
+                disabled={isCancelling}
+                className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted dark:text-gray-300 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Keep Payment
+              </button>
+              <button
+                onClick={() => paymentToCancel && handleCancelPayment(paymentToCancel)}
+                disabled={isCancelling}
+                className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isCancelling ? 'Cancelling...' : 'Cancel Payment'}
+              </button>
+            </div>
+          }
+        >
+          <p className="text-muted-foreground text-sm mb-4">
+            The existing payment link will no longer be active.
+          </p>
+          {paymentToCancel && (
+            <div className="bg-muted/50 dark:bg-[#0f172a] rounded-lg p-4 border border-border dark:border-slate-700">
+              <div className="flex justify-between mb-2">
+                <span className="text-muted-foreground text-sm">Amount</span>
+                <span className="text-foreground font-semibold">{formatCurrency(paymentToCancel.amount_cents, true)}</span>
+              </div>
+              {getPaymentDescription(paymentToCancel) && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground text-sm">Description</span>
+                  <span className="text-foreground text-sm">{getPaymentDescription(paymentToCancel)}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </Modal>
+
+        {/* Mark as Unpaid Confirmation Modal */}
+        <Modal
+          isOpen={showMarkUnpaidConfirm && !!paymentToMarkUnpaid}
+          onClose={() => {
+            setShowMarkUnpaidConfirm(false)
+            setPaymentToMarkUnpaid(null)
+          }}
+          title="Mark payment as unpaid?"
+          footer={
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowMarkUnpaidConfirm(false)
+                  setPaymentToMarkUnpaid(null)
+                }}
+                disabled={isMarkingUnpaid}
+                className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted dark:text-gray-300 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Keep Paid
+              </button>
+              <button
+                onClick={() => paymentToMarkUnpaid && handleMarkUnpaid(paymentToMarkUnpaid)}
+                disabled={isMarkingUnpaid}
+                className="px-4 py-2 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isMarkingUnpaid ? 'Updating...' : 'Mark Unpaid'}
+              </button>
+            </div>
+          }
+        >
+          <p className="text-muted-foreground text-sm mb-4">
+            This will revert the payment to Pending. Only manually confirmed PayPal or Venmo payments can be reversed.
+          </p>
+          {paymentToMarkUnpaid && (
+            <div className="bg-muted/50 dark:bg-[#0f172a] rounded-lg p-4 border border-border dark:border-slate-700">
+              <div className="flex justify-between mb-2">
+                <span className="text-muted-foreground text-sm">Amount</span>
+                <span className="text-foreground font-semibold">{formatCurrency(paymentToMarkUnpaid.amount_cents, true)}</span>
+              </div>
+              {getPaymentDescription(paymentToMarkUnpaid) && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground text-sm">Description</span>
+                  <span className="text-foreground text-sm">{getPaymentDescription(paymentToMarkUnpaid)}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </Modal>
+
         {/* Quick Tap to Pay Modal */}
         <QuickTapToPayModal
           isOpen={showQuickTapToPay}
@@ -2205,7 +2422,10 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           onSave={handleSaveLabel}
           onViewCustomer={(customerId) => router.push(`/dashboard/leads/${customerId}`)}
           onCopyLink={copyPaymentLink}
-          onCancelPayment={handleCancelPayment}
+          onCancelPayment={(payment) => {
+            setPaymentToCancel(payment)
+            setShowCancelConfirm(true)
+          }}
           isCancelling={isCancelling}
           payment={paymentToEdit}
           currentLabel={editLabel}

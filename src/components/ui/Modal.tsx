@@ -1,6 +1,9 @@
 'use client'
 
 import React, { useEffect, useRef, useId } from 'react'
+
+const MODAL_BOTTOM_RESERVE_PX = 16
+const CONTENT_RESIZE_ANCHOR_THRESHOLD_PX = 32
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -42,8 +45,10 @@ export default function Modal({
   onBackdropClose
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
   const pointerDownOnBackdropRef = useRef(false)
+  const contentScrollStateRef = useRef({ scrollTop: 0, scrollHeight: 0, clientHeight: 0 })
 
   // Use the canonical scroll-lock mechanism for consistent behavior across all modals
   useBodyScrollLock(isOpen, title ? `Modal:${title}` : 'Modal')
@@ -73,6 +78,46 @@ export default function Modal({
   useEffect(() => {
     if (isOpen && modalRef.current) {
       modalRef.current.focus()
+    }
+  }, [isOpen])
+
+  // When async content (e.g., Edit Job Time Tracked) expands inside the modal,
+  // the browser may not immediately let the user scroll to the new true bottom.
+  // If the user was already near the bottom, keep them pinned to the new bottom
+  // as the content height changes. This is intentionally a layout reaction,
+  // not a blind timeout or a forced scroll on every render.
+  useEffect(() => {
+    if (!isOpen) return
+    const content = contentRef.current
+    if (!content || typeof ResizeObserver === 'undefined') return
+
+    const updateScrollState = () => {
+      contentScrollStateRef.current = {
+        scrollTop: content.scrollTop,
+        scrollHeight: content.scrollHeight,
+        clientHeight: content.clientHeight,
+      }
+    }
+
+    const ro = new ResizeObserver(() => {
+      const prev = contentScrollStateRef.current
+      const wasNearBottom =
+        prev.scrollHeight > 0 &&
+        prev.scrollTop + prev.clientHeight >= prev.scrollHeight - CONTENT_RESIZE_ANCHOR_THRESHOLD_PX
+      const scrollHeight = content.scrollHeight
+      if (wasNearBottom && scrollHeight > prev.scrollHeight) {
+        content.scrollTop = Math.max(0, scrollHeight - content.clientHeight)
+      }
+      updateScrollState()
+    })
+
+    ro.observe(content)
+    content.addEventListener('scroll', updateScrollState, { passive: true })
+    updateScrollState()
+
+    return () => {
+      ro.disconnect()
+      content.removeEventListener('scroll', updateScrollState)
     }
   }, [isOpen])
 
@@ -173,6 +218,7 @@ export default function Modal({
           )}
 
           <div
+            ref={contentRef}
             className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-4 sm:px-5 py-4"
             data-scroll-lock-allow
             style={{
