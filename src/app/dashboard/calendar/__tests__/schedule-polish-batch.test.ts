@@ -159,10 +159,11 @@ describe('Schedule Polish — Reminder Modal', () => {
 
 describe('Schedule Polish — JobTimer Polish', () => {
   it('Time Tracked header has running indicator in header row', () => {
-    // The "Running" badge should be in the header, not inline with the clock
+    // The "Running" badge should be in the header, not inline with the clock.
+    // Use the final header occurrence to skip the loading fallback string.
     const headerBlock = jobTimerContent.substring(
-      jobTimerContent.indexOf('Time Tracked'),
-      jobTimerContent.indexOf('Time Tracked') + 800
+      jobTimerContent.lastIndexOf('Time Tracked'),
+      jobTimerContent.lastIndexOf('Time Tracked') + 800
     )
     expect(headerBlock).toContain('Running')
   })
@@ -216,7 +217,7 @@ describe('Schedule Polish — Jobs Time Tracked Summary', () => {
   it('Time Tracked card shows Today and This Week', () => {
     const timeTrackedBlock = pageContent.substring(
       pageContent.indexOf('Time Tracked Summary'),
-      pageContent.indexOf('Time Tracked Summary') + 2000
+      pageContent.indexOf('Time Tracked Summary') + 4000
     )
     expect(timeTrackedBlock).toContain('Today')
     expect(timeTrackedBlock).toContain('This Week')
@@ -225,7 +226,7 @@ describe('Schedule Polish — Jobs Time Tracked Summary', () => {
   it('Time Tracked card uses formatDuration', () => {
     const timeTrackedBlock = pageContent.substring(
       pageContent.indexOf('Time Tracked Summary'),
-      pageContent.indexOf('Time Tracked Summary') + 2000
+      pageContent.indexOf('Time Tracked Summary') + 4000
     )
     expect(timeTrackedBlock).toContain('formatDuration')
   })
@@ -393,6 +394,67 @@ describe('Schedule Polish — No Behavioral Changes', () => {
   it('Schedule tabs use fixed six-column grid on mobile (no horizontal scroll)', () => {
     expect(pageContent).toContain('grid grid-cols-6')
     expect(pageContent).not.toContain('overflow-x-auto')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 9. BATCH 2 TIME TRACKED START/STOP POLISH
+// ---------------------------------------------------------------------------
+
+describe('Schedule Polish — Batch 2 Time Tracked', () => {
+  it('Start Timer picker uses renderOption for richer job/customer rows', () => {
+    const startBlock = pageContent.slice(
+      pageContent.indexOf('placeholder="Select a job"'),
+      pageContent.indexOf('Request Another Payment') > pageContent.indexOf('placeholder="Select a job"')
+        ? pageContent.indexOf('Request Another Payment')
+        : pageContent.indexOf('placeholder="Select a job"') + 1200
+    )
+    expect(startBlock).toContain('renderOption')
+    expect(startBlock).toContain('secondaryLabel')
+  })
+
+  it('Start Timer action is a single full-width primary button below the picker', () => {
+    const startBlock = pageContent.slice(
+      pageContent.indexOf('placeholder="Select a job"'),
+      pageContent.indexOf('placeholder="Select a job"') + 1600
+    )
+    expect(startBlock).toContain('w-full')
+    expect(startBlock).toContain('Start Timer')
+    expect(startBlock).toContain('bg-blue-600')
+  })
+
+  it('header Start Timer toggle flips to Cancel while picker is open', () => {
+    expect(pageContent).toContain("{showTimerJobPicker ? 'Cancel' : 'Start Timer'}")
+    expect(pageContent).toContain('showTimerJobPicker ? <X')
+  })
+
+  it('header toggle avoids stale pressed/focus highlight', () => {
+    const headerBlock = pageContent.slice(
+      pageContent.indexOf("setShowTimerJobPicker(value => !value)"),
+      pageContent.indexOf("setShowTimerJobPicker(value => !value)") + 500
+    )
+    expect(headerBlock).toContain('onMouseDown={(e) => e.preventDefault()}')
+    expect(headerBlock).toContain('focus:outline-none focus-visible:ring-0')
+  })
+
+  it('stop timer shows a single success toast when server confirms', () => {
+    const stopFnStart = pageContent.indexOf('const stopSummaryTimer = async () =>')
+    const stopBlock = pageContent.slice(stopFnStart, stopFnStart + 900)
+    expect(stopBlock).toContain("onShowToast?.('Timer stopped — time saved', 'success')")
+    expect(stopBlock.indexOf("onShowToast?.('Timer stopped — time saved', 'success')")).toBeGreaterThan(stopBlock.indexOf('notifyJobTimeChanged(activeTimerJob.id, false)'))
+  })
+
+  it('stop timer surfaces an error toast and keeps running state on failure', () => {
+    const stopFnStart = pageContent.indexOf('const stopSummaryTimer = async () =>')
+    const stopBlock = pageContent.slice(stopFnStart, stopFnStart + 900)
+    expect(stopBlock).toContain("onShowToast?.('Failed to stop timer', 'error')")
+  })
+
+  it('JobTimer shows success/error toast on stop using the shared Toast component', () => {
+    expect(jobTimerContent).toContain("import Toast from '@/components/Toast'")
+    expect(jobTimerContent).toContain("Timer stopped — time saved")
+    expect(jobTimerContent).toContain("Failed to stop timer")
+    expect(jobTimerContent).toContain('<Toast')
   })
 })
 

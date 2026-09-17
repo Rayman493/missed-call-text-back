@@ -48,7 +48,6 @@ describe('SelectPicker', () => {
 
   it('reserves extra right padding when a value is selected', () => {
     expect(content).toContain('pr-14')
-    expect(content).toContain('pr-10')
   })
 
   it('places chevron and clear button in a single flex icon container with no overlap', () => {

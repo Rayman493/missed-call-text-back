@@ -18,8 +18,9 @@ describe('SearchableCustomerSelect', () => {
     expect(content).toContain('getCustomerDisplayName')
   })
 
-  it('should import getCustomerSecondaryText from customer-search-helpers', () => {
-    expect(content).toContain('getCustomerSecondaryText')
+  it('should import getCustomerServiceText and getCustomerTertiaryText from customer-search-helpers', () => {
+    expect(content).toContain('getCustomerServiceText')
+    expect(content).toContain('getCustomerTertiaryText')
   })
 
   it('should import formatForDisplay from phone-formatting utils', () => {
@@ -169,10 +170,8 @@ describe('SearchableCustomerSelect', () => {
   it('should use semantic theme classes for dark mode', () => {
     expect(content).toContain('bg-muted/30')
     expect(content).toContain('dark:bg-slate-900/55')
-    expect(content).toContain('bg-card')
     expect(content).toContain('text-foreground')
     expect(content).toContain('text-muted-foreground')
-    expect(content).toContain('bg-card/95')
     expect(content).toContain('bg-accent/40')
   })
 
@@ -189,12 +188,15 @@ describe('SearchableCustomerSelect', () => {
     expect(content).toContain('getDisplayText(selectedCustomer)')
   })
 
-  it('should render dropdown primary text with getDisplayText', () => {
-    expect(content).toContain('<span className="truncate flex-1 min-w-0">{getDisplayText(customer)}</span>')
+  it('should render customer rows with the shared PickerListRow component', () => {
+    expect(content).toContain("import PickerListRow from '@/components/ui/PickerListRow'")
+    expect(content).toContain('<PickerListRow')
   })
 
-  it('should render dropdown secondary text with getSecondaryText', () => {
-    expect(content).toContain('const secondaryText = getSecondaryText(customer)')
+  it('should pass customer name, service context, and phone/location to PickerListRow', () => {
+    expect(content).toContain('primary={getDisplayText(customer)}')
+    expect(content).toContain('secondary={getCustomerServiceText(customer)}')
+    expect(content).toContain('tertiary={getCustomerTertiaryText(customer)}')
   })
 
   it('should include raw_metadata in Customer interface', () => {
@@ -250,7 +252,8 @@ describe('SearchableCustomerSelect', () => {
   })
 
   it('uses min-w-0 on dropdown primary text to avoid overflow', () => {
-    expect(content).toContain('<span className="truncate flex-1 min-w-0">{getDisplayText(customer)}</span>')
+    expect(content).toContain('primary={getDisplayText(customer)}')
+    expect(content).toContain('PickerListRow')
   })
 
   it('uses visual viewport to size dropdown around the on-screen keyboard', () => {
@@ -291,10 +294,8 @@ describe('SearchableCustomerSelect', () => {
     expect(content).toContain("style={{ WebkitOverflowScrolling: 'touch' }}")
   })
 
-  it('should commit selection via onClick while stopping propagation to prevent tap bleed', () => {
-    // The customer row now uses onClick only, with preventDefault + stopPropagation
-    // so the selection gesture is consumed and cannot pass through to inputs below.
-    expect(content).toContain('onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelect(customer.id) }}')
+  it('should commit selection via PickerListRow onClick', () => {
+    expect(content).toContain('onClick={() => handleSelect(customer.id)}')
   })
 
   it('should keep No customer option reachable via onClick', () => {

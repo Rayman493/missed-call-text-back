@@ -331,7 +331,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
           </>
         }
       >
-        <p className="text-xs text-muted-foreground/70 mb-4">Add something to your calendar without creating a customer job.</p>
+        <p className="text-sm text-muted-foreground mb-4">Add an appointment to this customer's calendar.</p>
         <div className="space-y-4">
             {/* Section: Basics */}
             <div className="space-y-3">

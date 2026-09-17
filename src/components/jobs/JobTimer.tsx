@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Clock, Play, Square, Pencil, Trash2, Check, X } from 'lucide-react'
+import Toast from '@/components/Toast'
 import {
   formatDuration,
   formatTimerClock,
@@ -30,6 +31,7 @@ export default function JobTimer({ jobId }: JobTimerProps) {
   const [editError, setEditError] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [otherTimerActive, setOtherTimerActive] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const fetchedRef = useRef(false)
 
   // Tick every second when there's an active timer
@@ -80,6 +82,7 @@ export default function JobTimer({ jobId }: JobTimerProps) {
     if (actionInFlight) return
     setActionInFlight(true)
     setConflictJob(null)
+    setToast(null)
     try {
       const res = await fetch(`/api/jobs/${jobId}/time-entries`, {
         method: 'POST',
@@ -104,16 +107,22 @@ export default function JobTimer({ jobId }: JobTimerProps) {
   const handleStop = async () => {
     if (actionInFlight || !activeEntry) return
     setActionInFlight(true)
+    setToast(null)
     try {
       const res = await fetch(`/api/jobs/${jobId}/time-entries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'stop' }),
       })
-      if (!res.ok) return
+      if (!res.ok) {
+        setToast({ message: 'Failed to stop timer', type: 'error' })
+        return
+      }
       notifyJobTimeChanged(jobId, false)
+      setToast({ message: 'Timer stopped — time saved', type: 'success' })
     } catch (err) {
       console.error('[JobTimer] stop error:', err)
+      setToast({ message: 'Failed to stop timer', type: 'error' })
     } finally {
       setActionInFlight(false)
     }
@@ -177,7 +186,14 @@ export default function JobTimer({ jobId }: JobTimerProps) {
   }
 
   return (
-    <div className="p-3 rounded-lg bg-muted/30 dark:bg-slate-800/60 border border-border/40 dark:border-border/30">
+    <div className="p-3 rounded-lg bg-muted/30 dark:bg-slate-800/60 border border-border/40 dark:border-border/30 relative">
+      <Toast
+        message={toast?.message || ''}
+        type={toast?.type || 'info'}
+        isVisible={!!toast}
+        onClose={() => setToast(null)}
+        duration={2500}
+      />
       <div className="flex items-center justify-between mb-2">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Time Tracked</p>
         {activeEntry && (

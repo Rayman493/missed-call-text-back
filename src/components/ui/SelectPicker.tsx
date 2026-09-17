@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useRef, useEffect, useId } from 'react'
+import { useState, useRef, useEffect, useId, type ReactNode } from 'react'
 import { ChevronDown, X, Check, Search } from 'lucide-react'
 import { markDropdownDismissed } from '@/components/lead-status-gesture'
 
-interface SelectOption {
+export interface SelectOption {
   value: string
   label: string
   disabled?: boolean
+  secondaryLabel?: string
 }
 
 interface SelectPickerProps {
@@ -20,6 +21,7 @@ interface SelectPickerProps {
   disabled?: boolean
   searchable?: boolean
   emptyMessage?: string
+  renderOption?: (option: SelectOption, selected: boolean) => ReactNode
 }
 
 export default function SelectPicker({
@@ -31,7 +33,8 @@ export default function SelectPicker({
   required = false,
   disabled = false,
   searchable = false,
-  emptyMessage = 'No options available'
+  emptyMessage = 'No options available',
+  renderOption,
 }: SelectPickerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -253,7 +256,7 @@ export default function SelectPicker({
             aria-expanded={isOpen}
             aria-controls={dropdownId}
             aria-labelledby={label ? `${labelId} ${triggerId}` : triggerId}
-            className={`w-full border rounded-lg flex items-center gap-2 duration-150 text-left pr-[44px] ${
+            className={`w-full border rounded-lg flex items-center gap-2 duration-150 text-left pr-14 ${
               disabled
                 ? 'bg-muted/50 dark:bg-slate-900/40 text-muted-foreground/50 cursor-not-allowed border-border/30 px-3 py-2.5'
                 : 'bg-muted/30 dark:bg-slate-900/55 text-foreground border-border/50 dark:border-slate-700/60 hover:border-slate-700/80 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 cursor-pointer px-3 py-2.5'
@@ -270,7 +273,7 @@ export default function SelectPicker({
             pointer-events-auto so it keeps its own click target. */}
         {!isSearching && (
           <div
-            className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none"
+            className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none"
             aria-hidden={!(hasValue && !disabled)}
           >
             {hasValue && !disabled && (
@@ -312,25 +315,34 @@ export default function SelectPicker({
               </div>
             ) : (
               <div className="py-1">
-                {visibleOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    role="option"
-                    onClick={() => handleSelect(option.value)}
-                    disabled={option.disabled}
-                    className={`w-full px-3 py-2 text-sm text-left duration-150 flex items-center justify-between gap-2 ${
-                      option.disabled
-                        ? 'text-muted-foreground/50 cursor-not-allowed'
-                        : 'text-foreground hover:bg-accent/40'
-                    } ${value === option.value ? 'bg-accent/40' : ''}`}
-                  >
-                    <span className="truncate flex-1 min-w-0">{option.label}</span>
-                    {value === option.value && (
-                      <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                    )}
-                  </button>
-                ))}
+                {visibleOptions.map((option) => {
+                  const selected = value === option.value
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="option"
+                      onClick={() => handleSelect(option.value)}
+                      disabled={option.disabled}
+                      className={`w-full px-3 py-2 text-sm text-left duration-150 flex items-center justify-between gap-2 ${
+                        option.disabled
+                          ? 'text-muted-foreground/50 cursor-not-allowed'
+                          : 'text-foreground hover:bg-accent/40'
+                      } ${selected ? 'bg-accent/40' : ''}`}
+                    >
+                      {renderOption ? (
+                        renderOption(option, selected)
+                      ) : (
+                        <>
+                          <span className="truncate flex-1 min-w-0">{option.label}</span>
+                          {selected && (
+                            <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                          )}
+                        </>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>

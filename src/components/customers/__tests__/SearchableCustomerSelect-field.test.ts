@@ -85,10 +85,11 @@ describe('SearchableCustomerSelect field-as-search interaction', () => {
     expect(content).toContain('aria-controls={dropdownId}')
   })
 
-  it('retains data fetching and display helpers unchanged', () => {
+  it('retains data fetching and display helpers, now using service/tertiary formatters', () => {
     expect(content).toContain("fetch('/api/leads'")
     expect(content).toContain('getCustomerDisplayName')
-    expect(content).toContain('getCustomerSecondaryText')
+    expect(content).toContain('getCustomerServiceText')
+    expect(content).toContain('getCustomerTertiaryText')
     expect(content).toContain('filterLeadsBySearchQuery')
   })
 })

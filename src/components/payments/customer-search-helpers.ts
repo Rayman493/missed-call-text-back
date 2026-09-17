@@ -4,6 +4,7 @@ export interface Lead {
   id: string
   name: string | null
   caller_phone: string | null
+  raw_metadata?: Record<string, any> | null
 }
 
 /**
@@ -91,6 +92,46 @@ export function getCustomerSecondaryText(lead: Lead): string | null {
     return formattedPhone
   }
   return null
+}
+
+/**
+ * Returns a readable service / request context for a customer.
+ * Falls back to a consistent placeholder when no useful context exists.
+ */
+export function getCustomerServiceText(lead: Lead): string {
+  const service = firstNonPlaceholder(
+    lead.raw_metadata?.service_requested,
+    lead.raw_metadata?.request,
+    lead.raw_metadata?.serviceType,
+    lead.raw_metadata?.service_type,
+    lead.raw_metadata?.ai_summary
+  )
+  return service || 'No service listed'
+}
+
+/**
+ * Returns a readable location / address for a customer.
+ * Falls back to a consistent placeholder when no useful location exists.
+ */
+export function getCustomerLocationText(lead: Lead): string {
+  const location = firstNonPlaceholder(
+    lead.raw_metadata?.serviceAddress,
+    lead.raw_metadata?.addressOrLocation,
+    lead.raw_metadata?.location,
+    lead.raw_metadata?.address
+  )
+  return location || 'No location'
+}
+
+/**
+ * Returns the phone + location line for a customer row.
+ * Missing pieces render intentional placeholders instead of raw blanks.
+ */
+export function getCustomerTertiaryText(lead: Lead): string {
+  const phone = getCustomerSecondaryText(lead)
+  const location = getCustomerLocationText(lead)
+  const phonePart = phone || 'No phone'
+  return `${phonePart} • ${location}`
 }
 
 /**

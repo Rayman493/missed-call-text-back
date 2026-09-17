@@ -68,7 +68,8 @@ import { useModalBackButton } from '@/hooks/useModalBackButton'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle, Pencil, ChevronDown, Video, ExternalLink } from 'lucide-react'
 import { getPaymentMethodBadge } from '@/lib/payment-method-badge'
-import PaymentEditModal from '@/components/payments/PaymentEditModal'
+import PaymentOverviewModal from '@/components/payments/PaymentOverviewModal'
+import CustomerDetailPreviewCard from '@/components/ui/CustomerDetailPreviewCard'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import NewTaskModal from '@/components/schedule/NewTaskModal'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
@@ -1993,12 +1994,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
   const [isLaunchingSMS, setIsLaunchingSMS] = useState(false)
 
-  // State for canonical payment detail/edit modal
-  const [showPaymentEditModal, setShowPaymentEditModal] = useState(false)
-  const [paymentToEdit, setPaymentToEdit] = useState<any>(null)
-  const [paymentEditLabel, setPaymentEditLabel] = useState('')
-  const [isSavingPaymentLabel, setIsSavingPaymentLabel] = useState(false)
-  const [isCancellingPayment, setIsCancellingPayment] = useState(false)
+  // State for read-only payment overview modal
+  const [showPaymentOverviewModal, setShowPaymentOverviewModal] = useState(false)
+  const [paymentOverviewTarget, setPaymentOverviewTarget] = useState<any>(null)
 
   // Handle Android back button for Payment Request modal
   useModalBackButton({ isOpen: showPaymentModal, onClose: () => {
@@ -3812,78 +3810,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  const handleOpenPaymentEdit = (payment: any) => {
-    setPaymentToEdit(payment)
-    setPaymentEditLabel(payment.display_name || '')
-    setShowPaymentEditModal(true)
+  const handleOpenPaymentOverview = (payment: any) => {
+    setPaymentOverviewTarget(payment)
+    setShowPaymentOverviewModal(true)
   }
 
-  const handleClosePaymentEdit = () => {
-    setShowPaymentEditModal(false)
-    setPaymentToEdit(null)
-    setPaymentEditLabel('')
-  }
-
-  const handleSavePaymentLabel = async (label: string) => {
-    if (!paymentToEdit) return
-    setIsSavingPaymentLabel(true)
-    try {
-      const supabase = createBrowserClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-      if (!token) throw new Error('Not authenticated')
-
-      const response = await fetch(`/api/payments/${paymentToEdit.id}/label`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ display_name: label }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to update payment label')
-      }
-
-      // Refresh customer data so the payment row reflects the new display_name
-      await handleRefresh({ silent: true })
-    } catch (err) {
-      console.error('Error saving payment label:', err)
-      throw err
-    } finally {
-      setIsSavingPaymentLabel(false)
-    }
-  }
-
-  const handleCancelPayment = async (payment: any) => {
-    setIsCancellingPayment(true)
-    try {
-      const supabase = createBrowserClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-      if (!token) throw new Error('Not authenticated')
-
-      const response = await fetch(`/api/payments/${payment.id}/cancel`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to cancel payment request')
-      }
-
-      await handleRefresh({ silent: true })
-    } catch (err) {
-      console.error('Error canceling payment request:', err)
-    } finally {
-      setIsCancellingPayment(false)
-    }
+  const handleClosePaymentOverview = () => {
+    setShowPaymentOverviewModal(false)
+    setPaymentOverviewTarget(null)
   }
 
   const handleCopyPaymentLink = async (url: string) => {
@@ -3921,18 +3855,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             ) : (
               <div className="space-y-2">
                 {leadJobs.slice(0, 3).map((job: any) => (
-                  <div key={job.id} onClick={() => handleJobCardClick(job)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleJobCardClick(job) } }} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200 cursor-pointer">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
-                      <p className="text-xs text-muted-foreground/80">
-                        {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
-                        {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
-                      </p>
-                    </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap ml-2 border border-border/40">
-                      {formatJobStatus(job.status).text}
-                    </span>
-                  </div>
+                  <CustomerDetailPreviewCard
+                    key={job.id}
+                    title={job.title || 'Job'}
+                    subtitle={`${job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}${job.scheduled_time ? ` • ${job.scheduled_time}` : ''}`}
+                    onClick={() => handleJobCardClick(job)}
+                    ariaLabel="View job details"
+                    badge={
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap border border-border/40">
+                        {formatJobStatus(job.status).text}
+                      </span>
+                    }
+                  />
                 ))}
                 {leadJobs.length > 3 && (
                   <button
@@ -3971,22 +3905,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             ) : (
               <div className="space-y-2">
                 {leadTasks.slice(0, 3).map((task: any) => (
-                  <div key={task.id} onClick={() => handleTaskCardClick(task)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTaskCardClick(task) } }} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200 cursor-pointer">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground truncate">{task.title || 'Reminder'}</p>
-                      <p className="text-xs text-muted-foreground/80">
-                        {task.due_date ? formatDate(task.due_date) : 'No due date'}
-                        {task.due_time ? ` • ${task.due_time}` : ''}
-                      </p>
-                    </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 border ${
-                      task.completed
-                        ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
-                        : 'bg-muted/80 text-muted-foreground/90 border-border/40'
-                    }`}>
-                      {task.completed ? 'Completed' : 'Pending'}
-                    </span>
-                  </div>
+                  <CustomerDetailPreviewCard
+                    key={task.id}
+                    title={task.title || 'Reminder'}
+                    subtitle={`${task.due_date ? formatDate(task.due_date) : 'No due date'}${task.due_time ? ` • ${task.due_time}` : ''}`}
+                    onClick={() => handleTaskCardClick(task)}
+                    ariaLabel="View reminder details"
+                    badge={
+                      <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap border ${
+                        task.completed
+                          ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
+                          : 'bg-muted/80 text-muted-foreground/90 border-border/40'
+                      }`}>
+                        {task.completed ? 'Completed' : 'Pending'}
+                      </span>
+                    }
+                  />
                 ))}
                 {leadTasks.length > 3 && (
                   <button
@@ -4024,29 +3958,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="space-y-3">
                   <div className="space-y-2">
                     {paymentRequests.map((pr: any) => (
-                      <div
+                      <CustomerDetailPreviewCard
                         key={pr.id}
-                        onClick={() => handleOpenPaymentEdit(pr)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenPaymentEdit(pr) } }}
-                        className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200 cursor-pointer"
-                        aria-label="View payment details"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
-                          <p className="text-xs text-muted-foreground/80">{formatDate(pr.created_at)}</p>
-                        </div>
-                        <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 border ${
-                          pr.status === 'paid'
-                            ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
-                            : pr.status === 'pending'
-                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                            : 'bg-muted/80 text-muted-foreground/90 border-border/40'
-                        }`}>
-                          {formatPaymentStatus(pr.status).text}
-                        </span>
-                      </div>
+                        title={formatCurrency(pr.amount_cents / 100)}
+                        subtitle={formatDate(pr.created_at)}
+                        onClick={() => handleOpenPaymentOverview(pr)}
+                        ariaLabel="View payment details"
+                        badge={
+                          <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap border ${
+                            pr.status === 'paid'
+                              ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
+                              : pr.status === 'pending'
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                              : 'bg-muted/80 text-muted-foreground/90 border-border/40'
+                          }`}>
+                            {formatPaymentStatus(pr.status).text}
+                          </span>
+                        }
+                      />
                     ))}
                   </div>
                   <button
@@ -4121,19 +4050,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       }
                       const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                       return (
-                        <div key={event.id} onClick={() => handleAppointmentCardClick(event)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleAppointmentCardClick(event) } }} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200 cursor-pointer">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-foreground truncate">{event.summary}</p>
-                            <p className="text-xs text-muted-foreground/80">
-                              {dateStr} • {timeStr}
-                            </p>
-                          </div>
-                          {isPast && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap ml-2 border border-border/40">
+                        <CustomerDetailPreviewCard
+                          key={event.id}
+                          title={event.summary}
+                          subtitle={`${dateStr} • ${timeStr}`}
+                          onClick={() => handleAppointmentCardClick(event)}
+                          ariaLabel="View appointment details"
+                          badge={isPast ? (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap border border-border/40">
                               Past
                             </span>
-                          )}
-                        </div>
+                          ) : undefined}
+                        />
                       )
                     })
                   })()}
@@ -4198,7 +4126,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       showInternalNotesModal ||
       showIgnoreModal ||
       showPaymentModal ||
-      showPaymentEditModal ||
+      showPaymentOverviewModal ||
       showTaskModal ||
       showBusinessPhoneModal ||
       showAppointmentSuccessModal ||
@@ -4221,7 +4149,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     showInternalNotesModal,
     showIgnoreModal,
     showPaymentModal,
-    showPaymentEditModal,
+    showPaymentOverviewModal,
     showTaskModal,
     showBusinessPhoneModal,
     showAppointmentSuccessModal,
@@ -6946,18 +6874,12 @@ If you have questions, reply to this message.`
       </div>
     )}
 
-    {/* Payment Edit Modal - canonical detail/edit UI from the Payments page */}
-    {paymentToEdit && (
-      <PaymentEditModal
-        isOpen={showPaymentEditModal}
-        onClose={handleClosePaymentEdit}
-        onSave={handleSavePaymentLabel}
-        onCopyLink={handleCopyPaymentLink}
-        onCancelPayment={handleCancelPayment}
-        isCancelling={isCancellingPayment}
-        payment={paymentToEdit}
-        currentLabel={paymentEditLabel}
-        methodBadge={getPaymentMethodBadge(paymentToEdit.payment_method_type, paymentToEdit.payment_provider)}
+    {/* Payment Overview Modal - read-only details for customer payment cards */}
+    {paymentOverviewTarget && (
+      <PaymentOverviewModal
+        isOpen={showPaymentOverviewModal}
+        onClose={handleClosePaymentOverview}
+        payment={paymentOverviewTarget}
       />
     )}
 

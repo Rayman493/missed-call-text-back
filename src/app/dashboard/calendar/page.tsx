@@ -8,7 +8,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Toast, { ToastContainer } from '@/components/Toast'
 import Link from 'next/link'
-import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink, Pencil, Bell, Trash2, Video, Clock, Play, Square } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink, Pencil, Bell, Trash2, Video, Clock, Play, Square, X } from 'lucide-react'
 import SelectPicker from '@/components/ui/SelectPicker'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
@@ -1847,6 +1847,7 @@ export default function SchedulePage() {
                         setIsJobComposerOpen(true)
                       }}
                       onDeleteJob={(job) => setJobToDelete(job)}
+                      onShowToast={showToast}
                     />
                   )}
 
@@ -2752,6 +2753,7 @@ function JobsTab({
   onJobClick,
   onEditJob,
   onDeleteJob,
+  onShowToast,
 }: {
   jobs: Job[]
   isLoading: boolean
@@ -2759,6 +2761,7 @@ function JobsTab({
   onJobClick: (job: Job) => void
   onEditJob?: (job: Job) => void
   onDeleteJob?: (job: Job) => void
+  onShowToast?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
 }) {
   const hasLoadedOnceRef = useRef(false)
   const [timeSummary, setTimeSummary] = useState<{ today_ms: number; week_ms: number; week_job_count: number; active_timer: boolean } | null>(null)
@@ -2881,13 +2884,16 @@ function JobsTab({
       })
       if (!res.ok) {
         setTimerError('Failed to stop timer')
+        onShowToast?.('Failed to stop timer', 'error')
         return
       }
       notifyJobTimeChanged(activeTimerJob.id, false)
       setActiveTimerJob(null)
       setTimeSummary(summary => summary ? { ...summary, active_timer: false } : summary)
+      onShowToast?.('Timer stopped — time saved', 'success')
     } catch {
       setTimerError('Failed to stop timer')
+      onShowToast?.('Failed to stop timer', 'error')
     } finally {
       setTimerActionInFlight(false)
     }
@@ -3073,10 +3079,15 @@ function JobsTab({
             <button
               type="button"
               onClick={() => setShowTimerJobPicker(value => !value)}
-              className="inline-flex items-center gap-1.5 ml-auto px-2.5 py-1.5 text-xs font-medium text-foreground border border-border/50 rounded-lg hover:bg-muted/50 transition-colors"
+              onMouseDown={(e) => e.preventDefault()}
+              className={`inline-flex items-center gap-1.5 ml-auto px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-0 ${
+                showTimerJobPicker
+                  ? 'text-foreground border border-border/50 hover:bg-muted/50'
+                  : 'text-foreground border border-border/50 hover:bg-muted/50'
+              }`}
             >
-              <Play className="w-3.5 h-3.5" />
-              Start Timer
+              {showTimerJobPicker ? <X className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+              {showTimerJobPicker ? 'Cancel' : 'Start Timer'}
             </button>
           ) : null}
         </div>
@@ -3123,25 +3134,32 @@ function JobsTab({
             </button>
           </div>
         ) : showTimerJobPicker && timeSummary && !timeSummary.active_timer ? (
-          <div className="mt-3 pt-3 border-t border-border/40 flex flex-col sm:flex-row gap-2">
-            <div className="flex-1 min-w-0">
-              <SelectPicker
-                value={timerJobId}
-                onChange={(value) => setTimerJobId(value)}
-                options={active.map(job => ({ value: job.id, label: job.title }))}
-                placeholder="Select a job"
-                emptyMessage="No active jobs"
-                searchable={active.length > 5}
-                disabled={timerActionInFlight}
-              />
-            </div>
+          <div className="mt-3 pt-3 border-t border-border/40 flex flex-col gap-2">
+            <SelectPicker
+              value={timerJobId}
+              onChange={(value) => setTimerJobId(value)}
+              options={active.map(job => ({ value: job.id, label: job.title, secondaryLabel: job.customer_name || undefined }))}
+              placeholder="Select a job"
+              emptyMessage="No active jobs"
+              searchable={active.length > 5}
+              disabled={timerActionInFlight}
+              renderOption={(option, selected) => (
+                <div className="min-w-0 flex-1 flex flex-col gap-0.5 text-left">
+                  <span className="text-sm font-medium text-foreground truncate">{option.label}</span>
+                  {option.secondaryLabel && (
+                    <span className="text-xs text-muted-foreground truncate">{option.secondaryLabel}</span>
+                  )}
+                </div>
+              )}
+            />
             <button
               type="button"
               onClick={startSummaryTimer}
               disabled={!timerJobId || timerActionInFlight}
-              className="min-h-10 px-3 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
+              className="w-full min-h-10 px-3 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
             >
-              {timerActionInFlight ? 'Starting…' : 'Start'}
+              <Play className="w-3.5 h-3.5" />
+              {timerActionInFlight ? 'Starting…' : 'Start Timer'}
             </button>
           </div>
         ) : null}

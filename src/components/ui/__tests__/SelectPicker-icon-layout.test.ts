@@ -20,7 +20,6 @@ describe('SelectPicker icon layout', () => {
   it('F: selected value text truncates and reserves room for icons on narrow widths', () => {
     // Right padding reserves room for both icons when a value is selected
     expect(content).toContain('pr-14')
-    expect(content).toContain('pr-10')
     // The label text uses flex-1 min-w-0 so it truncates instead of overlapping
     expect(content).toContain('truncate flex-1 min-w-0')
   })

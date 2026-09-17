@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef, useId, useMemo } from 'react'
-import { ChevronDown, X, Check, Search, Loader2 } from 'lucide-react'
+import { ChevronDown, X, Search, Loader2, Check } from 'lucide-react'
+import PickerListRow from '@/components/ui/PickerListRow'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { filterLeadsBySearchQuery, normalizePhoneDigits, getCustomerDisplayName, getCustomerSecondaryText } from '@/components/payments/customer-search-helpers'
+import { filterLeadsBySearchQuery, normalizePhoneDigits, getCustomerDisplayName, getCustomerServiceText, getCustomerTertiaryText } from '@/components/payments/customer-search-helpers'
 import { formatForDisplay } from '@/utils/phone-formatting'
 import { markDropdownDismissed } from '@/components/lead-status-gesture'
 
@@ -296,11 +297,6 @@ export default function SearchableCustomerSelect({
     return 'Customer'
   }
 
-  const getSecondaryText = (customer: Customer | null | undefined): string | null => {
-    if (!customer) return null
-    return getCustomerSecondaryText(customer)
-  }
-
   // Show the null "No customer" option only when a customer is actually selected
   // (so the user can deselect), and hide it when already cleared.
   const showNoCustomerOption = allowClear && hasValue
@@ -455,30 +451,17 @@ export default function SearchableCustomerSelect({
                     )}
                   </button>
                 )}
-                {filteredCustomers.map((customer) => {
-                  const secondaryText = getSecondaryText(customer)
-                  return (
-                    <button
-                      key={customer.id}
-                      type="button"
-                      role="option"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelect(customer.id) }}
-                      className={`w-full px-3 py-2 text-sm text-left duration-150 flex flex-col gap-0.5 ${
-                        value === customer.id ? 'bg-accent/40' : 'text-foreground hover:bg-accent/40'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate flex-1 min-w-0">{getDisplayText(customer)}</span>
-                        {value === customer.id && (
-                          <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                        )}
-                      </div>
-                      {secondaryText && (
-                        <span className="text-xs text-muted-foreground truncate">{secondaryText}</span>
-                      )}
-                    </button>
-                  )
-                })}
+                {filteredCustomers.map((customer) => (
+                  <PickerListRow
+                    key={customer.id}
+                    primary={getDisplayText(customer)}
+                    secondary={getCustomerServiceText(customer)}
+                    tertiary={getCustomerTertiaryText(customer)}
+                    selected={value === customer.id}
+                    onClick={() => handleSelect(customer.id)}
+                    role="option"
+                  />
+                ))}
               </div>
             )}
           </div>

@@ -295,6 +295,11 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
       }
     >
       <div className="space-y-4">
+        {!taskToEdit && (
+          <p className="text-sm text-muted-foreground">
+            Set a reminder for this customer or job.
+          </p>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Section: Details */}
           <div className="space-y-3">
@@ -340,7 +345,8 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
                     : (job.customer_name || '')
                   return {
                     value: job.id,
-                    label: job.title + (customerDisplay ? ` - ${customerDisplay}` : '')
+                    label: job.title,
+                    secondaryLabel: customerDisplay || undefined
                   }
                 })
               ]}
@@ -348,6 +354,16 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               label="Job"
               searchable={jobs.length > 10}
               emptyMessage="No jobs available"
+              renderOption={(option, selected) => (
+                <div className="min-w-0 flex-1 flex flex-col gap-0.5 text-left">
+                  <span className={`text-sm ${selected ? 'font-medium text-foreground' : 'text-foreground'} truncate`}>
+                    {option.label}
+                  </span>
+                  {option.secondaryLabel && (
+                    <span className="text-xs text-muted-foreground truncate">{option.secondaryLabel}</span>
+                  )}
+                </div>
+              )}
             />
           </div>
 

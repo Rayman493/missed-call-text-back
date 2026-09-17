@@ -319,6 +319,12 @@ export default function JobComposer({
         }
       >
         <div className="space-y-4">
+            {!editJob && (
+              <p className="text-sm text-muted-foreground">
+                Create and schedule work for this customer.
+              </p>
+            )}
+
             {/* Source provenance for ReplyFlow-linked jobs — quiet helper text */}
             {(prefill?.lead_id || editJob?.lead_id) && (
               <p className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
