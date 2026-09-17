@@ -148,8 +148,9 @@ export async function POST(
     // A customer receiving an invoice SMS must be able to pay immediately.
     // If payment preparation fails, do NOT send the SMS — an invoice link
     // that cannot be paid is worse than no link at all.
+    let payResult: Awaited<ReturnType<typeof prepareInvoicePayment>> | null = null
     if (!isQuote) {
-      const payResult = await prepareInvoicePayment(supabase, business.id, {
+      payResult = await prepareInvoicePayment(supabase, business.id, {
         id: doc.id,
         document_number: doc.document_number,
         total_cents: doc.total_cents,
@@ -172,10 +173,13 @@ export async function POST(
     }
 
     // ── Send SMS ──────────────────────────────────────────────────────
+    // Use a deterministic clientMessageId so a retry after a successful send
+    // but a failed status update cannot deliver a second customer SMS.
     const smsResult = await sendSms(business, customerPhone, message, {
       lead_id: doc.customer_id,
       isManual: true,
       source: 'billing_document',
+      clientMessageId: `billing-document-send:${doc.id}:${publicToken}`,
     })
 
     // Check SMS failure BEFORE marking document as sent
@@ -206,6 +210,10 @@ export async function POST(
     const updatePayload: Record<string, any> = {
       status: 'sent',
       sent_at: new Date().toISOString(),
+    }
+    // Persist the payment_request_id that prepareInvoicePayment created or reused.
+    if (payResult?.payment_request_id) {
+      updatePayload.payment_request_id = payResult.payment_request_id
     }
     // Only write the snapshot once (first send); on a retry after a
     // failed status update, the snapshot is already persisted.

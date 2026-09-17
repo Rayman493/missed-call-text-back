@@ -1905,9 +1905,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // 100 px thresholds and keeps the conversation pinned through dynamic
       // viewport changes on both desktop and mobile.
       if (followLatestRef.current) {
+        // Two RAF passes let the browser apply the CSS --visual-viewport-height
+        // change and resize the container before we measure scrollHeight.
         requestAnimationFrame(() => {
-          const c = getContainer()
-          if (c) scrollToTrueBottom(c)
+          requestAnimationFrame(() => {
+            const c = getContainer()
+            if (c) scrollToTrueBottom(c)
+          })
         })
       }
     }
@@ -1936,8 +1940,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // gated on the user's follow intent.
       const handleViewportScroll = () => {
         if (followLatestRef.current) {
-          const c = getContainer()
-          if (c) scrollToTrueBottom(c)
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              const c = getContainer()
+              if (c) scrollToTrueBottom(c)
+            })
+          })
         }
       }
       window.visualViewport.addEventListener('scroll', handleViewportScroll)
@@ -2749,9 +2757,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'messages'
-          // No server-side filter - RLS provides cross-business isolation
-          // Client-side lead guard ensures conversation isolation
+          table: 'messages',
+          // Server-side lead filter reduces payload and ensures the event is
+          // delivered for the currently viewed customer. REPLICA IDENTITY FULL
+          // plus RLS provides the row contents; the client guard below is a
+          // second line of defense against cross-lead payload leakage.
+          filter: `lead_id=eq.${leadId}`,
         },
         (payload: any) => {
           const newMessage = payload.new
@@ -2856,9 +2867,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'messages'
-          // No server-side filter - RLS provides cross-business isolation
-          // Client-side lead guard ensures conversation isolation
+          table: 'messages',
+          filter: `lead_id=eq.${leadId}`,
         },
         (payload: any) => {
           const updatedMessage = payload.new
@@ -3636,6 +3646,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       if (textarea.scrollTop !== 0) {
         textarea.scrollTop = 0
       }
+    }
+  }
+
+  // When the composer receives focus, the keyboard will open. If the user was
+  // already following the latest message, reaffirm follow intent and anchor
+  // to true bottom so the newest message remains directly above the composer
+  // through the keyboard resize sequence.
+  const handleMobileTextareaFocus = () => {
+    const container = mobileConversationContainerRef.current
+    if (!container) return
+    if (isContainerNearBottom(container)) {
+      followLatestRef.current = true
+      scrollToTrueBottom(container)
     }
   }
 
@@ -5722,6 +5745,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           value={message}
                           onChange={handleMobileTextareaChange}
                           onKeyDown={handleMobileKeyDown}
+                          onFocus={handleMobileTextareaFocus}
                           placeholder="Type a message..."
                           autoCapitalize="sentences"
                           autoCorrect="on"

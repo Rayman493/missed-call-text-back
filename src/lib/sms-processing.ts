@@ -848,38 +848,20 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         correctionsApplied: newMergeCorrections.length,
         correctedFields: newMergeCorrections.map(([field]) => field)
       })
-      const correctedFieldsFromMerge = { ...(currentMetadata.corrected_fields || {}) }
-      const previousValuesFromMerge = { ...(currentMetadata.previous_values || {}) }
-      for (const [field, correction] of newMergeCorrections as [string, any][]) {
-        const correctedFieldKey = fieldKeyMap[field] || field
-        correctedFieldsFromMerge[correctedFieldKey] = correction.to
-        previousValuesFromMerge[correctedFieldKey] = correction.from || 'unknown'
-      }
-      const enrichedMetadata = {
-        ...updatedMetadata,
-        ...(newMergeCorrections.length > 0 ? {
-          customer_corrected_info: true,
-          last_correction_at: now,
-          last_correction_field: newMergeCorrections[newMergeCorrections.length - 1][0],
-          corrections_count: (currentMetadata.corrections_count || 0) + newMergeCorrections.length,
-          corrected_fields: correctedFieldsFromMerge,
-          previous_values: previousValuesFromMerge,
-          correction_sources: {
-            ...(currentMetadata.correction_sources || {}),
-            ...Object.fromEntries(newMergeCorrections.map(([field]) => [fieldKeyMap[field] || field, 'sms']))
-          }
-        } : {})
-      }
+      // SMS-derived extraction merges update intake metadata only.
+      // They must NOT promote field_corrections into corrected_fields or set
+      // customer_corrected_info; that flag is reserved for explicit manual
+      // customer edits so ordinary inbound SMS/MMS cannot mint a false
+      // "Customer information updated" timeline event.
+      const enrichedMetadata = updatedMetadata
       const mergedLeadUpdatePayload: any = { raw_metadata: enrichedMetadata }
 
       console.log('[SMS MERGE PERSIST PREPARED]', {
         leadId: lead.id,
         mergedExtractedInfo: updatedMetadata.extracted_info,
         rawMetadataToWrite: enrichedMetadata,
-        correctedFieldsToWrite: enrichedMetadata.corrected_fields,
-        correctionsCountToWrite: enrichedMetadata.corrections_count,
-        correctedNameToWrite: enrichedMetadata.corrected_fields?.name || null,
-        newMergeCorrections
+        newMergeCorrections,
+        note: 'SMS merge does not promote corrections into customer_corrected_info/corrected_fields'
       })
 
       const { data: leadUpdateRows, error: updateError } = await supabaseAdmin
@@ -1293,20 +1275,8 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           .single()
 
         const currentMetadata = latestLeadForCorrection?.raw_metadata || lead?.raw_metadata || {}
-        const currentCorrectionsCount = currentMetadata.corrections_count || 0
-        const currentCorrectedFields = currentMetadata.corrected_fields || {}
-        const currentPreviousValues = currentMetadata.previous_values || {}
-        const currentCorrectionSources = currentMetadata.correction_sources || {}
-        const currentManualFields = new Set<string>(currentMetadata.manualFields || [])
 
-        console.log('[CORRECTION COUNT]', {
-          leadId: lead.id,
-          previousCount: currentCorrectionsCount,
-          newCount: currentCorrectionsCount + correctedFields.length,
-          currentMetadata
-        })
-
-        // Map field name to corrected_fields key
+        // Map field name to canonical key for name/address sync below.
         const fieldKeyMap: Record<string, string> = {
           'addressOrLocation': 'address',
           'callbackNumber': 'phone',
@@ -1318,33 +1288,14 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           'callerName': 'name'
         }
 
-        // Build updated corrected_fields and previous_values for all corrections
-        const updatedCorrectedFields = { ...currentCorrectedFields }
-        const updatedPreviousValues = { ...currentPreviousValues }
-
+        // Filter out fields the user has manually corrected so an SMS reply
+        // cannot override a deliberate manual edit.
+        const currentManualFields = new Set<string>(currentMetadata.manualFields || [])
+        const currentCorrectionSources = currentMetadata.correction_sources || {}
         const smsCorrectedFields = correctedFields.filter((correction) => {
           const correctedFieldKey = fieldKeyMap[correction.field] || correction.field
           return !currentManualFields.has(correction.field) && !currentManualFields.has(correctedFieldKey) && currentCorrectionSources[correction.field] !== 'manual' && currentCorrectionSources[correctedFieldKey] !== 'manual'
         })
-
-        for (const correction of smsCorrectedFields) {
-          const correctedFieldKey = fieldKeyMap[correction.field] || correction.field
-          const newValue = correction.field === 'callerName' 
-            ? stripTrailingPunctuationFromName(correction.newValue)
-            : correction.newValue
-          updatedCorrectedFields[correctedFieldKey] = newValue
-          updatedPreviousValues[correctedFieldKey] = correction.oldValue || 'unknown'
-          currentCorrectionSources[correctedFieldKey] = 'sms'
-        }
-
-        const correctionNote = smsCorrectedFields.length === 1
-          ? generateCorrectionNote(
-              smsCorrectedFields[0].field,
-              smsCorrectedFields[0].oldValue || 'unknown',
-              smsCorrectedFields[0].newValue,
-              correctionResult.confidence
-            )
-          : `[AI CORRECTIONS APPLIED] ${smsCorrectedFields.length} fields updated: ${smsCorrectedFields.map(c => c.field).join(', ')}`
 
         // Synchronize legacy serviceAddress field when addressOrLocation is corrected
         // This prevents stale duplicate address values in raw_metadata
@@ -1358,17 +1309,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           })
         }
 
+        // AI correction updates extracted_info and may sync the lead name, but
+        // it does NOT promote SMS-derived corrections into corrected_fields or
+        // set customer_corrected_info. Those timeline-visible flags are reserved
+        // for explicit manual customer edits.
         const correctedMetadata = {
           ...currentMetadata,
-          extracted_info: correctedExtractedInfo,
-          customer_corrected_info: true,
-          last_correction_at: now,
-          last_correction_field: smsCorrectedFields[smsCorrectedFields.length - 1]?.field || correctedFields[correctedFields.length - 1].field,
-          last_correction_note: correctionNote,
-          corrections_count: currentCorrectionsCount + smsCorrectedFields.length,
-          corrected_fields: updatedCorrectedFields,
-          previous_values: updatedPreviousValues,
-          correction_sources: currentCorrectionSources
+          extracted_info: correctedExtractedInfo
         }
 
         console.log('[SMS CORRECTION APPLIED]', {
@@ -1378,8 +1325,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           newValue: smsCorrectedFields[smsCorrectedFields.length - 1]?.newValue || correctedFields[correctedFields.length - 1].newValue,
           reason: 'persisting_to_ai_call_record_and_lead_metadata',
           totalCorrections: smsCorrectedFields.length,
-          correctedFieldsBefore: currentCorrectedFields,
-          correctedFieldsAfter: correctedMetadata.corrected_fields
+          note: 'customer_corrected_info/corrected_fields not updated from SMS path'
         })
 
         // Check if name was corrected and update lead.name
@@ -1470,14 +1416,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           })
         }
 
-        // Add correction note to conversation
+        // Log that AI extraction update was applied without minting a timeline event.
         if (conversation) {
-          console.log('[AI CORRECTION ADDING NOTE TO CONVERSATION]', {
+          console.log('[AI CORRECTION EXTRACTION UPDATED]', {
             conversationId: conversation.id,
-            correctionNote
+            leadId: lead.id,
+            fields: smsCorrectedFields.map(c => c.field)
           })
-          // Note: This would require a function to add a system note to the conversation
-          // For now, the correction is logged and stored in lead.raw_metadata
         }
       }
     } else {

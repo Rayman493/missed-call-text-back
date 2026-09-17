@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 
 // Reference count for nested modal support
 let lockCount = 0
@@ -251,7 +251,7 @@ if (typeof window !== 'undefined') {
 export function useBodyScrollLock(isLocked: boolean, componentName?: string) {
   const ownerIdRef = useRef<string>(generateOwnerId())
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     console.log('[MODAL_MOUNT] Scroll lock hook mounted', {
       ownerId: ownerIdRef.current,
       component: componentName || 'unknown',

@@ -322,10 +322,15 @@ export async function PATCH(
         previous_values: previousValues,
         correction_sources: correctionSources,
         manualFields: Array.from(manualFields),
-        customer_corrected_info: true,
-        last_correction_at: now,
-        last_correction_source: 'manual',
-        corrections_count: (currentMetadata.corrections_count || 0) + changedCount,
+        // Only mint a "Customer information updated" timeline event when a
+        // material field actually changed. Same-value saves or no-op edits
+        // must not leave customer_corrected_info pinned to true.
+        ...(changedCount > 0 ? {
+          customer_corrected_info: true,
+          last_correction_at: now,
+          last_correction_source: 'manual',
+          corrections_count: (currentMetadata.corrections_count || 0) + changedCount,
+        } : {}),
       }
 
       const metaUpdate: Record<string, any> = { raw_metadata: mergedRawMetadata }
@@ -367,7 +372,7 @@ export async function PATCH(
         }
       }
 
-      return NextResponse.json({ lead: updatedLead })
+      return NextResponse.json({ lead: updatedLead, changed: changedCount > 0 })
     }
 
     // Handle restore operation (when deleted_at is explicitly set to null)
