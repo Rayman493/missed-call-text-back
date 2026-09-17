@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber, formatRelativeTime } from '@/lib/utils'
 import { phoneNumbersMatch } from '@/lib/phone-utils'
@@ -86,7 +86,10 @@ export default function PersonalVoicemailPage() {
   const [globalPlayingId, setGlobalPlayingId] = useState<string | null>(null)
   const [overflowMenuId, setOverflowMenuId] = useState<string | null>(null)
   const [expandedTranscripts, setExpandedTranscripts] = useState<Set<string>>(new Set())
-  const supabase = createBrowserClient()
+  const [refreshing, setRefreshing] = useState(false)
+  const supabase = useMemo(() => createBrowserClient(), [])
+  const voicemailsRef = useRef<PersonalVoicemail[]>([])
+  const fetchInFlightRef = useRef<Promise<void> | null>(null)
 
   const fetchContacts = async () => {
     try {
@@ -105,34 +108,50 @@ export default function PersonalVoicemailPage() {
     }
   }
 
-  const fetchVoicemails = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/personal-voicemails', {
-        credentials: 'include',
-      })
-      const data = await response.json()
+  const fetchVoicemails = useCallback((options?: { resume?: boolean }) => {
+    if (fetchInFlightRef.current) return fetchInFlightRef.current
+    const request = (async () => {
+      const hasExistingData = voicemailsRef.current.length > 0
+      if (hasExistingData) setRefreshing(true)
+      else setLoading(true)
+      setError(null)
+      try {
+        let response = await fetch('/api/personal-voicemails', { credentials: 'include' })
+        if (options?.resume && (response.status === 401 || response.status === 403)) {
+          const { error: refreshError } = await supabase.auth.refreshSession()
+          if (!refreshError) {
+            response = await fetch('/api/personal-voicemails', { credentials: 'include' })
+          }
+        }
+        const data = await response.json()
+        if (!response.ok) {
+          throw new Error(data.error || 'We couldn\'t load your voicemails. Please try again.')
+        }
 
-      if (!response.ok) {
-        throw new Error(data.error || 'We couldn\'t load your voicemails. Please try again.')
+        const incoming = data.voicemails || []
+        const seenIds = new Set<string>()
+        const deduped = incoming.filter((v: PersonalVoicemail) => {
+          if (seenIds.has(v.id)) return false
+          seenIds.add(v.id)
+          return true
+        })
+        voicemailsRef.current = deduped
+        setVoicemails(deduped)
+        setError(null)
+      } catch (err: any) {
+        console.error('[Personal Voicemail] Error:', err)
+        setError(err?.message || 'We couldn\'t load your voicemails. Please try again.')
+      } finally {
+        setLoading(false)
+        setRefreshing(false)
       }
-
-      // Dedupe by id to prevent duplicate voicemails after refetch/realtime merge
-      const incoming = data.voicemails || []
-      const seenIds = new Set<string>()
-      const deduped = incoming.filter((v: PersonalVoicemail) => {
-        if (seenIds.has(v.id)) return false
-        seenIds.add(v.id)
-        return true
-      })
-      setVoicemails(deduped)
-    } catch (err: any) {
-      console.error('[Personal Voicemail] Error:', err)
-      setError('We couldn\'t load your voicemails. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
+    })()
+    fetchInFlightRef.current = request
+    request.finally(() => {
+      if (fetchInFlightRef.current === request) fetchInFlightRef.current = null
+    })
+    return request
+  }, [supabase])
 
   // Match caller phone against saved contacts
   const getContactName = (callerPhone: string): string | null => {
@@ -187,7 +206,9 @@ export default function PersonalVoicemailPage() {
             // Dedupe by id — never insert the same voicemail twice
             if (prev.some((v) => v.id === voicemailWithUrl.id)) return prev
             // Insert at the top (newest first, matching API order)
-            return [voicemailWithUrl, ...prev]
+            const next = [voicemailWithUrl, ...prev]
+            voicemailsRef.current = next
+            return next
           })
         }
       )
@@ -197,7 +218,37 @@ export default function PersonalVoicemailPage() {
       clearInterval(pollTimer)
       supabase.removeChannel(realtimeChannel)
     }
-  }, [])
+  }, [fetchVoicemails, supabase])
+
+  useEffect(() => {
+    let appStateListener: { remove: () => void } | undefined
+    let visibilityHandler: (() => void) | undefined
+    let disposed = false
+
+    const handleResume = () => { fetchVoicemails({ resume: true }) }
+    ;(async () => {
+      try {
+        const { App } = await import('@capacitor/app')
+        const listener = await App.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) handleResume()
+        })
+        if (disposed) listener.remove()
+        else appStateListener = listener
+      } catch {
+        if (disposed) return
+        visibilityHandler = () => {
+          if (document.visibilityState === 'visible') handleResume()
+        }
+        document.addEventListener('visibilitychange', visibilityHandler)
+      }
+    })()
+
+    return () => {
+      disposed = true
+      appStateListener?.remove()
+      if (visibilityHandler) document.removeEventListener('visibilitychange', visibilityHandler)
+    }
+  }, [fetchVoicemails])
 
   const handleMarkListened = async (voicemail: PersonalVoicemail) => {
     try {
@@ -264,15 +315,26 @@ export default function PersonalVoicemailPage() {
                 </p>
               </div>
 
-              {loading ? (
+              {refreshing && (
+                <p className="text-xs text-muted-foreground mb-3" role="status">Refreshing voicemails…</p>
+              )}
+              {error && (
+                <div className="rounded-xl border border-red-200/50 bg-red-50/50 dark:border-red-800/50 dark:bg-red-900/20 p-4 mb-4 flex items-center justify-between gap-3">
+                  <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                  <button
+                    type="button"
+                    onClick={() => fetchVoicemails()}
+                    className="px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-300 border border-red-300/70 dark:border-red-700 rounded-lg hover:bg-red-100/60 dark:hover:bg-red-900/30"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+              {loading && voicemails.length === 0 ? (
                 <div className="space-y-4">
                   <ListItemSkeleton />
                   <ListItemSkeleton />
                   <ListItemSkeleton />
-                </div>
-              ) : error ? (
-                <div className="rounded-xl border border-red-200/50 bg-red-50/50 dark:border-red-800/50 dark:bg-red-900/20 p-4">
-                  <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
                 </div>
               ) : voicemails.length === 0 ? (
                 <EmptyState

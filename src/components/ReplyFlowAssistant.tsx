@@ -590,7 +590,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
             {/* Next recommended action */}
             {relatedQuestions.length > 0 && (
               <div className="mt-4">
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Next recommended action</p>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Recommended Reading</p>
                 <button
                   onClick={() => handleSuggestedQuestion(relatedQuestions[0].question)}
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium"

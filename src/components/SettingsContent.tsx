@@ -708,6 +708,15 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   const isStripeConnectUnavailable = process.env.NEXT_PUBLIC_STRIPE_CONNECT_ENABLED === 'false'
 
   const supabase = createBrowserClient()
+  const authProviders = Array.from(new Set([
+    ...(((user as any)?.app_metadata?.providers as string[] | undefined) || []),
+    ...(((user as any)?.identities as Array<{ provider?: string }> | undefined) || []).map((identity) => identity.provider || ''),
+  ].filter(Boolean)))
+  const isOAuthOnlyAccount = authProviders.length > 0 && !authProviders.includes('email')
+
+  useEffect(() => {
+    setPendingNewEmail(((user as any)?.new_email as string | undefined) || null)
+  }, [user])
 
   useBodyScrollLock(showAddModal || showDeleteModal || showChangeEmailModal, 'settings-modal')
 
@@ -1316,6 +1325,10 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
   const handleChangePassword = async () => {
     setPasswordError('')
+    if (isOAuthOnlyAccount) {
+      setPasswordError('Your password is managed by your sign-in provider.')
+      return
+    }
 
     // Validate all fields are filled
     if (!currentPassword.trim()) {
@@ -2161,6 +2174,10 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
   // Change email handler
   const handleChangeEmail = async () => {
+    if (isOAuthOnlyAccount) {
+      setEmailError('Your login email is managed by your sign-in provider.')
+      return
+    }
     if (!newEmail || !confirmNewEmail || !emailPassword) {
       setEmailError('Please fill in all fields')
       return
@@ -2228,11 +2245,8 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       setConfirmNewEmail('')
       setEmailPassword('')
       
-      // Close modal after delay
-      setTimeout(() => {
-        setShowChangeEmailModal(false)
-        setEmailSuccess(false)
-      }, 3000)
+      setShowChangeEmailModal(false)
+      setEmailSuccess(false)
     } catch (error) {
       console.error('[Settings] Email change error:', error)
       setEmailError('Failed to update email. Please try again.')
@@ -4778,19 +4792,23 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                         <span className="text-sm font-medium text-foreground">{user?.email}</span>
-                        <button
-                          onClick={() => {
-                            setNewEmail('')
-                            setConfirmNewEmail('')
-                            setEmailPassword('')
-                            setEmailError('')
-                            setEmailSuccess(false)
-                            setShowChangeEmailModal(true)
-                          }}
-                          className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
-                        >
-                          Change Email
-                        </button>
+                        {isOAuthOnlyAccount ? (
+                          <span className="text-xs text-muted-foreground">Managed by sign-in provider</span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setNewEmail('')
+                              setConfirmNewEmail('')
+                              setEmailPassword('')
+                              setEmailError('')
+                              setEmailSuccess(false)
+                              setShowChangeEmailModal(true)
+                            }}
+                            className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
+                          >
+                            Change Email
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -4804,7 +4822,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           <span className="text-sm font-medium text-amber-800 dark:text-amber-300">Email Change Pending</span>
                         </div>
                         <span className="text-xs text-amber-700 dark:text-amber-400">
-                          Check your new inbox to confirm: {pendingNewEmail}
+                          Follow the confirmation instructions sent by your account provider for {pendingNewEmail}. Your current login remains active until verification completes.
                         </span>
                       </div>
                       <button
@@ -4931,19 +4949,25 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                         </span>
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                        <span className="text-sm font-medium text-foreground">•••••••••</span>
-                        <button
-                          onClick={() => {
-                            setCurrentPassword('')
-                            setNewPassword('')
-                            setConfirmNewPassword('')
-                            setPasswordError('')
-                            setShowChangePasswordModal(true)
-                          }}
-                          className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
-                        >
-                          Change Password
-                        </button>
+                        {isOAuthOnlyAccount ? (
+                          <span className="text-xs text-muted-foreground">Managed by sign-in provider</span>
+                        ) : (
+                          <>
+                            <span className="text-sm font-medium text-foreground">•••••••••</span>
+                            <button
+                              onClick={() => {
+                                setCurrentPassword('')
+                                setNewPassword('')
+                                setConfirmNewPassword('')
+                                setPasswordError('')
+                                setShowChangePasswordModal(true)
+                              }}
+                              className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap flex-shrink-0"
+                            >
+                              Change Password
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
