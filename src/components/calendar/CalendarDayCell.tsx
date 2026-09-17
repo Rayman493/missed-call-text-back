@@ -114,17 +114,21 @@ export default function CalendarDayCell({
           {day}
         </span>
       </div>
-      <div className="relative z-10 w-full flex flex-col items-center justify-center flex-1 min-h-0">
+      <div className="relative z-10 w-full flex flex-col items-center justify-end flex-1 min-h-0">
         {hasEvents && (
-          <div
-            className="flex items-center gap-1 text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+          <button
+            type="button"
+            className="flex items-center gap-1 text-[10px] font-medium text-slate-600 dark:text-slate-300 cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
             onClick={(e) => {
               e.stopPropagation()
               onClick?.()
             }}
           >
-            <span>{eventCountLabel}</span>
-          </div>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/40 whitespace-nowrap">
+              <span className="sm:hidden">{events.length}</span>
+              <span className="hidden sm:inline">{eventCountLabel}</span>
+            </span>
+          </button>
         )}
       </div>
     </div>

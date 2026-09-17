@@ -218,12 +218,12 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader showNavigation={true} />
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-5xl mx-auto px-4 py-4">
         {/* Header — flush-left stack sharing the notification cards' left
             edge: back, title, subtitle and actions all sit on the same
             primary alignment axis as the list below. */}
-        <div className="mb-4 sm:mb-6">
-          <div className="mb-1 -ml-2.5">
+        <div className="mb-3 sm:mb-5">
+          <div className="mb-0.5 -ml-2.5">
             <AppBackButton fallbackHref="/dashboard" label="Back" />
           </div>
 
@@ -232,17 +232,17 @@ export default function NotificationsPage() {
             <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
             {notifications.length > 0 && (
               <div className="hidden sm:flex items-center gap-2 shrink-0 ml-auto">
-                {notificationCount.unread > 0 && (
-                  <button
-                    onClick={handleMarkAllAsRead}
-                    className="px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors shrink-0"
-                  >
-                    Mark all as read
-                  </button>
-                )}
+                <button
+                  onClick={handleMarkAllAsRead}
+                  disabled={notificationCount.unread === 0}
+                  className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-full text-xs font-medium border transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                >
+                  Mark all as read
+                </button>
                 <button
                   onClick={handleClearAll}
-                  className="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-foreground dark:hover:text-foreground rounded-md transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-600 focus:ring-offset-2"
+                  disabled={notifications.length === 0}
+                  className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-full text-xs font-medium border transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   Clear all
                 </button>
@@ -257,18 +257,18 @@ export default function NotificationsPage() {
 
           {/* Row 3: mobile-only actions — same left edge */}
           {notifications.length > 0 && (
-            <div className="flex sm:hidden items-center gap-2 mt-3">
-              {notificationCount.unread > 0 && (
-                <button
-                  onClick={handleMarkAllAsRead}
-                  className="px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors shrink-0"
-                >
-                  Mark all as read
-                </button>
-              )}
+            <div className="flex sm:hidden items-center gap-2 mt-2.5">
+              <button
+                onClick={handleMarkAllAsRead}
+                disabled={notificationCount.unread === 0}
+                className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-full text-xs font-medium border transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              >
+                Mark all as read
+              </button>
               <button
                 onClick={handleClearAll}
-                className="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-foreground dark:hover:text-foreground rounded-md transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-600 focus:ring-offset-2"
+                disabled={notifications.length === 0}
+                className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-full text-xs font-medium border transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 Clear all
               </button>

@@ -125,7 +125,7 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
       {/* Modal */}
       <div className="relative bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200" data-scroll-lock-allow>
         {/* Header */}
-        <div className="sticky top-0 bg-card border-b border-border dark:border-border/50 px-4 sm:px-5 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-card border-b border-border dark:border-border/50 px-4 sm:px-5 py-4 pr-12 sm:pr-14 relative">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
               <MessageCircle className="w-5 h-5 text-primary" />
@@ -137,7 +137,7 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            className="absolute right-2 top-2 sm:right-3 sm:top-3 p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
             disabled={isSubmitting}
             aria-label="Close feedback modal"
           >

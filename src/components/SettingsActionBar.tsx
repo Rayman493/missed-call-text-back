@@ -118,12 +118,12 @@ export default function SettingsActionBar({
     return null
   }
 
-  const mobileBottomOffset = keyboardOffset > 0 ? keyboardOffset + 8 : 16
+  const mobileBottomOffset = keyboardOffset > 0 ? keyboardOffset + 8 : 8
   // Use CSS variable for actual bottom nav height, fallback to 0 if not set
   const bottomNavHeight = bottomNavVisible ? `var(--bottom-nav-height, 0px)` : '0px'
   // Add safe-area-bottom for native iOS devices
   const safeAreaBottom = showMobileBar ? 'env(safe-area-inset-bottom, 0px)' : '0px'
-  const bottomOffset = bottomNavVisible ? `calc(${mobileBottomOffset}px + ${bottomNavHeight} + 8px + ${safeAreaBottom})` : `calc(${mobileBottomOffset}px + ${safeAreaBottom})`
+  const bottomOffset = bottomNavVisible ? `calc(${mobileBottomOffset}px + ${bottomNavHeight} + 2px + ${safeAreaBottom})` : `calc(${mobileBottomOffset}px + ${safeAreaBottom})`
 
   // Sticky Bottom Action Bar (same for both desktop and mobile)
   return (

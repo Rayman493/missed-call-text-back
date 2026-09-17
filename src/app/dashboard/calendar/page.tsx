@@ -1922,7 +1922,11 @@ export default function SchedulePage() {
                       )}
 
                       {/* Compact Status Bar - Desktop: Simplified */}
-                      <div className="hidden md:flex items-center justify-between gap-4 mb-4 px-3 py-2.5 bg-white dark:bg-slate-900/40 border border-slate-200/40 dark:border-slate-700/25 rounded-lg">
+                      <div className="hidden md:block mb-3">
+                        <p className="text-xs text-muted-foreground font-medium mb-1.5">
+                          {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        </p>
+                        <div className="flex items-center justify-between gap-4 px-3 py-2.5 bg-white dark:bg-slate-900/40 border border-slate-200/40 dark:border-slate-700/25 rounded-lg">
                         {/* Equal-width summary columns */}
                         <div className="grid grid-cols-3 gap-4 flex-1">
                           <div className="flex items-center gap-2">
@@ -2024,10 +2028,14 @@ export default function SchedulePage() {
                           </div>
                         </div>
                       </div>
+                      </div>
 
                       
                       {/* Mobile: Compact Metrics - equal-width columns */}
                       <div className="md:hidden mb-3">
+                        <p className="text-xs text-muted-foreground font-medium mb-1.5 md:hidden">
+                          {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        </p>
                         <div className="grid grid-cols-3 gap-2 p-2 bg-white dark:bg-slate-900/40 border border-slate-200/40 dark:border-slate-700/25 rounded-md">
                           <div className="flex items-center justify-center gap-1.5">
                             <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>

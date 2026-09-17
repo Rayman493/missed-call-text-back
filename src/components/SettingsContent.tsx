@@ -3451,7 +3451,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               className="w-full px-3 py-2 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-xs sm:text-sm hover:border-border/80 dark:hover:border-border/60 resize-none min-h-[120px]"
                             />
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                              Use <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[11px] font-mono">{"{{business_name}}"}</code> to insert your business name.
+                              We’ll automatically add your business name when this message is sent.
                             </p>
                           </div>
                         </div>
@@ -3710,7 +3710,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               className="w-full px-3 py-2 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-xs sm:text-sm hover:border-border/80 dark:hover:border-border/60 resize-none min-h-[120px]"
                             />
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                              Use <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[11px] font-mono">{"{{business_name}}"}</code> to insert your business name and <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[11px] font-mono">{"{{return_date}}"}</code> to insert your return date.
+                              We’ll automatically add your business name and return date when this message is sent.
                             </p>
                           </div>
 
@@ -3956,7 +3956,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                       placeholder="Enter follow-up message..."
                                     />
                                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                                      Use <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[11px] font-mono">{"{{business_name}}"}</code> for business name
+                                      We’ll automatically add your business name when this message is sent.
                                     </p>
                                   </div>
                                 </div>
@@ -4024,7 +4024,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                         <button
                             onClick={calendarConnected ? handleDisconnectCalendar : handleConnectCalendar}
                             disabled={isConnectingCalendar || isDisconnectingCalendar}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap ${
+                            className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap ${
                               calendarConnected
                                 ? 'border border-red-300 dark:border-red-700/70 bg-red-50/60 dark:bg-red-900/20 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 active:bg-red-200/70 dark:active:bg-red-900/50'
                                 : 'bg-blue-600 hover:bg-blue-700 text-white'

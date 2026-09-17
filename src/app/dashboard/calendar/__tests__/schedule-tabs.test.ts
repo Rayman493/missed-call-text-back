@@ -222,7 +222,15 @@ describe('Schedule Tab Architecture — Job Timer Accessibility', () => {
     expect(jobTimerContent).not.toContain('setTitle')
     expect(jobTimerContent).not.toContain('setNotes')
     expect(jobTimerContent).not.toContain('onSave')
-    expect(jobTimerContent).not.toContain('onClose')
+    // JobTimer only receives jobId; it must not accept parent modal/form close/save callbacks
+    const propsMatch = jobTimerContent.match(/interface JobTimerProps \{([\s\S]*?)\}/)
+    expect(propsMatch).toBeTruthy()
+    const propsSection = propsMatch?.[1] || ''
+    expect(propsSection).toContain('jobId')
+    expect(propsSection).not.toContain('onClose')
+    expect(propsSection).not.toContain('onSave')
+    expect(propsSection).not.toContain('title')
+    expect(propsSection).not.toContain('notes')
   })
 })
 

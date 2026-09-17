@@ -144,9 +144,10 @@ describe('Batch 6 — Notifications page mobile layout', () => {
   // 13. mobile actions render left aligned under subtitle
   it('mobile actions are left-aligned (no ml-auto) and under subtitle', () => {
     // Mobile action row uses flex sm:hidden (left-aligned, no ml-auto)
-    const mobileActionIdx = notificationsSrc.indexOf('flex sm:hidden items-center gap-2 mt-3')
-    expect(mobileActionIdx).toBeGreaterThan(-1)
+    const mobileActionMatch = notificationsSrc.match(/flex sm:hidden items-center gap-2 mt-[\d.]+/)
+    expect(mobileActionMatch).toBeTruthy()
     // The mobile action row should NOT have ml-auto
+    const mobileActionIdx = mobileActionMatch ? notificationsSrc.indexOf(mobileActionMatch[0]) : -1
     const mobileSection = notificationsSrc.substring(mobileActionIdx, mobileActionIdx + 200)
     expect(mobileSection).not.toContain('ml-auto')
   })

@@ -2670,7 +2670,7 @@ useEffect(() => {
     return (
       <div className="flex flex-col h-full">
         {/* Date Navigation Header */}
-        <div className="flex items-center justify-between mb-4 px-1">
+        <div className="flex items-center justify-between mb-2 px-1">
           <button
             onClick={onPreviousDay}
             className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
@@ -2704,7 +2704,7 @@ useEffect(() => {
   if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
     return (
       <div className="flex flex-col h-full">
-        <div className="flex items-center justify-center gap-2 mb-4 px-1">
+        <div className="flex items-center justify-center gap-2 mb-2 px-1">
           <button onClick={onPreviousDay} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex-shrink-0">
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -2812,9 +2812,9 @@ useEffect(() => {
   return (
     <div className="flex flex-col h-full relative">
       {/* Compact date navigation row */}
-      <div className="mb-1 md:mb-2 z-10">
+      <div className="mb-0 md:mb-1 z-10">
         {/* Desktop: Centered date navigation */}
-        <div className="hidden md:flex flex-col items-center gap-2">
+        <div className="hidden md:flex flex-col items-center gap-1">
           <div className="flex items-center justify-center gap-2">
             <button
               onClick={onPreviousDay}
@@ -2869,7 +2869,7 @@ useEffect(() => {
       </div>
 
       {/* Mobile: Today button row */}
-      <div className="md:hidden mt-3 mb-1 z-10 flex justify-center">
+      <div className="md:hidden mt-2 mb-1 z-10 flex justify-center">
         <button
           onClick={onGoToToday}
           className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors"
@@ -2879,7 +2879,7 @@ useEffect(() => {
       </div>
 
       {/* Mobile: Filter row (All | Jobs | Appts) */}
-      <div className="md:hidden mt-3 mb-1 z-10">
+      <div className="md:hidden mt-2 mb-1 z-10">
         <div className="flex items-center justify-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 w-fit mx-auto">
           <button
             onClick={() => { handleAllFilterClick() }}
@@ -2915,7 +2915,7 @@ useEffect(() => {
       </div>
 
       {/* Mobile: Stop cards row */}
-      <div className="md:hidden mt-3 mb-2 z-10">
+      <div className="md:hidden mt-2 mb-1 z-10">
         {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
           <div className="flex gap-2 overflow-x-auto items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {sortedItems.filter(item => item.type !== 'business').map((item, index) => (
@@ -2944,7 +2944,7 @@ useEffect(() => {
                 }}
                 onPointerUp={() => { cardPointerStartRef.current = null }}
                 onPointerCancel={() => { cardPointerStartRef.current = null; cardMovedRef.current = false }}
-                className={`flex-shrink-0 snap-start px-1.5 py-1 rounded-md border transition-colors min-w-[100px] max-w-[140px] ${
+                className={`flex-shrink-0 snap-start px-1.5 py-0.5 rounded-md border transition-colors min-w-[100px] max-w-[140px] ${
                   selectedMapItemId === item.id
                     ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-300/60 dark:border-blue-700/60 ring-1 ring-blue-200/50 dark:ring-blue-800/30'
                     : item.type === 'business'
@@ -3001,7 +3001,7 @@ useEffect(() => {
 
       {/* Desktop: Combined row with stop previews on left and filters on right */}
       {sortedItems.filter(item => item.type !== 'business').length > 0 ? (
-        <div className="hidden md:flex mb-1 z-10 items-center gap-3 min-h-[48px]">
+        <div className="hidden md:flex mb-1 z-10 items-center gap-3 min-h-[40px]">
           {/* Stop previews - Left side, takes available space */}
           <div className="flex-1">
             <div className="flex gap-2 overflow-x-auto items-center pb-2 -mx-1 px-1 snap-x snap-mandatory touch-pan-x" id="mobile-stop-cards" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -3031,7 +3031,7 @@ useEffect(() => {
                   }}
                   onPointerUp={() => { cardPointerStartRef.current = null }}
                   onPointerCancel={() => { cardPointerStartRef.current = null; cardMovedRef.current = false }}
-                  className={`flex-shrink-0 snap-start px-1.5 md:px-2 py-1 rounded-md border transition-colors min-w-[100px] md:min-w-[150px] max-w-[140px] md:max-w-[170px] ${
+                  className={`flex-shrink-0 snap-start px-1.5 md:px-2 py-0.5 rounded-md border transition-colors min-w-[100px] md:min-w-[150px] max-w-[140px] md:max-w-[170px] ${
                     selectedMapItemId === item.id
                       ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-300/60 dark:border-blue-700/60 ring-1 ring-blue-200/50 dark:ring-blue-800/30'
                       : item.type === 'business'
@@ -3118,7 +3118,7 @@ useEffect(() => {
         </div>
       </div>
       ) : (
-        <div className="hidden md:flex mb-1 z-10 items-center gap-3 min-h-[48px]">
+        <div className="hidden md:flex mb-1 z-10 items-center gap-3 min-h-[40px]">
           {/* No mapped stops - Left side */}
           <div className="flex-1">
             <p className="text-xs text-slate-500 dark:text-slate-400 pb-2">

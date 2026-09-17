@@ -251,7 +251,7 @@ export default function CalendarGrid({
           {onToday && (
             <button
               onClick={onToday}
-              className="min-h-[36px] px-3 py-1.5 text-[10px] sm:text-xs md:text-sm font-medium bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-md transition-colors active:scale-95 border border-slate-200/50 dark:border-slate-700/30"
+              className="min-h-[44px] h-9 md:h-10 inline-flex items-center justify-center px-3 text-[10px] sm:text-xs md:text-sm font-medium bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-md transition-colors active:scale-95 border border-slate-200/50 dark:border-slate-700/30"
             >
               Today
             </button>
