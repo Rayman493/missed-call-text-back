@@ -255,9 +255,16 @@ interface ChartTouchWrapperProps {
   data?: any[]
   /** Called when the active datum index changes (tap or scrub) */
   onActiveIndexChange?: (index: number | null) => void
+  /**
+   * Chart type determines how clean taps are interpreted:
+   * - 'line' (default): synthetic mousemove + nearest-index selection
+   * - 'bar' / 'pie': rely on Recharts' own onClick handlers for datum selection;
+   *                  wrapper only handles scroll ownership and post-drag click suppression
+   */
+  chartType?: 'line' | 'bar' | 'pie'
 }
 
-export function ChartTouchWrapper({ children, data, onActiveIndexChange }: ChartTouchWrapperProps) {
+export function ChartTouchWrapper({ children, data, onActiveIndexChange, chartType = 'line' }: ChartTouchWrapperProps) {
   const startXRef = useRef(0)
   const startYRef = useRef(0)
   const gestureModeRef = useRef<GestureMode>('idle')
@@ -357,7 +364,7 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
     justDraggedRef.current = false
   }
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMoveCapture = (e: React.TouchEvent) => {
     if (e.touches.length !== 1) return
     const touchX = e.touches[0].clientX
     const touchY = e.touches[0].clientY
@@ -380,14 +387,18 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
         }
       } else {
         // Vertical scroll — clear any transient Recharts state once, then
-        // stay out of the way entirely.
+        // stop propagation so Recharts' own touch handlers cannot claim the
+        // gesture. We never preventDefault; the page scrolls natively.
         clearRechartsState()
+        e.stopPropagation()
       }
     }
 
     if (gestureModeRef.current === 'vertical') {
-      // Page owns this gesture — no preventDefault, no stopPropagation,
-      // no pointer capture, no datum selection.
+      // Page owns this gesture — no preventDefault, no pointer capture,
+      // no datum selection. Stop propagation on every vertical move so
+      // Recharts never sees it while we remain in this mode.
+      e.stopPropagation()
       return
     }
 
@@ -450,10 +461,12 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
     justDraggedRef.current = false
   }
 
-  const handlePointerMove = (e: React.PointerEvent) => {
+  const handlePointerMoveCapture = (e: React.PointerEvent) => {
     if (e.pointerType !== 'touch') return
     if (gestureModeRef.current === 'vertical') {
-      // Page owns this gesture — do not interfere.
+      // Page owns this gesture — stop propagation so Recharts cannot claim it,
+      // but never preventDefault; the page scrolls natively.
+      e.stopPropagation()
       return
     }
     if (gestureModeRef.current === 'horizontal') {
@@ -474,7 +487,10 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
     if (!mode) return
     gestureModeRef.current = mode
     if (mode === 'vertical') {
+      // Stop this move from reaching Recharts; subsequent vertical moves are
+      // also stopped above. Browser scroll remains unaffected.
       clearRechartsState()
+      e.stopPropagation()
     } else {
       setIsScrubbing(true)
       if (innerRef.current) {
@@ -517,8 +533,9 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
   // Capture-phase click handler:
   // - Suppresses exactly ONE synthesized click after a touch drag/scrub.
   // - Lets a clean touch tap continue to Recharts' own onClick handlers (so
-  //   pie/bar segments can toggle selection) while also activating the
-  //   hover-based tooltip/activeDot via a synthetic mousemove.
+  //   pie/bar segments can toggle selection).
+  // - For line charts, also activates the hover-based tooltip/activeDot via a
+  //   synthetic mousemove. Bar/pie charts rely on their own onClick handlers.
   // - Desktop mouse input is left untouched.
   const handleClickCapture = (e: React.MouseEvent) => {
     if (lastPointerTypeRef.current !== 'touch') {
@@ -537,8 +554,14 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
       return
     }
 
-    // Clean touch tap: map to nearest datum and activate tooltip, but DO NOT
-    // stop the click from reaching Recharts' own onClick handlers.
+    if (chartType === 'bar' || chartType === 'pie') {
+      // Bar/pie selection is handled by Recharts' own onClick handlers. The
+      // wrapper only clears state when tapping on a non-data target (so the
+      // consumer's outer clear handler can deselect if desired).
+      return
+    }
+
+    // Clean touch tap on a line chart: map to nearest datum and activate tooltip.
     const idx = getNearestIndex(e.clientX, false)
     if (idx === null) {
       // Whitespace or outside the plottable area: clear any active tooltip.
@@ -556,13 +579,13 @@ export function ChartTouchWrapper({ children, data, onActiveIndexChange }: Chart
       // NO tabIndex — removes the giant white focus rectangle on Android.
       // Keyboard accessibility is preserved on individual data elements
       // (bars, dots, slices) via globals.css :focus-visible rules.
-      className="w-full h-full select-none rounded-lg [-webkit-tap-highlight-color:transparent] [&_.recharts-surface]:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-rectangle-wrapper]:outline-none [&_.recharts-surface]:[-webkit-tap-highlight-color:transparent] [&_.recharts-wrapper]:[-webkit-tap-highlight-color:transparent]"
+      className="w-full h-full select-none rounded-lg [-webkit-tap-highlight-color:transparent] [&_.recharts-surface]:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-bar-rectangles]:outline-none [&_.recharts-bar-rectangle]:outline-none [&_.recharts-bar]:outline-none [&_.recharts-pie-sector]:outline-none [&_.recharts-line-dot]:outline-none [&_.recharts-surface]:[-webkit-tap-highlight-color:transparent] [&_.recharts-wrapper]:[-webkit-tap-highlight-color:transparent]"
       onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
+      onTouchMoveCapture={handleTouchMoveCapture}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchCancel}
       onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
+      onPointerMoveCapture={handlePointerMoveCapture}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
       onClickCapture={handleClickCapture}

@@ -6,6 +6,13 @@
  */
 
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
+
+const pageClientContent = readFileSync(
+  join(process.cwd(), 'src/app/dashboard/leads/[id]/page-client.tsx'),
+  'utf-8'
+).replace(/\r\n/g, '\n')
 
 describe('Customer Detail Request Payment Setup Routing', () => {
   describe('Payment configuration eligibility', () => {
@@ -73,7 +80,7 @@ describe('Customer Detail Request Payment Setup Routing', () => {
 
       // When not configured, should navigate to Settings
       if (!hasPaymentMethod) {
-        router.push('/dashboard/settings?section=payments')
+        router.push('/dashboard/settings#payments')
       }
 
       expect(hasPaymentMethod).toBe(false)
@@ -111,6 +118,10 @@ describe('Customer Detail Request Payment Setup Routing', () => {
       }
 
       expect(section).toBe('payments')
+    })
+
+    it('should route Settings > Payments CTA through hash fragment', () => {
+      expect(pageClientContent).toContain('/dashboard/settings#payments')
     })
 
     it('should not scroll when section parameter is not provided', () => {

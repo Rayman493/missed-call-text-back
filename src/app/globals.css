@@ -289,6 +289,14 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
+/* Suppress stale mouse/touch focus outlines while preserving keyboard
+   focus-visible. This prevents buttons/links from looking permanently
+   highlighted after external-app handoff on mobile WebViews. */
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+
 input,
 textarea,
 select {
@@ -879,18 +887,28 @@ html.light select:-moz-autofill:focus {
  */
 .recharts-surface,
 .recharts-wrapper,
-.recharts-rectangle-wrapper {
+.recharts-bar,
+.recharts-bar-rectangles,
+.recharts-bar-rectangle,
+.recharts-pie-sector,
+.recharts-line-dot,
+.recharts-cursor {
   touch-action: pan-y;
 }
 
+/* Suppress the full-chart focus rectangle that appears on Android when the
+ * SVG surface or wrapper receives focus from a tap. Recharts 3 sets tabIndex=0
+ * on .recharts-surface; these rules remove the default outline while keeping
+ * the legitimate keyboard focus-visible ring on individual data marks. */
 .recharts-surface:focus,
 .recharts-surface:focus-visible,
 .recharts-wrapper:focus,
 .recharts-wrapper:focus-visible,
-.recharts-rectangle-wrapper:focus,
-.recharts-rectangle-wrapper:focus-visible,
-.recharts-cursor {
-  outline: none;
+.recharts-bar-rectangles:focus,
+.recharts-bar-rectangles:focus-visible,
+.recharts-cursor:focus,
+.recharts-cursor:focus-visible {
+  outline: none !important;
 }
 
 /* Preserve keyboard focus on individual data elements (bars, slices, dots)

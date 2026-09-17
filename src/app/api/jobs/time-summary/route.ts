@@ -72,6 +72,7 @@ export async function GET() {
     let todayMs = 0
     let weekMs = 0
     let activeTimer = false
+    let activeJob: { job_id: string; started_at: string } | null = null
     const weekJobIds = new Set<string>()
 
     for (const entry of entries || []) {
@@ -79,7 +80,12 @@ export async function GET() {
       const rawEnd = entry.ended_at as string | null
       const end = rawEnd ? new Date(rawEnd).getTime() : nowMs
 
-      if (!rawEnd) activeTimer = true
+      if (!rawEnd) {
+        activeTimer = true
+        if (!activeJob) {
+          activeJob = { job_id: entry.job_id as string, started_at: entry.started_at as string }
+        }
+      }
 
       // Clamp to the period boundaries to avoid double-counting across day/week edges.
       const todayPortion = Math.max(0, Math.min(end, todayEndMs) - Math.max(start, todayStartMs))
@@ -97,6 +103,7 @@ export async function GET() {
       week_ms: Math.round(weekMs),
       week_job_count: weekJobIds.size,
       active_timer: activeTimer,
+      active_job: activeJob,
     })
   } catch (error) {
     console.error('[Jobs Time Summary API] unexpected error:', error)

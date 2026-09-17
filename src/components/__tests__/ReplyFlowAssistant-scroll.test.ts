@@ -54,4 +54,18 @@ describe('ReplyFlowAssistant - Scroll Containment', () => {
 
     expect(scrollBodyPadding).toContain('pb-6')
   })
+
+  it('embedded FAQ Assistant should not create a nested vertical pan owner', () => {
+    // On the FAQ page the Assistant has no onClose prop and is embedded inline.
+    // It must not carry overflow-y-auto + touch-action:pan-y because that creates
+    // a child scroll surface that steals vertical page swipes even when it has
+    // no real overflow to scroll.
+    const modalScrollClass = 'flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y]'
+    const embeddedScrollClass = 'flex-1 min-h-0'
+
+    expect(modalScrollClass).toContain('overflow-y-auto')
+    expect(modalScrollClass).toContain('[touch-action:pan-y]')
+    expect(embeddedScrollClass).not.toContain('overflow-y-auto')
+    expect(embeddedScrollClass).not.toContain('touch-action')
+  })
 })

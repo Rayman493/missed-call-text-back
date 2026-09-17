@@ -383,12 +383,18 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
       {/* Scrollable Content — single canonical scroll owner.
           data-scroll-lock-allow permits touch scrolling inside this container
           even while useBodyScrollLock is active (prevents preventTouchMove
-          from blocking scroll inside the modal). */}
+          from blocking scroll inside the modal).
+          When the Assistant is embedded inline (e.g. on the FAQ page with no
+          onClose), it should participate in the page's own scroll rather than
+          creating a nested pan-only surface that steals vertical swipes. */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y]"
-        data-scroll-lock-allow
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        className={onClose
+          ? 'flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y]'
+          : 'flex-1 min-h-0'
+        }
+        data-scroll-lock-allow={onClose ? true : undefined}
+        style={onClose ? { WebkitOverflowScrolling: 'touch' } : undefined}
       >
         <div className="p-3 sm:p-4 sm:pt-3 pb-6">
         {/* Results */}

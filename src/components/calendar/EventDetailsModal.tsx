@@ -9,6 +9,7 @@ import { useModalBackButton } from '@/hooks/useModalBackButton'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
 import { isReplyFlowOwnedEvent } from '@/lib/calendar-ownership'
+import { openExternalLink } from '@/lib/external-link'
 import AppointmentSmsModal from '@/components/calendar/AppointmentSmsModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
@@ -379,15 +380,11 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
     return ''
   }
 
-  const openGoogleCalendar = () => {
-    if (event.htmlLink) {
-      window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
-    }
+  const openGoogleCalendar = (e?: React.MouseEvent<HTMLButtonElement>) => {
+    openExternalLink(event.htmlLink, e)
   }
-  const openMeetingLink = () => {
-    if (event.meetingUrl) {
-      window.open(event.meetingUrl, '_blank', 'noopener,noreferrer')
-    }
+  const openMeetingLink = (e?: React.MouseEvent<HTMLButtonElement>) => {
+    openExternalLink(event.meetingUrl, e)
   }
 
   const saveNotes = async () => {

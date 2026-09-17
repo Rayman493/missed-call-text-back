@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { X, Calendar, Clock, Plus } from 'lucide-react'
+import { openExternalLink } from '@/lib/external-link'
 
 interface DayDetailModalProps {
   isOpen: boolean
@@ -33,10 +34,8 @@ export default function DayDetailModal({ isOpen, onClose, date, events, onAddEve
     return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
   }
 
-  const openEventLink = (url?: string | null) => {
-    if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer')
-    }
+  const openEventLink = (url?: string | null, e?: React.MouseEvent) => {
+    openExternalLink(url, e)
   }
 
   const handleAddEventClick = () => {
@@ -81,7 +80,7 @@ export default function DayDetailModal({ isOpen, onClose, date, events, onAddEve
               {events.map((event) => (
                 <div
                   key={event.id}
-                  onClick={() => openEventLink(event.htmlLink)}
+                  onClick={(e) => openEventLink(event.htmlLink, e)}
                   className="p-3.5 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/60 rounded-xl cursor-pointer transition-all duration-200 hover:border-slate-600 group"
                 >
                   <div className="flex items-start justify-between gap-3">

@@ -4596,7 +4596,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           {formBusiness.paypal_payment_link ? (
                             <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                               <span className="w-1 h-1 bg-green-500 rounded-full" />
-                              Configured
+                              @{formBusiness.paypal_payment_link.replace(/^https?:\/\/paypal\.me\//, '')}
                             </span>
                           ) : (
                             <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
@@ -4615,11 +4615,11 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                         type="text"
                         value={formBusiness.paypal_payment_link || ''}
                         onChange={(e) => updateBusiness({ paypal_payment_link: e.target.value })}
-                        placeholder="yourbusiness"
+                        placeholder="@username"
                         className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                       />
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        With or without @
+                        With or without @. You can also paste a full paypal.me link.
                       </p>
                     </div>
                   </div>

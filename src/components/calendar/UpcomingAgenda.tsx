@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { Clock, Calendar as CalendarIcon, ExternalLink } from 'lucide-react'
+import { openExternalLink } from '@/lib/external-link'
 
 interface CalendarEvent {
   id: string
@@ -170,11 +171,7 @@ export default function UpcomingAgenda({ events, maxEvents = 5, onRefresh, calen
                   ? 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/20 border-emerald-200 dark:border-emerald-800 hover:shadow-md'
                   : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 hover:shadow-md'
               }`}
-              onClick={() => {
-                if (event.htmlLink) {
-                  window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
-                }
-              }}
+              onClick={(e) => openExternalLink(event.htmlLink, e)}
             >
               <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
                 event.isHoliday 

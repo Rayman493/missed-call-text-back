@@ -8,7 +8,8 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Toast, { ToastContainer } from '@/components/Toast'
 import Link from 'next/link'
-import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink, Pencil, Bell, Trash2, Video, Clock, Play } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink, Pencil, Bell, Trash2, Video, Clock, Play, Square } from 'lucide-react'
+import SelectPicker from '@/components/ui/SelectPicker'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
@@ -38,6 +39,7 @@ import { openOAuthFlow } from '@/capacitor/oauth'
 import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import { formatEventTimeRange } from '@/lib/calendar-date-utils'
 import { isReplyFlowOwnedEvent } from '@/lib/calendar-ownership'
+import { openExternalLink } from '@/lib/external-link'
 import { formatDuration, JOB_TIME_CHANGED_EVENT, notifyJobTimeChanged } from '@/lib/job-time-utils'
 
 interface CalendarEvent {
@@ -2157,6 +2159,7 @@ export default function SchedulePage() {
                                     href="https://calendar.google.com"
                                     target="_blank"
                                     rel="noopener noreferrer"
+                                    onClick={(e) => openExternalLink('https://calendar.google.com', e)}
                                     className="inline-flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                                   >
                                     Open Google Calendar
@@ -2283,7 +2286,10 @@ export default function SchedulePage() {
                                               aria-label={`Open in Google Calendar: ${event.summary}`}
                                               className="flex-shrink-0 p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
                                               title="Open in Google Calendar"
-                                              onClick={(e) => e.stopPropagation()}
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                openExternalLink(event.htmlLink || 'https://calendar.google.com', e)
+                                              }}
                                             >
                                               <ExternalLink className="w-4 h-4" />
                                             </a>
@@ -2756,8 +2762,10 @@ function JobsTab({
 }) {
   const hasLoadedOnceRef = useRef(false)
   const [timeSummary, setTimeSummary] = useState<{ today_ms: number; week_ms: number; week_job_count: number; active_timer: boolean } | null>(null)
+  const [activeTimerJob, setActiveTimerJob] = useState<{ id: string; title: string; startedAt: string } | null>(null)
+  const [timerNow, setTimerNow] = useState(Date.now())
   const [showTimerJobPicker, setShowTimerJobPicker] = useState(false)
-  const [timerJobId, setTimerJobId] = useState('')
+  const [timerJobId, setTimerJobId] = useState<string | null>(null)
   const [timerActionInFlight, setTimerActionInFlight] = useState(false)
   const [timerError, setTimerError] = useState<string | null>(null)
 
@@ -2786,11 +2794,21 @@ function JobsTab({
           week_job_count: data.week_job_count || 0,
           active_timer: !!data.active_timer,
         })
+        if (data.active_timer && data.active_job?.job_id) {
+          const job = jobs.find(j => j.id === data.active_job.job_id)
+          setActiveTimerJob({
+            id: data.active_job.job_id,
+            title: job?.title || 'Unknown job',
+            startedAt: data.active_job.started_at,
+          })
+        } else {
+          setActiveTimerJob(null)
+        }
       }
     } catch {
       // Silent — summary is non-critical
     }
-  }, [])
+  }, [jobs])
 
   useEffect(() => {
     fetchTimeSummary()
@@ -2798,6 +2816,13 @@ function JobsTab({
     window.addEventListener(JOB_TIME_CHANGED_EVENT, handleJobTimeChanged)
     return () => window.removeEventListener(JOB_TIME_CHANGED_EVENT, handleJobTimeChanged)
   }, [jobs.length, fetchTimeSummary])
+
+  // Live elapsed clock while a timer is running.
+  useEffect(() => {
+    if (!activeTimerJob) return
+    const interval = setInterval(() => setTimerNow(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [activeTimerJob])
 
   const startSummaryTimer = async () => {
     if (!timerJobId || timerActionInFlight || timeSummary?.active_timer) return
@@ -2816,16 +2841,53 @@ function JobsTab({
           : data?.error || 'Failed to start timer')
         if (res.status === 409 && data?.activeJob?.id) {
           setTimeSummary(summary => summary ? { ...summary, active_timer: true } : summary)
+          setActiveTimerJob({
+            id: data.activeJob.id,
+            title: data.activeJob.title,
+            startedAt: new Date().toISOString(),
+          })
           notifyJobTimeChanged(data.activeJob.id, true)
         }
         return
       }
+      const entry = data?.entry
+      const startedAt = entry?.started_at || new Date().toISOString()
+      const job = active.find(j => j.id === timerJobId)
       setTimeSummary(summary => summary ? { ...summary, active_timer: true } : summary)
+      setActiveTimerJob({
+        id: timerJobId,
+        title: job?.title || 'Unknown job',
+        startedAt,
+      })
       notifyJobTimeChanged(timerJobId, true)
       setShowTimerJobPicker(false)
-      setTimerJobId('')
+      setTimerJobId(null)
     } catch {
       setTimerError('Failed to start timer')
+    } finally {
+      setTimerActionInFlight(false)
+    }
+  }
+
+  const stopSummaryTimer = async () => {
+    if (!activeTimerJob || timerActionInFlight) return
+    setTimerActionInFlight(true)
+    setTimerError(null)
+    try {
+      const res = await fetch(`/api/jobs/${activeTimerJob.id}/time-entries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'stop' }),
+      })
+      if (!res.ok) {
+        setTimerError('Failed to stop timer')
+        return
+      }
+      notifyJobTimeChanged(activeTimerJob.id, false)
+      setActiveTimerJob(null)
+      setTimeSummary(summary => summary ? { ...summary, active_timer: false } : summary)
+    } catch {
+      setTimerError('Failed to stop timer')
     } finally {
       setTimerActionInFlight(false)
     }
@@ -3040,18 +3102,39 @@ function JobsTab({
             <div className="space-y-2"><div className="h-2.5 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" /><div className="h-7 w-14 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" /></div>
           </div>
         )}
-        {showTimerJobPicker && !timeSummary?.active_timer && (
-          <div className="mt-3 pt-3 border-t border-border/40 flex flex-col sm:flex-row gap-2">
-            <label className="sr-only" htmlFor="summary-timer-job">Job for timer</label>
-            <select
-              id="summary-timer-job"
-              value={timerJobId}
-              onChange={(event) => setTimerJobId(event.target.value)}
-              className="min-h-10 flex-1 min-w-0 px-3 text-sm bg-background border border-border/50 rounded-lg text-foreground"
+        {activeTimerJob ? (
+          <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-foreground truncate" title={activeTimerJob.title}>
+                {activeTimerJob.title}
+              </p>
+              <p className="text-sm font-mono font-medium tabular-nums text-blue-600 dark:text-blue-400">
+                {formatDuration(timerNow - new Date(activeTimerJob.startedAt).getTime())}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={stopSummaryTimer}
+              disabled={timerActionInFlight}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
             >
-              <option value="">Select a job</option>
-              {active.map(job => <option key={job.id} value={job.id}>{job.title}</option>)}
-            </select>
+              <Square className="w-3.5 h-3.5" />
+              Stop
+            </button>
+          </div>
+        ) : showTimerJobPicker && timeSummary && !timeSummary.active_timer ? (
+          <div className="mt-3 pt-3 border-t border-border/40 flex flex-col sm:flex-row gap-2">
+            <div className="flex-1 min-w-0">
+              <SelectPicker
+                value={timerJobId}
+                onChange={(value) => setTimerJobId(value)}
+                options={active.map(job => ({ value: job.id, label: job.title }))}
+                placeholder="Select a job"
+                emptyMessage="No active jobs"
+                searchable={active.length > 5}
+                disabled={timerActionInFlight}
+              />
+            </div>
             <button
               type="button"
               onClick={startSummaryTimer}
@@ -3061,7 +3144,7 @@ function JobsTab({
               {timerActionInFlight ? 'Starting…' : 'Start'}
             </button>
           </div>
-        )}
+        ) : null}
         {timerError && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{timerError}</p>}
       </div>
 

@@ -215,7 +215,7 @@ describe('Part B: Dashboard Chart Axis-Aware Gesture Detection', () => {
 
   describe('B2. Axis-aware gesture classification', () => {
     it('touchmove classifies vertical vs horizontal based on deltaX/deltaY', () => {
-      const touchMoveBlock = chartUtilsContent.match(/handleTouchMove = \(e: React\.TouchEvent\)\s*=>\s*\{[\s\S]*?\n  \}/)
+      const touchMoveBlock = chartUtilsContent.match(/handleTouchMoveCapture = \(e: React\.TouchEvent\)\s*=>\s*\{[\s\S]*?\n  \}/)
       expect(touchMoveBlock).toBeTruthy()
       if (touchMoveBlock) {
         expect(touchMoveBlock[0]).toContain('deltaX')
@@ -226,7 +226,7 @@ describe('Part B: Dashboard Chart Axis-Aware Gesture Detection', () => {
     })
 
     it('pointermove classifies vertical vs horizontal based on deltaX/deltaY', () => {
-      const pointerMoveBlock = chartUtilsContent.match(/handlePointerMove = \(e: React\.PointerEvent\)\s*=>\s*\{[\s\S]*?\n  \}/)
+      const pointerMoveBlock = chartUtilsContent.match(/handlePointerMoveCapture = \(e: React\.PointerEvent\)\s*=>\s*\{[\s\S]*?\n  \}/)
       expect(pointerMoveBlock).toBeTruthy()
       if (pointerMoveBlock) {
         expect(pointerMoveBlock[0]).toContain('deltaX')

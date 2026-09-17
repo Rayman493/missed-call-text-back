@@ -3808,7 +3808,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setShowPaymentModal(true)
     } else {
       // Navigate to Settings Payments section to configure
-      router.push('/dashboard/settings?section=payments')
+      router.push('/dashboard/settings#payments')
     }
   }
 
@@ -6721,7 +6721,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     Configure a payment provider in Settings → Payments before sending payment requests.
                   </p>
                   <Link
-                    href="/dashboard/settings"
+                    href="/dashboard/settings#payments"
                     className="inline-block mt-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     Go to Settings → Payments

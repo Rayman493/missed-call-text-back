@@ -23,12 +23,17 @@ function readContent(path: string): string {
 // ============================================================
 
 describe('Batch 4 — Help modal scroll', () => {
-  it('1. ReplyFlowAssistant has exactly one scroll owner with flex-1 min-h-0', () => {
+  it('1. ReplyFlowAssistant modal usage has exactly one scroll owner with flex-1 min-h-0 overflow-y-auto', () => {
     const content = readContent('src/components/ReplyFlowAssistant.tsx')
     expect(content).toContain('flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y]')
   })
 
-  it('2. scroll owner has data-scroll-lock-allow (touch scroll permitted inside modal)', () => {
+  it('1b. ReplyFlowAssistant embedded usage participates in page scroll (no nested touch-action pan-y owner)', () => {
+    const content = readContent('src/components/ReplyFlowAssistant.tsx')
+    expect(content).toMatch(/onClose\s*\?\s*['"]flex-1 min-h-0 overflow-y-auto overscroll-contain \[touch-action:pan-y\]['"]\s*:\s*['"]flex-1 min-h-0['"]/)
+  })
+
+  it('2. modal scroll owner has data-scroll-lock-allow (touch scroll permitted inside modal)', () => {
     const content = readContent('src/components/ReplyFlowAssistant.tsx')
     expect(content).toContain('data-scroll-lock-allow')
   })
@@ -50,7 +55,7 @@ describe('Batch 4 — Help modal scroll', () => {
 
   it('6. no nested competing overflow-y-auto inside scroll owner', () => {
     const content = readContent('src/components/ReplyFlowAssistant.tsx')
-    const scrollOwnerMatch = content.match(/ref=\{scrollContainerRef\}[\s\S]*?className="flex-1 min-h-0 overflow-y-auto/)
+    const scrollOwnerMatch = content.match(/ref=\{scrollContainerRef\}[\s\S]*?className=\{onClose\s*\?\s*['"]flex-1 min-h-0 overflow-y-auto/)
     expect(scrollOwnerMatch).toBeTruthy()
   })
 })

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
@@ -22,6 +22,7 @@ export default function NewCustomersGraph() {
   const [data, setData] = useState<NewCustomersData[]>([])
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
@@ -69,6 +70,8 @@ export default function NewCustomersGraph() {
     }
 
     fetchData()
+    // Clear stale bar selection when the data range changes
+    setSelectedIndex(null)
   }, [business, timeRange])
 
   const isEmpty = data.length === 0
@@ -133,47 +136,69 @@ export default function NewCustomersGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <ChartTouchWrapper>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data} margin={CHART_STYLES.margin} barGap={CHART_STYLES.barGap} barCategoryGap={CHART_STYLES.categoryGap}>
-                  <CartesianGrid
-                    strokeDasharray={CHART_STYLES.gridStrokeDasharray}
-                    stroke={CHART_STYLES.gridStroke}
-                    strokeOpacity={CHART_STYLES.gridStrokeOpacity}
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="date"
-                    className="text-[10px] text-muted-foreground/60 pointer-events-none"
-                    tick={{ fontSize: CHART_STYLES.tickFontSize }}
-                    axisLine={CHART_STYLES.axisLine}
-                    tickLine={CHART_STYLES.tickLine}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    className="text-[10px] text-muted-foreground/60 pointer-events-none"
-                    tick={{ fontSize: CHART_STYLES.tickFontSize }}
-                    axisLine={CHART_STYLES.axisLine}
-                    tickLine={CHART_STYLES.tickLine}
-                    ticks={yTicks}
-                    tickFormatter={formatInteger}
-                  />
-                  {!isTouchDevice && (
-                    <Tooltip
-                      content={<PremiumTooltip />}
-                      cursor={false}
+            <ChartTouchWrapper chartType="bar">
+              <div
+                className="w-full h-full"
+                onClick={(e) => {
+                  // Tapping chart background/surface clears the selected bar.
+                  // Tapping an actual bar stops propagation from the Bar onClick handler.
+                  if (e.target === e.currentTarget || (e.target as Element).closest?.('.recharts-surface')) {
+                    setSelectedIndex(null)
+                  }
+                }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data} margin={CHART_STYLES.margin} barGap={CHART_STYLES.barGap} barCategoryGap={CHART_STYLES.categoryGap}>
+                    <CartesianGrid
+                      strokeDasharray={CHART_STYLES.gridStrokeDasharray}
+                      stroke={CHART_STYLES.gridStroke}
+                      strokeOpacity={CHART_STYLES.gridStrokeOpacity}
+                      vertical={false}
                     />
-                  )}
-                  <Bar
-                    dataKey="customers"
-                    fill="hsl(var(--primary))"
-                    fillOpacity={0.8}
-                    radius={CHART_STYLES.barRadius}
-                    maxBarSize={CHART_STYLES.barMaxSize}
-                    className="hover:fill-opacity-100 transition-all"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+                    <XAxis
+                      dataKey="date"
+                      className="text-[10px] text-muted-foreground/60 pointer-events-none"
+                      tick={{ fontSize: CHART_STYLES.tickFontSize }}
+                      axisLine={CHART_STYLES.axisLine}
+                      tickLine={CHART_STYLES.tickLine}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis
+                      className="text-[10px] text-muted-foreground/60 pointer-events-none"
+                      tick={{ fontSize: CHART_STYLES.tickFontSize }}
+                      axisLine={CHART_STYLES.axisLine}
+                      tickLine={CHART_STYLES.tickLine}
+                      ticks={yTicks}
+                      tickFormatter={formatInteger}
+                    />
+                    {!isTouchDevice && (
+                      <Tooltip
+                        content={<PremiumTooltip />}
+                        cursor={false}
+                      />
+                    )}
+                    <Bar
+                      dataKey="customers"
+                      radius={CHART_STYLES.barRadius}
+                      maxBarSize={CHART_STYLES.barMaxSize}
+                      activeBar={{ fillOpacity: 1 }}
+                      onClick={(_, index, event) => {
+                        event.stopPropagation()
+                        setSelectedIndex((prev) => (prev === index ? null : index))
+                      }}
+                    >
+                      {data.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill="hsl(var(--primary))"
+                          fillOpacity={selectedIndex === index ? 1 : 0.8}
+                          className="transition-all duration-200"
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </ChartTouchWrapper>
           </div>
         )}

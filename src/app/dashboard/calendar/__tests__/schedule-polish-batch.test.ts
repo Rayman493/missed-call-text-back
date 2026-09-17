@@ -233,9 +233,11 @@ describe('Schedule Polish — Jobs Time Tracked Summary', () => {
   it('Time Tracked card shows active timer indicator', () => {
     const timeTrackedBlock = pageContent.substring(
       pageContent.indexOf('Time Tracked Summary'),
-      pageContent.indexOf('Time Tracked Summary') + 2000
+      pageContent.indexOf('Time Tracked Summary') + 4000
     )
-    expect(timeTrackedBlock).toContain('Timer running')
+    expect(timeTrackedBlock).toContain('activeTimerJob')
+    expect(timeTrackedBlock).toContain('Stop')
+    expect(timeTrackedBlock).toContain('stopSummaryTimer')
   })
 
   it('Time Tracked card shows week job count', () => {
@@ -270,18 +272,21 @@ describe('Schedule Polish — Jobs Time Tracked Summary', () => {
     expect(pageContent).toContain('if (!timerJobId || timerActionInFlight || timeSummary?.active_timer) return')
     expect(pageContent).toContain('/api/jobs/${timerJobId}/time-entries')
     expect(pageContent).toContain("body: JSON.stringify({ action: 'start' })")
-    expect(pageContent).toContain('<option value="">Select a job</option>')
+    expect(pageContent).toContain('SelectPicker')
+    expect(pageContent).toContain('placeholder="Select a job"')
   })
 
-  it('summary respects an existing active timer', () => {
-    expect(pageContent).toContain('timeSummary?.active_timer ? (')
-    expect(pageContent).toContain('showTimerJobPicker && !timeSummary?.active_timer')
+  it('summary respects an existing active timer and shows live elapsed + Stop', () => {
+    expect(pageContent).toContain('activeTimerJob ? (')
+    expect(pageContent).toContain('stopSummaryTimer')
+    expect(pageContent).toContain('formatDuration(timerNow - new Date(activeTimerJob.startedAt).getTime())')
   })
 
   it('summary and per-job controls share canonical invalidation', () => {
     expect(pageContent).toContain('window.addEventListener(JOB_TIME_CHANGED_EVENT, handleJobTimeChanged)')
     expect(pageContent).toContain('const handleJobTimeChanged = () => { fetchTimeSummary() }')
     expect(pageContent).toContain('notifyJobTimeChanged(timerJobId, true)')
+    expect(pageContent).toContain('notifyJobTimeChanged(activeTimerJob.id, false)')
   })
 
   it('summary start failure does not publish fake active state', () => {
@@ -290,12 +295,18 @@ describe('Schedule Polish — Jobs Time Tracked Summary', () => {
     expect(startBlock).toContain('notifyJobTimeChanged(data.activeJob.id, true)')
   })
 
+  it('summary exposes stop timer function', () => {
+    expect(pageContent).toContain('const stopSummaryTimer = async () =>')
+    expect(pageContent).toContain("body: JSON.stringify({ action: 'stop' })")
+  })
+
   it('API route exists at /api/jobs/time-summary', () => {
     expect(timeSummaryRouteContent).toContain('GET')
     expect(timeSummaryRouteContent).toContain('today_ms')
     expect(timeSummaryRouteContent).toContain('week_ms')
     expect(timeSummaryRouteContent).toContain('week_job_count')
     expect(timeSummaryRouteContent).toContain('active_timer')
+    expect(timeSummaryRouteContent).toContain('active_job')
   })
 
   it('API route uses business timezone for day/week boundaries', () => {

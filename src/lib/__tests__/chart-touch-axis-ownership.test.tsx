@@ -353,19 +353,19 @@ describe('ChartTouchWrapper — structural contract', () => {
     expect(chartUtilsSrc).not.toContain('releasePointerCapture')
   })
 
-  it('vertical path never calls preventDefault or stopPropagation', () => {
-    const touchMove = chartUtilsSrc.match(/handleTouchMove[\s\S]*?\n  \}/)
+  it('vertical path never calls preventDefault or setPointerCapture; may stopPropagation to block Recharts only', () => {
+    const touchMove = chartUtilsSrc.match(/handleTouchMoveCapture[\s\S]*?\n  \}/)
     expect(touchMove).toBeTruthy()
     const body = touchMove![0]
-    // The vertical branch returns before any preventDefault/stopPropagation —
-    // the only such calls are inside the horizontal-owned branch.
+    // The vertical branch must not preventDefault (page scroll must remain native),
+    // but it deliberately stops propagation in capture phase so Recharts' own
+    // touch handlers cannot claim the gesture. Pointer capture is never used.
     const verticalIdx = body.indexOf("gestureModeRef.current === 'vertical'")
     const horizontalIdx = body.indexOf("gestureModeRef.current === 'horizontal'")
     expect(verticalIdx).toBeGreaterThan(-1)
     expect(horizontalIdx).toBeGreaterThan(verticalIdx)
     const verticalBranch = body.substring(verticalIdx, horizontalIdx)
     expect(verticalBranch).not.toContain('preventDefault(')
-    expect(verticalBranch).not.toContain('stopPropagation(')
     expect(verticalBranch).not.toContain('setPointerCapture(')
   })
 
@@ -377,7 +377,7 @@ describe('ChartTouchWrapper — structural contract', () => {
   })
 
   it('clearRechartsState is not dispatched per vertical move', () => {
-    const touchMove = chartUtilsSrc.match(/handleTouchMove[\s\S]*?\n  \}/)
+    const touchMove = chartUtilsSrc.match(/handleTouchMoveCapture[\s\S]*?\n  \}/)
     const body = touchMove![0]
     const verticalIdx = body.indexOf("gestureModeRef.current === 'vertical'")
     const horizontalIdx = body.indexOf("gestureModeRef.current === 'horizontal'")
@@ -390,6 +390,6 @@ describe('ChartTouchWrapper — structural contract', () => {
     expect(chartUtilsSrc).toContain("touchAction: 'pan-y'")
     expect(chartUtilsSrc).not.toContain("touchAction: 'none'")
     // CSS covers the actual Recharts touch targets
-    expect(globalsCss).toMatch(/\.recharts-surface,[\s\S]*?\.recharts-wrapper,[\s\S]*?\{[\s\S]*?touch-action:\s*pan-y/)
+    expect(globalsCss).toMatch(/\.recharts-surface,[\s\S]*?\.recharts-wrapper,[\s\S]*?\.recharts-bar,[\s\S]*?\{[\s\S]*?touch-action:\s*pan-y/)
   })
 })
