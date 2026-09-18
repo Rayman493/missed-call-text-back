@@ -33,6 +33,13 @@ describe('Graph header control consistency', () => {
     expect(header).toContain('flex-shrink-0')
   })
 
+  it('gives the title block more usable width while keeping controls on the same row', () => {
+    const header = readContent('src/components/analytics/ChartHeaderControls.tsx')
+    expect(header).toContain('gap-1.5 sm:gap-2')
+    expect(header).toContain('min-w-0 flex-1')
+    expect(header).toContain('flex-shrink-0')
+  })
+
   it('header no longer contains per-chart ad-hoc alignment wrappers', () => {
     for (const path of graphs) {
       const content = readContent(path)
@@ -165,6 +172,14 @@ describe('Pie/donut local slice inspection', () => {
       const content = readContent(path)
       expect(content).toContain('h-7 flex items-center justify-center')
       expect(content).not.toContain('absolute bottom-8')
+    }
+  })
+
+  it('tapping outside a pie slice dismisses the active detail', () => {
+    for (const path of pieGraphs) {
+      const content = readContent(path)
+      expect(content).toContain("closest?.('.recharts-pie-sector, .recharts-sector')")
+      expect(content).toContain('setActiveSlice(null)')
     }
   })
 

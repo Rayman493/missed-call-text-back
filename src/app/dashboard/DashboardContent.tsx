@@ -1284,7 +1284,7 @@ export default function DashboardContent() {
 
                     {/* Beta Feedback Card - Simplified with mobile padding */}
                     <SectionErrorBoundary sectionName="BetaFeedbackCard">
-                      <div className="rounded-xl border border-border/50 bg-card p-4 sm:p-5 shadow-sm transition-all duration-200 hover:shadow-md">
+                      <div className="rounded-xl border border-border/50 bg-card p-4 sm:p-5 shadow-sm transition-all duration-200 hover:shadow-md mb-5">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                           <div className="flex-1">
                             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 leading-tight">

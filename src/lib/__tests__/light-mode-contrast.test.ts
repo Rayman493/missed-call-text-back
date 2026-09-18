@@ -40,6 +40,19 @@ describe('Shared chart pointer-focus suppression', () => {
     expect(globals).toContain('outline: none')
   })
 
+  it('targets the actual focused data marks (sectors, rectangles, dots), not just the wrapper', () => {
+    expect(globals).toContain('.recharts-sector:focus:not(:focus-visible)')
+    expect(globals).toContain('.recharts-rectangle:focus:not(:focus-visible)')
+    expect(globals).toContain('.recharts-dot:focus:not(:focus-visible)')
+    expect(globals).toContain('.recharts-surface *:focus:not(:focus-visible)')
+  })
+
+  it('adds a coarse-pointer fallback to kill the persistent Android WebView focus rectangle', () => {
+    expect(globals).toContain('@media (hover: none) and (pointer: coarse)')
+    expect(globals).toContain('.recharts-surface *:focus,')
+    expect(globals).toContain('outline: none !important;')
+  })
+
   it('keeps keyboard :focus-visible intact (no blanket outline removal)', () => {
     expect(globals).not.toMatch(/\.recharts-surface\s*\{\s*outline:\s*none/)
     expect(globals).toContain('-webkit-tap-highlight-color: transparent')

@@ -66,7 +66,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import Modal from '@/components/ui/Modal'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
-import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle, Pencil, ChevronDown, Video, ExternalLink } from 'lucide-react'
+import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle, ChevronDown, Video, ExternalLink } from 'lucide-react'
 import { getPaymentMethodBadge } from '@/lib/payment-method-badge'
 import PaymentOverviewModal from '@/components/payments/PaymentOverviewModal'
 import CustomerDetailPreviewCard from '@/components/ui/CustomerDetailPreviewCard'
@@ -5050,17 +5050,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* Actions — 44px mobile hit target, 32px visual treatment */}
               <div className="flex items-center gap-0.5 flex-shrink-0">
-                {/* Edit Customer Button */}
-                <button
-                  onClick={() => setShowEditCustomer(true)}
-                  className="group h-11 w-11 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground transition-colors duration-200"
-                  title="Edit customer"
-                  aria-label="Edit customer"
-                >
-                  <span className="h-8 w-8 inline-flex items-center justify-center rounded-lg group-hover:bg-muted/50 transition-colors duration-200">
-                    <Pencil className="w-4 h-4" />
-                  </span>
-                </button>
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}

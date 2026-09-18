@@ -217,7 +217,15 @@ export default function LeadsSourceGraph() {
           />
         ) : (
           <>
-          <div className="h-[260px] relative">
+          <div
+            className="h-[260px] relative"
+            onClick={(e) => {
+              // Tapping a slice selects it; tapping anything else inside the
+              // chart area (center whitespace, legend, empty space) dismisses.
+              if ((e.target as HTMLElement).closest?.('.recharts-pie-sector, .recharts-sector')) return
+              setActiveSlice(null)
+            }}
+          >
             <ChartPieTouchSurface className="w-full h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>

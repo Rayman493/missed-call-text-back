@@ -149,6 +149,20 @@ export default function ConversationComposer({
   const MAX_DOCUMENT_SIZE = 600 * 1024 // 600KB
   const MAX_VIDEO_SIZE = 600 * 1024 // 600KB
 
+  const resolveMimeByExtension = (filename: string, fallback: string): string => {
+    const ext = filename.split('.').pop()?.toLowerCase()
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg': return 'image/jpeg'
+      case 'png': return 'image/png'
+      case 'gif': return 'image/gif'
+      case 'pdf': return 'application/pdf'
+      case 'csv': return 'text/csv'
+      case 'mp4': return 'video/mp4'
+      default: return fallback
+    }
+  }
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
@@ -182,15 +196,20 @@ export default function ConversationComposer({
     }
 
     Array.from(files).forEach(file => {
+      // Android content:// URIs often report an empty MIME type. Fall back to
+      // the file extension so selected video/photo attachments are not silently
+      // rejected when the OS hides the real MIME type.
+      const effectiveType = resolveMimeByExtension(file.name, file.type)
+
       // Check if type is supported
-      if (!SUPPORTED_TYPES.includes(file.type)) {
+      if (!SUPPORTED_TYPES.includes(effectiveType)) {
         unsupportedFile = file.name
         return
       }
 
       // Determine file type and size limit
-      const isDocument = file.type === 'application/pdf' || file.type === 'text/csv'
-      const isVideo = file.type === 'video/mp4'
+      const isDocument = effectiveType === 'application/pdf' || effectiveType === 'text/csv'
+      const isVideo = effectiveType === 'video/mp4'
       const maxSize = isDocument ? MAX_DOCUMENT_SIZE : (isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE)
 
       // Validate file size
@@ -277,15 +296,20 @@ export default function ConversationComposer({
     }
 
     Array.from(files).forEach(file => {
+      // Android content:// URIs often report an empty MIME type. Fall back to
+      // the file extension so selected video/photo attachments are not silently
+      // rejected when the OS hides the real MIME type.
+      const effectiveType = resolveMimeByExtension(file.name, file.type)
+
       // Check if type is supported
-      if (!SUPPORTED_TYPES.includes(file.type)) {
+      if (!SUPPORTED_TYPES.includes(effectiveType)) {
         unsupportedFile = file.name
         return
       }
 
       // Determine file type and size limit
-      const isDocument = file.type === 'application/pdf' || file.type === 'text/csv'
-      const isVideo = file.type === 'video/mp4'
+      const isDocument = effectiveType === 'application/pdf' || effectiveType === 'text/csv'
+      const isVideo = effectiveType === 'video/mp4'
       const maxSize = isDocument ? MAX_DOCUMENT_SIZE : (isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE)
 
       // Validate file size
@@ -416,11 +440,11 @@ export default function ConversationComposer({
                   />
                 ) : (
                   <div className="w-24 h-24 flex flex-col items-center justify-center rounded-md border border-border/20 shadow-sm bg-muted/30">
-                    {att.file.type === 'application/pdf' ? (
+                    {att.fileType === 'document' && att.filename.toLowerCase().endsWith('.pdf') ? (
                       <FileText className="w-8 h-8 text-muted-foreground/60 mb-1" />
-                    ) : att.file.type === 'text/csv' ? (
+                    ) : att.fileType === 'document' ? (
                       <FileSpreadsheet className="w-8 h-8 text-muted-foreground/60 mb-1" />
-                    ) : att.file.type === 'video/mp4' ? (
+                    ) : att.fileType === 'video' ? (
                       <Video className="w-8 h-8 text-muted-foreground/60 mb-1" />
                     ) : (
                       <File className="w-8 h-8 text-muted-foreground/60 mb-1" />

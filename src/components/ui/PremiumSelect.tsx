@@ -75,7 +75,7 @@ export default function PremiumSelect<T extends string>({
           focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50
           disabled:opacity-50 disabled:cursor-not-allowed
           transition-all duration-200
-          min-w-[120px]
+          min-w-[96px] sm:min-w-[120px]
           ${buttonClassName}
         `}
         aria-haspopup="listbox"

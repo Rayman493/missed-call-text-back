@@ -169,11 +169,11 @@ export default function PaymentActionBar({
             <button
               key={slot.key}
               type="button"
-              onClick={() => slot.reason && showToast(slot.reason)}
+              onClick={(e) => slot.reason && showToast(slot.reason, 'info', { anchor: e.currentTarget })}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()
-                  slot.reason && showToast(slot.reason)
+                  slot.reason && showToast(slot.reason, 'info', { anchor: e.currentTarget })
                 }
               }}
               aria-label={`${slot.title} unavailable`}

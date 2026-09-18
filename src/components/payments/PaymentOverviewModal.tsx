@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import Modal from '@/components/ui/Modal'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getPaymentStatusStyle } from '@/lib/payment-status'
@@ -103,14 +102,17 @@ export default function PaymentOverviewModal({ isOpen, onClose, payment }: Payme
         </div>
 
         <div className="pt-2">
-          <Link
-            href="/dashboard/payments"
-            onClick={onClose}
+          <button
+            type="button"
+            onClick={() => {
+              onClose()
+              window.location.assign('/dashboard/payments')
+            }}
             className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 hover:underline underline-offset-4 transition-colors"
           >
             View in Payments
             <span aria-hidden="true">→</span>
-          </Link>
+          </button>
         </div>
       </div>
     </Modal>

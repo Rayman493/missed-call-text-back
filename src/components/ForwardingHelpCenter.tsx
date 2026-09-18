@@ -360,7 +360,7 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
               aria-expanded={expandedSection === 'disableForwarding'}
             >
               {expandedSection === 'disableForwarding' ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              Disable Call Forwarding (Optional)
+              Disable Call Forwarding
             </button>
             {expandedSection === 'disableForwarding' && (
               <div className="p-3 sm:p-4 bg-muted/20 border border-border/40 rounded-xl space-y-2 sm:space-y-3">
@@ -389,13 +389,8 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
 
       {/* 4. Help */}
       <section className="space-y-2 sm:space-y-2.5">
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-muted-foreground text-xs font-semibold">
-            ?
-          </div>
-          <h3 className="text-sm font-semibold text-foreground">Need help?</h3>
-        </div>
-        <div className="pl-8.5">
+        <h3 className="text-sm font-semibold text-foreground">Need help?</h3>
+        <div>
           <button
             onClick={() => toggleSection('troubleshooting')}
             className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-muted/50 hover:bg-muted/80 text-foreground rounded-lg text-xs font-medium transition-colors"

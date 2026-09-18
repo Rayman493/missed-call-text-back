@@ -29,7 +29,7 @@ export function ChartHeaderControls({
   return (
     <div
       className={`
-        flex flex-row items-center justify-between gap-2 mb-3
+        flex flex-row items-center justify-between gap-1.5 sm:gap-2 mb-3
         ${className}
       `}
     >
@@ -44,7 +44,7 @@ export function ChartHeaderControls({
         )}
       </div>
       {children && (
-        <div className="flex items-center justify-end gap-2 flex-shrink-0">
+        <div className="flex items-center justify-end gap-1.5 flex-shrink-0">
           {children}
         </div>
       )}

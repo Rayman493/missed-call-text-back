@@ -128,6 +128,7 @@ export default function PaymentsNewRequestModal({
       isOpen={isOpen}
       onClose={handleClose}
       title="New Payment Request"
+      fullScreen
       footer={
         <div className="flex gap-2.5 justify-end">
           <button

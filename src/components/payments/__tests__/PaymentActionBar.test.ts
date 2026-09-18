@@ -31,8 +31,8 @@ describe('PaymentActionBar fixed slot system', () => {
     expect(content).not.toContain("icon: Copy")
   })
 
-  it('does not execute the action when a disabled slot is tapped', () => {
-    expect(content).toContain('slot.reason && showToast(slot.reason)')
+  it('does not execute the action when a disabled slot is tapped; shows an anchored toast', () => {
+    expect(content).toContain("showToast(slot.reason, 'info', { anchor: e.currentTarget })")
     expect(content).not.toMatch(/disabledByEligibility[\s\S]{0,200}onClick=\{slot\.onClick\}/)
   })
 })

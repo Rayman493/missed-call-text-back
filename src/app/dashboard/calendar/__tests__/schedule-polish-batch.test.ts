@@ -413,28 +413,29 @@ describe('Schedule Polish — Batch 2 Time Tracked', () => {
     expect(startBlock).toContain('secondaryLabel')
   })
 
-  it('Start Timer action is a single full-width primary button below the picker', () => {
+  it('Start Timer action is a primary button in the bottom action region', () => {
     const startBlock = pageContent.slice(
       pageContent.indexOf('placeholder="Select a job"'),
       pageContent.indexOf('placeholder="Select a job"') + 1600
+    )
+    expect(startBlock).toContain('Start Timer')
+    expect(startBlock).toContain('bg-blue-600')
+    expect(startBlock).toContain('Cancel')
+  })
+
+  it('Start Timer default trigger is a full-width primary button in the bottom action region', () => {
+    const startBlock = pageContent.slice(
+      pageContent.indexOf("onClick={() => setShowTimerJobPicker(true)}"),
+      pageContent.indexOf("onClick={() => setShowTimerJobPicker(true)}") + 500
     )
     expect(startBlock).toContain('w-full')
     expect(startBlock).toContain('Start Timer')
     expect(startBlock).toContain('bg-blue-600')
   })
 
-  it('header Start Timer toggle flips to Cancel while picker is open', () => {
-    expect(pageContent).toContain("{showTimerJobPicker ? 'Cancel' : 'Start Timer'}")
-    expect(pageContent).toContain('showTimerJobPicker ? <X')
-  })
-
-  it('header toggle avoids stale pressed/focus highlight', () => {
-    const headerBlock = pageContent.slice(
-      pageContent.indexOf("setShowTimerJobPicker(value => !value)"),
-      pageContent.indexOf("setShowTimerJobPicker(value => !value)") + 500
-    )
-    expect(headerBlock).toContain('onMouseDown={(e) => e.preventDefault()}')
-    expect(headerBlock).toContain('focus:outline-none focus-visible:ring-0')
+  it('no floating header Start Timer toggle remains', () => {
+    expect(pageContent).not.toContain("{showTimerJobPicker ? 'Cancel' : 'Start Timer'}")
+    expect(pageContent).not.toContain('showTimerJobPicker ? <X')
   })
 
   it('stop timer shows a single success toast when server confirms', () => {

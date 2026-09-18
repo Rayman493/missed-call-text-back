@@ -333,11 +333,11 @@ export default function BillingDocumentList({
                     <button
                       key={slot.key}
                       type="button"
-                      onClick={() => slot.disabledReason && showToast(slot.disabledReason)}
+                      onClick={(e) => slot.disabledReason && showToast(slot.disabledReason, 'info', { anchor: e.currentTarget })}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault()
-                          slot.disabledReason && showToast(slot.disabledReason)
+                          slot.disabledReason && showToast(slot.disabledReason, 'info', { anchor: e.currentTarget })
                         }
                       }}
                       aria-label={`${slot.title} unavailable`}

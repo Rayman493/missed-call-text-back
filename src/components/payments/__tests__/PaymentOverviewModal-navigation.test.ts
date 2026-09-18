@@ -3,19 +3,19 @@ import { readFileSync } from 'fs'
 
 const content = readFileSync('src/components/payments/PaymentOverviewModal.tsx', 'utf8')
 
-describe('PaymentOverview → Payments link', () => {
-  it('uses next/link for reliable native WebView navigation', () => {
-    expect(content).toContain("import Link from 'next/link'")
-    expect(content).toContain('href="/dashboard/payments"')
+describe('PaymentOverview → Payments navigation', () => {
+  it('uses window.location.assign for reliable native WebView navigation', () => {
+    expect(content).not.toContain("import Link from 'next/link'")
+    expect(content).toContain("window.location.assign('/dashboard/payments')")
   })
 
-  it('renders a secondary "View in Payments" link', () => {
+  it('renders a secondary "View in Payments" control', () => {
     expect(content).toContain('View in Payments')
     expect(content).toContain('→')
   })
 
-  it('closes the modal when the link is activated', () => {
-    expect(content).toMatch(/<Link[\s\S]*?onClick=\{onClose\}[\s\S]*?View in Payments/)
+  it('closes the modal then navigates to /dashboard/payments', () => {
+    expect(content).toMatch(/onClose\(\)[\s\S]*?window\.location\.assign\('\/dashboard\/payments'\)/)
   })
 
   it('reads visually as a link (primary color + underline affordance)', () => {

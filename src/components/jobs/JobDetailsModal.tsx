@@ -7,8 +7,6 @@ import type { Job, JobStatus } from './JobComposer'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatCurrency } from '@/lib/utils'
 import { useBusiness } from '@/contexts/BusinessContext'
-import RequestPaymentModal from '@/components/payments/RequestPaymentModal'
-import TapToPayModal from '@/components/payments/TapToPayModal'
 import JobTimer from '@/components/jobs/JobTimer'
 import { isNativeCapacitor } from '@/lib/terminal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -484,7 +482,7 @@ export default function JobDetailsModal({
               </div>
             )}
 
-            {/* Payment */}
+            {/* Payment — informational only; collection actions live in Payments */}
             <div className="p-3 rounded-lg bg-muted/30 dark:bg-slate-800/60 border border-border/40 dark:border-border/30">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Payment</p>
               {!job.lead_id ? (
@@ -495,27 +493,7 @@ export default function JobDetailsModal({
                   <div className="h-3 w-32 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
                 </div>
               ) : !paymentRequest ? (
-                <div className="space-y-2">
-                  <p className="text-sm text-slate-600 dark:text-slate-300">No payment requested</p>
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => setShowPaymentModal(true)}
-                      className="flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                    >
-                      <CreditCard className="w-3.5 h-3.5" />
-                      Request Payment
-                    </button>
-                    {isNativeSupported && business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled && (
-                      <button
-                        onClick={() => setShowTapToPayModal(true)}
-                        className="flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-                      >
-                        <Smartphone className="w-3.5 h-3.5" />
-                        Tap to Pay
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-300">No payments yet</p>
               ) : (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -526,62 +504,21 @@ export default function JobDetailsModal({
                       {formatCurrency(paymentRequest.amount_cents / 100)}
                     </span>
                   </div>
-                  
+
                   {paymentRequest.description && !/^not collected$/i.test(paymentRequest.description.trim()) && (
                     <p className="text-xs text-slate-600 dark:text-slate-300">{paymentRequest.description}</p>
                   )}
-                  
+
                   <div className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
                     <span>{getPaymentMethodLabel(paymentRequest.payment_provider, (paymentRequest as any).payment_method_type)}</span>
                     <span>•</span>
                     <span>{new Date(paymentRequest.created_at).toLocaleDateString()}</span>
                   </div>
 
-                  {paymentRequest.status === 'pending' && (
-                    <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                      {paymentRequest.checkout_url && (
-                        <>
-                          <button
-                            onClick={() => copyPaymentLink(paymentRequest.checkout_url!)}
-                            className="p-1.5 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                            title="Copy payment link"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                          </button>
-                          <a
-                            href={paymentRequest.checkout_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                            title="Open payment link"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </a>
-                        </>
-                      )}
-                      <button
-                        onClick={() => setShowCancelConfirm(true)}
-                        className="p-1.5 text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                        title="Cancel payment request"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
-
                   {paymentRequest.status === 'paid' && paymentRequest.paid_at && (
                     <div className="text-[10px] text-green-600 dark:text-green-400">
                       Paid on {new Date(paymentRequest.paid_at).toLocaleDateString()}
                     </div>
-                  )}
-
-                  {(paymentRequest.status === 'cancelled' || paymentRequest.status === 'expired') && (
-                    <button
-                      onClick={() => setShowPaymentModal(true)}
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                    >
-                      Create new payment request
-                    </button>
                   )}
                 </div>
               )}
@@ -655,82 +592,6 @@ export default function JobDetailsModal({
         </div>
       </div>
 
-      {/* Payment Request Modal */}
-      {showPaymentModal && business && (
-        <RequestPaymentModal
-          isOpen={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
-          business={business}
-          onPaymentCreated={() => {
-            setShowPaymentModal(false)
-            fetchPaymentRequest()
-          }}
-          onShowToast={(message, type) => {
-            if (type === 'success') {
-              setPaymentToast(message)
-              setTimeout(() => setPaymentToast(null), 4000)
-            }
-          }}
-          prefillLeadId={job.lead_id || undefined}
-          prefillDescription={job.title || undefined}
-        />
-      )}
-
-      {/* Payment Request Success Toast */}
-      {paymentToast && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-3 bg-green-600 text-white text-sm font-medium rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-[90vw] text-center">
-          {paymentToast}
-        </div>
-      )}
-
-      {/* Tap to Pay Modal */}
-      {showTapToPayModal && (
-        <TapToPayModal
-          isOpen={showTapToPayModal}
-          onClose={() => setShowTapToPayModal(false)}
-          amountCents={paymentRequest?.amount_cents || 0}
-          leadId={job.lead_id || undefined}
-          jobId={job.id}
-          description={job.title || undefined}
-          customerName={job.customer_name || undefined}
-          onPaymentComplete={() => {
-            setShowTapToPayModal(false)
-            fetchPaymentRequest()
-          }}
-        />
-      )}
-
-      {/* Cancel Payment Confirmation */}
-      {showCancelConfirm && (
-        <>
-          <NestedCancelConfirm onClose={() => setShowCancelConfirm(false)}>
-            <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-sm animate-in zoom-in-95 duration-200">
-              <div className="p-5">
-                <h3 className="text-lg font-semibold text-foreground mb-2">Cancel Payment Request?</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  This will cancel the payment request for {paymentRequest ? formatCurrency(paymentRequest.amount_cents / 100) : 'this amount'}. This action cannot be undone.
-                </p>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setShowCancelConfirm(false)}
-                    disabled={isCancellingPayment}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    Keep Request
-                  </button>
-                  <button
-                    onClick={handleCancelPayment}
-                    disabled={isCancellingPayment}
-                    className="flex-1 px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {isCancellingPayment ? 'Cancelling...' : 'Cancel Request'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </NestedCancelConfirm>
-        </>
-      )}
     </>
   )
 }

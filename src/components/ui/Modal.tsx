@@ -26,6 +26,8 @@ interface ModalProps {
   footer?: React.ReactNode
   // When true, uses bottom-sheet style on mobile (default: false for centered dialog)
   bottomSheetOnMobile?: boolean
+  // When true, the modal content fills the entire viewport (no exposed page chrome)
+  fullScreen?: boolean
   // Optional separate callback for backdrop click (for diagnostics)
   onBackdropClose?: () => void
 }
@@ -42,6 +44,7 @@ export default function Modal({
   contentMaxHeight,
   footer,
   bottomSheetOnMobile = false,
+  fullScreen = false,
   onBackdropClose
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
@@ -170,17 +173,18 @@ export default function Modal({
 
   // Mobile: center within usable viewport (accounting for bottom nav and safe areas)
   // Desktop: center normally with standard padding
+  // fullScreen: content panel fills the viewport so no app chrome remains visible.
   const mobileAlignmentClass = bottomSheetOnMobile ? 'items-end' : 'items-center'
 
   const modalContent = (
     <div
-      className={`fixed inset-0 z-[60] flex ${alignTopOnMobile ? 'items-start md:items-center' : mobileAlignmentClass} md:items-center justify-center px-4 md:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 motion-reduce:animate-none motion-reduce:transition-none`}
-      style={alignTopOnMobile ? {
+      className={`fixed inset-0 z-[60] flex ${fullScreen ? 'items-center justify-center' : (alignTopOnMobile ? 'items-start md:items-center' : mobileAlignmentClass)} ${fullScreen ? '' : 'md:items-center justify-center px-4 md:p-4'} bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 motion-reduce:animate-none motion-reduce:transition-none`}
+      style={fullScreen ? undefined : (alignTopOnMobile ? {
         paddingTop: `calc(env(safe-area-inset-top) + ${mobileTopOffsetPx}px)`,
       } : {
         paddingTop: 'max(16px, env(safe-area-inset-top))',
         paddingBottom: 'max(16px, var(--modal-bottom-reserve))',
-      }}
+      })}
       onPointerDown={handleBackdropPointerDown}
       onPointerUp={handleBackdropPointerUp}
       onPointerCancel={handleBackdropPointerCancel}
@@ -193,10 +197,8 @@ export default function Modal({
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
         className={`
-          relative w-full max-w-lg
-          max-h-[var(--modal-max-height)]
-          overflow-hidden
-          rounded-2xl border border-border/50
+          relative w-full max-w-lg max-h-[var(--modal-max-height)]
+          overflow-hidden rounded-2xl border border-border/50
           bg-card
           shadow-2xl shadow-black/10 dark:shadow-black/30
           flex flex-col min-h-0 min-w-0 animate-in zoom-in-95 duration-200 motion-reduce:animate-none motion-reduce:transition-none
@@ -205,7 +207,7 @@ export default function Modal({
         onClick={(e) => e.stopPropagation()}
       >
           {title && (
-            <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-border/50 shrink-0 bg-muted/30">
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-border/50 shrink-0 bg-muted/30" style={fullScreen ? { paddingTop: 'env(safe-area-inset-top)' } : undefined}>
               <h2 id={titleId} className="text-base font-semibold text-foreground min-w-0 truncate">{title}</h2>
               <button
                 onClick={onClose}

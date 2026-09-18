@@ -3451,7 +3451,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               className="w-full px-3 py-2 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-xs sm:text-sm hover:border-border/80 dark:hover:border-border/60 resize-none min-h-[120px]"
                             />
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                              We’ll automatically add your business name when this message is sent.
+                              If your message includes placeholders like {'{{business_name}}'}, we'll fill them in automatically when the message is sent.
                             </p>
                           </div>
                         </div>
@@ -3710,7 +3710,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               className="w-full px-3 py-2 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-xs sm:text-sm hover:border-border/80 dark:hover:border-border/60 resize-none min-h-[120px]"
                             />
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                              We’ll automatically add your business name and return date when this message is sent.
+                              If your message includes placeholders like {'{{business_name}}'} or {'{{return_date}}'}, we'll fill them in automatically when the message is sent.
                             </p>
                           </div>
 
@@ -3956,7 +3956,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                                       placeholder="Enter follow-up message..."
                                     />
                                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                                      We’ll automatically add your business name when this message is sent.
+                                      If your message includes placeholders like {'{{business_name}}'}, we'll fill them in automatically when the message is sent.
                                     </p>
                                   </div>
                                 </div>

@@ -912,21 +912,45 @@ html.light select:-moz-autofill:focus {
   touch-action: pan-y;
 }
 
-/* Suppress the full-chart focus rectangle that appears on Android when the
- * SVG surface or wrapper receives focus from a tap. Recharts 3 sets tabIndex=0
- * on .recharts-surface; these rules remove the default outline while keeping
- * the legitimate keyboard focus-visible ring on individual data marks. */
-.recharts-surface:focus,
-.recharts-surface:focus-visible,
-.recharts-wrapper:focus,
-.recharts-wrapper:focus-visible,
-.recharts-bar-rectangles:focus,
-.recharts-bar-rectangles:focus-visible,
-.recharts-cursor:focus,
-.recharts-cursor:focus-visible,
-.recharts-rectangle-wrapper:focus,
-.recharts-rectangle-wrapper:focus-visible {
-  outline: none !important;
+/* Suppress the full-chart focus rectangle that appears on Android when
+ * Recharts' accessibilityLayer moves focus to the SVG surface or to internal
+ * data marks (bars, slices, dots). Recharts sets tabIndex=0 on
+ * .recharts-surface and on individual .recharts-sector / .recharts-rectangle
+ * / .recharts-dot elements; pointer/touch focus draws an ugly default outline
+ * box. We remove that outline while preserving the keyboard :focus-visible
+ * ring for users navigating with a keyboard or fine-pointer device. */
+.recharts-surface:focus:not(:focus-visible),
+.recharts-wrapper:focus:not(:focus-visible),
+.recharts-surface *:focus:not(:focus-visible),
+.recharts-layer:focus:not(:focus-visible),
+.recharts-sector:focus:not(:focus-visible),
+.recharts-rectangle:focus:not(:focus-visible),
+.recharts-bar-rectangle:focus:not(:focus-visible),
+.recharts-line:focus:not(:focus-visible),
+.recharts-dot:focus:not(:focus-visible),
+.recharts-active-dot:focus:not(:focus-visible),
+.recharts-radar-polygon:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* On coarse-pointer (touch) devices, the browser UA outline after a tap is
+ * the persistent rectangle QA sees. Suppress it fully for chart surfaces and
+ * data marks; keyboard users on touch devices still get spoken feedback and
+ * the non-outline focus styling provided by the OS/screen reader. */
+@media (hover: none) and (pointer: coarse) {
+  .recharts-surface:focus,
+  .recharts-wrapper:focus,
+  .recharts-surface *:focus,
+  .recharts-layer:focus,
+  .recharts-sector:focus,
+  .recharts-rectangle:focus,
+  .recharts-bar-rectangle:focus,
+  .recharts-line:focus,
+  .recharts-dot:focus,
+  .recharts-active-dot:focus,
+  .recharts-radar-polygon:focus {
+    outline: none !important;
+  }
 }
 
 /* Preserve keyboard focus on individual data elements (bars, slices, dots)

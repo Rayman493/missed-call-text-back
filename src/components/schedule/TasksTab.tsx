@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { CheckCircle2, Clock, AlertCircle, Plus, X, Edit2, Trash2 } from 'lucide-react'
+import { CheckCircle2, Clock, AlertCircle, Plus, X, Edit2, Trash2, Calendar } from 'lucide-react'
+import Modal from '@/components/ui/Modal'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import NewTaskModal from './NewTaskModal'
 import Toast from '@/components/Toast'
@@ -52,6 +53,7 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
   const [filter, setFilter] = useState<TaskFilter>('all')
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [viewingTask, setViewingTask] = useState<Task | null>(null)
   // Shared tap-vs-drag guard for reminder/task summary cards
   const cardGuard = useTapGuard()
 
@@ -487,7 +489,7 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
           {filteredTasks.map(task => (
             <div
               key={task.id}
-              className={`p-4 rounded-lg border transition-all ${
+              className={`p-4 rounded-lg border transition-all cursor-pointer ${
                 task.completed
                   ? 'bg-slate-50 dark:bg-slate-800/30 border-slate-200/50 dark:border-slate-700/30 opacity-70'
                   : isOverdue(task.due_date)
@@ -501,10 +503,15 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
               onPointerUp={cardGuard.onPointerUp}
               onPointerCancel={cardGuard.onPointerCancel}
               onPointerLeave={cardGuard.onPointerLeave}
+              onClick={() => {
+                if (cardGuard.consumeDragSuppression()) return
+                setViewingTask(task)
+              }}
             >
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation()
                     if (cardGuard.consumeDragSuppression()) return
                     toggleTaskComplete(task.id, task.completed)
                   }}
@@ -547,6 +554,7 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
                         <span className="text-slate-300 dark:text-slate-600">·</span>
                         <button
                           onClick={(e) => {
+                            e.stopPropagation()
                             if (cardGuard.consumeDragSuppression()) return
                             handleLeadClick(e, task.lead_id!)
                           }}
@@ -567,7 +575,8 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
                 </div>
                 <div className="flex items-center gap-1 shrink-0 pl-2">
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation()
                       if (cardGuard.consumeDragSuppression()) return
                       useParentModal ? onEditTask!(task) : setEditingTask(task)
                     }}
@@ -619,6 +628,80 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
           taskToEdit={editingTask}
           onShowToast={showToast}
         />
+      )}
+
+      {/* Reminder Summary Modal — read-only detail from tapping a card body */}
+      {viewingTask && (
+        <Modal
+          isOpen={!!viewingTask}
+          onClose={() => setViewingTask(null)}
+          title="Reminder Summary"
+          footer={
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setViewingTask(null)}
+                className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground font-medium mb-1">Title</p>
+              <p className="text-sm font-medium text-foreground">{viewingTask.title}</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground font-medium mb-1">Status</p>
+                {getTaskStatusBadge(viewingTask)}
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground font-medium mb-1">Scheduled</p>
+                <p className="text-sm text-foreground">
+                  {viewingTask.due_date ? (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                      {formatDate(viewingTask.due_date)}
+                      {viewingTask.due_time && <span>· {formatTime12Hour(viewingTask.due_time)}</span>}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">No date set</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            {viewingTask.notes && (
+              <div>
+                <p className="text-xs text-muted-foreground font-medium mb-1">Notes</p>
+                <p className="text-sm text-foreground whitespace-pre-line">{viewingTask.notes}</p>
+              </div>
+            )}
+            {viewingTask.lead_id && (
+              <div>
+                <p className="text-xs text-muted-foreground font-medium mb-1">Customer</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewingTask(null)
+                    router.push(`/dashboard/leads/${viewingTask.lead_id}`)
+                  }}
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                >
+                  {getLeadName(viewingTask)}
+                </button>
+              </div>
+            )}
+            {viewingTask.job_id && viewingTask.jobs && (
+              <div>
+                <p className="text-xs text-muted-foreground font-medium mb-1">Job</p>
+                <p className="text-sm text-foreground">{viewingTask.jobs.title}</p>
+              </div>
+            )}
+          </div>
+        </Modal>
       )}
 
       {/* Toast */}

@@ -31,17 +31,20 @@ describe('CalendarDayCell date-number anchor consistency', () => {
   })
 })
 
-describe('CalendarDayCell light-mode border', () => {
+describe('CalendarDayCell border contrast', () => {
   it('strengthens the light-mode day-cell border one restrained step', () => {
     expect(content).toContain('border-slate-300/50')
     expect(content).toContain('border-slate-300/60')
     expect(content).not.toContain('border-slate-200/40')
-    expect(content).not.toContain('border-slate-200/50 dark:border-slate-700/30')
   })
 
-  it('leaves dark-mode cell borders unchanged', () => {
-    expect(content).toContain('dark:border-slate-700/25')
+  it('strengthens dark-mode day-cell borders one restrained step', () => {
+    expect(content).toContain('dark:border-slate-600/35')
+    expect(content).toContain('dark:border-slate-600/40')
     expect(content).toContain('dark:border-slate-700/30')
-    expect(content).toContain('dark:border-slate-800/20')
+  })
+
+  it('elevates the selected day cell above adjacent cells so its outline is fully visible', () => {
+    expect(content).toContain("'relative z-10 ring-2")
   })
 })
