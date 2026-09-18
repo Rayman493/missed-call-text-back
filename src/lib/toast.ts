@@ -1,13 +1,18 @@
 /**
  * Lightweight ephemeral toast feedback.
- * Creates a fixed bottom-right toast, shows it for 2 seconds, then fades out.
+ * Shares the canonical ReplyFlow toast visual treatment (popover surface,
+ * rounded corners, subtle border, safe-area aware, brief auto-dismiss,
+ * accessible announcement). Creates a fixed bottom toast, shows it for
+ * 2 seconds, then fades out.
  */
 export function showToast(message: string, _type?: 'info' | 'error' | 'success') {
   if (typeof document === 'undefined') return
 
   const toast = document.createElement('div')
+  toast.setAttribute('role', 'status')
+  toast.setAttribute('aria-live', 'polite')
   toast.className =
-    'fixed bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:right-4 sm:translate-x-0 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2.5 rounded-lg shadow-lg text-sm z-[100] animate-in fade-in slide-in-from-bottom-2 duration-300 max-w-[min(90vw,320px)] text-center'
+    'fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 bg-popover text-popover-foreground border border-border px-4 py-3 rounded-lg shadow-lg text-sm font-medium z-[100] animate-in fade-in slide-in-from-bottom-2 duration-300 max-w-[min(90vw,320px)] text-center'
   toast.textContent = message
   document.body.appendChild(toast)
 

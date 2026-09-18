@@ -204,8 +204,9 @@ export default function BillingDocumentList({
         return (
           <div
             key={doc.id}
-            className="flex items-start justify-between gap-3 p-3 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-900/60 hover:shadow-sm transition-all"
+            className="flex flex-col gap-2 p-3 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-900/60 hover:shadow-sm transition-all"
           >
+            <div className="flex items-start justify-between gap-3">
             {/* Left: info */}
             <button
               onClick={() => onView(doc)}
@@ -239,12 +240,16 @@ export default function BillingDocumentList({
               )}
             </button>
 
-            {/* Right: status pill + actions — stable six-slot order across statuses
+            {/* Right: status pill in fixed header position */}
+            <div className="flex-shrink-0">
+              <StatusPill variant={statusVariant}>{badge.label}</StatusPill>
+            </div>
+            </div>
+
+            {/* Bottom: six evenly distributed action slots spanning card width
                  col 1 Edit, col 2 Send/Resend, col 3 Convert/View Invoice,
                  col 4 Download, col 5 View, col 6 Delete */}
-            <div className="flex flex-col items-end gap-2 flex-shrink-0">
-              <StatusPill variant={statusVariant}>{badge.label}</StatusPill>
-              <div className="grid grid-cols-6 gap-1 w-full max-w-[240px]">
+            <div className="grid grid-cols-6 gap-1 w-full">
               {[
                 {
                   col: 1,
@@ -361,7 +366,6 @@ export default function BillingDocumentList({
                   </button>
                 )
               })}
-              </div>
             </div>
           </div>
         )

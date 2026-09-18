@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { MessageMedia } from '@/lib/types'
 import Modal from '@/components/ui/Modal'
 import { FileText, FileSpreadsheet, File, Paperclip, X } from 'lucide-react'
@@ -296,15 +297,21 @@ export default function CustomerAttachmentsCard({ messages }: CustomerAttachment
         </div>
       </Modal>
 
-      {/* Image Lightbox */}
-      {expandedImage && (
+      {/* Image Lightbox — portaled to document.body so any transform/filter
+          ancestor cannot trap the fixed overlay and leave an undimmed strip
+          at the top of the visual viewport. */}
+      {expandedImage && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed inset-0 z-[70] bg-black/90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[70] bg-black/90 flex items-center justify-center"
           onClick={() => setExpandedImage(null)}
         >
           <button
-            className="absolute top-4 right-4 text-white/80 hover:text-white p-2"
+            className="absolute z-10 text-white/80 hover:text-white p-2"
             onClick={(e) => { e.stopPropagation(); setExpandedImage(null) }}
+            style={{
+              top: 'max(1rem, env(safe-area-inset-top))',
+              right: 'max(1rem, env(safe-area-inset-right))',
+            }}
             aria-label="Close"
           >
             <X className="w-6 h-6" />
@@ -312,10 +319,11 @@ export default function CustomerAttachmentsCard({ messages }: CustomerAttachment
           <img
             src={expandedImage}
             alt="Expanded attachment"
-            className="max-w-full max-h-full object-contain"
+            className="max-w-full max-h-full object-contain p-4"
             onClick={(e) => e.stopPropagation()}
           />
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )

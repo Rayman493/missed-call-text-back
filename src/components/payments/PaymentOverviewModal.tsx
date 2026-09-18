@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Modal from '@/components/ui/Modal'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getPaymentStatusStyle } from '@/lib/payment-status'
@@ -39,7 +39,6 @@ interface PaymentOverviewModalProps {
 }
 
 export default function PaymentOverviewModal({ isOpen, onClose, payment }: PaymentOverviewModalProps) {
-  const router = useRouter()
   if (!payment) return null
 
   const statusStyle = getPaymentStatusStyle(payment.status)
@@ -104,17 +103,14 @@ export default function PaymentOverviewModal({ isOpen, onClose, payment }: Payme
         </div>
 
         <div className="pt-2">
-          <button
-            type="button"
-            onClick={() => {
-              onClose()
-              router.push('/dashboard/payments')
-            }}
-            className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          <Link
+            href="/dashboard/payments"
+            onClick={onClose}
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 hover:underline underline-offset-4 transition-colors"
           >
             View in Payments
-            <span className="ml-1" aria-hidden="true">→</span>
-          </button>
+            <span aria-hidden="true">→</span>
+          </Link>
         </div>
       </div>
     </Modal>

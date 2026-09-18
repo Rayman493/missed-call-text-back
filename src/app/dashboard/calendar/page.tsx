@@ -3083,20 +3083,6 @@ function JobsTab({
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
               Timer running
             </span>
-          ) : timeSummary && active.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => setShowTimerJobPicker(value => !value)}
-              onMouseDown={(e) => e.preventDefault()}
-              className={`inline-flex items-center gap-1.5 ml-auto px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-0 ${
-                showTimerJobPicker
-                  ? 'text-foreground border border-border/50 hover:bg-muted/50'
-                  : 'text-foreground border border-border/50 hover:bg-muted/50'
-              }`}
-            >
-              {showTimerJobPicker ? <X className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-              {showTimerJobPicker ? 'Cancel' : 'Start Timer'}
-            </button>
           ) : null}
         </div>
         {timeSummary ? (
@@ -3160,14 +3146,35 @@ function JobsTab({
                 </div>
               )}
             />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowTimerJobPicker(false)}
+                className="px-3 min-h-10 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors inline-flex items-center justify-center gap-1.5"
+              >
+                <X className="w-3.5 h-3.5" />
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={startSummaryTimer}
+                disabled={!timerJobId || timerActionInFlight}
+                className="flex-1 min-h-10 px-3 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+              >
+                <Play className="w-3.5 h-3.5" />
+                {timerActionInFlight ? 'Starting…' : 'Start Timer'}
+              </button>
+            </div>
+          </div>
+        ) : timeSummary && !timeSummary.active_timer && active.length > 0 ? (
+          <div className="mt-3 pt-3 border-t border-border/40">
             <button
               type="button"
-              onClick={startSummaryTimer}
-              disabled={!timerJobId || timerActionInFlight}
-              className="w-full min-h-10 px-3 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+              onClick={() => setShowTimerJobPicker(true)}
+              className="w-full min-h-10 px-3 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg inline-flex items-center justify-center gap-1.5"
             >
               <Play className="w-3.5 h-3.5" />
-              {timerActionInFlight ? 'Starting…' : 'Start Timer'}
+              Start Timer
             </button>
           </div>
         ) : null}

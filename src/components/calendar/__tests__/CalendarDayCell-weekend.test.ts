@@ -22,7 +22,10 @@ describe('CalendarDayCell weekend light-mode styling', () => {
     expect(content).toContain('bg-blue-50/60')
   })
 
-  it('preserves today indicator on the day number', () => {
-    expect(content).toContain('bg-blue-500 text-white rounded-full')
+  it('preserves today indicator on the day number without moving the digit', () => {
+    expect(content).toContain('bg-blue-500')
+    expect(content).toContain('text-white')
+    expect(content).toContain('rounded-full')
+    expect(content).toContain('-z-10')
   })
 })

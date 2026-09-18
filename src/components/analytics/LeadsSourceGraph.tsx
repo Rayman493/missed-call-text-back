@@ -216,6 +216,7 @@ export default function LeadsSourceGraph() {
             description="Leads will appear here as ReplyFlow captures missed calls and you add customers."
           />
         ) : (
+          <>
           <div className="h-[260px] relative">
             <ChartPieTouchSurface className="w-full h-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -229,7 +230,11 @@ export default function LeadsSourceGraph() {
                     paddingAngle={CHART_STYLES.donutPaddingAngle}
                     dataKey="value"
                     activeShape={false}
-                    onClick={(_, index) => setActiveSlice(data[index] ?? null)}
+                    onClick={(_, index) =>
+                      setActiveSlice(prev =>
+                        prev && prev.name === data[index]?.name ? null : (data[index] ?? null)
+                      )
+                    }
                   >
                     {data.map((entry, index) => (
                       <Cell
@@ -274,11 +279,13 @@ export default function LeadsSourceGraph() {
                 </PieChart>
               </ResponsiveContainer>
             </ChartPieTouchSurface>
+          </div>
+          <div className="mt-1 h-7 flex items-center justify-center">
             {activeSlice && (
               <button
                 type="button"
                 onClick={() => setActiveSlice(null)}
-                className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-card/90 backdrop-blur-sm border border-border/60 rounded-full px-2.5 py-1 shadow-sm text-[11px] text-foreground"
+                className="flex items-center gap-1.5 bg-card/90 border border-border/60 rounded-full px-2.5 py-1 shadow-sm text-[11px] text-foreground"
               >
                 <span
                   className="w-2 h-2 rounded-full"
@@ -291,6 +298,7 @@ export default function LeadsSourceGraph() {
               </button>
             )}
           </div>
+          </>
         )}
       </div>
     </Card>

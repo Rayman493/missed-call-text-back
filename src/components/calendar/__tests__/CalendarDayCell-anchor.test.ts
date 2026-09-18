@@ -17,12 +17,31 @@ describe('CalendarDayCell date-number anchor consistency', () => {
     expect(wrapper).not.toContain('items-center')
   })
 
-  it('wraps Today with a circle on the same anchor', () => {
-    expect(content).toContain('bg-blue-500 text-white rounded-full')
+  it('decorates Today with a circle behind the digit (does not move the digit)', () => {
+    // Circle is absolutely positioned behind the same anchored text, so the
+    // number keeps the identical top-left anchor/baseline as other days.
+    expect(content).toContain('aria-hidden="true"')
+    expect(content).toContain('-z-10 rounded-full bg-blue-500')
+    expect(content).not.toContain('inline-flex items-center justify-center w-5 h-5')
   })
 
   it('keeps event count summary unchanged', () => {
     expect(content).toContain('eventCountLabel')
     expect(content).toContain('flex items-center gap-1')
+  })
+})
+
+describe('CalendarDayCell light-mode border', () => {
+  it('strengthens the light-mode day-cell border one restrained step', () => {
+    expect(content).toContain('border-slate-300/50')
+    expect(content).toContain('border-slate-300/60')
+    expect(content).not.toContain('border-slate-200/40')
+    expect(content).not.toContain('border-slate-200/50 dark:border-slate-700/30')
+  })
+
+  it('leaves dark-mode cell borders unchanged', () => {
+    expect(content).toContain('dark:border-slate-700/25')
+    expect(content).toContain('dark:border-slate-700/30')
+    expect(content).toContain('dark:border-slate-800/20')
   })
 })

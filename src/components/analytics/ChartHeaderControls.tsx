@@ -16,8 +16,8 @@ interface ChartHeaderControlsProps {
  * - Title/subtitle stack on the left.
  * - Controls (filter button, time range, etc.) sit in a single right-aligned
  *   flex rail with a consistent 8px gap.
- * - On narrow mobile widths the controls rail wraps to a second row, keeping
- *   the title fully visible and right-aligned.
+ * - Title and controls stay on the same row at all supported phone widths;
+ *   the title truncates before controls can collide or wrap.
  * - No per-chart arbitrary margins, offsets, or alignment tricks.
  */
 export function ChartHeaderControls({
@@ -29,11 +29,11 @@ export function ChartHeaderControls({
   return (
     <div
       className={`
-        flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-3
+        flex flex-row items-center justify-between gap-2 mb-3
         ${className}
       `}
     >
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         {typeof title === 'string' ? (
           <h3 className="text-sm font-semibold text-foreground truncate">{title}</h3>
         ) : (

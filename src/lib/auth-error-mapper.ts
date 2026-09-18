@@ -15,7 +15,7 @@ export interface AuthErrorDisplay {
  * Maps Supabase/auth provider errors to customer-friendly messages
  */
 export function mapAuthError(error: any): AuthErrorDisplay {
-  const errorMessage = error?.message || String(error).toLowerCase()
+  const errorMessage = (error?.message || String(error)).toLowerCase()
 
   // Invalid credentials (email/password mismatch)
   if (
@@ -28,7 +28,7 @@ export function mapAuthError(error: any): AuthErrorDisplay {
   ) {
     return {
       heading: "We couldn't sign you in",
-      body: "The email or password you entered doesn't match our records. Check your information and try again.",
+      body: "Incorrect email or password. Please try again.",
       category: 'invalid_credentials',
     }
   }

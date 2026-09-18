@@ -23,6 +23,16 @@ describe('Graph header control consistency', () => {
     }
   })
 
+  it('shared header keeps title and controls on the same row (no mobile flex-col)', () => {
+    const header = readContent('src/components/analytics/ChartHeaderControls.tsx')
+    expect(header).toContain('flex flex-row items-center justify-between')
+    expect(header).not.toContain('flex-col sm:flex-row')
+    expect(header).not.toContain('flex-col')
+    // Title truncates before controls can collide; controls rail never wraps
+    expect(header).toContain('truncate')
+    expect(header).toContain('flex-shrink-0')
+  })
+
   it('header no longer contains per-chart ad-hoc alignment wrappers', () => {
     for (const path of graphs) {
       const content = readContent(path)
@@ -136,10 +146,25 @@ describe('Pie/donut local slice inspection', () => {
     for (const path of pieGraphs) {
       const content = readContent(path)
       expect(content).toContain('const [activeSlice, setActiveSlice]')
-      expect(content).toMatch(/onClick=\{\(_, index\) => setActiveSlice\(data\[index\]/)
+      expect(content).toMatch(/onClick=\{\(_, index\) =>/)
       // No unrelated dashboard state is filtered
       expect(content).not.toContain('setSelectedStatus')
       expect(content).not.toContain('setSourceFilter')
+    }
+  })
+
+  it('tapping the already-selected slice toggles the detail off', () => {
+    for (const path of pieGraphs) {
+      const content = readContent(path)
+      expect(content).toContain('prev && prev.name === data[index]?.name ? null')
+    }
+  })
+
+  it('slice detail occupies reserved space below the chart, not over the legend', () => {
+    for (const path of pieGraphs) {
+      const content = readContent(path)
+      expect(content).toContain('h-7 flex items-center justify-center')
+      expect(content).not.toContain('absolute bottom-8')
     }
   })
 

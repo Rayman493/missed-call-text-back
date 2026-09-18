@@ -8,6 +8,16 @@ describe('BillingDocumentList six-slot action row', () => {
     expect(src).toContain('grid-cols-6')
   })
 
+  it('action bar spans the bottom of the card, not a right-side cluster', () => {
+    // Card is now a vertical stack: info+status row on top, full-width
+    // action grid on the bottom — matching Payment card placement.
+    expect(src).toContain('flex flex-col gap-2 p-3 rounded-xl')
+    expect(src).toContain('grid grid-cols-6 gap-1 w-full')
+    expect(src).not.toContain('w-48')
+    expect(src).not.toContain('max-w-[240px]')
+    expect(src).not.toContain('items-end')
+  })
+
   it('renders slots by mapping a six-entry array', () => {
     const matches = src.match(/key: 'edit'/g)
     expect(matches).toBeTruthy()
