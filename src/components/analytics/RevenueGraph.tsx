@@ -153,6 +153,22 @@ export default function RevenueGraph() {
     )
   }
 
+  // Nearest-x fallback: a tap anywhere on the chart area resolves to the
+  // closest datum index using the plot-area bounds — covers taps between
+  // the 18px hit circles.
+  const handleChartAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const surface = (e.currentTarget as HTMLElement).querySelector('.recharts-surface') as SVGElement | null
+    if (!surface || data.length === 0) return
+    const rect = surface.getBoundingClientRect()
+    const marginLeft = CHART_STYLES.margin.left
+    const marginRight = CHART_STYLES.margin.right
+    const plotWidth = rect.width - marginLeft - marginRight
+    if (plotWidth <= 0) return
+    const relativeX = Math.max(0, Math.min(plotWidth, e.clientX - rect.left - marginLeft))
+    const index = Math.round((relativeX / plotWidth) * (data.length - 1))
+    toggleDatum(Math.max(0, Math.min(data.length - 1, index)))
+  }
+
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
@@ -229,7 +245,7 @@ export default function RevenueGraph() {
                 </div>
               </div>
             )}
-            <ChartPassiveTouchSurface className="w-full h-full">
+            <ChartPassiveTouchSurface className="w-full h-full" onClick={handleChartAreaClick}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={data}

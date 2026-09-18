@@ -45,6 +45,13 @@ describe('BusinessActivityGraph', () => {
     expect(content).toMatch(/dot=\{renderHitDot\('#8b5cf6'\)\}/)
   })
 
+  it('falls back to nearest-x datum selection on chart-area tap', () => {
+    expect(content).toContain('handleChartAreaClick')
+    expect(content).toContain('onClick={handleChartAreaClick}')
+    expect(content).toContain('.recharts-surface')
+    expect(content).toContain('Math.round((relativeX / plotWidth) * (data.length - 1))')
+  })
+
   it('renders a small tap-inspect popup inside the chart wrapper', () => {
     expect(content).toContain('chartWrapperRef')
     expect(content).toContain('selectedDatum.label')

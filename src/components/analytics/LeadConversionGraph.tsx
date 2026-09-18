@@ -11,6 +11,7 @@ import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative } from '@/lib/business-date-utils'
 import { ChartHeaderControls } from './ChartHeaderControls'
+import { ChartSelectionPopup, formatInteger } from '@/lib/chart-utils'
 
 interface ConversionStage {
   name: string
@@ -40,6 +41,7 @@ export default function LeadConversionGraph() {
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
   const [stageFilter, setStageFilter] = useState<string>('all')
+  const [selectedDatum, setSelectedDatum] = useState<ConversionStage | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -237,12 +239,24 @@ export default function LeadConversionGraph() {
             description="Capture leads to track conversion outcomes."
           />
         ) : (
-          <div className="h-[260px] overflow-y-auto relative">
+          <div
+            className="h-[260px] overflow-y-auto relative"
+            onClick={(e) => {
+              if ((e.target as HTMLElement).closest?.('[data-conversion-stage]')) return
+              setSelectedDatum(null)
+            }}
+          >
             <div className="space-y-4 pt-1">
               {displayData.map((stage) => (
                 <div
                   key={stage.name}
-                  className="w-full flex items-center gap-4 rounded-md p-2 -mx-2 text-left"
+                  data-conversion-stage
+                  className="w-full flex items-center gap-4 rounded-md p-2 -mx-2 text-left cursor-pointer hover:bg-muted/10 transition-colors"
+                  onClick={() =>
+                    setSelectedDatum(prev =>
+                      prev?.name === stage.name ? null : stage
+                    )
+                  }
                 >
                   <div className="flex-shrink-0 w-20 sm:w-24 text-xs font-medium text-muted-foreground text-right">
                     {stage.name}
@@ -254,7 +268,7 @@ export default function LeadConversionGraph() {
                         style={{
                           width: `${stage.percentage}%`,
                           backgroundColor: stage.color,
-                          opacity: 0.9
+                          opacity: selectedDatum?.name === stage.name ? 1 : 0.9
                         }}
                       />
                     </div>
@@ -268,6 +282,16 @@ export default function LeadConversionGraph() {
                 </div>
               ))}
             </div>
+            {selectedDatum && (
+              <ChartSelectionPopup
+                label={selectedDatum.name}
+                values={[
+                  { label: 'Count', value: formatInteger(selectedDatum.count), color: selectedDatum.color },
+                  { label: 'Share', value: `${selectedDatum.percentage}%` },
+                ]}
+                onDismiss={() => setSelectedDatum(null)}
+              />
+            )}
           </div>
         )}
       </div>

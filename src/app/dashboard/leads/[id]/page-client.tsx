@@ -579,6 +579,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const realtimeChannelNameRef = useRef<string | null>(null)
   // DEV-only [RF_REALTIME_SMS] sequence counter
   const realtimeSmsLogSeqRef = useRef(0)
+  // Keyboard cycle counter — increments on each composer-focus so physical
+  // diagnostics can compare cycle 1 vs 2 vs 3+ side-by-side.
+  const keyboardCycleRef = useRef(0)
   // latestMessageIdRef tracks the ID of the latest message the user has seen.
   // Used to detect when new messages arrived while away from the conversation.
   const latestMessageIdRef = useRef<string | null>(null)
@@ -804,6 +807,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     container.style.scrollBehavior = 'auto'
     container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight)
     container.style.scrollBehavior = previousScrollBehavior
+    // Kill the stale momentum window before the scroll event is dispatched —
+    // a programmatic scroll is never user-driven and must not inherit a
+    // previous gesture's direction attribution (which would flip
+    // followLatestRef to false mid-keyboard-animation and strand the pin).
+    userScrollDirectionRef.current = 0
+    lastUserGestureEndAtRef.current = 0
   }, [])
 
   // Check if the container is at/near the bottom using the canonical threshold
@@ -855,6 +864,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       lastObservedScrollTop: lastObservedScrollTopRef.current,
       reconcileScheduled: reconcileScheduledRef.current,
       keyboardOpen: visualViewportHeight > 0 && visualViewportHeight < window.innerHeight - 80,
+      keyboardCycle: keyboardCycleRef.current,
       ...extra,
     }
     console.log('[RF_CONVERSATION_SCROLL]', payload)
@@ -3211,7 +3221,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       realtimeSocketState: (supabase as any).realtime?.connectionState?.() ?? null,
     })
 
-    channel.subscribe((status: any) => {
+    let subscribeCancelled = false
+    ;(async () => {
+      // Resolve realtime auth before joining — an unauthenticated websocket
+      // reports SUBSCRIBED but RLS blocks all postgres_changes events because
+      // auth.uid() is NULL with the anon key.
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const hasSession = !!session?.access_token
+        logRealtimeSms('realtime-auth-state', {
+          channelName,
+          hasSession,
+          realtimeSocketState: (supabase as any).realtime?.connectionState?.() ?? null,
+        })
+        if (hasSession) {
+          await (supabase as any).realtime.setAuth(session!.access_token)
+          logRealtimeSms('realtime-setauth', { channelName })
+        }
+      } catch {
+        logRealtimeSms('realtime-setauth-error', { channelName })
+      }
+      if (subscribeCancelled) return
+
+      channel.subscribe((status: any) => {
         logRealtimeSms('channel-status', {
           channelName,
           status,
@@ -3253,6 +3285,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           }, 2000)
         }
       })
+    })()
 
     realtimeChannelRef.current = channel
     realtimeChannelStatusRef.current = 'subscribing'
@@ -3337,6 +3370,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     // Cleanup on unmount or lead ID change
     return () => {
+      subscribeCancelled = true
       console.log('[REALTIME EFFECT CLEANUP]', {
         instanceId: realtimeInstanceIdRef.current,
         effectLeadId: leadId,
@@ -3956,7 +3990,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // rely on visualViewport/ResizeObserver re-anchors through the resize.
   const handleMobileTextareaFocus = () => {
     const container = mobileConversationContainerRef.current
-    logConversationScroll('composer-focus')
+    keyboardCycleRef.current += 1
+    logConversationScroll('composer-focus', { keyboardCycle: keyboardCycleRef.current })
+    // Reset scroll-gesture tracking — the composer tap is not a scroll
+    // gesture, and stale momentum direction must not misclassify the
+    // keyboard's synthetic scroll events as user intent (which would flip
+    // followLatestRef to false and strand the pin across repeated cycles).
+    userScrollGestureActiveRef.current = false
+    userScrollDirectionRef.current = 0
+    lastUserGestureEndAtRef.current = 0
     if (!container) return
     if (followLatestRef.current) {
       scrollToTrueBottom(container)
@@ -3967,7 +4009,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }
 
   const handleMobileTextareaBlur = () => {
-    logConversationScroll('composer-blur')
+    logConversationScroll('composer-blur', { keyboardCycle: keyboardCycleRef.current })
+    // Same reset as composer-focus — the keyboard-close synthetic scrolls
+    // must not inherit stale momentum attribution.
+    userScrollGestureActiveRef.current = false
+    userScrollDirectionRef.current = 0
+    lastUserGestureEndAtRef.current = 0
     // Keyboard close shrinks the visual viewport back — the visualViewport
     // resize handler reconciles; schedule one here too so WebViews that only
     // fire window resize still re-anchor when following latest.

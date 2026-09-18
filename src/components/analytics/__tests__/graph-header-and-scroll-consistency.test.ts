@@ -89,7 +89,7 @@ describe('Graph body mobile scroll passivity', () => {
     for (const path of passiveGraphs) {
       const content = readContent(path)
       expect(content).toContain('ChartPassiveTouchSurface')
-      expect(content).toMatch(/<ChartPassiveTouchSurface className="w-full h-full">/)
+      expect(content).toMatch(/<ChartPassiveTouchSurface className="w-full h-full"[^>]*>/)
     }
   })
 

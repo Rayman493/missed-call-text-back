@@ -9,7 +9,7 @@ import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { ChartHeaderControls } from './ChartHeaderControls'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface, ChartSelectionPopup } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getDaysInTimeframe } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 
@@ -23,7 +23,14 @@ export default function NewCustomersGraph() {
   const [data, setData] = useState<NewCustomersData[]>([])
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
+  const [selectedDatum, setSelectedDatum] = useState<NewCustomersData | null>(null)
   const isTouchDevice = useTouchDevice()
+
+  const toggleDatum = (index: number) => {
+    setSelectedDatum((prev) =>
+      prev && prev.date === data[index]?.date ? null : (data[index] ?? null)
+    )
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -131,7 +138,13 @@ export default function NewCustomersGraph() {
             description="Missed calls converted to customers will appear here over time."
           />
         ) : (
-          <div className="h-[260px] relative">
+          <div
+            className="h-[260px] relative"
+            onClick={(e) => {
+              if ((e.target as HTMLElement).closest?.('.recharts-bar-rectangle')) return
+              setSelectedDatum(null)
+            }}
+          >
             <ChartPassiveTouchSurface className="w-full h-full">
               <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data} margin={CHART_STYLES.margin} barGap={CHART_STYLES.barGap} barCategoryGap={CHART_STYLES.categoryGap}>
@@ -168,12 +181,13 @@ export default function NewCustomersGraph() {
                       radius={CHART_STYLES.barRadius}
                       maxBarSize={CHART_STYLES.barMaxSize}
                       activeBar={false}
+                      onClick={(_, index) => toggleDatum(index)}
                     >
                       {data.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
                           fill="hsl(var(--primary))"
-                          fillOpacity={0.8}
+                          fillOpacity={selectedDatum?.date === entry.date ? 1 : 0.8}
                           className="transition-all duration-200"
                         />
                       ))}
@@ -181,6 +195,13 @@ export default function NewCustomersGraph() {
                   </BarChart>
                 </ResponsiveContainer>
             </ChartPassiveTouchSurface>
+            {selectedDatum && (
+              <ChartSelectionPopup
+                label={selectedDatum.date}
+                values={[{ label: 'New Customers', value: formatInteger(selectedDatum.customers) }]}
+                onDismiss={() => setSelectedDatum(null)}
+              />
+            )}
           </div>
         )}
       </div>

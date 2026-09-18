@@ -171,6 +171,58 @@ export function ChartDatumPopup({
 }
 
 /**
+ * Shared selected-datum popup for all dashboard charts.
+ *
+ * Compact, non-modal popup anchored to the top-right of the chart area.
+ * Shows a label (date/category) and one or more value rows. Tapping the ×
+ * or tapping outside the chart dismisses.
+ */
+export function ChartSelectionPopup({
+  label,
+  values,
+  onDismiss,
+}: {
+  label: string
+  values: { label: string; value: string | number; color?: string }[]
+  onDismiss: () => void
+}) {
+  return (
+    <div className="absolute top-1 right-1 z-20 max-w-[200px] bg-background/95 backdrop-blur-sm border border-border/50 rounded-lg shadow-sm px-2.5 py-2 text-xs pointer-events-auto">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-muted-foreground text-[10px] mb-0.5 truncate">{label}</p>
+          <div className="space-y-0.5">
+            {values.map((v, i) => (
+              <div key={i} className="flex items-center gap-1.5 text-[11px]">
+                {v.color && (
+                  <div
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: v.color }}
+                    aria-hidden="true"
+                  />
+                )}
+                <span className="text-muted-foreground truncate">{v.label}</span>
+                <span className="font-medium text-foreground tabular-nums">{v.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="text-muted-foreground hover:text-foreground flex-shrink-0 p-0.5 -mt-0.5 -mr-0.5"
+          aria-label="Dismiss selected data"
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <path d="M1 1l8 8M9 1l-8 8" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/**
  * Common chart styling constants
  */
 export const CHART_STYLES = {
@@ -258,9 +310,11 @@ import { GESTURE_MOVEMENT_THRESHOLD } from '@/lib/gesture/tap-guard'
 export function ChartPassiveTouchSurface({
   children,
   className,
+  onClick,
 }: {
   children: React.ReactNode
   className?: string
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void
 }) {
   const stopTouchPropagation = useCallback((e: React.TouchEvent) => {
     e.stopPropagation()
@@ -273,6 +327,7 @@ export function ChartPassiveTouchSurface({
       onTouchStartCapture={stopTouchPropagation}
       onTouchMoveCapture={stopTouchPropagation}
       onTouchEndCapture={stopTouchPropagation}
+      onClick={onClick}
     >
       {children}
     </div>
@@ -285,7 +340,7 @@ export function ChartPassiveTouchSurface({
  * ChartPassiveTouchSurface deliberately stops Recharts' touch middleware, so
  * chart-level `onClick`/`activeTooltipIndex` never resolves on Android. The
  * synthesized click event still reaches SVG children, so each datum renders an
- * invisible 14px-radius hit circle that owns its own click — no reliance on
+ * invisible 18px-radius hit circle that owns its own click — no reliance on
  * Recharts touch tracking, no overlay that would block vertical scrolling.
  */
 export function ChartHitDot({
@@ -306,13 +361,14 @@ export function ChartHitDot({
   if (typeof cx !== 'number' || typeof cy !== 'number') return null
   return (
     <g
+      data-chart-hit-dot
       onClick={(e) => {
         e.stopPropagation()
         onSelect(index)
       }}
       style={{ cursor: 'pointer' }}
     >
-      <circle cx={cx} cy={cy} r={14} fill="transparent" />
+      <circle cx={cx} cy={cy} r={18} fill="transparent" />
       {visible && <circle cx={cx} cy={cy} r={4} fill={fill} />}
     </g>
   )

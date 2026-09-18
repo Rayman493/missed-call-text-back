@@ -17,6 +17,14 @@ describe('RevenueGraph tap-to-inspect', () => {
     expect(content).toMatch(/prev\?\.index === idx\s*\?\s*null/)
   })
 
+  it('falls back to nearest-x datum selection on chart-area tap', () => {
+    // Taps between 18px hit circles resolve to the closest datum index.
+    expect(content).toContain('handleChartAreaClick')
+    expect(content).toContain('onClick={handleChartAreaClick}')
+    expect(content).toContain('.recharts-surface')
+    expect(content).toContain('Math.round((relativeX / plotWidth) * (data.length - 1))')
+  })
+
   it('renders a small data popup for the selected datum', () => {
     expect(content).toContain('selectedDatum.label')
     expect(content).toContain('formatCurrency(selectedDatum.revenue)')

@@ -1,8 +1,9 @@
 /**
- * Lower dashboard graphs — display-only contract
+ * Lower dashboard graphs — tap-to-select contract
  *
- * Verifies that Recharts graphs no longer use tap-to-select, selected datum
- * popups, or chart touch wrappers, while still supporting explicit filters.
+ * Verifies that every dashboard bar chart supports physical Android tap
+ * selection via Bar onClick, shows a ChartSelectionPopup, and dismisses
+ * on outside tap — while pie charts preserve their existing slice behavior.
  */
 
 import { describe, it, expect } from 'vitest'
@@ -22,14 +23,23 @@ describe('CustomerPipelineGraph', () => {
     expect(content).toContain('activeBar={false}')
   })
 
-  it('does not select bars or render a selected-datum popup', () => {
-    expect(content).not.toContain('const [selectedIndex')
-    expect(content).not.toContain('setSelectedIndex')
-    expect(content).not.toContain('<ChartDatumPopup')
+  it('tracks a selected datum and attaches onClick to Bar', () => {
+    expect(content).toContain('const [selectedDatum, setSelectedDatum]')
+    expect(content).toContain('onClick={(_, index) => toggleDatum(index)}')
   })
 
-  it('does not attach tap selection handlers to chart data', () => {
-    expect(content).not.toMatch(/onClick=\{[^}]*index/)
+  it('renders a ChartSelectionPopup for the selected datum', () => {
+    expect(content).toContain('<ChartSelectionPopup')
+    expect(content).toContain('selectedDatum.status')
+    expect(content).toContain('selectedDatum.count')
+  })
+
+  it('dismisses the popup on a tap outside the bar area', () => {
+    expect(content).toMatch(/closest\?\.\('\.recharts-bar-rectangle'\)[\s\S]*?setSelectedDatum\(null\)/)
+  })
+
+  it('does not use point hit circles for bar selection', () => {
+    expect(content).not.toContain('ChartHitDot')
   })
 })
 
@@ -45,10 +55,19 @@ describe('CustomersStatusGraph', () => {
     expect(content).toContain('activeBar={false}')
   })
 
-  it('does not select bars or render a selected-datum popup', () => {
-    expect(content).not.toContain('const [selectedIndex')
-    expect(content).not.toContain('setSelectedIndex')
-    expect(content).not.toContain('<ChartDatumPopup')
+  it('tracks a selected datum and attaches onClick to Bar', () => {
+    expect(content).toContain('const [selectedDatum, setSelectedDatum]')
+    expect(content).toContain('onClick={(_, index) => toggleDatum(index)}')
+  })
+
+  it('renders a ChartSelectionPopup for the selected datum', () => {
+    expect(content).toContain('<ChartSelectionPopup')
+    expect(content).toContain('selectedDatum.status')
+    expect(content).toContain('selectedDatum.count')
+  })
+
+  it('dismisses the popup on a tap outside the bar area', () => {
+    expect(content).toMatch(/closest\?\.\('\.recharts-bar-rectangle'\)[\s\S]*?setSelectedDatum\(null\)/)
   })
 })
 
@@ -59,10 +78,40 @@ describe('NewCustomersGraph', () => {
     expect(content).toContain('activeBar={false}')
   })
 
-  it('does not select bars or render a selected-datum popup', () => {
-    expect(content).not.toContain('const [selectedIndex')
-    expect(content).not.toContain('setSelectedIndex')
-    expect(content).not.toContain('<ChartDatumPopup')
+  it('tracks a selected datum and attaches onClick to Bar', () => {
+    expect(content).toContain('const [selectedDatum, setSelectedDatum]')
+    expect(content).toContain('onClick={(_, index) => toggleDatum(index)}')
+  })
+
+  it('renders a ChartSelectionPopup for the selected datum', () => {
+    expect(content).toContain('<ChartSelectionPopup')
+    expect(content).toContain('selectedDatum.date')
+    expect(content).toContain('selectedDatum.customers')
+  })
+
+  it('dismisses the popup on a tap outside the bar area', () => {
+    expect(content).toMatch(/closest\?\.\('\.recharts-bar-rectangle'\)[\s\S]*?setSelectedDatum\(null\)/)
+  })
+})
+
+describe('LeadConversionGraph', () => {
+  const content = read('src/components/analytics/LeadConversionGraph.tsx')
+
+  it('tracks a selected datum and attaches onClick to each stage row', () => {
+    expect(content).toContain('const [selectedDatum, setSelectedDatum]')
+    expect(content).toContain('data-conversion-stage')
+    expect(content).toMatch(/onClick=\{[\s\S]*?setSelectedDatum/)
+  })
+
+  it('renders a ChartSelectionPopup for the selected stage', () => {
+    expect(content).toContain('<ChartSelectionPopup')
+    expect(content).toContain('selectedDatum.name')
+    expect(content).toContain('selectedDatum.count')
+    expect(content).toContain('selectedDatum.percentage')
+  })
+
+  it('dismisses the popup on a tap outside a stage row', () => {
+    expect(content).toMatch(/closest\?\.\('\[data-conversion-stage\]'\)[\s\S]*?setSelectedDatum\(null\)/)
   })
 })
 

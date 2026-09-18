@@ -10,7 +10,7 @@ import ChartFilterButton from '@/components/ui/ChartFilterButton'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { getCustomerStatusStyle, getAllCustomerStatuses } from '@/lib/customer-status'
 import { ChartHeaderControls } from './ChartHeaderControls'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface, ChartSelectionPopup } from '@/lib/chart-utils'
 
 interface PipelineData {
   status: string
@@ -32,7 +32,14 @@ export default function CustomerPipelineGraph() {
   const [data, setData] = useState<PipelineData[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [selectedDatum, setSelectedDatum] = useState<PipelineData | null>(null)
   const isTouchDevice = useTouchDevice()
+
+  const toggleDatum = (index: number) => {
+    setSelectedDatum((prev) =>
+      prev && prev.status === displayData[index]?.status ? null : (displayData[index] ?? null)
+    )
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -159,7 +166,13 @@ export default function CustomerPipelineGraph() {
             description="Customers captured from missed calls will appear here as they move through your workflow."
           />
         ) : (
-          <div className="h-[260px] relative">
+          <div
+            className="h-[260px] relative"
+            onClick={(e) => {
+              if ((e.target as HTMLElement).closest?.('.recharts-bar-rectangle')) return
+              setSelectedDatum(null)
+            }}
+          >
             <ChartPassiveTouchSurface className="w-full h-full">
               <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={displayData} layout="vertical" margin={{ top: 8, right: 12, bottom: 8, left: 4 }}>
@@ -201,12 +214,13 @@ export default function CustomerPipelineGraph() {
                       barSize={24}
                       maxBarSize={CHART_STYLES.barMaxSize}
                       activeBar={false}
+                      onClick={(_, index) => toggleDatum(index)}
                     >
                       {displayData.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={entry.color}
-                          fillOpacity={0.85}
+                          fillOpacity={selectedDatum?.status === entry.status ? 1 : 0.85}
                           className="transition-all duration-200"
                         />
                       ))}
@@ -214,6 +228,13 @@ export default function CustomerPipelineGraph() {
                   </BarChart>
                 </ResponsiveContainer>
             </ChartPassiveTouchSurface>
+            {selectedDatum && (
+              <ChartSelectionPopup
+                label={selectedDatum.status}
+                values={[{ label: 'Customers', value: formatInteger(selectedDatum.count), color: selectedDatum.color }]}
+                onDismiss={() => setSelectedDatum(null)}
+              />
+            )}
           </div>
         )}
       </div>

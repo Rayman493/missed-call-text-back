@@ -23,6 +23,7 @@ import {
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import AppBackButton from '@/components/AppBackButton'
+import { ChartSelectionPopup } from '@/lib/chart-utils'
 import EmptyState from '@/components/ui/EmptyState'
 import { CardSkeleton } from '@/components/ui/Skeleton'
 import Skeleton from '@/components/ui/Skeleton'
@@ -590,8 +591,9 @@ function PercentageCard({ label, value }: { label: string; value: number }) {
 }
 
 function SimpleBarChart({ data, color, label }: { data: TrendData[]; color: 'blue' | 'green'; label?: string }) {
+  const [selectedDatum, setSelectedDatum] = useState<TrendData | null>(null)
   const hasData = data.some(d => d.value > 0)
-  
+
   if (!hasData) {
     const emptyMessage = label === 'Customer Activity Trend'
       ? 'No customer activity yet'
@@ -604,7 +606,7 @@ function SimpleBarChart({ data, color, label }: { data: TrendData[]; color: 'blu
       : label === 'Customer Reply Trend'
       ? 'Inbound customer replies will appear here.'
       : 'Activity will appear here as customers call, text, and reply'
-    
+
     return (
       <div className="flex items-center justify-center h-32 sm:h-40 text-center">
         <div className="px-4">
@@ -620,21 +622,33 @@ function SimpleBarChart({ data, color, label }: { data: TrendData[]; color: 'blu
   }
 
   const maxValue = Math.max(...data.map(d => d.value), 1)
-  
-  const colorClass = color === 'blue' 
-    ? 'bg-blue-500 dark:bg-blue-400' 
+
+  const colorClass = color === 'blue'
+    ? 'bg-blue-500 dark:bg-blue-400'
     : 'bg-green-500 dark:bg-green-400'
 
   return (
-    <div className="flex items-end gap-2 h-32 sm:h-40 relative">
+    <div
+      className="flex items-end gap-2 h-32 sm:h-40 relative"
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest?.('[data-trend-bar]')) return
+        setSelectedDatum(null)
+      }}
+    >
       <div className="absolute inset-0 rounded-lg bg-gradient-to-b from-slate-50/50 to-transparent dark:from-slate-800/30 dark:to-transparent pointer-events-none" />
       {data.map((item: TrendData, index: number) => {
         const height = (item.value / maxValue) * 100
         return (
           <div key={index} className="flex-1 flex flex-col items-center gap-1 relative z-10">
-            <div 
-              className={`w-full rounded-t-sm ${colorClass} transition-all duration-300 shadow-sm`}
+            <div
+              data-trend-bar
+              className={`w-full rounded-t-sm ${colorClass} transition-all duration-300 shadow-sm cursor-pointer ${selectedDatum?.date === item.date ? 'ring-2 ring-offset-1 ring-slate-400 dark:ring-slate-500' : ''}`}
               style={{ height: `${Math.max(height, 5)}%` }}
+              onClick={() =>
+                setSelectedDatum(prev =>
+                  prev?.date === item.date ? null : item
+                )
+              }
             />
             <span className="text-[9px] sm:text-[10px] text-slate-600 dark:text-muted-foreground text-center">
               {item.date}
@@ -642,6 +656,13 @@ function SimpleBarChart({ data, color, label }: { data: TrendData[]; color: 'blu
           </div>
         )
       })}
+      {selectedDatum && (
+        <ChartSelectionPopup
+          label={selectedDatum.date}
+          values={[{ label: label || 'Value', value: selectedDatum.value }]}
+          onDismiss={() => setSelectedDatum(null)}
+        />
+      )}
     </div>
   )
 }
